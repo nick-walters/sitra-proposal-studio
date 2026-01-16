@@ -96,7 +96,7 @@ export function Dashboard() {
           <div>
             <h1 className="text-3xl font-bold text-foreground">My Proposals</h1>
             <p className="text-muted-foreground mt-1">
-              Manage your Horizon Europe funding proposals
+              Co-develop Horizon Europe proposals with your consortium
             </p>
           </div>
           <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">

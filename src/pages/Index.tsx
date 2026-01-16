@@ -10,6 +10,7 @@ import {
   Star,
   Shield,
   Zap,
+  ExternalLink,
 } from "lucide-react";
 
 export default function Index() {
@@ -64,18 +65,16 @@ export default function Index() {
           <div className="max-w-3xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6 animate-fade-in">
               <Star className="w-4 h-4" />
-              Purpose-built for Horizon Europe
+              A Sitra internal tool for Horizon Europe
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-6 animate-slide-up">
-              Write Winning{" "}
-              <span className="text-primary">EU Proposals</span>{" "}
-              Together
+              <span className="text-primary">grant.eu</span>
             </h1>
 
             <p className="text-lg sm:text-xl text-muted-foreground mb-8 animate-slide-up max-w-2xl mx-auto" style={{ animationDelay: '0.1s' }}>
-              The collaborative platform for drafting Horizon Europe funding proposals.
-              Real-time editing, change tracking, and publication-ready exports.
+              Sitra's collaborative platform for co-developing Horizon Europe funding proposals
+              with consortium partners. Real-time editing, change tracking, and publication-ready exports.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-slide-up" style={{ animationDelay: '0.2s' }}>
@@ -94,14 +93,11 @@ export default function Index() {
               </Button>
             </div>
 
-            {/* Trust indicators */}
+            {/* Trust indicator */}
             <div className="mt-12 pt-8 border-t border-border animate-fade-in" style={{ animationDelay: '0.3s' }}>
-              <p className="text-sm text-muted-foreground mb-4">Trusted by research institutions across Europe</p>
-              <div className="flex items-center justify-center gap-8 opacity-50">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="w-20 h-8 bg-muted rounded" />
-                ))}
-              </div>
+              <p className="text-sm text-muted-foreground">
+                An internal tool by <span className="font-semibold text-foreground">Sitra</span> — The Finnish Innovation Fund
+              </p>
             </div>
           </div>
         </div>
@@ -192,10 +188,10 @@ export default function Index() {
       <section className="py-20 bg-primary text-primary-foreground">
         <div className="container text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-6">
-            Ready to Write Your Next Winning Proposal?
+            Ready to Start Your Proposal?
           </h2>
           <p className="text-lg opacity-90 mb-8 max-w-2xl mx-auto">
-            Join research teams across Europe who are using HorizonWrite to streamline their proposal development process.
+            Access grant.eu to collaborate with your consortium partners on Horizon Europe proposals.
           </p>
           <Button
             size="xl"
@@ -203,7 +199,7 @@ export default function Index() {
             onClick={() => navigate('/dashboard')}
             className="gap-2"
           >
-            Get Started Free
+            Go to Dashboard
             <ArrowRight className="w-5 h-5" />
           </Button>
         </div>
@@ -213,14 +209,12 @@ export default function Index() {
       <footer className="py-8 border-t border-border">
         <div className="container">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <FileText className="w-4 h-4 text-primary-foreground" />
-              </div>
-              <span className="font-semibold">HorizonWrite</span>
+            <div className="flex items-center gap-3">
+              <span className="font-bold text-lg">grant.eu</span>
+              <span className="text-sm text-muted-foreground">by Sitra</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              © 2024 HorizonWrite. Built for the European research community.
+              © {new Date().getFullYear()} Sitra — The Finnish Innovation Fund. Internal use only.
             </p>
           </div>
         </div>
