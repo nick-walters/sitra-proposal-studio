@@ -14,16 +14,664 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      budget_items: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          justification: string | null
+          participant_id: string
+          proposal_id: string
+          subcategory: string | null
+          updated_at: string
+          work_package: string | null
+        }
+        Insert: {
+          amount?: number
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          justification?: string | null
+          participant_id: string
+          proposal_id: string
+          subcategory?: string | null
+          updated_at?: string
+          work_package?: string | null
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          justification?: string | null
+          participant_id?: string
+          proposal_id?: string
+          subcategory?: string | null
+          updated_at?: string
+          work_package?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_items_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_items_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          proposal_id: string
+          resolved: boolean | null
+          section_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          proposal_id: string
+          resolved?: boolean | null
+          section_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          proposal_id?: string
+          resolved?: boolean | null
+          section_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ethics_assessment: {
+        Row: {
+          animals: boolean | null
+          animals_details: string | null
+          created_at: string
+          dual_use: boolean | null
+          dual_use_details: string | null
+          environment: boolean | null
+          environment_details: string | null
+          human_cells: boolean | null
+          human_cells_details: string | null
+          human_subjects: boolean | null
+          human_subjects_details: string | null
+          id: string
+          misuse: boolean | null
+          misuse_details: string | null
+          other_ethics: boolean | null
+          other_ethics_details: string | null
+          personal_data: boolean | null
+          personal_data_details: string | null
+          proposal_id: string
+          third_countries: boolean | null
+          third_countries_details: string | null
+          updated_at: string
+        }
+        Insert: {
+          animals?: boolean | null
+          animals_details?: string | null
+          created_at?: string
+          dual_use?: boolean | null
+          dual_use_details?: string | null
+          environment?: boolean | null
+          environment_details?: string | null
+          human_cells?: boolean | null
+          human_cells_details?: string | null
+          human_subjects?: boolean | null
+          human_subjects_details?: string | null
+          id?: string
+          misuse?: boolean | null
+          misuse_details?: string | null
+          other_ethics?: boolean | null
+          other_ethics_details?: string | null
+          personal_data?: boolean | null
+          personal_data_details?: string | null
+          proposal_id: string
+          third_countries?: boolean | null
+          third_countries_details?: string | null
+          updated_at?: string
+        }
+        Update: {
+          animals?: boolean | null
+          animals_details?: string | null
+          created_at?: string
+          dual_use?: boolean | null
+          dual_use_details?: string | null
+          environment?: boolean | null
+          environment_details?: string | null
+          human_cells?: boolean | null
+          human_cells_details?: string | null
+          human_subjects?: boolean | null
+          human_subjects_details?: string | null
+          id?: string
+          misuse?: boolean | null
+          misuse_details?: string | null
+          other_ethics?: boolean | null
+          other_ethics_details?: string | null
+          personal_data?: boolean | null
+          personal_data_details?: string | null
+          proposal_id?: string
+          third_countries?: boolean | null
+          third_countries_details?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ethics_assessment_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: true
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      part_a_data: {
+        Row: {
+          additional_info: Json | null
+          created_at: string
+          declarations: string | null
+          dependencies: string | null
+          id: string
+          participant_id: string
+          previous_proposals: string | null
+          resources: string | null
+          updated_at: string
+        }
+        Insert: {
+          additional_info?: Json | null
+          created_at?: string
+          declarations?: string | null
+          dependencies?: string | null
+          id?: string
+          participant_id: string
+          previous_proposals?: string | null
+          resources?: string | null
+          updated_at?: string
+        }
+        Update: {
+          additional_info?: Json | null
+          created_at?: string
+          declarations?: string | null
+          dependencies?: string | null
+          id?: string
+          participant_id?: string
+          previous_proposals?: string | null
+          resources?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "part_a_data_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: true
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      participant_members: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          is_primary_contact: boolean | null
+          participant_id: string
+          person_months: number | null
+          role_in_project: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          is_primary_contact?: boolean | null
+          participant_id: string
+          person_months?: number | null
+          role_in_project?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          is_primary_contact?: boolean | null
+          participant_id?: string
+          person_months?: number | null
+          role_in_project?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participant_members_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      participants: {
+        Row: {
+          address: string | null
+          contact_email: string | null
+          country: string | null
+          created_at: string
+          id: string
+          is_sme: boolean | null
+          legal_entity_type: string | null
+          logo_url: string | null
+          organisation_name: string
+          organisation_short_name: string | null
+          organisation_type: Database["public"]["Enums"]["participant_type"]
+          participant_number: number | null
+          pic_number: string | null
+          proposal_id: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          contact_email?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          is_sme?: boolean | null
+          legal_entity_type?: string | null
+          logo_url?: string | null
+          organisation_name: string
+          organisation_short_name?: string | null
+          organisation_type?: Database["public"]["Enums"]["participant_type"]
+          participant_number?: number | null
+          pic_number?: string | null
+          proposal_id: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          contact_email?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          is_sme?: boolean | null
+          legal_entity_type?: string | null
+          logo_url?: string | null
+          organisation_name?: string
+          organisation_short_name?: string | null
+          organisation_type?: Database["public"]["Enums"]["participant_type"]
+          participant_number?: number | null
+          pic_number?: string | null
+          proposal_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participants_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          organisation: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id: string
+          organisation?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          organisation?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      proposals: {
+        Row: {
+          acronym: string
+          budget_type: Database["public"]["Enums"]["budget_type"]
+          created_at: string
+          created_by: string | null
+          deadline: string | null
+          description: string | null
+          id: string
+          status: Database["public"]["Enums"]["proposal_status"]
+          title: string
+          topic_id: string | null
+          topic_url: string | null
+          total_budget: number | null
+          type: Database["public"]["Enums"]["proposal_type"]
+          updated_at: string
+        }
+        Insert: {
+          acronym: string
+          budget_type?: Database["public"]["Enums"]["budget_type"]
+          created_at?: string
+          created_by?: string | null
+          deadline?: string | null
+          description?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["proposal_status"]
+          title: string
+          topic_id?: string | null
+          topic_url?: string | null
+          total_budget?: number | null
+          type?: Database["public"]["Enums"]["proposal_type"]
+          updated_at?: string
+        }
+        Update: {
+          acronym?: string
+          budget_type?: Database["public"]["Enums"]["budget_type"]
+          created_at?: string
+          created_by?: string | null
+          deadline?: string | null
+          description?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["proposal_status"]
+          title?: string
+          topic_id?: string | null
+          topic_url?: string | null
+          total_budget?: number | null
+          type?: Database["public"]["Enums"]["proposal_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      references: {
+        Row: {
+          authors: string[] | null
+          citation_number: number
+          created_at: string
+          doi: string | null
+          formatted_citation: string | null
+          id: string
+          journal: string | null
+          pages: string | null
+          proposal_id: string
+          title: string
+          updated_at: string
+          verified: boolean | null
+          volume: string | null
+          year: number | null
+        }
+        Insert: {
+          authors?: string[] | null
+          citation_number: number
+          created_at?: string
+          doi?: string | null
+          formatted_citation?: string | null
+          id?: string
+          journal?: string | null
+          pages?: string | null
+          proposal_id: string
+          title: string
+          updated_at?: string
+          verified?: boolean | null
+          volume?: string | null
+          year?: number | null
+        }
+        Update: {
+          authors?: string[] | null
+          citation_number?: number
+          created_at?: string
+          doi?: string | null
+          formatted_citation?: string | null
+          id?: string
+          journal?: string | null
+          pages?: string | null
+          proposal_id?: string
+          title?: string
+          updated_at?: string
+          verified?: boolean | null
+          volume?: string | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "references_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      section_content: {
+        Row: {
+          content: string | null
+          created_at: string
+          id: string
+          last_edited_by: string | null
+          proposal_id: string
+          section_id: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          last_edited_by?: string | null
+          proposal_id: string
+          section_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          last_edited_by?: string | null
+          proposal_id?: string
+          section_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "section_content_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      section_footnotes: {
+        Row: {
+          created_at: string
+          id: string
+          position_in_text: number | null
+          reference_id: string
+          section_content_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          position_in_text?: number | null
+          reference_id: string
+          section_content_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          position_in_text?: number | null
+          reference_id?: string
+          section_content_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "section_footnotes_reference_id_fkey"
+            columns: ["reference_id"]
+            isOneToOne: false
+            referencedRelation: "references"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "section_footnotes_section_content_id_fkey"
+            columns: ["section_content_id"]
+            isOneToOne: false
+            referencedRelation: "section_content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          proposal_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          proposal_id: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          proposal_id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          proposal_id: string
+          snapshot: Json
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          proposal_id: string
+          snapshot: Json
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          proposal_id?: string
+          snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "versions_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      can_edit_proposal: {
+        Args: { _proposal_id: string; _user_id: string }
+        Returns: boolean
+      }
+      has_any_proposal_role: {
+        Args: { _proposal_id: string; _user_id: string }
+        Returns: boolean
+      }
+      has_proposal_role: {
+        Args: {
+          _proposal_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_proposal_admin: {
+        Args: { _proposal_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "editor" | "viewer"
+      budget_type: "traditional" | "lump_sum"
+      participant_type:
+        | "beneficiary"
+        | "affiliated_entity"
+        | "associated_partner"
+        | "third_party_against_payment"
+        | "third_party_free_of_charge"
+        | "subcontractor"
+        | "international_partner"
+        | "associated_country_partner"
+      proposal_status: "draft" | "in_review" | "submitted"
+      proposal_type: "RIA" | "IA" | "CSA" | "OTHER"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +798,21 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "editor", "viewer"],
+      budget_type: ["traditional", "lump_sum"],
+      participant_type: [
+        "beneficiary",
+        "affiliated_entity",
+        "associated_partner",
+        "third_party_against_payment",
+        "third_party_free_of_charge",
+        "subcontractor",
+        "international_partner",
+        "associated_country_partner",
+      ],
+      proposal_status: ["draft", "in_review", "submitted"],
+      proposal_type: ["RIA", "IA", "CSA", "OTHER"],
+    },
   },
 } as const

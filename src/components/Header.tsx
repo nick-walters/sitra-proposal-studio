@@ -1,22 +1,38 @@
 import { Button } from "@/components/ui/button";
-import { FileText, Users, Settings, LogOut } from "lucide-react";
+import { Users, Settings, LogOut } from "lucide-react";
+import sitraLogo from "@/assets/sitra-logo.png";
+import { Link } from "react-router-dom";
 
-export function Header() {
+interface HeaderProps {
+  user?: {
+    name: string;
+    email: string;
+    avatar?: string;
+  };
+  onLogout?: () => void;
+}
+
+export function Header({ user, onLogout }: HeaderProps) {
+  const initials = user?.name
+    ? user.name.split(' ').map(n => n[0]).join('').toUpperCase()
+    : 'U';
+
   return (
     <header className="h-16 border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
       <div className="h-full px-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3">
+          <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <img src={sitraLogo} alt="Sitra" className="h-6" />
             <span className="text-xl font-bold tracking-tight text-foreground">grant.eu</span>
-            <span className="text-xs text-muted-foreground border-l border-border pl-3">by Sitra</span>
-          </div>
+          </Link>
         </div>
 
         <nav className="hidden md:flex items-center gap-1">
-          <Button variant="ghost" size="sm" className="gap-2">
-            <FileText className="w-4 h-4" />
-            My Proposals
-          </Button>
+          <Link to="/dashboard">
+            <Button variant="ghost" size="sm" className="gap-2">
+              My Proposals
+            </Button>
+          </Link>
           <Button variant="ghost" size="sm" className="gap-2">
             <Users className="w-4 h-4" />
             Collaborators
@@ -28,13 +44,20 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-3">
-          <div className="hidden sm:flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-              <span className="text-sm font-medium text-primary">JD</span>
+          {user && (
+            <div className="hidden sm:flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <span className="text-sm font-medium text-primary">{initials}</span>
+              </div>
+              <span className="text-sm font-medium">{user.name}</span>
             </div>
-            <span className="text-sm font-medium">John Doe</span>
-          </div>
-          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+          )}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-muted-foreground hover:text-foreground"
+            onClick={onLogout}
+          >
             <LogOut className="w-4 h-4" />
           </Button>
         </div>

@@ -10,8 +10,8 @@ import {
   Star,
   Shield,
   Zap,
-  ExternalLink,
 } from "lucide-react";
+import sitraLogo from "@/assets/sitra-logo.png";
 
 export default function Index() {
   const navigate = useNavigate();
@@ -63,6 +63,9 @@ export default function Index() {
 
         <div className="relative container py-24 lg:py-32">
           <div className="max-w-3xl mx-auto text-center">
+            <div className="flex items-center justify-center mb-6 animate-fade-in">
+              <img src={sitraLogo} alt="Sitra" className="h-10" />
+            </div>
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6 animate-fade-in">
               <Star className="w-4 h-4" />
               A Sitra internal tool for Horizon Europe
