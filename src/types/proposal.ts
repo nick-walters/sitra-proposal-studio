@@ -1,12 +1,35 @@
 export type ProposalType = 'RIA' | 'IA' | 'CSA' | 'OTHER';
-
+export type BudgetType = 'traditional' | 'lump_sum';
 export type UserRole = 'admin' | 'editor' | 'viewer';
+export type ProposalStatus = 'draft' | 'in-review' | 'submitted';
+
+export type ParticipantType = 
+  | 'beneficiary'
+  | 'affiliated_entity'
+  | 'associated_partner'
+  | 'third_party_against_payment'
+  | 'third_party_free_of_charge'
+  | 'subcontractor'
+  | 'international_partner'
+  | 'associated_country_partner';
+
+export const PARTICIPANT_TYPE_LABELS: Record<ParticipantType, string> = {
+  beneficiary: 'Beneficiary',
+  affiliated_entity: 'Affiliated Entity',
+  associated_partner: 'Associated Partner',
+  third_party_against_payment: 'Third Party (Against Payment)',
+  third_party_free_of_charge: 'Third Party (Free of Charge)',
+  subcontractor: 'Subcontractor',
+  international_partner: 'International Partner',
+  associated_country_partner: 'Associated Country Partner',
+};
 
 export interface User {
   id: string;
   name: string;
   email: string;
   avatar?: string;
+  organisation?: string;
 }
 
 export interface ProposalMember {
@@ -27,6 +50,7 @@ export interface Section {
   };
   wordLimit?: number;
   pageLimit?: number;
+  isPartA?: boolean;
 }
 
 export interface Proposal {
@@ -34,11 +58,59 @@ export interface Proposal {
   acronym: string;
   title: string;
   type: ProposalType;
+  budgetType: BudgetType;
   createdAt: Date;
   updatedAt: Date;
   members: ProposalMember[];
   sections: Section[];
-  status: 'draft' | 'in-review' | 'submitted';
+  status: ProposalStatus;
+  topicUrl?: string;
+  topicId?: string;
+  totalBudget?: number;
+  deadline?: Date;
+  description?: string;
+}
+
+export interface Participant {
+  id: string;
+  proposalId: string;
+  organisationName: string;
+  organisationShortName?: string;
+  organisationType: ParticipantType;
+  country?: string;
+  logoUrl?: string;
+  picNumber?: string;
+  legalEntityType?: string;
+  isSme: boolean;
+  participantNumber: number;
+  contactEmail?: string;
+  address?: string;
+}
+
+export interface ParticipantMember {
+  id: string;
+  participantId: string;
+  userId?: string;
+  fullName: string;
+  email?: string;
+  roleInProject?: string;
+  personMonths?: number;
+  isPrimaryContact: boolean;
+}
+
+export interface Reference {
+  id: string;
+  proposalId: string;
+  citationNumber: number;
+  doi?: string;
+  authors: string[];
+  year?: number;
+  title: string;
+  journal?: string;
+  volume?: string;
+  pages?: string;
+  formattedCitation?: string;
+  verified: boolean;
 }
 
 export interface Comment {
@@ -58,6 +130,130 @@ export interface Version {
   description?: string;
 }
 
+export interface BudgetItem {
+  id: string;
+  proposalId: string;
+  participantId: string;
+  category: string;
+  subcategory?: string;
+  description?: string;
+  amount: number;
+  justification?: string;
+  workPackage?: string;
+}
+
+export interface EthicsAssessment {
+  id: string;
+  proposalId: string;
+  humanSubjects: boolean;
+  humanSubjectsDetails?: string;
+  personalData: boolean;
+  personalDataDetails?: string;
+  animals: boolean;
+  animalsDetails?: string;
+  humanCells: boolean;
+  humanCellsDetails?: string;
+  thirdCountries: boolean;
+  thirdCountriesDetails?: string;
+  environment: boolean;
+  environmentDetails?: string;
+  dualUse: boolean;
+  dualUseDetails?: string;
+  misuse: boolean;
+  misuseDetails?: string;
+  otherEthics: boolean;
+  otherEthicsDetails?: string;
+}
+
+// Part A sections structure
+export const PART_A_SECTIONS: Section[] = [
+  {
+    id: 'proposal-info',
+    number: 'A.0',
+    title: 'Proposal Information',
+    isPartA: true,
+    guidelines: {
+      text: 'Overview of the proposal including topic information, budget, deadline, and consortium summary.',
+    },
+  },
+  {
+    id: 'admin-forms',
+    number: 'A.1',
+    title: 'Administrative Forms',
+    isPartA: true,
+    guidelines: {
+      text: 'Complete the administrative information for each participant organisation.',
+    },
+    subsections: [
+      {
+        id: 'participant-info',
+        number: 'A.1.1',
+        title: 'Participant Information',
+        isPartA: true,
+        guidelines: {
+          text: 'Enter details for each participating organisation including PIC number, legal entity type, and contact information.',
+        },
+      },
+      {
+        id: 'team-members',
+        number: 'A.1.2',
+        title: 'Team Members',
+        isPartA: true,
+        guidelines: {
+          text: 'List all team members from each participant organisation and their roles in the project.',
+        },
+      },
+    ],
+  },
+  {
+    id: 'budget',
+    number: 'A.2',
+    title: 'Budget',
+    isPartA: true,
+    guidelines: {
+      text: 'Complete the budget breakdown for each participant. Select traditional or lump sum budget model.',
+    },
+    subsections: [
+      {
+        id: 'budget-overview',
+        number: 'A.2.1',
+        title: 'Budget Overview',
+        isPartA: true,
+        guidelines: {
+          text: 'Summary of the total project budget and distribution across participants.',
+        },
+      },
+      {
+        id: 'budget-details',
+        number: 'A.2.2',
+        title: 'Detailed Budget',
+        isPartA: true,
+        guidelines: {
+          text: 'Detailed breakdown by cost category: personnel, equipment, subcontracting, travel, etc.',
+        },
+      },
+    ],
+  },
+  {
+    id: 'ethics',
+    number: 'A.3',
+    title: 'Ethics Self-Assessment',
+    isPartA: true,
+    guidelines: {
+      text: 'Complete the ethics self-assessment. All partners can edit this section.',
+    },
+  },
+  {
+    id: 'declarations',
+    number: 'A.4',
+    title: 'Declarations',
+    isPartA: true,
+    guidelines: {
+      text: 'Declarations required by each participant organisation.',
+    },
+  },
+];
+
 // Horizon Europe Part B structure
 export const HORIZON_EUROPE_SECTIONS: Section[] = [
   {
@@ -70,18 +266,18 @@ export const HORIZON_EUROPE_SECTIONS: Section[] = [
         number: '1.1',
         title: 'Objectives and ambition',
         guidelines: {
-          text: 'Describe the specific objectives for the project, which should be clear, measurable, realistic and achievable within the duration of the project. Objectives should be consistent with the expected exploitation and impact of the project.'
-        }
+          text: 'Describe the specific objectives for the project, which should be clear, measurable, realistic and achievable within the duration of the project. Objectives should be consistent with the expected exploitation and impact of the project.',
+        },
       },
       {
         id: 'methodology',
         number: '1.2',
         title: 'Methodology',
         guidelines: {
-          text: 'Describe and explain the overall methodology, including the concepts, models and assumptions that underpin your work. Explain how this will enable you to deliver your project objectives.'
-        }
-      }
-    ]
+          text: 'Describe and explain the overall methodology, including the concepts, models and assumptions that underpin your work. Explain how this will enable you to deliver your project objectives.',
+        },
+      },
+    ],
   },
   {
     id: 'impact',
@@ -91,20 +287,20 @@ export const HORIZON_EUROPE_SECTIONS: Section[] = [
       {
         id: 'pathways',
         number: '2.1',
-        title: 'Project\'s pathways towards impact',
+        title: "Project's pathways towards impact",
         guidelines: {
-          text: 'Describe how the project\'s results will contribute to each of the expected impacts mentioned in the work programme, under the relevant topic.'
-        }
+          text: "Describe how the project's results will contribute to each of the expected impacts mentioned in the work programme, under the relevant topic.",
+        },
       },
       {
         id: 'dissemination',
         number: '2.2',
         title: 'Measures to maximise impact - Dissemination, exploitation and communication',
         guidelines: {
-          text: 'Describe the planned measures to maximise the impact of your project by providing a first draft of your plan for the dissemination and exploitation including communication activities.'
-        }
-      }
-    ]
+          text: 'Describe the planned measures to maximise the impact of your project by providing a first draft of your plan for the dissemination and exploitation including communication activities.',
+        },
+      },
+    ],
   },
   {
     id: 'implementation',
@@ -116,17 +312,35 @@ export const HORIZON_EUROPE_SECTIONS: Section[] = [
         number: '3.1',
         title: 'Work plan and resources',
         guidelines: {
-          text: 'Describe the work plan, work packages, deliverables and milestones. Describe the requested resources: staff effort, equipment, consumables, travel, etc.'
-        }
+          text: 'Describe the work plan, work packages, deliverables and milestones. Describe the requested resources: staff effort, equipment, consumables, travel, etc.',
+        },
       },
       {
         id: 'consortium',
         number: '3.2',
         title: 'Capacity of participants and consortium as a whole',
         guidelines: {
-          text: 'Describe and explain the capacity of the participating organisations to successfully carry out the tasks and the complementarity of the different participants.'
-        }
-      }
-    ]
-  }
+          text: 'Describe and explain the capacity of the participating organisations to successfully carry out the tasks and the complementarity of the different participants.',
+        },
+      },
+    ],
+  },
+];
+
+// Budget categories for traditional proposals
+export const BUDGET_CATEGORIES_TRADITIONAL = [
+  { id: 'personnel', label: 'A. Personnel costs', subcategories: ['Researchers', 'Technicians', 'Administrative'] },
+  { id: 'subcontracting', label: 'B. Subcontracting', subcategories: [] },
+  { id: 'purchase', label: 'C. Purchase costs', subcategories: ['Travel', 'Equipment', 'Other goods and services'] },
+  { id: 'other', label: 'D. Other cost categories', subcategories: ['Internally invoiced goods', 'Linked third parties'] },
+  { id: 'indirect', label: 'E. Indirect costs (25% flat rate)', subcategories: [] },
+];
+
+// Budget categories for lump sum proposals
+export const BUDGET_CATEGORIES_LUMP_SUM = [
+  { id: 'wp1', label: 'Work Package 1', subcategories: [] },
+  { id: 'wp2', label: 'Work Package 2', subcategories: [] },
+  { id: 'wp3', label: 'Work Package 3', subcategories: [] },
+  { id: 'wp4', label: 'Work Package 4', subcategories: [] },
+  { id: 'wp5', label: 'Work Package 5', subcategories: [] },
 ];
