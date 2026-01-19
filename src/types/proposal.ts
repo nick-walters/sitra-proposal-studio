@@ -1,7 +1,7 @@
-export type ProposalType = 'RIA' | 'IA' | 'CSA' | 'OTHER';
+export type ProposalType = 'RIA' | 'IA' | 'CSA';
 export type BudgetType = 'traditional' | 'lump_sum';
 export type UserRole = 'admin' | 'editor' | 'viewer';
-export type ProposalStatus = 'draft' | 'in-review' | 'submitted';
+export type ProposalStatus = 'draft' | 'submitted' | 'funded' | 'not_funded';
 
 export type ParticipantType = 
   | 'beneficiary'
@@ -22,6 +22,107 @@ export const PARTICIPANT_TYPE_LABELS: Record<ParticipantType, string> = {
   subcontractor: 'Subcontractor',
   international_partner: 'International Partner',
   associated_country_partner: 'Associated Country Partner',
+};
+
+export const PROPOSAL_STATUS_LABELS: Record<ProposalStatus, string> = {
+  draft: 'Draft',
+  submitted: 'Submitted',
+  funded: 'Funded',
+  not_funded: 'Not Funded',
+};
+
+export const PROPOSAL_TYPE_LABELS: Record<ProposalType, string> = {
+  RIA: 'Research and Innovation Action',
+  IA: 'Innovation Action',
+  CSA: 'Coordination and Support Action',
+};
+
+// Work Programmes with abbreviations
+export interface WorkProgramme {
+  id: string;
+  abbreviation: string;
+  fullName: string;
+}
+
+export const WORK_PROGRAMMES: WorkProgramme[] = [
+  { id: 'CL1', abbreviation: 'CL1', fullName: 'Cluster 1: Health' },
+  { id: 'CL2', abbreviation: 'CL2', fullName: 'Cluster 2: Culture, Creativity & Inclusive Society' },
+  { id: 'CL3', abbreviation: 'CL3', fullName: 'Cluster 3: Civil Security for Society' },
+  { id: 'CL4', abbreviation: 'CL4', fullName: 'Cluster 4: Digital, Industry & Space' },
+  { id: 'CL5', abbreviation: 'CL5', fullName: 'Cluster 5: Climate, Energy & Mobility' },
+  { id: 'CL6', abbreviation: 'CL6', fullName: 'Cluster 6: Food, Bioeconomy, Natural Resources, Agriculture & Environment' },
+  { id: 'MISS', abbreviation: 'MISS', fullName: 'EU Missions' },
+  { id: 'NEB', abbreviation: 'NEB', fullName: 'New European Bauhaus' },
+];
+
+// Destinations per Work Programme
+export interface Destination {
+  id: string;
+  abbreviation: string;
+  fullName: string;
+  workProgrammeId: string;
+}
+
+export const DESTINATIONS: Destination[] = [
+  // CL1 - Health
+  { id: 'CL1-D1', abbreviation: 'HLTH-D1', fullName: 'Staying healthy in a rapidly changing society', workProgrammeId: 'CL1' },
+  { id: 'CL1-D2', abbreviation: 'HLTH-D2', fullName: 'Living and working in a health-promoting environment', workProgrammeId: 'CL1' },
+  { id: 'CL1-D3', abbreviation: 'HLTH-D3', fullName: 'Tackling diseases and reducing disease burden', workProgrammeId: 'CL1' },
+  { id: 'CL1-D4', abbreviation: 'HLTH-D4', fullName: 'Ensuring access to innovative, sustainable and high-quality health care', workProgrammeId: 'CL1' },
+  { id: 'CL1-D5', abbreviation: 'HLTH-D5', fullName: 'Unlocking the full potential of new tools, technologies and digital solutions', workProgrammeId: 'CL1' },
+  { id: 'CL1-D6', abbreviation: 'HLTH-D6', fullName: 'Maintaining an innovative, sustainable and globally competitive health-related industry', workProgrammeId: 'CL1' },
+
+  // CL2 - Culture, Creativity & Inclusive Society
+  { id: 'CL2-D1', abbreviation: 'DEMOCRACY', fullName: 'Innovative Research on Democracy and Governance', workProgrammeId: 'CL2' },
+  { id: 'CL2-D2', abbreviation: 'HERITAGE', fullName: 'Innovative Research on European Cultural Heritage and the Cultural and Creative Industries', workProgrammeId: 'CL2' },
+  { id: 'CL2-D3', abbreviation: 'TRANSFORMATIONS', fullName: 'Innovative Research on Social and Economic Transformations', workProgrammeId: 'CL2' },
+
+  // CL3 - Civil Security for Society
+  { id: 'CL3-D1', abbreviation: 'FCT', fullName: 'Better protect the EU and its citizens against Crime and Terrorism', workProgrammeId: 'CL3' },
+  { id: 'CL3-D2', abbreviation: 'BM', fullName: 'Effective management of EU external borders', workProgrammeId: 'CL3' },
+  { id: 'CL3-D3', abbreviation: 'INFRA', fullName: 'Resilient Infrastructure', workProgrammeId: 'CL3' },
+  { id: 'CL3-D4', abbreviation: 'CS', fullName: 'Increased Cybersecurity', workProgrammeId: 'CL3' },
+  { id: 'CL3-D5', abbreviation: 'DRS', fullName: 'A Disaster-Resilient Society for Europe', workProgrammeId: 'CL3' },
+  { id: 'CL3-D6', abbreviation: 'SSRI', fullName: 'Strengthened Security Research and Innovation', workProgrammeId: 'CL3' },
+
+  // CL4 - Digital, Industry & Space
+  { id: 'CL4-D1', abbreviation: 'TWIN-TRANSITION', fullName: 'Climate neutral, Circular and Digitised Production', workProgrammeId: 'CL4' },
+  { id: 'CL4-D2', abbreviation: 'RESILIENCE', fullName: 'Increased Autonomy in Key Strategic Value Chains for Resilient Industry', workProgrammeId: 'CL4' },
+  { id: 'CL4-D3', abbreviation: 'DATA', fullName: 'World-leading Data and Computing Technologies', workProgrammeId: 'CL4' },
+  { id: 'CL4-D4', abbreviation: 'DIGITAL-EMERGING', fullName: 'Digital and Emerging Technologies for Competitiveness and Fit for the Green Deal', workProgrammeId: 'CL4' },
+  { id: 'CL4-D5', abbreviation: 'SPACE', fullName: 'Open strategic autonomy in developing, deploying and using global space-based infrastructures', workProgrammeId: 'CL4' },
+  { id: 'CL4-D6', abbreviation: 'HUMAN', fullName: 'A human-centred and ethical development of digital and industrial technologies', workProgrammeId: 'CL4' },
+
+  // CL5 - Climate, Energy & Mobility
+  { id: 'CL5-D1', abbreviation: 'CL5-D1', fullName: 'Climate sciences and responses for the transformation towards climate neutrality', workProgrammeId: 'CL5' },
+  { id: 'CL5-D2', abbreviation: 'CL5-D2', fullName: 'Cross-sectoral solutions for the climate transition', workProgrammeId: 'CL5' },
+  { id: 'CL5-D3', abbreviation: 'CL5-D3', fullName: 'Sustainable, secure and competitive energy supply', workProgrammeId: 'CL5' },
+  { id: 'CL5-D4', abbreviation: 'CL5-D4', fullName: 'Efficient, sustainable and inclusive energy use', workProgrammeId: 'CL5' },
+  { id: 'CL5-D5', abbreviation: 'CL5-D5', fullName: 'Clean and competitive solutions for all transport modes', workProgrammeId: 'CL5' },
+  { id: 'CL5-D6', abbreviation: 'CL5-D6', fullName: 'Safe, Resilient Transport and Smart Mobility services for passengers and goods', workProgrammeId: 'CL5' },
+
+  // CL6 - Food, Bioeconomy, Natural Resources, Agriculture & Environment
+  { id: 'CL6-D1', abbreviation: 'BIODIV', fullName: 'Biodiversity and ecosystem services', workProgrammeId: 'CL6' },
+  { id: 'CL6-D2', abbreviation: 'FARM2FORK', fullName: 'Fair, healthy and environmentally-friendly food systems from primary production to consumption', workProgrammeId: 'CL6' },
+  { id: 'CL6-D3', abbreviation: 'CIRCBIO', fullName: 'Circular economy and bioeconomy sectors', workProgrammeId: 'CL6' },
+  { id: 'CL6-D4', abbreviation: 'ZEROPOLLUTION', fullName: 'Clean environment and zero pollution', workProgrammeId: 'CL6' },
+  { id: 'CL6-D5', abbreviation: 'CLIMATE', fullName: 'Land, oceans and water for climate action', workProgrammeId: 'CL6' },
+  { id: 'CL6-D6', abbreviation: 'COMMUNITIES', fullName: 'Resilient, inclusive, healthy and green rural, coastal and urban communities', workProgrammeId: 'CL6' },
+  { id: 'CL6-D7', abbreviation: 'GOVERNANCE', fullName: 'Innovative governance, environmental observations and digital solutions in support of the Green Deal', workProgrammeId: 'CL6' },
+
+  // EU Missions
+  { id: 'MISS-CANCER', abbreviation: 'CANCER', fullName: 'Mission Cancer', workProgrammeId: 'MISS' },
+  { id: 'MISS-CLIMATE', abbreviation: 'ADAPTATION', fullName: 'Mission Adaptation to Climate Change', workProgrammeId: 'MISS' },
+  { id: 'MISS-OCEAN', abbreviation: 'OCEAN', fullName: 'Mission Restore our Ocean and Waters', workProgrammeId: 'MISS' },
+  { id: 'MISS-CITIES', abbreviation: 'CITIES', fullName: 'Mission Climate-Neutral and Smart Cities', workProgrammeId: 'MISS' },
+  { id: 'MISS-SOIL', abbreviation: 'SOIL', fullName: 'Mission A Soil Deal for Europe', workProgrammeId: 'MISS' },
+
+  // New European Bauhaus
+  { id: 'NEB-D1', abbreviation: 'NEB-D1', fullName: 'New European Bauhaus', workProgrammeId: 'NEB' },
+];
+
+export const getDestinationsForWorkProgramme = (workProgrammeId: string): Destination[] => {
+  return DESTINATIONS.filter(d => d.workProgrammeId === workProgrammeId);
 };
 
 export interface User {
@@ -69,6 +170,11 @@ export interface Proposal {
   totalBudget?: number;
   deadline?: Date;
   description?: string;
+  workProgramme?: string;
+  destination?: string;
+  logoUrl?: string;
+  submittedAt?: Date;
+  decisionDate?: Date;
 }
 
 export interface Participant {

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Proposal, Participant, ParticipantMember, PARTICIPANT_TYPE_LABELS } from '@/types/proposal';
+import { Proposal, Participant, ParticipantMember, PARTICIPANT_TYPE_LABELS, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_TYPE_LABELS } from '@/types/proposal';
 import {
   ExternalLink,
   Calendar,
@@ -16,8 +16,14 @@ import {
   Mail,
   Clock,
   FileText,
+  Image,
+  Sparkles,
+  Loader2,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface ProposalInfoPageProps {
   proposal: Proposal;
@@ -34,6 +40,34 @@ export function ProposalInfoPage({
   onUpdateProposal,
   canEdit,
 }: ProposalInfoPageProps) {
+  const [isGeneratingLogo, setIsGeneratingLogo] = useState(false);
+
+  const workProgramme = WORK_PROGRAMMES.find(wp => wp.id === proposal.workProgramme);
+  const destination = DESTINATIONS.find(d => d.id === proposal.destination);
+
+  const handleGenerateLogo = async () => {
+    setIsGeneratingLogo(true);
+    try {
+      const keywords = proposal.title.split(' ').slice(0, 5).join(', ');
+      const { data, error } = await supabase.functions.invoke('generate-image', {
+        body: { 
+          prompt: `Simple, modern, minimalist logo for a research project called "${proposal.acronym}". Keywords: ${keywords}. Clean design, professional, suitable for EU funding proposal.`
+        }
+      });
+
+      if (error) throw error;
+      if (data?.imageUrl) {
+        onUpdateProposal({ logoUrl: data.imageUrl });
+        toast.success('Logo generated successfully');
+      }
+    } catch (error) {
+      console.error('Failed to generate logo:', error);
+      toast.error('Failed to generate logo');
+    } finally {
+      setIsGeneratingLogo(false);
+    }
+  };
+
   return (
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -47,6 +81,82 @@ export function ProposalInfoPage({
             {proposal.acronym}
           </Badge>
         </div>
+
+        {/* Project Logo */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Image className="w-5 h-5" />
+              Project Logo
+            </CardTitle>
+            <CardDescription>
+              Upload or generate a logo for your project
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-start gap-6">
+              <div className="w-32 h-32 rounded-lg border-2 border-dashed border-muted-foreground/30 flex items-center justify-center bg-muted/50 overflow-hidden">
+                {proposal.logoUrl ? (
+                  <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-contain" />
+                ) : (
+                  <FileText className="w-12 h-12 text-muted-foreground/50" />
+                )}
+              </div>
+              <div className="flex-1 space-y-3">
+                {canEdit && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="logoUrl">Logo URL</Label>
+                      <Input
+                        id="logoUrl"
+                        placeholder="https://..."
+                        value={proposal.logoUrl || ''}
+                        onChange={(e) => onUpdateProposal({ logoUrl: e.target.value })}
+                      />
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={handleGenerateLogo}
+                      disabled={isGeneratingLogo}
+                      className="gap-2"
+                    >
+                      {isGeneratingLogo ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-4 h-4" />
+                      )}
+                      Auto-generate from keywords
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Work Programme & Destination */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Work Programme & Destination</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {workProgramme && (
+              <div>
+                <Label className="text-muted-foreground">Work Programme</Label>
+                <p className="font-medium">{workProgramme.fullName} ({workProgramme.abbreviation})</p>
+              </div>
+            )}
+            {destination && (
+              <div>
+                <Label className="text-muted-foreground">Destination</Label>
+                <p className="font-medium">{destination.fullName} ({destination.abbreviation})</p>
+              </div>
+            )}
+            {!workProgramme && !destination && (
+              <p className="text-muted-foreground">Not specified</p>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Topic Information */}
         <Card>
@@ -82,11 +192,7 @@ export function ProposalInfoPage({
                     disabled={!canEdit}
                   />
                   {proposal.topicUrl && (
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => window.open(proposal.topicUrl, '_blank')}
-                    >
+                    <Button variant="outline" size="icon" onClick={() => window.open(proposal.topicUrl, '_blank')}>
                       <ExternalLink className="w-4 h-4" />
                     </Button>
                   )}
@@ -119,9 +225,7 @@ export function ProposalInfoPage({
                 <div>
                   <p className="text-sm text-muted-foreground">Total Budget</p>
                   <p className="text-lg font-semibold">
-                    {proposal.totalBudget
-                      ? `€${proposal.totalBudget.toLocaleString()}`
-                      : 'Not set'}
+                    {proposal.totalBudget ? `€${proposal.totalBudget.toLocaleString()}` : 'Not set'}
                   </p>
                 </div>
               </div>
@@ -137,9 +241,7 @@ export function ProposalInfoPage({
                 <div>
                   <p className="text-sm text-muted-foreground">Deadline</p>
                   <p className="text-lg font-semibold">
-                    {proposal.deadline
-                      ? format(proposal.deadline, 'dd MMM yyyy')
-                      : 'Not set'}
+                    {proposal.deadline ? format(proposal.deadline, 'dd MMM yyyy') : 'Not set'}
                   </p>
                 </div>
               </div>
@@ -161,38 +263,6 @@ export function ProposalInfoPage({
           </Card>
         </div>
 
-        {/* Budget Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Budget Settings</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="totalBudget">Total Budget (€)</Label>
-                <Input
-                  id="totalBudget"
-                  type="number"
-                  placeholder="e.g., 5000000"
-                  value={proposal.totalBudget || ''}
-                  onChange={(e) => onUpdateProposal({ totalBudget: parseFloat(e.target.value) || undefined })}
-                  disabled={!canEdit}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="deadline">Submission Deadline</Label>
-                <Input
-                  id="deadline"
-                  type="date"
-                  value={proposal.deadline ? format(proposal.deadline, 'yyyy-MM-dd') : ''}
-                  onChange={(e) => onUpdateProposal({ deadline: e.target.value ? new Date(e.target.value) : undefined })}
-                  disabled={!canEdit}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Consortium Summary */}
         <Card>
           <CardHeader>
@@ -200,9 +270,7 @@ export function ProposalInfoPage({
               <Building2 className="w-5 h-5" />
               Consortium Summary
             </CardTitle>
-            <CardDescription>
-              Participating organisations and their roles
-            </CardDescription>
+            <CardDescription>Participating organisations and their roles</CardDescription>
           </CardHeader>
           <CardContent>
             {participants.length === 0 ? (
@@ -214,89 +282,34 @@ export function ProposalInfoPage({
             ) : (
               <div className="space-y-4">
                 {participants.map((participant, index) => {
-                  const members = participantMembers.filter(
-                    (m) => m.participantId === participant.id
-                  );
-
+                  const members = participantMembers.filter((m) => m.participantId === participant.id);
                   return (
-                    <div
-                      key={participant.id}
-                      className="p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                    >
+                    <div key={participant.id} className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
                       <div className="flex items-start gap-4">
                         <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
                           {participant.logoUrl ? (
-                            <img
-                              src={participant.logoUrl}
-                              alt={participant.organisationName}
-                              className="w-10 h-10 object-contain"
-                            />
+                            <img src={participant.logoUrl} alt={participant.organisationName} className="w-10 h-10 object-contain" />
                           ) : (
-                            <span className="text-lg font-bold text-muted-foreground">
-                              {index + 1}
-                            </span>
+                            <span className="text-lg font-bold text-muted-foreground">{index + 1}</span>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="font-semibold">
-                              {participant.organisationName}
-                            </h4>
+                            <h4 className="font-semibold">{participant.organisationName}</h4>
                             {participant.organisationShortName && (
-                              <span className="text-muted-foreground">
-                                ({participant.organisationShortName})
-                              </span>
+                              <span className="text-muted-foreground">({participant.organisationShortName})</span>
                             )}
-                            <Badge variant="secondary">
-                              {PARTICIPANT_TYPE_LABELS[participant.organisationType]}
-                            </Badge>
-                            {participant.isSme && (
-                              <Badge variant="outline" className="text-primary border-primary">
-                                SME
-                              </Badge>
-                            )}
+                            <Badge variant="secondary">{PARTICIPANT_TYPE_LABELS[participant.organisationType]}</Badge>
+                            {participant.isSme && <Badge variant="outline" className="text-primary border-primary">SME</Badge>}
                           </div>
                           <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                             {participant.country && (
-                              <span className="flex items-center gap-1">
-                                <MapPin className="w-3.5 h-3.5" />
-                                {participant.country}
-                              </span>
+                              <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{participant.country}</span>
                             )}
                             {participant.contactEmail && (
-                              <span className="flex items-center gap-1">
-                                <Mail className="w-3.5 h-3.5" />
-                                {participant.contactEmail}
-                              </span>
+                              <span className="flex items-center gap-1"><Mail className="w-3.5 h-3.5" />{participant.contactEmail}</span>
                             )}
                           </div>
-                          {members.length > 0 && (
-                            <div className="mt-3">
-                              <p className="text-xs font-medium text-muted-foreground mb-2">
-                                Team Members ({members.length})
-                              </p>
-                              <div className="flex flex-wrap gap-2">
-                                {members.map((member) => (
-                                  <div
-                                    key={member.id}
-                                    className="flex items-center gap-1.5 text-sm bg-muted px-2 py-1 rounded"
-                                  >
-                                    <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
-                                      <span className="text-xs font-medium text-primary">
-                                        {member.fullName.split(' ').map((n) => n[0]).join('')}
-                                      </span>
-                                    </div>
-                                    <span>{member.fullName}</span>
-                                    {member.roleInProject && (
-                                      <span className="text-muted-foreground">
-                                        - {member.roleInProject}
-                                      </span>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
                         </div>
                       </div>
                     </div>
@@ -310,10 +323,7 @@ export function ProposalInfoPage({
         {/* Timeline */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              Timeline
-            </CardTitle>
+            <CardTitle className="flex items-center gap-2"><Clock className="w-5 h-5" />Timeline</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-4 text-sm">

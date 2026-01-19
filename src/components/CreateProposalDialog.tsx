@@ -16,14 +16,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ProposalType } from "@/types/proposal";
-import { useState } from "react";
+import { ProposalType, WORK_PROGRAMMES, DESTINATIONS, getDestinationsForWorkProgramme } from "@/types/proposal";
+import { useState, useMemo } from "react";
 import { FileText, Beaker, Lightbulb, Users } from "lucide-react";
 
 interface CreateProposalDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreateProposal: (data: { acronym: string; title: string; type: ProposalType }) => void;
+  onCreateProposal: (data: { 
+    acronym: string; 
+    title: string; 
+    type: ProposalType;
+    workProgramme?: string;
+    destination?: string;
+  }) => void;
 }
 
 const proposalTypes = [
@@ -45,12 +51,6 @@ const proposalTypes = [
     description: 'Supporting and coordination measures',
     icon: Users,
   },
-  {
-    value: 'OTHER' as ProposalType,
-    label: 'Other',
-    description: 'Custom proposal type',
-    icon: FileText,
-  },
 ];
 
 export function CreateProposalDialog({
@@ -61,21 +61,42 @@ export function CreateProposalDialog({
   const [acronym, setAcronym] = useState('');
   const [title, setTitle] = useState('');
   const [type, setType] = useState<ProposalType>('RIA');
+  const [workProgramme, setWorkProgramme] = useState<string>('');
+  const [destination, setDestination] = useState<string>('');
+
+  // Get destinations filtered by selected work programme
+  const availableDestinations = useMemo(() => {
+    if (!workProgramme) return [];
+    return getDestinationsForWorkProgramme(workProgramme);
+  }, [workProgramme]);
+
+  const handleWorkProgrammeChange = (value: string) => {
+    setWorkProgramme(value);
+    setDestination(''); // Reset destination when work programme changes
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (acronym && title) {
-      onCreateProposal({ acronym, title, type });
+      onCreateProposal({ 
+        acronym, 
+        title, 
+        type,
+        workProgramme: workProgramme || undefined,
+        destination: destination || undefined,
+      });
       setAcronym('');
       setTitle('');
       setType('RIA');
+      setWorkProgramme('');
+      setDestination('');
       onOpenChange(false);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -135,6 +156,43 @@ export function CreateProposalDialog({
                 {proposalTypes.find((pt) => pt.value === type)?.description}
               </p>
             </div>
+
+            <div className="grid gap-2">
+              <Label>Work Programme</Label>
+              <Select value={workProgramme} onValueChange={handleWorkProgrammeChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select work programme" />
+                </SelectTrigger>
+                <SelectContent>
+                  {WORK_PROGRAMMES.map((wp) => (
+                    <SelectItem key={wp.id} value={wp.id}>
+                      <span>{wp.fullName}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {workProgramme && availableDestinations.length > 0 && (
+              <div className="grid gap-2">
+                <Label>Destination</Label>
+                <Select value={destination} onValueChange={setDestination}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select destination" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableDestinations.map((dest) => (
+                      <SelectItem key={dest.id} value={dest.id}>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{dest.abbreviation}</span>
+                          <span className="text-xs text-muted-foreground">{dest.fullName}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           <DialogFooter>

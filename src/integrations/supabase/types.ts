@@ -385,15 +385,20 @@ export type Database = {
           created_at: string
           created_by: string | null
           deadline: string | null
+          decision_date: string | null
           description: string | null
+          destination: string | null
           id: string
+          logo_url: string | null
           status: Database["public"]["Enums"]["proposal_status"]
+          submitted_at: string | null
           title: string
           topic_id: string | null
           topic_url: string | null
           total_budget: number | null
           type: Database["public"]["Enums"]["proposal_type"]
           updated_at: string
+          work_programme: string | null
         }
         Insert: {
           acronym: string
@@ -401,15 +406,20 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deadline?: string | null
+          decision_date?: string | null
           description?: string | null
+          destination?: string | null
           id?: string
+          logo_url?: string | null
           status?: Database["public"]["Enums"]["proposal_status"]
+          submitted_at?: string | null
           title: string
           topic_id?: string | null
           topic_url?: string | null
           total_budget?: number | null
           type?: Database["public"]["Enums"]["proposal_type"]
           updated_at?: string
+          work_programme?: string | null
         }
         Update: {
           acronym?: string
@@ -417,15 +427,20 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deadline?: string | null
+          decision_date?: string | null
           description?: string | null
+          destination?: string | null
           id?: string
+          logo_url?: string | null
           status?: Database["public"]["Enums"]["proposal_status"]
+          submitted_at?: string | null
           title?: string
           topic_id?: string | null
           topic_url?: string | null
           total_budget?: number | null
           type?: Database["public"]["Enums"]["proposal_type"]
           updated_at?: string
+          work_programme?: string | null
         }
         Relationships: []
       }
@@ -670,8 +685,8 @@ export type Database = {
         | "subcontractor"
         | "international_partner"
         | "associated_country_partner"
-      proposal_status: "draft" | "in_review" | "submitted"
-      proposal_type: "RIA" | "IA" | "CSA" | "OTHER"
+      proposal_status: "draft" | "submitted" | "funded" | "not_funded"
+      proposal_type: "RIA" | "IA" | "CSA"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -811,8 +826,8 @@ export const Constants = {
         "international_partner",
         "associated_country_partner",
       ],
-      proposal_status: ["draft", "in_review", "submitted"],
-      proposal_type: ["RIA", "IA", "CSA", "OTHER"],
+      proposal_status: ["draft", "submitted", "funded", "not_funded"],
+      proposal_type: ["RIA", "IA", "CSA"],
     },
   },
 } as const
