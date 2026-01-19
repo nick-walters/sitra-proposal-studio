@@ -24,7 +24,7 @@ const getUrgencyLevel = (deadline: Date | undefined): string | null => {
 // Icon mapping for topic-focused icons
 const topicIcons: Record<string, React.ReactNode> = {
   'GreenTech': <Leaf className="w-7 h-7 text-green-600" />,
-  'AiHealth': <Brain className="w-7 h-7 text-purple-600" />,
+  'HealthAI': <Brain className="w-7 h-7 text-purple-600" />,
   'CleanEnergy': <Zap className="w-7 h-7 text-yellow-600" />,
   'BioSmart': <Wheat className="w-7 h-7 text-amber-600" />,
   'CyberShield': <Shield className="w-7 h-7 text-blue-600" />,
@@ -57,7 +57,7 @@ const sampleProposals: Proposal[] = [
   },
   {
     id: '2',
-    acronym: 'AiHealth',
+    acronym: 'HealthAI',
     title: 'Artificial Intelligence Solutions for Personalized Healthcare',
     type: 'IA',
     budgetType: 'traditional',
@@ -89,6 +89,7 @@ const sampleProposals: Proposal[] = [
     deadline: new Date('2023-09-15'),
     submittedAt: new Date('2023-09-14'),
     decisionDate: new Date('2024-01-05'),
+    topicUrl: 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2024-d3-01-01',
     sections: HORIZON_EUROPE_SECTIONS,
     members: [
       { user: { id: '5', name: 'Chris Davis', email: 'chris@example.com' }, role: 'admin' },
@@ -112,6 +113,7 @@ const sampleProposals: Proposal[] = [
     deadline: new Date('2023-10-15'),
     submittedAt: new Date('2023-10-14'),
     decisionDate: new Date('2023-12-20'),
+    topicUrl: 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl6-2024-circbio-01-01',
     sections: HORIZON_EUROPE_SECTIONS,
     members: [
       { user: { id: '1', name: 'John Doe', email: 'john@example.com' }, role: 'admin' },
@@ -373,17 +375,16 @@ export function Dashboard() {
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2 h-9">
                   <Filter className="w-4 h-4" />
-                  Filter
                   {activeFiltersCount > 0 && (
-                    <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
+                    <span className="px-1.5 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
                       {activeFiltersCount}
                     </span>
                   )}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-96 p-4" align="end">
+                <h3 className="font-bold text-base mb-3">Filter</h3>
                 <div className="space-y-4">
-                  {/* Urgency Section */}
                   <div className="space-y-2">
                     <h4 className="font-semibold text-sm">Urgency</h4>
                     <div className="flex flex-wrap gap-2">
