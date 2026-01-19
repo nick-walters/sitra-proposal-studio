@@ -153,7 +153,7 @@ export function ProposalTableView({ proposals, onProposalClick, topicIcons }: Pr
                   {proposal.deadline ? (
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Calendar className="w-3 h-3" />
-                      {format(proposal.deadline, 'MMM d, yyyy')}
+                      {format(proposal.deadline, 'dd/MM/yyyy')}
                     </div>
                   ) : (
                     <span className="text-muted-foreground text-xs">—</span>

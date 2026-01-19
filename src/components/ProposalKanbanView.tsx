@@ -144,12 +144,11 @@ export function ProposalKanbanView({ proposals, onProposalClick, topicIcons }: P
                               )}
                             </div>
 
-                            {/* Deadline and actions */}
                             <div className="flex items-center justify-between">
                               {proposal.deadline && (
                                 <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                                   <Calendar className="w-2.5 h-2.5" />
-                                  {format(proposal.deadline, 'MMM d')}
+                                  {format(proposal.deadline, 'dd/MM/yyyy')}
                                 </div>
                               )}
                               <div className="flex items-center gap-1 ml-auto">

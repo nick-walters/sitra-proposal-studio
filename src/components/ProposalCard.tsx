@@ -232,7 +232,7 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
           {proposal.deadline && (
             <div className="flex items-center gap-1">
               <Calendar className="w-2.5 h-2.5" />
-              <span>{format(proposal.deadline, 'MMM d, yyyy')}</span>
+              <span>{format(proposal.deadline, 'dd/MM/yyyy')}</span>
             </div>
           )}
 
@@ -243,7 +243,7 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
               ) : (
                 <XCircle className="w-2.5 h-2.5 text-destructive" />
               )}
-              <span>{format(proposal.decisionDate, 'MMM d')}</span>
+              <span>{format(proposal.decisionDate, 'dd/MM/yyyy')}</span>
             </div>
           )}
         </div>
