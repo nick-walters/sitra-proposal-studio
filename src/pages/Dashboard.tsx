@@ -595,22 +595,22 @@ export function Dashboard() {
               </PopoverContent>
             </Popover>
             
-            <div className="flex items-center border rounded-md p-0.5">
+            <div className="flex items-center border rounded-md h-9">
               <Button
                 variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
                 size="icon"
-                className="h-7 w-7"
+                className="h-8 w-8 rounded-r-none"
                 onClick={() => setViewMode('grid')}
               >
-                <LayoutGrid className="w-3.5 h-3.5" />
+                <LayoutGrid className="w-4 h-4" />
               </Button>
               <Button
                 variant={viewMode === 'list' ? 'secondary' : 'ghost'}
                 size="icon"
-                className="h-7 w-7"
+                className="h-8 w-8 rounded-l-none"
                 onClick={() => setViewMode('list')}
               >
-                <List className="w-3.5 h-3.5" />
+                <List className="w-4 h-4" />
               </Button>
             </div>
             
