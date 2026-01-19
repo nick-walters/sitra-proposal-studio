@@ -3,11 +3,15 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Info, Video, ImageIcon, Sparkles, BookOpen, Wand2 } from "lucide-react";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { RichTextEditor } from "./RichTextEditor";
 import { GrammarChecker } from "./GrammarChecker";
 import { CitationDialog } from "./CitationDialog";
 import { ImageGeneratorDialog } from "./ImageGeneratorDialog";
+import { WordCountBadge } from "./WordCountBadge";
+import { SaveIndicator } from "./SaveIndicator";
+import { useSectionContent } from "@/hooks/useSectionContent";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Reference {
   authors: string[];
@@ -21,41 +25,47 @@ interface Reference {
 
 interface DocumentEditorProps {
   section: Section | null;
+  proposalId: string;
   proposalAcronym: string;
 }
 
-export function DocumentEditor({ section, proposalAcronym }: DocumentEditorProps) {
-  const [content, setContent] = useState(section?.content || '');
+export function DocumentEditor({ section, proposalId, proposalAcronym }: DocumentEditorProps) {
   const [isGrammarOpen, setIsGrammarOpen] = useState(false);
   const [isCitationOpen, setIsCitationOpen] = useState(false);
   const [isImageGenOpen, setIsImageGenOpen] = useState(false);
   const [references, setReferences] = useState<Reference[]>([]);
   const [footnotes, setFootnotes] = useState<Array<{ number: number; citation: string }>>([]);
 
+  // Use the section content hook for database persistence and real-time updates
+  const { content, setContent, loading, saving, lastSaved } = useSectionContent({
+    proposalId: proposalId || '',
+    sectionId: section?.id || '',
+  });
+
   const handleContentChange = useCallback((newContent: string) => {
     setContent(newContent);
-  }, []);
+  }, [setContent]);
 
   const handleInsertCitation = useCallback((reference: Reference, formattedCitation: string, citationNumber: number) => {
     // Add superscript citation to content
     const superscript = `<sup>${citationNumber}</sup>`;
-    setContent(prev => prev + superscript);
+    setContent(content + superscript);
     
     // Add to references if new
     if (!references.some(r => r.doi === reference.doi)) {
       setReferences(prev => [...prev, reference]);
       setFootnotes(prev => [...prev, { number: citationNumber, citation: formattedCitation }]);
     }
-  }, [references]);
+  }, [references, content, setContent]);
 
   const handleInsertImage = useCallback((imageUrl: string) => {
     const imgTag = `<img src="${imageUrl}" alt="Generated image" class="max-w-full h-auto my-4" />`;
-    setContent(prev => prev + imgTag);
-  }, []);
+    setContent(content + imgTag);
+  }, [content, setContent]);
 
   const handleApplyGrammarSuggestion = useCallback((original: string, replacement: string) => {
-    setContent(prev => prev.replace(original, replacement));
-  }, []);
+    setContent(content.replace(original, replacement));
+  }, [content, setContent]);
 
   // Strip HTML for grammar checking
   const plainText = content.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
@@ -79,19 +89,25 @@ export function DocumentEditor({ section, proposalAcronym }: DocumentEditorProps
   return (
     <div className="flex-1 flex flex-col min-h-0 relative">
       {/* Extra toolbar with AI features */}
-      <div className="flex items-center gap-2 p-2 border-b border-border bg-card">
-        <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsGrammarOpen(true)}>
-          <Sparkles className="w-4 h-4" />
-          Grammar Check
-        </Button>
-        <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsCitationOpen(true)}>
-          <BookOpen className="w-4 h-4" />
-          Add Citation
-        </Button>
-        <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsImageGenOpen(true)}>
-          <Wand2 className="w-4 h-4" />
-          AI Image
-        </Button>
+      <div className="flex items-center justify-between p-2 border-b border-border bg-card">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsGrammarOpen(true)}>
+            <Sparkles className="w-4 h-4" />
+            Grammar Check
+          </Button>
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsCitationOpen(true)}>
+            <BookOpen className="w-4 h-4" />
+            Add Citation
+          </Button>
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsImageGenOpen(true)}>
+            <Wand2 className="w-4 h-4" />
+            AI Image
+          </Button>
+        </div>
+        <div className="flex items-center gap-3">
+          <WordCountBadge content={content} wordLimit={section.wordLimit} />
+          <SaveIndicator saving={saving} lastSaved={lastSaved} />
+        </div>
       </div>
 
       <div className="flex-1 overflow-auto p-6 bg-muted/30">
@@ -141,11 +157,21 @@ export function DocumentEditor({ section, proposalAcronym }: DocumentEditorProps
           {/* Document Page with Rich Text Editor */}
           <div className="document-page animate-fade-in">
             <h1 className="document-h1 text-foreground mb-6">{section.number} {section.title}</h1>
-            <RichTextEditor
-              content={content}
-              onChange={handleContentChange}
-              onInsertImage={() => setIsImageGenOpen(true)}
-            />
+            
+            {loading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-5/6" />
+                <Skeleton className="h-4 w-2/3" />
+              </div>
+            ) : (
+              <RichTextEditor
+                content={content}
+                onChange={handleContentChange}
+                onInsertImage={() => setIsImageGenOpen(true)}
+              />
+            )}
 
             {/* Footnotes */}
             {footnotes.length > 0 && (
