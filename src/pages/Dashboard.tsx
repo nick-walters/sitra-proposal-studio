@@ -322,8 +322,29 @@ export function Dashboard() {
     });
   };
 
+  // Get urgency priority for sorting (lower = more urgent)
+  const getUrgencyPriority = (proposal: Proposal): number => {
+    if (proposal.status !== 'draft') return 999;
+    const level = getUrgencyLevel(proposal.deadline);
+    if (level === 'critical') return 0;
+    if (level === 'due_soon') return 1;
+    if (level === 'on_track') return 2;
+    return 3; // No deadline
+  };
+
+  // Get status priority for sorting
+  const getStatusPriority = (status: ProposalStatus): number => {
+    switch (status) {
+      case 'draft': return 0;
+      case 'submitted': return 1;
+      case 'funded': return 2;
+      case 'not_funded': return 3;
+      default: return 4;
+    }
+  };
+
   const filteredProposals = useMemo(() => {
-    return proposals.filter((p) => {
+    const filtered = proposals.filter((p) => {
       // Search filter
       const matchesSearch = 
         p.acronym.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -345,6 +366,27 @@ export function Dashboard() {
       const matchesUrgency = urgencyFilters.size === 0 || (p.status === 'draft' && urgencyFilters.has(getUrgencyLevel(p.deadline) || ''));
       
       return matchesSearch && matchesStatus && matchesType && matchesWp && matchesDest && matchesUrgency;
+    });
+
+    // Sort: status priority → urgency (for drafts) → deadline (latest first) → acronym alphabetically
+    return filtered.sort((a, b) => {
+      // First by status priority
+      const statusDiff = getStatusPriority(a.status) - getStatusPriority(b.status);
+      if (statusDiff !== 0) return statusDiff;
+
+      // For drafts, sort by urgency
+      if (a.status === 'draft' && b.status === 'draft') {
+        const urgencyDiff = getUrgencyPriority(a) - getUrgencyPriority(b);
+        if (urgencyDiff !== 0) return urgencyDiff;
+      }
+
+      // Then by deadline (latest first)
+      const aDeadline = a.deadline?.getTime() || 0;
+      const bDeadline = b.deadline?.getTime() || 0;
+      if (aDeadline !== bDeadline) return bDeadline - aDeadline;
+
+      // Finally alphabetically by acronym
+      return a.acronym.localeCompare(b.acronym);
     });
   }, [proposals, searchQuery, statusFilters, typeFilters, wpFilters, destFilters, urgencyFilters]);
 
