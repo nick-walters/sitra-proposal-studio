@@ -27,9 +27,10 @@ interface DocumentEditorProps {
   section: Section | null;
   proposalId: string;
   proposalAcronym: string;
+  readOnly?: boolean;
 }
 
-export function DocumentEditor({ section, proposalId, proposalAcronym }: DocumentEditorProps) {
+export function DocumentEditor({ section, proposalId, proposalAcronym, readOnly = false }: DocumentEditorProps) {
   const [isGrammarOpen, setIsGrammarOpen] = useState(false);
   const [isCitationOpen, setIsCitationOpen] = useState(false);
   const [isImageGenOpen, setIsImageGenOpen] = useState(false);
@@ -95,18 +96,30 @@ export function DocumentEditor({ section, proposalId, proposalAcronym }: Documen
             <Sparkles className="w-4 h-4" />
             Grammar Check
           </Button>
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsCitationOpen(true)}>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2" 
+            onClick={() => setIsCitationOpen(true)}
+            disabled={readOnly}
+          >
             <BookOpen className="w-4 h-4" />
             Add Citation
           </Button>
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsImageGenOpen(true)}>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2" 
+            onClick={() => setIsImageGenOpen(true)}
+            disabled={readOnly}
+          >
             <Wand2 className="w-4 h-4" />
             AI Image
           </Button>
         </div>
         <div className="flex items-center gap-3">
           <WordCountBadge content={content} wordLimit={section.wordLimit} />
-          <SaveIndicator saving={saving} lastSaved={lastSaved} />
+          {!readOnly && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
         </div>
       </div>
 
@@ -168,7 +181,7 @@ export function DocumentEditor({ section, proposalId, proposalAcronym }: Documen
             ) : (
               <RichTextEditor
                 content={content}
-                onChange={handleContentChange}
+                onChange={readOnly ? () => {} : handleContentChange}
                 onInsertImage={() => setIsImageGenOpen(true)}
               />
             )}
