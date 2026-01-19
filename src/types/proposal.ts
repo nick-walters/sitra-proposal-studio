@@ -26,7 +26,7 @@ export const PARTICIPANT_TYPE_LABELS: Record<ParticipantType, string> = {
 
 export const PROPOSAL_STATUS_LABELS: Record<ProposalStatus, string> = {
   draft: 'Draft',
-  submitted: 'Submitted',
+  submitted: 'Under Evaluation',
   funded: 'Funded',
   not_funded: 'Not Funded',
 };

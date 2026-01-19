@@ -23,19 +23,13 @@ const getUrgencyInfo = (deadline: Date | undefined) => {
     };
   } else if (daysLeft <= 56) {
     return {
-      label: 'Priority',
+      label: 'Due soon',
       days: daysLeft,
       className: 'bg-orange-500/15 text-orange-600 border-orange-500/30'
     };
-  } else if (daysLeft <= 112) {
-    return {
-      label: 'Upcoming',
-      days: daysLeft,
-      className: 'bg-yellow-500/15 text-yellow-600 border-yellow-500/30'
-    };
   } else {
     return {
-      label: 'On Track',
+      label: 'On track',
       days: daysLeft,
       className: 'bg-green-500/15 text-green-600 border-green-500/30'
     };
