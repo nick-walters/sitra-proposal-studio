@@ -1,15 +1,16 @@
-import { Proposal, WORK_PROGRAMMES, PROPOSAL_STATUS_LABELS } from "@/types/proposal";
+import { Proposal, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS } from "@/types/proposal";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Calendar, FileText, ArrowRight, Send, CheckCircle2, XCircle, Clock, Image } from "lucide-react";
+import { Users, Calendar, FileText, ArrowRight, Send, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { format } from "date-fns";
 
 interface ProposalCardProps {
   proposal: Proposal;
   onClick: () => void;
+  compact?: boolean;
 }
 
-export function ProposalCard({ proposal, onClick }: ProposalCardProps) {
+export function ProposalCard({ proposal, onClick, compact = false }: ProposalCardProps) {
   const getBadgeClass = (type: string) => {
     switch (type) {
       case 'RIA':
@@ -56,92 +57,130 @@ export function ProposalCard({ proposal, onClick }: ProposalCardProps) {
   const isDraft = proposal.status === 'draft';
   const isDecided = proposal.status === 'funded' || proposal.status === 'not_funded';
   
-  // Get work programme abbreviation
+  // Get work programme and destination
   const workProgramme = WORK_PROGRAMMES.find(wp => wp.id === proposal.workProgramme);
+  const destination = DESTINATIONS.find(d => d.id === proposal.destination);
+
+  if (compact) {
+    return (
+      <Card className="card-elevated group cursor-pointer hover:border-primary/30" onClick={onClick}>
+        <CardContent className="p-3 flex items-center gap-3">
+          {/* Logo */}
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+            {proposal.logoUrl ? (
+              <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
+            ) : (
+              <FileText className="w-5 h-5 text-primary" />
+            )}
+          </div>
+          
+          {/* Info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-sm">{proposal.acronym}</span>
+              <span className={getBadgeClass(proposal.type)}>{proposal.type}</span>
+              {workProgramme && destination && (
+                <span className="text-[10px] text-muted-foreground">
+                  {workProgramme.abbreviation}/{destination.abbreviation}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground truncate">{proposal.title}</p>
+          </div>
+
+          {/* Status & Action */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className={`proposal-badge ${getStatusColor(proposal.status)} flex items-center gap-1 text-[10px]`}>
+              {getStatusIcon(proposal.status)}
+              {PROPOSAL_STATUS_LABELS[proposal.status]}
+            </span>
+            <Button variant="ghost" size="sm" className="h-7 px-2 gap-1 text-xs group-hover:bg-primary group-hover:text-primary-foreground">
+              {isDraft ? 'Edit' : 'View'}
+              <ArrowRight className="w-3 h-3" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="card-elevated group cursor-pointer hover:border-primary/30" onClick={onClick}>
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            {/* Project Logo or Placeholder */}
-            <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden">
+      <CardContent className="p-4">
+        {/* Header row with logo, badges, status, and action */}
+        <div className="flex items-start justify-between gap-3 mb-2">
+          <div className="flex items-center gap-2.5">
+            {/* Project Logo */}
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
               {proposal.logoUrl ? (
-                <img 
-                  src={proposal.logoUrl} 
-                  alt={proposal.acronym} 
-                  className="w-full h-full object-cover"
-                />
+                <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
               ) : (
-                <FileText className="w-6 h-6 text-primary" />
+                <FileText className="w-5 h-5 text-primary" />
               )}
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <span className={getBadgeClass(proposal.type)}>{proposal.type}</span>
-                {workProgramme && (
-                  <span className="text-xs text-muted-foreground">({workProgramme.abbreviation})</span>
+                {workProgramme && destination && (
+                  <span className="text-[10px] text-muted-foreground">
+                    ({workProgramme.abbreviation}/{destination.abbreviation})
+                  </span>
                 )}
               </div>
-              <h3 className="font-semibold text-lg mt-1 group-hover:text-primary transition-colors">
+              <h3 className="font-semibold text-base group-hover:text-primary transition-colors">
                 {proposal.acronym}
               </h3>
             </div>
           </div>
-          <span className={`proposal-badge ${getStatusColor(proposal.status)} flex items-center gap-1`}>
-            {getStatusIcon(proposal.status)}
-            {PROPOSAL_STATUS_LABELS[proposal.status]}
-          </span>
+          
+          {/* Status & Action in same row */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className={`proposal-badge ${getStatusColor(proposal.status)} flex items-center gap-1 text-[10px]`}>
+              {getStatusIcon(proposal.status)}
+              {PROPOSAL_STATUS_LABELS[proposal.status]}
+            </span>
+            <Button variant="ghost" size="sm" className="h-7 px-2 gap-1 text-xs group-hover:bg-primary group-hover:text-primary-foreground">
+              {isDraft ? 'Edit' : 'View'}
+              <ArrowRight className="w-3 h-3" />
+            </Button>
+          </div>
         </div>
 
-        <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
+        <p className="text-muted-foreground text-xs mb-3 line-clamp-2">
           {proposal.title}
         </p>
 
-        {/* Date Information */}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground mb-4">
-          <div className="flex items-center gap-1.5">
-            <Users className="w-4 h-4" />
-            <span>{proposal.members.length} members</span>
+        {/* Compact meta info */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <Users className="w-3 h-3" />
+            <span>{proposal.members.length}</span>
           </div>
           
-          {/* Deadline */}
           {proposal.deadline && (
-            <div className="flex items-center gap-1.5">
-              <Calendar className="w-4 h-4" />
-              <span className="font-medium">Deadline:</span>
+            <div className="flex items-center gap-1">
+              <Calendar className="w-3 h-3" />
               <span>{format(proposal.deadline, 'MMM d, yyyy')}</span>
             </div>
           )}
 
-          {/* Date Submitted (for non-drafts) */}
           {!isDraft && proposal.submittedAt && (
-            <div className="flex items-center gap-1.5">
-              <Send className="w-4 h-4" />
-              <span className="font-medium">Submitted:</span>
-              <span>{format(proposal.submittedAt, 'MMM d, yyyy')}</span>
+            <div className="flex items-center gap-1">
+              <Send className="w-3 h-3" />
+              <span>{format(proposal.submittedAt, 'MMM d')}</span>
             </div>
           )}
 
-          {/* Decision Date (for funded/not funded) */}
           {isDecided && proposal.decisionDate && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1">
               {proposal.status === 'funded' ? (
-                <CheckCircle2 className="w-4 h-4 text-success" />
+                <CheckCircle2 className="w-3 h-3 text-success" />
               ) : (
-                <XCircle className="w-4 h-4 text-destructive" />
+                <XCircle className="w-3 h-3 text-destructive" />
               )}
-              <span className="font-medium">Decision:</span>
-              <span>{format(proposal.decisionDate, 'MMM d, yyyy')}</span>
+              <span>{format(proposal.decisionDate, 'MMM d')}</span>
             </div>
           )}
-        </div>
-
-        <div className="flex items-center justify-end">
-          <Button variant="ghost" size="sm" className="gap-1 group-hover:bg-primary group-hover:text-primary-foreground transition-all">
-            {isDraft ? 'Edit' : 'View'}
-            <ArrowRight className="w-4 h-4" />
-          </Button>
         </div>
       </CardContent>
     </Card>

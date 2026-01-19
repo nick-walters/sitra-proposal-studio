@@ -263,10 +263,10 @@ export function ProposalSummaryPage({
               <div className="flex-shrink-0">
                 {isEditing ? (
                   <LogoUpload
-                    proposalId={proposal.id}
-                    currentLogoUrl={editedProposal.logoUrl}
-                    proposalKeywords={`${editedProposal.acronym} ${editedProposal.title}`}
-                    onLogoChange={handleLogoChange}
+                    currentUrl={editedProposal.logoUrl || null}
+                    proposalAcronym={editedProposal.acronym}
+                    proposalTitle={editedProposal.title}
+                    onUpload={handleLogoChange}
                   />
                 ) : (
                   <div className="w-24 h-24 rounded-xl bg-muted border flex items-center justify-center overflow-hidden">

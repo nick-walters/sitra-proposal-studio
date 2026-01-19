@@ -3,9 +3,10 @@ import { ProposalCard } from "@/components/ProposalCard";
 import { CreateProposalDialog } from "@/components/CreateProposalDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Proposal, ProposalType, HORIZON_EUROPE_SECTIONS } from "@/types/proposal";
-import { Plus, Search, Filter, LayoutGrid, List } from "lucide-react";
-import { useState } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Proposal, ProposalType, ProposalStatus, HORIZON_EUROPE_SECTIONS, WORK_PROGRAMMES, PROPOSAL_STATUS_LABELS } from "@/types/proposal";
+import { Plus, Search, LayoutGrid, List, X } from "lucide-react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
 // Sample data
@@ -39,7 +40,7 @@ const sampleProposals: Proposal[] = [
     updatedAt: new Date('2024-01-18'),
     status: 'submitted',
     workProgramme: 'CL1',
-    destination: 'CL1-D5',
+    destination: 'CL1-TOOL',
     deadline: new Date('2024-03-01'),
     submittedAt: new Date('2024-02-28'),
     sections: HORIZON_EUROPE_SECTIONS,
@@ -81,7 +82,7 @@ const sampleProposals: Proposal[] = [
     updatedAt: new Date('2023-12-01'),
     status: 'not_funded',
     workProgramme: 'CL6',
-    destination: 'CL6-D3',
+    destination: 'CL6-CIRCBIO',
     deadline: new Date('2023-10-15'),
     submittedAt: new Date('2023-10-14'),
     decisionDate: new Date('2023-12-20'),
@@ -98,12 +99,40 @@ export function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  
+  // Filter states
+  const [statusFilter, setStatusFilter] = useState<ProposalStatus | 'all'>('all');
+  const [typeFilter, setTypeFilter] = useState<ProposalType | 'all'>('all');
+  const [wpFilter, setWpFilter] = useState<string>('all');
 
-  const filteredProposals = proposals.filter(
-    (p) =>
-      p.acronym.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredProposals = useMemo(() => {
+    return proposals.filter((p) => {
+      // Search filter
+      const matchesSearch = 
+        p.acronym.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.title.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      // Status filter
+      const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
+      
+      // Type filter
+      const matchesType = typeFilter === 'all' || p.type === typeFilter;
+      
+      // Work Programme filter
+      const matchesWp = wpFilter === 'all' || p.workProgramme === wpFilter;
+      
+      return matchesSearch && matchesStatus && matchesType && matchesWp;
+    });
+  }, [proposals, searchQuery, statusFilter, typeFilter, wpFilter]);
+
+  const activeFiltersCount = [statusFilter, typeFilter, wpFilter].filter(f => f !== 'all').length;
+
+  const clearFilters = () => {
+    setStatusFilter('all');
+    setTypeFilter('all');
+    setWpFilter('all');
+    setSearchQuery('');
+  };
 
   const handleCreateProposal = (data: { 
     acronym: string; 
@@ -135,102 +164,152 @@ export function Dashboard() {
     <div className="min-h-screen bg-background">
       <Header />
 
-      <main className="container py-8">
+      <main className="container py-6">
         {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">My Proposals</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-2xl font-bold text-foreground">My Proposals</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
               Co-develop Horizon Europe proposals with your consortium
             </p>
           </div>
-          <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">
+          <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2" size="sm">
             <Plus className="w-4 h-4" />
             New Proposal
           </Button>
         </div>
 
         {/* Filters Bar */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="relative flex-1 max-w-md">
+        <div className="flex flex-col sm:flex-row gap-3 mb-5">
+          <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search proposals..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-9 h-9"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon">
-              <Filter className="w-4 h-4" />
-            </Button>
-            <div className="flex items-center border rounded-lg p-1">
+          
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Status Filter */}
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as ProposalStatus | 'all')}>
+              <SelectTrigger className="w-32 h-9 text-xs">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                {Object.entries(PROPOSAL_STATUS_LABELS).map(([key, label]) => (
+                  <SelectItem key={key} value={key}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Type Filter */}
+            <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as ProposalType | 'all')}>
+              <SelectTrigger className="w-28 h-9 text-xs">
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="RIA">RIA</SelectItem>
+                <SelectItem value="IA">IA</SelectItem>
+                <SelectItem value="CSA">CSA</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Work Programme Filter */}
+            <Select value={wpFilter} onValueChange={setWpFilter}>
+              <SelectTrigger className="w-32 h-9 text-xs">
+                <SelectValue placeholder="Programme" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Programmes</SelectItem>
+                {WORK_PROGRAMMES.map(wp => (
+                  <SelectItem key={wp.id} value={wp.id}>{wp.abbreviation}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {activeFiltersCount > 0 && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={clearFilters}
+                className="h-9 px-2 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-3 h-3 mr-1" />
+                Clear ({activeFiltersCount})
+              </Button>
+            )}
+
+            <div className="flex items-center border rounded-md p-0.5 ml-auto">
               <Button
                 variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
                 size="icon"
-                className="h-8 w-8"
+                className="h-7 w-7"
                 onClick={() => setViewMode('grid')}
               >
-                <LayoutGrid className="w-4 h-4" />
+                <LayoutGrid className="w-3.5 h-3.5" />
               </Button>
               <Button
                 variant={viewMode === 'list' ? 'secondary' : 'ghost'}
                 size="icon"
-                className="h-8 w-8"
+                className="h-7 w-7"
                 onClick={() => setViewMode('list')}
               >
-                <List className="w-4 h-4" />
+                <List className="w-3.5 h-3.5" />
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-          <div className="card-elevated p-4">
-            <p className="text-2xl font-bold text-foreground">{proposals.length}</p>
-            <p className="text-sm text-muted-foreground">Total Proposals</p>
+        {/* Stats - Compact */}
+        <div className="grid grid-cols-4 gap-3 mb-5">
+          <div className="card-elevated p-3">
+            <p className="text-xl font-bold text-foreground">{proposals.length}</p>
+            <p className="text-xs text-muted-foreground">Total</p>
           </div>
-          <div className="card-elevated p-4">
-            <p className="text-2xl font-bold text-foreground">
+          <div className="card-elevated p-3">
+            <p className="text-xl font-bold text-foreground">
               {proposals.filter((p) => p.status === 'draft').length}
             </p>
-            <p className="text-sm text-muted-foreground">In Draft</p>
+            <p className="text-xs text-muted-foreground">Draft</p>
           </div>
-          <div className="card-elevated p-4">
-            <p className="text-2xl font-bold text-blue-600">
+          <div className="card-elevated p-3">
+            <p className="text-xl font-bold text-blue-600">
               {proposals.filter((p) => p.status === 'submitted').length}
             </p>
-            <p className="text-sm text-muted-foreground">Submitted</p>
+            <p className="text-xs text-muted-foreground">Submitted</p>
           </div>
-          <div className="card-elevated p-4">
-            <p className="text-2xl font-bold text-success">
+          <div className="card-elevated p-3">
+            <p className="text-xl font-bold text-success">
               {proposals.filter((p) => p.status === 'funded').length}
             </p>
-            <p className="text-sm text-muted-foreground">Funded</p>
+            <p className="text-xs text-muted-foreground">Funded</p>
           </div>
         </div>
 
         {/* Proposals Grid */}
         {filteredProposals.length > 0 ? (
-          <div className={viewMode === 'grid' ? 'grid gap-6 md:grid-cols-2 lg:grid-cols-3' : 'space-y-4'}>
+          <div className={viewMode === 'grid' ? 'grid gap-4 md:grid-cols-2 lg:grid-cols-3' : 'space-y-3'}>
             {filteredProposals.map((proposal) => (
               <ProposalCard
                 key={proposal.id}
                 proposal={proposal}
                 onClick={() => navigate(`/proposal/${proposal.id}`)}
+                compact={viewMode === 'list'}
               />
             ))}
           </div>
         ) : (
-          <div className="text-center py-16">
-            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-              <Search className="w-8 h-8 text-muted-foreground" />
+          <div className="text-center py-12">
+            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
+              <Search className="w-6 h-6 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-medium text-muted-foreground">No proposals found</h3>
-            <p className="text-sm text-muted-foreground/70 mt-1">
-              Try adjusting your search or create a new proposal
+            <h3 className="text-sm font-medium text-muted-foreground">No proposals found</h3>
+            <p className="text-xs text-muted-foreground/70 mt-1">
+              Try adjusting your filters or create a new proposal
             </p>
           </div>
         )}
