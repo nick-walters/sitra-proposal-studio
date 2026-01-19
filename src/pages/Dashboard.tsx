@@ -355,25 +355,6 @@ export function Dashboard() {
                 className="pl-9 h-9 w-48"
               />
             </div>
-            
-            <div className="flex items-center border rounded-md p-0.5">
-              <Button
-                variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => setViewMode('grid')}
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-              </Button>
-              <Button
-                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => setViewMode('list')}
-              >
-                <List className="w-3.5 h-3.5" />
-              </Button>
-            </div>
 
             {/* Filter Button with Popover */}
             <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
@@ -558,6 +539,25 @@ export function Dashboard() {
                 </div>
               </PopoverContent>
             </Popover>
+            
+            <div className="flex items-center border rounded-md p-0.5">
+              <Button
+                variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setViewMode('grid')}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setViewMode('list')}
+              >
+                <List className="w-3.5 h-3.5" />
+              </Button>
+            </div>
             
             {isSitraStaff && (
               <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2" size="sm">
