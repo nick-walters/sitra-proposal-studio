@@ -35,6 +35,7 @@ const sampleProposals: Proposal[] = [
     workProgramme: 'CL5',
     destination: 'CL5-D2',
     deadline: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000), // 45 days - Urgent
+    topicUrl: 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2024-d2-01-01',
     sections: HORIZON_EUROPE_SECTIONS,
     members: [
       { user: { id: '1', name: 'John Doe', email: 'john@example.com' }, role: 'admin' },
@@ -55,6 +56,7 @@ const sampleProposals: Proposal[] = [
     destination: 'CL1-TOOL',
     deadline: new Date('2024-03-01'),
     submittedAt: new Date('2024-02-28'),
+    topicUrl: 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-hlth-2024-tool-11-01',
     sections: HORIZON_EUROPE_SECTIONS,
     members: [
       { user: { id: '1', name: 'John Doe', email: 'john@example.com' }, role: 'editor' },
@@ -113,8 +115,9 @@ const sampleProposals: Proposal[] = [
     updatedAt: new Date('2025-01-10'),
     status: 'draft',
     workProgramme: 'CL3',
-    destination: 'CL3-CYBER',
+    destination: 'CL3-CS',
     deadline: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), // 15 days - Critical
+    topicUrl: 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl3-2024-cs-01-01',
     sections: HORIZON_EUROPE_SECTIONS,
     members: [
       { user: { id: '1', name: 'John Doe', email: 'john@example.com' }, role: 'admin' },
@@ -133,6 +136,7 @@ const sampleProposals: Proposal[] = [
     workProgramme: 'CL6',
     destination: 'CL6-FARM2FORK',
     deadline: new Date(Date.now() + 85 * 24 * 60 * 60 * 1000), // 85 days - Approaching
+    topicUrl: 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl6-2024-farm2fork-01-4',
     sections: HORIZON_EUROPE_SECTIONS,
     members: [
       { user: { id: '10', name: 'Marco Rossi', email: 'marco@example.com' }, role: 'admin' },
@@ -149,8 +153,9 @@ const sampleProposals: Proposal[] = [
     updatedAt: new Date('2025-01-12'),
     status: 'draft',
     workProgramme: 'CL4',
-    destination: 'CL4-DIGITAL',
+    destination: 'CL4-DIGITAL-EMERGING',
     deadline: new Date(Date.now() + 150 * 24 * 60 * 60 * 1000), // 150 days - On Track
+    topicUrl: 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl4-2024-digital-emerging-01-01',
     sections: HORIZON_EUROPE_SECTIONS,
     members: [
       { user: { id: '11', name: 'Lisa Zhang', email: 'lisa@example.com' }, role: 'admin' },
@@ -380,7 +385,7 @@ export function Dashboard() {
 
         {/* Clickable Filter Buttons */}
         <div className="space-y-2 mb-4">
-          {/* Row 1: Urgency and Status */}
+          {/* Row 1: Urgency */}
           <div className="flex items-center gap-2 text-sm flex-wrap">
             <button
               onClick={() => { clearFilters(); }}
@@ -409,7 +414,7 @@ export function Dashboard() {
                   {urgentCount > 0 && (
                     <span className="px-2.5 py-1 rounded-md bg-orange-500/15 text-orange-600 border border-orange-500/30">
                       <span className="font-bold">{urgentCount}</span>
-                      <span className="ml-1">Urgent</span>
+                      <span className="ml-1">Critical!</span>
                     </span>
                   )}
                   {approachingCount > 0 && (
@@ -427,8 +432,10 @@ export function Dashboard() {
                 </>
               );
             })()}
-            <span className="text-muted-foreground/30 mx-1">|</span>
-            {/* Status filters */}
+          </div>
+          
+          {/* Row 2: Status */}
+          <div className="flex items-center gap-2 text-sm flex-wrap">
             <button
               onClick={() => toggleStatus('draft')}
               className={`px-2.5 py-1 rounded-md transition-colors ${statusFilters.has('draft') ? 'bg-yellow-500 text-white' : 'bg-muted hover:bg-muted/80'}`}
@@ -459,9 +466,8 @@ export function Dashboard() {
             </button>
           </div>
 
-          {/* Row 2: Type, Work Programme, and Destination */}
+          {/* Row 3: Type */}
           <div className="flex items-center gap-2 text-sm flex-wrap">
-            {/* Type filters */}
             <button
               onClick={() => toggleType('RIA')}
               className={`px-2.5 py-1 rounded-md transition-colors ${typeFilters.has('RIA') ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`}
@@ -483,8 +489,10 @@ export function Dashboard() {
               <span className="font-bold">{proposals.filter((p) => p.type === 'CSA').length}</span>
               <span className="ml-1">CSA</span>
             </button>
-            <span className="text-muted-foreground/30 mx-1">|</span>
-            {/* Work Programme filters */}
+          </div>
+          
+          {/* Row 4: Work Programme and Destination */}
+          <div className="flex items-center gap-2 text-sm flex-wrap">
             {WORK_PROGRAMMES.map(wp => {
               const count = proposals.filter(p => p.workProgramme === wp.id).length;
               if (count === 0) return null;
@@ -524,7 +532,7 @@ export function Dashboard() {
 
         {/* Proposals Grid */}
         {filteredProposals.length > 0 ? (
-          <div className={viewMode === 'grid' ? 'grid gap-4 md:grid-cols-2 lg:grid-cols-3' : 'space-y-3'}>
+          <div className={viewMode === 'grid' ? 'grid gap-3 md:grid-cols-2 lg:grid-cols-3' : 'space-y-3'}>
             {filteredProposals.map((proposal) => (
               <ProposalCard
                 key={proposal.id}
