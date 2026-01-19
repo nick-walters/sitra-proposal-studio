@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Proposal, ProposalType, ProposalStatus, HORIZON_EUROPE_SECTIONS, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS, getDestinationsForWorkProgramme } from "@/types/proposal";
-import { Plus, Search, LayoutGrid, List, X, Filter, Leaf, Brain, Zap, Wheat, Shield, Apple, Atom, HeartPulse } from "lucide-react";
+import { Plus, Search, LayoutGrid, List, X, Filter, Leaf, Brain, Zap, Wheat, Shield, Apple, Atom, HeartPulse, Building2, Heart, Sun, Recycle, Lock, ShieldCheck, Network, Database } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,16 +21,56 @@ const getUrgencyLevel = (deadline: Date | undefined): string | null => {
   return 'on_track';
 };
 
-// Icon mapping for topic-focused icons
+// Composite icon components for topic-focused logos
 const topicIcons: Record<string, React.ReactNode> = {
-  'GreenTech': <Leaf className="w-7 h-7 text-green-600" />,
-  'HealthAI': <Brain className="w-7 h-7 text-purple-600" />,
-  'CleanEnergy': <Zap className="w-7 h-7 text-yellow-600" />,
-  'BioSmart': <Wheat className="w-7 h-7 text-amber-600" />,
-  'CyberShield': <Shield className="w-7 h-7 text-blue-600" />,
-  'FoodSafe': <Apple className="w-7 h-7 text-red-600" />,
-  'QuantumNet': <Atom className="w-7 h-7 text-cyan-600" />,
-  'HealthData': <HeartPulse className="w-7 h-7 text-pink-600" />,
+  'GreenTech': (
+    <div className="relative w-full h-full flex items-center justify-center">
+      <Building2 className="w-5 h-5 text-green-700 absolute -left-0.5" />
+      <Leaf className="w-4 h-4 text-green-500 absolute right-0 bottom-1" />
+    </div>
+  ),
+  'HealthAI': (
+    <div className="relative w-full h-full flex items-center justify-center">
+      <Brain className="w-5 h-5 text-purple-600 absolute left-0" />
+      <Heart className="w-3.5 h-3.5 text-purple-400 absolute right-0.5 bottom-1.5" />
+    </div>
+  ),
+  'CleanEnergy': (
+    <div className="relative w-full h-full flex items-center justify-center">
+      <Sun className="w-5 h-5 text-yellow-500 absolute -left-0.5 -top-0.5" />
+      <Zap className="w-4 h-4 text-yellow-600 absolute right-0 bottom-1" />
+    </div>
+  ),
+  'BioSmart': (
+    <div className="relative w-full h-full flex items-center justify-center">
+      <Wheat className="w-5 h-5 text-amber-600 absolute left-0" />
+      <Recycle className="w-3.5 h-3.5 text-amber-400 absolute right-0.5 bottom-1.5" />
+    </div>
+  ),
+  'CyberShield': (
+    <div className="relative w-full h-full flex items-center justify-center">
+      <Shield className="w-6 h-6 text-blue-600" />
+      <Lock className="w-3 h-3 text-blue-400 absolute" />
+    </div>
+  ),
+  'FoodSafe': (
+    <div className="relative w-full h-full flex items-center justify-center">
+      <Apple className="w-5 h-5 text-red-500 absolute left-0" />
+      <ShieldCheck className="w-3.5 h-3.5 text-red-700 absolute right-0.5 bottom-1.5" />
+    </div>
+  ),
+  'QuantumNet': (
+    <div className="relative w-full h-full flex items-center justify-center">
+      <Atom className="w-5 h-5 text-cyan-500 absolute -left-0.5" />
+      <Network className="w-4 h-4 text-cyan-700 absolute right-0 bottom-1" />
+    </div>
+  ),
+  'HealthData': (
+    <div className="relative w-full h-full flex items-center justify-center">
+      <HeartPulse className="w-5 h-5 text-pink-500 absolute left-0" />
+      <Database className="w-3.5 h-3.5 text-pink-700 absolute right-0.5 bottom-1.5" />
+    </div>
+  ),
 };
 
 // Sample data with varying urgency levels
