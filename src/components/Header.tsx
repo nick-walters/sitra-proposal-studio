@@ -1,21 +1,12 @@
 import { Button } from "@/components/ui/button";
-import { Users, Settings, LogOut } from "lucide-react";
+import { UserAvatarMenu } from "@/components/UserAvatarMenu";
+import { Users, Settings } from "lucide-react";
 import sitraLogo from "@/assets/sitra-logo.png";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
-interface HeaderProps {
-  user?: {
-    name: string;
-    email: string;
-    avatar?: string;
-  };
-  onLogout?: () => void;
-}
-
-export function Header({ user, onLogout }: HeaderProps) {
-  const initials = user?.name
-    ? user.name.split(' ').map(n => n[0]).join('').toUpperCase()
-    : 'U';
+export function Header() {
+  const { user, signOut } = useAuth();
 
   return (
     <header className="h-16 border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
@@ -43,23 +34,14 @@ export function Header({ user, onLogout }: HeaderProps) {
           </Button>
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {user && (
-            <div className="hidden sm:flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="text-sm font-medium text-primary">{initials}</span>
-              </div>
-              <span className="text-sm font-medium">{user.name}</span>
-            </div>
+            <UserAvatarMenu 
+              userId={user.id}
+              email={user.email || ''}
+              onLogout={signOut}
+            />
           )}
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="text-muted-foreground hover:text-foreground"
-            onClick={onLogout}
-          >
-            <LogOut className="w-4 h-4" />
-          </Button>
         </div>
       </div>
     </header>
