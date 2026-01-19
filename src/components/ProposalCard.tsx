@@ -23,13 +23,13 @@ const getUrgencyInfo = (deadline: Date | undefined) => {
     };
   } else if (daysLeft <= 56) {
     return {
-      label: 'Critical!',
+      label: 'Priority',
       days: daysLeft,
       className: 'bg-orange-500/15 text-orange-600 border-orange-500/30'
     };
   } else if (daysLeft <= 112) {
     return {
-      label: 'Approaching',
+      label: 'Upcoming',
       days: daysLeft,
       className: 'bg-yellow-500/15 text-yellow-600 border-yellow-500/30'
     };
@@ -113,14 +113,14 @@ export function ProposalCard({ proposal, onClick, compact = false }: ProposalCar
             </div>
             {/* Row 2: Type, Work Programme, Destination */}
             <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
-              <span className="proposal-badge bg-muted text-muted-foreground text-[10px]">{proposal.type}</span>
+              <span className="proposal-badge bg-white text-foreground border border-foreground text-[10px]">{proposal.type}</span>
               {workProgramme && (
-                <span className="proposal-badge bg-muted text-muted-foreground text-[10px]">
+                <span className="proposal-badge bg-gray-400 text-gray-800 text-[10px]">
                   {workProgramme.abbreviation}
                 </span>
               )}
               {destination && (
-                <span className="proposal-badge bg-muted text-muted-foreground text-[10px]">
+                <span className="proposal-badge bg-gray-200 text-gray-700 text-[10px]">
                   {destination.abbreviation}
                 </span>
               )}
@@ -183,19 +183,19 @@ export function ProposalCard({ proposal, onClick, compact = false }: ProposalCar
               </div>
               {/* Row 2: Type, Work Programme, Destination */}
               <div className="flex items-center gap-1 flex-wrap mt-0.5">
-                <span className="proposal-badge bg-muted text-muted-foreground text-[9px]">{proposal.type}</span>
+                <span className="proposal-badge bg-white text-foreground border border-foreground text-[9px]">{proposal.type}</span>
                 {workProgramme && (
-                  <span className="proposal-badge bg-muted text-muted-foreground text-[9px]">
+                  <span className="proposal-badge bg-gray-400 text-gray-800 text-[9px]">
                     {workProgramme.abbreviation}
                   </span>
                 )}
                 {destination && (
-                  <span className="proposal-badge bg-muted text-muted-foreground text-[9px]">
+                  <span className="proposal-badge bg-gray-200 text-gray-700 text-[9px]">
                     {destination.abbreviation}
                   </span>
                 )}
               </div>
-              <h3 className="font-semibold text-sm group-hover:text-primary transition-colors mt-0.5">
+              <h3 className="proposal-title text-sm group-hover:text-primary transition-colors mt-0.5">
                 {proposal.acronym}
               </h3>
             </div>

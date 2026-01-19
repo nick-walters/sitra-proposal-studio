@@ -321,48 +321,27 @@ export function Dashboard() {
       <Header />
 
       <main className="container py-6">
-        {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">My Proposals</h1>
+        {/* Page Header with Search and Toggle */}
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-6">
+          <div className="flex-shrink-0">
+            <h1 className="page-title text-2xl text-foreground">My Proposals</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
               Edit proposal drafts or view previously submitted proposals
             </p>
           </div>
-          {isSitraStaff && (
-            <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2" size="sm">
-              <Plus className="w-4 h-4" />
-              New Proposal
-            </Button>
-          )}
-        </div>
-
-        {/* Filters Bar */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-5">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search proposals..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9"
-            />
-          </div>
           
-          <div className="flex items-center gap-2 flex-wrap">
-            {activeFiltersCount > 0 && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={clearFilters}
-                className="h-9 px-2 text-xs text-muted-foreground hover:text-foreground"
-              >
-                <X className="w-3 h-3 mr-1" />
-                Clear ({activeFiltersCount})
-              </Button>
-            )}
-
-            <div className="flex items-center border rounded-md p-0.5 ml-auto">
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search proposals..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 h-9 w-48"
+              />
+            </div>
+            
+            <div className="flex items-center border rounded-md p-0.5">
               <Button
                 variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
                 size="icon"
@@ -380,6 +359,25 @@ export function Dashboard() {
                 <List className="w-3.5 h-3.5" />
               </Button>
             </div>
+
+            {activeFiltersCount > 0 && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={clearFilters}
+                className="h-9 px-2 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-3 h-3 mr-1" />
+                Clear ({activeFiltersCount})
+              </Button>
+            )}
+            
+            {isSitraStaff && (
+              <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2" size="sm">
+                <Plus className="w-4 h-4" />
+                New Proposal
+              </Button>
+            )}
           </div>
         </div>
 
@@ -414,13 +412,13 @@ export function Dashboard() {
                   {urgentCount > 0 && (
                     <span className="px-2.5 py-1 rounded-md bg-orange-500/15 text-orange-600 border border-orange-500/30">
                       <span className="font-bold">{urgentCount}</span>
-                      <span className="ml-1">Critical!</span>
+                      <span className="ml-1">Priority</span>
                     </span>
                   )}
                   {approachingCount > 0 && (
                     <span className="px-2.5 py-1 rounded-md bg-yellow-500/15 text-yellow-600 border border-yellow-500/30">
                       <span className="font-bold">{approachingCount}</span>
-                      <span className="ml-1">Approaching</span>
+                      <span className="ml-1">Upcoming</span>
                     </span>
                   )}
                   {onTrackCount > 0 && (
@@ -470,21 +468,21 @@ export function Dashboard() {
           <div className="flex items-center gap-2 text-sm flex-wrap">
             <button
               onClick={() => toggleType('RIA')}
-              className={`px-2.5 py-1 rounded-md transition-colors ${typeFilters.has('RIA') ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`}
+              className={`px-2.5 py-1 rounded-md transition-colors border ${typeFilters.has('RIA') ? 'bg-foreground text-background border-foreground' : 'bg-white text-foreground border-foreground hover:bg-gray-50'}`}
             >
               <span className="font-bold">{proposals.filter((p) => p.type === 'RIA').length}</span>
               <span className="ml-1">RIA</span>
             </button>
             <button
               onClick={() => toggleType('IA')}
-              className={`px-2.5 py-1 rounded-md transition-colors ${typeFilters.has('IA') ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`}
+              className={`px-2.5 py-1 rounded-md transition-colors border ${typeFilters.has('IA') ? 'bg-foreground text-background border-foreground' : 'bg-white text-foreground border-foreground hover:bg-gray-50'}`}
             >
               <span className="font-bold">{proposals.filter((p) => p.type === 'IA').length}</span>
               <span className="ml-1">IA</span>
             </button>
             <button
               onClick={() => toggleType('CSA')}
-              className={`px-2.5 py-1 rounded-md transition-colors ${typeFilters.has('CSA') ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`}
+              className={`px-2.5 py-1 rounded-md transition-colors border ${typeFilters.has('CSA') ? 'bg-foreground text-background border-foreground' : 'bg-white text-foreground border-foreground hover:bg-gray-50'}`}
             >
               <span className="font-bold">{proposals.filter((p) => p.type === 'CSA').length}</span>
               <span className="ml-1">CSA</span>
@@ -500,7 +498,7 @@ export function Dashboard() {
                 <button
                   key={wp.id}
                   onClick={() => toggleWp(wp.id)}
-                  className={`px-2.5 py-1 rounded-md transition-colors ${wpFilters.has(wp.id) ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`}
+                  className={`px-2.5 py-1 rounded-md transition-colors ${wpFilters.has(wp.id) ? 'bg-gray-600 text-white' : 'bg-gray-400 text-gray-800 hover:bg-gray-500'}`}
                 >
                   <span className="font-bold">{count}</span>
                   <span className="ml-1">{wp.abbreviation}</span>
@@ -518,7 +516,7 @@ export function Dashboard() {
                     <button
                       key={dest.id}
                       onClick={() => toggleDest(dest.id)}
-                      className={`px-2.5 py-1 rounded-md transition-colors ${destFilters.has(dest.id) ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`}
+                      className={`px-2.5 py-1 rounded-md transition-colors ${destFilters.has(dest.id) ? 'bg-gray-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                     >
                       <span className="font-bold">{count}</span>
                       <span className="ml-1">{dest.abbreviation}</span>
