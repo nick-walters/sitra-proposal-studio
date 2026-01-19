@@ -25,7 +25,7 @@ const getUrgencyLevel = (deadline: Date | undefined): string | null => {
 const sampleProposals: Proposal[] = [
   {
     id: '1',
-    acronym: 'GREENTECH',
+    acronym: 'GreenTech',
     title: 'Green Technologies for Sustainable Urban Development',
     type: 'RIA',
     budgetType: 'traditional',
@@ -34,7 +34,7 @@ const sampleProposals: Proposal[] = [
     status: 'draft',
     workProgramme: 'CL5',
     destination: 'CL5-D2',
-    deadline: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000), // 45 days - Urgent
+    deadline: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000), // 45 days - Priority
     topicUrl: 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2024-d2-01-01',
     sections: HORIZON_EUROPE_SECTIONS,
     members: [
@@ -45,7 +45,7 @@ const sampleProposals: Proposal[] = [
   },
   {
     id: '2',
-    acronym: 'AIHEALTH',
+    acronym: 'AiHealth',
     title: 'Artificial Intelligence Solutions for Personalized Healthcare',
     type: 'IA',
     budgetType: 'traditional',
@@ -65,7 +65,7 @@ const sampleProposals: Proposal[] = [
   },
   {
     id: '3',
-    acronym: 'CLEANENERGY',
+    acronym: 'CleanEnergy',
     title: 'Coordination Network for Clean Energy Transition in Europe',
     type: 'CSA',
     budgetType: 'lump_sum',
@@ -88,7 +88,7 @@ const sampleProposals: Proposal[] = [
   },
   {
     id: '4',
-    acronym: 'BIOSMART',
+    acronym: 'BioSmart',
     title: 'Smart Bioeconomy Solutions for Circular Agriculture',
     type: 'RIA',
     budgetType: 'traditional',
@@ -107,7 +107,7 @@ const sampleProposals: Proposal[] = [
   },
   {
     id: '5',
-    acronym: 'CYBERSHIELD',
+    acronym: 'CyberShield',
     title: 'Advanced Cybersecurity Framework for Critical Infrastructure',
     type: 'IA',
     budgetType: 'traditional',
@@ -126,7 +126,7 @@ const sampleProposals: Proposal[] = [
   },
   {
     id: '6',
-    acronym: 'FOODSAFE',
+    acronym: 'FoodSafe',
     title: 'Innovative Food Safety Monitoring Systems',
     type: 'RIA',
     budgetType: 'traditional',
@@ -135,7 +135,7 @@ const sampleProposals: Proposal[] = [
     status: 'draft',
     workProgramme: 'CL6',
     destination: 'CL6-FARM2FORK',
-    deadline: new Date(Date.now() + 85 * 24 * 60 * 60 * 1000), // 85 days - Approaching
+    deadline: new Date(Date.now() + 85 * 24 * 60 * 60 * 1000), // 85 days - Upcoming
     topicUrl: 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl6-2024-farm2fork-01-4',
     sections: HORIZON_EUROPE_SECTIONS,
     members: [
@@ -145,7 +145,7 @@ const sampleProposals: Proposal[] = [
   },
   {
     id: '7',
-    acronym: 'QUANTUMNET',
+    acronym: 'QuantumNet',
     title: 'Quantum Communication Networks for Secure Data Transmission',
     type: 'RIA',
     budgetType: 'traditional',
@@ -165,7 +165,7 @@ const sampleProposals: Proposal[] = [
   },
   {
     id: '8',
-    acronym: 'HEALTHDATA',
+    acronym: 'HealthData',
     title: 'European Health Data Space Integration Platform',
     type: 'CSA',
     budgetType: 'lump_sum',

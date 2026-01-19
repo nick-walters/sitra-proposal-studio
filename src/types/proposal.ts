@@ -53,6 +53,7 @@ export const WORK_PROGRAMMES: WorkProgramme[] = [
   { id: 'CL6', abbreviation: 'CL6', fullName: 'Cluster 6: Food, Bioeconomy, Natural Resources, Agriculture & Environment' },
   { id: 'WIDERA', abbreviation: 'WIDERA', fullName: 'Widening Participation and Strengthening the ERA' },
   { id: 'NEB', abbreviation: 'NEB', fullName: 'New European Bauhaus Facility' },
+  { id: 'PARTNERSHIP', abbreviation: 'Partnership', fullName: 'European Partnerships' },
 ];
 
 // Destinations per Work Programme
@@ -115,6 +116,10 @@ export const DESTINATIONS: Destination[] = [
   // NEB - New European Bauhaus Facility (from WP 2026-27 Part 13)
   { id: 'NEB-REGEN', abbreviation: 'REGEN', fullName: 'Regeneration of neighbourhoods', workProgrammeId: 'NEB' },
   { id: 'NEB-BUSINESS', abbreviation: 'BUSINESS', fullName: 'Innovative funding and new business models for the transformation of neighbourhoods', workProgrammeId: 'NEB' },
+
+  // Partnership - European Partnerships
+  { id: 'PARTNERSHIP-CBE', abbreviation: 'CBE JU', fullName: 'Circular Bio-based Europe Joint Undertaking', workProgrammeId: 'PARTNERSHIP' },
+  { id: 'PARTNERSHIP-CHIPS', abbreviation: 'Chips JU', fullName: 'Chips Joint Undertaking', workProgrammeId: 'PARTNERSHIP' },
 ];
 
 export const getDestinationsForWorkProgramme = (workProgrammeId: string): Destination[] => {
