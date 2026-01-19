@@ -23,7 +23,7 @@ const sampleProposals: Proposal[] = [
     status: 'draft',
     workProgramme: 'CL5',
     destination: 'CL5-D2',
-    deadline: new Date('2024-06-15'),
+    deadline: new Date('2026-03-15'),
     sections: HORIZON_EUROPE_SECTIONS,
     members: [
       { user: { id: '1', name: 'John Doe', email: 'john@example.com' }, role: 'admin' },
