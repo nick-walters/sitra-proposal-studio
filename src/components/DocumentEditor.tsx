@@ -1,9 +1,23 @@
 import { Section } from "@/types/proposal";
-import { EditorToolbar } from "./EditorToolbar";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Info, Video, ImageIcon } from "lucide-react";
-import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Info, Video, ImageIcon, Sparkles, BookOpen, Wand2 } from "lucide-react";
+import { useState, useCallback } from "react";
+import { RichTextEditor } from "./RichTextEditor";
+import { GrammarChecker } from "./GrammarChecker";
+import { CitationDialog } from "./CitationDialog";
+import { ImageGeneratorDialog } from "./ImageGeneratorDialog";
+
+interface Reference {
+  authors: string[];
+  year: number | null;
+  title: string;
+  journal: string | null;
+  volume: string | null;
+  pages: string | null;
+  doi: string | null;
+}
 
 interface DocumentEditorProps {
   section: Section | null;
@@ -12,6 +26,39 @@ interface DocumentEditorProps {
 
 export function DocumentEditor({ section, proposalAcronym }: DocumentEditorProps) {
   const [content, setContent] = useState(section?.content || '');
+  const [isGrammarOpen, setIsGrammarOpen] = useState(false);
+  const [isCitationOpen, setIsCitationOpen] = useState(false);
+  const [isImageGenOpen, setIsImageGenOpen] = useState(false);
+  const [references, setReferences] = useState<Reference[]>([]);
+  const [footnotes, setFootnotes] = useState<Array<{ number: number; citation: string }>>([]);
+
+  const handleContentChange = useCallback((newContent: string) => {
+    setContent(newContent);
+  }, []);
+
+  const handleInsertCitation = useCallback((reference: Reference, formattedCitation: string, citationNumber: number) => {
+    // Add superscript citation to content
+    const superscript = `<sup>${citationNumber}</sup>`;
+    setContent(prev => prev + superscript);
+    
+    // Add to references if new
+    if (!references.some(r => r.doi === reference.doi)) {
+      setReferences(prev => [...prev, reference]);
+      setFootnotes(prev => [...prev, { number: citationNumber, citation: formattedCitation }]);
+    }
+  }, [references]);
+
+  const handleInsertImage = useCallback((imageUrl: string) => {
+    const imgTag = `<img src="${imageUrl}" alt="Generated image" class="max-w-full h-auto my-4" />`;
+    setContent(prev => prev + imgTag);
+  }, []);
+
+  const handleApplyGrammarSuggestion = useCallback((original: string, replacement: string) => {
+    setContent(prev => prev.replace(original, replacement));
+  }, []);
+
+  // Strip HTML for grammar checking
+  const plainText = content.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
 
   if (!section) {
     return (
@@ -30,9 +77,23 @@ export function DocumentEditor({ section, proposalAcronym }: DocumentEditorProps
   }
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
-      <EditorToolbar />
-      
+    <div className="flex-1 flex flex-col min-h-0 relative">
+      {/* Extra toolbar with AI features */}
+      <div className="flex items-center gap-2 p-2 border-b border-border bg-card">
+        <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsGrammarOpen(true)}>
+          <Sparkles className="w-4 h-4" />
+          Grammar Check
+        </Button>
+        <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsCitationOpen(true)}>
+          <BookOpen className="w-4 h-4" />
+          Add Citation
+        </Button>
+        <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsImageGenOpen(true)}>
+          <Wand2 className="w-4 h-4" />
+          AI Image
+        </Button>
+      </div>
+
       <div className="flex-1 overflow-auto p-6 bg-muted/30">
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Section Header */}
@@ -41,27 +102,21 @@ export function DocumentEditor({ section, proposalAcronym }: DocumentEditorProps
               Section {section.number}
             </Badge>
             {section.wordLimit && (
-              <Badge variant="secondary">
-                Word limit: {section.wordLimit}
-              </Badge>
+              <Badge variant="secondary">Word limit: {section.wordLimit}</Badge>
             )}
             {section.pageLimit && (
-              <Badge variant="secondary">
-                Page limit: {section.pageLimit}
-              </Badge>
+              <Badge variant="secondary">Page limit: {section.pageLimit}</Badge>
             )}
           </div>
 
-          {/* Guidelines Panel */}
+          {/* Guidelines */}
           {section.guidelines && (
             <Card className="p-4 bg-accent/50 border-primary/20">
               <div className="flex items-start gap-3">
                 <Info className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
                   <h4 className="font-medium text-sm text-primary mb-2">Guidelines</h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {section.guidelines.text}
-                  </p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{section.guidelines.text}</p>
                   {(section.guidelines.imageUrl || section.guidelines.videoUrl) && (
                     <div className="flex items-center gap-3 mt-3">
                       {section.guidelines.imageUrl && (
@@ -83,27 +138,29 @@ export function DocumentEditor({ section, proposalAcronym }: DocumentEditorProps
             </Card>
           )}
 
-          {/* Document Page */}
+          {/* Document Page with Rich Text Editor */}
           <div className="document-page animate-fade-in">
-            {/* Page Header */}
-            <h1 className="document-h1 text-foreground mb-6">
-              {section.number} {section.title}
-            </h1>
+            <h1 className="document-h1 text-foreground mb-6">{section.number} {section.title}</h1>
+            <RichTextEditor
+              content={content}
+              onChange={handleContentChange}
+              onInsertImage={() => setIsImageGenOpen(true)}
+            />
 
-            {/* Editable Content Area */}
-            <div
-              className="document-content min-h-[400px] outline-none"
-              contentEditable
-              suppressContentEditableWarning
-              onInput={(e) => setContent(e.currentTarget.textContent || '')}
-              style={{ fontFamily: '"Times New Roman", Times, serif' }}
-            >
-              {content || (
-                <span className="text-muted-foreground italic">
-                  Click here to start writing...
-                </span>
-              )}
-            </div>
+            {/* Footnotes */}
+            {footnotes.length > 0 && (
+              <div className="mt-8 pt-4 border-t border-border">
+                <div className="space-y-1">
+                  {footnotes.map((fn) => (
+                    <p key={fn.number} className="text-[8pt] text-muted-foreground" 
+                       dangerouslySetInnerHTML={{ 
+                         __html: `<sup>${fn.number}</sup> ${fn.citation.replace(/\*([^*]+)\*/g, '<em>$1</em>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')}` 
+                       }} 
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Page Footer */}
             <div className="mt-auto pt-8 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
@@ -114,6 +171,26 @@ export function DocumentEditor({ section, proposalAcronym }: DocumentEditorProps
           </div>
         </div>
       </div>
+
+      {/* Dialogs */}
+      <GrammarChecker
+        text={plainText}
+        onApplySuggestion={handleApplyGrammarSuggestion}
+        isOpen={isGrammarOpen}
+        onClose={() => setIsGrammarOpen(false)}
+      />
+      <CitationDialog
+        isOpen={isCitationOpen}
+        onClose={() => setIsCitationOpen(false)}
+        onInsertCitation={handleInsertCitation}
+        existingReferences={references}
+        nextCitationNumber={references.length + 1}
+      />
+      <ImageGeneratorDialog
+        isOpen={isImageGenOpen}
+        onClose={() => setIsImageGenOpen(false)}
+        onInsertImage={handleInsertImage}
+      />
     </div>
   );
 }

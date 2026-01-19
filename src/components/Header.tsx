@@ -22,8 +22,8 @@ export function Header({ user, onLogout }: HeaderProps) {
       <div className="h-full px-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <img src={sitraLogo} alt="Sitra" className="h-6" />
-            <span className="text-xl font-bold tracking-tight text-foreground">grant.eu</span>
+            <img src={sitraLogo} alt="Sitra" className="h-6 w-auto scale-x-[2] origin-left" />
+            <span className="text-sm font-bold tracking-tight text-foreground ml-6">grant.eu</span>
           </Link>
         </div>
 
