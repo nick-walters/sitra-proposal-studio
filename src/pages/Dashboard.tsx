@@ -17,8 +17,7 @@ const getUrgencyLevel = (deadline: Date | undefined): string | null => {
   if (!deadline) return null;
   const daysLeft = differenceInDays(deadline, new Date());
   if (daysLeft <= 28) return 'critical';
-  if (daysLeft <= 56) return 'urgent';
-  if (daysLeft <= 112) return 'approaching';
+  if (daysLeft <= 56) return 'due_soon';
   return 'on_track';
 };
 
@@ -398,8 +397,7 @@ export function Dashboard() {
                       {(() => {
                         const draftProposals = proposals.filter(p => p.status === 'draft');
                         const criticalCount = draftProposals.filter(p => getUrgencyLevel(p.deadline) === 'critical').length;
-                        const urgentCount = draftProposals.filter(p => getUrgencyLevel(p.deadline) === 'urgent').length;
-                        const approachingCount = draftProposals.filter(p => getUrgencyLevel(p.deadline) === 'approaching').length;
+                        const dueSoonCount = draftProposals.filter(p => getUrgencyLevel(p.deadline) === 'due_soon').length;
                         const onTrackCount = draftProposals.filter(p => getUrgencyLevel(p.deadline) === 'on_track').length;
                         
                         return (
@@ -413,22 +411,13 @@ export function Dashboard() {
                                 <span className="ml-1">Critical!</span>
                               </button>
                             )}
-                            {urgentCount > 0 && (
+                            {dueSoonCount > 0 && (
                               <button
-                                onClick={() => toggleUrgency('urgent')}
-                                className={`px-2.5 py-1 rounded-md transition-colors text-sm ${urgencyFilters.has('urgent') ? 'bg-orange-500 text-white' : 'bg-orange-500/15 text-orange-600 border border-orange-500/30 hover:bg-orange-500/25'}`}
+                                onClick={() => toggleUrgency('due_soon')}
+                                className={`px-2.5 py-1 rounded-md transition-colors text-sm ${urgencyFilters.has('due_soon') ? 'bg-orange-500 text-white' : 'bg-orange-500/15 text-orange-600 border border-orange-500/30 hover:bg-orange-500/25'}`}
                               >
-                                <span className="font-bold">{urgentCount}</span>
-                                <span className="ml-1">Priority</span>
-                              </button>
-                            )}
-                            {approachingCount > 0 && (
-                              <button
-                                onClick={() => toggleUrgency('approaching')}
-                                className={`px-2.5 py-1 rounded-md transition-colors text-sm ${urgencyFilters.has('approaching') ? 'bg-yellow-500 text-white' : 'bg-yellow-500/15 text-yellow-600 border border-yellow-500/30 hover:bg-yellow-500/25'}`}
-                              >
-                                <span className="font-bold">{approachingCount}</span>
-                                <span className="ml-1">Upcoming</span>
+                                <span className="font-bold">{dueSoonCount}</span>
+                                <span className="ml-1">Due soon</span>
                               </button>
                             )}
                             {onTrackCount > 0 && (
@@ -437,7 +426,7 @@ export function Dashboard() {
                                 className={`px-2.5 py-1 rounded-md transition-colors text-sm ${urgencyFilters.has('on_track') ? 'bg-green-500 text-white' : 'bg-green-500/15 text-green-600 border border-green-500/30 hover:bg-green-500/25'}`}
                               >
                                 <span className="font-bold">{onTrackCount}</span>
-                                <span className="ml-1">On Track</span>
+                                <span className="ml-1">On track</span>
                               </button>
                             )}
                           </>
@@ -462,7 +451,7 @@ export function Dashboard() {
                         className={`px-2.5 py-1 rounded-md transition-colors text-sm ${statusFilters.has('submitted') ? 'bg-orange-500 text-white' : 'bg-muted hover:bg-muted/80'}`}
                       >
                         <span className="font-bold">{proposals.filter((p) => p.status === 'submitted').length}</span>
-                        <span className="ml-1">Submitted</span>
+                        <span className="ml-1">Under Evaluation</span>
                       </button>
                       <button
                         onClick={() => toggleStatus('funded')}
