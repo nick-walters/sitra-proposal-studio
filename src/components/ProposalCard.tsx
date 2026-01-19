@@ -1,7 +1,7 @@
 import { Proposal, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS } from "@/types/proposal";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Calendar, FileText, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink } from "lucide-react";
+import { Calendar, FileText, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 
 interface ProposalCardProps {
@@ -224,11 +224,6 @@ export function ProposalCard({ proposal, onClick, compact = false }: ProposalCar
 
         {/* Compact meta info */}
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <Users className="w-2.5 h-2.5" />
-            <span>{proposal.members.length}</span>
-          </div>
-          
           {proposal.deadline && (
             <div className="flex items-center gap-1">
               <Calendar className="w-2.5 h-2.5" />
