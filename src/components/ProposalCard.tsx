@@ -46,9 +46,9 @@ export function ProposalCard({ proposal, onClick, compact = false }: ProposalCar
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'draft':
-        return 'bg-muted text-muted-foreground';
+        return 'bg-yellow-500/15 text-yellow-600';
       case 'submitted':
-        return 'bg-blue-500/10 text-blue-600';
+        return 'bg-orange-500/15 text-orange-600';
       case 'funded':
         return 'bg-success/10 text-success';
       case 'not_funded':
@@ -203,13 +203,6 @@ export function ProposalCard({ proposal, onClick, compact = false }: ProposalCar
             <div className="flex items-center gap-1">
               <Calendar className="w-3 h-3" />
               <span>{format(proposal.deadline, 'MMM d, yyyy')}</span>
-            </div>
-          )}
-
-          {!isDraft && proposal.submittedAt && (
-            <div className="flex items-center gap-1">
-              <Send className="w-3 h-3" />
-              <span>{format(proposal.submittedAt, 'MMM d')}</span>
             </div>
           )}
 
