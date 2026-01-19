@@ -3,6 +3,7 @@ import { SectionNavigator } from "@/components/SectionNavigator";
 import { DocumentEditor } from "@/components/DocumentEditor";
 import { VersionHistoryDialog } from "@/components/VersionHistoryDialog";
 import { ProposalInfoPage } from "@/components/ProposalInfoPage";
+import { ProposalSummaryPage } from "@/components/ProposalSummaryPage";
 import { ParticipantForm } from "@/components/ParticipantForm";
 import { BudgetSpreadsheetEnhanced } from "@/components/BudgetSpreadsheetEnhanced";
 import { EthicsForm } from "@/components/EthicsForm";
@@ -183,6 +184,23 @@ export function ProposalEditor() {
     // Part A sections
     if (activeSection.isPartA) {
       switch (activeSection.id) {
+        case 'summary':
+          return proposal ? (
+            <ProposalSummaryPage
+              proposal={{
+                ...proposal,
+                members: [],
+                sections: allSections,
+              }}
+              participants={participants}
+              participantMembers={participantMembers}
+              budgetItems={budgetItems.map((b) => ({
+                amount: b.amount,
+                participantId: b.participantId,
+              }))}
+            />
+          ) : null;
+
         case 'proposal-info':
           return proposal ? (
             <ProposalInfoPage

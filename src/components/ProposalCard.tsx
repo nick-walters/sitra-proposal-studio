@@ -137,28 +137,7 @@ export function ProposalCard({ proposal, onClick }: ProposalCardProps) {
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="flex -space-x-2">
-            {proposal.members.slice(0, 4).map((member, idx) => (
-              <div
-                key={member.user.id}
-                className="w-8 h-8 rounded-full bg-primary/10 border-2 border-card flex items-center justify-center"
-                style={{ zIndex: 4 - idx }}
-              >
-                <span className="text-xs font-medium text-primary">
-                  {member.user.name.split(' ').map(n => n[0]).join('')}
-                </span>
-              </div>
-            ))}
-            {proposal.members.length > 4 && (
-              <div className="w-8 h-8 rounded-full bg-muted border-2 border-card flex items-center justify-center">
-                <span className="text-xs font-medium text-muted-foreground">
-                  +{proposal.members.length - 4}
-                </span>
-              </div>
-            )}
-          </div>
-          <div className="flex-1" />
+        <div className="flex items-center justify-end">
           <Button variant="ghost" size="sm" className="gap-1 group-hover:bg-primary group-hover:text-primary-foreground transition-all">
             {isDraft ? 'Edit' : 'View'}
             <ArrowRight className="w-4 h-4" />
