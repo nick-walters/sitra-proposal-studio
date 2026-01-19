@@ -381,9 +381,9 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Clickable Filter Buttons */}
-        <div className="space-y-2 mb-4">
-          {/* Row 1: Urgency */}
+        {/* Clickable Filter Buttons - 2x2 Grid Layout */}
+        <div className="grid grid-cols-2 gap-x-6 gap-y-2 mb-4">
+          {/* Top Left: Urgency */}
           <div className="flex items-center gap-2 text-sm flex-wrap">
             <button
               onClick={() => { clearFilters(); }}
@@ -393,7 +393,6 @@ export function Dashboard() {
               <span className="ml-1">Total</span>
             </button>
             <span className="text-muted-foreground/30 mx-1">|</span>
-            {/* Urgency filters - only count drafts */}
             {(() => {
               const draftProposals = proposals.filter(p => p.status === 'draft');
               const criticalCount = draftProposals.filter(p => getUrgencyLevel(p.deadline) === 'critical').length;
@@ -431,8 +430,33 @@ export function Dashboard() {
               );
             })()}
           </div>
+
+          {/* Top Right: Type */}
+          <div className="flex items-center gap-2 text-sm flex-wrap">
+            <button
+              onClick={() => toggleType('RIA')}
+              className={`px-2.5 py-1 rounded-md transition-colors border ${typeFilters.has('RIA') ? 'bg-foreground text-background border-foreground' : 'bg-white text-foreground border-foreground hover:bg-gray-50'}`}
+            >
+              <span className="font-bold">{proposals.filter((p) => p.type === 'RIA').length}</span>
+              <span className="ml-1">RIA</span>
+            </button>
+            <button
+              onClick={() => toggleType('IA')}
+              className={`px-2.5 py-1 rounded-md transition-colors border ${typeFilters.has('IA') ? 'bg-foreground text-background border-foreground' : 'bg-white text-foreground border-foreground hover:bg-gray-50'}`}
+            >
+              <span className="font-bold">{proposals.filter((p) => p.type === 'IA').length}</span>
+              <span className="ml-1">IA</span>
+            </button>
+            <button
+              onClick={() => toggleType('CSA')}
+              className={`px-2.5 py-1 rounded-md transition-colors border ${typeFilters.has('CSA') ? 'bg-foreground text-background border-foreground' : 'bg-white text-foreground border-foreground hover:bg-gray-50'}`}
+            >
+              <span className="font-bold">{proposals.filter((p) => p.type === 'CSA').length}</span>
+              <span className="ml-1">CSA</span>
+            </button>
+          </div>
           
-          {/* Row 2: Status */}
+          {/* Bottom Left: Status */}
           <div className="flex items-center gap-2 text-sm flex-wrap">
             <button
               onClick={() => toggleStatus('draft')}
@@ -464,32 +488,7 @@ export function Dashboard() {
             </button>
           </div>
 
-          {/* Row 3: Type */}
-          <div className="flex items-center gap-2 text-sm flex-wrap">
-            <button
-              onClick={() => toggleType('RIA')}
-              className={`px-2.5 py-1 rounded-md transition-colors border ${typeFilters.has('RIA') ? 'bg-foreground text-background border-foreground' : 'bg-white text-foreground border-foreground hover:bg-gray-50'}`}
-            >
-              <span className="font-bold">{proposals.filter((p) => p.type === 'RIA').length}</span>
-              <span className="ml-1">RIA</span>
-            </button>
-            <button
-              onClick={() => toggleType('IA')}
-              className={`px-2.5 py-1 rounded-md transition-colors border ${typeFilters.has('IA') ? 'bg-foreground text-background border-foreground' : 'bg-white text-foreground border-foreground hover:bg-gray-50'}`}
-            >
-              <span className="font-bold">{proposals.filter((p) => p.type === 'IA').length}</span>
-              <span className="ml-1">IA</span>
-            </button>
-            <button
-              onClick={() => toggleType('CSA')}
-              className={`px-2.5 py-1 rounded-md transition-colors border ${typeFilters.has('CSA') ? 'bg-foreground text-background border-foreground' : 'bg-white text-foreground border-foreground hover:bg-gray-50'}`}
-            >
-              <span className="font-bold">{proposals.filter((p) => p.type === 'CSA').length}</span>
-              <span className="ml-1">CSA</span>
-            </button>
-          </div>
-          
-          {/* Row 4: Work Programme and Destination */}
+          {/* Bottom Right: Work Programme */}
           <div className="flex items-center gap-2 text-sm flex-wrap">
             {WORK_PROGRAMMES.map(wp => {
               const count = proposals.filter(p => p.workProgramme === wp.id).length;
@@ -498,35 +497,36 @@ export function Dashboard() {
                 <button
                   key={wp.id}
                   onClick={() => toggleWp(wp.id)}
-                  className={`px-2.5 py-1 rounded-md transition-colors ${wpFilters.has(wp.id) ? 'bg-gray-600 text-white' : 'bg-gray-400 text-gray-800 hover:bg-gray-500'}`}
+                  className={`px-2.5 py-1 rounded-md transition-colors ${wpFilters.has(wp.id) ? 'bg-gray-500 text-white' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'}`}
                 >
                   <span className="font-bold">{count}</span>
                   <span className="ml-1">{wp.abbreviation}</span>
                 </button>
               );
             })}
-            {/* Destination filters - inline after WP when selected */}
-            {availableDestinations.length > 0 && (
-              <>
-                <span className="text-muted-foreground/30 mx-1">→</span>
-                {availableDestinations.map(dest => {
-                  const count = proposals.filter(p => p.destination === dest.id).length;
-                  if (count === 0) return null;
-                  return (
-                    <button
-                      key={dest.id}
-                      onClick={() => toggleDest(dest.id)}
-                      className={`px-2.5 py-1 rounded-md transition-colors ${destFilters.has(dest.id) ? 'bg-gray-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
-                    >
-                      <span className="font-bold">{count}</span>
-                      <span className="ml-1">{dest.abbreviation}</span>
-                    </button>
-                  );
-                })}
-              </>
-            )}
           </div>
         </div>
+        
+        {/* Destinations row - below the 2x2 grid when WP selected */}
+        {availableDestinations.length > 0 && (
+          <div className="flex items-center gap-2 text-sm flex-wrap mb-4">
+            <span className="text-muted-foreground text-xs mr-1">Destinations:</span>
+            {availableDestinations.map(dest => {
+              const count = proposals.filter(p => p.destination === dest.id).length;
+              if (count === 0) return null;
+              return (
+                <button
+                  key={dest.id}
+                  onClick={() => toggleDest(dest.id)}
+                  className={`px-2.5 py-1 rounded-md transition-colors ${destFilters.has(dest.id) ? 'bg-gray-400 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'}`}
+                >
+                  <span className="font-bold">{count}</span>
+                  <span className="ml-1">{dest.abbreviation}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Proposals Grid */}
         {filteredProposals.length > 0 ? (

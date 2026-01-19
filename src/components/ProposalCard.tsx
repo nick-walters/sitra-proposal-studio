@@ -115,12 +115,12 @@ export function ProposalCard({ proposal, onClick, compact = false }: ProposalCar
             <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
               <span className="proposal-badge bg-white text-foreground border border-foreground text-[10px]">{proposal.type}</span>
               {workProgramme && (
-                <span className="proposal-badge bg-gray-400 text-gray-800 text-[10px]">
+                <span className="proposal-badge bg-gray-300 text-gray-700 text-[10px]">
                   {workProgramme.abbreviation}
                 </span>
               )}
               {destination && (
-                <span className="proposal-badge bg-gray-200 text-gray-700 text-[10px]">
+                <span className="proposal-badge bg-gray-200 text-gray-600 text-[10px]">
                   {destination.abbreviation}
                 </span>
               )}
@@ -159,13 +159,13 @@ export function ProposalCard({ proposal, onClick, compact = false }: ProposalCar
       <CardContent className="p-3">
         {/* Header row with logo, badges, status, and action */}
         <div className="flex items-start justify-between gap-2 mb-2">
-          <div className="flex items-center gap-2">
-            {/* Project Logo */}
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+          <div className="flex items-start gap-2">
+            {/* Project Logo - 80% larger to match badge rows + acronym height */}
+            <div className="w-14 h-14 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
               {proposal.logoUrl ? (
                 <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
               ) : (
-                <FileText className="w-4 h-4 text-primary" />
+                <FileText className="w-7 h-7 text-primary" />
               )}
             </div>
             <div>
@@ -185,12 +185,12 @@ export function ProposalCard({ proposal, onClick, compact = false }: ProposalCar
               <div className="flex items-center gap-1 flex-wrap mt-0.5">
                 <span className="proposal-badge bg-white text-foreground border border-foreground text-[9px]">{proposal.type}</span>
                 {workProgramme && (
-                  <span className="proposal-badge bg-gray-400 text-gray-800 text-[9px]">
+                  <span className="proposal-badge bg-gray-300 text-gray-700 text-[9px]">
                     {workProgramme.abbreviation}
                   </span>
                 )}
                 {destination && (
-                  <span className="proposal-badge bg-gray-200 text-gray-700 text-[9px]">
+                  <span className="proposal-badge bg-gray-200 text-gray-600 text-[9px]">
                     {destination.abbreviation}
                   </span>
                 )}
