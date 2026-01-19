@@ -2,7 +2,7 @@ import { Proposal, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS } from 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, Calendar, FileText, ArrowRight, Send, CheckCircle2, XCircle, Clock } from "lucide-react";
-import { format } from "date-fns";
+import { format, differenceInDays } from "date-fns";
 
 interface ProposalCardProps {
   proposal: Proposal;
@@ -10,20 +10,39 @@ interface ProposalCardProps {
   compact?: boolean;
 }
 
-export function ProposalCard({ proposal, onClick, compact = false }: ProposalCardProps) {
-  const getBadgeClass = (type: string) => {
-    switch (type) {
-      case 'RIA':
-        return 'proposal-badge bg-orange-500/15 text-orange-600 border-orange-500/30';
-      case 'IA':
-        return 'proposal-badge bg-red-500/15 text-red-600 border-red-500/30';
-      case 'CSA':
-        return 'proposal-badge bg-green-500/15 text-green-600 border-green-500/30';
-      default:
-        return 'proposal-badge bg-muted text-muted-foreground';
-    }
-  };
+const getUrgencyInfo = (deadline: Date | undefined) => {
+  if (!deadline) return null;
+  
+  const daysLeft = differenceInDays(deadline, new Date());
+  
+  if (daysLeft <= 28) {
+    return {
+      label: 'Critical!',
+      days: daysLeft,
+      className: 'bg-red-500/15 text-red-600 border-red-500/30'
+    };
+  } else if (daysLeft <= 56) {
+    return {
+      label: 'Urgent',
+      days: daysLeft,
+      className: 'bg-orange-500/15 text-orange-600 border-orange-500/30'
+    };
+  } else if (daysLeft <= 112) {
+    return {
+      label: 'Approaching',
+      days: daysLeft,
+      className: 'bg-yellow-500/15 text-yellow-600 border-yellow-500/30'
+    };
+  } else {
+    return {
+      label: 'On Track',
+      days: daysLeft,
+      className: 'bg-green-500/15 text-green-600 border-green-500/30'
+    };
+  }
+};
 
+export function ProposalCard({ proposal, onClick, compact = false }: ProposalCardProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'draft':
@@ -60,6 +79,9 @@ export function ProposalCard({ proposal, onClick, compact = false }: ProposalCar
   // Get work programme and destination
   const workProgramme = WORK_PROGRAMMES.find(wp => wp.id === proposal.workProgramme);
   const destination = DESTINATIONS.find(d => d.id === proposal.destination);
+  
+  // Get urgency for drafts only
+  const urgency = isDraft ? getUrgencyInfo(proposal.deadline) : null;
 
   if (compact) {
     return (
@@ -78,7 +100,12 @@ export function ProposalCard({ proposal, onClick, compact = false }: ProposalCar
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="font-semibold text-sm">{proposal.acronym}</span>
-              <span className={getBadgeClass(proposal.type)}>{proposal.type}</span>
+              {urgency && (
+                <span className={`proposal-badge ${urgency.className} text-[10px]`}>
+                  {urgency.label} ({urgency.days}d)
+                </span>
+              )}
+              <span className="proposal-badge bg-muted text-muted-foreground text-[10px]">{proposal.type}</span>
               {workProgramme && (
                 <span className="proposal-badge bg-muted text-muted-foreground text-[10px]">
                   {workProgramme.abbreviation}
@@ -125,7 +152,12 @@ export function ProposalCard({ proposal, onClick, compact = false }: ProposalCar
             </div>
             <div>
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className={getBadgeClass(proposal.type)}>{proposal.type}</span>
+                {urgency && (
+                  <span className={`proposal-badge ${urgency.className} text-[10px]`}>
+                    {urgency.label} ({urgency.days}d)
+                  </span>
+                )}
+                <span className="proposal-badge bg-muted text-muted-foreground text-[10px]">{proposal.type}</span>
                 {workProgramme && (
                   <span className="proposal-badge bg-muted text-muted-foreground text-[10px]">
                     {workProgramme.abbreviation}
