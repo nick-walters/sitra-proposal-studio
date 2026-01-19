@@ -1,6 +1,7 @@
 import { Header } from "@/components/Header";
 import { SectionNavigator } from "@/components/SectionNavigator";
 import { DocumentEditor } from "@/components/DocumentEditor";
+import { VersionHistoryDialog } from "@/components/VersionHistoryDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -18,12 +19,15 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePdfExport } from "@/hooks/usePdfExport";
 
 export function ProposalEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<Section | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const { exportToPdf } = usePdfExport();
 
   // Sample proposal data
   const proposal = {
@@ -87,11 +91,11 @@ export function ProposalEditor() {
               <Share2 className="w-4 h-4" />
               Share
             </Button>
-            <Button variant="outline" size="sm" className="gap-2 hidden sm:flex">
+            <Button variant="outline" size="sm" className="gap-2 hidden sm:flex" onClick={() => setIsHistoryOpen(true)}>
               <History className="w-4 h-4" />
               History
             </Button>
-            <Button variant="outline" size="sm" className="gap-2">
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => exportToPdf({ title: proposal.title, acronym: proposal.acronym, sections: [] })}>
               <Download className="w-4 h-4" />
               <span className="hidden sm:inline">Export PDF</span>
             </Button>
@@ -164,6 +168,14 @@ export function ProposalEditor() {
         {/* Editor */}
         <DocumentEditor section={activeSection} proposalAcronym={proposal.acronym} />
       </div>
+
+      {/* Version History Dialog */}
+      <VersionHistoryDialog
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        proposalId={id || ''}
+        onRestoreVersion={(snapshot) => console.log('Restore:', snapshot)}
+      />
     </div>
   );
 }
