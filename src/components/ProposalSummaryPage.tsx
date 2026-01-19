@@ -12,6 +12,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { LogoUpload } from '@/components/LogoUpload';
 import { GanttChart } from '@/components/GanttChart';
 import { ConsortiumMap } from '@/components/ConsortiumMap';
+import { SubmissionWorkflow } from '@/components/SubmissionWorkflow';
 import { Proposal, Participant, ParticipantMember, PARTICIPANT_TYPE_LABELS, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS, PROPOSAL_TYPE_LABELS, ProposalType, ProposalStatus, getDestinationsForWorkProgramme } from '@/types/proposal';
 import {
   ExternalLink,
@@ -38,7 +39,10 @@ interface ProposalSummaryPageProps {
   participantMembers: ParticipantMember[];
   budgetItems: { amount: number; participantId: string }[];
   onUpdateProposal?: (updates: Partial<Proposal>) => Promise<void>;
+  onSubmit?: () => Promise<void>;
+  onUpdateStatus?: (status: ProposalStatus) => Promise<void>;
   canEdit?: boolean;
+  isAdmin?: boolean;
 }
 
 // Demo data for team members with organisations
@@ -187,7 +191,10 @@ export function ProposalSummaryPage({
   participantMembers: realMembers,
   budgetItems,
   onUpdateProposal,
+  onSubmit,
+  onUpdateStatus,
   canEdit = true,
+  isAdmin = false,
 }: ProposalSummaryPageProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedProposal, setEditedProposal] = useState(proposal);
@@ -600,6 +607,19 @@ export function ProposalSummaryPage({
             </div>
           </CardContent>
         </Card>
+
+        {/* Submission Workflow */}
+        {onSubmit && onUpdateStatus && (
+          <SubmissionWorkflow
+            proposal={proposal}
+            participants={participants}
+            budgetItems={budgetItems}
+            onSubmit={onSubmit}
+            onUpdateStatus={onUpdateStatus}
+            canEdit={canEdit}
+            isAdmin={isAdmin}
+          />
+        )}
 
         {/* Consortium Map */}
         <ConsortiumMap participants={participants} />
