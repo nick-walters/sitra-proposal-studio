@@ -3,7 +3,6 @@ import { ProposalCard } from "@/components/ProposalCard";
 import { CreateProposalDialog } from "@/components/CreateProposalDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Proposal, ProposalType, ProposalStatus, HORIZON_EUROPE_SECTIONS, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS, getDestinationsForWorkProgramme } from "@/types/proposal";
 import { Plus, Search, LayoutGrid, List, X } from "lucide-react";
 import { useState, useMemo } from "react";
@@ -102,19 +101,70 @@ export function Dashboard() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   
-  // Filter states
-  const [statusFilter, setStatusFilter] = useState<ProposalStatus | 'all'>('all');
-  const [typeFilter, setTypeFilter] = useState<ProposalType | 'all'>('all');
-  const [wpFilter, setWpFilter] = useState<string>('all');
-  const [destFilter, setDestFilter] = useState<string>('all');
+  // Multi-select filter states
+  const [statusFilters, setStatusFilters] = useState<Set<ProposalStatus>>(new Set());
+  const [typeFilters, setTypeFilters] = useState<Set<ProposalType>>(new Set());
+  const [wpFilters, setWpFilters] = useState<Set<string>>(new Set());
+  const [destFilters, setDestFilters] = useState<Set<string>>(new Set());
 
   // Check if user is Sitra staff (based on email domain)
   const isSitraStaff = user?.email?.endsWith('@sitra.fi') || user?.email?.endsWith('@sitra.dev') || false;
 
-  // Get available destinations based on WP filter
-  const availableDestinations = wpFilter !== 'all' 
-    ? getDestinationsForWorkProgramme(wpFilter)
-    : DESTINATIONS;
+  // Get available destinations based on selected work programmes
+  const availableDestinations = useMemo(() => {
+    if (wpFilters.size === 0) return [];
+    const destinations: typeof DESTINATIONS = [];
+    wpFilters.forEach(wp => {
+      destinations.push(...getDestinationsForWorkProgramme(wp));
+    });
+    return destinations;
+  }, [wpFilters]);
+
+  // Toggle helpers for multi-select
+  const toggleStatus = (status: ProposalStatus) => {
+    setStatusFilters(prev => {
+      const next = new Set(prev);
+      if (next.has(status)) next.delete(status);
+      else next.add(status);
+      return next;
+    });
+  };
+
+  const toggleType = (type: ProposalType) => {
+    setTypeFilters(prev => {
+      const next = new Set(prev);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
+      return next;
+    });
+  };
+
+  const toggleWp = (wp: string) => {
+    setWpFilters(prev => {
+      const next = new Set(prev);
+      if (next.has(wp)) {
+        next.delete(wp);
+        // Clear destinations for removed WP
+        setDestFilters(prevDest => {
+          const nextDest = new Set(prevDest);
+          getDestinationsForWorkProgramme(wp).forEach(d => nextDest.delete(d.id));
+          return nextDest;
+        });
+      } else {
+        next.add(wp);
+      }
+      return next;
+    });
+  };
+
+  const toggleDest = (dest: string) => {
+    setDestFilters(prev => {
+      const next = new Set(prev);
+      if (next.has(dest)) next.delete(dest);
+      else next.add(dest);
+      return next;
+    });
+  };
 
   const filteredProposals = useMemo(() => {
     return proposals.filter((p) => {
@@ -123,29 +173,29 @@ export function Dashboard() {
         p.acronym.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.title.toLowerCase().includes(searchQuery.toLowerCase());
       
-      // Status filter
-      const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
+      // Status filter (empty = all)
+      const matchesStatus = statusFilters.size === 0 || statusFilters.has(p.status);
       
-      // Type filter
-      const matchesType = typeFilter === 'all' || p.type === typeFilter;
+      // Type filter (empty = all)
+      const matchesType = typeFilters.size === 0 || typeFilters.has(p.type);
       
-      // Work Programme filter
-      const matchesWp = wpFilter === 'all' || p.workProgramme === wpFilter;
+      // Work Programme filter (empty = all)
+      const matchesWp = wpFilters.size === 0 || (p.workProgramme && wpFilters.has(p.workProgramme));
       
-      // Destination filter
-      const matchesDest = destFilter === 'all' || p.destination === destFilter;
+      // Destination filter (empty = all)
+      const matchesDest = destFilters.size === 0 || (p.destination && destFilters.has(p.destination));
       
       return matchesSearch && matchesStatus && matchesType && matchesWp && matchesDest;
     });
-  }, [proposals, searchQuery, statusFilter, typeFilter, wpFilter, destFilter]);
+  }, [proposals, searchQuery, statusFilters, typeFilters, wpFilters, destFilters]);
 
-  const activeFiltersCount = [statusFilter, typeFilter, wpFilter, destFilter].filter(f => f !== 'all').length;
+  const activeFiltersCount = statusFilters.size + typeFilters.size + wpFilters.size + destFilters.size;
 
   const clearFilters = () => {
-    setStatusFilter('all');
-    setTypeFilter('all');
-    setWpFilter('all');
-    setDestFilter('all');
+    setStatusFilters(new Set());
+    setTypeFilters(new Set());
+    setWpFilters(new Set());
+    setDestFilters(new Set());
     setSearchQuery('');
   };
 
@@ -209,58 +259,6 @@ export function Dashboard() {
           </div>
           
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Status Filter */}
-            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as ProposalStatus | 'all')}>
-              <SelectTrigger className="w-32 h-9 text-xs">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                {Object.entries(PROPOSAL_STATUS_LABELS).map(([key, label]) => (
-                  <SelectItem key={key} value={key}>{label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Type Filter */}
-            <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as ProposalType | 'all')}>
-              <SelectTrigger className="w-28 h-9 text-xs">
-                <SelectValue placeholder="Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="RIA">RIA</SelectItem>
-                <SelectItem value="IA">IA</SelectItem>
-                <SelectItem value="CSA">CSA</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Work Programme Filter */}
-            <Select value={wpFilter} onValueChange={(v) => { setWpFilter(v); setDestFilter('all'); }}>
-              <SelectTrigger className="w-32 h-9 text-xs">
-                <SelectValue placeholder="Programme" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Programmes</SelectItem>
-                {WORK_PROGRAMMES.map(wp => (
-                  <SelectItem key={wp.id} value={wp.id}>{wp.abbreviation}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Destination Filter */}
-            <Select value={destFilter} onValueChange={setDestFilter}>
-              <SelectTrigger className="w-36 h-9 text-xs">
-                <SelectValue placeholder="Destination" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Destinations</SelectItem>
-                {availableDestinations.map(d => (
-                  <SelectItem key={d.id} value={d.id}>{d.abbreviation}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
             {activeFiltersCount > 0 && (
               <Button 
                 variant="ghost" 
@@ -294,66 +292,109 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Clickable Stats */}
-        <div className="flex items-center gap-2 mb-4 text-sm flex-wrap">
-          <button
-            onClick={() => { clearFilters(); }}
-            className={`px-2.5 py-1 rounded-md transition-colors ${statusFilter === 'all' && typeFilter === 'all' && wpFilter === 'all' && destFilter === 'all' ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`}
-          >
-            <span className="font-bold">{proposals.length}</span>
-            <span className="ml-1">Total</span>
-          </button>
-          <button
-            onClick={() => setStatusFilter(statusFilter === 'draft' ? 'all' : 'draft')}
-            className={`px-2.5 py-1 rounded-md transition-colors ${statusFilter === 'draft' ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`}
-          >
-            <span className="font-bold">{proposals.filter((p) => p.status === 'draft').length}</span>
-            <span className="ml-1">Draft</span>
-          </button>
-          <button
-            onClick={() => setStatusFilter(statusFilter === 'submitted' ? 'all' : 'submitted')}
-            className={`px-2.5 py-1 rounded-md transition-colors ${statusFilter === 'submitted' ? 'bg-blue-500 text-white' : 'bg-muted hover:bg-muted/80'}`}
-          >
-            <span className="font-bold">{proposals.filter((p) => p.status === 'submitted').length}</span>
-            <span className="ml-1">Submitted</span>
-          </button>
-          <button
-            onClick={() => setStatusFilter(statusFilter === 'funded' ? 'all' : 'funded')}
-            className={`px-2.5 py-1 rounded-md transition-colors ${statusFilter === 'funded' ? 'bg-success text-success-foreground' : 'bg-muted hover:bg-muted/80'}`}
-          >
-            <span className="font-bold">{proposals.filter((p) => p.status === 'funded').length}</span>
-            <span className="ml-1">Funded</span>
-          </button>
-          <button
-            onClick={() => setStatusFilter(statusFilter === 'not_funded' ? 'all' : 'not_funded')}
-            className={`px-2.5 py-1 rounded-md transition-colors ${statusFilter === 'not_funded' ? 'bg-destructive text-destructive-foreground' : 'bg-muted hover:bg-muted/80'}`}
-          >
-            <span className="font-bold">{proposals.filter((p) => p.status === 'not_funded').length}</span>
-            <span className="ml-1">Not Funded</span>
-          </button>
-          <span className="text-muted-foreground/30 mx-1">|</span>
-          {/* Type filters */}
-          <button
-            onClick={() => setTypeFilter(typeFilter === 'RIA' ? 'all' : 'RIA')}
-            className={`px-2.5 py-1 rounded-md transition-colors ${typeFilter === 'RIA' ? 'bg-orange-500 text-white' : 'bg-muted hover:bg-muted/80'}`}
-          >
-            <span className="font-bold">{proposals.filter((p) => p.type === 'RIA').length}</span>
-            <span className="ml-1">RIA</span>
-          </button>
-          <button
-            onClick={() => setTypeFilter(typeFilter === 'IA' ? 'all' : 'IA')}
-            className={`px-2.5 py-1 rounded-md transition-colors ${typeFilter === 'IA' ? 'bg-red-500 text-white' : 'bg-muted hover:bg-muted/80'}`}
-          >
-            <span className="font-bold">{proposals.filter((p) => p.type === 'IA').length}</span>
-            <span className="ml-1">IA</span>
-          </button>
-          <button
-            onClick={() => setTypeFilter(typeFilter === 'CSA' ? 'all' : 'CSA')}
-            className={`px-2.5 py-1 rounded-md transition-colors ${typeFilter === 'CSA' ? 'bg-green-500 text-white' : 'bg-muted hover:bg-muted/80'}`}
-          >
-            <span className="font-bold">{proposals.filter((p) => p.type === 'CSA').length}</span>
-            <span className="ml-1">CSA</span>
-          </button>
+        {/* Clickable Filter Buttons */}
+        <div className="space-y-2 mb-4">
+          {/* Status Filters */}
+          <div className="flex items-center gap-2 text-sm flex-wrap">
+            <button
+              onClick={() => { clearFilters(); }}
+              className={`px-2.5 py-1 rounded-md transition-colors ${activeFiltersCount === 0 ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`}
+            >
+              <span className="font-bold">{proposals.length}</span>
+              <span className="ml-1">Total</span>
+            </button>
+            <button
+              onClick={() => toggleStatus('draft')}
+              className={`px-2.5 py-1 rounded-md transition-colors ${statusFilters.has('draft') ? 'bg-yellow-500 text-white' : 'bg-muted hover:bg-muted/80'}`}
+            >
+              <span className="font-bold">{proposals.filter((p) => p.status === 'draft').length}</span>
+              <span className="ml-1">Draft</span>
+            </button>
+            <button
+              onClick={() => toggleStatus('submitted')}
+              className={`px-2.5 py-1 rounded-md transition-colors ${statusFilters.has('submitted') ? 'bg-orange-500 text-white' : 'bg-muted hover:bg-muted/80'}`}
+            >
+              <span className="font-bold">{proposals.filter((p) => p.status === 'submitted').length}</span>
+              <span className="ml-1">Submitted</span>
+            </button>
+            <button
+              onClick={() => toggleStatus('funded')}
+              className={`px-2.5 py-1 rounded-md transition-colors ${statusFilters.has('funded') ? 'bg-success text-success-foreground' : 'bg-muted hover:bg-muted/80'}`}
+            >
+              <span className="font-bold">{proposals.filter((p) => p.status === 'funded').length}</span>
+              <span className="ml-1">Funded</span>
+            </button>
+            <button
+              onClick={() => toggleStatus('not_funded')}
+              className={`px-2.5 py-1 rounded-md transition-colors ${statusFilters.has('not_funded') ? 'bg-destructive text-destructive-foreground' : 'bg-muted hover:bg-muted/80'}`}
+            >
+              <span className="font-bold">{proposals.filter((p) => p.status === 'not_funded').length}</span>
+              <span className="ml-1">Not Funded</span>
+            </button>
+            <span className="text-muted-foreground/30 mx-1">|</span>
+            {/* Type filters */}
+            <button
+              onClick={() => toggleType('RIA')}
+              className={`px-2.5 py-1 rounded-md transition-colors ${typeFilters.has('RIA') ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`}
+            >
+              <span className="font-bold">{proposals.filter((p) => p.type === 'RIA').length}</span>
+              <span className="ml-1">RIA</span>
+            </button>
+            <button
+              onClick={() => toggleType('IA')}
+              className={`px-2.5 py-1 rounded-md transition-colors ${typeFilters.has('IA') ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`}
+            >
+              <span className="font-bold">{proposals.filter((p) => p.type === 'IA').length}</span>
+              <span className="ml-1">IA</span>
+            </button>
+            <button
+              onClick={() => toggleType('CSA')}
+              className={`px-2.5 py-1 rounded-md transition-colors ${typeFilters.has('CSA') ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`}
+            >
+              <span className="font-bold">{proposals.filter((p) => p.type === 'CSA').length}</span>
+              <span className="ml-1">CSA</span>
+            </button>
+          </div>
+
+          {/* Work Programme Filters */}
+          <div className="flex items-center gap-2 text-sm flex-wrap">
+            <span className="text-xs text-muted-foreground mr-1">Programme:</span>
+            {WORK_PROGRAMMES.map(wp => {
+              const count = proposals.filter(p => p.workProgramme === wp.id).length;
+              if (count === 0) return null;
+              return (
+                <button
+                  key={wp.id}
+                  onClick={() => toggleWp(wp.id)}
+                  className={`px-2.5 py-1 rounded-md transition-colors ${wpFilters.has(wp.id) ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`}
+                >
+                  <span className="font-bold">{count}</span>
+                  <span className="ml-1">{wp.abbreviation}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Destination Filters - Only shown when work programmes are selected */}
+          {availableDestinations.length > 0 && (
+            <div className="flex items-center gap-2 text-sm flex-wrap">
+              <span className="text-xs text-muted-foreground mr-1">Destination:</span>
+              {availableDestinations.map(dest => {
+                const count = proposals.filter(p => p.destination === dest.id).length;
+                if (count === 0) return null;
+                return (
+                  <button
+                    key={dest.id}
+                    onClick={() => toggleDest(dest.id)}
+                    className={`px-2.5 py-1 rounded-md transition-colors ${destFilters.has(dest.id) ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`}
+                  >
+                    <span className="font-bold">{count}</span>
+                    <span className="ml-1">{dest.abbreviation}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Proposals Grid */}
