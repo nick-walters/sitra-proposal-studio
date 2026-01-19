@@ -98,6 +98,7 @@ export function ProposalCard({ proposal, onClick, compact = false }: ProposalCar
           
           {/* Info */}
           <div className="flex-1 min-w-0">
+            {/* Row 1: Urgency and Status */}
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="font-semibold text-sm">{proposal.acronym}</span>
               {urgency && (
@@ -105,6 +106,13 @@ export function ProposalCard({ proposal, onClick, compact = false }: ProposalCar
                   {urgency.label} ({urgency.days}d)
                 </span>
               )}
+              <span className={`proposal-badge ${getStatusColor(proposal.status)} flex items-center gap-1 text-[10px]`}>
+                {getStatusIcon(proposal.status)}
+                {PROPOSAL_STATUS_LABELS[proposal.status]}
+              </span>
+            </div>
+            {/* Row 2: Type, Work Programme, Destination */}
+            <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
               <span className="proposal-badge bg-muted text-muted-foreground text-[10px]">{proposal.type}</span>
               {workProgramme && (
                 <span className="proposal-badge bg-muted text-muted-foreground text-[10px]">
@@ -117,15 +125,11 @@ export function ProposalCard({ proposal, onClick, compact = false }: ProposalCar
                 </span>
               )}
             </div>
-            <p className="text-xs text-muted-foreground truncate">{proposal.title}</p>
+            <p className="text-xs text-muted-foreground truncate mt-0.5">{proposal.title}</p>
           </div>
 
-          {/* Status & Action */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <span className={`proposal-badge ${getStatusColor(proposal.status)} flex items-center gap-1 text-[10px]`}>
-              {getStatusIcon(proposal.status)}
-              {PROPOSAL_STATUS_LABELS[proposal.status]}
-            </span>
+          {/* Action button only - status moved to info section */}
+          <div className="flex items-center flex-shrink-0">
             <Button variant="ghost" size="sm" className="h-7 px-2 gap-1 text-xs group-hover:bg-primary group-hover:text-primary-foreground">
               {isDraft ? 'Edit' : 'View'}
               <ArrowRight className="w-3 h-3" />
@@ -151,12 +155,20 @@ export function ProposalCard({ proposal, onClick, compact = false }: ProposalCar
               )}
             </div>
             <div>
+              {/* Row 1: Urgency and Status */}
               <div className="flex items-center gap-1.5 flex-wrap">
                 {urgency && (
                   <span className={`proposal-badge ${urgency.className} text-[10px]`}>
                     {urgency.label} ({urgency.days}d)
                   </span>
                 )}
+                <span className={`proposal-badge ${getStatusColor(proposal.status)} flex items-center gap-1 text-[10px]`}>
+                  {getStatusIcon(proposal.status)}
+                  {PROPOSAL_STATUS_LABELS[proposal.status]}
+                </span>
+              </div>
+              {/* Row 2: Type, Work Programme, Destination */}
+              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
                 <span className="proposal-badge bg-muted text-muted-foreground text-[10px]">{proposal.type}</span>
                 {workProgramme && (
                   <span className="proposal-badge bg-muted text-muted-foreground text-[10px]">
@@ -169,18 +181,14 @@ export function ProposalCard({ proposal, onClick, compact = false }: ProposalCar
                   </span>
                 )}
               </div>
-              <h3 className="font-semibold text-base group-hover:text-primary transition-colors">
+              <h3 className="font-semibold text-base group-hover:text-primary transition-colors mt-0.5">
                 {proposal.acronym}
               </h3>
             </div>
           </div>
           
-          {/* Status & Action in same row */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <span className={`proposal-badge ${getStatusColor(proposal.status)} flex items-center gap-1 text-[10px]`}>
-              {getStatusIcon(proposal.status)}
-              {PROPOSAL_STATUS_LABELS[proposal.status]}
-            </span>
+          {/* Action button only - status moved to badge rows */}
+          <div className="flex items-center flex-shrink-0">
             <Button variant="ghost" size="sm" className="h-7 px-2 gap-1 text-xs group-hover:bg-primary group-hover:text-primary-foreground">
               {isDraft ? 'Edit' : 'View'}
               <ArrowRight className="w-3 h-3" />
