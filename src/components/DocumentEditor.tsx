@@ -2,12 +2,13 @@ import { Section } from "@/types/proposal";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Info, Video, ImageIcon, Sparkles, BookOpen, Wand2 } from "lucide-react";
+import { Info, Video, ImageIcon, Sparkles, BookOpen, Wand2, BarChart3 } from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
 import { RichTextEditor } from "./RichTextEditor";
 import { GrammarChecker } from "./GrammarChecker";
 import { CitationDialog } from "./CitationDialog";
 import { ImageGeneratorDialog } from "./ImageGeneratorDialog";
+import { InsertFigureDialog } from "./InsertFigureDialog";
 import { WordCountBadge } from "./WordCountBadge";
 import { SaveIndicator } from "./SaveIndicator";
 import { useSectionContent } from "@/hooks/useSectionContent";
@@ -34,6 +35,7 @@ export function DocumentEditor({ section, proposalId, proposalAcronym, readOnly 
   const [isGrammarOpen, setIsGrammarOpen] = useState(false);
   const [isCitationOpen, setIsCitationOpen] = useState(false);
   const [isImageGenOpen, setIsImageGenOpen] = useState(false);
+  const [isFigureDialogOpen, setIsFigureDialogOpen] = useState(false);
   const [references, setReferences] = useState<Reference[]>([]);
   const [footnotes, setFootnotes] = useState<Array<{ number: number; citation: string }>>([]);
 
@@ -62,6 +64,11 @@ export function DocumentEditor({ section, proposalId, proposalAcronym, readOnly 
   const handleInsertImage = useCallback((imageUrl: string) => {
     const imgTag = `<img src="${imageUrl}" alt="Generated image" class="max-w-full h-auto my-4" />`;
     setContent(content + imgTag);
+  }, [content, setContent]);
+
+  const handleInsertFigure = useCallback((figure: { figureNumber: string; title: string }) => {
+    const figureRef = `<span class="figure-reference text-primary cursor-pointer hover:underline">(see Figure ${figure.figureNumber})</span>`;
+    setContent(content + figureRef);
   }, [content, setContent]);
 
   const handleApplyGrammarSuggestion = useCallback((original: string, replacement: string) => {
@@ -116,6 +123,19 @@ export function DocumentEditor({ section, proposalId, proposalAcronym, readOnly 
             <Wand2 className="w-4 h-4" />
             AI Image
           </Button>
+          {/* Only show Insert Figure for Part B sections */}
+          {section && !section.isPartA && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-2" 
+              onClick={() => setIsFigureDialogOpen(true)}
+              disabled={readOnly}
+            >
+              <BarChart3 className="w-4 h-4" />
+              Insert Figure
+            </Button>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <WordCountBadge content={content} wordLimit={section.wordLimit} />
@@ -229,6 +249,13 @@ export function DocumentEditor({ section, proposalId, proposalAcronym, readOnly 
         isOpen={isImageGenOpen}
         onClose={() => setIsImageGenOpen(false)}
         onInsertImage={handleInsertImage}
+      />
+      <InsertFigureDialog
+        isOpen={isFigureDialogOpen}
+        onClose={() => setIsFigureDialogOpen(false)}
+        proposalId={proposalId}
+        currentSectionId={section?.id || ''}
+        onInsertFigure={handleInsertFigure}
       />
     </div>
   );
