@@ -4,10 +4,11 @@ import { CreateProposalDialog } from "@/components/CreateProposalDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Proposal, ProposalType, ProposalStatus, HORIZON_EUROPE_SECTIONS, WORK_PROGRAMMES, PROPOSAL_STATUS_LABELS } from "@/types/proposal";
+import { Proposal, ProposalType, ProposalStatus, HORIZON_EUROPE_SECTIONS, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS, getDestinationsForWorkProgramme } from "@/types/proposal";
 import { Plus, Search, LayoutGrid, List, X } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 // Sample data
 const sampleProposals: Proposal[] = [
@@ -95,6 +96,7 @@ const sampleProposals: Proposal[] = [
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [proposals, setProposals] = useState<Proposal[]>(sampleProposals);
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -104,6 +106,15 @@ export function Dashboard() {
   const [statusFilter, setStatusFilter] = useState<ProposalStatus | 'all'>('all');
   const [typeFilter, setTypeFilter] = useState<ProposalType | 'all'>('all');
   const [wpFilter, setWpFilter] = useState<string>('all');
+  const [destFilter, setDestFilter] = useState<string>('all');
+
+  // Check if user is Sitra staff (based on email domain)
+  const isSitraStaff = user?.email?.endsWith('@sitra.fi') || user?.email?.endsWith('@sitra.dev') || false;
+
+  // Get available destinations based on WP filter
+  const availableDestinations = wpFilter !== 'all' 
+    ? getDestinationsForWorkProgramme(wpFilter)
+    : DESTINATIONS;
 
   const filteredProposals = useMemo(() => {
     return proposals.filter((p) => {
@@ -121,16 +132,20 @@ export function Dashboard() {
       // Work Programme filter
       const matchesWp = wpFilter === 'all' || p.workProgramme === wpFilter;
       
-      return matchesSearch && matchesStatus && matchesType && matchesWp;
+      // Destination filter
+      const matchesDest = destFilter === 'all' || p.destination === destFilter;
+      
+      return matchesSearch && matchesStatus && matchesType && matchesWp && matchesDest;
     });
-  }, [proposals, searchQuery, statusFilter, typeFilter, wpFilter]);
+  }, [proposals, searchQuery, statusFilter, typeFilter, wpFilter, destFilter]);
 
-  const activeFiltersCount = [statusFilter, typeFilter, wpFilter].filter(f => f !== 'all').length;
+  const activeFiltersCount = [statusFilter, typeFilter, wpFilter, destFilter].filter(f => f !== 'all').length;
 
   const clearFilters = () => {
     setStatusFilter('all');
     setTypeFilter('all');
     setWpFilter('all');
+    setDestFilter('all');
     setSearchQuery('');
   };
 
@@ -170,13 +185,15 @@ export function Dashboard() {
           <div>
             <h1 className="text-2xl font-bold text-foreground">My Proposals</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Co-develop Horizon Europe proposals with your consortium
+              Edit proposal drafts or view previously submitted proposals
             </p>
           </div>
-          <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2" size="sm">
-            <Plus className="w-4 h-4" />
-            New Proposal
-          </Button>
+          {isSitraStaff && (
+            <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2" size="sm">
+              <Plus className="w-4 h-4" />
+              New Proposal
+            </Button>
+          )}
         </div>
 
         {/* Filters Bar */}
@@ -219,7 +236,7 @@ export function Dashboard() {
             </Select>
 
             {/* Work Programme Filter */}
-            <Select value={wpFilter} onValueChange={setWpFilter}>
+            <Select value={wpFilter} onValueChange={(v) => { setWpFilter(v); setDestFilter('all'); }}>
               <SelectTrigger className="w-32 h-9 text-xs">
                 <SelectValue placeholder="Programme" />
               </SelectTrigger>
@@ -227,6 +244,19 @@ export function Dashboard() {
                 <SelectItem value="all">All Programmes</SelectItem>
                 {WORK_PROGRAMMES.map(wp => (
                   <SelectItem key={wp.id} value={wp.id}>{wp.abbreviation}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Destination Filter */}
+            <Select value={destFilter} onValueChange={setDestFilter}>
+              <SelectTrigger className="w-36 h-9 text-xs">
+                <SelectValue placeholder="Destination" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Destinations</SelectItem>
+                {availableDestinations.map(d => (
+                  <SelectItem key={d.id} value={d.id}>{d.abbreviation}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -264,25 +294,66 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Stats - Inline compact */}
-        <div className="flex items-center gap-4 mb-4 text-sm">
-          <div className="flex items-center gap-1.5">
+        {/* Clickable Stats */}
+        <div className="flex items-center gap-2 mb-4 text-sm flex-wrap">
+          <button
+            onClick={() => { clearFilters(); }}
+            className={`px-2.5 py-1 rounded-md transition-colors ${statusFilter === 'all' && typeFilter === 'all' && wpFilter === 'all' && destFilter === 'all' ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`}
+          >
             <span className="font-bold">{proposals.length}</span>
-            <span className="text-muted-foreground">Total</span>
-          </div>
-          <span className="text-muted-foreground/30">|</span>
-          <div className="flex items-center gap-1.5">
+            <span className="ml-1">Total</span>
+          </button>
+          <button
+            onClick={() => setStatusFilter(statusFilter === 'draft' ? 'all' : 'draft')}
+            className={`px-2.5 py-1 rounded-md transition-colors ${statusFilter === 'draft' ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`}
+          >
             <span className="font-bold">{proposals.filter((p) => p.status === 'draft').length}</span>
-            <span className="text-muted-foreground">Draft</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="font-bold text-blue-600">{proposals.filter((p) => p.status === 'submitted').length}</span>
-            <span className="text-muted-foreground">Submitted</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="font-bold text-success">{proposals.filter((p) => p.status === 'funded').length}</span>
-            <span className="text-muted-foreground">Funded</span>
-          </div>
+            <span className="ml-1">Draft</span>
+          </button>
+          <button
+            onClick={() => setStatusFilter(statusFilter === 'submitted' ? 'all' : 'submitted')}
+            className={`px-2.5 py-1 rounded-md transition-colors ${statusFilter === 'submitted' ? 'bg-blue-500 text-white' : 'bg-muted hover:bg-muted/80'}`}
+          >
+            <span className="font-bold">{proposals.filter((p) => p.status === 'submitted').length}</span>
+            <span className="ml-1">Submitted</span>
+          </button>
+          <button
+            onClick={() => setStatusFilter(statusFilter === 'funded' ? 'all' : 'funded')}
+            className={`px-2.5 py-1 rounded-md transition-colors ${statusFilter === 'funded' ? 'bg-success text-success-foreground' : 'bg-muted hover:bg-muted/80'}`}
+          >
+            <span className="font-bold">{proposals.filter((p) => p.status === 'funded').length}</span>
+            <span className="ml-1">Funded</span>
+          </button>
+          <button
+            onClick={() => setStatusFilter(statusFilter === 'not_funded' ? 'all' : 'not_funded')}
+            className={`px-2.5 py-1 rounded-md transition-colors ${statusFilter === 'not_funded' ? 'bg-destructive text-destructive-foreground' : 'bg-muted hover:bg-muted/80'}`}
+          >
+            <span className="font-bold">{proposals.filter((p) => p.status === 'not_funded').length}</span>
+            <span className="ml-1">Not Funded</span>
+          </button>
+          <span className="text-muted-foreground/30 mx-1">|</span>
+          {/* Type filters */}
+          <button
+            onClick={() => setTypeFilter(typeFilter === 'RIA' ? 'all' : 'RIA')}
+            className={`px-2.5 py-1 rounded-md transition-colors ${typeFilter === 'RIA' ? 'bg-orange-500 text-white' : 'bg-muted hover:bg-muted/80'}`}
+          >
+            <span className="font-bold">{proposals.filter((p) => p.type === 'RIA').length}</span>
+            <span className="ml-1">RIA</span>
+          </button>
+          <button
+            onClick={() => setTypeFilter(typeFilter === 'IA' ? 'all' : 'IA')}
+            className={`px-2.5 py-1 rounded-md transition-colors ${typeFilter === 'IA' ? 'bg-red-500 text-white' : 'bg-muted hover:bg-muted/80'}`}
+          >
+            <span className="font-bold">{proposals.filter((p) => p.type === 'IA').length}</span>
+            <span className="ml-1">IA</span>
+          </button>
+          <button
+            onClick={() => setTypeFilter(typeFilter === 'CSA' ? 'all' : 'CSA')}
+            className={`px-2.5 py-1 rounded-md transition-colors ${typeFilter === 'CSA' ? 'bg-green-500 text-white' : 'bg-muted hover:bg-muted/80'}`}
+          >
+            <span className="font-bold">{proposals.filter((p) => p.type === 'CSA').length}</span>
+            <span className="ml-1">CSA</span>
+          </button>
         </div>
 
         {/* Proposals Grid */}

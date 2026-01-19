@@ -14,11 +14,11 @@ export function ProposalCard({ proposal, onClick, compact = false }: ProposalCar
   const getBadgeClass = (type: string) => {
     switch (type) {
       case 'RIA':
-        return 'proposal-badge proposal-badge-ria';
+        return 'proposal-badge bg-orange-500/15 text-orange-600 border-orange-500/30';
       case 'IA':
-        return 'proposal-badge proposal-badge-ia';
+        return 'proposal-badge bg-red-500/15 text-red-600 border-red-500/30';
       case 'CSA':
-        return 'proposal-badge proposal-badge-csa';
+        return 'proposal-badge bg-green-500/15 text-green-600 border-green-500/30';
       default:
         return 'proposal-badge bg-muted text-muted-foreground';
     }
@@ -76,12 +76,17 @@ export function ProposalCard({ proposal, onClick, compact = false }: ProposalCar
           
           {/* Info */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <span className="font-semibold text-sm">{proposal.acronym}</span>
               <span className={getBadgeClass(proposal.type)}>{proposal.type}</span>
-              {workProgramme && destination && (
-                <span className="text-[10px] text-muted-foreground">
-                  {workProgramme.abbreviation}/{destination.abbreviation}
+              {workProgramme && (
+                <span className="proposal-badge bg-muted text-muted-foreground text-[10px]">
+                  {workProgramme.abbreviation}
+                </span>
+              )}
+              {destination && (
+                <span className="proposal-badge bg-muted text-muted-foreground text-[10px]">
+                  {destination.abbreviation}
                 </span>
               )}
             </div>
@@ -119,11 +124,16 @@ export function ProposalCard({ proposal, onClick, compact = false }: ProposalCar
               )}
             </div>
             <div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <span className={getBadgeClass(proposal.type)}>{proposal.type}</span>
-                {workProgramme && destination && (
-                  <span className="text-[10px] text-muted-foreground">
-                    ({workProgramme.abbreviation}/{destination.abbreviation})
+                {workProgramme && (
+                  <span className="proposal-badge bg-muted text-muted-foreground text-[10px]">
+                    {workProgramme.abbreviation}
+                  </span>
+                )}
+                {destination && (
+                  <span className="proposal-badge bg-muted text-muted-foreground text-[10px]">
+                    {destination.abbreviation}
                   </span>
                 )}
               </div>
