@@ -5,7 +5,7 @@ import { VersionHistoryDialog } from "@/components/VersionHistoryDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Section, HORIZON_EUROPE_SECTIONS } from "@/types/proposal";
+import { Section, HORIZON_EUROPE_SECTIONS, PART_A_SECTIONS } from "@/types/proposal";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -41,20 +41,24 @@ export function ProposalEditor() {
     currentSectionId: activeSection?.id || null,
   });
 
-  // Sample proposal data
+  // Sample proposal data - combining Part A and Part B sections
+  const allSections = [...PART_A_SECTIONS, ...HORIZON_EUROPE_SECTIONS];
+  
   const proposal = {
     id,
     acronym: 'GREENTECH',
     title: 'Green Technologies for Sustainable Urban Development',
     type: 'RIA' as const,
     status: 'draft' as const,
-    sections: HORIZON_EUROPE_SECTIONS,
+    sections: allSections,
     members: [
       { id: '1', name: 'John Doe', online: true },
       { id: '2', name: 'Jane Smith', online: true },
       { id: '3', name: 'Bob Wilson', online: false },
     ],
   };
+  
+  const isDraft = proposal.status === 'draft';
 
   const handleSectionClick = (section: Section) => {
     setActiveSection(section);

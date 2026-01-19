@@ -19,6 +19,9 @@ const sampleProposals: Proposal[] = [
     createdAt: new Date('2024-01-15'),
     updatedAt: new Date('2024-01-20'),
     status: 'draft',
+    workProgramme: 'CL5',
+    destination: 'CL5-D2',
+    deadline: new Date('2024-06-15'),
     sections: HORIZON_EUROPE_SECTIONS,
     members: [
       { user: { id: '1', name: 'John Doe', email: 'john@example.com' }, role: 'admin' },
@@ -34,7 +37,11 @@ const sampleProposals: Proposal[] = [
     budgetType: 'traditional',
     createdAt: new Date('2024-01-10'),
     updatedAt: new Date('2024-01-18'),
-    status: 'in-review',
+    status: 'submitted',
+    workProgramme: 'CL1',
+    destination: 'CL1-D5',
+    deadline: new Date('2024-03-01'),
+    submittedAt: new Date('2024-02-28'),
     sections: HORIZON_EUROPE_SECTIONS,
     members: [
       { user: { id: '1', name: 'John Doe', email: 'john@example.com' }, role: 'editor' },
@@ -49,7 +56,12 @@ const sampleProposals: Proposal[] = [
     budgetType: 'lump_sum',
     createdAt: new Date('2024-01-05'),
     updatedAt: new Date('2024-01-12'),
-    status: 'submitted',
+    status: 'funded',
+    workProgramme: 'CL5',
+    destination: 'CL5-D3',
+    deadline: new Date('2023-09-15'),
+    submittedAt: new Date('2023-09-14'),
+    decisionDate: new Date('2024-01-05'),
     sections: HORIZON_EUROPE_SECTIONS,
     members: [
       { user: { id: '5', name: 'Chris Davis', email: 'chris@example.com' }, role: 'admin' },
@@ -57,6 +69,25 @@ const sampleProposals: Proposal[] = [
       { user: { id: '6', name: 'Eva Martinez', email: 'eva@example.com' }, role: 'editor' },
       { user: { id: '7', name: 'Frank Lee', email: 'frank@example.com' }, role: 'viewer' },
       { user: { id: '8', name: 'Grace Chen', email: 'grace@example.com' }, role: 'viewer' },
+    ],
+  },
+  {
+    id: '4',
+    acronym: 'BIOSMART',
+    title: 'Smart Bioeconomy Solutions for Circular Agriculture',
+    type: 'RIA',
+    budgetType: 'traditional',
+    createdAt: new Date('2023-06-01'),
+    updatedAt: new Date('2023-12-01'),
+    status: 'not_funded',
+    workProgramme: 'CL6',
+    destination: 'CL6-D3',
+    deadline: new Date('2023-10-15'),
+    submittedAt: new Date('2023-10-14'),
+    decisionDate: new Date('2023-12-20'),
+    sections: HORIZON_EUROPE_SECTIONS,
+    members: [
+      { user: { id: '1', name: 'John Doe', email: 'john@example.com' }, role: 'admin' },
     ],
   },
 ];
@@ -74,10 +105,20 @@ export function Dashboard() {
       p.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleCreateProposal = (data: { acronym: string; title: string; type: ProposalType }) => {
+  const handleCreateProposal = (data: { 
+    acronym: string; 
+    title: string; 
+    type: ProposalType;
+    workProgramme?: string;
+    destination?: string;
+  }) => {
     const newProposal: Proposal = {
       id: String(proposals.length + 1),
-      ...data,
+      acronym: data.acronym,
+      title: data.title,
+      type: data.type,
+      workProgramme: data.workProgramme,
+      destination: data.destination,
       budgetType: 'traditional',
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -158,16 +199,16 @@ export function Dashboard() {
             <p className="text-sm text-muted-foreground">In Draft</p>
           </div>
           <div className="card-elevated p-4">
-            <p className="text-2xl font-bold text-warning">
-              {proposals.filter((p) => p.status === 'in-review').length}
-            </p>
-            <p className="text-sm text-muted-foreground">In Review</p>
-          </div>
-          <div className="card-elevated p-4">
-            <p className="text-2xl font-bold text-success">
+            <p className="text-2xl font-bold text-blue-600">
               {proposals.filter((p) => p.status === 'submitted').length}
             </p>
             <p className="text-sm text-muted-foreground">Submitted</p>
+          </div>
+          <div className="card-elevated p-4">
+            <p className="text-2xl font-bold text-success">
+              {proposals.filter((p) => p.status === 'funded').length}
+            </p>
+            <p className="text-sm text-muted-foreground">Funded</p>
           </div>
         </div>
 
