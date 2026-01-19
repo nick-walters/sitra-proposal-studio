@@ -6,11 +6,12 @@ import { ProposalInfoPage } from "@/components/ProposalInfoPage";
 import { ParticipantForm } from "@/components/ParticipantForm";
 import { BudgetSpreadsheetEnhanced } from "@/components/BudgetSpreadsheetEnhanced";
 import { EthicsForm } from "@/components/EthicsForm";
+import { DeclarationsForm } from "@/components/DeclarationsForm";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Section, HORIZON_EUROPE_SECTIONS, PART_A_SECTIONS, BudgetType } from "@/types/proposal";
+import { Section, HORIZON_EUROPE_SECTIONS, PART_A_SECTIONS, BudgetType, ProposalStatus } from "@/types/proposal";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -94,6 +95,14 @@ export function ProposalEditor() {
     updateProposal({ budgetType: type });
   };
 
+  const handleSubmit = async () => {
+    await updateProposal({ status: 'submitted' as ProposalStatus });
+  };
+
+  const handleUpdateStatus = async (status: ProposalStatus) => {
+    await updateProposal({ status });
+  };
+
   // Render the appropriate content based on section
   const renderContent = () => {
     if (loading) {
@@ -138,8 +147,12 @@ export function ProposalEditor() {
               }}
               participants={participants}
               participantMembers={participantMembers}
+              budgetItems={budgetItems}
               onUpdateProposal={updateProposal}
+              onSubmit={handleSubmit}
+              onUpdateStatus={handleUpdateStatus}
               canEdit={canEdit}
+              isAdmin={isAdmin}
             />
           ) : null;
 
@@ -193,14 +206,11 @@ export function ProposalEditor() {
 
         case 'declarations':
           return (
-            <div className="flex-1 p-6 bg-muted/30">
-              <div className="max-w-4xl mx-auto">
-                <h1 className="text-2xl font-bold mb-4">Declarations</h1>
-                <p className="text-muted-foreground">
-                  Declaration forms will be generated based on participant information.
-                </p>
-              </div>
-            </div>
+            <DeclarationsForm
+              participants={participants}
+              proposalId={id || ''}
+              canEdit={canEdit}
+            />
           );
 
         default:
