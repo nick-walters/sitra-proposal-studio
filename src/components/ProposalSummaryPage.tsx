@@ -1,11 +1,21 @@
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
-import { Proposal, Participant, ParticipantMember, PARTICIPANT_TYPE_LABELS, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS, PROPOSAL_TYPE_LABELS } from '@/types/proposal';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { LogoUpload } from '@/components/LogoUpload';
+import { GanttChart } from '@/components/GanttChart';
+import { ConsortiumMap } from '@/components/ConsortiumMap';
+import { Proposal, Participant, ParticipantMember, PARTICIPANT_TYPE_LABELS, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS, PROPOSAL_TYPE_LABELS, ProposalType, ProposalStatus, getDestinationsForWorkProgramme } from '@/types/proposal';
 import {
   ExternalLink,
-  Calendar,
+  Calendar as CalendarIcon,
   Euro,
   Users,
   Building2,
@@ -13,20 +23,22 @@ import {
   Clock,
   FileText,
   Target,
-  CheckCircle2,
-  AlertCircle,
   TrendingUp,
   Globe,
-  Briefcase,
+  Pencil,
+  Check,
+  X,
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface ProposalSummaryPageProps {
   proposal: Proposal;
   participants: Participant[];
   participantMembers: ParticipantMember[];
   budgetItems: { amount: number; participantId: string }[];
+  onUpdateProposal?: (updates: Partial<Proposal>) => Promise<void>;
+  canEdit?: boolean;
 }
 
 // Demo data for team members with organisations
@@ -100,64 +112,70 @@ const DEMO_TEAM_MEMBERS = [
 ];
 
 // Demo participants
-const DEMO_PARTICIPANTS = [
+const DEMO_PARTICIPANTS: Participant[] = [
   {
     id: 'demo-1',
+    proposalId: 'demo',
     organisationName: 'Technical University of Munich',
     organisationShortName: 'TUM',
     country: 'Germany',
     logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Logo_of_the_Technical_University_of_Munich.svg/200px-Logo_of_the_Technical_University_of_Munich.svg.png',
-    organisationType: 'beneficiary' as const,
+    organisationType: 'beneficiary',
     isSme: false,
     participantNumber: 1,
   },
   {
     id: 'demo-2',
+    proposalId: 'demo',
     organisationName: 'CEA',
     organisationShortName: 'CEA',
     country: 'France',
     logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a3/CEA_logotype2012.png/200px-CEA_logotype2012.png',
-    organisationType: 'beneficiary' as const,
+    organisationType: 'beneficiary',
     isSme: false,
     participantNumber: 2,
   },
   {
     id: 'demo-3',
+    proposalId: 'demo',
     organisationName: 'Politecnico di Milano',
     organisationShortName: 'POLIMI',
     country: 'Italy',
     logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Logo_Politecnico_Milano.png/200px-Logo_Politecnico_Milano.png',
-    organisationType: 'beneficiary' as const,
+    organisationType: 'beneficiary',
     isSme: false,
     participantNumber: 3,
   },
   {
     id: 'demo-4',
+    proposalId: 'demo',
     organisationName: 'KTH Royal Institute of Technology',
     organisationShortName: 'KTH',
     country: 'Sweden',
     logoUrl: 'https://upload.wikimedia.org/wikipedia/en/thumb/e/e0/KTH_Royal_Institute_of_Technology_logo.svg/200px-KTH_Royal_Institute_of_Technology_logo.svg.png',
-    organisationType: 'beneficiary' as const,
+    organisationType: 'beneficiary',
     isSme: false,
     participantNumber: 4,
   },
   {
     id: 'demo-5',
+    proposalId: 'demo',
     organisationName: 'National Technical University of Athens',
     organisationShortName: 'NTUA',
     country: 'Greece',
     logoUrl: 'https://upload.wikimedia.org/wikipedia/en/thumb/8/8c/NTUA_logo.svg/150px-NTUA_logo.svg.png',
-    organisationType: 'beneficiary' as const,
+    organisationType: 'beneficiary',
     isSme: false,
     participantNumber: 5,
   },
   {
     id: 'demo-6',
+    proposalId: 'demo',
     organisationName: 'Siemens AG',
     organisationShortName: 'SIEMENS',
     country: 'Germany',
     logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Siemens-logo.svg/200px-Siemens-logo.svg.png',
-    organisationType: 'beneficiary' as const,
+    organisationType: 'beneficiary',
     isSme: false,
     participantNumber: 6,
   },
@@ -168,15 +186,26 @@ export function ProposalSummaryPage({
   participants: realParticipants,
   participantMembers: realMembers,
   budgetItems,
+  onUpdateProposal,
+  canEdit = true,
 }: ProposalSummaryPageProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedProposal, setEditedProposal] = useState(proposal);
+  const [availableDestinations, setAvailableDestinations] = useState(
+    proposal.workProgramme ? getDestinationsForWorkProgramme(proposal.workProgramme) : []
+  );
+
+  useEffect(() => {
+    if (editedProposal.workProgramme) {
+      setAvailableDestinations(getDestinationsForWorkProgramme(editedProposal.workProgramme));
+    }
+  }, [editedProposal.workProgramme]);
+
   const workProgramme = WORK_PROGRAMMES.find(wp => wp.id === proposal.workProgramme);
   const destination = DESTINATIONS.find(d => d.id === proposal.destination);
 
   // Use demo data if no real data exists
-  const participants = realParticipants.length > 0 ? realParticipants : DEMO_PARTICIPANTS.map(p => ({
-    ...p,
-    proposalId: proposal.id,
-  }));
+  const participants = realParticipants.length > 0 ? realParticipants : DEMO_PARTICIPANTS;
   
   const teamMembers = realMembers.length > 0 
     ? realMembers.map(m => {
@@ -207,43 +236,200 @@ export function ProposalSummaryPage({
     ethics: 100,
   };
 
+  const handleSave = async () => {
+    if (onUpdateProposal) {
+      await onUpdateProposal(editedProposal);
+    }
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditedProposal(proposal);
+    setIsEditing(false);
+  };
+
+  const handleLogoChange = (url: string | null) => {
+    setEditedProposal({ ...editedProposal, logoUrl: url || undefined });
+  };
+
   return (
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
       <div className="max-w-5xl mx-auto space-y-6">
-        {/* Header with Project Logo */}
-        <div className="flex items-start gap-6">
-          {/* Project Logo */}
-          <div className="w-24 h-24 rounded-xl bg-card border flex items-center justify-center overflow-hidden flex-shrink-0">
-            {proposal.logoUrl ? (
-              <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
-            ) : (
-              <div className="text-3xl font-bold text-primary">{proposal.acronym.substring(0, 2)}</div>
-            )}
-          </div>
+        {/* Header with Project Logo and Basic Info */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-6">
+              {/* Project Logo */}
+              <div className="flex-shrink-0">
+                {isEditing ? (
+                  <LogoUpload
+                    proposalId={proposal.id}
+                    currentLogoUrl={editedProposal.logoUrl}
+                    proposalKeywords={`${editedProposal.acronym} ${editedProposal.title}`}
+                    onLogoChange={handleLogoChange}
+                  />
+                ) : (
+                  <div className="w-24 h-24 rounded-xl bg-muted border flex items-center justify-center overflow-hidden">
+                    {proposal.logoUrl ? (
+                      <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="text-3xl font-bold text-primary">{proposal.acronym.substring(0, 2)}</div>
+                    )}
+                  </div>
+                )}
+              </div>
 
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <Badge variant="outline" className="text-lg px-3 py-1 font-semibold">
-                {proposal.acronym}
-              </Badge>
-              <Badge variant="secondary">
-                {PROPOSAL_TYPE_LABELS[proposal.type]}
-              </Badge>
-              <Badge 
-                variant={proposal.status === 'draft' ? 'outline' : proposal.status === 'funded' ? 'default' : 'secondary'}
-                className={proposal.status === 'funded' ? 'bg-success text-success-foreground' : ''}
-              >
-                {PROPOSAL_STATUS_LABELS[proposal.status]}
-              </Badge>
+              <div className="flex-1 space-y-4">
+                {/* Edit toggle */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {isEditing ? (
+                      <Input
+                        value={editedProposal.acronym}
+                        onChange={(e) => setEditedProposal({ ...editedProposal, acronym: e.target.value })}
+                        className="text-lg font-semibold w-40"
+                      />
+                    ) : (
+                      <Badge variant="outline" className="text-lg px-3 py-1 font-semibold">
+                        {proposal.acronym}
+                      </Badge>
+                    )}
+                    
+                    {isEditing ? (
+                      <Select
+                        value={editedProposal.type}
+                        onValueChange={(v) => setEditedProposal({ ...editedProposal, type: v as ProposalType })}
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="RIA">RIA</SelectItem>
+                          <SelectItem value="IA">IA</SelectItem>
+                          <SelectItem value="CSA">CSA</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Badge variant="secondary">
+                        {PROPOSAL_TYPE_LABELS[proposal.type]}
+                      </Badge>
+                    )}
+                    
+                    <Badge 
+                      variant={proposal.status === 'draft' ? 'outline' : proposal.status === 'funded' ? 'default' : 'secondary'}
+                      className={proposal.status === 'funded' ? 'bg-success text-success-foreground' : ''}
+                    >
+                      {PROPOSAL_STATUS_LABELS[proposal.status]}
+                    </Badge>
+                  </div>
+                  
+                  {canEdit && (
+                    <div className="flex items-center gap-2">
+                      {isEditing ? (
+                        <>
+                          <Button size="sm" variant="ghost" onClick={handleCancel}>
+                            <X className="w-4 h-4 mr-1" />
+                            Cancel
+                          </Button>
+                          <Button size="sm" onClick={handleSave}>
+                            <Check className="w-4 h-4 mr-1" />
+                            Save
+                          </Button>
+                        </>
+                      ) : (
+                        <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
+                          <Pencil className="w-4 h-4 mr-1" />
+                          Edit
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Title */}
+                {isEditing ? (
+                  <Input
+                    value={editedProposal.title}
+                    onChange={(e) => setEditedProposal({ ...editedProposal, title: e.target.value })}
+                    className="text-2xl font-bold"
+                    placeholder="Proposal title"
+                  />
+                ) : (
+                  <h1 className="text-2xl font-bold text-foreground">{proposal.title}</h1>
+                )}
+
+                {/* Description */}
+                {isEditing ? (
+                  <Textarea
+                    value={editedProposal.description || ''}
+                    onChange={(e) => setEditedProposal({ ...editedProposal, description: e.target.value })}
+                    placeholder="Brief description of the proposal"
+                    rows={2}
+                  />
+                ) : (
+                  proposal.description && (
+                    <p className="text-muted-foreground line-clamp-2">{proposal.description}</p>
+                  )
+                )}
+
+                {/* Work Programme & Destination */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm text-muted-foreground mb-1 block">Work Programme</label>
+                    {isEditing ? (
+                      <Select
+                        value={editedProposal.workProgramme || ''}
+                        onValueChange={(v) => setEditedProposal({ ...editedProposal, workProgramme: v, destination: undefined })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select work programme" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {WORK_PROGRAMMES.map(wp => (
+                            <SelectItem key={wp.id} value={wp.id}>
+                              {wp.abbreviation} - {wp.fullName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <p className="font-medium">
+                        {workProgramme ? `${workProgramme.abbreviation} - ${workProgramme.fullName}` : 'Not specified'}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-sm text-muted-foreground mb-1 block">Destination</label>
+                    {isEditing ? (
+                      <Select
+                        value={editedProposal.destination || ''}
+                        onValueChange={(v) => setEditedProposal({ ...editedProposal, destination: v })}
+                        disabled={!editedProposal.workProgramme}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select destination" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableDestinations.map(d => (
+                            <SelectItem key={d.id} value={d.id}>
+                              {d.abbreviation} - {d.fullName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <p className="font-medium">
+                        {destination ? `${destination.abbreviation} - ${destination.fullName}` : 'Not specified'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
-            <h1 className="text-2xl font-bold text-foreground mb-2">{proposal.title}</h1>
-            {proposal.description && (
-              <p className="text-muted-foreground line-clamp-2">{proposal.description}</p>
-            )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        {/* Quick Stats Grid */}
+        {/* Quick Stats & Dates */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardContent className="pt-6">
@@ -263,15 +449,34 @@ export function ProposalSummaryPage({
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-warning" />
+                  <CalendarIcon className="w-5 h-5 text-warning" />
                 </div>
-                <div>
+                <div className="flex-1">
                   <p className="text-sm text-muted-foreground">Deadline</p>
-                  <p className="text-xl font-bold">
-                    {proposal.deadline ? format(proposal.deadline, 'dd MMM yyyy') : 'Not set'}
-                  </p>
-                  {daysUntilDeadline !== null && daysUntilDeadline > 0 && (
-                    <p className="text-xs text-muted-foreground">{daysUntilDeadline} days left</p>
+                  {isEditing ? (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="w-full justify-start text-left font-normal">
+                          {editedProposal.deadline ? format(editedProposal.deadline, 'PPP') : 'Select date'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={editedProposal.deadline}
+                          onSelect={(date) => setEditedProposal({ ...editedProposal, deadline: date })}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  ) : (
+                    <>
+                      <p className="text-xl font-bold">
+                        {proposal.deadline ? format(proposal.deadline, 'dd MMM yyyy') : 'Not set'}
+                      </p>
+                      {daysUntilDeadline !== null && daysUntilDeadline > 0 && (
+                        <p className="text-xs text-muted-foreground">{daysUntilDeadline} days left</p>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -307,7 +512,7 @@ export function ProposalSummaryPage({
           </Card>
         </div>
 
-        {/* Topic & Programme Information */}
+        {/* Topic Information */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -318,24 +523,26 @@ export function ProposalSummaryPage({
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Work Programme</p>
-                <p className="font-medium">
-                  {workProgramme ? `${workProgramme.fullName} (${workProgramme.abbreviation})` : 'Not specified'}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Destination</p>
-                <p className="font-medium">
-                  {destination ? `${destination.fullName} (${destination.abbreviation})` : 'Not specified'}
-                </p>
-              </div>
-              <div>
                 <p className="text-sm text-muted-foreground mb-1">Topic ID</p>
-                <p className="font-medium">{proposal.topicId || 'HORIZON-CL5-2026-D1-01'}</p>
+                {isEditing ? (
+                  <Input
+                    value={editedProposal.topicId || ''}
+                    onChange={(e) => setEditedProposal({ ...editedProposal, topicId: e.target.value })}
+                    placeholder="e.g., HORIZON-CL5-2026-D1-01"
+                  />
+                ) : (
+                  <p className="font-medium">{proposal.topicId || 'Not specified'}</p>
+                )}
               </div>
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Topic URL</p>
-                {proposal.topicUrl ? (
+                {isEditing ? (
+                  <Input
+                    value={editedProposal.topicUrl || ''}
+                    onChange={(e) => setEditedProposal({ ...editedProposal, topicUrl: e.target.value })}
+                    placeholder="https://..."
+                  />
+                ) : proposal.topicUrl ? (
                   <Button
                     variant="link"
                     className="p-0 h-auto font-medium"
@@ -394,12 +601,18 @@ export function ProposalSummaryPage({
           </CardContent>
         </Card>
 
+        {/* Consortium Map */}
+        <ConsortiumMap participants={participants} />
+
+        {/* Gantt Chart */}
+        <GanttChart projectDuration={36} />
+
         {/* Consortium Overview */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Globe className="w-5 h-5" />
-              Consortium Overview
+              Consortium Partners
             </CardTitle>
             <CardDescription>Participating organisations and their countries</CardDescription>
           </CardHeader>
@@ -446,95 +659,43 @@ export function ProposalSummaryPage({
               <Users className="w-5 h-5" />
               Team Members
             </CardTitle>
-            <CardDescription>All team members and their organisations</CardDescription>
+            <CardDescription>
+              All team members involved in the project ({teamMembers.reduce((sum, m) => sum + (m.personMonths || 0), 0)} total person-months)
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {teamMembers.map((member) => (
                 <div
                   key={member.id}
-                  className="flex items-center gap-4 p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                  className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
                 >
-                  {/* Member Avatar */}
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <span className="text-sm font-semibold text-primary">
-                      {member.fullName.split(' ').map(n => n[0]).join('').toUpperCase()}
-                    </span>
-                  </div>
-
-                  {/* Member Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{member.fullName}</p>
-                    <p className="text-sm text-muted-foreground truncate">{member.roleInProject || 'Team Member'}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      {/* Organisation Logo */}
-                      <div className="w-5 h-5 rounded bg-muted flex items-center justify-center overflow-hidden">
-                        {member.organisationLogo ? (
-                          <img
-                            src={member.organisationLogo}
-                            alt={member.organisationShortName}
-                            className="w-4 h-4 object-contain"
-                          />
-                        ) : (
-                          <Building2 className="w-3 h-3 text-muted-foreground" />
-                        )}
-                      </div>
-                      <span className="text-xs text-muted-foreground truncate">
-                        {member.organisationShortName || member.organisation}
+                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {member.organisationLogo ? (
+                      <img
+                        src={member.organisationLogo}
+                        alt={member.organisationShortName}
+                        className="w-7 h-7 object-contain"
+                      />
+                    ) : (
+                      <span className="text-sm font-bold text-muted-foreground">
+                        {member.fullName.charAt(0)}
                       </span>
-                    </div>
+                    )}
                   </div>
-
-                  {/* Person Months */}
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm truncate">{member.fullName}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {member.roleInProject || 'Team Member'} • {member.organisationShortName}
+                    </p>
+                  </div>
                   {member.personMonths && (
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-lg font-semibold text-primary">{member.personMonths}</p>
-                      <p className="text-xs text-muted-foreground">PM</p>
-                    </div>
+                    <Badge variant="secondary" className="text-xs flex-shrink-0">
+                      {member.personMonths} PM
+                    </Badge>
                   )}
                 </div>
               ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Timeline */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              Timeline
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Created:</span>
-                <span className="font-medium">{format(proposal.createdAt, 'dd MMM yyyy')}</span>
-              </div>
-              <Separator orientation="vertical" className="h-4" />
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Last updated:</span>
-                <span className="font-medium">{format(proposal.updatedAt, 'dd MMM yyyy, HH:mm')}</span>
-              </div>
-              {proposal.submittedAt && (
-                <>
-                  <Separator orientation="vertical" className="h-4" />
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">Submitted:</span>
-                    <span className="font-medium">{format(proposal.submittedAt, 'dd MMM yyyy')}</span>
-                  </div>
-                </>
-              )}
-              {proposal.decisionDate && (
-                <>
-                  <Separator orientation="vertical" className="h-4" />
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">Decision:</span>
-                    <span className="font-medium">{format(proposal.decisionDate, 'dd MMM yyyy')}</span>
-                  </div>
-                </>
-              )}
             </div>
           </CardContent>
         </Card>
