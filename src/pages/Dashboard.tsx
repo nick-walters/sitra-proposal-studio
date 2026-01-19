@@ -264,29 +264,24 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Stats - Compact */}
-        <div className="grid grid-cols-4 gap-3 mb-5">
-          <div className="card-elevated p-3">
-            <p className="text-xl font-bold text-foreground">{proposals.length}</p>
-            <p className="text-xs text-muted-foreground">Total</p>
+        {/* Stats - Inline compact */}
+        <div className="flex items-center gap-4 mb-4 text-sm">
+          <div className="flex items-center gap-1.5">
+            <span className="font-bold">{proposals.length}</span>
+            <span className="text-muted-foreground">Total</span>
           </div>
-          <div className="card-elevated p-3">
-            <p className="text-xl font-bold text-foreground">
-              {proposals.filter((p) => p.status === 'draft').length}
-            </p>
-            <p className="text-xs text-muted-foreground">Draft</p>
+          <span className="text-muted-foreground/30">|</span>
+          <div className="flex items-center gap-1.5">
+            <span className="font-bold">{proposals.filter((p) => p.status === 'draft').length}</span>
+            <span className="text-muted-foreground">Draft</span>
           </div>
-          <div className="card-elevated p-3">
-            <p className="text-xl font-bold text-blue-600">
-              {proposals.filter((p) => p.status === 'submitted').length}
-            </p>
-            <p className="text-xs text-muted-foreground">Submitted</p>
+          <div className="flex items-center gap-1.5">
+            <span className="font-bold text-blue-600">{proposals.filter((p) => p.status === 'submitted').length}</span>
+            <span className="text-muted-foreground">Submitted</span>
           </div>
-          <div className="card-elevated p-3">
-            <p className="text-xl font-bold text-success">
-              {proposals.filter((p) => p.status === 'funded').length}
-            </p>
-            <p className="text-xs text-muted-foreground">Funded</p>
+          <div className="flex items-center gap-1.5">
+            <span className="font-bold text-success">{proposals.filter((p) => p.status === 'funded').length}</span>
+            <span className="text-muted-foreground">Funded</span>
           </div>
         </div>
 
