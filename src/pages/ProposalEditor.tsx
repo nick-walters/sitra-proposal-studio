@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Section, HORIZON_EUROPE_SECTIONS } from "@/types/proposal";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -20,6 +20,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePdfExport } from "@/hooks/usePdfExport";
+import { useRealtimePresence } from "@/hooks/useRealtimePresence";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export function ProposalEditor() {
   const { id } = useParams();
@@ -28,6 +34,12 @@ export function ProposalEditor() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const { exportToPdf } = usePdfExport();
+  
+  // Real-time presence for collaborators
+  const { collaborators } = useRealtimePresence({
+    proposalId: id || '',
+    currentSectionId: activeSection?.id || null,
+  });
 
   // Sample proposal data
   const proposal = {
@@ -71,19 +83,30 @@ export function ProposalEditor() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Online collaborators */}
+            {/* Online collaborators from real-time presence */}
             <div className="hidden md:flex items-center gap-1 mr-2">
-              {proposal.members.filter((m) => m.online).map((member, idx) => (
-                <div
-                  key={member.id}
-                  className="w-7 h-7 rounded-full bg-primary/10 border-2 border-card flex items-center justify-center relative"
-                  style={{ marginLeft: idx > 0 ? '-8px' : 0, zIndex: 3 - idx }}
-                >
-                  <span className="text-xs font-medium text-primary">
-                    {member.name.split(' ').map((n) => n[0]).join('')}
-                  </span>
-                  <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-success border-2 border-card" />
-                </div>
+              {collaborators.map((collaborator, idx) => (
+                <Tooltip key={collaborator.id}>
+                  <TooltipTrigger asChild>
+                    <div
+                      className="w-7 h-7 rounded-full bg-primary/10 border-2 border-card flex items-center justify-center relative cursor-pointer"
+                      style={{ marginLeft: idx > 0 ? '-8px' : 0, zIndex: 10 - idx }}
+                    >
+                      <span className="text-xs font-medium text-primary">
+                        {collaborator.name.split(' ').map((n) => n[0]).join('').toUpperCase()}
+                      </span>
+                      <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-success border-2 border-card" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="font-medium">{collaborator.name}</p>
+                    {collaborator.sectionId && (
+                      <p className="text-xs text-muted-foreground">
+                        Editing: {proposal.sections.find(s => s.id === collaborator.sectionId)?.title || 'Unknown section'}
+                      </p>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
               ))}
             </div>
 
@@ -166,7 +189,7 @@ export function ProposalEditor() {
         </button>
 
         {/* Editor */}
-        <DocumentEditor section={activeSection} proposalAcronym={proposal.acronym} />
+        <DocumentEditor section={activeSection} proposalId={id || ''} proposalAcronym={proposal.acronym} />
       </div>
 
       {/* Version History Dialog */}
