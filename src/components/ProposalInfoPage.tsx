@@ -5,7 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Proposal, Participant, ParticipantMember, PARTICIPANT_TYPE_LABELS, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_TYPE_LABELS } from '@/types/proposal';
+import { Proposal, Participant, ParticipantMember, PARTICIPANT_TYPE_LABELS, WORK_PROGRAMMES, DESTINATIONS, ProposalStatus } from '@/types/proposal';
+import { LogoUpload } from '@/components/LogoUpload';
+import { SubmissionWorkflow } from '@/components/SubmissionWorkflow';
 import {
   ExternalLink,
   Calendar,
@@ -17,56 +19,35 @@ import {
   Clock,
   FileText,
   Image,
-  Sparkles,
-  Loader2,
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
 interface ProposalInfoPageProps {
   proposal: Proposal;
   participants: Participant[];
   participantMembers: ParticipantMember[];
+  budgetItems: { amount: number }[];
   onUpdateProposal: (updates: Partial<Proposal>) => void;
+  onSubmit: () => Promise<void>;
+  onUpdateStatus: (status: ProposalStatus) => Promise<void>;
   canEdit: boolean;
+  isAdmin: boolean;
 }
 
 export function ProposalInfoPage({
   proposal,
   participants,
   participantMembers,
+  budgetItems,
   onUpdateProposal,
+  onSubmit,
+  onUpdateStatus,
   canEdit,
+  isAdmin,
 }: ProposalInfoPageProps) {
-  const [isGeneratingLogo, setIsGeneratingLogo] = useState(false);
-
   const workProgramme = WORK_PROGRAMMES.find(wp => wp.id === proposal.workProgramme);
   const destination = DESTINATIONS.find(d => d.id === proposal.destination);
 
-  const handleGenerateLogo = async () => {
-    setIsGeneratingLogo(true);
-    try {
-      const keywords = proposal.title.split(' ').slice(0, 5).join(', ');
-      const { data, error } = await supabase.functions.invoke('generate-image', {
-        body: { 
-          prompt: `Simple, modern, minimalist logo for a research project called "${proposal.acronym}". Keywords: ${keywords}. Clean design, professional, suitable for EU funding proposal.`
-        }
-      });
-
-      if (error) throw error;
-      if (data?.imageUrl) {
-        onUpdateProposal({ logoUrl: data.imageUrl });
-        toast.success('Logo generated successfully');
-      }
-    } catch (error) {
-      console.error('Failed to generate logo:', error);
-      toast.error('Failed to generate logo');
-    } finally {
-      setIsGeneratingLogo(false);
-    }
-  };
 
   return (
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
@@ -94,43 +75,13 @@ export function ProposalInfoPage({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-start gap-6">
-              <div className="w-32 h-32 rounded-lg border-2 border-dashed border-muted-foreground/30 flex items-center justify-center bg-muted/50 overflow-hidden">
-                {proposal.logoUrl ? (
-                  <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-contain" />
-                ) : (
-                  <FileText className="w-12 h-12 text-muted-foreground/50" />
-                )}
-              </div>
-              <div className="flex-1 space-y-3">
-                {canEdit && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="logoUrl">Logo URL</Label>
-                      <Input
-                        id="logoUrl"
-                        placeholder="https://..."
-                        value={proposal.logoUrl || ''}
-                        onChange={(e) => onUpdateProposal({ logoUrl: e.target.value })}
-                      />
-                    </div>
-                    <Button
-                      variant="outline"
-                      onClick={handleGenerateLogo}
-                      disabled={isGeneratingLogo}
-                      className="gap-2"
-                    >
-                      {isGeneratingLogo ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Sparkles className="w-4 h-4" />
-                      )}
-                      Auto-generate from keywords
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
+            <LogoUpload
+              currentUrl={proposal.logoUrl}
+              onUpload={(url) => onUpdateProposal({ logoUrl: url })}
+              proposalAcronym={proposal.acronym}
+              proposalTitle={proposal.title}
+              disabled={!canEdit}
+            />
           </CardContent>
         </Card>
 
@@ -319,6 +270,17 @@ export function ProposalInfoPage({
             )}
           </CardContent>
         </Card>
+
+        {/* Submission Workflow */}
+        <SubmissionWorkflow
+          proposal={proposal}
+          participants={participants}
+          budgetItems={budgetItems}
+          onSubmit={onSubmit}
+          onUpdateStatus={onUpdateStatus}
+          canEdit={canEdit}
+          isAdmin={isAdmin}
+        />
 
         {/* Timeline */}
         <Card>
