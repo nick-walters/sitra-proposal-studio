@@ -2,7 +2,6 @@ import { Header } from "@/components/Header";
 import { SectionNavigator } from "@/components/SectionNavigator";
 import { DocumentEditor } from "@/components/DocumentEditor";
 import { VersionHistoryDialog } from "@/components/VersionHistoryDialog";
-import { ProposalInfoPage } from "@/components/ProposalInfoPage";
 import { ProposalSummaryPage } from "@/components/ProposalSummaryPage";
 import { ParticipantForm } from "@/components/ParticipantForm";
 import { BudgetSpreadsheetEnhanced } from "@/components/BudgetSpreadsheetEnhanced";
@@ -198,20 +197,6 @@ export function ProposalEditor() {
                 amount: b.amount,
                 participantId: b.participantId,
               }))}
-            />
-          ) : null;
-
-        case 'proposal-info':
-          return proposal ? (
-            <ProposalInfoPage
-              proposal={{
-                ...proposal,
-                members: [],
-                sections: allSections,
-              }}
-              participants={participants}
-              participantMembers={participantMembers}
-              budgetItems={budgetItems}
               onUpdateProposal={updateProposal}
               onSubmit={handleSubmit}
               onUpdateStatus={handleUpdateStatus}
