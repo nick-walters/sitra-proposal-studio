@@ -270,6 +270,15 @@ export interface EthicsAssessment {
 // Part A sections structure
 export const PART_A_SECTIONS: Section[] = [
   {
+    id: 'summary',
+    number: 'S',
+    title: 'Summary',
+    isPartA: true,
+    guidelines: {
+      text: 'Overview of the proposal with key metrics, consortium, and team members.',
+    },
+  },
+  {
     id: 'proposal-info',
     number: 'A.0',
     title: 'Proposal Information',
