@@ -14,43 +14,106 @@ export type Database = {
   }
   public: {
     Tables: {
+      budget_changes: {
+        Row: {
+          budget_item_id: string | null
+          change_type: string
+          created_at: string
+          field_changed: string | null
+          id: string
+          new_value: string | null
+          old_value: string | null
+          proposal_id: string
+          user_id: string
+        }
+        Insert: {
+          budget_item_id?: string | null
+          change_type: string
+          created_at?: string
+          field_changed?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          proposal_id: string
+          user_id: string
+        }
+        Update: {
+          budget_item_id?: string | null
+          change_type?: string
+          created_at?: string
+          field_changed?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          proposal_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_changes_budget_item_id_fkey"
+            columns: ["budget_item_id"]
+            isOneToOne: false
+            referencedRelation: "budget_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_changes_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budget_items: {
         Row: {
           amount: number
           category: string
+          cost_type: string | null
           created_at: string
           description: string | null
           id: string
           justification: string | null
           participant_id: string
+          person_months: number | null
           proposal_id: string
+          quantity: number | null
           subcategory: string | null
+          unit_cost: number | null
           updated_at: string
           work_package: string | null
         }
         Insert: {
           amount?: number
           category: string
+          cost_type?: string | null
           created_at?: string
           description?: string | null
           id?: string
           justification?: string | null
           participant_id: string
+          person_months?: number | null
           proposal_id: string
+          quantity?: number | null
           subcategory?: string | null
+          unit_cost?: number | null
           updated_at?: string
           work_package?: string | null
         }
         Update: {
           amount?: number
           category?: string
+          cost_type?: string | null
           created_at?: string
           description?: string | null
           id?: string
           justification?: string | null
           participant_id?: string
+          person_months?: number | null
           proposal_id?: string
+          quantity?: number | null
           subcategory?: string | null
+          unit_cost?: number | null
           updated_at?: string
           work_package?: string | null
         }
