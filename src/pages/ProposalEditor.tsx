@@ -7,6 +7,7 @@ import { ParticipantForm } from "@/components/ParticipantForm";
 import { BudgetSpreadsheetEnhanced } from "@/components/BudgetSpreadsheetEnhanced";
 import { EthicsForm } from "@/components/EthicsForm";
 import { DeclarationsForm } from "@/components/DeclarationsForm";
+import { WorkPackageManager } from "@/components/WorkPackageManager";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -46,7 +47,7 @@ export function ProposalEditor() {
   const [activeSection, setActiveSection] = useState<Section | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const { exportToPdf } = usePdfExport();
+  const { exportToPdf, exportProposalToPdf } = usePdfExport();
 
   // Fetch proposal data from database
   const {
@@ -101,6 +102,51 @@ export function ProposalEditor() {
 
   const handleUpdateStatus = async (status: ProposalStatus) => {
     await updateProposal({ status });
+  };
+
+  const handleExportPdf = async () => {
+    if (!proposal) return;
+    
+    // Fetch section contents
+    const { data: sectionContents } = await import('@/integrations/supabase/client').then(
+      ({ supabase }) => supabase.from('section_content').select('*').eq('proposal_id', id)
+    );
+
+    // Fetch work packages
+    const { data: workPackages } = await import('@/integrations/supabase/client').then(
+      ({ supabase }) => supabase.from('work_packages').select('*').eq('proposal_id', id).order('number')
+    );
+
+    exportProposalToPdf({
+      proposal: {
+        ...proposal,
+        members: [],
+        sections: allSections,
+      },
+      participants,
+      participantMembers,
+      sectionContents: (sectionContents || []).map((sc) => ({
+        id: sc.id,
+        sectionId: sc.section_id,
+        content: sc.content || '',
+      })),
+      budgetItems: budgetItems.map((b) => ({
+        category: b.category,
+        subcategory: b.subcategory,
+        description: b.description,
+        amount: b.amount,
+        participantId: b.participantId,
+      })),
+      workPackages: (workPackages || []).map((wp) => ({
+        number: wp.number,
+        title: wp.title,
+        description: wp.description || undefined,
+        leadParticipantId: wp.lead_participant_id || undefined,
+        startMonth: wp.start_month || 1,
+        endMonth: wp.end_month || 36,
+      })),
+      sections: allSections,
+    });
   };
 
   // Render the appropriate content based on section
@@ -158,7 +204,6 @@ export function ProposalEditor() {
 
         case 'admin-forms':
         case 'participant-info':
-        case 'team-members':
           return (
             <ParticipantForm
               participants={participants}
@@ -172,6 +217,16 @@ export function ProposalEditor() {
               canEditAll={isAdmin && canEdit}
               currentUserId={user?.id}
               proposalId={id || ''}
+            />
+          );
+
+        case 'team-members':
+          return (
+            <WorkPackageManager
+              proposalId={id || ''}
+              participants={participants}
+              participantMembers={participantMembers}
+              canEdit={canEdit}
             />
           );
 
@@ -320,11 +375,7 @@ export function ProposalEditor() {
               variant="outline" 
               size="sm" 
               className="gap-2" 
-              onClick={() => exportToPdf({ 
-                title: proposal?.title || '', 
-                acronym: proposal?.acronym || '', 
-                sections: [] 
-              })}
+              onClick={handleExportPdf}
             >
               <Download className="w-4 h-4" />
               <span className="hidden sm:inline">Export PDF</span>

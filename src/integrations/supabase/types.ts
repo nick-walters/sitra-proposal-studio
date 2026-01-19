@@ -258,6 +258,51 @@ export type Database = {
           },
         ]
       }
+      member_wp_allocations: {
+        Row: {
+          created_at: string
+          id: string
+          member_id: string
+          person_months: number
+          role: string | null
+          updated_at: string
+          work_package_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          member_id: string
+          person_months?: number
+          role?: string | null
+          updated_at?: string
+          work_package_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          member_id?: string
+          person_months?: number
+          role?: string | null
+          updated_at?: string
+          work_package_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_wp_allocations_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "participant_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_wp_allocations_work_package_id_fkey"
+            columns: ["work_package_id"]
+            isOneToOne: false
+            referencedRelation: "work_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       part_a_data: {
         Row: {
           additional_info: Json | null
@@ -703,6 +748,60 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "versions_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_packages: {
+        Row: {
+          created_at: string
+          description: string | null
+          end_month: number | null
+          id: string
+          lead_participant_id: string | null
+          number: number
+          proposal_id: string
+          start_month: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          end_month?: number | null
+          id?: string
+          lead_participant_id?: string | null
+          number: number
+          proposal_id: string
+          start_month?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          end_month?: number | null
+          id?: string
+          lead_participant_id?: string | null
+          number?: number
+          proposal_id?: string
+          start_month?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_packages_lead_participant_id_fkey"
+            columns: ["lead_participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_packages_proposal_id_fkey"
             columns: ["proposal_id"]
             isOneToOne: false
             referencedRelation: "proposals"
