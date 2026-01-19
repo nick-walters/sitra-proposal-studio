@@ -1,11 +1,13 @@
 import { Header } from "@/components/Header";
 import { ProposalCard } from "@/components/ProposalCard";
+import { ProposalTableView } from "@/components/ProposalTableView";
+import { ProposalKanbanView } from "@/components/ProposalKanbanView";
 import { CreateProposalDialog } from "@/components/CreateProposalDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Proposal, ProposalType, ProposalStatus, HORIZON_EUROPE_SECTIONS, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS, getDestinationsForWorkProgramme } from "@/types/proposal";
-import { Plus, Search, LayoutGrid, List, X, Filter, Leaf, Brain, Zap, Wheat, Shield, Apple, Atom, HeartPulse } from "lucide-react";
+import { Plus, Search, LayoutGrid, List, X, Filter, Leaf, Brain, Zap, Wheat, Shield, Apple, Atom, HeartPulse, Table2, Columns3 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -204,7 +206,7 @@ export function Dashboard() {
   const [proposals, setProposals] = useState<Proposal[]>(sampleProposals);
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'table' | 'kanban'>('grid');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   
   // Multi-select filter states
@@ -601,16 +603,36 @@ export function Dashboard() {
                 size="icon"
                 className="h-8 w-8 rounded-r-none"
                 onClick={() => setViewMode('grid')}
+                title="Grid view"
               >
                 <LayoutGrid className="w-4 h-4" />
               </Button>
               <Button
                 variant={viewMode === 'list' ? 'secondary' : 'ghost'}
                 size="icon"
-                className="h-8 w-8 rounded-l-none"
+                className="h-8 w-8 rounded-none border-x"
                 onClick={() => setViewMode('list')}
+                title="List view"
               >
                 <List className="w-4 h-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'table' ? 'secondary' : 'ghost'}
+                size="icon"
+                className="h-8 w-8 rounded-none"
+                onClick={() => setViewMode('table')}
+                title="Table view"
+              >
+                <Table2 className="w-4 h-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'kanban' ? 'secondary' : 'ghost'}
+                size="icon"
+                className="h-8 w-8 rounded-l-none"
+                onClick={() => setViewMode('kanban')}
+                title="Kanban board"
+              >
+                <Columns3 className="w-4 h-4" />
               </Button>
             </div>
             
@@ -623,19 +645,33 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Proposals Grid */}
+        {/* Proposals Views */}
         {filteredProposals.length > 0 ? (
-          <div className={viewMode === 'grid' ? 'grid gap-3 md:grid-cols-2 lg:grid-cols-3' : 'space-y-3'}>
-            {filteredProposals.map((proposal) => (
-              <ProposalCard
-                key={proposal.id}
-                proposal={proposal}
-                onClick={() => navigate(`/proposal/${proposal.id}`)}
-                compact={viewMode === 'list'}
-                topicIcon={topicIcons[proposal.acronym]}
-              />
-            ))}
-          </div>
+          viewMode === 'table' ? (
+            <ProposalTableView 
+              proposals={filteredProposals}
+              onProposalClick={(proposal) => navigate(`/proposal/${proposal.id}`)}
+              topicIcons={topicIcons}
+            />
+          ) : viewMode === 'kanban' ? (
+            <ProposalKanbanView 
+              proposals={filteredProposals}
+              onProposalClick={(proposal) => navigate(`/proposal/${proposal.id}`)}
+              topicIcons={topicIcons}
+            />
+          ) : (
+            <div className={viewMode === 'grid' ? 'grid gap-3 md:grid-cols-2 lg:grid-cols-3' : 'space-y-3'}>
+              {filteredProposals.map((proposal) => (
+                <ProposalCard
+                  key={proposal.id}
+                  proposal={proposal}
+                  onClick={() => navigate(`/proposal/${proposal.id}`)}
+                  compact={viewMode === 'list'}
+                  topicIcon={topicIcons[proposal.acronym]}
+                />
+              ))}
+            </div>
+          )
         ) : (
           <div className="text-center py-12">
             <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
