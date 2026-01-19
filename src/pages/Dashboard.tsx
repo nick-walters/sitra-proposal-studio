@@ -3,8 +3,9 @@ import { ProposalCard } from "@/components/ProposalCard";
 import { CreateProposalDialog } from "@/components/CreateProposalDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Proposal, ProposalType, ProposalStatus, HORIZON_EUROPE_SECTIONS, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS, getDestinationsForWorkProgramme } from "@/types/proposal";
-import { Plus, Search, LayoutGrid, List, X } from "lucide-react";
+import { Plus, Search, LayoutGrid, List, X, Filter } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -191,12 +192,23 @@ export function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   
   // Multi-select filter states
   const [statusFilters, setStatusFilters] = useState<Set<ProposalStatus>>(new Set());
   const [typeFilters, setTypeFilters] = useState<Set<ProposalType>>(new Set());
   const [wpFilters, setWpFilters] = useState<Set<string>>(new Set());
   const [destFilters, setDestFilters] = useState<Set<string>>(new Set());
+  const [urgencyFilters, setUrgencyFilters] = useState<Set<string>>(new Set());
+
+  const toggleUrgency = (urgency: string) => {
+    setUrgencyFilters(prev => {
+      const next = new Set(prev);
+      if (next.has(urgency)) next.delete(urgency);
+      else next.add(urgency);
+      return next;
+    });
+  };
 
   // Check if user is Sitra staff (based on email domain)
   const isSitraStaff = user?.email?.endsWith('@sitra.fi') || user?.email?.endsWith('@sitra.dev') || false;
@@ -276,17 +288,21 @@ export function Dashboard() {
       // Destination filter (empty = all)
       const matchesDest = destFilters.size === 0 || (p.destination && destFilters.has(p.destination));
       
-      return matchesSearch && matchesStatus && matchesType && matchesWp && matchesDest;
+      // Urgency filter (empty = all, only applies to drafts)
+      const matchesUrgency = urgencyFilters.size === 0 || (p.status === 'draft' && urgencyFilters.has(getUrgencyLevel(p.deadline) || ''));
+      
+      return matchesSearch && matchesStatus && matchesType && matchesWp && matchesDest && matchesUrgency;
     });
-  }, [proposals, searchQuery, statusFilters, typeFilters, wpFilters, destFilters]);
+  }, [proposals, searchQuery, statusFilters, typeFilters, wpFilters, destFilters, urgencyFilters]);
 
-  const activeFiltersCount = statusFilters.size + typeFilters.size + wpFilters.size + destFilters.size;
+  const activeFiltersCount = statusFilters.size + typeFilters.size + wpFilters.size + destFilters.size + urgencyFilters.size;
 
   const clearFilters = () => {
     setStatusFilters(new Set());
     setTypeFilters(new Set());
     setWpFilters(new Set());
     setDestFilters(new Set());
+    setUrgencyFilters(new Set());
     setSearchQuery('');
   };
 
@@ -360,17 +376,199 @@ export function Dashboard() {
               </Button>
             </div>
 
-            {activeFiltersCount > 0 && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={clearFilters}
-                className="h-9 px-2 text-xs text-muted-foreground hover:text-foreground"
-              >
-                <X className="w-3 h-3 mr-1" />
-                Clear ({activeFiltersCount})
-              </Button>
-            )}
+            {/* Filter Button with Popover */}
+            <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2 h-9">
+                  <Filter className="w-4 h-4" />
+                  Filter
+                  {activeFiltersCount > 0 && (
+                    <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
+                      {activeFiltersCount}
+                    </span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-96 p-4" align="end">
+                <div className="space-y-4">
+                  {/* Urgency Section */}
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-sm">Urgency</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {(() => {
+                        const draftProposals = proposals.filter(p => p.status === 'draft');
+                        const criticalCount = draftProposals.filter(p => getUrgencyLevel(p.deadline) === 'critical').length;
+                        const urgentCount = draftProposals.filter(p => getUrgencyLevel(p.deadline) === 'urgent').length;
+                        const approachingCount = draftProposals.filter(p => getUrgencyLevel(p.deadline) === 'approaching').length;
+                        const onTrackCount = draftProposals.filter(p => getUrgencyLevel(p.deadline) === 'on_track').length;
+                        
+                        return (
+                          <>
+                            {criticalCount > 0 && (
+                              <button
+                                onClick={() => toggleUrgency('critical')}
+                                className={`px-2.5 py-1 rounded-md transition-colors text-sm ${urgencyFilters.has('critical') ? 'bg-red-500 text-white' : 'bg-red-500/15 text-red-600 border border-red-500/30 hover:bg-red-500/25'}`}
+                              >
+                                <span className="font-bold">{criticalCount}</span>
+                                <span className="ml-1">Critical!</span>
+                              </button>
+                            )}
+                            {urgentCount > 0 && (
+                              <button
+                                onClick={() => toggleUrgency('urgent')}
+                                className={`px-2.5 py-1 rounded-md transition-colors text-sm ${urgencyFilters.has('urgent') ? 'bg-orange-500 text-white' : 'bg-orange-500/15 text-orange-600 border border-orange-500/30 hover:bg-orange-500/25'}`}
+                              >
+                                <span className="font-bold">{urgentCount}</span>
+                                <span className="ml-1">Priority</span>
+                              </button>
+                            )}
+                            {approachingCount > 0 && (
+                              <button
+                                onClick={() => toggleUrgency('approaching')}
+                                className={`px-2.5 py-1 rounded-md transition-colors text-sm ${urgencyFilters.has('approaching') ? 'bg-yellow-500 text-white' : 'bg-yellow-500/15 text-yellow-600 border border-yellow-500/30 hover:bg-yellow-500/25'}`}
+                              >
+                                <span className="font-bold">{approachingCount}</span>
+                                <span className="ml-1">Upcoming</span>
+                              </button>
+                            )}
+                            {onTrackCount > 0 && (
+                              <button
+                                onClick={() => toggleUrgency('on_track')}
+                                className={`px-2.5 py-1 rounded-md transition-colors text-sm ${urgencyFilters.has('on_track') ? 'bg-green-500 text-white' : 'bg-green-500/15 text-green-600 border border-green-500/30 hover:bg-green-500/25'}`}
+                              >
+                                <span className="font-bold">{onTrackCount}</span>
+                                <span className="ml-1">On Track</span>
+                              </button>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* Status Section */}
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-sm">Status</h4>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => toggleStatus('draft')}
+                        className={`px-2.5 py-1 rounded-md transition-colors text-sm ${statusFilters.has('draft') ? 'bg-yellow-500 text-white' : 'bg-muted hover:bg-muted/80'}`}
+                      >
+                        <span className="font-bold">{proposals.filter((p) => p.status === 'draft').length}</span>
+                        <span className="ml-1">Draft</span>
+                      </button>
+                      <button
+                        onClick={() => toggleStatus('submitted')}
+                        className={`px-2.5 py-1 rounded-md transition-colors text-sm ${statusFilters.has('submitted') ? 'bg-orange-500 text-white' : 'bg-muted hover:bg-muted/80'}`}
+                      >
+                        <span className="font-bold">{proposals.filter((p) => p.status === 'submitted').length}</span>
+                        <span className="ml-1">Submitted</span>
+                      </button>
+                      <button
+                        onClick={() => toggleStatus('funded')}
+                        className={`px-2.5 py-1 rounded-md transition-colors text-sm ${statusFilters.has('funded') ? 'bg-success text-success-foreground' : 'bg-muted hover:bg-muted/80'}`}
+                      >
+                        <span className="font-bold">{proposals.filter((p) => p.status === 'funded').length}</span>
+                        <span className="ml-1">Funded</span>
+                      </button>
+                      <button
+                        onClick={() => toggleStatus('not_funded')}
+                        className={`px-2.5 py-1 rounded-md transition-colors text-sm ${statusFilters.has('not_funded') ? 'bg-destructive text-destructive-foreground' : 'bg-muted hover:bg-muted/80'}`}
+                      >
+                        <span className="font-bold">{proposals.filter((p) => p.status === 'not_funded').length}</span>
+                        <span className="ml-1">Not Funded</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Type of Action Section */}
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-sm">Type of Action</h4>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => toggleType('RIA')}
+                        className={`px-2.5 py-1 rounded-md transition-colors text-sm border ${typeFilters.has('RIA') ? 'bg-foreground text-background border-foreground' : 'bg-white text-foreground border-foreground hover:bg-gray-50'}`}
+                      >
+                        <span className="font-bold">{proposals.filter((p) => p.type === 'RIA').length}</span>
+                        <span className="ml-1">RIA</span>
+                      </button>
+                      <button
+                        onClick={() => toggleType('IA')}
+                        className={`px-2.5 py-1 rounded-md transition-colors text-sm border ${typeFilters.has('IA') ? 'bg-foreground text-background border-foreground' : 'bg-white text-foreground border-foreground hover:bg-gray-50'}`}
+                      >
+                        <span className="font-bold">{proposals.filter((p) => p.type === 'IA').length}</span>
+                        <span className="ml-1">IA</span>
+                      </button>
+                      <button
+                        onClick={() => toggleType('CSA')}
+                        className={`px-2.5 py-1 rounded-md transition-colors text-sm border ${typeFilters.has('CSA') ? 'bg-foreground text-background border-foreground' : 'bg-white text-foreground border-foreground hover:bg-gray-50'}`}
+                      >
+                        <span className="font-bold">{proposals.filter((p) => p.type === 'CSA').length}</span>
+                        <span className="ml-1">CSA</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Work Programme & Destination Section */}
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-sm">Work Programme & Destination</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {WORK_PROGRAMMES.map(wp => {
+                        const count = proposals.filter(p => p.workProgramme === wp.id).length;
+                        if (count === 0) return null;
+                        return (
+                          <button
+                            key={wp.id}
+                            onClick={() => toggleWp(wp.id)}
+                            className={`px-2.5 py-1 rounded-md transition-colors text-sm ${wpFilters.has(wp.id) ? 'bg-gray-500 text-white' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'}`}
+                          >
+                            <span className="font-bold">{count}</span>
+                            <span className="ml-1">{wp.abbreviation}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    
+                    {/* Destinations - shown when WP selected */}
+                    {availableDestinations.length > 0 && (
+                      <div className="mt-2 pt-2 border-t">
+                        <div className="flex flex-wrap gap-2">
+                          {availableDestinations.map(dest => {
+                            const count = proposals.filter(p => p.destination === dest.id).length;
+                            if (count === 0) return null;
+                            return (
+                              <button
+                                key={dest.id}
+                                onClick={() => toggleDest(dest.id)}
+                                className={`px-2.5 py-1 rounded-md transition-colors text-sm ${destFilters.has(dest.id) ? 'bg-gray-400 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'}`}
+                              >
+                                <span className="font-bold">{count}</span>
+                                <span className="ml-1">{dest.abbreviation}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Clear Filters Button */}
+                  {activeFiltersCount > 0 && (
+                    <div className="pt-2 border-t">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={clearFilters}
+                        className="w-full text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="w-3 h-3 mr-1" />
+                        Clear all filters ({activeFiltersCount})
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
             
             {isSitraStaff && (
               <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2" size="sm">
@@ -380,153 +578,6 @@ export function Dashboard() {
             )}
           </div>
         </div>
-
-        {/* Clickable Filter Buttons - 2x2 Grid Layout */}
-        <div className="grid grid-cols-2 gap-x-6 gap-y-2 mb-4">
-          {/* Top Left: Urgency */}
-          <div className="flex items-center gap-2 text-sm flex-wrap">
-            <button
-              onClick={() => { clearFilters(); }}
-              className={`px-2.5 py-1 rounded-md transition-colors ${activeFiltersCount === 0 ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`}
-            >
-              <span className="font-bold">{proposals.length}</span>
-              <span className="ml-1">Total</span>
-            </button>
-            <span className="text-muted-foreground/30 mx-1">|</span>
-            {(() => {
-              const draftProposals = proposals.filter(p => p.status === 'draft');
-              const criticalCount = draftProposals.filter(p => getUrgencyLevel(p.deadline) === 'critical').length;
-              const urgentCount = draftProposals.filter(p => getUrgencyLevel(p.deadline) === 'urgent').length;
-              const approachingCount = draftProposals.filter(p => getUrgencyLevel(p.deadline) === 'approaching').length;
-              const onTrackCount = draftProposals.filter(p => getUrgencyLevel(p.deadline) === 'on_track').length;
-              
-              return (
-                <>
-                  {criticalCount > 0 && (
-                    <span className="px-2.5 py-1 rounded-md bg-red-500/15 text-red-600 border border-red-500/30">
-                      <span className="font-bold">{criticalCount}</span>
-                      <span className="ml-1">Critical!</span>
-                    </span>
-                  )}
-                  {urgentCount > 0 && (
-                    <span className="px-2.5 py-1 rounded-md bg-orange-500/15 text-orange-600 border border-orange-500/30">
-                      <span className="font-bold">{urgentCount}</span>
-                      <span className="ml-1">Priority</span>
-                    </span>
-                  )}
-                  {approachingCount > 0 && (
-                    <span className="px-2.5 py-1 rounded-md bg-yellow-500/15 text-yellow-600 border border-yellow-500/30">
-                      <span className="font-bold">{approachingCount}</span>
-                      <span className="ml-1">Upcoming</span>
-                    </span>
-                  )}
-                  {onTrackCount > 0 && (
-                    <span className="px-2.5 py-1 rounded-md bg-green-500/15 text-green-600 border border-green-500/30">
-                      <span className="font-bold">{onTrackCount}</span>
-                      <span className="ml-1">On Track</span>
-                    </span>
-                  )}
-                </>
-              );
-            })()}
-          </div>
-
-          {/* Top Right: Type */}
-          <div className="flex items-center gap-2 text-sm flex-wrap">
-            <button
-              onClick={() => toggleType('RIA')}
-              className={`px-2.5 py-1 rounded-md transition-colors border ${typeFilters.has('RIA') ? 'bg-foreground text-background border-foreground' : 'bg-white text-foreground border-foreground hover:bg-gray-50'}`}
-            >
-              <span className="font-bold">{proposals.filter((p) => p.type === 'RIA').length}</span>
-              <span className="ml-1">RIA</span>
-            </button>
-            <button
-              onClick={() => toggleType('IA')}
-              className={`px-2.5 py-1 rounded-md transition-colors border ${typeFilters.has('IA') ? 'bg-foreground text-background border-foreground' : 'bg-white text-foreground border-foreground hover:bg-gray-50'}`}
-            >
-              <span className="font-bold">{proposals.filter((p) => p.type === 'IA').length}</span>
-              <span className="ml-1">IA</span>
-            </button>
-            <button
-              onClick={() => toggleType('CSA')}
-              className={`px-2.5 py-1 rounded-md transition-colors border ${typeFilters.has('CSA') ? 'bg-foreground text-background border-foreground' : 'bg-white text-foreground border-foreground hover:bg-gray-50'}`}
-            >
-              <span className="font-bold">{proposals.filter((p) => p.type === 'CSA').length}</span>
-              <span className="ml-1">CSA</span>
-            </button>
-          </div>
-          
-          {/* Bottom Left: Status */}
-          <div className="flex items-center gap-2 text-sm flex-wrap">
-            <button
-              onClick={() => toggleStatus('draft')}
-              className={`px-2.5 py-1 rounded-md transition-colors ${statusFilters.has('draft') ? 'bg-yellow-500 text-white' : 'bg-muted hover:bg-muted/80'}`}
-            >
-              <span className="font-bold">{proposals.filter((p) => p.status === 'draft').length}</span>
-              <span className="ml-1">Draft</span>
-            </button>
-            <button
-              onClick={() => toggleStatus('submitted')}
-              className={`px-2.5 py-1 rounded-md transition-colors ${statusFilters.has('submitted') ? 'bg-orange-500 text-white' : 'bg-muted hover:bg-muted/80'}`}
-            >
-              <span className="font-bold">{proposals.filter((p) => p.status === 'submitted').length}</span>
-              <span className="ml-1">Submitted</span>
-            </button>
-            <button
-              onClick={() => toggleStatus('funded')}
-              className={`px-2.5 py-1 rounded-md transition-colors ${statusFilters.has('funded') ? 'bg-success text-success-foreground' : 'bg-muted hover:bg-muted/80'}`}
-            >
-              <span className="font-bold">{proposals.filter((p) => p.status === 'funded').length}</span>
-              <span className="ml-1">Funded</span>
-            </button>
-            <button
-              onClick={() => toggleStatus('not_funded')}
-              className={`px-2.5 py-1 rounded-md transition-colors ${statusFilters.has('not_funded') ? 'bg-destructive text-destructive-foreground' : 'bg-muted hover:bg-muted/80'}`}
-            >
-              <span className="font-bold">{proposals.filter((p) => p.status === 'not_funded').length}</span>
-              <span className="ml-1">Not Funded</span>
-            </button>
-          </div>
-
-          {/* Bottom Right: Work Programme */}
-          <div className="flex items-center gap-2 text-sm flex-wrap">
-            {WORK_PROGRAMMES.map(wp => {
-              const count = proposals.filter(p => p.workProgramme === wp.id).length;
-              if (count === 0) return null;
-              return (
-                <button
-                  key={wp.id}
-                  onClick={() => toggleWp(wp.id)}
-                  className={`px-2.5 py-1 rounded-md transition-colors ${wpFilters.has(wp.id) ? 'bg-gray-500 text-white' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'}`}
-                >
-                  <span className="font-bold">{count}</span>
-                  <span className="ml-1">{wp.abbreviation}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-        
-        {/* Destinations row - below the 2x2 grid when WP selected */}
-        {availableDestinations.length > 0 && (
-          <div className="flex items-center gap-2 text-sm flex-wrap mb-4">
-            <span className="text-muted-foreground text-xs mr-1">Destinations:</span>
-            {availableDestinations.map(dest => {
-              const count = proposals.filter(p => p.destination === dest.id).length;
-              if (count === 0) return null;
-              return (
-                <button
-                  key={dest.id}
-                  onClick={() => toggleDest(dest.id)}
-                  className={`px-2.5 py-1 rounded-md transition-colors ${destFilters.has(dest.id) ? 'bg-gray-400 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'}`}
-                >
-                  <span className="font-bold">{count}</span>
-                  <span className="ml-1">{dest.abbreviation}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
 
         {/* Proposals Grid */}
         {filteredProposals.length > 0 ? (
