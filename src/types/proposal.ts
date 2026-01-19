@@ -434,6 +434,16 @@ export const HORIZON_EUROPE_SECTIONS: Section[] = [
   },
 ];
 
+// Figures section (placed below Part B)
+export const FIGURES_SECTION: Section = {
+  id: 'figures',
+  number: 'Figures',
+  title: 'Figures & Diagrams',
+  guidelines: {
+    text: 'Manage and edit figures referenced in Part B sections. Figures are automatically numbered based on their parent section (e.g., Figure B3.1.a).',
+  },
+};
+
 // Budget categories for traditional proposals
 export const BUDGET_CATEGORIES_TRADITIONAL = [
   { id: 'personnel', label: 'A. Personnel costs', subcategories: ['Researchers', 'Technicians', 'Administrative'] },

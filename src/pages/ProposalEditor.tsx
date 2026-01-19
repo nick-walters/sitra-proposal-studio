@@ -8,11 +8,12 @@ import { BudgetSpreadsheetEnhanced } from "@/components/BudgetSpreadsheetEnhance
 import { EthicsForm } from "@/components/EthicsForm";
 import { DeclarationsForm } from "@/components/DeclarationsForm";
 import { WorkPackageManager } from "@/components/WorkPackageManager";
+import { FigureManager } from "@/components/FigureManager";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Section, HORIZON_EUROPE_SECTIONS, PART_A_SECTIONS, BudgetType, ProposalStatus } from "@/types/proposal";
+import { Section, HORIZON_EUROPE_SECTIONS, PART_A_SECTIONS, FIGURES_SECTION, BudgetType, ProposalStatus } from "@/types/proposal";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -85,8 +86,8 @@ export function ProposalEditor() {
     currentSectionId: activeSection?.id || null,
   });
 
-  // Combine Part A and Part B sections
-  const allSections = [...PART_A_SECTIONS, ...HORIZON_EUROPE_SECTIONS];
+  // Combine Part A, Part B, and Figures sections
+  const allSections = [...PART_A_SECTIONS, ...HORIZON_EUROPE_SECTIONS, FIGURES_SECTION];
 
   const handleSectionClick = (section: Section) => {
     setActiveSection(section);
@@ -280,6 +281,16 @@ export function ProposalEditor() {
             />
           );
       }
+    }
+
+    // Figures section
+    if (activeSection.id === 'figures') {
+      return (
+        <FigureManager
+          proposalId={id || ''}
+          canEdit={canEdit}
+        />
+      );
     }
 
     // Part B sections - use rich text editor

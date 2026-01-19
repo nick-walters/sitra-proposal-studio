@@ -258,6 +258,95 @@ export type Database = {
           },
         ]
       }
+      figure_references: {
+        Row: {
+          created_at: string
+          figure_id: string
+          id: string
+          position_in_text: number | null
+          section_content_id: string
+        }
+        Insert: {
+          created_at?: string
+          figure_id: string
+          id?: string
+          position_in_text?: number | null
+          section_content_id: string
+        }
+        Update: {
+          created_at?: string
+          figure_id?: string
+          id?: string
+          position_in_text?: number | null
+          section_content_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "figure_references_figure_id_fkey"
+            columns: ["figure_id"]
+            isOneToOne: false
+            referencedRelation: "figures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "figure_references_section_content_id_fkey"
+            columns: ["section_content_id"]
+            isOneToOne: false
+            referencedRelation: "section_content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      figures: {
+        Row: {
+          caption: string | null
+          content: Json | null
+          created_at: string
+          figure_number: string
+          figure_type: string
+          id: string
+          order_index: number
+          proposal_id: string
+          section_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          caption?: string | null
+          content?: Json | null
+          created_at?: string
+          figure_number: string
+          figure_type?: string
+          id?: string
+          order_index?: number
+          proposal_id: string
+          section_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          caption?: string | null
+          content?: Json | null
+          created_at?: string
+          figure_number?: string
+          figure_type?: string
+          id?: string
+          order_index?: number
+          proposal_id?: string
+          section_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "figures_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       member_wp_allocations: {
         Row: {
           created_at: string
