@@ -271,7 +271,7 @@ export interface EthicsAssessment {
 export const PART_A_SECTIONS: Section[] = [
   {
     id: 'summary',
-    number: 'S',
+    number: '',
     title: 'Summary',
     isPartA: true,
     guidelines: {
