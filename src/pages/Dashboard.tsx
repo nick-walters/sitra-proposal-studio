@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Proposal, ProposalType, ProposalStatus, HORIZON_EUROPE_SECTIONS, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS, getDestinationsForWorkProgramme } from "@/types/proposal";
-import { Plus, Search, LayoutGrid, List, X, Filter } from "lucide-react";
+import { Plus, Search, LayoutGrid, List, X, Filter, Leaf, Brain, Zap, Wheat, Shield, Apple, Atom, HeartPulse } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,6 +19,18 @@ const getUrgencyLevel = (deadline: Date | undefined): string | null => {
   if (daysLeft <= 28) return 'critical';
   if (daysLeft <= 56) return 'due_soon';
   return 'on_track';
+};
+
+// Icon mapping for topic-focused icons
+const topicIcons: Record<string, React.ReactNode> = {
+  'GreenTech': <Leaf className="w-7 h-7 text-green-600" />,
+  'AiHealth': <Brain className="w-7 h-7 text-purple-600" />,
+  'CleanEnergy': <Zap className="w-7 h-7 text-yellow-600" />,
+  'BioSmart': <Wheat className="w-7 h-7 text-amber-600" />,
+  'CyberShield': <Shield className="w-7 h-7 text-blue-600" />,
+  'FoodSafe': <Apple className="w-7 h-7 text-red-600" />,
+  'QuantumNet': <Atom className="w-7 h-7 text-cyan-600" />,
+  'HealthData': <HeartPulse className="w-7 h-7 text-pink-600" />,
 };
 
 // Sample data with varying urgency levels
@@ -577,6 +589,7 @@ export function Dashboard() {
                 proposal={proposal}
                 onClick={() => navigate(`/proposal/${proposal.id}`)}
                 compact={viewMode === 'list'}
+                topicIcon={topicIcons[proposal.acronym]}
               />
             ))}
           </div>

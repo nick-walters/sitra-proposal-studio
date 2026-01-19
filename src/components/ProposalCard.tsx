@@ -8,6 +8,7 @@ interface ProposalCardProps {
   proposal: Proposal;
   onClick: () => void;
   compact?: boolean;
+  topicIcon?: React.ReactNode;
 }
 
 const getUrgencyInfo = (deadline: Date | undefined) => {
@@ -36,7 +37,7 @@ const getUrgencyInfo = (deadline: Date | undefined) => {
   }
 };
 
-export function ProposalCard({ proposal, onClick, compact = false }: ProposalCardProps) {
+export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: ProposalCardProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'draft':
@@ -85,6 +86,8 @@ export function ProposalCard({ proposal, onClick, compact = false }: ProposalCar
           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
             {proposal.logoUrl ? (
               <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
+            ) : topicIcon ? (
+              topicIcon
             ) : (
               <FileText className="w-5 h-5 text-primary" />
             )}
@@ -158,6 +161,8 @@ export function ProposalCard({ proposal, onClick, compact = false }: ProposalCar
             <div className="w-14 h-14 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
               {proposal.logoUrl ? (
                 <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
+              ) : topicIcon ? (
+                topicIcon
               ) : (
                 <FileText className="w-7 h-7 text-primary" />
               )}
