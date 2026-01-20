@@ -13,6 +13,7 @@ import { LogoUpload } from '@/components/LogoUpload';
 import { GanttChart } from '@/components/GanttChart';
 import { ConsortiumMap } from '@/components/ConsortiumMap';
 import { SubmissionWorkflow } from '@/components/SubmissionWorkflow';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Proposal, Participant, ParticipantMember, PARTICIPANT_TYPE_LABELS, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS, PROPOSAL_TYPE_LABELS, ProposalType, ProposalStatus, getDestinationsForWorkProgramme } from '@/types/proposal';
 import {
   ExternalLink,
@@ -29,6 +30,10 @@ import {
   Pencil,
   Check,
   X,
+  Mail,
+  Hash,
+  Tag,
+  Info,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -436,6 +441,78 @@ export function ProposalSummaryPage({
           </CardContent>
         </Card>
 
+        {/* General Information (A0 fields from Horizon Europe forms) */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Info className="w-5 h-5" />
+              General Information
+            </CardTitle>
+            <CardDescription>As per Horizon Europe Standard Application Form (Section 1)</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Abstract */}
+            <div>
+              <label className="text-sm font-medium text-muted-foreground mb-2 block">Abstract</label>
+              {isEditing ? (
+                <Textarea
+                  value={editedProposal.description || ''}
+                  onChange={(e) => setEditedProposal({ ...editedProposal, description: e.target.value })}
+                  placeholder="Short, precise description of project objectives, methodology, and relevance to the Work Programme..."
+                  rows={5}
+                  className="resize-none"
+                />
+              ) : (
+                <p className="text-sm text-foreground bg-muted/30 p-3 rounded-md">
+                  {proposal.description || 'No abstract provided. Add a brief description of project objectives, methodology, and relevance to the Work Programme.'}
+                </p>
+              )}
+            </div>
+
+            <Separator />
+
+            {/* Project Duration & Keywords Grid */}
+            <div className="grid gap-6 sm:grid-cols-2">
+              {/* Project Duration */}
+              <div>
+                <label className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Project Duration
+                </label>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-lg px-3 py-1">
+                    36 months
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">(Standard duration)</span>
+                </div>
+              </div>
+
+              {/* Keywords */}
+              <div>
+                <label className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                  <Tag className="w-4 h-4" />
+                  Keywords
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {proposal.workProgramme && (
+                    <Badge variant="secondary" className="text-xs">
+                      {workProgramme?.abbreviation || proposal.workProgramme}
+                    </Badge>
+                  )}
+                  {proposal.destination && (
+                    <Badge variant="secondary" className="text-xs">
+                      {destination?.abbreviation || proposal.destination}
+                    </Badge>
+                  )}
+                  <Badge variant="secondary" className="text-xs">
+                    {PROPOSAL_TYPE_LABELS[proposal.type]}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Quick Stats & Dates */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
@@ -634,38 +711,62 @@ export function ProposalSummaryPage({
               <Globe className="w-5 h-5" />
               Consortium Partners
             </CardTitle>
-            <CardDescription>Participating organisations and their countries</CardDescription>
+            <CardDescription>Participating organisations with contact details and PIC numbers</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               {participants.map((participant, index) => (
                 <div
                   key={participant.id}
-                  className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                  className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+                  <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center overflow-hidden flex-shrink-0 border">
                     {participant.logoUrl ? (
                       <img
                         src={participant.logoUrl}
                         alt={participant.organisationShortName || participant.organisationName}
-                        className="w-8 h-8 object-contain"
+                        className="w-12 h-12 object-contain"
                       />
                     ) : (
-                      <span className="text-sm font-bold text-muted-foreground">{index + 1}</span>
+                      <span className="text-lg font-bold text-muted-foreground">{index + 1}</span>
                     )}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-sm truncate">
-                      {participant.organisationShortName || participant.organisationName}
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-sm">
+                        {participant.organisationShortName || participant.organisationName}
+                      </p>
+                      <Badge variant="outline" className="text-xs">
+                        {PARTICIPANT_TYPE_LABELS[participant.organisationType].split(' ')[0]}
+                      </Badge>
+                      {participant.isSme && (
+                        <Badge variant="secondary" className="text-xs">SME</Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {participant.organisationName}
                     </p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <MapPin className="w-3 h-3" />
-                      <span>{participant.country || 'Country not set'}</span>
+                    <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        <span>{participant.country || 'Country not set'}</span>
+                      </div>
+                      {participant.picNumber && (
+                        <div className="flex items-center gap-1">
+                          <Hash className="w-3 h-3" />
+                          <span>PIC: {participant.picNumber}</span>
+                        </div>
+                      )}
+                      {participant.contactEmail && (
+                        <div className="flex items-center gap-1">
+                          <Mail className="w-3 h-3" />
+                          <a href={`mailto:${participant.contactEmail}`} className="hover:underline text-primary">
+                            {participant.contactEmail}
+                          </a>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <Badge variant="outline" className="text-xs flex-shrink-0">
-                    {PARTICIPANT_TYPE_LABELS[participant.organisationType].split(' ')[0]}
-                  </Badge>
                 </div>
               ))}
             </div>
@@ -684,36 +785,53 @@ export function ProposalSummaryPage({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               {teamMembers.map((member) => (
                 <div
                   key={member.id}
-                  className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                  className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors cursor-pointer group"
                 >
-                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+                  <Avatar className="w-12 h-12 flex-shrink-0 border">
                     {member.organisationLogo ? (
-                      <img
+                      <AvatarImage
                         src={member.organisationLogo}
                         alt={member.organisationShortName}
-                        className="w-7 h-7 object-contain"
+                        className="object-contain p-1"
                       />
-                    ) : (
-                      <span className="text-sm font-bold text-muted-foreground">
-                        {member.fullName.charAt(0)}
-                      </span>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-sm truncate">{member.fullName}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {member.roleInProject || 'Team Member'} • {member.organisationShortName}
+                    ) : null}
+                    <AvatarFallback className="text-sm font-bold bg-primary/10 text-primary">
+                      {member.fullName.split(' ').map(n => n[0]).join('').toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-sm group-hover:text-primary transition-colors">
+                        {member.fullName}
+                      </p>
+                      {member.personMonths && (
+                        <Badge variant="secondary" className="text-xs">
+                          {member.personMonths} PM
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {member.roleInProject || 'Team Member'}
                     </p>
+                    <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Building2 className="w-3 h-3" />
+                        <span>{member.organisationShortName || member.organisation}</span>
+                      </div>
+                      {member.email && (
+                        <div className="flex items-center gap-1">
+                          <Mail className="w-3 h-3" />
+                          <a href={`mailto:${member.email}`} className="hover:underline text-primary">
+                            {member.email}
+                          </a>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  {member.personMonths && (
-                    <Badge variant="secondary" className="text-xs flex-shrink-0">
-                      {member.personMonths} PM
-                    </Badge>
-                  )}
                 </div>
               ))}
             </div>
