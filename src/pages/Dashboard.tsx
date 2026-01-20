@@ -40,7 +40,7 @@ const sampleProposals: Proposal[] = [
   {
     id: '1',
     acronym: 'GreenTech',
-    title: 'Green Technologies for Sustainable Urban Development',
+    title: 'Green technologies for sustainable urban development',
     type: 'RIA',
     budgetType: 'traditional',
     createdAt: new Date('2024-01-15'),
@@ -60,7 +60,7 @@ const sampleProposals: Proposal[] = [
   {
     id: '2',
     acronym: 'HealthAI',
-    title: 'Artificial Intelligence Solutions for Personalized Healthcare',
+    title: 'Artificial intelligence solutions for personalized healthcare',
     type: 'IA',
     budgetType: 'traditional',
     createdAt: new Date('2024-01-10'),
@@ -80,7 +80,7 @@ const sampleProposals: Proposal[] = [
   {
     id: '3',
     acronym: 'CleanEnergy',
-    title: 'Coordination Network for Clean Energy Transition in Europe',
+    title: 'Coordination network for clean energy transition in Europe',
     type: 'CSA',
     budgetType: 'lump_sum',
     createdAt: new Date('2024-01-05'),
@@ -104,7 +104,7 @@ const sampleProposals: Proposal[] = [
   {
     id: '4',
     acronym: 'BioSmart',
-    title: 'Smart Bioeconomy Solutions for Circular Agriculture',
+    title: 'Smart bioeconomy solutions for circular agriculture',
     type: 'RIA',
     budgetType: 'traditional',
     createdAt: new Date('2023-06-01'),
@@ -124,7 +124,7 @@ const sampleProposals: Proposal[] = [
   {
     id: '5',
     acronym: 'CyberShield',
-    title: 'Advanced Cybersecurity Framework for Critical Infrastructure',
+    title: 'Advanced cybersecurity framework for critical infrastructure',
     type: 'IA',
     budgetType: 'traditional',
     createdAt: new Date('2024-12-01'),
@@ -143,7 +143,7 @@ const sampleProposals: Proposal[] = [
   {
     id: '6',
     acronym: 'FoodSafe',
-    title: 'Innovative Food Safety Monitoring Systems',
+    title: 'Innovative food safety monitoring systems',
     type: 'RIA',
     budgetType: 'traditional',
     createdAt: new Date('2024-11-15'),
@@ -162,7 +162,7 @@ const sampleProposals: Proposal[] = [
   {
     id: '7',
     acronym: 'QuantumNet',
-    title: 'Quantum Communication Networks for Secure Data Transmission',
+    title: 'Quantum communication networks for secure data transmission',
     type: 'RIA',
     budgetType: 'traditional',
     createdAt: new Date('2024-10-01'),
@@ -182,7 +182,7 @@ const sampleProposals: Proposal[] = [
   {
     id: '8',
     acronym: 'HealthData',
-    title: 'European Health Data Space Integration Platform',
+    title: 'European Health Data Space integration platform',
     type: 'CSA',
     budgetType: 'lump_sum',
     createdAt: new Date('2024-08-01'),
