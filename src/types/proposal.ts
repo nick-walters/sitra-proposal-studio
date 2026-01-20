@@ -276,11 +276,11 @@ export interface EthicsAssessment {
 export const PART_A_SECTIONS: Section[] = [
   {
     id: 'summary',
-    number: 'A0',
-    title: 'Proposal Summary',
+    number: '',
+    title: 'Proposal Information',
     isPartA: true,
     guidelines: {
-      text: 'Overview of the proposal with key metrics, topic information, consortium, and team members.',
+      text: 'Overview of the proposal including general information, abstract, keywords, participants, and project duration as per Horizon Europe Standard Application Form.',
     },
   },
   {

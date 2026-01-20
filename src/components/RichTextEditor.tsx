@@ -165,7 +165,7 @@ export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootn
           />
           <ToolbarButton 
             icon={<Heading3 className="w-4 h-4" />} 
-            tooltip="Heading 3"
+            tooltip="Inline Sub-header (H3 - Bold & Underlined)"
             onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
             active={editor.isActive('heading', { level: 3 })}
           />
