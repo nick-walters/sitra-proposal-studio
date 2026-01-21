@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { UserAvatarMenu } from "@/components/UserAvatarMenu";
 import { CollaboratorsDialog } from "@/components/CollaboratorsDialog";
 import { DirectChatDialog } from "@/components/DirectChatDialog";
-import { Users, LogOut, Database } from "lucide-react";
+import { Users, Database } from "lucide-react";
 import sitraLogo from "@/assets/sitra-proposal-studio-logo.png";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -49,7 +49,7 @@ export function Header() {
             </Button>
           </nav>
 
-          {/* Right: Backend (admin/owner only), Logout, Avatar */}
+          {/* Right: Backend (admin/owner only), Avatar */}
           <div className="flex items-center gap-2 flex-1 justify-end">
             {isAdminOrOwner && (
               <Link to="/admin">
@@ -59,15 +59,6 @@ export function Header() {
                 </Button>
               </Link>
             )}
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="gap-2 text-muted-foreground hover:text-foreground"
-              onClick={signOut}
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">Logout</span>
-            </Button>
             {user && (
               <UserAvatarMenu 
                 userId={user.id}
