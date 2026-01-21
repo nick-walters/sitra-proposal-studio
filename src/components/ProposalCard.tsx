@@ -138,7 +138,7 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
           </div>
           
           {/* Dates */}
-          <div className="flex flex-col gap-0 flex-shrink-0 text-[9px] text-muted-foreground text-right">
+          <div className="flex flex-col gap-0 flex-shrink-0 text-[9px] text-muted-foreground text-right mr-1">
             {proposal.deadline && (
               <div className="flex items-center gap-0.5">
                 <Calendar className="w-2.5 h-2.5 text-yellow-600" />
