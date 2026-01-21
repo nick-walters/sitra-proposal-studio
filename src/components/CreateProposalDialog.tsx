@@ -219,7 +219,7 @@ export function CreateProposalDialog({
                 <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-muted/50 transition-colors">
                   <RadioGroupItem value="traditional" id="budget-traditional" />
                   <Label htmlFor="budget-traditional" className="cursor-pointer flex-1">
-                    <span className="font-medium">Traditional Budget</span>
+                    <span className="font-medium">Standard Budget</span>
                     <p className="text-xs text-muted-foreground">Detailed cost reporting</p>
                   </Label>
                 </div>

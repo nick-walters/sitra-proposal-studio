@@ -669,7 +669,7 @@ export function ProposalSummaryPage({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="traditional">No (Traditional)</SelectItem>
+                      <SelectItem value="traditional">No (Standard)</SelectItem>
                       <SelectItem value="lump_sum">Yes (Lump Sum)</SelectItem>
                     </SelectContent>
                   </Select>

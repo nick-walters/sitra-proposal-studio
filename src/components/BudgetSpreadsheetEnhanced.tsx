@@ -42,8 +42,8 @@ import { BudgetChangeHistory } from './BudgetChangeHistory';
 import { Plus, Trash2, Download, Euro, Calculator, History, Info, FileSpreadsheet, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
-// Detailed EU cost categories for traditional budget
-const TRADITIONAL_CATEGORIES = [
+// Detailed EU cost categories for standard budget
+const STANDARD_CATEGORIES = [
   {
     id: 'A',
     label: 'A. Personnel costs',
@@ -135,7 +135,7 @@ export function BudgetSpreadsheetEnhanced({
   const [showChangeHistory, setShowChangeHistory] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
 
-  const categories = budgetType === 'traditional' ? TRADITIONAL_CATEGORIES : LUMP_SUM_CATEGORIES;
+  const categories = budgetType === 'traditional' ? STANDARD_CATEGORIES : LUMP_SUM_CATEGORIES;
 
   const filteredItems = useMemo(() => {
     if (selectedParticipant === 'all') return budgetItems;
@@ -254,7 +254,7 @@ export function BudgetSpreadsheetEnhanced({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="traditional">Traditional Budget</SelectItem>
+                  <SelectItem value="traditional">Standard Budget</SelectItem>
                   <SelectItem value="lump_sum">Lump Sum Budget</SelectItem>
                 </SelectContent>
               </Select>
@@ -363,7 +363,7 @@ export function BudgetSpreadsheetEnhanced({
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg">
-                {budgetType === 'traditional' ? 'Traditional Budget Model' : 'Lump Sum Budget Model'}
+                {budgetType === 'traditional' ? 'Standard Budget Model' : 'Lump Sum Budget Model'}
               </CardTitle>
               <Badge variant={budgetType === 'traditional' ? 'default' : 'secondary'}>
                 {budgetType === 'traditional' ? 'Actual Costs' : 'Fixed Lump Sums'}
