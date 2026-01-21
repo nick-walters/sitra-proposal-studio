@@ -3,6 +3,7 @@ import { ProposalCard } from "@/components/ProposalCard";
 import { ProposalTableView } from "@/components/ProposalTableView";
 import { ProposalKanbanView } from "@/components/ProposalKanbanView";
 import { CreateProposalDialog } from "@/components/CreateProposalDialog";
+import { ProposalGridSkeleton, ProposalListSkeleton, ProposalTableSkeleton, ProposalKanbanSkeleton } from "@/components/ProposalCardSkeleton";
 import { ProfileCompletionDialog } from "@/components/ProfileCompletionDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -847,7 +848,17 @@ export function Dashboard() {
         </div>
 
         {/* Proposals Views */}
-        {filteredProposals.length > 0 ? (
+        {isLoadingProposals ? (
+          viewMode === 'table' ? (
+            <ProposalTableSkeleton />
+          ) : viewMode === 'kanban' ? (
+            <ProposalKanbanSkeleton />
+          ) : viewMode === 'list' ? (
+            <ProposalListSkeleton />
+          ) : (
+            <ProposalGridSkeleton />
+          )
+        ) : filteredProposals.length > 0 ? (
           viewMode === 'table' ? (
             <ProposalTableView 
               proposals={filteredProposals}
