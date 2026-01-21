@@ -24,6 +24,20 @@ interface Proposal {
   title: string;
 }
 
+// Demo proposals for testing when no database proposals available
+const DEMO_PROPOSALS: Proposal[] = [
+  { id: 'demo-1', acronym: 'AURORA', title: 'Advanced Urban Renewable Optimisation and Resource Allocation' },
+  { id: 'demo-2', acronym: 'BEACON', title: 'Breakthrough Energy and Carbon Optimisation Networks' },
+  { id: 'demo-3', acronym: 'CATALYST', title: 'Carbon-neutral Advanced Technologies And Logistics for Sustainable Transport' },
+  { id: 'demo-4', acronym: 'DELTA', title: 'Digital European Learning and Training Alliance' },
+  { id: 'demo-5', acronym: 'EVOLVE', title: 'European Value-chain Optimisation for Low-carbon Ventures and Ecosystems' },
+  { id: 'demo-6', acronym: 'FUSION', title: 'Future Systems for Integrated Optimisation Networks' },
+  { id: 'demo-7', acronym: 'GENESIS', title: 'Green Energy Networks for European Sustainable Infrastructure Systems' },
+  { id: 'demo-8', acronym: 'HORIZON', title: 'Holistic Optimisation of Resources for Integrated Zero-emission Networks' },
+  { id: 'demo-9', acronym: 'IMPACT', title: 'Innovative Methods for Policy Analysis and Climate Transition' },
+  { id: 'demo-10', acronym: 'NEXUS', title: 'Network for Excellence in Unified Sustainability' },
+];
+
 interface ProposalMultiSelectProps {
   selectedProposalIds: string[];
   onSelectionChange: (ids: string[]) => void;
@@ -47,8 +61,11 @@ export function ProposalMultiSelect({
         .select("id, acronym, title")
         .order("acronym", { ascending: true });
 
-      if (!error && data) {
+      if (!error && data && data.length > 0) {
         setProposals(data);
+      } else {
+        // Use demo proposals for testing when no database proposals available
+        setProposals(DEMO_PROPOSALS);
       }
       setLoading(false);
     }
