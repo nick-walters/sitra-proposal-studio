@@ -7,7 +7,7 @@ import { ProfileCompletionDialog } from "@/components/ProfileCompletionDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Proposal, ProposalType, ProposalStatus, HORIZON_EUROPE_SECTIONS, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS, getDestinationsForWorkProgramme } from "@/types/proposal";
+import { Proposal, ProposalType, ProposalStatus, BudgetType, SubmissionStage, HORIZON_EUROPE_SECTIONS, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS, getDestinationsForWorkProgramme } from "@/types/proposal";
 import { Plus, Search, LayoutGrid, List, X, Filter, Leaf, Brain, Zap, Wheat, Shield, Apple, Atom, HeartPulse, Table2, Columns3, AlertTriangle, Clock, CheckCircle2, Send, PartyPopper, XCircle } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
@@ -397,6 +397,8 @@ export function Dashboard() {
     acronym: string; 
     title: string; 
     type: ProposalType;
+    budgetType: BudgetType;
+    submissionStage: SubmissionStage;
     workProgramme?: string;
     destination?: string;
   }) => {
@@ -407,7 +409,8 @@ export function Dashboard() {
       type: data.type,
       workProgramme: data.workProgramme,
       destination: data.destination,
-      budgetType: 'traditional',
+      budgetType: data.budgetType,
+      submissionStage: data.submissionStage,
       createdAt: new Date(),
       updatedAt: new Date(),
       status: 'draft',
