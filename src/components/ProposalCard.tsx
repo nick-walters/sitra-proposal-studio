@@ -225,8 +225,8 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
                     {statusInfo.days !== undefined && ` (${statusInfo.days}d)`}
                   </span>
                 </div>
-                {/* Row 2: Type, Work Programme, Destination - wrap allowed */}
-                <div className="flex items-start gap-1 flex-wrap mt-1 max-w-[140px]">
+                {/* Row 2: Type, Work Programme, Destination */}
+                <div className="flex items-center gap-1 flex-wrap mt-1">
                   <span className="proposal-badge bg-white text-foreground border border-foreground text-[9px]">{proposal.type}</span>
                   {workProgramme && (
                     <span className="proposal-badge bg-gray-300 text-gray-700 text-[9px]">
@@ -234,7 +234,7 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
                     </span>
                   )}
                   {destination && (
-                    <span className="proposal-badge bg-gray-200 text-gray-600 text-[9px] whitespace-normal text-center leading-tight py-0.5">
+                    <span className="proposal-badge bg-gray-200 text-gray-600 text-[9px] max-w-[90px] whitespace-normal text-center leading-tight py-0.5">
                       {destination.abbreviation}
                     </span>
                   )}
