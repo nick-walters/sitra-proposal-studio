@@ -2,14 +2,8 @@ import { useState, useMemo, useEffect } from "react";
 import { Check, ChevronsUpDown, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Popover,
   PopoverContent,
@@ -33,6 +27,7 @@ export function ProposalMultiSelect({
   placeholder = "Select proposals...",
 }: ProposalMultiSelectProps) {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const [proposals, setProposals] = useState<Proposal[]>(SAMPLE_PROPOSALS_BASIC);
   const [loading, setLoading] = useState(false);
 
@@ -48,7 +43,6 @@ export function ProposalMultiSelect({
         if (!error && data && data.length > 0) {
           setProposals(data);
         } else {
-          // Use sample proposals for testing when no database proposals available
           console.log('Using sample proposals - no database proposals found or error:', error);
           setProposals(SAMPLE_PROPOSALS_BASIC);
         }
@@ -62,11 +56,17 @@ export function ProposalMultiSelect({
     fetchProposals();
   }, []);
 
-  const sortedProposals = useMemo(() => {
-    return [...proposals].sort((a, b) => 
+  const filteredProposals = useMemo(() => {
+    const sorted = [...proposals].sort((a, b) => 
       a.acronym.localeCompare(b.acronym, undefined, { sensitivity: 'base' })
     );
-  }, [proposals]);
+    if (!search) return sorted;
+    const searchLower = search.toLowerCase();
+    return sorted.filter(p => 
+      p.acronym.toLowerCase().includes(searchLower) ||
+      p.title.toLowerCase().includes(searchLower)
+    );
+  }, [proposals, search]);
 
   const selectedProposals = useMemo(() => {
     return proposals.filter(p => selectedProposalIds.includes(p.id));
@@ -86,7 +86,10 @@ export function ProposalMultiSelect({
 
   return (
     <div className="space-y-2">
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={(isOpen) => {
+        setOpen(isOpen);
+        if (!isOpen) setSearch("");
+      }}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
@@ -103,44 +106,57 @@ export function ProposalMultiSelect({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[400px] p-0 z-[100]" align="start">
-          <Command>
-            <CommandInput placeholder="Type acronym to search..." />
-            <CommandList>
-              <CommandEmpty>
-                {loading ? "Loading proposals..." : "No proposals found."}
-              </CommandEmpty>
-              <CommandGroup>
-                {sortedProposals.map((proposal) => {
-                  const isSelected = selectedProposalIds.includes(proposal.id);
-                  return (
-                    <CommandItem
-                      key={proposal.id}
-                      value={proposal.acronym}
-                      onSelect={() => toggleProposal(proposal.id)}
-                      className="cursor-pointer"
-                    >
+          <div className="flex flex-col bg-popover rounded-md">
+            <div className="flex items-center border-b px-3">
+              <Input
+                placeholder="Type acronym to search..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-10 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-0"
+              />
+            </div>
+            <ScrollArea className="h-[300px]">
+              {loading ? (
+                <div className="py-6 text-center text-sm text-muted-foreground">
+                  Loading proposals...
+                </div>
+              ) : filteredProposals.length === 0 ? (
+                <div className="py-6 text-center text-sm text-muted-foreground">
+                  No proposals found.
+                </div>
+              ) : (
+                <div className="p-1">
+                  {filteredProposals.map((proposal) => {
+                    const isSelected = selectedProposalIds.includes(proposal.id);
+                    return (
                       <div
-                        className={cn(
-                          "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                          isSelected
-                            ? "bg-primary text-primary-foreground"
-                            : "opacity-50 [&_svg]:invisible"
-                        )}
+                        key={proposal.id}
+                        onClick={() => toggleProposal(proposal.id)}
+                        className="flex items-center px-2 py-1.5 text-sm cursor-pointer rounded-sm hover:bg-accent hover:text-accent-foreground"
                       >
-                        <Check className="h-3 w-3" />
+                        <div
+                          className={cn(
+                            "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                            isSelected
+                              ? "bg-primary text-primary-foreground"
+                              : "opacity-50 [&_svg]:invisible"
+                          )}
+                        >
+                          <Check className="h-3 w-3" />
+                        </div>
+                        <div className="flex flex-col flex-1 min-w-0">
+                          <span className="font-medium">{proposal.acronym}</span>
+                          <span className="text-xs text-muted-foreground truncate">
+                            {proposal.title}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex flex-col flex-1 min-w-0">
-                        <span className="font-medium">{proposal.acronym}</span>
-                        <span className="text-xs text-muted-foreground truncate">
-                          {proposal.title}
-                        </span>
-                      </div>
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
-            </CommandList>
-          </Command>
+                    );
+                  })}
+                </div>
+              )}
+            </ScrollArea>
+          </div>
         </PopoverContent>
       </Popover>
 
