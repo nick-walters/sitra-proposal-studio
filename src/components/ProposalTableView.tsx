@@ -1,7 +1,7 @@
-import { Proposal, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS } from "@/types/proposal";
+import { Proposal, WORK_PROGRAMMES, DESTINATIONS } from "@/types/proposal";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Calendar, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink } from "lucide-react";
+import { Calendar, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink, AlertTriangle, PartyPopper } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 
 interface ProposalTableViewProps {
@@ -10,63 +10,69 @@ interface ProposalTableViewProps {
   topicIcons?: Record<string, React.ReactNode>;
 }
 
-const getUrgencyInfo = (deadline: Date | undefined) => {
-  if (!deadline) return null;
+// Get combined status/urgency info
+const getCombinedStatusInfo = (proposal: Proposal) => {
+  const { status, deadline } = proposal;
   
-  const daysLeft = differenceInDays(deadline, new Date());
-  
-  if (daysLeft <= 28) {
+  if (status === 'draft' && deadline) {
+    const daysLeft = differenceInDays(deadline, new Date());
+    
+    if (daysLeft <= 28) {
+      return {
+        label: 'Draft – critical',
+        days: daysLeft,
+        icon: AlertTriangle,
+        className: 'bg-red-500/15 text-red-600 border border-red-500/30'
+      };
+    } else if (daysLeft <= 56) {
+      return {
+        label: 'Draft – due soon',
+        days: daysLeft,
+        icon: Clock,
+        className: 'bg-orange-500/15 text-orange-600 border border-orange-500/30'
+      };
+    } else {
+      return {
+        label: 'Draft – on track',
+        days: daysLeft,
+        icon: CheckCircle2,
+        className: 'bg-green-500/15 text-green-600 border border-green-500/30'
+      };
+    }
+  } else if (status === 'draft') {
     return {
-      label: 'Critical!',
-      days: daysLeft,
-      className: 'bg-red-500/15 text-red-600 border-red-500/30'
+      label: 'Draft',
+      icon: Clock,
+      className: 'bg-yellow-500/15 text-yellow-600 border border-yellow-500/30'
     };
-  } else if (daysLeft <= 56) {
+  } else if (status === 'submitted') {
     return {
-      label: 'Due soon',
-      days: daysLeft,
-      className: 'bg-orange-500/15 text-orange-600 border-orange-500/30'
+      label: 'Under evaluation',
+      icon: Send,
+      className: 'bg-orange-500/15 text-orange-600 border border-orange-500/30'
     };
-  } else {
+  } else if (status === 'funded') {
     return {
-      label: 'On track',
-      days: daysLeft,
-      className: 'bg-green-500/15 text-green-600 border-green-500/30'
+      label: 'Funded',
+      icon: PartyPopper,
+      className: 'bg-white text-green-600 border border-green-500/30'
+    };
+  } else if (status === 'not_funded') {
+    return {
+      label: 'Not funded',
+      icon: XCircle,
+      className: 'bg-white text-red-600 border border-red-500/30'
     };
   }
+  
+  return {
+    label: status,
+    icon: Clock,
+    className: 'bg-muted text-muted-foreground'
+  };
 };
 
 export function ProposalTableView({ proposals, onProposalClick, topicIcons }: ProposalTableViewProps) {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'draft':
-        return 'bg-yellow-500/15 text-yellow-600';
-      case 'submitted':
-        return 'bg-orange-500/15 text-orange-600';
-      case 'funded':
-        return 'bg-success/10 text-success';
-      case 'not_funded':
-        return 'bg-destructive/10 text-destructive';
-      default:
-        return 'bg-muted text-muted-foreground';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'draft':
-        return <Clock className="w-3 h-3" />;
-      case 'submitted':
-        return <Send className="w-3 h-3" />;
-      case 'funded':
-        return <CheckCircle2 className="w-3 h-3" />;
-      case 'not_funded':
-        return <XCircle className="w-3 h-3" />;
-      default:
-        return null;
-    }
-  };
-
   return (
     <div className="border rounded-lg overflow-hidden">
       <Table>
@@ -75,12 +81,12 @@ export function ProposalTableView({ proposals, onProposalClick, topicIcons }: Pr
             <TableHead className="w-10"></TableHead>
             <TableHead className="font-semibold">Acronym</TableHead>
             <TableHead className="font-semibold">Title</TableHead>
-            <TableHead className="font-semibold">Urgency</TableHead>
             <TableHead className="font-semibold">Status</TableHead>
             <TableHead className="font-semibold">Type</TableHead>
             <TableHead className="font-semibold">Work Programme</TableHead>
             <TableHead className="font-semibold">Destination</TableHead>
             <TableHead className="font-semibold">Deadline</TableHead>
+            <TableHead className="font-semibold">Decision</TableHead>
             <TableHead className="w-24"></TableHead>
           </TableRow>
         </TableHeader>
@@ -89,7 +95,9 @@ export function ProposalTableView({ proposals, onProposalClick, topicIcons }: Pr
             const workProgramme = WORK_PROGRAMMES.find(wp => wp.id === proposal.workProgramme);
             const destination = DESTINATIONS.find(d => d.id === proposal.destination);
             const isDraft = proposal.status === 'draft';
-            const urgency = isDraft ? getUrgencyInfo(proposal.deadline) : null;
+            const isDecided = proposal.status === 'funded' || proposal.status === 'not_funded';
+            const statusInfo = getCombinedStatusInfo(proposal);
+            const StatusIcon = statusInfo.icon;
             const topicIcon = topicIcons?.[proposal.acronym];
 
             return (
@@ -112,18 +120,10 @@ export function ProposalTableView({ proposals, onProposalClick, topicIcons }: Pr
                   {proposal.title}
                 </TableCell>
                 <TableCell>
-                  {urgency ? (
-                    <span className={`proposal-badge ${urgency.className} text-[10px]`}>
-                      {urgency.label} ({urgency.days}d)
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground text-xs">—</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <span className={`proposal-badge ${getStatusColor(proposal.status)} flex items-center gap-1 w-fit text-[10px]`}>
-                    {getStatusIcon(proposal.status)}
-                    {PROPOSAL_STATUS_LABELS[proposal.status]}
+                  <span className={`proposal-badge ${statusInfo.className} flex items-center gap-1 w-fit text-[10px]`}>
+                    <StatusIcon className="w-3 h-3" />
+                    {statusInfo.label}
+                    {statusInfo.days !== undefined && ` (${statusInfo.days}d)`}
                   </span>
                 </TableCell>
                 <TableCell>
@@ -154,6 +154,20 @@ export function ProposalTableView({ proposals, onProposalClick, topicIcons }: Pr
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Calendar className="w-3 h-3" />
                       {format(proposal.deadline, 'dd/MM/yyyy')}
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground text-xs">—</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {isDecided && proposal.decisionDate ? (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      {proposal.status === 'funded' ? (
+                        <CheckCircle2 className="w-3 h-3 text-green-600" />
+                      ) : (
+                        <XCircle className="w-3 h-3 text-red-600" />
+                      )}
+                      {format(proposal.decisionDate, 'dd/MM/yyyy')}
                     </div>
                   ) : (
                     <span className="text-muted-foreground text-xs">—</span>
