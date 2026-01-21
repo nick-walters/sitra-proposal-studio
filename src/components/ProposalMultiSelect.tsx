@@ -34,6 +34,7 @@ const DEMO_PROPOSALS: Proposal[] = [
   { id: '6', acronym: 'FoodSafe', title: 'Innovative food safety monitoring systems' },
   { id: '7', acronym: 'QuantumNet', title: 'Quantum communication networks for secure data transmission' },
   { id: '8', acronym: 'HealthData', title: 'European Health Data Space integration platform' },
+  { id: '9', acronym: 'AquaSense', title: 'Smart water quality monitoring for urban water systems' },
 ];
 
 interface ProposalMultiSelectProps {
