@@ -5,7 +5,7 @@ import { CollaboratorsDialog } from "@/components/CollaboratorsDialog";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { DirectChatDialog } from "@/components/DirectChatDialog";
 import { Users, Settings, LogOut } from "lucide-react";
-import sitraLogo from "@/assets/sitra-logo.png";
+import sitraLogo from "@/assets/sitra-proposal-studio-logo.png";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -26,9 +26,8 @@ export function Header() {
         <div className="h-full px-6 flex items-center justify-between">
           {/* Left: Logo */}
           <div className="flex items-center gap-4 flex-1">
-            <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <img src={sitraLogo} alt="Sitra" className="h-8 w-32" />
-              <span className="text-base font-bold tracking-tight text-foreground" style={{ transform: 'scaleX(0.7)', transformOrigin: 'left' }}>grant.eu</span>
+            <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
+              <img src={sitraLogo} alt="Sitra Proposal Studio" className="h-8" />
             </Link>
           </div>
 

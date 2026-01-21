@@ -11,7 +11,7 @@ import {
   Shield,
   Zap,
 } from "lucide-react";
-import sitraLogo from "@/assets/sitra-logo.png";
+import sitraLogo from "@/assets/sitra-proposal-studio-logo.png";
 
 export default function Index() {
   const navigate = useNavigate();
@@ -63,19 +63,15 @@ export default function Index() {
 
         <div className="relative container py-24 lg:py-32">
           <div className="max-w-3xl mx-auto text-center">
-            <div className="flex items-center justify-center mb-6 animate-fade-in">
-              <img src={sitraLogo} alt="Sitra" className="h-10" />
+            <div className="flex items-center justify-center mb-8 animate-fade-in">
+              <img src={sitraLogo} alt="Sitra Proposal Studio" className="h-16" />
             </div>
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6 animate-fade-in">
               <Star className="w-4 h-4" />
               A Sitra internal tool for Horizon Europe
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-6 animate-slide-up">
-              <span className="text-primary">grant.eu</span>
-            </h1>
-
-            <p className="text-lg sm:text-xl text-muted-foreground mb-8 animate-slide-up max-w-2xl mx-auto" style={{ animationDelay: '0.1s' }}>
+            <p className="text-lg sm:text-xl text-muted-foreground mb-8 animate-slide-up max-w-2xl mx-auto">
               Sitra's collaborative platform for co-developing Horizon Europe funding proposals
               with consortium partners. Real-time editing, change tracking, and publication-ready exports.
             </p>
@@ -194,7 +190,7 @@ export default function Index() {
             Ready to Start Your Proposal?
           </h2>
           <p className="text-lg opacity-90 mb-8 max-w-2xl mx-auto">
-            Access grant.eu to collaborate with your consortium partners on Horizon Europe proposals.
+            Access Sitra Proposal Studio to collaborate with your consortium partners on Horizon Europe proposals.
           </p>
           <Button
             size="xl"
@@ -213,8 +209,7 @@ export default function Index() {
         <div className="container">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <span className="font-bold text-lg">grant.eu</span>
-              <span className="text-sm text-muted-foreground">by Sitra</span>
+              <span className="font-bold text-lg">Sitra Proposal Studio</span>
             </div>
             <p className="text-sm text-muted-foreground">
               © {new Date().getFullYear()} Sitra — The Finnish Innovation Fund. Internal use only.
