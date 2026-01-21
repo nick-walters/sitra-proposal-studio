@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
+import Auth from "./pages/Auth";
 import { Dashboard } from "./pages/Dashboard";
 import { ProposalEditor } from "./pages/ProposalEditor";
 import { BackendAdmin } from "./pages/admin/BackendAdmin";
@@ -22,6 +23,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/proposal/:id" element={<ProposalEditor />} />
           <Route path="/admin" element={<BackendAdmin />} />
