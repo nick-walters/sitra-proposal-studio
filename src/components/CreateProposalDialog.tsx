@@ -165,15 +165,15 @@ export function CreateProposalDialog({
                 <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-muted/50 transition-colors">
                   <RadioGroupItem value="stage_1" id="stage-1" />
                   <Label htmlFor="stage-1" className="cursor-pointer flex-1">
-                    <span className="font-medium">Stage 1 of 2</span>
-                    <p className="text-xs text-muted-foreground">Two-stage submission process</p>
+                    <span className="font-medium">Pre-Proposal</span>
+                    <p className="text-xs text-muted-foreground">Stage 1 of 2</p>
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-muted/50 transition-colors">
                   <RadioGroupItem value="full" id="stage-full" />
                   <Label htmlFor="stage-full" className="cursor-pointer flex-1">
                     <span className="font-medium">Full Proposal</span>
-                    <p className="text-xs text-muted-foreground">Single-stage submission</p>
+                    <p className="text-xs text-muted-foreground">Single-stage or stage 2 of 2</p>
                   </Label>
                 </div>
               </RadioGroup>
