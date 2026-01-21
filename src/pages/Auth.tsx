@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import sitraLogo from '@/assets/sitra-logo.png';
+import sitraLogo from '@/assets/sitra-proposal-studio-logo.png';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -94,8 +94,7 @@ export default function Auth() {
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <img src={sitraLogo} alt="Sitra" className="h-8 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-foreground">grant.eu</h1>
+            <img src={sitraLogo} alt="Sitra Proposal Studio" className="h-12 mx-auto mb-4" />
             <p className="text-muted-foreground mt-1">
               Reset your password
             </p>
@@ -149,8 +148,7 @@ export default function Auth() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img src={sitraLogo} alt="Sitra" className="h-8 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-foreground">grant.eu</h1>
+          <img src={sitraLogo} alt="Sitra Proposal Studio" className="h-12 mx-auto mb-4" />
           <p className="text-muted-foreground mt-1">
             Sitra's collaborative platform for Horizon Europe proposals
           </p>
