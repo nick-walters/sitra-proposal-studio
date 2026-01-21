@@ -80,12 +80,23 @@ export function usePdfExport() {
         pdf.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15);
       };
 
-      const addSectionHeader = (number: string, title: string) => {
+      const addSectionHeader = (number: string, title: string, sectionTag?: string) => {
         checkPageBreak(20);
         pdf.setFontSize(14);
         pdf.setFont('helvetica', 'bold');
         pdf.setTextColor(...euBlue);
-        pdf.text(`${number} ${title}`, margin, yPosition);
+        
+        const headerText = `${number} ${title}`;
+        pdf.text(headerText, margin, yPosition);
+        
+        // Render section tag on same line, right-aligned, 10pt mid-grey
+        if (sectionTag) {
+          pdf.setFontSize(10);
+          pdf.setFont('helvetica', 'normal');
+          pdf.setTextColor(128, 128, 128); // mid-grey
+          pdf.text(sectionTag, pageWidth - margin, yPosition, { align: 'right' });
+        }
+        
         yPosition += 8;
         pdf.setDrawColor(...euBlue);
         pdf.setLineWidth(0.5);

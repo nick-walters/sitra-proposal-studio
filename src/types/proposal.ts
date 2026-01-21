@@ -157,7 +157,7 @@ export interface ProposalMember {
 
 export interface SectionGuideline {
   id: string;
-  type: 'official' | 'sitra_tip';
+  type: 'official' | 'sitra_tip' | 'evaluation';
   title: string;
   content: string;
   orderIndex: number;
@@ -178,6 +178,7 @@ export interface Section {
   wordLimit?: number;
   pageLimit?: number;
   isPartA?: boolean;
+  sectionTag?: string; // Official HE tag for PDF export (e.g., [#Objectives])
 }
 
 export interface Proposal {
