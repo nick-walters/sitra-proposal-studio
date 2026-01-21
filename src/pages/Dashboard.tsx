@@ -331,7 +331,7 @@ export function Dashboard() {
       return matchesSearch && matchesStatus && matchesType && matchesWp && matchesDest && matchesUrgency;
     });
 
-    // Sort: status priority → urgency (for drafts) → deadline (latest first) → acronym alphabetically
+    // Sort: status priority → urgency (for drafts) → acronym alphabetically
     return filtered.sort((a, b) => {
       // First by status priority
       const statusDiff = getStatusPriority(a.status) - getStatusPriority(b.status);
@@ -343,12 +343,7 @@ export function Dashboard() {
         if (urgencyDiff !== 0) return urgencyDiff;
       }
 
-      // Then by deadline (latest first)
-      const aDeadline = a.deadline?.getTime() || 0;
-      const bDeadline = b.deadline?.getTime() || 0;
-      if (aDeadline !== bDeadline) return bDeadline - aDeadline;
-
-      // Finally alphabetically by acronym
+      // Then alphabetically by acronym
       return a.acronym.localeCompare(b.acronym);
     });
   }, [proposals, searchQuery, statusFilters, typeFilters, wpFilters, destFilters, urgencyFilters]);
