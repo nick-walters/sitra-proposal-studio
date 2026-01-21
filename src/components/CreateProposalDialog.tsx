@@ -129,7 +129,7 @@ export function CreateProposalDialog({
         <form onSubmit={handleSubmit}>
           <div className="grid gap-5 py-4">
             {/* Basic Info */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 items-start">
               <div className="grid gap-2">
                 <Label htmlFor="acronym">Proposal Acronym *</Label>
                 <Input
@@ -139,9 +139,6 @@ export function CreateProposalDialog({
                   onChange={(e) => setAcronym(e.target.value.toUpperCase())}
                   className="font-semibold"
                 />
-                <p className="text-xs text-muted-foreground">
-                  A short, memorable name
-                </p>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="title">Full Title</Label>
