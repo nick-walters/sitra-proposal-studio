@@ -24,18 +24,16 @@ interface Proposal {
   title: string;
 }
 
-// Demo proposals for testing when no database proposals available
+// Demo proposals matching the Dashboard sample proposals
 const DEMO_PROPOSALS: Proposal[] = [
-  { id: 'demo-1', acronym: 'AURORA', title: 'Advanced Urban Renewable Optimisation and Resource Allocation' },
-  { id: 'demo-2', acronym: 'BEACON', title: 'Breakthrough Energy and Carbon Optimisation Networks' },
-  { id: 'demo-3', acronym: 'CATALYST', title: 'Carbon-neutral Advanced Technologies And Logistics for Sustainable Transport' },
-  { id: 'demo-4', acronym: 'DELTA', title: 'Digital European Learning and Training Alliance' },
-  { id: 'demo-5', acronym: 'EVOLVE', title: 'European Value-chain Optimisation for Low-carbon Ventures and Ecosystems' },
-  { id: 'demo-6', acronym: 'FUSION', title: 'Future Systems for Integrated Optimisation Networks' },
-  { id: 'demo-7', acronym: 'GENESIS', title: 'Green Energy Networks for European Sustainable Infrastructure Systems' },
-  { id: 'demo-8', acronym: 'HORIZON', title: 'Holistic Optimisation of Resources for Integrated Zero-emission Networks' },
-  { id: 'demo-9', acronym: 'IMPACT', title: 'Innovative Methods for Policy Analysis and Climate Transition' },
-  { id: 'demo-10', acronym: 'NEXUS', title: 'Network for Excellence in Unified Sustainability' },
+  { id: '1', acronym: 'GreenTech', title: 'Green technologies for sustainable urban development' },
+  { id: '2', acronym: 'HealthAI', title: 'Artificial intelligence solutions for personalized healthcare' },
+  { id: '3', acronym: 'CleanEnergy', title: 'Coordination network for clean energy transition in Europe' },
+  { id: '4', acronym: 'BioSmart', title: 'Smart bioeconomy solutions for circular agriculture' },
+  { id: '5', acronym: 'CyberShield', title: 'Advanced cybersecurity framework for critical infrastructure' },
+  { id: '6', acronym: 'FoodSafe', title: 'Innovative food safety monitoring systems' },
+  { id: '7', acronym: 'QuantumNet', title: 'Quantum communication networks for secure data transmission' },
+  { id: '8', acronym: 'HealthData', title: 'European Health Data Space integration platform' },
 ];
 
 interface ProposalMultiSelectProps {
