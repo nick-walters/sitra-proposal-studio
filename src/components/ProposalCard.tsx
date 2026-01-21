@@ -175,46 +175,58 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
   return (
     <Card className="card-elevated group cursor-pointer hover:border-primary/30" onClick={onClick}>
       <CardContent className="p-3">
-        {/* Top row: Logo + badges on left, action buttons on right */}
-        <div className="flex items-start justify-between gap-2 mb-3">
-          <div className="flex items-start gap-2">
-            {/* Project Logo - sized to align with bottom of badges */}
-            <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
-              {proposal.logoUrl ? (
-                <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
-              ) : topicIcon ? (
-                topicIcon
-              ) : (
-                <FileText className="w-6 h-6 text-primary" />
-              )}
-            </div>
-            <div>
-              {/* Row 1: Status badge */}
-              <div className="flex items-center gap-1 flex-wrap">
-                <span className={`proposal-badge ${statusInfo.className} flex items-center gap-0.5 text-[9px]`}>
-                  <StatusIcon className="w-3 h-3" />
-                  {statusInfo.label}
-                  {statusInfo.days !== undefined && ` (${statusInfo.days}d)`}
-                </span>
-              </div>
-              {/* Row 2: Type, Work Programme, Destination */}
-              <div className="flex items-center gap-1 flex-wrap mt-1">
-                <span className="proposal-badge bg-white text-foreground border border-foreground text-[9px]">{proposal.type}</span>
-                {workProgramme && (
-                  <span className="proposal-badge bg-gray-300 text-gray-700 text-[9px]">
-                    {workProgramme.abbreviation}
-                  </span>
-                )}
-                {destination && (
-                  <span className="proposal-badge bg-gray-200 text-gray-600 text-[9px]">
-                    {destination.abbreviation}
-                  </span>
+        {/* Two-column table-like layout */}
+        <div className="flex gap-2">
+          {/* Left column: Logo, badges, acronym, title */}
+          <div className="flex-1 min-w-0">
+            {/* Logo and badges row */}
+            <div className="flex items-start gap-2 mb-1">
+              {/* Project Logo */}
+              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                {proposal.logoUrl ? (
+                  <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
+                ) : topicIcon ? (
+                  topicIcon
+                ) : (
+                  <FileText className="w-6 h-6 text-primary" />
                 )}
               </div>
+              <div>
+                {/* Row 1: Status badge */}
+                <div className="flex items-center gap-1 flex-wrap">
+                  <span className={`proposal-badge ${statusInfo.className} flex items-center gap-0.5 text-[9px]`}>
+                    <StatusIcon className="w-3 h-3" />
+                    {statusInfo.label}
+                    {statusInfo.days !== undefined && ` (${statusInfo.days}d)`}
+                  </span>
+                </div>
+                {/* Row 2: Type, Work Programme, Destination */}
+                <div className="flex items-center gap-1 flex-wrap mt-1">
+                  <span className="proposal-badge bg-white text-foreground border border-foreground text-[9px]">{proposal.type}</span>
+                  {workProgramme && (
+                    <span className="proposal-badge bg-gray-300 text-gray-700 text-[9px]">
+                      {workProgramme.abbreviation}
+                    </span>
+                  )}
+                  {destination && (
+                    <span className="proposal-badge bg-gray-200 text-gray-600 text-[9px]">
+                      {destination.abbreviation}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
+
+            {/* Acronym and title */}
+            <h3 className="proposal-title text-sm font-semibold group-hover:text-primary transition-colors">
+              {proposal.acronym}
+            </h3>
+            <p className="text-muted-foreground text-[11px] line-clamp-2">
+              {proposal.title}
+            </p>
           </div>
-          
-          {/* Action buttons */}
+
+          {/* Right column: Action buttons and dates */}
           <div className="flex flex-col gap-1 flex-shrink-0">
             {proposal.topicUrl && (
               <Button 
@@ -255,14 +267,6 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
             </div>
           </div>
         </div>
-
-        {/* Acronym and title below logo */}
-        <h3 className="proposal-title text-sm font-semibold group-hover:text-primary transition-colors">
-          {proposal.acronym}
-        </h3>
-        <p className="text-muted-foreground text-[11px] line-clamp-2">
-          {proposal.title}
-        </p>
       </CardContent>
     </Card>
   );
