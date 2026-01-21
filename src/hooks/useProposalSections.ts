@@ -111,14 +111,71 @@ export function useProposalSections(templateTypeId: string | null) {
   const [templateSections, setTemplateSections] = useState<Section[]>([]);
   const [hasTemplateSections, setHasTemplateSections] = useState(false);
 
-  const fetchSections = useCallback(async () => {
-    if (!templateTypeId) {
-      setTemplateSections([]);
-      setHasTemplateSections(false);
-      setLoading(false);
-      return;
-    }
+  // Use useEffect directly with templateTypeId as dependency for proper reactivity
+  useEffect(() => {
+    const fetchSections = async () => {
+      if (!templateTypeId) {
+        setTemplateSections([]);
+        setHasTemplateSections(false);
+        setLoading(false);
+        return;
+      }
 
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('template_sections')
+          .select(`
+            *,
+            guidelines:section_guidelines(*),
+            form_fields:template_form_fields(*)
+          `)
+          .eq('template_type_id', templateTypeId)
+          .eq('is_active', true)
+          .order('order_index');
+
+        if (error) {
+          console.error('Error fetching template sections:', error);
+          setTemplateSections([]);
+          setHasTemplateSections(false);
+        } else if (data && data.length > 0) {
+          const sections = buildSectionHierarchy(data as TemplateSectionData[]);
+          setTemplateSections(sections);
+          setHasTemplateSections(true);
+        } else {
+          setTemplateSections([]);
+          setHasTemplateSections(false);
+        }
+      } catch (error) {
+        console.error('Error fetching template sections:', error);
+        setTemplateSections([]);
+        setHasTemplateSections(false);
+      }
+      setLoading(false);
+    };
+
+    fetchSections();
+  }, [templateTypeId]);
+
+  // Return either template sections or fallback to hardcoded sections
+  const allSections = useMemo(() => {
+    if (hasTemplateSections && templateSections.length > 0) {
+      // Separate Part A and Part B sections
+      const partASections = templateSections.filter(s => s.isPartA);
+      const partBSections = templateSections.filter(s => !s.isPartA);
+      
+      // Always include figures section
+      return [...partASections, ...partBSections, FIGURES_SECTION];
+    }
+    
+    // Fallback to hardcoded sections
+    return [...PART_A_SECTIONS, ...HORIZON_EUROPE_SECTIONS, FIGURES_SECTION];
+  }, [templateSections, hasTemplateSections]);
+
+  // Create a refetch function that can be called externally
+  const refetch = useCallback(async () => {
+    if (!templateTypeId) return;
+    
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -152,30 +209,11 @@ export function useProposalSections(templateTypeId: string | null) {
     setLoading(false);
   }, [templateTypeId]);
 
-  useEffect(() => {
-    fetchSections();
-  }, [fetchSections]);
-
-  // Return either template sections or fallback to hardcoded sections
-  const allSections = useMemo(() => {
-    if (hasTemplateSections && templateSections.length > 0) {
-      // Separate Part A and Part B sections
-      const partASections = templateSections.filter(s => s.isPartA);
-      const partBSections = templateSections.filter(s => !s.isPartA);
-      
-      // Always include figures section
-      return [...partASections, ...partBSections, FIGURES_SECTION];
-    }
-    
-    // Fallback to hardcoded sections
-    return [...PART_A_SECTIONS, ...HORIZON_EUROPE_SECTIONS, FIGURES_SECTION];
-  }, [templateSections, hasTemplateSections]);
-
   return {
     loading,
     sections: allSections,
     hasTemplateSections,
     templateSections,
-    refetch: fetchSections,
+    refetch,
   };
 }
