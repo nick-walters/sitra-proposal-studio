@@ -148,93 +148,105 @@ export function ProposalKanbanView({ proposals, onProposalClick, topicIcons }: P
         onClick={() => onProposalClick(proposal)}
       >
         <CardContent className="p-3">
-          {/* Row 1: Type, Work Programme, Destination badges */}
-          <div className="flex flex-wrap gap-1 mb-2">
-            <span className="proposal-badge bg-white text-foreground border border-foreground text-[9px]">
-              {proposal.type}
-            </span>
-            {workProgramme && (
-              <span className="proposal-badge bg-gray-300 text-gray-700 text-[9px]">
-                {workProgramme.abbreviation}
-              </span>
-            )}
-            {destination && (
-              <span className="proposal-badge bg-gray-200 text-gray-600 text-[9px]">
-                {destination.abbreviation}
-              </span>
-            )}
-          </div>
-
-          {/* Row 2: Logo, acronym/title, and action buttons */}
-          <div className="flex items-start gap-2">
-            <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
-              {proposal.logoUrl ? (
-                <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
-              ) : topicIcon ? (
-                <div className="scale-50">{topicIcon}</div>
-              ) : (
-                <FileText className="w-4 h-4 text-primary" />
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="font-semibold text-sm">{proposal.acronym}</h4>
-              <p className="text-xs text-muted-foreground truncate">{proposal.title}</p>
-            </div>
-            
-            {/* Action buttons */}
-            <div className="flex flex-col gap-1 flex-shrink-0">
-              {proposal.topicUrl && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-5 px-1.5 text-[9px] gap-0.5"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    window.open(proposal.topicUrl, '_blank');
-                  }}
-                >
-                  Topic
-                  <ExternalLink className="w-2 h-2" />
-                </Button>
-              )}
-              <Button 
-                size="sm" 
-                className="h-5 px-2 text-[9px] bg-foreground text-background hover:bg-foreground/90"
-              >
-                {isDraft ? 'Edit' : 'View'}
-                <ArrowRight className="w-2 h-2 ml-0.5" />
-              </Button>
-              {/* Dates below buttons */}
-              <div className="flex flex-col gap-0.5 mt-0.5 text-[9px] text-muted-foreground text-right">
-                {proposal.deadline && (
-                  <div className="flex items-center gap-0.5 justify-end">
-                    <Calendar className="w-2.5 h-2.5 text-yellow-600" />
-                    <span className="font-bold">Deadline:</span> {format(proposal.deadline, 'dd/MM/yyyy')}
-                  </div>
-                )}
-                {isDecided && proposal.decisionDate && (
-                  <div className="flex items-center gap-0.5 justify-end">
-                    {proposal.status === 'funded' ? (
-                      <CheckCircle2 className="w-2.5 h-2.5 text-green-600" />
-                    ) : (
-                      <XCircle className="w-2.5 h-2.5 text-red-600" />
+          {/* Table layout: Left column (badges + logo/title), Right column (buttons + dates) */}
+          <table className="w-full border-collapse">
+            <tbody>
+              <tr className="align-top">
+                {/* Left column */}
+                <td className="pr-2">
+                  {/* Row 1: Type, Work Programme, Destination badges */}
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    <span className="proposal-badge bg-white text-foreground border border-foreground text-[9px]">
+                      {proposal.type}
+                    </span>
+                    {workProgramme && (
+                      <span className="proposal-badge bg-gray-300 text-gray-700 text-[9px]">
+                        {workProgramme.abbreviation}
+                      </span>
                     )}
-                    <span className="font-bold">Decision:</span> {format(proposal.decisionDate, 'dd/MM/yyyy')}
+                    {destination && (
+                      <span className="proposal-badge bg-gray-200 text-gray-600 text-[9px]">
+                        {destination.abbreviation}
+                      </span>
+                    )}
                   </div>
-                )}
-                {/* For drafts and submitted proposals with deadline, show estimated decision date */}
-                {(isDraft || proposal.status === 'submitted') && proposal.deadline && (() => {
-                  const estimatedDate = getEstimatedDecisionDate(proposal);
-                  return estimatedDate ? (
-                    <div className="flex items-center gap-0.5 justify-end">
-                      <Clock className="w-2.5 h-2.5 text-yellow-600" />
-                      <span className="font-bold">Decision:</span> ~{format(estimatedDate, 'dd/MM/yyyy')}
+
+                  {/* Row 2: Logo and acronym/title */}
+                  <div className="flex items-start gap-2">
+                    <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {proposal.logoUrl ? (
+                        <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
+                      ) : topicIcon ? (
+                        <div className="scale-50">{topicIcon}</div>
+                      ) : (
+                        <FileText className="w-4 h-4 text-primary" />
+                      )}
                     </div>
-                  ) : null;
-                })()}
-              </div>
-            </div>
-          </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-sm">{proposal.acronym}</h4>
+                      <p className="text-xs text-muted-foreground truncate">{proposal.title}</p>
+                    </div>
+                  </div>
+                </td>
+
+                {/* Right column: Action buttons and dates */}
+                <td className="text-right whitespace-nowrap">
+                  <div className="flex flex-col gap-1 items-end">
+                    {proposal.topicUrl && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-5 px-1.5 text-[9px] gap-0.5"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(proposal.topicUrl, '_blank');
+                        }}
+                      >
+                        Topic
+                        <ExternalLink className="w-2 h-2" />
+                      </Button>
+                    )}
+                    <Button 
+                      size="sm" 
+                      className="h-5 px-2 text-[9px] bg-foreground text-background hover:bg-foreground/90"
+                    >
+                      {isDraft ? 'Edit' : 'View'}
+                      <ArrowRight className="w-2 h-2 ml-0.5" />
+                    </Button>
+                    {/* Dates below buttons */}
+                    <div className="flex flex-col gap-0.5 mt-0.5 text-[9px] text-muted-foreground">
+                      {proposal.deadline && (
+                        <div className="flex items-center gap-0.5 justify-end">
+                          <Calendar className="w-2.5 h-2.5 text-yellow-600" />
+                          <span className="font-bold">Deadline:</span> {format(proposal.deadline, 'dd/MM/yyyy')}
+                        </div>
+                      )}
+                      {isDecided && proposal.decisionDate && (
+                        <div className="flex items-center gap-0.5 justify-end">
+                          {proposal.status === 'funded' ? (
+                            <CheckCircle2 className="w-2.5 h-2.5 text-green-600" />
+                          ) : (
+                            <XCircle className="w-2.5 h-2.5 text-red-600" />
+                          )}
+                          <span className="font-bold">Decision:</span> {format(proposal.decisionDate, 'dd/MM/yyyy')}
+                        </div>
+                      )}
+                      {/* For drafts and submitted proposals with deadline, show estimated decision date */}
+                      {(isDraft || proposal.status === 'submitted') && proposal.deadline && (() => {
+                        const estimatedDate = getEstimatedDecisionDate(proposal);
+                        return estimatedDate ? (
+                          <div className="flex items-center gap-0.5 justify-end">
+                            <Clock className="w-2.5 h-2.5 text-yellow-600" />
+                            <span className="font-bold">Decision:</span> ~{format(estimatedDate, 'dd/MM/yyyy')}
+                          </div>
+                        ) : null;
+                      })()}
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </CardContent>
       </Card>
     );
