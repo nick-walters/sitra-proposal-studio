@@ -102,8 +102,10 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
           
           {/* Info */}
           <div className="flex-1 min-w-0">
-            {/* All badges, acronym, and title - wrap to second line on narrow screens */}
+            {/* Acronym, title, then badges - wrap to second line on narrow screens */}
             <div className="flex items-baseline gap-1 flex-wrap">
+              <span className="font-semibold text-sm flex-shrink-0">{proposal.acronym}</span>
+              <span className="text-xs text-muted-foreground truncate">{proposal.title}</span>
               <span className={`proposal-badge ${statusInfo.className} flex items-center gap-0.5 text-[9px]`}>
                 <StatusIcon className="w-2.5 h-2.5" />
                 {statusInfo.label}
@@ -120,8 +122,6 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
                   {destination.abbreviation}
                 </span>
               )}
-              <span className="font-semibold text-sm flex-shrink-0">{proposal.acronym}</span>
-              <span className="text-xs text-muted-foreground truncate">{proposal.title}</span>
             </div>
           </div>
 
@@ -175,10 +175,10 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
     <Card className="card-elevated group cursor-pointer hover:border-primary/30" onClick={onClick}>
       <CardContent className="p-3">
         {/* Top row: Logo + badges on left, action buttons on right */}
-        <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="flex items-start justify-between gap-2 mb-3">
           <div className="flex items-start gap-2">
-            {/* Project Logo - sized to match two rows of badges */}
-            <div className="w-11 h-11 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+            {/* Project Logo - sized to align with bottom of badges */}
+            <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
               {proposal.logoUrl ? (
                 <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
               ) : topicIcon ? (
@@ -197,7 +197,7 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
                 </span>
               </div>
               {/* Row 2: Type, Work Programme, Destination */}
-              <div className="flex items-center gap-1 flex-wrap mt-0.5">
+              <div className="flex items-center gap-1 flex-wrap mt-1">
                 <span className="proposal-badge bg-white text-foreground border border-foreground text-[9px]">{proposal.type}</span>
                 {workProgramme && (
                   <span className="proposal-badge bg-gray-300 text-gray-700 text-[9px]">
