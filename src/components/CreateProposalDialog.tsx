@@ -26,7 +26,7 @@ import {
   SUBMISSION_STAGE_LABELS
 } from "@/types/proposal";
 import { useState, useMemo } from "react";
-import { FileText, Beaker, Lightbulb, Users, Layers, Calculator, Rocket } from "lucide-react";
+import { FileText, Beaker, Lightbulb, Users, Layers, Calculator, Rocket, ExternalLink } from "lucide-react";
 
 interface CreateProposalDialogProps {
   open: boolean;
@@ -39,6 +39,7 @@ interface CreateProposalDialogProps {
     submissionStage: SubmissionStage;
     workProgramme?: string;
     destination?: string;
+    topicUrl?: string;
   }) => void;
 }
 
@@ -75,6 +76,7 @@ export function CreateProposalDialog({
   const [submissionStage, setSubmissionStage] = useState<SubmissionStage>('full');
   const [workProgramme, setWorkProgramme] = useState<string>('');
   const [destination, setDestination] = useState<string>('');
+  const [topicUrl, setTopicUrl] = useState<string>('');
 
   // Get destinations filtered by selected work programme
   const availableDestinations = useMemo(() => {
@@ -98,6 +100,7 @@ export function CreateProposalDialog({
         submissionStage,
         workProgramme: workProgramme || undefined,
         destination: destination || undefined,
+        topicUrl: topicUrl || undefined,
       });
       // Reset form
       setAcronym('');
@@ -107,6 +110,7 @@ export function CreateProposalDialog({
       setSubmissionStage('full');
       setWorkProgramme('');
       setDestination('');
+      setTopicUrl('');
       onOpenChange(false);
     }
   };
@@ -268,6 +272,24 @@ export function CreateProposalDialog({
                 </Select>
               </div>
             )}
+
+            {/* Topic URL */}
+            <div className="grid gap-2">
+              <Label htmlFor="topicUrl" className="flex items-center gap-2">
+                <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                Topic URL
+              </Label>
+              <Input
+                id="topicUrl"
+                type="url"
+                placeholder="https://ec.europa.eu/info/funding-tenders/opportunities/portal/..."
+                value={topicUrl}
+                onChange={(e) => setTopicUrl(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Link to the official call page on the Funding & Tenders Portal
+              </p>
+            </div>
           </div>
 
           <DialogFooter>
