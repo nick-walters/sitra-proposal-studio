@@ -3,8 +3,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { UserProfileDialog } from "./UserProfileDialog";
+import { SettingsDialog } from "./SettingsDialog";
 import { supabase } from "@/integrations/supabase/client";
-import { User, LogOut, ChevronDown } from "lucide-react";
+import { User, LogOut, ChevronDown, Settings } from "lucide-react";
 
 interface UserAvatarMenuProps {
   userId: string;
@@ -22,6 +23,7 @@ interface ProfileData {
 export function UserAvatarMenu({ userId, email, onLogout }: UserAvatarMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [profile, setProfile] = useState<ProfileData | null>(null);
 
   useEffect(() => {
@@ -90,7 +92,19 @@ export function UserAvatarMenu({ userId, email, onLogout }: UserAvatarMenuProps)
               }}
             >
               <User className="w-4 h-4" />
-              View Profile
+              Edit Profile
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="w-full justify-start gap-2 font-normal"
+              onClick={() => {
+                setIsOpen(false);
+                setIsSettingsOpen(true);
+              }}
+            >
+              <Settings className="w-4 h-4" />
+              Settings
             </Button>
             <Button 
               variant="ghost" 
@@ -113,6 +127,11 @@ export function UserAvatarMenu({ userId, email, onLogout }: UserAvatarMenuProps)
         onOpenChange={setIsProfileOpen}
         userId={userId}
         editable={true}
+      />
+      
+      <SettingsDialog
+        open={isSettingsOpen}
+        onOpenChange={setIsSettingsOpen}
       />
     </>
   );
