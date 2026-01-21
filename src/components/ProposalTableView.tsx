@@ -220,7 +220,10 @@ export function ProposalTableView({ proposals, onProposalClick, topicIcons }: Pr
                     ) : null}
                   </div>
                 </TableCell>
-                <TableCell className="font-semibold">{proposal.acronym}</TableCell>
+                <TableCell className="font-semibold">
+                  {proposal.acronym}
+                  {proposal.submissionStage === 'stage_1' && <span className="font-normal text-muted-foreground"> (Stage 1 of 2)</span>}
+                </TableCell>
                 <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
                   {proposal.title}
                 </TableCell>
