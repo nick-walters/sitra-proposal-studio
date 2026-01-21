@@ -31,6 +31,7 @@ export function ProfilePhotoUpload({
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
@@ -61,10 +62,17 @@ export function ProfilePhotoUpload({
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      setPreviewImage(event.target?.result as string);
-      setZoom([1]);
-      setPosition({ x: 0, y: 0 });
-      setCropDialogOpen(true);
+      const dataUrl = event.target?.result as string;
+      // Pre-load image to get dimensions
+      const img = new Image();
+      img.onload = () => {
+        setImageDimensions({ width: img.width, height: img.height });
+        setPreviewImage(dataUrl);
+        setZoom([1]);
+        setPosition({ x: 0, y: 0 });
+        setCropDialogOpen(true);
+      };
+      img.src = dataUrl;
     };
     reader.readAsDataURL(file);
   };
@@ -288,26 +296,31 @@ export function ProfilePhotoUpload({
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
             >
-            {previewImage && (
-                <img
-                  ref={(el) => { imageRef.current = el; }}
-                  src={previewImage}
-                  alt="Preview"
-                  className="absolute select-none pointer-events-none"
-                  style={{
-                    left: '50%',
-                    top: '50%',
-                    transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px)) scale(${zoom[0]})`,
-                    transformOrigin: 'center',
-                    maxWidth: 'none',
-                    width: 'auto',
-                    height: 'auto',
-                    minWidth: '200px',
-                    minHeight: '200px',
-                    objectFit: 'cover',
-                  }}
-                  draggable={false}
-                />
+            {previewImage && imageDimensions.width > 0 && (
+                (() => {
+                  // Calculate base scale to fit the smaller dimension to the crop circle
+                  const cropSize = 200;
+                  const baseScale = cropSize / Math.min(imageDimensions.width, imageDimensions.height);
+                  const effectiveScale = baseScale * zoom[0];
+                  const scaledWidth = imageDimensions.width * effectiveScale;
+                  const scaledHeight = imageDimensions.height * effectiveScale;
+                  
+                  return (
+                    <img
+                      ref={(el) => { imageRef.current = el; }}
+                      src={previewImage}
+                      alt="Preview"
+                      className="absolute select-none pointer-events-none"
+                      style={{
+                        width: `${scaledWidth}px`,
+                        height: `${scaledHeight}px`,
+                        left: `${(cropSize - scaledWidth) / 2 + position.x}px`,
+                        top: `${(cropSize - scaledHeight) / 2 + position.y}px`,
+                      }}
+                      draggable={false}
+                    />
+                  );
+                })()
               )}
             </div>
 
