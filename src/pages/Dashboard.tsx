@@ -68,8 +68,8 @@ const sampleProposals: Proposal[] = [
     status: 'submitted',
     workProgramme: 'CL1',
     destination: 'CL1-TOOL',
-    deadline: new Date('2024-03-01'),
-    submittedAt: new Date('2024-02-28'),
+    deadline: new Date('2025-09-15'),
+    submittedAt: new Date('2025-09-14'),
     topicUrl: 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-hlth-2024-tool-11-01',
     sections: HORIZON_EUROPE_SECTIONS,
     members: [
@@ -170,7 +170,7 @@ const sampleProposals: Proposal[] = [
     status: 'draft',
     workProgramme: 'CL4',
     destination: 'CL4-DIGITAL-EMERGING',
-    deadline: new Date(Date.now() + 150 * 24 * 60 * 60 * 1000), // 150 days - On Track
+    deadline: new Date('2026-10-15'), // On Track - autumn 2026
     topicUrl: 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl4-2024-digital-emerging-01-01',
     sections: HORIZON_EUROPE_SECTIONS,
     members: [
@@ -190,8 +190,8 @@ const sampleProposals: Proposal[] = [
     status: 'submitted',
     workProgramme: 'CL1',
     destination: 'CL1-CARE',
-    deadline: new Date('2024-11-15'),
-    submittedAt: new Date('2024-11-14'),
+    deadline: new Date('2025-10-20'),
+    submittedAt: new Date('2025-10-19'),
     topicUrl: 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-hlth-2024-care-06-01',
     sections: HORIZON_EUROPE_SECTIONS,
     members: [
