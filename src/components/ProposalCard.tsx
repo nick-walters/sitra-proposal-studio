@@ -161,7 +161,7 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
               const estimatedDate = getEstimatedDecisionDate(proposal);
               return estimatedDate ? (
                 <div className="flex items-center gap-0.5">
-                  <Clock className="w-2.5 h-2.5 text-muted-foreground" />
+                  <Clock className="w-2.5 h-2.5 text-yellow-600" />
                   <span className="font-bold">Decision:</span> ~{format(estimatedDate, 'dd/MM/yyyy')}
                 </div>
               ) : null;
@@ -292,7 +292,7 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
                 const estimatedDate = getEstimatedDecisionDate(proposal);
                 return estimatedDate ? (
                   <div className="flex items-center gap-0.5 justify-end">
-                    <Clock className="w-2.5 h-2.5 text-muted-foreground" />
+                    <Clock className="w-2.5 h-2.5 text-yellow-600" />
                     <span className="font-bold">Decision:</span> ~{format(estimatedDate, 'dd/MM/yyyy')}
                   </div>
                 ) : null;
