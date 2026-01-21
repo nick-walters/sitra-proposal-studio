@@ -216,10 +216,9 @@ export function ProposalTableView({ proposals, onProposalClick, topicIcons }: Pr
                   {proposal.title}
                 </TableCell>
                 <TableCell>
-                  <span className={`proposal-badge ${statusInfo.className} flex items-center gap-1 w-fit text-[10px]`}>
-                    <StatusIcon className="w-3 h-3" />
-                    {statusInfo.label}
-                    {statusInfo.days !== undefined && ` (${statusInfo.days}d)`}
+                  <span className={`proposal-badge ${statusInfo.className} flex items-center gap-1 w-fit text-[10px] whitespace-nowrap`}>
+                    <StatusIcon className="w-3 h-3 flex-shrink-0" />
+                    <span>{statusInfo.label}{statusInfo.days !== undefined && ` (${statusInfo.days}d)`}</span>
                   </span>
                 </TableCell>
                 <TableCell>
