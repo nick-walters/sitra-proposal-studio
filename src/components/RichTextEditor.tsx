@@ -17,8 +17,6 @@ import {
   AlignCenter,
   AlignRight,
   AlignJustify,
-  Heading1,
-  Heading2,
   Heading3,
   ImageIcon,
   Link as LinkIcon,
@@ -152,20 +150,8 @@ export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootn
 
         <div className="flex items-center gap-0.5">
           <ToolbarButton 
-            icon={<Heading1 className="w-4 h-4" />} 
-            tooltip="Heading 1"
-            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-            active={editor.isActive('heading', { level: 1 })}
-          />
-          <ToolbarButton 
-            icon={<Heading2 className="w-4 h-4" />} 
-            tooltip="Heading 2"
-            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-            active={editor.isActive('heading', { level: 2 })}
-          />
-          <ToolbarButton 
             icon={<Heading3 className="w-4 h-4" />} 
-            tooltip="Inline Sub-header (H3 - Bold & Underlined)"
+            tooltip="Subheading (Bold & Underlined)"
             onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
             active={editor.isActive('heading', { level: 3 })}
           />
