@@ -101,12 +101,14 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
           </div>
           
           {/* Info */}
-          <div className="flex-1 min-w-0">
-            {/* Acronym on top */}
-            <div className="font-semibold text-sm">{proposal.acronym}</div>
-            {/* Title and badges on same row */}
+          <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center gap-1">
+            {/* Acronym and title - fixed width column */}
+            <div className="sm:w-64 md:w-80 lg:w-96 flex-shrink-0">
+              <div className="font-semibold text-sm">{proposal.acronym}</div>
+              <div className="text-xs text-muted-foreground truncate">{proposal.title}</div>
+            </div>
+            {/* Badges - start from consistent alignment */}
             <div className="flex items-center gap-1 flex-wrap">
-              <span className="text-xs text-muted-foreground truncate flex-shrink min-w-[80px] max-w-[50vw]">{proposal.title}</span>
               <span className={`proposal-badge ${statusInfo.className} flex items-center gap-0.5 text-[9px]`}>
                 <StatusIcon className="w-2.5 h-2.5" />
                 {statusInfo.label}
