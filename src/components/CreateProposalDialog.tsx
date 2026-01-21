@@ -129,26 +129,26 @@ export function CreateProposalDialog({
         <form onSubmit={handleSubmit}>
           <div className="grid gap-5 py-4">
             {/* Basic Info */}
-            <div className="grid grid-cols-2 gap-4 items-start">
-              <div className="grid gap-2">
-                <Label htmlFor="acronym">Proposal Acronym *</Label>
-                <Input
-                  id="acronym"
-                  placeholder="e.g. INNOVATE"
-                  value={acronym}
-                  onChange={(e) => setAcronym(e.target.value.toUpperCase())}
-                  className="font-semibold"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="title">Full Title</Label>
-                <Input
-                  id="title"
-                  placeholder="Enter the full proposal title (optional)"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
-              </div>
+            <div className="grid gap-2">
+              <Label htmlFor="acronym">Proposal Acronym *</Label>
+              <Input
+                id="acronym"
+                placeholder="e.g. INNOVATE"
+                value={acronym}
+                onChange={(e) => setAcronym(e.target.value.toUpperCase())}
+                className="font-semibold w-48"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="title">Full Title</Label>
+              <textarea
+                id="title"
+                placeholder="Enter the full proposal title (optional)"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                rows={3}
+                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+              />
             </div>
 
             {/* Submission Stage */}
