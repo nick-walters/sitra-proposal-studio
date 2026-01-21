@@ -155,7 +155,12 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
               </div>
             )}
             {isDecided && proposal.decisionDate && (
-              <div>
+              <div className="flex items-center gap-0.5">
+                {proposal.status === 'funded' ? (
+                  <CheckCircle2 className="w-2.5 h-2.5 text-green-600" />
+                ) : (
+                  <XCircle className="w-2.5 h-2.5 text-red-600" />
+                )}
                 <span className="font-bold">Decision:</span> {format(proposal.decisionDate, 'dd/MM/yyyy')}
               </div>
             )}
@@ -242,7 +247,12 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
                 </div>
               )}
               {isDecided && proposal.decisionDate && (
-                <div>
+                <div className="flex items-center gap-0.5 justify-end">
+                  {proposal.status === 'funded' ? (
+                    <CheckCircle2 className="w-2.5 h-2.5 text-green-600" />
+                  ) : (
+                    <XCircle className="w-2.5 h-2.5 text-red-600" />
+                  )}
                   <span className="font-bold">Decision:</span> {format(proposal.decisionDate, 'dd/MM/yyyy')}
                 </div>
               )}
