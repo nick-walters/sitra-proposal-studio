@@ -1,4 +1,3 @@
-import { Header } from "@/components/Header";
 import { SectionNavigator } from "@/components/SectionNavigator";
 import { DocumentEditor } from "@/components/DocumentEditor";
 import { VersionHistoryDialog } from "@/components/VersionHistoryDialog";
@@ -9,11 +8,13 @@ import { EthicsForm } from "@/components/EthicsForm";
 import { DeclarationsForm } from "@/components/DeclarationsForm";
 import { WorkPackageManager } from "@/components/WorkPackageManager";
 import { FigureManager } from "@/components/FigureManager";
+import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DuplicateProposalDialog } from "@/components/DuplicateProposalDialog";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Section, HORIZON_EUROPE_SECTIONS, PART_A_SECTIONS, FIGURES_SECTION, BudgetType, ProposalStatus } from "@/types/proposal";
 import { useState } from "react";
 import { format } from "date-fns";
@@ -344,15 +345,16 @@ export function ProposalEditor() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Top Bar */}
-      <header className="h-14 border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="h-full px-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <Separator orientation="vertical" className="h-6" />
+    <SidebarProvider>
+      <AppSidebar proposalName={proposal?.acronym} proposalId={id} />
+      <SidebarInset>
+        <div className="min-h-screen bg-background flex flex-col">
+          {/* Top Bar */}
+          <header className="h-14 border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
+            <div className="h-full px-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <SidebarTrigger />
+                <Separator orientation="vertical" className="h-6" />
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="proposal-badge-ria">
                 {proposal?.type || 'RIA'}
@@ -561,18 +563,20 @@ export function ProposalEditor() {
       />
 
       {/* Duplicate Proposal Dialog */}
-      {proposal && (
-        <DuplicateProposalDialog
-          isOpen={isDuplicateOpen}
-          onClose={() => setIsDuplicateOpen(false)}
-          proposal={{
-            ...proposal,
-            members: [],
-            sections: allSections,
-          }}
-          onDuplicate={handleDuplicateProposal}
-        />
-      )}
-    </div>
+          {proposal && (
+            <DuplicateProposalDialog
+              isOpen={isDuplicateOpen}
+              onClose={() => setIsDuplicateOpen(false)}
+              proposal={{
+                ...proposal,
+                members: [],
+                sections: allSections,
+              }}
+              onDuplicate={handleDuplicateProposal}
+            />
+          )}
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
