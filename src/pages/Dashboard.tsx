@@ -9,10 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Proposal, ProposalType, ProposalStatus, BudgetType, SubmissionStage, HORIZON_EUROPE_SECTIONS, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS, getDestinationsForWorkProgramme } from "@/types/proposal";
 import { Plus, Search, LayoutGrid, List, X, Filter, Leaf, Brain, Zap, Wheat, Shield, Apple, Atom, HeartPulse, Table2, Columns3, AlertTriangle, Clock, CheckCircle2, Send, PartyPopper, XCircle } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfileCompletion } from "@/hooks/useProfileCompletion";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 import { differenceInDays } from "date-fns";
 
@@ -227,11 +229,63 @@ export function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isComplete: isProfileComplete, isLoading: isProfileLoading, checkProfile } = useProfileCompletion();
-  const [proposals, setProposals] = useState<Proposal[]>(sampleProposals);
+  const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [isLoadingProposals, setIsLoadingProposals] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'table' | 'kanban'>('grid');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  // Fetch proposals from database
+  const fetchProposals = useCallback(async () => {
+    if (!user) return;
+    
+    setIsLoadingProposals(true);
+    try {
+      const { data, error } = await supabase
+        .from('proposals')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Transform database rows to Proposal type
+      const transformedProposals: Proposal[] = (data || []).map(row => ({
+        id: row.id,
+        acronym: row.acronym,
+        title: row.title,
+        type: row.type as ProposalType,
+        budgetType: row.budget_type as BudgetType,
+        submissionStage: row.submission_stage as SubmissionStage,
+        status: row.status as ProposalStatus,
+        workProgramme: row.work_programme || undefined,
+        destination: row.destination || undefined,
+        topicUrl: row.topic_url || undefined,
+        topicId: row.topic_id || undefined,
+        logoUrl: row.logo_url || undefined,
+        totalBudget: row.total_budget || undefined,
+        deadline: row.deadline ? new Date(row.deadline) : undefined,
+        submittedAt: row.submitted_at ? new Date(row.submitted_at) : undefined,
+        decisionDate: row.decision_date ? new Date(row.decision_date) : undefined,
+        createdAt: new Date(row.created_at),
+        updatedAt: new Date(row.updated_at),
+        description: row.description || undefined,
+        sections: HORIZON_EUROPE_SECTIONS,
+        members: [],
+      }));
+
+      setProposals(transformedProposals);
+    } catch (error) {
+      console.error('Error fetching proposals:', error);
+      toast.error('Failed to load proposals');
+    } finally {
+      setIsLoadingProposals(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchProposals();
+  }, [fetchProposals]);
   
   // Multi-select filter states
   // Combined status filter: 'draft_critical', 'draft_due_soon', 'draft_on_track', 'submitted', 'funded', 'not_funded'
@@ -393,7 +447,7 @@ export function Dashboard() {
     setSearchQuery('');
   };
 
-  const handleCreateProposal = (data: { 
+  const handleCreateProposal = async (data: { 
     acronym: string; 
     title: string; 
     type: ProposalType;
@@ -404,26 +458,55 @@ export function Dashboard() {
     topicUrl?: string;
     deadline?: Date;
   }) => {
-    const newProposal: Proposal = {
-      id: String(proposals.length + 1),
-      acronym: data.acronym,
-      title: data.title,
-      type: data.type,
-      workProgramme: data.workProgramme,
-      destination: data.destination,
-      budgetType: data.budgetType,
-      submissionStage: data.submissionStage,
-      topicUrl: data.topicUrl,
-      deadline: data.deadline,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      status: 'draft',
-      sections: HORIZON_EUROPE_SECTIONS,
-      members: [
-        { user: { id: '1', name: 'John Doe', email: 'john@example.com' }, role: 'admin' },
-      ],
-    };
-    setProposals([newProposal, ...proposals]);
+    if (!user) {
+      toast.error('You must be logged in to create a proposal');
+      return;
+    }
+
+    try {
+      // Insert proposal into database
+      const { data: newProposalData, error: proposalError } = await supabase
+        .from('proposals')
+        .insert({
+          acronym: data.acronym,
+          title: data.title || data.acronym, // Use acronym as fallback if title is empty
+          type: data.type,
+          budget_type: data.budgetType,
+          submission_stage: data.submissionStage,
+          work_programme: data.workProgramme || null,
+          destination: data.destination || null,
+          topic_url: data.topicUrl || null,
+          deadline: data.deadline?.toISOString() || null,
+          created_by: user.id,
+          status: 'draft',
+        })
+        .select()
+        .single();
+
+      if (proposalError) throw proposalError;
+
+      // Create user_role entry for the creator as admin
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: user.id,
+          proposal_id: newProposalData.id,
+          role: 'admin',
+        });
+
+      if (roleError) throw roleError;
+
+      toast.success('Proposal created successfully');
+      
+      // Refresh proposals list
+      await fetchProposals();
+      
+      // Navigate to the new proposal
+      navigate(`/proposal/${newProposalData.id}`);
+    } catch (error: any) {
+      console.error('Error creating proposal:', error);
+      toast.error(error.message || 'Failed to create proposal');
+    }
   };
 
   return (
