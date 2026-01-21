@@ -113,10 +113,10 @@ export function UserProfileDialog({ open, onOpenChange, userId, editable = false
 
   const getInitials = () => {
     if (formData.first_name || formData.last_name) {
-      return `${formData.first_name?.[0] || ''}${formData.last_name?.[0] || ''}`.toUpperCase();
+      return `${formData.first_name?.[0] || ''}${formData.last_name?.[0] || ''}`.toUpperCase().slice(0, 2);
     }
     if (profile?.full_name) {
-      return profile.full_name.split(' ').map(n => n[0]).join('').toUpperCase();
+      return profile.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
     }
     if (profile?.email) {
       return profile.email[0].toUpperCase();
