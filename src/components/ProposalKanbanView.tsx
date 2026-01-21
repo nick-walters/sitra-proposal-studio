@@ -1,8 +1,8 @@
-import { Proposal, WORK_PROGRAMMES, DESTINATIONS, ProposalStatus } from "@/types/proposal";
+import { Proposal, WORK_PROGRAMMES, DESTINATIONS } from "@/types/proposal";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileText, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink, Calendar, AlertTriangle, PartyPopper } from "lucide-react";
+import { FileText, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink, AlertTriangle, PartyPopper, Scale } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 
 interface ProposalKanbanViewProps {
@@ -11,11 +11,12 @@ interface ProposalKanbanViewProps {
   topicIcons?: Record<string, React.ReactNode>;
 }
 
-const KANBAN_COLUMNS: { status: ProposalStatus; label: string; color: string; bgColor: string; icon: React.ElementType }[] = [
-  { status: 'draft', label: 'Draft', color: 'text-yellow-600', bgColor: 'bg-yellow-500/10', icon: Clock },
-  { status: 'submitted', label: 'Under Evaluation', color: 'text-orange-600', bgColor: 'bg-orange-500/10', icon: Send },
-  { status: 'funded', label: 'Funded', color: 'text-green-600', bgColor: 'bg-green-500/10', icon: PartyPopper },
-  { status: 'not_funded', label: 'Not Funded', color: 'text-red-600', bgColor: 'bg-red-500/10', icon: XCircle },
+type KanbanColumnType = 'draft' | 'submitted' | 'decided';
+
+const KANBAN_COLUMNS: { type: KanbanColumnType; label: string; color: string; bgColor: string; icon: React.ElementType }[] = [
+  { type: 'draft', label: 'Draft', color: 'text-yellow-600', bgColor: 'bg-yellow-500/10', icon: Clock },
+  { type: 'submitted', label: 'Under Evaluation', color: 'text-orange-600', bgColor: 'bg-orange-500/10', icon: Send },
+  { type: 'decided', label: 'Decided', color: 'text-blue-600', bgColor: 'bg-blue-500/10', icon: Scale },
 ];
 
 // Get combined status/urgency info for drafts
@@ -29,38 +30,55 @@ const getDraftStatusInfo = (deadline: Date | undefined) => {
       label: 'Draft – critical',
       days: daysLeft,
       icon: AlertTriangle,
-      className: 'bg-red-500/15 text-red-600 border border-red-500/30'
+      className: 'bg-red-500/15 text-red-600 border border-red-500/30',
+      sortOrder: 1
     };
   } else if (daysLeft <= 56) {
     return {
       label: 'Draft – due soon',
       days: daysLeft,
       icon: Clock,
-      className: 'bg-orange-500/15 text-orange-600 border border-orange-500/30'
+      className: 'bg-orange-500/15 text-orange-600 border border-orange-500/30',
+      sortOrder: 2
     };
   } else {
     return {
       label: 'Draft – on track',
       days: daysLeft,
       icon: CheckCircle2,
-      className: 'bg-green-500/15 text-green-600 border border-green-500/30'
+      className: 'bg-green-500/15 text-green-600 border border-green-500/30',
+      sortOrder: 3
     };
   }
 };
 
 export function ProposalKanbanView({ proposals, onProposalClick, topicIcons }: ProposalKanbanViewProps) {
-  const getProposalsByStatus = (status: ProposalStatus) => {
-    return proposals.filter(p => p.status === status);
+  const getProposalsByColumnType = (type: KanbanColumnType) => {
+    if (type === 'decided') {
+      // Get funded and not_funded, sort: funded first, then by decision date (latest first)
+      return proposals
+        .filter(p => p.status === 'funded' || p.status === 'not_funded')
+        .sort((a, b) => {
+          // Funded comes before not_funded
+          if (a.status === 'funded' && b.status !== 'funded') return -1;
+          if (a.status !== 'funded' && b.status === 'funded') return 1;
+          // Within same status, sort by decision date (latest first)
+          const dateA = a.decisionDate?.getTime() || 0;
+          const dateB = b.decisionDate?.getTime() || 0;
+          return dateB - dateA;
+        });
+    }
+    return proposals.filter(p => p.status === type);
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {KANBAN_COLUMNS.map((column) => {
-        const columnProposals = getProposalsByStatus(column.status);
+        const columnProposals = getProposalsByColumnType(column.type);
         const ColumnIcon = column.icon;
         
         return (
-          <div key={column.status} className="flex flex-col">
+          <div key={column.type} className="flex flex-col">
             {/* Column Header */}
             <div className={`${column.bgColor} rounded-t-lg p-3 border border-b-0`}>
               <div className="flex items-center gap-2">
@@ -89,6 +107,27 @@ export function ProposalKanbanView({ proposals, onProposalClick, topicIcons }: P
                       const draftStatus = isDraft ? getDraftStatusInfo(proposal.deadline) : null;
                       const topicIcon = topicIcons?.[proposal.acronym];
 
+                      // Get decided status badge info
+                      const getDecidedBadge = () => {
+                        if (proposal.status === 'funded') {
+                          return {
+                            label: 'Funded',
+                            icon: PartyPopper,
+                            className: 'bg-white text-green-600 border border-green-500/30'
+                          };
+                        }
+                        if (proposal.status === 'not_funded') {
+                          return {
+                            label: 'Not funded',
+                            icon: XCircle,
+                            className: 'bg-white text-red-600 border border-red-500/30'
+                          };
+                        }
+                        return null;
+                      };
+
+                      const decidedBadge = isDecided ? getDecidedBadge() : null;
+
                       return (
                         <Card 
                           key={proposal.id}
@@ -113,7 +152,7 @@ export function ProposalKanbanView({ proposals, onProposalClick, topicIcons }: P
                               </div>
                             </div>
 
-                            {/* Badges - show draft urgency badge only for drafts */}
+                            {/* Badges */}
                             <div className="flex flex-wrap gap-1 mb-2">
                               {draftStatus && (
                                 <span className={`proposal-badge ${draftStatus.className} flex items-center gap-0.5 text-[9px]`}>
@@ -122,6 +161,15 @@ export function ProposalKanbanView({ proposals, onProposalClick, topicIcons }: P
                                     return <StatusIcon className="w-2.5 h-2.5" />;
                                   })()}
                                   {draftStatus.label} ({draftStatus.days}d)
+                                </span>
+                              )}
+                              {decidedBadge && (
+                                <span className={`proposal-badge ${decidedBadge.className} flex items-center gap-0.5 text-[9px]`}>
+                                  {(() => {
+                                    const StatusIcon = decidedBadge.icon;
+                                    return <StatusIcon className="w-2.5 h-2.5" />;
+                                  })()}
+                                  {decidedBadge.label}
                                 </span>
                               )}
                               <span className="proposal-badge bg-white text-foreground border border-foreground text-[9px]">
