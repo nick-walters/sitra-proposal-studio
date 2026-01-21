@@ -1,14 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Check, ChevronsUpDown, Plus, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -97,10 +90,10 @@ export function OrganisationSelect({
         .single();
 
       if (error) {
-        // If duplicate, just use the existing one
         if (error.code === '23505') {
           onValueChange(searchValue.trim());
           setOpen(false);
+          setSearchValue("");
           return;
         }
         throw error;
@@ -110,12 +103,13 @@ export function OrganisationSelect({
         setOrganisations(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
         onValueChange(data.name);
         setOpen(false);
+        setSearchValue("");
       }
     } catch (err) {
       console.error("Error creating organisation:", err);
-      // Still set the value even if DB insert fails
       onValueChange(searchValue.trim());
       setOpen(false);
+      setSearchValue("");
     } finally {
       setCreating(false);
     }
@@ -124,10 +118,14 @@ export function OrganisationSelect({
   const handleSelect = (orgName: string) => {
     onValueChange(orgName);
     setOpen(false);
+    setSearchValue("");
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={(isOpen) => {
+      setOpen(isOpen);
+      if (!isOpen) setSearchValue("");
+    }}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -150,45 +148,54 @@ export function OrganisationSelect({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[350px] p-0" align="start">
-        <Command shouldFilter={false}>
-          <CommandInput 
-            placeholder="Type to search or add..." 
-            value={searchValue}
-            onValueChange={setSearchValue}
-          />
-          <CommandList className="max-h-[300px]">
+      <PopoverContent className="w-[350px] p-0 z-50" align="start">
+        <div className="flex flex-col bg-popover rounded-md">
+          <div className="flex items-center border-b px-3">
+            <Input
+              placeholder="Type to search or add..."
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+              className="h-10 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-0"
+            />
+          </div>
+          <div 
+            className="max-h-[300px] overflow-y-auto"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
             {loading ? (
               <div className="py-6 text-center text-sm text-muted-foreground">
                 Loading organisations...
               </div>
             ) : (
               <>
-                {filteredOrganisations.length === 0 && !showCreateOption && (
-                  <CommandEmpty>No organisations found. Start typing to add one.</CommandEmpty>
-                )}
-                
                 {showCreateOption && (
-                  <CommandGroup heading="Add new organisation">
-                    <CommandItem
-                      onSelect={handleCreateOrganisation}
-                      className="cursor-pointer"
-                      disabled={creating}
+                  <div className="p-1">
+                    <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                      Add new organisation
+                    </div>
+                    <div
+                      onClick={handleCreateOrganisation}
+                      className={cn(
+                        "flex items-center px-2 py-1.5 text-sm cursor-pointer rounded-sm hover:bg-accent hover:text-accent-foreground",
+                        creating && "opacity-50 pointer-events-none"
+                      )}
                     >
                       <Plus className="mr-2 h-4 w-4 text-primary" />
                       <span>Add "{searchValue.trim()}"</span>
-                    </CommandItem>
-                  </CommandGroup>
+                    </div>
+                  </div>
                 )}
 
                 {filteredOrganisations.length > 0 && (
-                  <CommandGroup heading="Organisations">
+                  <div className="p-1">
+                    <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                      Organisations
+                    </div>
                     {filteredOrganisations.map((org) => (
-                      <CommandItem
+                      <div
                         key={org.id}
-                        value={org.name}
-                        onSelect={() => handleSelect(org.name)}
-                        className="cursor-pointer"
+                        onClick={() => handleSelect(org.name)}
+                        className="flex items-center px-2 py-1.5 text-sm cursor-pointer rounded-sm hover:bg-accent hover:text-accent-foreground"
                       >
                         <Check
                           className={cn(
@@ -205,14 +212,20 @@ export function OrganisationSelect({
                             </span>
                           )}
                         </div>
-                      </CommandItem>
+                      </div>
                     ))}
-                  </CommandGroup>
+                  </div>
+                )}
+
+                {filteredOrganisations.length === 0 && !showCreateOption && (
+                  <div className="py-6 text-center text-sm text-muted-foreground">
+                    No organisations found. Start typing to add one.
+                  </div>
                 )}
               </>
             )}
-          </CommandList>
-        </Command>
+          </div>
+        </div>
       </PopoverContent>
     </Popover>
   );
