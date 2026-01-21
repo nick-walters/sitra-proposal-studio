@@ -18,7 +18,7 @@ interface Reference {
 async function lookupDOI(doi: string): Promise<Reference | null> {
   try {
     const response = await fetch(`https://api.crossref.org/works/${encodeURIComponent(doi)}`, {
-      headers: { "User-Agent": "grant.eu/1.0 (mailto:support@grant.eu)" }
+      headers: { "User-Agent": "SitraProposalStudio/1.0 (mailto:support@sitra.fi)" }
     });
     
     if (!response.ok) return null;
@@ -152,7 +152,7 @@ serve(async (req) => {
     // Try searching CrossRef for the query
     const searchResponse = await fetch(
       `https://api.crossref.org/works?query=${encodeURIComponent(query)}&rows=1`,
-      { headers: { "User-Agent": "grant.eu/1.0 (mailto:support@grant.eu)" } }
+      { headers: { "User-Agent": "SitraProposalStudio/1.0 (mailto:support@sitra.fi)" } }
     );
 
     if (searchResponse.ok) {
