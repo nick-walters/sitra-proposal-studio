@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Popover,
   PopoverContent,
@@ -121,7 +120,10 @@ export function CountrySelect({
               className="h-10 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-0"
             />
           </div>
-          <ScrollArea className="h-[300px]">
+          <div 
+            className="max-h-[300px] overflow-y-auto"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
             {hasResults ? (
               <>
                 {renderGroup("EU Member States", filteredEU)}
@@ -133,7 +135,7 @@ export function CountrySelect({
                 No country found.
               </div>
             )}
-          </ScrollArea>
+          </div>
         </div>
       </PopoverContent>
     </Popover>
