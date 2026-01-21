@@ -447,7 +447,7 @@ export const FIGURES_SECTION: Section = {
   number: 'Figures',
   title: 'Figures & Diagrams',
   guidelines: {
-    text: 'Manage and edit figures referenced in Part B sections. Figures are automatically numbered based on their parent section (e.g., Figure B3.1.a).',
+    text: 'Manage and edit figures referenced in Part B sections. Figures are automatically numbered based on their parent section (e.g. Figure B3.1.a).',
   },
 };
 

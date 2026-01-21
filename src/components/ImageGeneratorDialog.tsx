@@ -102,7 +102,7 @@ export function ImageGeneratorDialog({ isOpen, onClose, onInsertImage }: ImageGe
             <Label htmlFor="image-prompt">Image Description</Label>
             <Textarea
               id="image-prompt"
-              placeholder="E.g., A diagram showing the workflow of renewable energy distribution in urban areas, with solar panels, wind turbines, and smart grid connections..."
+              placeholder="E.g. a diagram showing the workflow of renewable energy distribution in urban areas, with solar panels, wind turbines, and smart grid connections..."
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               className="mt-1.5 min-h-[100px]"

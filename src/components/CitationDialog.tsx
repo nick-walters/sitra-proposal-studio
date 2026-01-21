@@ -146,7 +146,7 @@ export function CitationDialog({
               <Label htmlFor="reference-query" className="sr-only">Reference</Label>
               <Input
                 id="reference-query"
-                placeholder="Enter DOI (e.g., 10.1234/...) or author, year, title..."
+                placeholder="Enter DOI (e.g. 10.1234/...) or author, year, title..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}

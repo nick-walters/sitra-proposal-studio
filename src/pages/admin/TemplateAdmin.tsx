@@ -279,7 +279,7 @@ function FundingProgrammesPanel({
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., Horizon Europe"
+                placeholder="e.g. Horizon Europe"
               />
             </div>
             <div className="space-y-2">
@@ -288,7 +288,7 @@ function FundingProgrammesPanel({
                 id="short_name"
                 value={formData.short_name}
                 onChange={(e) => setFormData({ ...formData, short_name: e.target.value })}
-                placeholder="e.g., HE"
+                placeholder="e.g. HE"
               />
             </div>
             <div className="space-y-2">
@@ -505,7 +505,7 @@ function TemplateTypesPanel({
                   id="code"
                   value={formData.code}
                   onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                  placeholder="e.g., RIA"
+                  placeholder="e.g. RIA"
                 />
               </div>
               <div className="space-y-2">
@@ -514,7 +514,7 @@ function TemplateTypesPanel({
                   id="type_name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g., Research and Innovation Action"
+                  placeholder="e.g. Research & Innovation Action"
                 />
               </div>
             </div>
@@ -913,7 +913,7 @@ function SectionsPanel({
                   id="section_number"
                   value={sectionFormData.section_number}
                   onChange={(e) => setSectionFormData({ ...sectionFormData, section_number: e.target.value })}
-                  placeholder="e.g., 1.1"
+                  placeholder="e.g. 1.1"
                 />
               </div>
             </div>
@@ -923,7 +923,7 @@ function SectionsPanel({
                 id="section_title"
                 value={sectionFormData.title}
                 onChange={(e) => setSectionFormData({ ...sectionFormData, title: e.target.value })}
-                placeholder="e.g., Excellence"
+                placeholder="e.g. Excellence"
               />
             </div>
             <div className="space-y-2">

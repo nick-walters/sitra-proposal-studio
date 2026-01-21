@@ -221,7 +221,7 @@ export default function Auth() {
                     <Label htmlFor="signup-org">Organisation</Label>
                     <Input
                       id="signup-org"
-                      placeholder="e.g., Sitra"
+                      placeholder="e.g. Sitra"
                       value={organisation}
                       onChange={(e) => setOrganisation(e.target.value)}
                       autoComplete="organization"
