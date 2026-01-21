@@ -4,13 +4,15 @@ import { UserAvatarMenu } from "@/components/UserAvatarMenu";
 import { CollaboratorsDialog } from "@/components/CollaboratorsDialog";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { DirectChatDialog } from "@/components/DirectChatDialog";
-import { Users, Settings, LogOut } from "lucide-react";
+import { Users, Settings, LogOut, Database } from "lucide-react";
 import sitraLogo from "@/assets/sitra-proposal-studio-logo.png";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 
 export function Header() {
   const { user, signOut } = useAuth();
+  const { isAdminOrOwner } = useUserRole();
   const [isCollaboratorsOpen, setIsCollaboratorsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [chatUserId, setChatUserId] = useState<string | null>(null);
@@ -49,8 +51,16 @@ export function Header() {
             </Button>
           </nav>
 
-          {/* Right: Settings, Logout, Avatar */}
+          {/* Right: Backend (admin/owner only), Settings, Logout, Avatar */}
           <div className="flex items-center gap-2 flex-1 justify-end">
+            {isAdminOrOwner && (
+              <Link to="/admin">
+                <Button variant="ghost" size="sm" className="gap-2">
+                  <Database className="w-4 h-4" />
+                  <span className="hidden sm:inline">Backend</span>
+                </Button>
+              </Link>
+            )}
             <Button 
               variant="ghost" 
               size="sm" 
