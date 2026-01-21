@@ -61,23 +61,21 @@ export function Header() {
               <Settings className="w-4 h-4" />
               <span className="hidden sm:inline">Settings</span>
             </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="gap-2 text-muted-foreground hover:text-foreground"
+              onClick={signOut}
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Logout</span>
+            </Button>
             {user && (
-              <>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="gap-2 text-muted-foreground hover:text-foreground"
-                  onClick={signOut}
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span className="hidden sm:inline">Logout</span>
-                </Button>
-                <UserAvatarMenu 
-                  userId={user.id}
-                  email={user.email || ''}
-                  onLogout={signOut}
-                />
-              </>
+              <UserAvatarMenu 
+                userId={user.id}
+                email={user.email || ''}
+                onLogout={signOut}
+              />
             )}
           </div>
         </div>
