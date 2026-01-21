@@ -150,16 +150,16 @@ export function ProposalKanbanView({ proposals, onProposalClick, topicIcons }: P
         <CardContent className="p-3">
           {/* Row 1: Type, Work Programme, Destination badges */}
           <div className="flex flex-wrap gap-1 mb-2">
-            <span className="proposal-badge bg-white text-foreground border border-foreground text-[9px]">
+            <span className="proposal-badge bg-white text-foreground border border-foreground text-[10px]">
               {proposal.type}
             </span>
             {workProgramme && (
-              <span className="proposal-badge bg-gray-300 text-gray-700 text-[9px]">
+              <span className="proposal-badge bg-gray-300 text-gray-700 text-[10px]">
                 {workProgramme.abbreviation}
               </span>
             )}
             {destination && (
-              <span className="proposal-badge bg-gray-200 text-gray-600 text-[9px]">
+              <span className="proposal-badge bg-gray-200 text-gray-600 text-[10px]">
                 {destination.abbreviation}
               </span>
             )}
@@ -178,7 +178,7 @@ export function ProposalKanbanView({ proposals, onProposalClick, topicIcons }: P
             </div>
             <div className="flex-1 min-w-0">
               <h4 className="font-semibold text-sm">{proposal.acronym}</h4>
-              <p className="text-xs text-muted-foreground truncate">{proposal.title}</p>
+              <p className="text-[10px] text-muted-foreground truncate">{proposal.title}</p>
             </div>
             
             {/* Action buttons */}
@@ -187,37 +187,37 @@ export function ProposalKanbanView({ proposals, onProposalClick, topicIcons }: P
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="h-5 px-1.5 text-[9px] gap-0.5"
+                  className="h-5 px-1.5 text-[10px] gap-0.5"
                   onClick={(e) => {
                     e.stopPropagation();
                     window.open(proposal.topicUrl, '_blank');
                   }}
                 >
                   Topic
-                  <ExternalLink className="w-2 h-2" />
+                  <ExternalLink className="w-2.5 h-2.5" />
                 </Button>
               )}
               <Button 
                 size="sm" 
-                className="h-5 px-2 text-[9px] bg-foreground text-background hover:bg-foreground/90"
+                className="h-5 px-2 text-[10px] bg-foreground text-background hover:bg-foreground/90"
               >
                 {isDraft ? 'Edit' : 'View'}
-                <ArrowRight className="w-2 h-2 ml-0.5" />
+                <ArrowRight className="w-2.5 h-2.5 ml-0.5" />
               </Button>
-              {/* Dates below buttons */}
-              <div className="flex flex-col gap-0.5 mt-0.5 text-[9px] text-muted-foreground text-right">
+              {/* Dates below buttons - left aligned so icons stack */}
+              <div className="flex flex-col gap-0.5 mt-0.5 text-[10px] text-muted-foreground">
                 {proposal.deadline && (
-                  <div className="flex items-center gap-0.5 justify-end">
-                    <Calendar className="w-2.5 h-2.5 text-yellow-600" />
+                  <div className="flex items-center gap-0.5">
+                    <Calendar className="w-3 h-3 text-yellow-600" />
                     <span className="font-bold">Deadline:</span> {format(proposal.deadline, 'dd/MM/yyyy')}
                   </div>
                 )}
                 {isDecided && proposal.decisionDate && (
-                  <div className="flex items-center gap-0.5 justify-end">
+                  <div className="flex items-center gap-0.5">
                     {proposal.status === 'funded' ? (
-                      <CheckCircle2 className="w-2.5 h-2.5 text-green-600" />
+                      <CheckCircle2 className="w-3 h-3 text-green-600" />
                     ) : (
-                      <XCircle className="w-2.5 h-2.5 text-red-600" />
+                      <XCircle className="w-3 h-3 text-red-600" />
                     )}
                     <span className="font-bold">Decision:</span> {format(proposal.decisionDate, 'dd/MM/yyyy')}
                   </div>
@@ -226,8 +226,8 @@ export function ProposalKanbanView({ proposals, onProposalClick, topicIcons }: P
                 {(isDraft || proposal.status === 'submitted') && proposal.deadline && (() => {
                   const estimatedDate = getEstimatedDecisionDate(proposal);
                   return estimatedDate ? (
-                    <div className="flex items-center gap-0.5 justify-end">
-                      <Clock className="w-2.5 h-2.5 text-yellow-600" />
+                    <div className="flex items-center gap-0.5">
+                      <Clock className="w-3 h-3 text-yellow-600" />
                       <span className="font-bold">Decision:</span> ~{format(estimatedDate, 'dd/MM/yyyy')}
                     </div>
                   ) : null;
