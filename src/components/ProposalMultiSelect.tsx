@@ -49,24 +49,31 @@ export function ProposalMultiSelect({
   placeholder = "Select proposals...",
 }: ProposalMultiSelectProps) {
   const [open, setOpen] = useState(false);
-  const [proposals, setProposals] = useState<Proposal[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [proposals, setProposals] = useState<Proposal[]>(DEMO_PROPOSALS);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     async function fetchProposals() {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("proposals")
-        .select("id, acronym, title")
-        .order("acronym", { ascending: true });
+      try {
+        const { data, error } = await supabase
+          .from("proposals")
+          .select("id, acronym, title")
+          .order("acronym", { ascending: true });
 
-      if (!error && data && data.length > 0) {
-        setProposals(data);
-      } else {
-        // Use demo proposals for testing when no database proposals available
+        if (!error && data && data.length > 0) {
+          setProposals(data);
+        } else {
+          // Use demo proposals for testing when no database proposals available
+          console.log('Using demo proposals - no database proposals found or error:', error);
+          setProposals(DEMO_PROPOSALS);
+        }
+      } catch (err) {
+        console.error('Error fetching proposals:', err);
         setProposals(DEMO_PROPOSALS);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     fetchProposals();
   }, []);
