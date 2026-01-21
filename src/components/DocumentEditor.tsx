@@ -2,13 +2,14 @@ import { Section } from "@/types/proposal";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Info, Video, ImageIcon, Sparkles, BookOpen, Wand2, BarChart3 } from "lucide-react";
+import { Info, Video, ImageIcon, Sparkles, BookOpen, Wand2, BarChart3, Route } from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
 import { RichTextEditor } from "./RichTextEditor";
 import { GrammarChecker } from "./GrammarChecker";
 import { CitationDialog } from "./CitationDialog";
 import { ImageGeneratorDialog } from "./ImageGeneratorDialog";
 import { InsertFigureDialog } from "./InsertFigureDialog";
+import { ImpactPathwayGenerator } from "./ImpactPathwayGenerator";
 import { WordCountBadge } from "./WordCountBadge";
 import { SaveIndicator } from "./SaveIndicator";
 import { useSectionContent } from "@/hooks/useSectionContent";
@@ -36,6 +37,7 @@ export function DocumentEditor({ section, proposalId, proposalAcronym, readOnly 
   const [isCitationOpen, setIsCitationOpen] = useState(false);
   const [isImageGenOpen, setIsImageGenOpen] = useState(false);
   const [isFigureDialogOpen, setIsFigureDialogOpen] = useState(false);
+  const [isImpactPathwayOpen, setIsImpactPathwayOpen] = useState(false);
   const [references, setReferences] = useState<Reference[]>([]);
   const [footnotes, setFootnotes] = useState<Array<{ number: number; citation: string }>>([]);
 

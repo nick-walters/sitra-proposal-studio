@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Section, HORIZON_EUROPE_SECTIONS, PART_A_SECTIONS, FIGURES_SECTION, BudgetType, ProposalStatus } from "@/types/proposal";
 import { useState, useEffect } from "react";
+import { format } from "date-fns";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -401,13 +402,41 @@ export function ProposalEditor() {
         </div>
       </header>
 
-      {/* Read-only alert for non-draft proposals */}
-      {!isDraft && (
-        <Alert className="rounded-none border-x-0 border-t-0 bg-muted/50">
+      {/* Status alert */}
+      {proposal && (
+        <Alert className={cn(
+          "rounded-none border-x-0 border-t-0",
+          proposal.status === 'draft' ? "bg-primary/10" : 
+          proposal.status === 'funded' ? "bg-success/10" : 
+          proposal.status === 'not_funded' ? "bg-destructive/10" : 
+          "bg-muted/50"
+        )}>
           <Lock className="h-4 w-4" />
           <AlertDescription>
-            This proposal is {proposal?.status === 'submitted' ? 'submitted' : proposal?.status === 'funded' ? 'funded' : 'not funded'} and cannot be edited. 
-            You can view all sections but editing is disabled.
+            {proposal.status === 'draft' && (
+              <>
+                <strong>Draft</strong> – this proposal is due by the deadline{' '}
+                {proposal.deadline ? format(new Date(proposal.deadline), 'dd/MM/yyyy') : 'not set'}.
+              </>
+            )}
+            {proposal.status === 'submitted' && (
+              <>
+                <strong>Under Evaluation</strong> – this proposal has been submitted and is under evaluation. 
+                Editing is disabled but you can view all sections.
+              </>
+            )}
+            {proposal.status === 'funded' && (
+              <>
+                <strong>Funded</strong> – this proposal was successful! Editing is disabled but you can view all sections and export it as a PDF. 
+                You can also duplicate it – this function should only be used for a resubmission with a similar consortium and similar content.
+              </>
+            )}
+            {proposal.status === 'not_funded' && (
+              <>
+                <strong>Not funded</strong> – this proposal was unsuccessful. Editing is disabled but you can view all sections and export it as a PDF. 
+                You can also duplicate it – this function should only be used for a resubmission with a similar consortium and similar content.
+              </>
+            )}
           </AlertDescription>
         </Alert>
       )}
