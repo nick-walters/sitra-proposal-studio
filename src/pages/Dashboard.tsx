@@ -3,6 +3,7 @@ import { ProposalCard } from "@/components/ProposalCard";
 import { ProposalTableView } from "@/components/ProposalTableView";
 import { ProposalKanbanView } from "@/components/ProposalKanbanView";
 import { CreateProposalDialog } from "@/components/CreateProposalDialog";
+import { ProfileCompletionDialog } from "@/components/ProfileCompletionDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -11,6 +12,7 @@ import { Plus, Search, LayoutGrid, List, X, Filter, Leaf, Brain, Zap, Wheat, Shi
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfileCompletion } from "@/hooks/useProfileCompletion";
 
 import { differenceInDays } from "date-fns";
 
@@ -224,6 +226,7 @@ const sampleProposals: Proposal[] = [
 export function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isComplete: isProfileComplete, isLoading: isProfileLoading, checkProfile } = useProfileCompletion();
   const [proposals, setProposals] = useState<Proposal[]>(sampleProposals);
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -419,6 +422,16 @@ export function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
+
+      {/* Profile Completion Dialog - blocks interaction until profile is complete */}
+      {user && !isProfileLoading && !isProfileComplete && (
+        <ProfileCompletionDialog
+          open={true}
+          userId={user.id}
+          userEmail={user.email || ''}
+          onComplete={checkProfile}
+        />
+      )}
 
       <main className="container py-6">
         {/* Page Header with Search and Toggle */}
