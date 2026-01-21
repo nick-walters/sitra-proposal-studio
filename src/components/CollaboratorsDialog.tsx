@@ -102,32 +102,47 @@ export function CollaboratorsDialog({ open, onOpenChange, onStartChat }: Collabo
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [selectedProposalIds, setSelectedProposalIds] = useState<string[]>([]);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [canInvite, setCanInvite] = useState(false);
 
-  // Check if user is admin on any proposal
+  // Check if user can invite (admin on any proposal, or in demo mode)
   useEffect(() => {
-    async function checkAdminStatus() {
+    async function checkInvitePermission() {
       if (!user) {
-        setIsAdmin(false);
+        // Allow invite in demo mode (not logged in)
+        setCanInvite(true);
         return;
       }
 
-      const { data, error } = await supabase
+      // Check if user is admin on any proposal
+      const { data: adminRoles, error: rolesError } = await supabase
         .from('user_roles')
         .select('id')
         .eq('user_id', user.id)
         .eq('role', 'admin')
         .limit(1);
 
-      if (!error && data && data.length > 0) {
-        setIsAdmin(true);
-      } else {
-        setIsAdmin(false);
+      if (!rolesError && adminRoles && adminRoles.length > 0) {
+        setCanInvite(true);
+        return;
       }
+
+      // Check if user created any proposals (they're automatically admin)
+      const { data: createdProposals, error: proposalsError } = await supabase
+        .from('proposals')
+        .select('id')
+        .eq('created_by', user.id)
+        .limit(1);
+
+      if (!proposalsError && createdProposals && createdProposals.length > 0) {
+        setCanInvite(true);
+        return;
+      }
+
+      setCanInvite(false);
     }
 
     if (open) {
-      checkAdminStatus();
+      checkInvitePermission();
     }
   }, [user, open]);
 
@@ -161,9 +176,9 @@ export function CollaboratorsDialog({ open, onOpenChange, onStartChat }: Collabo
           </DialogHeader>
 
           <Tabs defaultValue="team" className="mt-4">
-            <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            <TabsList className={`grid w-full ${canInvite ? 'grid-cols-2' : 'grid-cols-1'}`}>
               <TabsTrigger value="team">Team Members</TabsTrigger>
-              {isAdmin && <TabsTrigger value="invite">Invite New</TabsTrigger>}
+              {canInvite && <TabsTrigger value="invite">Invite New</TabsTrigger>}
             </TabsList>
 
             <TabsContent value="team" className="space-y-4">
@@ -251,7 +266,7 @@ export function CollaboratorsDialog({ open, onOpenChange, onStartChat }: Collabo
               </ScrollArea>
             </TabsContent>
 
-            {isAdmin && (
+            {canInvite && (
               <TabsContent value="invite" className="space-y-6">
                 <div className="py-4">
                   <div className="flex items-center gap-3 mb-6">
