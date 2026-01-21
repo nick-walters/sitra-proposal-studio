@@ -1,13 +1,12 @@
+import { Header } from "@/components/Header";
 import { ProposalCard } from "@/components/ProposalCard";
 import { ProposalTableView } from "@/components/ProposalTableView";
 import { ProposalKanbanView } from "@/components/ProposalKanbanView";
 import { CreateProposalDialog } from "@/components/CreateProposalDialog";
 import { ProfileCompletionDialog } from "@/components/ProfileCompletionDialog";
-import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Proposal, ProposalType, ProposalStatus, HORIZON_EUROPE_SECTIONS, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS, getDestinationsForWorkProgramme } from "@/types/proposal";
 import { Plus, Search, LayoutGrid, List, X, Filter, Leaf, Brain, Zap, Wheat, Shield, Apple, Atom, HeartPulse, Table2, Columns3, AlertTriangle, Clock, CheckCircle2, Send, PartyPopper, XCircle } from "lucide-react";
 import { useState, useMemo } from "react";
@@ -421,27 +420,20 @@ export function Dashboard() {
   };
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <div className="min-h-screen bg-background">
-          {/* Profile Completion Dialog - blocks interaction until profile is complete */}
-          {user && !isProfileLoading && !isProfileComplete && (
-            <ProfileCompletionDialog
-              open={true}
-              userId={user.id}
-              userEmail={user.email || ''}
-              onComplete={checkProfile}
-            />
-          )}
+    <div className="min-h-screen bg-background">
+      <Header />
 
-          {/* Header bar with sidebar trigger */}
-          <header className="h-14 border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-40 flex items-center px-4 gap-4">
-            <SidebarTrigger />
-            <div className="flex-1" />
-          </header>
+      {/* Profile Completion Dialog - blocks interaction until profile is complete */}
+      {user && !isProfileLoading && !isProfileComplete && (
+        <ProfileCompletionDialog
+          open={true}
+          userId={user.id}
+          userEmail={user.email || ''}
+          onComplete={checkProfile}
+        />
+      )}
 
-          <main className="container py-6">
+      <main className="container py-6">
         {/* Page Header with Search and Toggle */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-6">
           <div className="flex-shrink-0">
@@ -799,15 +791,13 @@ export function Dashboard() {
             </p>
           </div>
         )}
-          </main>
+      </main>
 
-          <CreateProposalDialog
-            open={isCreateDialogOpen}
-            onOpenChange={setIsCreateDialogOpen}
-            onCreateProposal={handleCreateProposal}
-          />
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+      <CreateProposalDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+        onCreateProposal={handleCreateProposal}
+      />
+    </div>
   );
 }
