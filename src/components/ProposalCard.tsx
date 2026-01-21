@@ -114,23 +114,23 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
             {/* Acronym and title - fixed width column */}
             <div className="sm:w-64 md:w-80 lg:w-96 flex-shrink-0">
               <div className="font-semibold text-sm">{proposal.acronym}</div>
-              <div className="text-[10px] text-muted-foreground truncate">{proposal.title}</div>
+              <div className="text-xs text-muted-foreground truncate">{proposal.title}</div>
             </div>
             {/* Badges - start from consistent alignment */}
             <div className="flex items-center gap-1 flex-wrap">
-              <span className={`proposal-badge ${statusInfo.className} flex items-center gap-0.5 text-[10px]`}>
-                <StatusIcon className="w-3 h-3" />
+              <span className={`proposal-badge ${statusInfo.className} flex items-center gap-0.5 text-[9px]`}>
+                <StatusIcon className="w-2.5 h-2.5" />
                 {statusInfo.label}
                 {statusInfo.days !== undefined && ` (${statusInfo.days}d)`}
               </span>
-              <span className="proposal-badge bg-white text-foreground border border-foreground text-[10px]">{proposal.type}</span>
+              <span className="proposal-badge bg-white text-foreground border border-foreground text-[9px]">{proposal.type}</span>
               {workProgramme && (
-                <span className="proposal-badge bg-gray-300 text-gray-700 text-[10px]">
+                <span className="proposal-badge bg-gray-300 text-gray-700 text-[9px]">
                   {workProgramme.abbreviation}
                 </span>
               )}
               {destination && (
-                <span className="proposal-badge bg-gray-200 text-gray-600 text-[10px]">
+                <span className="proposal-badge bg-gray-200 text-gray-600 text-[9px]">
                   {destination.abbreviation}
                 </span>
               )}
@@ -138,10 +138,10 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
           </div>
           
           {/* Dates */}
-          <div className="flex flex-col gap-0 flex-shrink-0 text-[10px] text-muted-foreground">
+          <div className="flex flex-col gap-0 flex-shrink-0 text-[9px] text-muted-foreground text-right">
             {proposal.deadline && (
               <div className="flex items-center gap-0.5">
-                <Calendar className="w-3 h-3 text-yellow-600" />
+                <Calendar className="w-2.5 h-2.5 text-yellow-600" />
                 <span className="font-bold">Deadline:</span> {format(proposal.deadline, 'dd/MM/yyyy')}
               </div>
             )}
@@ -149,9 +149,9 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
             {isDecided && proposal.decisionDate && (
               <div className="flex items-center gap-0.5">
                 {proposal.status === 'funded' ? (
-                  <CheckCircle2 className="w-3 h-3 text-green-600" />
+                  <CheckCircle2 className="w-2.5 h-2.5 text-green-600" />
                 ) : (
-                  <XCircle className="w-3 h-3 text-red-600" />
+                  <XCircle className="w-2.5 h-2.5 text-red-600" />
                 )}
                 <span className="font-bold">Decision:</span> {format(proposal.decisionDate, 'dd/MM/yyyy')}
               </div>
@@ -161,7 +161,7 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
               const estimatedDate = getEstimatedDecisionDate(proposal);
               return estimatedDate ? (
                 <div className="flex items-center gap-0.5">
-                  <Clock className="w-3 h-3 text-yellow-600" />
+                  <Clock className="w-2.5 h-2.5 text-yellow-600" />
                   <span className="font-bold">Decision:</span> ~{format(estimatedDate, 'dd/MM/yyyy')}
                 </div>
               ) : null;
@@ -174,19 +174,19 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="h-5 px-1.5 gap-0.5 text-[10px]"
+                className="h-5 px-1.5 gap-0.5 text-[9px]"
                 onClick={(e) => {
                   e.stopPropagation();
                   window.open(proposal.topicUrl, '_blank');
                 }}
               >
                 Topic
-                <ExternalLink className="w-2.5 h-2.5" />
+                <ExternalLink className="w-2 h-2" />
               </Button>
             )}
-            <Button size="sm" className="h-5 px-2 gap-0.5 text-[10px] bg-foreground text-background hover:bg-foreground/90">
+            <Button size="sm" className="h-5 px-2 gap-0.5 text-[9px] bg-foreground text-background hover:bg-foreground/90">
               {isDraft ? 'Edit' : 'View'}
-              <ArrowRight className="w-2.5 h-2.5" />
+              <ArrowRight className="w-2 h-2" />
             </Button>
           </div>
         </CardContent>
@@ -216,7 +216,7 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
               <div>
                 {/* Row 1: Status badge */}
                 <div className="flex items-center gap-1 flex-wrap">
-                  <span className={`proposal-badge ${statusInfo.className} flex items-center gap-0.5 text-[10px]`}>
+                  <span className={`proposal-badge ${statusInfo.className} flex items-center gap-0.5 text-[9px]`}>
                     <StatusIcon className="w-3 h-3" />
                     {statusInfo.label}
                     {statusInfo.days !== undefined && ` (${statusInfo.days}d)`}
@@ -224,14 +224,14 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
                 </div>
                 {/* Row 2: Type, Work Programme, Destination */}
                 <div className="flex items-center gap-1 flex-wrap mt-1">
-                  <span className="proposal-badge bg-white text-foreground border border-foreground text-[10px]">{proposal.type}</span>
+                  <span className="proposal-badge bg-white text-foreground border border-foreground text-[9px]">{proposal.type}</span>
                   {workProgramme && (
-                    <span className="proposal-badge bg-gray-300 text-gray-700 text-[10px]">
+                    <span className="proposal-badge bg-gray-300 text-gray-700 text-[9px]">
                       {workProgramme.abbreviation}
                     </span>
                   )}
                   {destination && (
-                    <span className="proposal-badge bg-gray-200 text-gray-600 text-[10px]">
+                    <span className="proposal-badge bg-gray-200 text-gray-600 text-[9px]">
                       {destination.abbreviation}
                     </span>
                   )}
@@ -243,7 +243,7 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
             <h3 className="proposal-title text-sm font-semibold group-hover:text-primary transition-colors">
               {proposal.acronym}
             </h3>
-            <p className="text-muted-foreground text-[10px] line-clamp-2">
+            <p className="text-muted-foreground text-[11px] line-clamp-2">
               {proposal.title}
             </p>
           </div>
@@ -269,10 +269,10 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
               <ArrowRight className="w-2.5 h-2.5" />
             </Button>
             {/* Dates below buttons - left aligned so icons stack */}
-            <div className="flex flex-col gap-0.5 mt-1 text-[10px] text-muted-foreground">
+            <div className="flex flex-col gap-0.5 mt-1 text-[9px] text-muted-foreground">
               {proposal.deadline && (
                 <div className="flex items-center gap-0.5">
-                  <Calendar className="w-3 h-3 text-yellow-600" />
+                  <Calendar className="w-2.5 h-2.5 text-yellow-600" />
                   <span className="font-bold">Deadline:</span> {format(proposal.deadline, 'dd/MM/yyyy')}
                 </div>
               )}
@@ -280,9 +280,9 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
               {isDecided && proposal.decisionDate && (
                 <div className="flex items-center gap-0.5">
                   {proposal.status === 'funded' ? (
-                    <CheckCircle2 className="w-3 h-3 text-green-600" />
+                    <CheckCircle2 className="w-2.5 h-2.5 text-green-600" />
                   ) : (
-                    <XCircle className="w-3 h-3 text-red-600" />
+                    <XCircle className="w-2.5 h-2.5 text-red-600" />
                   )}
                   <span className="font-bold">Decision:</span> {format(proposal.decisionDate, 'dd/MM/yyyy')}
                 </div>
@@ -292,7 +292,7 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
                 const estimatedDate = getEstimatedDecisionDate(proposal);
                 return estimatedDate ? (
                   <div className="flex items-center gap-0.5">
-                    <Clock className="w-3 h-3 text-yellow-600" />
+                    <Clock className="w-2.5 h-2.5 text-yellow-600" />
                     <span className="font-bold">Decision:</span> ~{format(estimatedDate, 'dd/MM/yyyy')}
                   </div>
                 ) : null;
