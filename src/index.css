@@ -235,7 +235,10 @@
   }
 
   .proposal-badge {
-    @apply inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    @apply inline-flex items-center justify-center px-2.5 rounded-full text-xs font-medium;
+    height: 18px;
+    line-height: 18px;
+    white-space: nowrap;
   }
 
   .proposal-badge-ria {
