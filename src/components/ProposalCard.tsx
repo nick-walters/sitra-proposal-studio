@@ -233,6 +233,25 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
               {isDraft ? 'Edit' : 'View'}
               <ArrowRight className="w-2.5 h-2.5" />
             </Button>
+            {/* Dates below buttons */}
+            <div className="flex flex-col gap-0.5 mt-1 text-[9px] text-muted-foreground text-right">
+              {proposal.deadline && (
+                <div className="flex items-center gap-0.5 justify-end">
+                  <Calendar className="w-2.5 h-2.5 text-yellow-600" />
+                  <span className="font-bold">Deadline:</span> {format(proposal.deadline, 'dd/MM/yyyy')}
+                </div>
+              )}
+              {isDecided && proposal.decisionDate && (
+                <div className="flex items-center gap-0.5 justify-end">
+                  {proposal.status === 'funded' ? (
+                    <CheckCircle2 className="w-2.5 h-2.5 text-green-600" />
+                  ) : (
+                    <XCircle className="w-2.5 h-2.5 text-red-600" />
+                  )}
+                  <span className="font-bold">Decision:</span> {format(proposal.decisionDate, 'dd/MM/yyyy')}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -240,29 +259,9 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
         <h3 className="proposal-title text-sm font-semibold group-hover:text-primary transition-colors">
           {proposal.acronym}
         </h3>
-        <p className="text-muted-foreground text-[11px] line-clamp-2 mb-2">
+        <p className="text-muted-foreground text-[11px] line-clamp-2">
           {proposal.title}
         </p>
-
-        {/* Dates at bottom */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[9px] text-muted-foreground">
-          {proposal.deadline && (
-            <div className="flex items-center gap-0.5">
-              <Calendar className="w-2.5 h-2.5 text-yellow-600" />
-              <span className="font-bold">Deadline:</span> {format(proposal.deadline, 'dd/MM/yyyy')}
-            </div>
-          )}
-          {isDecided && proposal.decisionDate && (
-            <div className="flex items-center gap-0.5">
-              {proposal.status === 'funded' ? (
-                <CheckCircle2 className="w-2.5 h-2.5 text-green-600" />
-              ) : (
-                <XCircle className="w-2.5 h-2.5 text-red-600" />
-              )}
-              <span className="font-bold">Decision:</span> {format(proposal.decisionDate, 'dd/MM/yyyy')}
-            </div>
-          )}
-        </div>
       </CardContent>
     </Card>
   );
