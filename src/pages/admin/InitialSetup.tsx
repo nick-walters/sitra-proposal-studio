@@ -145,7 +145,7 @@ export function InitialSetup() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button onClick={() => navigate('/')}>
+              <Button onClick={() => navigate('/auth')}>
                 Go to Login
               </Button>
             </CardContent>
