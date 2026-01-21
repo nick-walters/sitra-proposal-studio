@@ -102,8 +102,8 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
           
           {/* Info */}
           <div className="flex-1 min-w-0">
-            {/* Row 1: All badges */}
-            <div className="flex items-center gap-1 flex-wrap">
+            {/* All badges, acronym, and title - wrap to second line on narrow screens */}
+            <div className="flex items-baseline gap-1 flex-wrap">
               <span className={`proposal-badge ${statusInfo.className} flex items-center gap-0.5 text-[9px]`}>
                 <StatusIcon className="w-2.5 h-2.5" />
                 {statusInfo.label}
@@ -120,9 +120,6 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
                   {destination.abbreviation}
                 </span>
               )}
-            </div>
-            {/* Row 2: Acronym and title on same line */}
-            <div className="flex items-baseline gap-1.5 mt-0.5">
               <span className="font-semibold text-sm flex-shrink-0">{proposal.acronym}</span>
               <span className="text-xs text-muted-foreground truncate">{proposal.title}</span>
             </div>
