@@ -234,7 +234,7 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
                     </span>
                   )}
                   {destination && (
-                    <span className="proposal-badge bg-gray-200 text-gray-600 text-[9px] max-w-[90px] whitespace-normal text-center leading-tight py-0.5">
+                    <span className="proposal-badge bg-gray-200 text-gray-600 text-[9px] max-w-[90px] whitespace-normal text-center leading-tight">
                       {destination.abbreviation}
                     </span>
                   )}
