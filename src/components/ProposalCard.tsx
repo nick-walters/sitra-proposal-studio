@@ -88,66 +88,77 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
   if (compact) {
     return (
       <Card className="card-elevated group cursor-pointer hover:border-primary/30" onClick={onClick}>
-        <CardContent className="p-3 flex items-center gap-3">
+        <CardContent className="p-2 flex items-center gap-2">
           {/* Logo */}
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
             {proposal.logoUrl ? (
               <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
             ) : topicIcon ? (
               topicIcon
             ) : (
-              <FileText className="w-5 h-5 text-primary" />
+              <FileText className="w-4 h-4 text-primary" />
             )}
           </div>
           
           {/* Info */}
           <div className="flex-1 min-w-0">
-            {/* Row 1: Combined Status */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="font-semibold text-sm">{proposal.acronym}</span>
-              <span className={`proposal-badge ${statusInfo.className} flex items-center gap-1 text-[10px]`}>
-                <StatusIcon className="w-3 h-3" />
+            {/* Row 1: All badges + acronym on same line */}
+            <div className="flex items-center gap-1 flex-wrap">
+              <span className={`proposal-badge ${statusInfo.className} flex items-center gap-0.5 text-[9px]`}>
+                <StatusIcon className="w-2.5 h-2.5" />
                 {statusInfo.label}
                 {statusInfo.days !== undefined && ` (${statusInfo.days}d)`}
               </span>
-            </div>
-            {/* Row 2: Type, Work Programme, Destination */}
-            <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
-              <span className="proposal-badge bg-white text-foreground border border-foreground text-[10px]">{proposal.type}</span>
+              <span className="proposal-badge bg-white text-foreground border border-foreground text-[9px]">{proposal.type}</span>
               {workProgramme && (
-                <span className="proposal-badge bg-gray-300 text-gray-700 text-[10px]">
+                <span className="proposal-badge bg-gray-300 text-gray-700 text-[9px]">
                   {workProgramme.abbreviation}
                 </span>
               )}
               {destination && (
-                <span className="proposal-badge bg-gray-200 text-gray-600 text-[10px]">
+                <span className="proposal-badge bg-gray-200 text-gray-600 text-[9px]">
                   {destination.abbreviation}
                 </span>
               )}
+              <span className="font-semibold text-sm">{proposal.acronym}</span>
             </div>
-            <p className="text-xs text-muted-foreground truncate mt-0.5">{proposal.title}</p>
+            <p className="text-xs text-muted-foreground truncate">{proposal.title}</p>
           </div>
 
           {/* Action buttons */}
-          <div className="flex flex-col gap-1 flex-shrink-0">
+          <div className="flex items-center gap-1 flex-shrink-0">
             {proposal.topicUrl && (
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="h-6 px-2 gap-1 text-[10px]"
+                className="h-5 px-1.5 gap-0.5 text-[9px]"
                 onClick={(e) => {
                   e.stopPropagation();
                   window.open(proposal.topicUrl, '_blank');
                 }}
               >
                 Topic
-                <ExternalLink className="w-2.5 h-2.5" />
+                <ExternalLink className="w-2 h-2" />
               </Button>
             )}
-            <Button size="sm" className="h-6 px-2 gap-1 text-[10px] bg-foreground text-background hover:bg-foreground/90">
+            <Button size="sm" className="h-5 px-2 gap-0.5 text-[9px] bg-foreground text-background hover:bg-foreground/90">
               {isDraft ? 'Edit' : 'View'}
-              <ArrowRight className="w-2.5 h-2.5" />
+              <ArrowRight className="w-2 h-2" />
             </Button>
+          </div>
+          
+          {/* Dates */}
+          <div className="flex flex-col gap-0 flex-shrink-0 text-[9px] text-muted-foreground text-right">
+            {proposal.deadline && (
+              <div>
+                <span className="font-bold">Deadline:</span> {format(proposal.deadline, 'dd/MM/yyyy')}
+              </div>
+            )}
+            {isDecided && proposal.decisionDate && (
+              <div>
+                <span className="font-bold">Decision:</span> {format(proposal.decisionDate, 'dd/MM/yyyy')}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
