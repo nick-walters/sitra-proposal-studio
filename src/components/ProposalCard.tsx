@@ -106,7 +106,7 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
             <div className="font-semibold text-sm">{proposal.acronym}</div>
             {/* Title and badges on same row */}
             <div className="flex items-center gap-1 flex-wrap">
-              <span className="text-xs text-muted-foreground truncate max-w-[200px]">{proposal.title}</span>
+              <span className="text-xs text-muted-foreground truncate flex-shrink min-w-[80px] max-w-[50vw]">{proposal.title}</span>
               <span className={`proposal-badge ${statusInfo.className} flex items-center gap-0.5 text-[9px]`}>
                 <StatusIcon className="w-2.5 h-2.5" />
                 {statusInfo.label}
@@ -124,6 +124,26 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
                 </span>
               )}
             </div>
+          </div>
+          
+          {/* Dates */}
+          <div className="flex flex-col gap-0 flex-shrink-0 text-[9px] text-muted-foreground text-right">
+            {proposal.deadline && (
+              <div className="flex items-center gap-0.5">
+                <Calendar className="w-2.5 h-2.5 text-yellow-600" />
+                <span className="font-bold">Deadline:</span> {format(proposal.deadline, 'dd/MM/yyyy')}
+              </div>
+            )}
+            {isDecided && proposal.decisionDate && (
+              <div className="flex items-center gap-0.5">
+                {proposal.status === 'funded' ? (
+                  <CheckCircle2 className="w-2.5 h-2.5 text-green-600" />
+                ) : (
+                  <XCircle className="w-2.5 h-2.5 text-red-600" />
+                )}
+                <span className="font-bold">Decision:</span> {format(proposal.decisionDate, 'dd/MM/yyyy')}
+              </div>
+            )}
           </div>
 
           {/* Action buttons */}
@@ -146,26 +166,6 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
               {isDraft ? 'Edit' : 'View'}
               <ArrowRight className="w-2 h-2" />
             </Button>
-          </div>
-          
-          {/* Dates */}
-          <div className="flex flex-col gap-0 flex-shrink-0 text-[9px] text-muted-foreground text-right">
-            {proposal.deadline && (
-              <div className="flex items-center gap-0.5">
-                <Calendar className="w-2.5 h-2.5 text-yellow-600" />
-                <span className="font-bold">Deadline:</span> {format(proposal.deadline, 'dd/MM/yyyy')}
-              </div>
-            )}
-            {isDecided && proposal.decisionDate && (
-              <div className="flex items-center gap-0.5">
-                {proposal.status === 'funded' ? (
-                  <CheckCircle2 className="w-2.5 h-2.5 text-green-600" />
-                ) : (
-                  <XCircle className="w-2.5 h-2.5 text-red-600" />
-                )}
-                <span className="font-bold">Decision:</span> {format(proposal.decisionDate, 'dd/MM/yyyy')}
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>
