@@ -108,8 +108,8 @@ export function CountryCodeSelect({ value, onValueChange, className, hasError }:
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[280px] p-0 z-50" align="start">
-        <div className="flex flex-col bg-popover rounded-md">
-          <div className="flex items-center border-b px-3">
+        <div className="flex flex-col bg-popover rounded-md" style={{ maxHeight: '350px' }}>
+          <div className="flex items-center border-b px-3 shrink-0">
             <Input
               placeholder="Search country or code..."
               value={search}
@@ -118,8 +118,12 @@ export function CountryCodeSelect({ value, onValueChange, className, hasError }:
             />
           </div>
           <div 
-            className="max-h-[300px] overflow-y-auto"
-            style={{ WebkitOverflowScrolling: 'touch' }}
+            style={{ 
+              maxHeight: '300px', 
+              overflowY: 'auto',
+              WebkitOverflowScrolling: 'touch',
+              overscrollBehavior: 'contain'
+            }}
           >
             {hasResults ? (
               <>

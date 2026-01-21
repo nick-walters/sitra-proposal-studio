@@ -105,8 +105,8 @@ export function ProposalMultiSelect({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[400px] p-0 z-[100]" align="start">
-          <div className="flex flex-col bg-popover rounded-md">
-            <div className="flex items-center border-b px-3">
+          <div className="flex flex-col bg-popover rounded-md" style={{ maxHeight: '350px' }}>
+            <div className="flex items-center border-b px-3 shrink-0">
               <Input
                 placeholder="Type acronym to search..."
                 value={search}
@@ -115,8 +115,12 @@ export function ProposalMultiSelect({
               />
             </div>
             <div 
-              className="max-h-[300px] overflow-y-auto"
-              style={{ WebkitOverflowScrolling: 'touch' }}
+              style={{ 
+                maxHeight: '300px', 
+                overflowY: 'auto',
+                WebkitOverflowScrolling: 'touch',
+                overscrollBehavior: 'contain'
+              }}
             >
               {loading ? (
                 <div className="py-6 text-center text-sm text-muted-foreground">
