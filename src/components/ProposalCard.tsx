@@ -156,8 +156,8 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
                 <span className="font-bold">Decision:</span> {format(proposal.decisionDate, 'dd/MM/yyyy')}
               </div>
             )}
-            {/* For drafts with deadline, show estimated decision date */}
-            {isDraft && proposal.deadline && (() => {
+            {/* For drafts and submitted proposals with deadline, show estimated decision date */}
+            {(isDraft || proposal.status === 'submitted') && proposal.deadline && (() => {
               const estimatedDate = getEstimatedDecisionDate(proposal);
               return estimatedDate ? (
                 <div className="flex items-center gap-0.5">
@@ -268,17 +268,17 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
               {isDraft ? 'Edit' : 'View'}
               <ArrowRight className="w-2.5 h-2.5" />
             </Button>
-            {/* Dates below buttons */}
-            <div className="flex flex-col gap-0.5 mt-1 text-[9px] text-muted-foreground text-right">
+            {/* Dates below buttons - left aligned so icons stack */}
+            <div className="flex flex-col gap-0.5 mt-1 text-[9px] text-muted-foreground">
               {proposal.deadline && (
-                <div className="flex items-center gap-0.5 justify-end">
+                <div className="flex items-center gap-0.5">
                   <Calendar className="w-2.5 h-2.5 text-yellow-600" />
                   <span className="font-bold">Deadline:</span> {format(proposal.deadline, 'dd/MM/yyyy')}
                 </div>
               )}
               {/* For decided proposals, show actual decision date */}
               {isDecided && proposal.decisionDate && (
-                <div className="flex items-center gap-0.5 justify-end">
+                <div className="flex items-center gap-0.5">
                   {proposal.status === 'funded' ? (
                     <CheckCircle2 className="w-2.5 h-2.5 text-green-600" />
                   ) : (
@@ -287,11 +287,11 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
                   <span className="font-bold">Decision:</span> {format(proposal.decisionDate, 'dd/MM/yyyy')}
                 </div>
               )}
-              {/* For drafts with deadline, show estimated decision date */}
-              {isDraft && proposal.deadline && (() => {
+              {/* For drafts and submitted proposals with deadline, show estimated decision date */}
+              {(isDraft || proposal.status === 'submitted') && proposal.deadline && (() => {
                 const estimatedDate = getEstimatedDecisionDate(proposal);
                 return estimatedDate ? (
-                  <div className="flex items-center gap-0.5 justify-end">
+                  <div className="flex items-center gap-0.5">
                     <Clock className="w-2.5 h-2.5 text-yellow-600" />
                     <span className="font-bold">Decision:</span> ~{format(estimatedDate, 'dd/MM/yyyy')}
                   </div>

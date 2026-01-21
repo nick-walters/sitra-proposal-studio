@@ -199,6 +199,26 @@ const sampleProposals: Proposal[] = [
       { user: { id: '14', name: 'Peter Schmidt', email: 'peter@example.com' }, role: 'editor' },
     ],
   },
+  {
+    id: '9',
+    acronym: 'AquaSense',
+    title: 'Smart water quality monitoring for urban water systems',
+    type: 'RIA',
+    budgetType: 'traditional',
+    createdAt: new Date('2025-01-10'),
+    updatedAt: new Date('2025-01-20'),
+    status: 'draft',
+    submissionStage: 'stage_1',
+    workProgramme: 'CL6',
+    destination: 'CL6-ZEROPOLLUTION',
+    deadline: new Date('2026-01-15'), // Winter 2026 - Stage 1 proposal
+    topicUrl: 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl6-2026-zeropollution-01-01',
+    sections: HORIZON_EUROPE_SECTIONS,
+    members: [
+      { user: { id: '15', name: 'Henrik Larsson', email: 'henrik@example.com' }, role: 'admin' },
+      { user: { id: '1', name: 'John Doe', email: 'john@example.com' }, role: 'editor' },
+    ],
+  },
 ];
 
 export function Dashboard() {
