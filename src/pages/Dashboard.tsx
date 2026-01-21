@@ -287,6 +287,32 @@ export function Dashboard() {
   useEffect(() => {
     fetchProposals();
   }, [fetchProposals]);
+
+  // Real-time subscription for proposals
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('proposals-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'proposals',
+        },
+        (payload) => {
+          console.log('Proposal change detected:', payload.eventType);
+          // Refetch proposals on any change
+          fetchProposals();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, fetchProposals]);
   
   // Multi-select filter states
   // Combined status filter: 'draft_critical', 'draft_due_soon', 'draft_on_track', 'submitted', 'funded', 'not_funded'
