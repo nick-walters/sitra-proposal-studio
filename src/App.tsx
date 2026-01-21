@@ -9,6 +9,7 @@ import { ProposalEditor } from "./pages/ProposalEditor";
 import { BackendAdmin } from "./pages/admin/BackendAdmin";
 import { TemplateAdmin } from "./pages/admin/TemplateAdmin";
 import { UserRightsAdmin } from "./pages/admin/UserRightsAdmin";
+import { InitialSetup } from "./pages/admin/InitialSetup";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/admin" element={<BackendAdmin />} />
           <Route path="/admin/templates" element={<TemplateAdmin />} />
           <Route path="/admin/user-rights" element={<UserRightsAdmin />} />
+          <Route path="/admin/setup" element={<InitialSetup />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

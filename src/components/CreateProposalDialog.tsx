@@ -16,9 +16,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ProposalType, WORK_PROGRAMMES, DESTINATIONS, getDestinationsForWorkProgramme } from "@/types/proposal";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { 
+  ProposalType, 
+  BudgetType,
+  SubmissionStage,
+  WORK_PROGRAMMES, 
+  getDestinationsForWorkProgramme,
+  SUBMISSION_STAGE_LABELS
+} from "@/types/proposal";
 import { useState, useMemo } from "react";
-import { FileText, Beaker, Lightbulb, Users } from "lucide-react";
+import { FileText, Beaker, Lightbulb, Users, Layers, Calculator } from "lucide-react";
 
 interface CreateProposalDialogProps {
   open: boolean;
@@ -27,6 +35,8 @@ interface CreateProposalDialogProps {
     acronym: string; 
     title: string; 
     type: ProposalType;
+    budgetType: BudgetType;
+    submissionStage: SubmissionStage;
     workProgramme?: string;
     destination?: string;
   }) => void;
@@ -61,6 +71,8 @@ export function CreateProposalDialog({
   const [acronym, setAcronym] = useState('');
   const [title, setTitle] = useState('');
   const [type, setType] = useState<ProposalType>('RIA');
+  const [budgetType, setBudgetType] = useState<BudgetType>('traditional');
+  const [submissionStage, setSubmissionStage] = useState<SubmissionStage>('full');
   const [workProgramme, setWorkProgramme] = useState<string>('');
   const [destination, setDestination] = useState<string>('');
 
@@ -82,12 +94,17 @@ export function CreateProposalDialog({
         acronym, 
         title, 
         type,
+        budgetType,
+        submissionStage,
         workProgramme: workProgramme || undefined,
         destination: destination || undefined,
       });
+      // Reset form
       setAcronym('');
       setTitle('');
       setType('RIA');
+      setBudgetType('traditional');
+      setSubmissionStage('full');
       setWorkProgramme('');
       setDestination('');
       onOpenChange(false);
@@ -96,7 +113,7 @@ export function CreateProposalDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -110,36 +127,67 @@ export function CreateProposalDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="acronym">Proposal Acronym</Label>
-              <Input
-                id="acronym"
-                placeholder="e.g., INNOVATE"
-                value={acronym}
-                onChange={(e) => setAcronym(e.target.value.toUpperCase())}
-                className="font-semibold"
-              />
-              <p className="text-xs text-muted-foreground">
-                A short, memorable name for your proposal
-              </p>
+          <div className="grid gap-5 py-4">
+            {/* Basic Info */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="acronym">Proposal Acronym *</Label>
+                <Input
+                  id="acronym"
+                  placeholder="e.g., INNOVATE"
+                  value={acronym}
+                  onChange={(e) => setAcronym(e.target.value.toUpperCase())}
+                  className="font-semibold"
+                />
+                <p className="text-xs text-muted-foreground">
+                  A short, memorable name
+                </p>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="title">Full Title *</Label>
+                <Input
+                  id="title"
+                  placeholder="Enter the full proposal title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              </div>
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="title">Full Title</Label>
-              <Input
-                id="title"
-                placeholder="Enter the full proposal title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
+            {/* Submission Stage */}
+            <div className="grid gap-3">
+              <Label className="flex items-center gap-2">
+                <Layers className="w-4 h-4 text-muted-foreground" />
+                Submission Stage
+              </Label>
+              <RadioGroup 
+                value={submissionStage} 
+                onValueChange={(v) => setSubmissionStage(v as SubmissionStage)}
+                className="grid grid-cols-2 gap-3"
+              >
+                <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-muted/50 transition-colors">
+                  <RadioGroupItem value="full" id="stage-full" />
+                  <Label htmlFor="stage-full" className="cursor-pointer flex-1">
+                    <span className="font-medium">Full Proposal</span>
+                    <p className="text-xs text-muted-foreground">Single-stage submission</p>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-muted/50 transition-colors">
+                  <RadioGroupItem value="stage_1" id="stage-1" />
+                  <Label htmlFor="stage-1" className="cursor-pointer flex-1">
+                    <span className="font-medium">Stage 1 of 2</span>
+                    <p className="text-xs text-muted-foreground">Two-stage submission process</p>
+                  </Label>
+                </div>
+              </RadioGroup>
             </div>
 
+            {/* Proposal Type */}
             <div className="grid gap-2">
-              <Label>Proposal Type</Label>
+              <Label>Action Type</Label>
               <Select value={type} onValueChange={(v) => setType(v as ProposalType)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select proposal type" />
+                  <SelectValue placeholder="Select action type" />
                 </SelectTrigger>
                 <SelectContent>
                   {proposalTypes.map((pt) => (
@@ -157,11 +205,40 @@ export function CreateProposalDialog({
               </p>
             </div>
 
+            {/* Budget Type */}
+            <div className="grid gap-3">
+              <Label className="flex items-center gap-2">
+                <Calculator className="w-4 h-4 text-muted-foreground" />
+                Budget Template
+              </Label>
+              <RadioGroup 
+                value={budgetType} 
+                onValueChange={(v) => setBudgetType(v as BudgetType)}
+                className="grid grid-cols-2 gap-3"
+              >
+                <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-muted/50 transition-colors">
+                  <RadioGroupItem value="traditional" id="budget-traditional" />
+                  <Label htmlFor="budget-traditional" className="cursor-pointer flex-1">
+                    <span className="font-medium">Traditional Budget</span>
+                    <p className="text-xs text-muted-foreground">Detailed cost reporting</p>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-muted/50 transition-colors">
+                  <RadioGroupItem value="lump_sum" id="budget-lumpsum" />
+                  <Label htmlFor="budget-lumpsum" className="cursor-pointer flex-1">
+                    <span className="font-medium">Lump Sum</span>
+                    <p className="text-xs text-muted-foreground">Simplified budget model</p>
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            {/* Work Programme */}
             <div className="grid gap-2">
               <Label>Work Programme</Label>
               <Select value={workProgramme} onValueChange={handleWorkProgrammeChange}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select work programme" />
+                  <SelectValue placeholder="Select work programme (optional)" />
                 </SelectTrigger>
                 <SelectContent>
                   {WORK_PROGRAMMES.map((wp) => (
@@ -173,12 +250,13 @@ export function CreateProposalDialog({
               </Select>
             </div>
 
+            {/* Destination */}
             {workProgramme && availableDestinations.length > 0 && (
               <div className="grid gap-2">
                 <Label>Destination</Label>
                 <Select value={destination} onValueChange={setDestination}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select destination" />
+                    <SelectValue placeholder="Select destination (optional)" />
                   </SelectTrigger>
                   <SelectContent>
                     {availableDestinations.map((dest) => (
