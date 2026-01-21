@@ -211,19 +211,28 @@ export function Dashboard() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   
   // Multi-select filter states
-  const [statusFilters, setStatusFilters] = useState<Set<ProposalStatus>>(new Set());
+  // Combined status filter: 'draft_critical', 'draft_due_soon', 'draft_on_track', 'submitted', 'funded', 'not_funded'
+  const [combinedStatusFilters, setCombinedStatusFilters] = useState<Set<string>>(new Set());
   const [typeFilters, setTypeFilters] = useState<Set<ProposalType>>(new Set());
   const [wpFilters, setWpFilters] = useState<Set<string>>(new Set());
   const [destFilters, setDestFilters] = useState<Set<string>>(new Set());
-  const [urgencyFilters, setUrgencyFilters] = useState<Set<string>>(new Set());
 
-  const toggleUrgency = (urgency: string) => {
-    setUrgencyFilters(prev => {
+  const toggleCombinedStatus = (status: string) => {
+    setCombinedStatusFilters(prev => {
       const next = new Set(prev);
-      if (next.has(urgency)) next.delete(urgency);
-      else next.add(urgency);
+      if (next.has(status)) next.delete(status);
+      else next.add(status);
       return next;
     });
+  };
+
+  // Helper to get the combined status key for a proposal
+  const getCombinedStatusKey = (proposal: Proposal): string => {
+    if (proposal.status === 'draft') {
+      const urgency = getUrgencyLevel(proposal.deadline);
+      return `draft_${urgency || 'no_deadline'}`;
+    }
+    return proposal.status;
   };
 
   // Check if user is Sitra staff (based on email domain)
@@ -238,16 +247,6 @@ export function Dashboard() {
     });
     return destinations;
   }, [wpFilters]);
-
-  // Toggle helpers for multi-select
-  const toggleStatus = (status: ProposalStatus) => {
-    setStatusFilters(prev => {
-      const next = new Set(prev);
-      if (next.has(status)) next.delete(status);
-      else next.add(status);
-      return next;
-    });
-  };
 
   const toggleType = (type: ProposalType) => {
     setTypeFilters(prev => {
@@ -313,8 +312,9 @@ export function Dashboard() {
         p.acronym.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.title.toLowerCase().includes(searchQuery.toLowerCase());
       
-      // Status filter (empty = all)
-      const matchesStatus = statusFilters.size === 0 || statusFilters.has(p.status);
+      // Combined status filter (empty = all)
+      const proposalCombinedStatus = getCombinedStatusKey(p);
+      const matchesCombinedStatus = combinedStatusFilters.size === 0 || combinedStatusFilters.has(proposalCombinedStatus);
       
       // Type filter (empty = all)
       const matchesType = typeFilters.size === 0 || typeFilters.has(p.type);
@@ -325,10 +325,7 @@ export function Dashboard() {
       // Destination filter (empty = all)
       const matchesDest = destFilters.size === 0 || (p.destination && destFilters.has(p.destination));
       
-      // Urgency filter (empty = all, only applies to drafts)
-      const matchesUrgency = urgencyFilters.size === 0 || (p.status === 'draft' && urgencyFilters.has(getUrgencyLevel(p.deadline) || ''));
-      
-      return matchesSearch && matchesStatus && matchesType && matchesWp && matchesDest && matchesUrgency;
+      return matchesSearch && matchesCombinedStatus && matchesType && matchesWp && matchesDest;
     });
 
     // Sort: status priority → urgency (for drafts) → acronym alphabetically
@@ -346,16 +343,15 @@ export function Dashboard() {
       // Then alphabetically by acronym
       return a.acronym.localeCompare(b.acronym);
     });
-  }, [proposals, searchQuery, statusFilters, typeFilters, wpFilters, destFilters, urgencyFilters]);
+  }, [proposals, searchQuery, combinedStatusFilters, typeFilters, wpFilters, destFilters]);
 
-  const activeFiltersCount = statusFilters.size + typeFilters.size + wpFilters.size + destFilters.size + urgencyFilters.size;
+  const activeFiltersCount = combinedStatusFilters.size + typeFilters.size + wpFilters.size + destFilters.size;
 
   const clearFilters = () => {
-    setStatusFilters(new Set());
+    setCombinedStatusFilters(new Set());
     setTypeFilters(new Set());
     setWpFilters(new Set());
     setDestFilters(new Set());
-    setUrgencyFilters(new Set());
     setSearchQuery('');
   };
 
@@ -425,9 +421,9 @@ export function Dashboard() {
               <PopoverContent className="w-96 p-4" align="end">
                 <h3 className="font-bold text-base mb-3">Filter</h3>
                 <div className="space-y-4">
-                  {/* Combined Status & Urgency Section */}
+                  {/* Combined Status Section */}
                   <div className="space-y-2">
-                    <h4 className="font-semibold text-sm">Status & Urgency</h4>
+                    <h4 className="font-semibold text-sm">Status</h4>
                     <div className="flex flex-wrap gap-2">
                       {(() => {
                         const draftProposals = proposals.filter(p => p.status === 'draft');
@@ -443,12 +439,9 @@ export function Dashboard() {
                             {/* Draft urgency categories */}
                             {criticalCount > 0 && (
                               <button
-                                onClick={() => {
-                                  toggleStatus('draft');
-                                  toggleUrgency('critical');
-                                }}
+                                onClick={() => toggleCombinedStatus('draft_critical')}
                                 className={`px-2.5 py-1 rounded-md transition-colors text-sm flex items-center gap-1 ${
-                                  statusFilters.has('draft') && urgencyFilters.has('critical') 
+                                  combinedStatusFilters.has('draft_critical') 
                                     ? 'bg-red-500 text-white' 
                                     : 'bg-red-500/15 text-red-600 border border-red-500/30 hover:bg-red-500/25'
                                 }`}
@@ -460,12 +453,9 @@ export function Dashboard() {
                             )}
                             {dueSoonCount > 0 && (
                               <button
-                                onClick={() => {
-                                  toggleStatus('draft');
-                                  toggleUrgency('due_soon');
-                                }}
+                                onClick={() => toggleCombinedStatus('draft_due_soon')}
                                 className={`px-2.5 py-1 rounded-md transition-colors text-sm flex items-center gap-1 ${
-                                  statusFilters.has('draft') && urgencyFilters.has('due_soon') 
+                                  combinedStatusFilters.has('draft_due_soon') 
                                     ? 'bg-orange-500 text-white' 
                                     : 'bg-orange-500/15 text-orange-600 border border-orange-500/30 hover:bg-orange-500/25'
                                 }`}
@@ -477,12 +467,9 @@ export function Dashboard() {
                             )}
                             {onTrackCount > 0 && (
                               <button
-                                onClick={() => {
-                                  toggleStatus('draft');
-                                  toggleUrgency('on_track');
-                                }}
+                                onClick={() => toggleCombinedStatus('draft_on_track')}
                                 className={`px-2.5 py-1 rounded-md transition-colors text-sm flex items-center gap-1 ${
-                                  statusFilters.has('draft') && urgencyFilters.has('on_track') 
+                                  combinedStatusFilters.has('draft_on_track') 
                                     ? 'bg-green-500 text-white' 
                                     : 'bg-green-500/15 text-green-600 border border-green-500/30 hover:bg-green-500/25'
                                 }`}
@@ -495,9 +482,9 @@ export function Dashboard() {
                             {/* Under evaluation */}
                             {submittedCount > 0 && (
                               <button
-                                onClick={() => toggleStatus('submitted')}
+                                onClick={() => toggleCombinedStatus('submitted')}
                                 className={`px-2.5 py-1 rounded-md transition-colors text-sm flex items-center gap-1 ${
-                                  statusFilters.has('submitted') 
+                                  combinedStatusFilters.has('submitted') 
                                     ? 'bg-orange-500 text-white' 
                                     : 'bg-orange-500/15 text-orange-600 border border-orange-500/30 hover:bg-orange-500/25'
                                 }`}
@@ -510,9 +497,9 @@ export function Dashboard() {
                             {/* Funded */}
                             {fundedCount > 0 && (
                               <button
-                                onClick={() => toggleStatus('funded')}
+                                onClick={() => toggleCombinedStatus('funded')}
                                 className={`px-2.5 py-1 rounded-md transition-colors text-sm flex items-center gap-1 border ${
-                                  statusFilters.has('funded') 
+                                  combinedStatusFilters.has('funded') 
                                     ? 'bg-green-500 text-white border-green-500' 
                                     : 'bg-white text-green-600 border-green-500/30 hover:bg-green-50'
                                 }`}
@@ -525,9 +512,9 @@ export function Dashboard() {
                             {/* Not funded */}
                             {notFundedCount > 0 && (
                               <button
-                                onClick={() => toggleStatus('not_funded')}
+                                onClick={() => toggleCombinedStatus('not_funded')}
                                 className={`px-2.5 py-1 rounded-md transition-colors text-sm flex items-center gap-1 border ${
-                                  statusFilters.has('not_funded') 
+                                  combinedStatusFilters.has('not_funded') 
                                     ? 'bg-red-500 text-white border-red-500' 
                                     : 'bg-white text-red-600 border-red-500/30 hover:bg-red-50'
                                 }`}
