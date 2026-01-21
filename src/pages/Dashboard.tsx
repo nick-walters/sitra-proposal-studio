@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Proposal, ProposalType, ProposalStatus, HORIZON_EUROPE_SECTIONS, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS, getDestinationsForWorkProgramme } from "@/types/proposal";
-import { Plus, Search, LayoutGrid, List, X, Filter, Leaf, Brain, Zap, Wheat, Shield, Apple, Atom, HeartPulse, Table2, Columns3 } from "lucide-react";
+import { Plus, Search, LayoutGrid, List, X, Filter, Leaf, Brain, Zap, Wheat, Shield, Apple, Atom, HeartPulse, Table2, Columns3, AlertTriangle, Clock, CheckCircle2, Send, PartyPopper, XCircle } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -192,6 +192,7 @@ const sampleProposals: Proposal[] = [
     destination: 'CL1-CARE',
     deadline: new Date('2024-11-15'),
     submittedAt: new Date('2024-11-14'),
+    topicUrl: 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-hlth-2024-care-06-01',
     sections: HORIZON_EUROPE_SECTIONS,
     members: [
       { user: { id: '13', name: 'Anna Mueller', email: 'anna@example.com' }, role: 'admin' },
@@ -429,82 +430,121 @@ export function Dashboard() {
               <PopoverContent className="w-96 p-4" align="end">
                 <h3 className="font-bold text-base mb-3">Filter</h3>
                 <div className="space-y-4">
+                  {/* Combined Status & Urgency Section */}
                   <div className="space-y-2">
-                    <h4 className="font-semibold text-sm">Urgency</h4>
+                    <h4 className="font-semibold text-sm">Status & Urgency</h4>
                     <div className="flex flex-wrap gap-2">
                       {(() => {
                         const draftProposals = proposals.filter(p => p.status === 'draft');
                         const criticalCount = draftProposals.filter(p => getUrgencyLevel(p.deadline) === 'critical').length;
                         const dueSoonCount = draftProposals.filter(p => getUrgencyLevel(p.deadline) === 'due_soon').length;
                         const onTrackCount = draftProposals.filter(p => getUrgencyLevel(p.deadline) === 'on_track').length;
+                        const submittedCount = proposals.filter(p => p.status === 'submitted').length;
+                        const fundedCount = proposals.filter(p => p.status === 'funded').length;
+                        const notFundedCount = proposals.filter(p => p.status === 'not_funded').length;
                         
                         return (
                           <>
+                            {/* Draft urgency categories */}
                             {criticalCount > 0 && (
                               <button
-                                onClick={() => toggleUrgency('critical')}
-                                className={`px-2.5 py-1 rounded-md transition-colors text-sm ${urgencyFilters.has('critical') ? 'bg-red-500 text-white' : 'bg-red-500/15 text-red-600 border border-red-500/30 hover:bg-red-500/25'}`}
+                                onClick={() => {
+                                  toggleStatus('draft');
+                                  toggleUrgency('critical');
+                                }}
+                                className={`px-2.5 py-1 rounded-md transition-colors text-sm flex items-center gap-1 ${
+                                  statusFilters.has('draft') && urgencyFilters.has('critical') 
+                                    ? 'bg-red-500 text-white' 
+                                    : 'bg-red-500/15 text-red-600 border border-red-500/30 hover:bg-red-500/25'
+                                }`}
                               >
+                                <AlertTriangle className="w-3 h-3" />
                                 <span className="font-bold">{criticalCount}</span>
-                                <span className="ml-1">Critical!</span>
+                                <span>Draft – critical</span>
                               </button>
                             )}
                             {dueSoonCount > 0 && (
                               <button
-                                onClick={() => toggleUrgency('due_soon')}
-                                className={`px-2.5 py-1 rounded-md transition-colors text-sm ${urgencyFilters.has('due_soon') ? 'bg-orange-500 text-white' : 'bg-orange-500/15 text-orange-600 border border-orange-500/30 hover:bg-orange-500/25'}`}
+                                onClick={() => {
+                                  toggleStatus('draft');
+                                  toggleUrgency('due_soon');
+                                }}
+                                className={`px-2.5 py-1 rounded-md transition-colors text-sm flex items-center gap-1 ${
+                                  statusFilters.has('draft') && urgencyFilters.has('due_soon') 
+                                    ? 'bg-orange-500 text-white' 
+                                    : 'bg-orange-500/15 text-orange-600 border border-orange-500/30 hover:bg-orange-500/25'
+                                }`}
                               >
+                                <Clock className="w-3 h-3" />
                                 <span className="font-bold">{dueSoonCount}</span>
-                                <span className="ml-1">Due soon</span>
+                                <span>Draft – due soon</span>
                               </button>
                             )}
                             {onTrackCount > 0 && (
                               <button
-                                onClick={() => toggleUrgency('on_track')}
-                                className={`px-2.5 py-1 rounded-md transition-colors text-sm ${urgencyFilters.has('on_track') ? 'bg-green-500 text-white' : 'bg-green-500/15 text-green-600 border border-green-500/30 hover:bg-green-500/25'}`}
+                                onClick={() => {
+                                  toggleStatus('draft');
+                                  toggleUrgency('on_track');
+                                }}
+                                className={`px-2.5 py-1 rounded-md transition-colors text-sm flex items-center gap-1 ${
+                                  statusFilters.has('draft') && urgencyFilters.has('on_track') 
+                                    ? 'bg-green-500 text-white' 
+                                    : 'bg-green-500/15 text-green-600 border border-green-500/30 hover:bg-green-500/25'
+                                }`}
                               >
+                                <CheckCircle2 className="w-3 h-3" />
                                 <span className="font-bold">{onTrackCount}</span>
-                                <span className="ml-1">On track</span>
+                                <span>Draft – on track</span>
+                              </button>
+                            )}
+                            {/* Under evaluation */}
+                            {submittedCount > 0 && (
+                              <button
+                                onClick={() => toggleStatus('submitted')}
+                                className={`px-2.5 py-1 rounded-md transition-colors text-sm flex items-center gap-1 ${
+                                  statusFilters.has('submitted') 
+                                    ? 'bg-orange-500 text-white' 
+                                    : 'bg-orange-500/15 text-orange-600 border border-orange-500/30 hover:bg-orange-500/25'
+                                }`}
+                              >
+                                <Send className="w-3 h-3" />
+                                <span className="font-bold">{submittedCount}</span>
+                                <span>Under evaluation</span>
+                              </button>
+                            )}
+                            {/* Funded */}
+                            {fundedCount > 0 && (
+                              <button
+                                onClick={() => toggleStatus('funded')}
+                                className={`px-2.5 py-1 rounded-md transition-colors text-sm flex items-center gap-1 border ${
+                                  statusFilters.has('funded') 
+                                    ? 'bg-green-500 text-white border-green-500' 
+                                    : 'bg-white text-green-600 border-green-500/30 hover:bg-green-50'
+                                }`}
+                              >
+                                <PartyPopper className="w-3 h-3" />
+                                <span className="font-bold">{fundedCount}</span>
+                                <span>Funded</span>
+                              </button>
+                            )}
+                            {/* Not funded */}
+                            {notFundedCount > 0 && (
+                              <button
+                                onClick={() => toggleStatus('not_funded')}
+                                className={`px-2.5 py-1 rounded-md transition-colors text-sm flex items-center gap-1 border ${
+                                  statusFilters.has('not_funded') 
+                                    ? 'bg-red-500 text-white border-red-500' 
+                                    : 'bg-white text-red-600 border-red-500/30 hover:bg-red-50'
+                                }`}
+                              >
+                                <XCircle className="w-3 h-3" />
+                                <span className="font-bold">{notFundedCount}</span>
+                                <span>Not funded</span>
                               </button>
                             )}
                           </>
                         );
                       })()}
-                    </div>
-                  </div>
-
-                  {/* Status Section */}
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-sm">Status</h4>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => toggleStatus('draft')}
-                        className={`px-2.5 py-1 rounded-md transition-colors text-sm ${statusFilters.has('draft') ? 'bg-yellow-500 text-white' : 'bg-muted hover:bg-muted/80'}`}
-                      >
-                        <span className="font-bold">{proposals.filter((p) => p.status === 'draft').length}</span>
-                        <span className="ml-1">Draft</span>
-                      </button>
-                      <button
-                        onClick={() => toggleStatus('submitted')}
-                        className={`px-2.5 py-1 rounded-md transition-colors text-sm ${statusFilters.has('submitted') ? 'bg-orange-500 text-white' : 'bg-muted hover:bg-muted/80'}`}
-                      >
-                        <span className="font-bold">{proposals.filter((p) => p.status === 'submitted').length}</span>
-                        <span className="ml-1">Under Evaluation</span>
-                      </button>
-                      <button
-                        onClick={() => toggleStatus('funded')}
-                        className={`px-2.5 py-1 rounded-md transition-colors text-sm ${statusFilters.has('funded') ? 'bg-success text-success-foreground' : 'bg-muted hover:bg-muted/80'}`}
-                      >
-                        <span className="font-bold">{proposals.filter((p) => p.status === 'funded').length}</span>
-                        <span className="ml-1">Funded</span>
-                      </button>
-                      <button
-                        onClick={() => toggleStatus('not_funded')}
-                        className={`px-2.5 py-1 rounded-md transition-colors text-sm ${statusFilters.has('not_funded') ? 'bg-destructive text-destructive-foreground' : 'bg-muted hover:bg-muted/80'}`}
-                      >
-                        <span className="font-bold">{proposals.filter((p) => p.status === 'not_funded').length}</span>
-                        <span className="ml-1">Not Funded</span>
-                      </button>
                     </div>
                   </div>
 
