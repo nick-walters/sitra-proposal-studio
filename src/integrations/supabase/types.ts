@@ -134,6 +134,50 @@ export type Database = {
           },
         ]
       }
+      budget_templates: {
+        Row: {
+          budget_type: string
+          categories: Json
+          created_at: string
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          template_type_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          budget_type: string
+          categories: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name: string
+          template_type_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          budget_type?: string
+          categories?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          template_type_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_templates_template_type_id_fkey"
+            columns: ["template_type_id"]
+            isOneToOne: false
+            referencedRelation: "template_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           content: string
@@ -346,6 +390,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      funding_programmes: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          short_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          short_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          short_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       member_wp_allocations: {
         Row: {
@@ -650,6 +724,7 @@ export type Database = {
       proposals: {
         Row: {
           acronym: string
+          budget_template_id: string | null
           budget_type: Database["public"]["Enums"]["budget_type"]
           created_at: string
           created_by: string | null
@@ -661,6 +736,7 @@ export type Database = {
           logo_url: string | null
           status: Database["public"]["Enums"]["proposal_status"]
           submitted_at: string | null
+          template_type_id: string | null
           title: string
           topic_id: string | null
           topic_url: string | null
@@ -671,6 +747,7 @@ export type Database = {
         }
         Insert: {
           acronym: string
+          budget_template_id?: string | null
           budget_type?: Database["public"]["Enums"]["budget_type"]
           created_at?: string
           created_by?: string | null
@@ -682,6 +759,7 @@ export type Database = {
           logo_url?: string | null
           status?: Database["public"]["Enums"]["proposal_status"]
           submitted_at?: string | null
+          template_type_id?: string | null
           title: string
           topic_id?: string | null
           topic_url?: string | null
@@ -692,6 +770,7 @@ export type Database = {
         }
         Update: {
           acronym?: string
+          budget_template_id?: string | null
           budget_type?: Database["public"]["Enums"]["budget_type"]
           created_at?: string
           created_by?: string | null
@@ -703,6 +782,7 @@ export type Database = {
           logo_url?: string | null
           status?: Database["public"]["Enums"]["proposal_status"]
           submitted_at?: string | null
+          template_type_id?: string | null
           title?: string
           topic_id?: string | null
           topic_url?: string | null
@@ -711,7 +791,22 @@ export type Database = {
           updated_at?: string
           work_programme?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "proposals_budget_template_id_fkey"
+            columns: ["budget_template_id"]
+            isOneToOne: false
+            referencedRelation: "budget_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposals_template_type_id_fkey"
+            columns: ["template_type_id"]
+            isOneToOne: false
+            referencedRelation: "template_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       references: {
         Row: {
@@ -845,6 +940,232 @@ export type Database = {
             columns: ["section_content_id"]
             isOneToOne: false
             referencedRelation: "section_content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      section_guidelines: {
+        Row: {
+          content: string
+          created_at: string
+          guideline_type: string
+          id: string
+          is_active: boolean | null
+          order_index: number
+          section_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          guideline_type: string
+          id?: string
+          is_active?: boolean | null
+          order_index?: number
+          section_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          guideline_type?: string
+          id?: string
+          is_active?: boolean | null
+          order_index?: number
+          section_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "section_guidelines_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "template_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_form_fields: {
+        Row: {
+          created_at: string
+          field_label: string
+          field_name: string
+          field_type: string
+          help_text: string | null
+          id: string
+          is_active: boolean | null
+          is_participant_specific: boolean | null
+          is_required: boolean | null
+          options: Json | null
+          order_index: number
+          placeholder: string | null
+          section_id: string
+          updated_at: string
+          validation_rules: Json | null
+        }
+        Insert: {
+          created_at?: string
+          field_label: string
+          field_name: string
+          field_type: string
+          help_text?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_participant_specific?: boolean | null
+          is_required?: boolean | null
+          options?: Json | null
+          order_index?: number
+          placeholder?: string | null
+          section_id: string
+          updated_at?: string
+          validation_rules?: Json | null
+        }
+        Update: {
+          created_at?: string
+          field_label?: string
+          field_name?: string
+          field_type?: string
+          help_text?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_participant_specific?: boolean | null
+          is_required?: boolean | null
+          options?: Json | null
+          order_index?: number
+          placeholder?: string | null
+          section_id?: string
+          updated_at?: string
+          validation_rules?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_form_fields_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "template_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_sections: {
+        Row: {
+          created_at: string
+          description: string | null
+          editor_type: string
+          id: string
+          is_active: boolean | null
+          is_required: boolean | null
+          order_index: number
+          page_limit: number | null
+          parent_section_id: string | null
+          part: string
+          section_number: string
+          template_type_id: string
+          title: string
+          updated_at: string
+          word_limit: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          editor_type: string
+          id?: string
+          is_active?: boolean | null
+          is_required?: boolean | null
+          order_index?: number
+          page_limit?: number | null
+          parent_section_id?: string | null
+          part: string
+          section_number: string
+          template_type_id: string
+          title: string
+          updated_at?: string
+          word_limit?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          editor_type?: string
+          id?: string
+          is_active?: boolean | null
+          is_required?: boolean | null
+          order_index?: number
+          page_limit?: number | null
+          parent_section_id?: string | null
+          part?: string
+          section_number?: string
+          template_type_id?: string
+          title?: string
+          updated_at?: string
+          word_limit?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_sections_parent_section_id_fkey"
+            columns: ["parent_section_id"]
+            isOneToOne: false
+            referencedRelation: "template_sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_sections_template_type_id_fkey"
+            columns: ["template_type_id"]
+            isOneToOne: false
+            referencedRelation: "template_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_types: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          funding_programme_id: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          parent_type_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          funding_programme_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          parent_type_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          funding_programme_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          parent_type_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_types_funding_programme_id_fkey"
+            columns: ["funding_programme_id"]
+            isOneToOne: false
+            referencedRelation: "funding_programmes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_types_parent_type_id_fkey"
+            columns: ["parent_type_id"]
+            isOneToOne: false
+            referencedRelation: "template_types"
             referencedColumns: ["id"]
           },
         ]
@@ -991,13 +1312,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_owner: { Args: { _user_id: string }; Returns: boolean }
       is_proposal_admin: {
         Args: { _proposal_id: string; _user_id: string }
         Returns: boolean
       }
     }
     Enums: {
-      app_role: "admin" | "editor" | "viewer"
+      app_role: "admin" | "editor" | "viewer" | "owner"
       budget_type: "traditional" | "lump_sum"
       participant_type:
         | "beneficiary"
@@ -1137,7 +1459,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "editor", "viewer"],
+      app_role: ["admin", "editor", "viewer", "owner"],
       budget_type: ["traditional", "lump_sum"],
       participant_type: [
         "beneficiary",
