@@ -3,7 +3,16 @@ import { Proposal, WORK_PROGRAMMES, DESTINATIONS } from "@/types/proposal";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Calendar, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink, AlertTriangle, PartyPopper, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
-import { format, differenceInDays } from "date-fns";
+import { format, differenceInDays, addMonths } from "date-fns";
+
+// Calculate estimated decision date based on submission stage
+// Full proposals: ~5 months after deadline
+// Stage 1: ~3 months after deadline
+const getEstimatedDecisionDate = (proposal: Proposal): Date | null => {
+  if (!proposal.deadline) return null;
+  const monthsToAdd = proposal.submissionStage === 'stage_1' ? 3 : 5;
+  return addMonths(proposal.deadline, monthsToAdd);
+};
 
 interface ProposalTableViewProps {
   proposals: Proposal[];
@@ -263,6 +272,11 @@ export function ProposalTableView({ proposals, onProposalClick, topicIcons }: Pr
                         <XCircle className="w-3 h-3 text-red-600" />
                       )}
                       {format(proposal.decisionDate, 'dd/MM/yyyy')}
+                    </div>
+                  ) : isDraft && proposal.deadline ? (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Clock className="w-3 h-3" />
+                      ~{format(getEstimatedDecisionDate(proposal)!, 'dd/MM/yyyy')}
                     </div>
                   ) : (
                     <span className="text-muted-foreground text-xs">—</span>
