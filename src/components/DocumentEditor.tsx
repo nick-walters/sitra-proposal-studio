@@ -12,6 +12,7 @@ import { InsertFigureDialog } from "./InsertFigureDialog";
 import { ImpactPathwayGenerator } from "./ImpactPathwayGenerator";
 import { WordCountBadge } from "./WordCountBadge";
 import { SaveIndicator } from "./SaveIndicator";
+import { GuidelineBox } from "./GuidelineBox";
 import { useSectionContent } from "@/hooks/useSectionContent";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -190,8 +191,20 @@ export function DocumentEditor({
             )}
           </div>
 
-          {/* Guidelines */}
-          {section.guidelines && (
+          {/* Guidelines - Use GuidelineBox for typed guidelines */}
+          {section.guidelinesArray && section.guidelinesArray.length > 0 ? (
+            <div className="space-y-4">
+              {section.guidelinesArray.map((guideline) => (
+                <GuidelineBox
+                  key={guideline.id}
+                  type={guideline.type}
+                  title={guideline.title}
+                >
+                  {guideline.content}
+                </GuidelineBox>
+              ))}
+            </div>
+          ) : section.guidelines && (
             <Card className="p-4 bg-accent/50 border-primary/20">
               <div className="flex items-start gap-3">
                 <Info className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />

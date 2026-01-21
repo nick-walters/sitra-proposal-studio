@@ -1,7 +1,8 @@
 import { Section } from "@/types/proposal";
-import { ChevronRight, ChevronDown, FileText, Info } from "lucide-react";
+import { ChevronRight, ChevronDown, FileText, Info, Lightbulb } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 
 interface SectionNavigatorProps {
   sections: Section[];
@@ -23,6 +24,11 @@ function SectionItem({
   const [isExpanded, setIsExpanded] = useState(true);
   const hasSubsections = section.subsections && section.subsections.length > 0;
   const isActive = activeSectionId === section.id;
+  
+  // Check for guideline types
+  const hasOfficialGuideline = section.guidelinesArray?.some(g => g.type === 'official') || 
+    (section.guidelines?.text && !section.guidelinesArray);
+  const hasSitraTip = section.guidelinesArray?.some(g => g.type === 'sitra_tip');
 
   return (
     <div className="animate-fade-in">
@@ -61,9 +67,33 @@ function SectionItem({
         <span className={cn("flex-1 truncate", isActive && "font-medium")}>
           {section.title}
         </span>
-        {section.guidelines && (
-          <Info className="w-3.5 h-3.5 text-primary/50 opacity-0 group-hover:opacity-100 transition-opacity" />
-        )}
+        {/* Guideline type indicators */}
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {hasOfficialGuideline && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="w-3.5 h-3.5 text-blue-500" />
+                </TooltipTrigger>
+                <TooltipContent side="right" className="text-xs">
+                  Official guideline
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          {hasSitraTip && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Lightbulb className="w-3.5 h-3.5 text-gray-800" />
+                </TooltipTrigger>
+                <TooltipContent side="right" className="text-xs">
+                  Sitra tip
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
       </div>
 
       {hasSubsections && isExpanded && (

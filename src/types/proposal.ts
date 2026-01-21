@@ -155,6 +155,14 @@ export interface ProposalMember {
   role: UserRole;
 }
 
+export interface SectionGuideline {
+  id: string;
+  type: 'official' | 'sitra_tip';
+  title: string;
+  content: string;
+  orderIndex: number;
+}
+
 export interface Section {
   id: string;
   number: string;
@@ -166,6 +174,7 @@ export interface Section {
     imageUrl?: string;
     videoUrl?: string;
   };
+  guidelinesArray?: SectionGuideline[];
   wordLimit?: number;
   pageLimit?: number;
   isPartA?: boolean;

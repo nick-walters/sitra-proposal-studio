@@ -41,15 +41,20 @@ interface TemplateSectionData {
 
 // Convert database template section to proposal Section type
 function convertToSection(dbSection: TemplateSectionData): Section {
-  // Combine official guidelines
+  // Build guidelines array with proper types
+  const guidelinesArray = dbSection.guidelines
+    ?.sort((a, b) => a.order_index - b.order_index)
+    .map(g => ({
+      id: g.id,
+      type: g.guideline_type,
+      title: g.title,
+      content: g.content,
+      orderIndex: g.order_index,
+    })) || [];
+
+  // Also keep legacy text format for backward compatibility
   const officialGuidelines = dbSection.guidelines
     ?.filter(g => g.guideline_type === 'official')
-    .map(g => g.content)
-    .join('\n\n');
-  
-  // Combine sitra tips
-  const sitraTips = dbSection.guidelines
-    ?.filter(g => g.guideline_type === 'sitra_tip')
     .map(g => g.content)
     .join('\n\n');
 
@@ -60,6 +65,7 @@ function convertToSection(dbSection: TemplateSectionData): Section {
     wordLimit: dbSection.word_limit || undefined,
     pageLimit: dbSection.page_limit || undefined,
     guidelines: officialGuidelines ? { text: officialGuidelines } : undefined,
+    guidelinesArray: guidelinesArray.length > 0 ? guidelinesArray : undefined,
     isPartA: dbSection.part === 'A',
     subsections: [],
   };
