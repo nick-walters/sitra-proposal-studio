@@ -139,24 +139,7 @@ export function ProposalKanbanView({ proposals, onProposalClick, topicIcons }: P
         onClick={() => onProposalClick(proposal)}
       >
         <CardContent className="p-3">
-          {/* Header with logo and acronym */}
-          <div className="flex items-start gap-2 mb-2">
-            <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
-              {proposal.logoUrl ? (
-                <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
-              ) : topicIcon ? (
-                <div className="scale-50">{topicIcon}</div>
-              ) : (
-                <FileText className="w-4 h-4 text-primary" />
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="font-semibold text-sm">{proposal.acronym}</h4>
-              <p className="text-xs text-muted-foreground truncate">{proposal.title}</p>
-            </div>
-          </div>
-
-          {/* Badges */}
+          {/* Row 1: Type, Work Programme, Destination badges */}
           <div className="flex flex-wrap gap-1 mb-2">
             <span className="proposal-badge bg-white text-foreground border border-foreground text-[9px]">
               {proposal.type}
@@ -173,32 +156,35 @@ export function ProposalKanbanView({ proposals, onProposalClick, topicIcons }: P
             )}
           </div>
 
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col gap-0.5">
-              {proposal.deadline && (
-                <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                  <span className="font-bold">Deadline:</span>
-                  {format(proposal.deadline, 'dd/MM/yyyy')}
-                </div>
-              )}
-              {isDecided && proposal.decisionDate && (
-                <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                  <span className="font-bold">Decision:</span>
-                  {format(proposal.decisionDate, 'dd/MM/yyyy')}
-                </div>
+          {/* Row 2: Logo, acronym/title, and action buttons */}
+          <div className="flex items-start gap-2">
+            <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+              {proposal.logoUrl ? (
+                <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
+              ) : topicIcon ? (
+                <div className="scale-50">{topicIcon}</div>
+              ) : (
+                <FileText className="w-4 h-4 text-primary" />
               )}
             </div>
-            <div className="flex items-center gap-1 ml-auto">
+            <div className="flex-1 min-w-0">
+              <h4 className="font-semibold text-sm">{proposal.acronym}</h4>
+              <p className="text-xs text-muted-foreground truncate">{proposal.title}</p>
+            </div>
+            
+            {/* Action buttons */}
+            <div className="flex flex-col gap-1 flex-shrink-0">
               {proposal.topicUrl && (
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="h-5 px-1.5 text-[9px]"
+                  className="h-5 px-1.5 text-[9px] gap-0.5"
                   onClick={(e) => {
                     e.stopPropagation();
                     window.open(proposal.topicUrl, '_blank');
                   }}
                 >
+                  Topic
                   <ExternalLink className="w-2 h-2" />
                 </Button>
               )}
@@ -209,6 +195,19 @@ export function ProposalKanbanView({ proposals, onProposalClick, topicIcons }: P
                 {isDraft ? 'Edit' : 'View'}
                 <ArrowRight className="w-2 h-2 ml-0.5" />
               </Button>
+              {/* Dates below buttons */}
+              <div className="flex flex-col gap-0.5 mt-0.5 text-[9px] text-muted-foreground text-right">
+                {proposal.deadline && (
+                  <div>
+                    <span className="font-bold">Deadline:</span> {format(proposal.deadline, 'dd/MM/yyyy')}
+                  </div>
+                )}
+                {isDecided && proposal.decisionDate && (
+                  <div>
+                    <span className="font-bold">Decision:</span> {format(proposal.decisionDate, 'dd/MM/yyyy')}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </CardContent>
