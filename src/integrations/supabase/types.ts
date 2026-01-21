@@ -392,6 +392,48 @@ export type Database = {
           },
         ]
       }
+      organisations: {
+        Row: {
+          country: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_sme: boolean | null
+          legal_entity_type: string | null
+          logo_url: string | null
+          name: string
+          pic_number: string | null
+          short_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_sme?: boolean | null
+          legal_entity_type?: string | null
+          logo_url?: string | null
+          name: string
+          pic_number?: string | null
+          short_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_sme?: boolean | null
+          legal_entity_type?: string | null
+          logo_url?: string | null
+          name?: string
+          pic_number?: string | null
+          short_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       part_a_data: {
         Row: {
           additional_info: Json | null

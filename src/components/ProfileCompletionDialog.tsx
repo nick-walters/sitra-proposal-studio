@@ -3,12 +3,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Save, AlertCircle, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ProfilePhotoUpload } from "./ProfilePhotoUpload";
-import { sortedCountryCodes, countryList } from "@/lib/countryCodes";
+import { CountryCodeSelect } from "./CountryCodeSelect";
+import { CountrySelect } from "./CountrySelect";
+import { OrganisationSelect } from "./OrganisationSelect";
 
 interface ProfileCompletionDialogProps {
   open: boolean;
@@ -264,15 +265,13 @@ export function ProfileCompletionDialog({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <RequiredLabel htmlFor="organisation">Organisation</RequiredLabel>
-                <Input
-                  id="organisation"
+                <OrganisationSelect
                   value={profile.organisation}
-                  onChange={(e) => {
-                    setProfile({ ...profile, organisation: e.target.value });
+                  onValueChange={(v) => {
+                    setProfile({ ...profile, organisation: v });
                     if (errors.organisation) setErrors({ ...errors, organisation: undefined });
                   }}
-                  placeholder="Enter organisation"
-                  className={errors.organisation ? 'border-destructive' : ''}
+                  hasError={!!errors.organisation}
                 />
                 <ErrorMessage message={errors.organisation} />
               </div>
@@ -291,24 +290,14 @@ export function ProfileCompletionDialog({
             <div className="space-y-2">
               <RequiredLabel htmlFor="phone_number">Phone Number</RequiredLabel>
               <div className="flex gap-2">
-                <Select
+                <CountryCodeSelect
                   value={profile.country_code}
                   onValueChange={(v) => {
                     setProfile({ ...profile, country_code: v });
                     if (errors.country_code) setErrors({ ...errors, country_code: undefined });
                   }}
-                >
-                  <SelectTrigger className={`w-[140px] ${errors.country_code ? 'border-destructive' : ''}`}>
-                    <SelectValue placeholder="Code" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[300px]">
-                    {sortedCountryCodes.map((c) => (
-                      <SelectItem key={c.code} value={c.dialCode}>
-                        {c.flag} {c.dialCode}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  hasError={!!errors.country_code}
+                />
                 <Input
                   id="phone_number"
                   value={profile.phone_number}
@@ -383,24 +372,15 @@ export function ProfileCompletionDialog({
               </div>
               <div className="space-y-2">
                 <RequiredLabel htmlFor="country">Country</RequiredLabel>
-                <Select
+                <CountrySelect
                   value={profile.country}
                   onValueChange={(v) => {
                     setProfile({ ...profile, country: v });
                     if (errors.country) setErrors({ ...errors, country: undefined });
                   }}
-                >
-                  <SelectTrigger className={errors.country ? 'border-destructive' : ''}>
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[300px]">
-                    {countryList.map((country) => (
-                      <SelectItem key={country} value={country}>
-                        {country}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  hasError={!!errors.country}
+                  placeholder="Select"
+                />
                 <ErrorMessage message={errors.country} />
               </div>
             </div>
