@@ -438,12 +438,22 @@ export function Dashboard() {
 
       <main className="container py-6">
         {/* Page Header with Search and Toggle */}
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-6">
-          <div className="flex-shrink-0">
-            <h1 className="page-title text-2xl text-foreground">My Proposals</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Edit proposal drafts or view previously submitted proposals
-            </p>
+        <div className="flex flex-col gap-3 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+            <div className="flex-shrink-0">
+              <h1 className="page-title text-2xl text-foreground">My Proposals</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Edit proposal drafts or view previously submitted proposals
+              </p>
+            </div>
+            
+            {/* New Proposal button - visible on mobile at top */}
+            {isSitraStaff && (
+              <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2 w-full sm:w-auto" size="sm">
+                <Plus className="w-4 h-4" />
+                New Proposal
+              </Button>
+            )}
           </div>
           
           <div className="flex items-center gap-3 flex-wrap">
@@ -746,13 +756,6 @@ export function Dashboard() {
                 <Columns3 className="w-4 h-4" />
               </Button>
             </div>
-            
-            {isSitraStaff && (
-              <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2" size="sm">
-                <Plus className="w-4 h-4" />
-                New Proposal
-              </Button>
-            )}
           </div>
         </div>
 
