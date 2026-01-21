@@ -174,17 +174,17 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
   return (
     <Card className="card-elevated group cursor-pointer hover:border-primary/30" onClick={onClick}>
       <CardContent className="p-3">
-        {/* Row: Logo, badges/acronym/title, and action buttons */}
+        {/* Top row: Logo + badges on left, action buttons on right */}
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-start gap-2">
-            {/* Project Logo */}
-            <div className="w-14 h-14 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+            {/* Project Logo - sized to match two rows of badges */}
+            <div className="w-11 h-11 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
               {proposal.logoUrl ? (
                 <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
               ) : topicIcon ? (
                 topicIcon
               ) : (
-                <FileText className="w-7 h-7 text-primary" />
+                <FileText className="w-6 h-6 text-primary" />
               )}
             </div>
             <div>
@@ -210,13 +210,6 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
                   </span>
                 )}
               </div>
-              {/* Row 3: Acronym */}
-              <h3 className="proposal-title text-sm group-hover:text-primary transition-colors mt-0.5">
-                {proposal.acronym}
-              </h3>
-              <p className="text-muted-foreground text-[11px] line-clamp-2">
-                {proposal.title}
-              </p>
             </div>
           </div>
           
@@ -240,26 +233,35 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
               {isDraft ? 'Edit' : 'View'}
               <ArrowRight className="w-2.5 h-2.5" />
             </Button>
-            {/* Dates below buttons */}
-            <div className="flex flex-col gap-0.5 mt-1 text-[9px] text-muted-foreground text-right">
-              {proposal.deadline && (
-                <div className="flex items-center gap-0.5 justify-end">
-                  <Calendar className="w-2.5 h-2.5 text-yellow-600" />
-                  <span className="font-bold">Deadline:</span> {format(proposal.deadline, 'dd/MM/yyyy')}
-                </div>
-              )}
-              {isDecided && proposal.decisionDate && (
-                <div className="flex items-center gap-0.5 justify-end">
-                  {proposal.status === 'funded' ? (
-                    <CheckCircle2 className="w-2.5 h-2.5 text-green-600" />
-                  ) : (
-                    <XCircle className="w-2.5 h-2.5 text-red-600" />
-                  )}
-                  <span className="font-bold">Decision:</span> {format(proposal.decisionDate, 'dd/MM/yyyy')}
-                </div>
-              )}
-            </div>
           </div>
+        </div>
+
+        {/* Acronym and title below logo */}
+        <h3 className="proposal-title text-sm font-semibold group-hover:text-primary transition-colors">
+          {proposal.acronym}
+        </h3>
+        <p className="text-muted-foreground text-[11px] line-clamp-2 mb-2">
+          {proposal.title}
+        </p>
+
+        {/* Dates at bottom */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[9px] text-muted-foreground">
+          {proposal.deadline && (
+            <div className="flex items-center gap-0.5">
+              <Calendar className="w-2.5 h-2.5 text-yellow-600" />
+              <span className="font-bold">Deadline:</span> {format(proposal.deadline, 'dd/MM/yyyy')}
+            </div>
+          )}
+          {isDecided && proposal.decisionDate && (
+            <div className="flex items-center gap-0.5">
+              {proposal.status === 'funded' ? (
+                <CheckCircle2 className="w-2.5 h-2.5 text-green-600" />
+              ) : (
+                <XCircle className="w-2.5 h-2.5 text-red-600" />
+              )}
+              <span className="font-bold">Decision:</span> {format(proposal.decisionDate, 'dd/MM/yyyy')}
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
