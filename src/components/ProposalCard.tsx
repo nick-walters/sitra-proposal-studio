@@ -2,7 +2,16 @@ import { Proposal, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS } from 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, FileText, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink, AlertTriangle, PartyPopper } from "lucide-react";
-import { format, differenceInDays } from "date-fns";
+import { format, differenceInDays, addMonths } from "date-fns";
+
+// Calculate estimated decision date based on submission stage
+// Full proposals: ~5 months after deadline
+// Stage 1: ~3 months after deadline
+const getEstimatedDecisionDate = (proposal: Proposal): Date | null => {
+  if (!proposal.deadline) return null;
+  const monthsToAdd = proposal.submissionStage === 'stage_1' ? 3 : 5;
+  return addMonths(proposal.deadline, monthsToAdd);
+};
 
 interface ProposalCardProps {
   proposal: Proposal;
@@ -136,6 +145,7 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
                 <span className="font-bold">Deadline:</span> {format(proposal.deadline, 'dd/MM/yyyy')}
               </div>
             )}
+            {/* For decided proposals, show actual decision date */}
             {isDecided && proposal.decisionDate && (
               <div className="flex items-center gap-0.5">
                 {proposal.status === 'funded' ? (
@@ -146,6 +156,16 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
                 <span className="font-bold">Decision:</span> {format(proposal.decisionDate, 'dd/MM/yyyy')}
               </div>
             )}
+            {/* For drafts with deadline, show estimated decision date */}
+            {isDraft && proposal.deadline && (() => {
+              const estimatedDate = getEstimatedDecisionDate(proposal);
+              return estimatedDate ? (
+                <div className="flex items-center gap-0.5">
+                  <Clock className="w-2.5 h-2.5 text-muted-foreground" />
+                  <span className="font-bold">Decision:</span> ~{format(estimatedDate, 'dd/MM/yyyy')}
+                </div>
+              ) : null;
+            })()}
           </div>
 
           {/* Action buttons */}
@@ -256,6 +276,7 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
                   <span className="font-bold">Deadline:</span> {format(proposal.deadline, 'dd/MM/yyyy')}
                 </div>
               )}
+              {/* For decided proposals, show actual decision date */}
               {isDecided && proposal.decisionDate && (
                 <div className="flex items-center gap-0.5 justify-end">
                   {proposal.status === 'funded' ? (
@@ -266,6 +287,16 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
                   <span className="font-bold">Decision:</span> {format(proposal.decisionDate, 'dd/MM/yyyy')}
                 </div>
               )}
+              {/* For drafts with deadline, show estimated decision date */}
+              {isDraft && proposal.deadline && (() => {
+                const estimatedDate = getEstimatedDecisionDate(proposal);
+                return estimatedDate ? (
+                  <div className="flex items-center gap-0.5 justify-end">
+                    <Clock className="w-2.5 h-2.5 text-muted-foreground" />
+                    <span className="font-bold">Decision:</span> ~{format(estimatedDate, 'dd/MM/yyyy')}
+                  </div>
+                ) : null;
+              })()}
             </div>
           </div>
         </div>

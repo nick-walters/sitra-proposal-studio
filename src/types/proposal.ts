@@ -2,6 +2,12 @@ export type ProposalType = 'RIA' | 'IA' | 'CSA';
 export type BudgetType = 'traditional' | 'lump_sum';
 export type UserRole = 'admin' | 'editor' | 'viewer';
 export type ProposalStatus = 'draft' | 'submitted' | 'funded' | 'not_funded';
+export type SubmissionStage = 'full' | 'stage_1';
+
+export const SUBMISSION_STAGE_LABELS: Record<SubmissionStage, string> = {
+  full: 'Full Proposal',
+  stage_1: 'Stage 1 of 2',
+};
 
 export type ParticipantType = 
   | 'beneficiary'
@@ -161,6 +167,7 @@ export interface Proposal {
   title: string;
   type: ProposalType;
   budgetType: BudgetType;
+  submissionStage?: SubmissionStage; // 'full' (default) or 'stage_1'
   createdAt: Date;
   updatedAt: Date;
   members: ProposalMember[];
