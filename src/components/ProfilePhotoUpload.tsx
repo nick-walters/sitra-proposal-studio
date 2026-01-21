@@ -110,15 +110,20 @@ export function ProfilePhotoUpload({
       canvas.width = outputSize;
       canvas.height = outputSize;
 
-      // Calculate crop area
-      const cropSize = 200; // Size of visible crop area
-      const scale = zoom[0];
-      const scaledWidth = img.width * scale * (outputSize / cropSize);
-      const scaledHeight = img.height * scale * (outputSize / cropSize);
+      // Calculate crop area - match the preview exactly
+      const cropSize = 200; // Size of visible crop area in the dialog
+      const ratio = outputSize / cropSize;
       
-      // Center offset adjusted by drag position
-      const offsetX = (outputSize - scaledWidth) / 2 + (position.x * outputSize / cropSize);
-      const offsetY = (outputSize - scaledHeight) / 2 + (position.y * outputSize / cropSize);
+      // Scale the image to fit the crop area, then apply zoom
+      const baseScale = cropSize / Math.min(img.width, img.height);
+      const scale = baseScale * zoom[0];
+      
+      const scaledWidth = img.width * scale * ratio;
+      const scaledHeight = img.height * scale * ratio;
+      
+      // Center the image and apply drag offset
+      const offsetX = (outputSize - scaledWidth) / 2 + (position.x * ratio);
+      const offsetY = (outputSize - scaledHeight) / 2 + (position.y * ratio);
 
       // Draw circular clip
       ctx.beginPath();
@@ -283,22 +288,23 @@ export function ProfilePhotoUpload({
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
             >
-              {previewImage && (
+            {previewImage && (
                 <img
                   ref={(el) => { imageRef.current = el; }}
                   src={previewImage}
                   alt="Preview"
                   className="absolute select-none pointer-events-none"
                   style={{
-                    transform: `translate(${position.x}px, ${position.y}px) scale(${zoom[0]})`,
-                    transformOrigin: 'center',
                     left: '50%',
                     top: '50%',
-                    marginLeft: '-50%',
-                    marginTop: '-50%',
+                    transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px)) scale(${zoom[0]})`,
+                    transformOrigin: 'center',
                     maxWidth: 'none',
-                    width: '200px',
+                    width: 'auto',
                     height: 'auto',
+                    minWidth: '200px',
+                    minHeight: '200px',
+                    objectFit: 'cover',
                   }}
                   draggable={false}
                 />
