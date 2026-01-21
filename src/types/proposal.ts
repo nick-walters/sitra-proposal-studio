@@ -57,8 +57,10 @@ export const WORK_PROGRAMMES: WorkProgramme[] = [
   { id: 'CL4', abbreviation: 'CL4', fullName: 'Cluster 4: Digital, Industry & Space' },
   { id: 'CL5', abbreviation: 'CL5', fullName: 'Cluster 5: Climate, Energy & Mobility' },
   { id: 'CL6', abbreviation: 'CL6', fullName: 'Cluster 6: Food, Bioeconomy, Natural Resources, Agriculture & Environment' },
+  { id: 'MISSIONS', abbreviation: 'Missions', fullName: 'EU Missions' },
   { id: 'WIDERA', abbreviation: 'WIDERA', fullName: 'Widening Participation and Strengthening the ERA' },
   { id: 'NEB', abbreviation: 'NEB', fullName: 'New European Bauhaus Facility' },
+  { id: 'HORIZONTAL', abbreviation: 'Horizontal', fullName: 'Horizontal Activities' },
   { id: 'PARTNERSHIP', abbreviation: 'Partnership', fullName: 'European Partnerships' },
 ];
 
@@ -325,7 +327,7 @@ export const PART_A_SECTIONS: Section[] = [
     title: 'Budget',
     isPartA: true,
     guidelines: {
-      text: 'Complete the budget breakdown for each participant. Select traditional or lump sum budget model.',
+      text: 'Complete the budget breakdown for each participant. Select standard or lump sum budget model.',
     },
     subsections: [
       {
@@ -451,14 +453,17 @@ export const FIGURES_SECTION: Section = {
   },
 };
 
-// Budget categories for traditional proposals
-export const BUDGET_CATEGORIES_TRADITIONAL = [
+// Budget categories for standard proposals
+export const BUDGET_CATEGORIES_STANDARD = [
   { id: 'personnel', label: 'A. Personnel costs', subcategories: ['Researchers', 'Technicians', 'Administrative'] },
   { id: 'subcontracting', label: 'B. Subcontracting', subcategories: [] },
   { id: 'purchase', label: 'C. Purchase costs', subcategories: ['Travel', 'Equipment', 'Other goods and services'] },
   { id: 'other', label: 'D. Other cost categories', subcategories: ['Internally invoiced goods', 'Linked third parties'] },
   { id: 'indirect', label: 'E. Indirect costs (25% flat rate)', subcategories: [] },
 ];
+
+// Backwards compatibility alias
+export const BUDGET_CATEGORIES_TRADITIONAL = BUDGET_CATEGORIES_STANDARD;
 
 // Budget categories for lump sum proposals
 export const BUDGET_CATEGORIES_LUMP_SUM = [

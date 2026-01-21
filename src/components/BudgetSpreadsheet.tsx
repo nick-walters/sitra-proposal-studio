@@ -115,7 +115,7 @@ export function BudgetSpreadsheet({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="traditional">Traditional Budget</SelectItem>
+                <SelectItem value="traditional">Standard Budget</SelectItem>
                 <SelectItem value="lump_sum">Lump Sum Budget</SelectItem>
               </SelectContent>
             </Select>
@@ -196,7 +196,7 @@ export function BudgetSpreadsheet({
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg">
-                {budgetType === 'traditional' ? 'Traditional Budget Model' : 'Lump Sum Budget Model'}
+                {budgetType === 'traditional' ? 'Standard Budget Model' : 'Lump Sum Budget Model'}
               </CardTitle>
               <Badge variant={budgetType === 'traditional' ? 'default' : 'secondary'}>
                 {budgetType === 'traditional' ? 'Cost Categories' : 'Work Packages'}
