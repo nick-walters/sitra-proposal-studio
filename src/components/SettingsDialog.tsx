@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,10 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Settings, Bell, Palette, Globe, Shield, User } from "lucide-react";
+import { Settings, Bell, Palette, Globe, Shield, User, Loader2, Save } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -15,6 +18,7 @@ interface SettingsDialogProps {
 }
 
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState({
     emailUpdates: true,
     proposalChanges: true,
@@ -28,6 +32,82 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     dateFormat: 'dd/MM/yyyy',
     autoSave: true,
   });
+
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profile, setProfile] = useState({
+    first_name: '',
+    last_name: '',
+    organisation: '',
+    department: '',
+    phone_number: '',
+    address: '',
+    country: '',
+  });
+
+  // Fetch profile when dialog opens
+  useEffect(() => {
+    if (open && user) {
+      fetchProfile();
+    }
+  }, [open, user]);
+
+  const fetchProfile = async () => {
+    if (!user) return;
+    setProfileLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+
+      setProfile({
+        first_name: data.first_name || '',
+        last_name: data.last_name || '',
+        organisation: data.organisation || '',
+        department: data.department || '',
+        phone_number: data.phone_number || '',
+        address: data.address || '',
+        country: data.country || '',
+      });
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  const saveProfile = async () => {
+    if (!user) return;
+    setProfileSaving(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          first_name: profile.first_name,
+          last_name: profile.last_name,
+          full_name: `${profile.first_name} ${profile.last_name}`.trim(),
+          organisation: profile.organisation,
+          department: profile.department,
+          phone_number: profile.phone_number,
+          address: profile.address,
+          country: profile.country,
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      toast.success('Profile updated successfully');
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      toast.error('Failed to update profile');
+    } finally {
+      setProfileSaving(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -214,8 +294,107 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             <div className="space-y-4">
               <h3 className="font-medium">Profile Information</h3>
               <p className="text-sm text-muted-foreground">
-                Update your profile information from the user menu in the header.
+                Update your personal and contact information.
               </p>
+              
+              {profileLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="first_name">First name</Label>
+                      <Input
+                        id="first_name"
+                        value={profile.first_name}
+                        onChange={(e) => setProfile({ ...profile, first_name: e.target.value })}
+                        placeholder="Enter first name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="last_name">Last name</Label>
+                      <Input
+                        id="last_name"
+                        value={profile.last_name}
+                        onChange={(e) => setProfile({ ...profile, last_name: e.target.value })}
+                        placeholder="Enter last name"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="organisation">Organisation</Label>
+                      <Input
+                        id="organisation"
+                        value={profile.organisation}
+                        onChange={(e) => setProfile({ ...profile, organisation: e.target.value })}
+                        placeholder="Enter organisation"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="department">Department</Label>
+                      <Input
+                        id="department"
+                        value={profile.department}
+                        onChange={(e) => setProfile({ ...profile, department: e.target.value })}
+                        placeholder="Enter department"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="phone_number">Phone number</Label>
+                      <Input
+                        id="phone_number"
+                        value={profile.phone_number}
+                        onChange={(e) => setProfile({ ...profile, phone_number: e.target.value })}
+                        placeholder="Enter phone number"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="country">Country</Label>
+                      <Input
+                        id="country"
+                        value={profile.country}
+                        onChange={(e) => setProfile({ ...profile, country: e.target.value })}
+                        placeholder="Enter country"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Address</Label>
+                    <Input
+                      id="address"
+                      value={profile.address}
+                      onChange={(e) => setProfile({ ...profile, address: e.target.value })}
+                      placeholder="Enter address"
+                    />
+                  </div>
+
+                  <Button 
+                    onClick={saveProfile} 
+                    disabled={profileSaving}
+                    className="w-fit"
+                  >
+                    {profileSaving ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4 mr-2" />
+                        Save Profile
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
             </div>
 
             <Separator />
