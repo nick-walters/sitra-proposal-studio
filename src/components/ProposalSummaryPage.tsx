@@ -513,6 +513,57 @@ export function ProposalSummaryPage({
           </CardContent>
         </Card>
 
+        {/* Key Dates for Submitted/Funded/Not Funded */}
+        {proposal.status !== 'draft' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CalendarIcon className="w-5 h-5" />
+                Key Dates
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Submission Date</p>
+                  <p className="font-medium">
+                    {proposal.submittedAt ? format(proposal.submittedAt, 'dd/MM/yyyy') : 'Not recorded'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Decision Date</p>
+                  {isEditing && canEdit ? (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="w-full justify-start text-left font-normal">
+                          {editedProposal.decisionDate ? format(editedProposal.decisionDate, 'PPP') : 'Select date'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={editedProposal.decisionDate}
+                          onSelect={(date) => setEditedProposal({ ...editedProposal, decisionDate: date })}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  ) : (
+                    <p className="font-medium">
+                      {proposal.decisionDate ? format(proposal.decisionDate, 'dd/MM/yyyy') : 'Pending'}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Original Deadline</p>
+                  <p className="font-medium">
+                    {proposal.deadline ? format(proposal.deadline, 'dd/MM/yyyy') : 'Not set'}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Quick Stats & Dates */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
@@ -522,7 +573,7 @@ export function ProposalSummaryPage({
                   <Euro className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Budget</p>
+                  <p className="text-sm text-muted-foreground">Budget Requested</p>
                   <p className="text-xl font-bold">€{displayBudget.toLocaleString()}</p>
                 </div>
               </div>
@@ -596,6 +647,58 @@ export function ProposalSummaryPage({
           </Card>
         </div>
 
+        {/* Budget Type */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Euro className="w-5 h-5" />
+              Budget Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Lump Sum</p>
+                {isEditing ? (
+                  <Select
+                    value={editedProposal.budgetType}
+                    onValueChange={(v: 'traditional' | 'lump_sum') => setEditedProposal({ ...editedProposal, budgetType: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="traditional">No (Traditional)</SelectItem>
+                      <SelectItem value="lump_sum">Yes (Lump Sum)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Badge variant={proposal.budgetType === 'lump_sum' ? 'default' : 'secondary'}>
+                    {proposal.budgetType === 'lump_sum' ? 'Yes' : 'No'}
+                  </Badge>
+                )}
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Total Budget Available</p>
+                {isEditing ? (
+                  <Input
+                    type="number"
+                    value={editedProposal.totalBudget || ''}
+                    onChange={(e) => setEditedProposal({ ...editedProposal, totalBudget: parseFloat(e.target.value) || undefined })}
+                    placeholder="e.g., 5000000"
+                  />
+                ) : (
+                  <p className="font-medium">€{(proposal.totalBudget || displayBudget).toLocaleString()}</p>
+                )}
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Projects Expected to be Funded</p>
+                <p className="font-medium text-muted-foreground">1-3 (estimated)</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Topic Information */}
         <Card>
           <CardHeader>
@@ -632,7 +735,7 @@ export function ProposalSummaryPage({
                     className="p-0 h-auto font-medium"
                     onClick={() => window.open(proposal.topicUrl, '_blank')}
                   >
-                    View on Portal <ExternalLink className="w-3 h-3 ml-1" />
+                    View on Funding & Tenders Portal <ExternalLink className="w-3 h-3 ml-1" />
                   </Button>
                 ) : (
                   <span className="font-medium text-muted-foreground">Not set</span>
