@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,8 @@ import { UserProfileDialog } from "@/components/UserProfileDialog";
 import { ProposalMultiSelect } from "@/components/ProposalMultiSelect";
 import { Label } from "@/components/ui/label";
 import { MessageCircle, Mail, Phone, Building2, Search, Users, UserPlus } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 // Demo users for development
 export const DEMO_USERS = [
@@ -94,11 +96,40 @@ interface CollaboratorsDialogProps {
 }
 
 export function CollaboratorsDialog({ open, onOpenChange, onStartChat }: CollaboratorsDialogProps) {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [selectedProposalIds, setSelectedProposalIds] = useState<string[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check if user is admin on any proposal
+  useEffect(() => {
+    async function checkAdminStatus() {
+      if (!user) {
+        setIsAdmin(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('role', 'admin')
+        .limit(1);
+
+      if (!error && data && data.length > 0) {
+        setIsAdmin(true);
+      } else {
+        setIsAdmin(false);
+      }
+    }
+
+    if (open) {
+      checkAdminStatus();
+    }
+  }, [user, open]);
 
   const filteredUsers = DEMO_USERS.filter(user => 
     user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -130,9 +161,9 @@ export function CollaboratorsDialog({ open, onOpenChange, onStartChat }: Collabo
           </DialogHeader>
 
           <Tabs defaultValue="team" className="mt-4">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-2' : 'grid-cols-1'}`}>
               <TabsTrigger value="team">Team Members</TabsTrigger>
-              <TabsTrigger value="invite">Invite New</TabsTrigger>
+              {isAdmin && <TabsTrigger value="invite">Invite New</TabsTrigger>}
             </TabsList>
 
             <TabsContent value="team" className="space-y-4">
@@ -220,51 +251,53 @@ export function CollaboratorsDialog({ open, onOpenChange, onStartChat }: Collabo
               </ScrollArea>
             </TabsContent>
 
-            <TabsContent value="invite" className="space-y-6">
-              <div className="py-4">
-                <div className="flex items-center gap-3 mb-6">
-                  <UserPlus className="w-10 h-10 text-muted-foreground" />
-                  <div>
-                    <h3 className="font-medium">Invite collaborators</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Enter an email address and select which proposals to grant access
-                    </p>
+            {isAdmin && (
+              <TabsContent value="invite" className="space-y-6">
+                <div className="py-4">
+                  <div className="flex items-center gap-3 mb-6">
+                    <UserPlus className="w-10 h-10 text-muted-foreground" />
+                    <div>
+                      <h3 className="font-medium">Invite collaborators</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Enter an email address and select which proposals to grant access
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="invite-email">Email address</Label>
+                      <Input
+                        id="invite-email"
+                        placeholder="email@example.com"
+                        type="email"
+                        value={inviteEmail}
+                        onChange={(e) => setInviteEmail(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Grant access to proposals</Label>
+                      <ProposalMultiSelect
+                        selectedProposalIds={selectedProposalIds}
+                        onSelectionChange={setSelectedProposalIds}
+                        placeholder="Select proposals..."
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Type an acronym to filter, click to select multiple proposals
+                      </p>
+                    </div>
+
+                    <Button 
+                      className="w-full"
+                      disabled={!inviteEmail || selectedProposalIds.length === 0}
+                    >
+                      Send Invite
+                    </Button>
                   </div>
                 </div>
-
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="invite-email">Email address</Label>
-                    <Input
-                      id="invite-email"
-                      placeholder="email@example.com"
-                      type="email"
-                      value={inviteEmail}
-                      onChange={(e) => setInviteEmail(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Grant access to proposals</Label>
-                    <ProposalMultiSelect
-                      selectedProposalIds={selectedProposalIds}
-                      onSelectionChange={setSelectedProposalIds}
-                      placeholder="Select proposals..."
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Type an acronym to filter, click to select multiple proposals
-                    </p>
-                  </div>
-
-                  <Button 
-                    className="w-full"
-                    disabled={!inviteEmail || selectedProposalIds.length === 0}
-                  >
-                    Send Invite
-                  </Button>
-                </div>
-              </div>
-            </TabsContent>
+              </TabsContent>
+            )}
           </Tabs>
         </DialogContent>
       </Dialog>
