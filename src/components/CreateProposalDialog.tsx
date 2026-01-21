@@ -17,6 +17,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { 
   ProposalType, 
   BudgetType,
@@ -26,7 +32,9 @@ import {
   SUBMISSION_STAGE_LABELS
 } from "@/types/proposal";
 import { useState, useMemo } from "react";
-import { FileText, Beaker, Lightbulb, Users, Layers, Calculator, Rocket, ExternalLink } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { FileText, Beaker, Lightbulb, Users, Layers, Calculator, Rocket, ExternalLink, CalendarIcon } from "lucide-react";
 
 interface CreateProposalDialogProps {
   open: boolean;
@@ -40,6 +48,7 @@ interface CreateProposalDialogProps {
     workProgramme?: string;
     destination?: string;
     topicUrl?: string;
+    deadline?: Date;
   }) => void;
 }
 
@@ -77,6 +86,7 @@ export function CreateProposalDialog({
   const [workProgramme, setWorkProgramme] = useState<string>('');
   const [destination, setDestination] = useState<string>('');
   const [topicUrl, setTopicUrl] = useState<string>('');
+  const [deadline, setDeadline] = useState<Date | undefined>(undefined);
 
   // Get destinations filtered by selected work programme
   const availableDestinations = useMemo(() => {
@@ -101,6 +111,7 @@ export function CreateProposalDialog({
         workProgramme: workProgramme || undefined,
         destination: destination || undefined,
         topicUrl: topicUrl || undefined,
+        deadline: deadline || undefined,
       });
       // Reset form
       setAcronym('');
@@ -111,6 +122,7 @@ export function CreateProposalDialog({
       setWorkProgramme('');
       setDestination('');
       setTopicUrl('');
+      setDeadline(undefined);
       onOpenChange(false);
     }
   };
@@ -289,6 +301,38 @@ export function CreateProposalDialog({
               <p className="text-xs text-muted-foreground">
                 Link to the official call page on the Funding & Tenders Portal
               </p>
+            </div>
+
+            {/* Deadline */}
+            <div className="grid gap-2">
+              <Label className="flex items-center gap-2">
+                <CalendarIcon className="w-4 h-4 text-muted-foreground" />
+                Submission Deadline
+              </Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !deadline && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {deadline ? format(deadline, "PPP") : <span>Select deadline (optional)</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={deadline}
+                    onSelect={setDeadline}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                    disabled={(date) => date < new Date()}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
 

@@ -402,6 +402,7 @@ export function Dashboard() {
     workProgramme?: string;
     destination?: string;
     topicUrl?: string;
+    deadline?: Date;
   }) => {
     const newProposal: Proposal = {
       id: String(proposals.length + 1),
@@ -413,6 +414,7 @@ export function Dashboard() {
       budgetType: data.budgetType,
       submissionStage: data.submissionStage,
       topicUrl: data.topicUrl,
+      deadline: data.deadline,
       createdAt: new Date(),
       updatedAt: new Date(),
       status: 'draft',
