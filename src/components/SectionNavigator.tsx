@@ -10,6 +10,22 @@ interface SectionNavigatorProps {
   onSectionClick: (section: Section) => void;
 }
 
+// Format section number: remove dots after A/B, add "Part" prefix for top-level
+function formatSectionNumber(number: string, depth: number): string {
+  // Remove dots between letter and first number (e.g., "B.1.1" -> "B1.1")
+  const formatted = number.replace(/^([AB])\./, '$1');
+  // Add "Part" prefix for top-level sections (depth 0)
+  if (depth === 0 && /^[AB]/.test(formatted)) {
+    return `Part ${formatted}`;
+  }
+  return formatted;
+}
+
+// Replace "and" with "&" in titles
+function formatTitle(title: string): string {
+  return title.replace(/\band\b/gi, '&');
+}
+
 function SectionItem({
   section,
   depth = 0,
@@ -24,6 +40,7 @@ function SectionItem({
   const [isExpanded, setIsExpanded] = useState(true);
   const hasSubsections = section.subsections && section.subsections.length > 0;
   const isActive = activeSectionId === section.id;
+  const isTopLevel = depth === 0;
   
   // Check for guideline types
   const hasOfficialGuideline = section.guidelinesArray?.some(g => g.type === 'official') || 
@@ -40,13 +57,14 @@ function SectionItem({
         )}
         style={{ paddingLeft: `${depth * 12 + 12}px` }}
         onClick={() => {
-          if (hasSubsections) {
+          // Top-level sections are not collapsible, only navigate
+          if (hasSubsections && !isTopLevel) {
             setIsExpanded(!isExpanded);
           }
           onSectionClick(section);
         }}
       >
-        {hasSubsections ? (
+        {hasSubsections && !isTopLevel ? (
           <button
             className="p-0.5 rounded hover:bg-accent"
             onClick={(e) => {
@@ -63,9 +81,11 @@ function SectionItem({
         ) : (
           <FileText className="w-4 h-4 text-muted-foreground" />
         )}
-        <span className="font-medium text-muted-foreground mr-1">{section.number}</span>
+        <span className="font-medium text-muted-foreground mr-1">
+          {formatSectionNumber(section.number, depth)}
+        </span>
         <span className={cn("flex-1 truncate", isActive && "font-medium")}>
-          {section.title}
+          {formatTitle(section.title)}
         </span>
         {/* Guideline type indicators */}
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
