@@ -97,14 +97,21 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     value={preferences.language}
                     onValueChange={(v) => setPreferences({ ...preferences, language: v })}
                   >
-                    <SelectTrigger className="w-32">
+                    <SelectTrigger className="w-40">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="en">English</SelectItem>
+                      <SelectItem value="en">English (UK)</SelectItem>
                       <SelectItem value="de">Deutsch</SelectItem>
                       <SelectItem value="fr">Français</SelectItem>
                       <SelectItem value="es">Español</SelectItem>
+                      <SelectItem value="it">Italiano</SelectItem>
+                      <SelectItem value="nl">Nederlands</SelectItem>
+                      <SelectItem value="pl">Polski</SelectItem>
+                      <SelectItem value="pt">Português</SelectItem>
+                      <SelectItem value="el">Ελληνικά</SelectItem>
+                      <SelectItem value="fi">Suomi</SelectItem>
+                      <SelectItem value="sv">Svenska</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
