@@ -102,10 +102,11 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
           
           {/* Info */}
           <div className="flex-1 min-w-0">
-            {/* Acronym, title, then badges - wrap to second line on narrow screens */}
-            <div className="flex items-baseline gap-1 flex-wrap">
-              <span className="font-semibold text-sm flex-shrink-0">{proposal.acronym}</span>
-              <span className="text-xs text-muted-foreground truncate">{proposal.title}</span>
+            {/* Acronym on top */}
+            <div className="font-semibold text-sm">{proposal.acronym}</div>
+            {/* Title and badges on same row */}
+            <div className="flex items-center gap-1 flex-wrap">
+              <span className="text-xs text-muted-foreground truncate max-w-[200px]">{proposal.title}</span>
               <span className={`proposal-badge ${statusInfo.className} flex items-center gap-0.5 text-[9px]`}>
                 <StatusIcon className="w-2.5 h-2.5" />
                 {statusInfo.label}
