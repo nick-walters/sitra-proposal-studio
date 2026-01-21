@@ -29,12 +29,13 @@ import {
   SubmissionStage,
   WORK_PROGRAMMES, 
   getDestinationsForWorkProgramme,
-  SUBMISSION_STAGE_LABELS
 } from "@/types/proposal";
-import { useState, useMemo } from "react";
+import { useTemplates } from "@/hooks/useTemplates";
+import { useState, useMemo, useEffect } from "react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { FileText, Beaker, Lightbulb, Users, Layers, Calculator, Rocket, ExternalLink, CalendarIcon } from "lucide-react";
+import { FileText, Lightbulb, Users, Layers, Calculator, Rocket, ExternalLink, CalendarIcon, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface CreateProposalDialogProps {
   open: boolean;
@@ -49,6 +50,7 @@ interface CreateProposalDialogProps {
     destination?: string;
     topicUrl?: string;
     deadline?: Date;
+    templateTypeId?: string;
   }) => void;
 }
 
@@ -78,6 +80,7 @@ export function CreateProposalDialog({
   onOpenChange,
   onCreateProposal,
 }: CreateProposalDialogProps) {
+  const { templateTypes, fundingProgrammes, loading: templatesLoading } = useTemplates();
   const [acronym, setAcronym] = useState('');
   const [title, setTitle] = useState('');
   const [type, setType] = useState<ProposalType>('RIA');
@@ -87,12 +90,38 @@ export function CreateProposalDialog({
   const [destination, setDestination] = useState<string>('');
   const [topicUrl, setTopicUrl] = useState<string>('');
   const [deadline, setDeadline] = useState<Date | undefined>(undefined);
+  const [templateTypeId, setTemplateTypeId] = useState<string>('');
 
   // Get destinations filtered by selected work programme
   const availableDestinations = useMemo(() => {
     if (!workProgramme) return [];
     return getDestinationsForWorkProgramme(workProgramme);
   }, [workProgramme]);
+
+  // Filter template types based on selected action type and stage
+  const filteredTemplateTypes = useMemo(() => {
+    return templateTypes.filter(tt => {
+      // Match template code with proposal type (RIA, IA, CSA)
+      const typeMatch = tt.code.toUpperCase().includes(type);
+      
+      // For stage 1, look for templates that indicate stage 1
+      if (submissionStage === 'stage_1') {
+        return typeMatch && (tt.code.toLowerCase().includes('stage1') || tt.name.toLowerCase().includes('stage 1'));
+      }
+      
+      // For full proposals, exclude stage 1 templates
+      return typeMatch && !tt.code.toLowerCase().includes('stage1') && !tt.name.toLowerCase().includes('stage 1');
+    });
+  }, [templateTypes, type, submissionStage]);
+
+  // Auto-select template if only one available
+  useEffect(() => {
+    if (filteredTemplateTypes.length === 1) {
+      setTemplateTypeId(filteredTemplateTypes[0].id);
+    } else if (!filteredTemplateTypes.find(t => t.id === templateTypeId)) {
+      setTemplateTypeId('');
+    }
+  }, [filteredTemplateTypes, templateTypeId]);
 
   const handleWorkProgrammeChange = (value: string) => {
     setWorkProgramme(value);
@@ -112,6 +141,7 @@ export function CreateProposalDialog({
         destination: destination || undefined,
         topicUrl: topicUrl || undefined,
         deadline: deadline || undefined,
+        templateTypeId: templateTypeId || undefined,
       });
       // Reset form
       setAcronym('');
@@ -123,6 +153,7 @@ export function CreateProposalDialog({
       setDestination('');
       setTopicUrl('');
       setDeadline(undefined);
+      setTemplateTypeId('');
       onOpenChange(false);
     }
   };
@@ -217,6 +248,54 @@ export function CreateProposalDialog({
                 {proposalTypes.find((pt) => pt.value === type)?.description}
               </p>
             </div>
+
+            {/* Template Type Selection */}
+            {filteredTemplateTypes.length > 0 && (
+              <div className="grid gap-2">
+                <Label className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-muted-foreground" />
+                  Proposal Template
+                </Label>
+                <Select value={templateTypeId} onValueChange={setTemplateTypeId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={templatesLoading ? "Loading templates..." : "Select template (optional)"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredTemplateTypes.map((tt) => (
+                      <SelectItem key={tt.id} value={tt.id}>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{tt.code}</span>
+                          <span className="text-muted-foreground">-</span>
+                          <span>{tt.name}</span>
+                          {tt.funding_programme && (
+                            <Badge variant="secondary" className="text-xs ml-1">
+                              {tt.funding_programme.short_name || tt.funding_programme.name}
+                            </Badge>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {templateTypeId && (
+                  <p className="text-xs text-green-600">
+                    ✓ Template sections will be loaded automatically
+                  </p>
+                )}
+                {!templateTypeId && filteredTemplateTypes.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Select a template to use predefined sections and guidelines
+                  </p>
+                )}
+              </div>
+            )}
+
+            {templatesLoading && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Loading available templates...
+              </div>
+            )}
 
             {/* Budget Type */}
             <div className="grid gap-3">

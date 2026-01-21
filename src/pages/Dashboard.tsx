@@ -484,6 +484,7 @@ export function Dashboard() {
     destination?: string;
     topicUrl?: string;
     deadline?: Date;
+    templateTypeId?: string;
   }) => {
     if (!user) {
       toast.error('You must be logged in to create a proposal');
@@ -504,6 +505,7 @@ export function Dashboard() {
           destination: data.destination || null,
           topic_url: data.topicUrl || null,
           deadline: data.deadline?.toISOString() || null,
+          template_type_id: data.templateTypeId || null,
           created_by: user.id,
           status: 'draft',
         })
