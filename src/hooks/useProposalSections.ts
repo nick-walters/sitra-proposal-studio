@@ -17,9 +17,10 @@ interface TemplateSectionData {
   parent_section_id: string | null;
   is_required: boolean;
   is_active: boolean;
+  section_tag: string | null; // Official HE tag for PDF export
   guidelines?: {
     id: string;
-    guideline_type: 'official' | 'sitra_tip';
+    guideline_type: 'official' | 'sitra_tip' | 'evaluation';
     title: string;
     content: string;
     order_index: number;
@@ -67,6 +68,7 @@ function convertToSection(dbSection: TemplateSectionData): Section {
     guidelines: officialGuidelines ? { text: officialGuidelines } : undefined,
     guidelinesArray: guidelinesArray.length > 0 ? guidelinesArray : undefined,
     isPartA: dbSection.part === 'A',
+    sectionTag: dbSection.section_tag || undefined,
     subsections: [],
   };
 }

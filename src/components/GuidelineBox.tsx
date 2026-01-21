@@ -1,7 +1,7 @@
-import { Info, Lightbulb } from "lucide-react";
+import { Info, Lightbulb, ClipboardCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type GuidelineType = 'official' | 'sitra_tip';
+export type GuidelineType = 'official' | 'sitra_tip' | 'evaluation';
 
 interface GuidelineBoxProps {
   type: GuidelineType;
@@ -26,6 +26,14 @@ const guidelineConfig = {
     titleColor: "text-gray-900",
     bgColor: "bg-gray-50/50",
     iconColor: "text-gray-800",
+  },
+  evaluation: {
+    icon: ClipboardCheck,
+    label: "Evaluation Criteria",
+    borderColor: "border-amber-500",
+    titleColor: "text-amber-700",
+    bgColor: "bg-amber-50/50",
+    iconColor: "text-amber-600",
   },
 };
 
@@ -73,4 +81,8 @@ export function OfficialGuideline({ title, children, className }: Omit<Guideline
 
 export function SitraTip({ title, children, className }: Omit<GuidelineBoxProps, 'type'>) {
   return <GuidelineBox type="sitra_tip" title={title} className={className}>{children}</GuidelineBox>;
+}
+
+export function EvaluationCriteria({ title, children, className }: Omit<GuidelineBoxProps, 'type'>) {
+  return <GuidelineBox type="evaluation" title={title} className={className}>{children}</GuidelineBox>;
 }

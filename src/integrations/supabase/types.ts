@@ -1084,6 +1084,7 @@ export type Database = {
           parent_section_id: string | null
           part: string
           section_number: string
+          section_tag: string | null
           template_type_id: string
           title: string
           updated_at: string
@@ -1101,6 +1102,7 @@ export type Database = {
           parent_section_id?: string | null
           part: string
           section_number: string
+          section_tag?: string | null
           template_type_id: string
           title: string
           updated_at?: string
@@ -1118,6 +1120,7 @@ export type Database = {
           parent_section_id?: string | null
           part?: string
           section_number?: string
+          section_tag?: string | null
           template_type_id?: string
           title?: string
           updated_at?: string

@@ -49,7 +49,7 @@ export interface TemplateSection {
   form_fields?: TemplateFormField[];
 }
 
-export type GuidelineType = 'official' | 'sitra_tip';
+export type GuidelineType = 'official' | 'sitra_tip' | 'evaluation';
 
 export interface SectionGuideline {
   id: string;
