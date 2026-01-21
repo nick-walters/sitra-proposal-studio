@@ -19,7 +19,8 @@ const PopoverContent = React.forwardRef<
       className={cn(
         // NOTE: Removed zoom/slide animations (zoom-out-95, zoom-in-95, slide-in-from-*)
         // because transform:scale() creates a clipping context that blocks overflow:auto scrolling
-        "z-50 w-72 rounded-md border bg-popover p-4 text-popover-foreground shadow-md outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+        // Using z-[9999] to ensure popover appears above sticky headers on iOS Safari
+        "z-[9999] w-72 rounded-md border bg-popover p-4 text-popover-foreground shadow-md outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         className,
       )}
       style={style}

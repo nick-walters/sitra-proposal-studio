@@ -22,7 +22,7 @@ export function Header() {
 
   return (
     <>
-      <header className="h-16 border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
+      <header className="h-16 border-b border-border bg-card sticky top-0 z-40">
         <div className="h-full px-6 flex items-center justify-between">
           {/* Left: Logo */}
           <div className="flex items-center gap-4 flex-1">
