@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DuplicateProposalDialog } from "@/components/DuplicateProposalDialog";
-import { Section, HORIZON_EUROPE_SECTIONS, PART_A_SECTIONS, FIGURES_SECTION, BudgetType, ProposalStatus } from "@/types/proposal";
+import { Section, HORIZON_EUROPE_SECTIONS, PART_A_SECTIONS, FIGURES_SECTION, BudgetType, ProposalStatus, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS } from "@/types/proposal";
 import { useState } from "react";
 import { format } from "date-fns";
 import { useParams, useNavigate } from "react-router-dom";
@@ -31,6 +31,9 @@ import {
   Lock,
   Eye,
   Copy,
+  Calendar,
+  ExternalLink,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePdfExport } from "@/hooks/usePdfExport";
@@ -330,17 +333,24 @@ export function ProposalEditor() {
     );
   };
 
-  const statusBadgeVariant = proposal?.status === 'draft' 
-    ? 'default' 
-    : proposal?.status === 'funded' 
-      ? 'default' 
-      : 'secondary';
+  // Get work programme and destination info
+  const workProgramme = WORK_PROGRAMMES.find(wp => wp.id === proposal?.workProgramme);
+  const destination = DESTINATIONS.find(d => d.id === proposal?.destination);
 
-  const statusLabel = {
-    draft: 'Draft',
-    submitted: 'Submitted',
-    funded: 'Funded',
-    not_funded: 'Not Funded',
+  // Status badge styling
+  const getStatusBadgeClass = (status?: ProposalStatus) => {
+    switch (status) {
+      case 'draft':
+        return 'bg-yellow-500/15 text-yellow-600 border border-yellow-500/30';
+      case 'submitted':
+        return 'bg-orange-500/15 text-orange-600 border border-orange-500/30';
+      case 'funded':
+        return 'bg-green-500/15 text-green-600 border border-green-500/30';
+      case 'not_funded':
+        return 'bg-red-500/15 text-red-600 border border-red-500/30';
+      default:
+        return 'bg-muted text-muted-foreground';
+    }
   };
 
   return (
@@ -354,19 +364,74 @@ export function ProposalEditor() {
               <ArrowLeft className="w-4 h-4" />
             </Button>
             <Separator orientation="vertical" className="h-6" />
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="proposal-badge-ria">
-                {proposal?.type || 'RIA'}
-              </Badge>
-              <h1 className="font-semibold">{proposal?.acronym || 'Loading...'}</h1>
-              <span className="text-muted-foreground hidden sm:inline">—</span>
-              <span className="text-muted-foreground text-sm hidden sm:inline truncate max-w-[300px]">
-                {proposal?.title || ''}
-              </span>
-              <Badge variant={statusBadgeVariant} className="ml-2">
-                {proposal?.status ? statusLabel[proposal.status] : ''}
-              </Badge>
+            
+            {/* Logo */}
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+              {proposal?.logoUrl ? (
+                <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
+              ) : (
+                <FileText className="w-4 h-4 text-primary" />
+              )}
             </div>
+            
+            {/* Acronym */}
+            <h1 className="font-semibold">
+              {loading ? <Skeleton className="h-5 w-24" /> : (proposal?.acronym || 'Unknown')}
+              {proposal?.submissionStage === 'stage_1' && <span className="font-normal text-muted-foreground text-sm"> (Stage 1)</span>}
+            </h1>
+            
+            {/* Status */}
+            {proposal?.status && (
+              <span className={`proposal-badge ${getStatusBadgeClass(proposal.status)} text-[10px]`}>
+                {PROPOSAL_STATUS_LABELS[proposal.status]}
+              </span>
+            )}
+            
+            {/* Type */}
+            {proposal?.type && (
+              <span className="proposal-badge bg-white text-foreground border border-foreground text-[10px]">
+                {proposal.type}
+              </span>
+            )}
+            
+            {/* Work Programme */}
+            {workProgramme && (
+              <span className="proposal-badge bg-gray-300 text-gray-700 text-[10px] hidden md:inline-flex" title={workProgramme.fullName}>
+                {workProgramme.abbreviation}
+              </span>
+            )}
+            
+            {/* Destination */}
+            {destination && (
+              <span className="proposal-badge bg-gray-200 text-gray-600 text-[10px] hidden lg:inline-flex" title={destination.fullName}>
+                {destination.abbreviation}
+              </span>
+            )}
+            
+            {/* Deadline */}
+            {proposal?.deadline && (
+              <div className="hidden xl:flex items-center gap-1 text-[10px] text-muted-foreground">
+                <Calendar className="w-3 h-3 text-yellow-600" />
+                <span className="font-semibold">Deadline:</span>
+                <span>{format(new Date(proposal.deadline), 'dd/MM/yyyy')}</span>
+              </div>
+            )}
+            
+            {/* Topic Link */}
+            {proposal?.topicUrl && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-6 px-2 gap-1 text-[10px] hidden xl:flex"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(proposal.topicUrl, '_blank');
+                }}
+              >
+                Topic
+                <ExternalLink className="w-2.5 h-2.5" />
+              </Button>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
