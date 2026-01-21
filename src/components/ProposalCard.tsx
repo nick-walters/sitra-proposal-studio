@@ -174,22 +174,7 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
   return (
     <Card className="card-elevated group cursor-pointer hover:border-primary/30" onClick={onClick}>
       <CardContent className="p-3">
-        {/* Row 1: Type, Work Programme, Destination badges */}
-        <div className="flex items-center gap-1 flex-wrap mb-2">
-          <span className="proposal-badge bg-white text-foreground border border-foreground text-[9px]">{proposal.type}</span>
-          {workProgramme && (
-            <span className="proposal-badge bg-gray-300 text-gray-700 text-[9px]">
-              {workProgramme.abbreviation}
-            </span>
-          )}
-          {destination && (
-            <span className="proposal-badge bg-gray-200 text-gray-600 text-[9px]">
-              {destination.abbreviation}
-            </span>
-          )}
-        </div>
-
-        {/* Row 2: Logo, acronym/title, and action buttons */}
+        {/* Row: Logo, badges/acronym/title, and action buttons */}
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-start gap-2">
             {/* Project Logo */}
@@ -203,7 +188,7 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
               )}
             </div>
             <div>
-              {/* Combined Status */}
+              {/* Row 1: Status badge */}
               <div className="flex items-center gap-1 flex-wrap">
                 <span className={`proposal-badge ${statusInfo.className} flex items-center gap-0.5 text-[9px]`}>
                   <StatusIcon className="w-3 h-3" />
@@ -211,6 +196,21 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
                   {statusInfo.days !== undefined && ` (${statusInfo.days}d)`}
                 </span>
               </div>
+              {/* Row 2: Type, Work Programme, Destination */}
+              <div className="flex items-center gap-1 flex-wrap mt-0.5">
+                <span className="proposal-badge bg-white text-foreground border border-foreground text-[9px]">{proposal.type}</span>
+                {workProgramme && (
+                  <span className="proposal-badge bg-gray-300 text-gray-700 text-[9px]">
+                    {workProgramme.abbreviation}
+                  </span>
+                )}
+                {destination && (
+                  <span className="proposal-badge bg-gray-200 text-gray-600 text-[9px]">
+                    {destination.abbreviation}
+                  </span>
+                )}
+              </div>
+              {/* Row 3: Acronym */}
               <h3 className="proposal-title text-sm group-hover:text-primary transition-colors mt-0.5">
                 {proposal.acronym}
               </h3>
