@@ -273,7 +273,7 @@ export function ProposalTableView({ proposals, onProposalClick, topicIcons }: Pr
                       )}
                       {format(proposal.decisionDate, 'dd/MM/yyyy')}
                     </div>
-                  ) : isDraft && proposal.deadline ? (
+                  ) : (isDraft || proposal.status === 'submitted') && proposal.deadline ? (
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Clock className="w-3 h-3 text-yellow-600" />
                       ~{format(getEstimatedDecisionDate(proposal)!, 'dd/MM/yyyy')}

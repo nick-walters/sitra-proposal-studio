@@ -3,7 +3,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink, AlertTriangle, PartyPopper, Calendar } from "lucide-react";
-import { format, differenceInDays } from "date-fns";
+import { format, differenceInDays, addMonths } from "date-fns";
+
+// Calculate estimated decision date based on submission stage
+// Full proposals: ~5 months after deadline
+// Stage 1: ~3 months after deadline
+const getEstimatedDecisionDate = (proposal: Proposal): Date | null => {
+  if (!proposal.deadline) return null;
+  const monthsToAdd = proposal.submissionStage === 'stage_1' ? 3 : 5;
+  return addMonths(proposal.deadline, monthsToAdd);
+};
 
 interface ProposalKanbanViewProps {
   proposals: Proposal[];
@@ -213,6 +222,16 @@ export function ProposalKanbanView({ proposals, onProposalClick, topicIcons }: P
                     <span className="font-bold">Decision:</span> {format(proposal.decisionDate, 'dd/MM/yyyy')}
                   </div>
                 )}
+                {/* For drafts and submitted proposals with deadline, show estimated decision date */}
+                {(isDraft || proposal.status === 'submitted') && proposal.deadline && (() => {
+                  const estimatedDate = getEstimatedDecisionDate(proposal);
+                  return estimatedDate ? (
+                    <div className="flex items-center gap-0.5 justify-end">
+                      <Clock className="w-2.5 h-2.5 text-yellow-600" />
+                      <span className="font-bold">Decision:</span> ~{format(estimatedDate, 'dd/MM/yyyy')}
+                    </div>
+                  ) : null;
+                })()}
               </div>
             </div>
           </div>
