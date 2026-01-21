@@ -183,7 +183,10 @@ export function ProposalKanbanView({ proposals, onProposalClick, topicIcons }: P
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-sm">{proposal.acronym}</h4>
+                      <h4 className="font-semibold text-sm">
+                        {proposal.acronym}
+                        {proposal.submissionStage === 'stage_1' && <span className="font-normal text-muted-foreground"> (Stage 1 of 2)</span>}
+                      </h4>
                       <p className="text-xs text-muted-foreground truncate">{proposal.title}</p>
                     </div>
                   </div>
