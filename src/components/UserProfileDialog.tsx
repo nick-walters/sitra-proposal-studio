@@ -6,12 +6,16 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Save, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Loader2, Save, AlertCircle, CheckCircle2, Globe, Linkedin, Plus, X } from "lucide-react";
 import { ProfilePhotoUpload } from "./ProfilePhotoUpload";
 import { CountryCodeSelect } from "./CountryCodeSelect";
 import { CountrySelect } from "./CountrySelect";
 import { OrganisationSelect } from "./OrganisationSelect";
 
+interface OtherLink {
+  label: string;
+  url: string;
+}
 interface UserProfile {
   id: string;
   email: string;
@@ -69,6 +73,12 @@ export function UserProfileDialog({ open, onOpenChange, userId, editable = false
     postcode: '',
     city: '',
     country: '',
+    website: '',
+    linkedin: '',
+    bluesky: '',
+    instagram: '',
+    facebook: '',
+    other_links: [] as OtherLink[],
   });
 
   useEffect(() => {
@@ -104,6 +114,12 @@ export function UserProfileDialog({ open, onOpenChange, userId, editable = false
         postcode: data.postcode || '',
         city: data.city || '',
         country: data.country || '',
+        website: data.website || '',
+        linkedin: data.linkedin || '',
+        bluesky: data.bluesky || '',
+        instagram: data.instagram || '',
+        facebook: data.facebook || '',
+        other_links: Array.isArray(data.other_links) ? (data.other_links as unknown as OtherLink[]) : [],
       });
       setErrors({});
     } catch (error) {
@@ -176,6 +192,12 @@ export function UserProfileDialog({ open, onOpenChange, userId, editable = false
           postcode: formData.postcode.trim(),
           city: formData.city.trim(),
           country: formData.country,
+          website: formData.website.trim() || null,
+          linkedin: formData.linkedin.trim() || null,
+          bluesky: formData.bluesky.trim() || null,
+          instagram: formData.instagram.trim() || null,
+          facebook: formData.facebook.trim() || null,
+          other_links: JSON.parse(JSON.stringify(formData.other_links.filter(l => l.url.trim()))),
         })
         .eq('id', userId);
 
@@ -228,6 +250,26 @@ export function UserProfileDialog({ open, onOpenChange, userId, editable = false
         {message}
       </p>
     );
+  };
+
+  const addOtherLink = () => {
+    setFormData({
+      ...formData,
+      other_links: [...formData.other_links, { label: '', url: '' }]
+    });
+  };
+
+  const updateOtherLink = (index: number, field: 'label' | 'url', value: string) => {
+    const updated = [...formData.other_links];
+    updated[index] = { ...updated[index], [field]: value };
+    setFormData({ ...formData, other_links: updated });
+  };
+
+  const removeOtherLink = (index: number) => {
+    setFormData({
+      ...formData,
+      other_links: formData.other_links.filter((_, i) => i !== index)
+    });
   };
 
   return (
@@ -479,6 +521,140 @@ export function UserProfileDialog({ open, onOpenChange, userId, editable = false
                   />
                 )}
                 <ErrorMessage message={errors.country} />
+              </div>
+            </div>
+
+            {/* Social Links Section */}
+            <div className="space-y-4 pt-4 border-t">
+              <Label className="text-base font-medium">Web & Social Links</Label>
+              
+              {/* Website */}
+              <div className="space-y-2">
+                <Label htmlFor="profile_website" className="flex items-center gap-2">
+                  <Globe className="w-4 h-4" />
+                  Website
+                </Label>
+                <Input
+                  id="profile_website"
+                  value={formData.website}
+                  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                  disabled={!editable}
+                  placeholder="https://yourwebsite.com"
+                />
+              </div>
+
+              {/* LinkedIn */}
+              <div className="space-y-2">
+                <Label htmlFor="profile_linkedin" className="flex items-center gap-2">
+                  <Linkedin className="w-4 h-4" />
+                  LinkedIn
+                </Label>
+                <Input
+                  id="profile_linkedin"
+                  value={formData.linkedin}
+                  onChange={(e) => setFormData({ ...formData, linkedin: e.target.value })}
+                  disabled={!editable}
+                  placeholder="https://linkedin.com/in/username"
+                />
+              </div>
+
+              {/* Bluesky */}
+              <div className="space-y-2">
+                <Label htmlFor="profile_bluesky" className="flex items-center gap-2">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.418 0-8-3.582-8-8s3.582-8 8-8 8 3.582 8 8-3.582 8-8 8zm2.5-11.5c-.828 0-1.5.672-1.5 1.5s.672 1.5 1.5 1.5 1.5-.672 1.5-1.5-.672-1.5-1.5-1.5zm-5 0c-.828 0-1.5.672-1.5 1.5s.672 1.5 1.5 1.5 1.5-.672 1.5-1.5-.672-1.5-1.5-1.5zm2.5 7c2.21 0 4-1.343 4-3h-8c0 1.657 1.79 3 4 3z"/>
+                  </svg>
+                  Bluesky
+                </Label>
+                <Input
+                  id="profile_bluesky"
+                  value={formData.bluesky}
+                  onChange={(e) => setFormData({ ...formData, bluesky: e.target.value })}
+                  disabled={!editable}
+                  placeholder="https://bsky.app/profile/handle"
+                />
+              </div>
+
+              {/* Instagram */}
+              <div className="space-y-2">
+                <Label htmlFor="profile_instagram" className="flex items-center gap-2">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+                  </svg>
+                  Instagram
+                </Label>
+                <Input
+                  id="profile_instagram"
+                  value={formData.instagram}
+                  onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
+                  disabled={!editable}
+                  placeholder="https://instagram.com/username"
+                />
+              </div>
+
+              {/* Facebook */}
+              <div className="space-y-2">
+                <Label htmlFor="profile_facebook" className="flex items-center gap-2">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                  </svg>
+                  Facebook
+                </Label>
+                <Input
+                  id="profile_facebook"
+                  value={formData.facebook}
+                  onChange={(e) => setFormData({ ...formData, facebook: e.target.value })}
+                  disabled={!editable}
+                  placeholder="https://facebook.com/username"
+                />
+              </div>
+
+              {/* Other Links */}
+              <div className="space-y-3">
+                <Label className="flex items-center gap-2">
+                  Other Links
+                </Label>
+                {formData.other_links.map((link, index) => (
+                  <div key={index} className="flex gap-2 items-start">
+                    <Input
+                      value={link.label}
+                      onChange={(e) => updateOtherLink(index, 'label', e.target.value)}
+                      disabled={!editable}
+                      placeholder="Label (e.g. ORCID)"
+                      className="w-32"
+                    />
+                    <Input
+                      value={link.url}
+                      onChange={(e) => updateOtherLink(index, 'url', e.target.value)}
+                      disabled={!editable}
+                      placeholder="https://..."
+                      className="flex-1"
+                    />
+                    {editable && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeOtherLink(index)}
+                        className="shrink-0"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                {editable && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addOtherLink}
+                    className="gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Link
+                  </Button>
+                )}
               </div>
             </div>
 

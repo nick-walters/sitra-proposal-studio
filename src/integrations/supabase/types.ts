@@ -666,58 +666,76 @@ export type Database = {
           address: string | null
           address_line_2: string | null
           avatar_url: string | null
+          bluesky: string | null
           city: string | null
           country: string | null
           country_code: string | null
           created_at: string
           department: string | null
           email: string
+          facebook: string | null
           first_name: string | null
           full_name: string | null
           id: string
+          instagram: string | null
           last_name: string | null
+          linkedin: string | null
           organisation: string | null
+          other_links: Json | null
           phone_number: string | null
           postcode: string | null
           updated_at: string
+          website: string | null
         }
         Insert: {
           address?: string | null
           address_line_2?: string | null
           avatar_url?: string | null
+          bluesky?: string | null
           city?: string | null
           country?: string | null
           country_code?: string | null
           created_at?: string
           department?: string | null
           email: string
+          facebook?: string | null
           first_name?: string | null
           full_name?: string | null
           id: string
+          instagram?: string | null
           last_name?: string | null
+          linkedin?: string | null
           organisation?: string | null
+          other_links?: Json | null
           phone_number?: string | null
           postcode?: string | null
           updated_at?: string
+          website?: string | null
         }
         Update: {
           address?: string | null
           address_line_2?: string | null
           avatar_url?: string | null
+          bluesky?: string | null
           city?: string | null
           country?: string | null
           country_code?: string | null
           created_at?: string
           department?: string | null
           email?: string
+          facebook?: string | null
           first_name?: string | null
           full_name?: string | null
           id?: string
+          instagram?: string | null
           last_name?: string | null
+          linkedin?: string | null
           organisation?: string | null
+          other_links?: Json | null
           phone_number?: string | null
           postcode?: string | null
           updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }
