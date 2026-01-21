@@ -753,6 +753,7 @@ export type Database = {
           id: string
           logo_url: string | null
           status: Database["public"]["Enums"]["proposal_status"]
+          submission_stage: string | null
           submitted_at: string | null
           template_type_id: string | null
           title: string
@@ -776,6 +777,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           status?: Database["public"]["Enums"]["proposal_status"]
+          submission_stage?: string | null
           submitted_at?: string | null
           template_type_id?: string | null
           title: string
@@ -799,6 +801,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           status?: Database["public"]["Enums"]["proposal_status"]
+          submission_stage?: string | null
           submitted_at?: string | null
           template_type_id?: string | null
           title?: string

@@ -104,11 +104,25 @@ export function CollaboratorsDialog({ open, onOpenChange, onStartChat }: Collabo
   const [selectedProposalIds, setSelectedProposalIds] = useState<string[]>([]);
   const [canInvite, setCanInvite] = useState(false);
 
-  // Check if user can invite (admin on any proposal, or in demo mode)
+  // Check if user can invite (owner, admin on any proposal, or in demo mode)
   useEffect(() => {
     async function checkInvitePermission() {
       if (!user) {
         // Allow invite in demo mode (not logged in)
+        setCanInvite(true);
+        return;
+      }
+
+      // Check if user is an owner (can always invite)
+      const { data: ownerRole, error: ownerError } = await supabase
+        .from('user_roles')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('role', 'owner')
+        .is('proposal_id', null)
+        .limit(1);
+
+      if (!ownerError && ownerRole && ownerRole.length > 0) {
         setCanInvite(true);
         return;
       }
