@@ -45,6 +45,7 @@ interface ProposalData {
   logoUrl?: string;
   submittedAt?: Date;
   decisionDate?: Date;
+  templateTypeId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -92,6 +93,7 @@ export function useProposalData(proposalId: string) {
         logoUrl: data.logo_url || undefined,
         submittedAt: data.submitted_at ? new Date(data.submitted_at) : undefined,
         decisionDate: data.decision_date ? new Date(data.decision_date) : undefined,
+        templateTypeId: data.template_type_id || undefined,
         createdAt: new Date(data.created_at),
         updatedAt: new Date(data.updated_at),
       });

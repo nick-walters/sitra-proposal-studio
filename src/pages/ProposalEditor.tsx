@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DuplicateProposalDialog } from "@/components/DuplicateProposalDialog";
-import { Section, HORIZON_EUROPE_SECTIONS, PART_A_SECTIONS, FIGURES_SECTION, BudgetType, ProposalStatus, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS } from "@/types/proposal";
+import { Section, BudgetType, ProposalStatus, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS } from "@/types/proposal";
 import { useState } from "react";
 import { format } from "date-fns";
 import { useParams, useNavigate } from "react-router-dom";
@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils";
 import { usePdfExport } from "@/hooks/usePdfExport";
 import { useRealtimePresence } from "@/hooks/useRealtimePresence";
 import { useProposalData } from "@/hooks/useProposalData";
+import { useProposalSections } from "@/hooks/useProposalSections";
 import { useBudget } from "@/hooks/useBudget";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -94,8 +95,8 @@ export function ProposalEditor() {
     currentSectionId: activeSection?.id || null,
   });
 
-  // Combine Part A, Part B, and Figures sections
-  const allSections = [...PART_A_SECTIONS, ...HORIZON_EUROPE_SECTIONS, FIGURES_SECTION];
+  // Dynamically load sections based on template type (or fallback to hardcoded)
+  const { sections: allSections, loading: sectionsLoading } = useProposalSections(proposal?.templateTypeId || null);
 
   const handleSectionClick = (section: Section) => {
     setActiveSection(section);
