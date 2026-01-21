@@ -234,6 +234,7 @@ export function Dashboard() {
   // Combined status filter: 'draft_critical', 'draft_due_soon', 'draft_on_track', 'submitted', 'funded', 'not_funded'
   const [combinedStatusFilters, setCombinedStatusFilters] = useState<Set<string>>(new Set());
   const [typeFilters, setTypeFilters] = useState<Set<ProposalType>>(new Set());
+  const [stageFilters, setStageFilters] = useState<Set<string>>(new Set());
   const [wpFilters, setWpFilters] = useState<Set<string>>(new Set());
   const [destFilters, setDestFilters] = useState<Set<string>>(new Set());
 
@@ -273,6 +274,15 @@ export function Dashboard() {
       const next = new Set(prev);
       if (next.has(type)) next.delete(type);
       else next.add(type);
+      return next;
+    });
+  };
+
+  const toggleStage = (stage: string) => {
+    setStageFilters(prev => {
+      const next = new Set(prev);
+      if (next.has(stage)) next.delete(stage);
+      else next.add(stage);
       return next;
     });
   };
@@ -339,13 +349,17 @@ export function Dashboard() {
       // Type filter (empty = all)
       const matchesType = typeFilters.size === 0 || typeFilters.has(p.type);
       
+      // Stage filter (empty = all)
+      const proposalStage = p.submissionStage === 'stage_1' ? 'stage_1' : 'full';
+      const matchesStage = stageFilters.size === 0 || stageFilters.has(proposalStage);
+      
       // Work Programme filter (empty = all)
       const matchesWp = wpFilters.size === 0 || (p.workProgramme && wpFilters.has(p.workProgramme));
       
       // Destination filter (empty = all)
       const matchesDest = destFilters.size === 0 || (p.destination && destFilters.has(p.destination));
       
-      return matchesSearch && matchesCombinedStatus && matchesType && matchesWp && matchesDest;
+      return matchesSearch && matchesCombinedStatus && matchesType && matchesStage && matchesWp && matchesDest;
     });
 
     // Sort: status priority → urgency (for drafts) → acronym alphabetically
@@ -363,13 +377,14 @@ export function Dashboard() {
       // Then alphabetically by acronym
       return a.acronym.localeCompare(b.acronym);
     });
-  }, [proposals, searchQuery, combinedStatusFilters, typeFilters, wpFilters, destFilters]);
+  }, [proposals, searchQuery, combinedStatusFilters, typeFilters, stageFilters, wpFilters, destFilters]);
 
-  const activeFiltersCount = combinedStatusFilters.size + typeFilters.size + wpFilters.size + destFilters.size;
+  const activeFiltersCount = combinedStatusFilters.size + typeFilters.size + stageFilters.size + wpFilters.size + destFilters.size;
 
   const clearFilters = () => {
     setCombinedStatusFilters(new Set());
     setTypeFilters(new Set());
+    setStageFilters(new Set());
     setWpFilters(new Set());
     setDestFilters(new Set());
     setSearchQuery('');
@@ -575,6 +590,39 @@ export function Dashboard() {
                         <span className="font-bold">{proposals.filter((p) => p.type === 'CSA').length}</span>
                         <span className="ml-1">CSA</span>
                       </button>
+                    </div>
+                  </div>
+
+                  {/* Stage Section */}
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-sm">Stage</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {(() => {
+                        const stage1Count = proposals.filter(p => p.submissionStage === 'stage_1').length;
+                        const fullCount = proposals.filter(p => p.submissionStage !== 'stage_1').length;
+                        return (
+                          <>
+                            {stage1Count > 0 && (
+                              <button
+                                onClick={() => toggleStage('stage_1')}
+                                className={`px-2.5 py-1 rounded-md transition-colors text-sm border ${stageFilters.has('stage_1') ? 'bg-foreground text-background border-foreground' : 'bg-white text-foreground border-foreground hover:bg-gray-50'}`}
+                              >
+                                <span className="font-bold">{stage1Count}</span>
+                                <span className="ml-1">Stage 1 of 2</span>
+                              </button>
+                            )}
+                            {fullCount > 0 && (
+                              <button
+                                onClick={() => toggleStage('full')}
+                                className={`px-2.5 py-1 rounded-md transition-colors text-sm border ${stageFilters.has('full') ? 'bg-foreground text-background border-foreground' : 'bg-white text-foreground border-foreground hover:bg-gray-50'}`}
+                              >
+                                <span className="font-bold">{fullCount}</span>
+                                <span className="ml-1">Full proposal</span>
+                              </button>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
 
