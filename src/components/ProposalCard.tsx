@@ -153,7 +153,8 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
           {/* Dates */}
           <div className="flex flex-col gap-0 flex-shrink-0 text-[9px] text-muted-foreground text-right">
             {proposal.deadline && (
-              <div>
+              <div className="flex items-center gap-0.5">
+                <Calendar className="w-2.5 h-2.5 text-yellow-600" />
                 <span className="font-bold">Deadline:</span> {format(proposal.deadline, 'dd/MM/yyyy')}
               </div>
             )}
@@ -245,7 +246,8 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
             {/* Dates below buttons */}
             <div className="flex flex-col gap-0.5 mt-1 text-[9px] text-muted-foreground text-right">
               {proposal.deadline && (
-                <div>
+                <div className="flex items-center gap-0.5 justify-end">
+                  <Calendar className="w-2.5 h-2.5 text-yellow-600" />
                   <span className="font-bold">Deadline:</span> {format(proposal.deadline, 'dd/MM/yyyy')}
                 </div>
               )}

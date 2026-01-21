@@ -2,7 +2,7 @@ import { Proposal, WORK_PROGRAMMES, DESTINATIONS } from "@/types/proposal";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileText, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink, AlertTriangle, PartyPopper } from "lucide-react";
+import { FileText, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink, AlertTriangle, PartyPopper, Calendar } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 
 interface ProposalKanbanViewProps {
@@ -198,7 +198,8 @@ export function ProposalKanbanView({ proposals, onProposalClick, topicIcons }: P
               {/* Dates below buttons */}
               <div className="flex flex-col gap-0.5 mt-0.5 text-[9px] text-muted-foreground text-right">
                 {proposal.deadline && (
-                  <div>
+                  <div className="flex items-center gap-0.5 justify-end">
+                    <Calendar className="w-2.5 h-2.5 text-yellow-600" />
                     <span className="font-bold">Deadline:</span> {format(proposal.deadline, 'dd/MM/yyyy')}
                   </div>
                 )}
