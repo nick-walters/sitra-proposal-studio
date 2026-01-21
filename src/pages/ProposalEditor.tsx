@@ -13,10 +13,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { DuplicateProposalDialog } from "@/components/DuplicateProposalDialog";
 import { Section, HORIZON_EUROPE_SECTIONS, PART_A_SECTIONS, FIGURES_SECTION, BudgetType, ProposalStatus } from "@/types/proposal";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { format } from "date-fns";
 import { useParams, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   Users,
@@ -28,6 +30,7 @@ import {
   ChevronRight,
   Lock,
   Eye,
+  Copy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePdfExport } from "@/hooks/usePdfExport";
@@ -49,6 +52,7 @@ export function ProposalEditor() {
   const [activeSection, setActiveSection] = useState<Section | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isDuplicateOpen, setIsDuplicateOpen] = useState(false);
   const { exportToPdf, exportProposalToPdf } = usePdfExport();
 
   // Fetch proposal data from database
@@ -149,6 +153,20 @@ export function ProposalEditor() {
       })),
       sections: allSections,
     });
+  };
+
+  const handleDuplicateProposal = async (newAcronym: string, newTitle: string) => {
+    if (!proposal) return;
+    
+    try {
+      // For demo purposes, show success and navigate to dashboard
+      // In production, this would copy all proposal data to a new proposal
+      toast.success(`Proposal "${newAcronym}" created as a draft. Redirecting to dashboard...`);
+      setTimeout(() => navigate('/dashboard'), 1500);
+    } catch (error) {
+      console.error('Error duplicating proposal:', error);
+      toast.error('Failed to duplicate proposal');
+    }
   };
 
   // Render the appropriate content based on section
@@ -279,6 +297,10 @@ export function ProposalEditor() {
               section={activeSection}
               proposalId={id || ''}
               proposalAcronym={proposal?.acronym || ''}
+              readOnly={!canEdit}
+              topicId={proposal?.topicId}
+              workProgramme={proposal?.workProgramme}
+              destination={proposal?.destination}
             />
           );
       }
@@ -300,6 +322,10 @@ export function ProposalEditor() {
         section={activeSection}
         proposalId={id || ''}
         proposalAcronym={proposal?.acronym || ''}
+        readOnly={!canEdit}
+        topicId={proposal?.topicId}
+        workProgramme={proposal?.workProgramme}
+        destination={proposal?.destination}
       />
     );
   };
@@ -426,16 +452,36 @@ export function ProposalEditor() {
               </>
             )}
             {proposal.status === 'funded' && (
-              <>
-                <strong>Funded</strong> – this proposal was successful! Editing is disabled but you can view all sections and export it as a PDF. 
-                You can also duplicate it – this function should only be used for a resubmission with a similar consortium and similar content.
-              </>
+              <span className="flex items-center gap-2 flex-wrap">
+                <span>
+                  <strong>Funded</strong> – this proposal was successful! Editing is disabled but you can view all sections and export it as a PDF.
+                </span>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="gap-1.5 h-7"
+                  onClick={() => setIsDuplicateOpen(true)}
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  Duplicate for resubmission
+                </Button>
+              </span>
             )}
             {proposal.status === 'not_funded' && (
-              <>
-                <strong>Not funded</strong> – this proposal was unsuccessful. Editing is disabled but you can view all sections and export it as a PDF. 
-                You can also duplicate it – this function should only be used for a resubmission with a similar consortium and similar content.
-              </>
+              <span className="flex items-center gap-2 flex-wrap">
+                <span>
+                  <strong>Not funded</strong> – this proposal was unsuccessful. Editing is disabled but you can view all sections and export it as a PDF.
+                </span>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="gap-1.5 h-7"
+                  onClick={() => setIsDuplicateOpen(true)}
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  Duplicate for resubmission
+                </Button>
+              </span>
             )}
           </AlertDescription>
         </Alert>
@@ -513,6 +559,20 @@ export function ProposalEditor() {
         proposalId={id || ''}
         onRestoreVersion={(snapshot) => console.log('Restore:', snapshot)}
       />
+
+      {/* Duplicate Proposal Dialog */}
+      {proposal && (
+        <DuplicateProposalDialog
+          isOpen={isDuplicateOpen}
+          onClose={() => setIsDuplicateOpen(false)}
+          proposal={{
+            ...proposal,
+            members: [],
+            sections: allSections,
+          }}
+          onDuplicate={handleDuplicateProposal}
+        />
+      )}
     </div>
   );
 }

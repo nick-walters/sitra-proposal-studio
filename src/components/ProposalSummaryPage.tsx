@@ -13,6 +13,7 @@ import { LogoUpload } from '@/components/LogoUpload';
 import { GanttChart } from '@/components/GanttChart';
 import { ConsortiumMap } from '@/components/ConsortiumMap';
 import { SubmissionWorkflow } from '@/components/SubmissionWorkflow';
+import { TeamMemberCard } from '@/components/TeamMemberCard';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Proposal, Participant, ParticipantMember, PARTICIPANT_TYPE_LABELS, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS, PROPOSAL_TYPE_LABELS, ProposalType, ProposalStatus, getDestinationsForWorkProgramme } from '@/types/proposal';
 import {
@@ -884,58 +885,25 @@ export function ProposalSummaryPage({
               Team Members
             </CardTitle>
             <CardDescription>
-              All team members involved in the project ({teamMembers.reduce((sum, m) => sum + (m.personMonths || 0), 0)} total person-months)
+              Click on a team member to view their contact info or start a chat ({teamMembers.reduce((sum, m) => sum + (m.personMonths || 0), 0)} total person-months)
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-2">
               {teamMembers.map((member) => (
-                <div
+                <TeamMemberCard
                   key={member.id}
-                  className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors cursor-pointer group"
-                >
-                  <Avatar className="w-12 h-12 flex-shrink-0 border">
-                    {member.organisationLogo ? (
-                      <AvatarImage
-                        src={member.organisationLogo}
-                        alt={member.organisationShortName}
-                        className="object-contain p-1"
-                      />
-                    ) : null}
-                    <AvatarFallback className="text-sm font-bold bg-primary/10 text-primary">
-                      {member.fullName.split(' ').map(n => n[0]).join('').toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-sm group-hover:text-primary transition-colors">
-                        {member.fullName}
-                      </p>
-                      {member.personMonths && (
-                        <Badge variant="secondary" className="text-xs">
-                          {member.personMonths} PM
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {member.roleInProject || 'Team Member'}
-                    </p>
-                    <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Building2 className="w-3 h-3" />
-                        <span>{member.organisationShortName || member.organisation}</span>
-                      </div>
-                      {member.email && (
-                        <div className="flex items-center gap-1">
-                          <Mail className="w-3 h-3" />
-                          <a href={`mailto:${member.email}`} className="hover:underline text-primary">
-                            {member.email}
-                          </a>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                  member={{
+                    id: member.id,
+                    fullName: member.fullName,
+                    email: member.email,
+                    roleInProject: member.roleInProject,
+                    personMonths: member.personMonths,
+                    organisation: member.organisation,
+                    organisationShortName: member.organisationShortName,
+                    organisationLogo: member.organisationLogo,
+                  }}
+                />
               ))}
             </div>
           </CardContent>

@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Info, Video, ImageIcon, Sparkles, BookOpen, Wand2, BarChart3, Route } from "lucide-react";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { RichTextEditor } from "./RichTextEditor";
 import { GrammarChecker } from "./GrammarChecker";
 import { CitationDialog } from "./CitationDialog";
@@ -30,9 +30,20 @@ interface DocumentEditorProps {
   proposalId: string;
   proposalAcronym: string;
   readOnly?: boolean;
+  topicId?: string;
+  workProgramme?: string;
+  destination?: string;
 }
 
-export function DocumentEditor({ section, proposalId, proposalAcronym, readOnly = false }: DocumentEditorProps) {
+export function DocumentEditor({ 
+  section, 
+  proposalId, 
+  proposalAcronym, 
+  readOnly = false,
+  topicId,
+  workProgramme,
+  destination,
+}: DocumentEditorProps) {
   const [isGrammarOpen, setIsGrammarOpen] = useState(false);
   const [isCitationOpen, setIsCitationOpen] = useState(false);
   const [isImageGenOpen, setIsImageGenOpen] = useState(false);
@@ -77,6 +88,12 @@ export function DocumentEditor({ section, proposalId, proposalAcronym, readOnly 
     setContent(content.replace(original, replacement));
   }, [content, setContent]);
 
+  const handleInsertImpactContent = useCallback((impactContent: string) => {
+    setContent(content + impactContent);
+  }, [content, setContent]);
+
+  // Check if this is the B2.1 section (impact pathways)
+  const isImpactSection = section?.id === 'b2-1' || section?.number === '2.1';
   // Strip HTML for grammar checking
   const plainText = content.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
 
@@ -136,6 +153,19 @@ export function DocumentEditor({ section, proposalId, proposalAcronym, readOnly 
             >
               <BarChart3 className="w-4 h-4" />
               Insert Figure
+            </Button>
+          )}
+          {/* Impact Pathway Generator for B2.1 section */}
+          {isImpactSection && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-2 bg-primary/5 border-primary/30 hover:bg-primary/10" 
+              onClick={() => setIsImpactPathwayOpen(true)}
+              disabled={readOnly}
+            >
+              <Route className="w-4 h-4" />
+              Impact Pathways
             </Button>
           )}
         </div>
@@ -258,6 +288,15 @@ export function DocumentEditor({ section, proposalId, proposalAcronym, readOnly 
         proposalId={proposalId}
         currentSectionId={section?.id || ''}
         onInsertFigure={handleInsertFigure}
+      />
+      <ImpactPathwayGenerator
+        isOpen={isImpactPathwayOpen}
+        onClose={() => setIsImpactPathwayOpen(false)}
+        proposalId={proposalId}
+        topicId={topicId}
+        workProgramme={workProgramme}
+        destination={destination}
+        onInsertContent={handleInsertImpactContent}
       />
     </div>
   );
