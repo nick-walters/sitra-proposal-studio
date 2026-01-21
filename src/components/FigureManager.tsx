@@ -221,7 +221,7 @@ export function FigureManager({ proposalId, canEdit }: FigureManagerProps) {
                       id="figure-title"
                       value={newFigureTitle}
                       onChange={(e) => setNewFigureTitle(e.target.value)}
-                      placeholder="e.g., Project Timeline"
+                      placeholder="e.g. Project Timeline"
                     />
                   </div>
                   <div className="space-y-2">

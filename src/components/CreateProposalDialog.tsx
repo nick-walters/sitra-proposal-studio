@@ -26,7 +26,7 @@ import {
   SUBMISSION_STAGE_LABELS
 } from "@/types/proposal";
 import { useState, useMemo } from "react";
-import { FileText, Beaker, Lightbulb, Users, Layers, Calculator } from "lucide-react";
+import { FileText, Beaker, Lightbulb, Users, Layers, Calculator, Rocket } from "lucide-react";
 
 interface CreateProposalDialogProps {
   open: boolean;
@@ -45,19 +45,19 @@ interface CreateProposalDialogProps {
 const proposalTypes = [
   {
     value: 'RIA' as ProposalType,
-    label: 'Research and Innovation Action (RIA)',
+    label: 'Research & Innovation Action (RIA)',
     description: 'Primarily research activities with some innovation elements',
-    icon: Beaker,
+    icon: Lightbulb,
   },
   {
     value: 'IA' as ProposalType,
     label: 'Innovation Action (IA)',
     description: 'Primarily innovation activities, closer to market',
-    icon: Lightbulb,
+    icon: Rocket,
   },
   {
     value: 'CSA' as ProposalType,
-    label: 'Coordination and Support Action (CSA)',
+    label: 'Coordination & Support Action (CSA)',
     description: 'Supporting and coordination measures',
     icon: Users,
   },
@@ -89,7 +89,7 @@ export function CreateProposalDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (acronym && title) {
+    if (acronym) {
       onCreateProposal({ 
         acronym, 
         title, 
@@ -134,7 +134,7 @@ export function CreateProposalDialog({
                 <Label htmlFor="acronym">Proposal Acronym *</Label>
                 <Input
                   id="acronym"
-                  placeholder="e.g., INNOVATE"
+                  placeholder="e.g. INNOVATE"
                   value={acronym}
                   onChange={(e) => setAcronym(e.target.value.toUpperCase())}
                   className="font-semibold"
@@ -144,10 +144,10 @@ export function CreateProposalDialog({
                 </p>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="title">Full Title *</Label>
+                <Label htmlFor="title">Full Title</Label>
                 <Input
                   id="title"
-                  placeholder="Enter the full proposal title"
+                  placeholder="Enter the full proposal title (optional)"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                 />
@@ -166,17 +166,17 @@ export function CreateProposalDialog({
                 className="grid grid-cols-2 gap-3"
               >
                 <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-muted/50 transition-colors">
-                  <RadioGroupItem value="full" id="stage-full" />
-                  <Label htmlFor="stage-full" className="cursor-pointer flex-1">
-                    <span className="font-medium">Full Proposal</span>
-                    <p className="text-xs text-muted-foreground">Single-stage submission</p>
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-muted/50 transition-colors">
                   <RadioGroupItem value="stage_1" id="stage-1" />
                   <Label htmlFor="stage-1" className="cursor-pointer flex-1">
                     <span className="font-medium">Stage 1 of 2</span>
                     <p className="text-xs text-muted-foreground">Two-stage submission process</p>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-muted/50 transition-colors">
+                  <RadioGroupItem value="full" id="stage-full" />
+                  <Label htmlFor="stage-full" className="cursor-pointer flex-1">
+                    <span className="font-medium">Full Proposal</span>
+                    <p className="text-xs text-muted-foreground">Single-stage submission</p>
                   </Label>
                 </div>
               </RadioGroup>
@@ -277,7 +277,7 @@ export function CreateProposalDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!acronym || !title}>
+            <Button type="submit" disabled={!acronym}>
               Create Proposal
             </Button>
           </DialogFooter>

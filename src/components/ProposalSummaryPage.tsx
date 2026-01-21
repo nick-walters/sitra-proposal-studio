@@ -686,7 +686,7 @@ export function ProposalSummaryPage({
                     type="number"
                     value={editedProposal.totalBudget || ''}
                     onChange={(e) => setEditedProposal({ ...editedProposal, totalBudget: parseFloat(e.target.value) || undefined })}
-                    placeholder="e.g., 5000000"
+                    placeholder="e.g. 5000000"
                   />
                 ) : (
                   <p className="font-medium">€{(proposal.totalBudget || displayBudget).toLocaleString()}</p>
@@ -716,7 +716,7 @@ export function ProposalSummaryPage({
                   <Input
                     value={editedProposal.topicId || ''}
                     onChange={(e) => setEditedProposal({ ...editedProposal, topicId: e.target.value })}
-                    placeholder="e.g., HORIZON-CL5-2026-D1-01"
+                    placeholder="e.g. HORIZON-CL5-2026-D1-01"
                   />
                 ) : (
                   <p className="font-medium">{proposal.topicId || 'Not specified'}</p>

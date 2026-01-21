@@ -381,7 +381,7 @@ export function ParticipantForm({
                   onChange={(e) =>
                     setNewParticipant({ ...newParticipant, organisationName: e.target.value })
                   }
-                  placeholder="e.g., University of Helsinki"
+                  placeholder="e.g. University of Helsinki"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -393,7 +393,7 @@ export function ParticipantForm({
                     onChange={(e) =>
                       setNewParticipant({ ...newParticipant, organisationShortName: e.target.value })
                     }
-                    placeholder="e.g., UH"
+                    placeholder="e.g. UH"
                   />
                 </div>
                 <div className="space-y-2">
@@ -437,7 +437,7 @@ export function ParticipantForm({
                     onChange={(e) =>
                       setNewParticipant({ ...newParticipant, country: e.target.value })
                     }
-                    placeholder="e.g., Finland"
+                    placeholder="e.g. Finland"
                   />
                 </div>
               </div>
@@ -475,7 +475,7 @@ export function ParticipantForm({
                   id="memberName"
                   value={newMember.fullName}
                   onChange={(e) => setNewMember({ ...newMember, fullName: e.target.value })}
-                  placeholder="e.g., Jane Doe"
+                  placeholder="e.g. Jane Doe"
                 />
               </div>
               <div className="space-y-2">
@@ -485,7 +485,7 @@ export function ParticipantForm({
                   type="email"
                   value={newMember.email}
                   onChange={(e) => setNewMember({ ...newMember, email: e.target.value })}
-                  placeholder="e.g., jane@example.com"
+                  placeholder="e.g. jane@example.com"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -495,7 +495,7 @@ export function ParticipantForm({
                     id="memberRole"
                     value={newMember.roleInProject}
                     onChange={(e) => setNewMember({ ...newMember, roleInProject: e.target.value })}
-                    placeholder="e.g., WP Leader"
+                    placeholder="e.g. WP Leader"
                   />
                 </div>
                 <div className="space-y-2">
@@ -507,7 +507,7 @@ export function ParticipantForm({
                     onChange={(e) =>
                       setNewMember({ ...newMember, personMonths: parseFloat(e.target.value) || 0 })
                     }
-                    placeholder="e.g., 12"
+                    placeholder="e.g. 12"
                   />
                 </div>
               </div>

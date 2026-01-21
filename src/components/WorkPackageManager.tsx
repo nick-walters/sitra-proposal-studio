@@ -400,7 +400,7 @@ export function WorkPackageManager({
                   id="wp-title"
                   value={newWP.title}
                   onChange={(e) => setNewWP({ ...newWP, title: e.target.value })}
-                  placeholder="e.g., Project Management"
+                  placeholder="e.g. Project Management"
                 />
               </div>
               <div className="space-y-2">
