@@ -441,12 +441,17 @@ export function Dashboard() {
               />
             </div>
 
-            {/* Filter Button with Popover */}
+            {/* Filter Button with Popover - disabled for Kanban view */}
             <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2 h-9">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="gap-2 h-9"
+                  disabled={viewMode === 'kanban'}
+                >
                   <Filter className="w-4 h-4" />
-                  {activeFiltersCount > 0 && (
+                  {activeFiltersCount > 0 && viewMode !== 'kanban' && (
                     <span className="px-1.5 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
                       {activeFiltersCount}
                     </span>
