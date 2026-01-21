@@ -125,9 +125,17 @@ export const DESTINATIONS: Destination[] = [
   { id: 'NEB-REGEN', abbreviation: 'REGEN', fullName: 'Regeneration of neighbourhoods', workProgrammeId: 'NEB' },
   { id: 'NEB-BUSINESS', abbreviation: 'BUSINESS', fullName: 'Innovative funding and new business models for the transformation of neighbourhoods', workProgrammeId: 'NEB' },
 
+  // EU Missions
+  { id: 'MISSIONS-CANCER', abbreviation: 'Cancer', fullName: 'Mission: Cancer', workProgrammeId: 'MISSIONS' },
+  { id: 'MISSIONS-CLIMATE', abbreviation: 'Climate', fullName: 'Mission: Adaptation to Climate Change', workProgrammeId: 'MISSIONS' },
+  { id: 'MISSIONS-OCEAN', abbreviation: 'Ocean', fullName: 'Mission: Restore our Ocean and Waters', workProgrammeId: 'MISSIONS' },
+  { id: 'MISSIONS-CITIES', abbreviation: 'Cities', fullName: 'Mission: Climate-Neutral and Smart Cities', workProgrammeId: 'MISSIONS' },
+  { id: 'MISSIONS-SOIL', abbreviation: 'Soil', fullName: 'Mission: A Soil Deal for Europe', workProgrammeId: 'MISSIONS' },
+
   // Partnership - European Partnerships
   { id: 'PARTNERSHIP-CBE', abbreviation: 'CBE JU', fullName: 'Circular Bio-based Europe Joint Undertaking', workProgrammeId: 'PARTNERSHIP' },
   { id: 'PARTNERSHIP-CHIPS', abbreviation: 'Chips JU', fullName: 'Chips Joint Undertaking', workProgrammeId: 'PARTNERSHIP' },
+  { id: 'PARTNERSHIP-MIE', abbreviation: 'Made in Europe', fullName: 'Made in Europe Partnership', workProgrammeId: 'PARTNERSHIP' },
 ];
 
 export const getDestinationsForWorkProgramme = (workProgrammeId: string): Destination[] => {
