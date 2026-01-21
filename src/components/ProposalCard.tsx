@@ -273,7 +273,7 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
               <ArrowRight className="w-2.5 h-2.5" />
             </Button>
             {/* Dates below buttons - left aligned so icons stack */}
-            <div className="flex flex-col gap-0.5 mt-1 text-[9px] text-muted-foreground">
+            <div className="flex flex-col gap-0.5 mt-3 text-[9px] text-muted-foreground">
               {proposal.deadline && (
                 <div className="flex items-center gap-0.5">
                   <Calendar className="w-2.5 h-2.5 text-yellow-600" />
