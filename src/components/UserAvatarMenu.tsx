@@ -57,10 +57,13 @@ export function UserAvatarMenu({ userId, email, onLogout }: UserAvatarMenuProps)
   };
 
   const getDisplayName = () => {
-    if (profile?.first_name || profile?.last_name) {
-      return [profile.first_name, profile.last_name].filter(Boolean).join(' ');
+    if (profile?.first_name) {
+      return profile.first_name;
     }
-    return profile?.full_name || email;
+    if (profile?.full_name) {
+      return profile.full_name.split(' ')[0]; // First word of full name
+    }
+    return email?.split('@')[0] || 'User'; // Username part of email as fallback
   };
 
   return (
