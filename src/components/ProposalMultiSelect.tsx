@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Check, ChevronsUpDown, Search, X } from "lucide-react";
+import { Check, ChevronsUpDown, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -17,25 +17,9 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { SAMPLE_PROPOSALS_BASIC, type SampleProposalBasic } from "@/lib/sampleProposals";
 
-interface Proposal {
-  id: string;
-  acronym: string;
-  title: string;
-}
-
-// Demo proposals matching the Dashboard sample proposals
-const DEMO_PROPOSALS: Proposal[] = [
-  { id: '1', acronym: 'GreenTech', title: 'Green technologies for sustainable urban development' },
-  { id: '2', acronym: 'HealthAI', title: 'Artificial intelligence solutions for personalized healthcare' },
-  { id: '3', acronym: 'CleanEnergy', title: 'Coordination network for clean energy transition in Europe' },
-  { id: '4', acronym: 'BioSmart', title: 'Smart bioeconomy solutions for circular agriculture' },
-  { id: '5', acronym: 'CyberShield', title: 'Advanced cybersecurity framework for critical infrastructure' },
-  { id: '6', acronym: 'FoodSafe', title: 'Innovative food safety monitoring systems' },
-  { id: '7', acronym: 'QuantumNet', title: 'Quantum communication networks for secure data transmission' },
-  { id: '8', acronym: 'HealthData', title: 'European Health Data Space integration platform' },
-  { id: '9', acronym: 'AquaSense', title: 'Smart water quality monitoring for urban water systems' },
-];
+type Proposal = SampleProposalBasic;
 
 interface ProposalMultiSelectProps {
   selectedProposalIds: string[];
@@ -49,7 +33,7 @@ export function ProposalMultiSelect({
   placeholder = "Select proposals...",
 }: ProposalMultiSelectProps) {
   const [open, setOpen] = useState(false);
-  const [proposals, setProposals] = useState<Proposal[]>(DEMO_PROPOSALS);
+  const [proposals, setProposals] = useState<Proposal[]>(SAMPLE_PROPOSALS_BASIC);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -64,13 +48,13 @@ export function ProposalMultiSelect({
         if (!error && data && data.length > 0) {
           setProposals(data);
         } else {
-          // Use demo proposals for testing when no database proposals available
-          console.log('Using demo proposals - no database proposals found or error:', error);
-          setProposals(DEMO_PROPOSALS);
+          // Use sample proposals for testing when no database proposals available
+          console.log('Using sample proposals - no database proposals found or error:', error);
+          setProposals(SAMPLE_PROPOSALS_BASIC);
         }
       } catch (err) {
         console.error('Error fetching proposals:', err);
-        setProposals(DEMO_PROPOSALS);
+        setProposals(SAMPLE_PROPOSALS_BASIC);
       } finally {
         setLoading(false);
       }
