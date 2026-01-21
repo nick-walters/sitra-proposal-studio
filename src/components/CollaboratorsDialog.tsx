@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserProfileDialog } from "@/components/UserProfileDialog";
+import { ProposalMultiSelect } from "@/components/ProposalMultiSelect";
+import { Label } from "@/components/ui/label";
 import { MessageCircle, Mail, Phone, Building2, Search, Users, UserPlus } from "lucide-react";
 
 // Demo users for development
@@ -95,6 +97,8 @@ export function CollaboratorsDialog({ open, onOpenChange, onStartChat }: Collabo
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [selectedProposalIds, setSelectedProposalIds] = useState<string[]>([]);
 
   const filteredUsers = DEMO_USERS.filter(user => 
     user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -216,16 +220,48 @@ export function CollaboratorsDialog({ open, onOpenChange, onStartChat }: Collabo
               </ScrollArea>
             </TabsContent>
 
-            <TabsContent value="invite" className="space-y-4">
-              <div className="text-center py-8">
-                <UserPlus className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="font-medium mb-2">Invite collaborators</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Enter email addresses to invite new team members
-                </p>
-                <div className="flex gap-2 max-w-md mx-auto">
-                  <Input placeholder="email@example.com" type="email" />
-                  <Button>Send Invite</Button>
+            <TabsContent value="invite" className="space-y-6">
+              <div className="py-4">
+                <div className="flex items-center gap-3 mb-6">
+                  <UserPlus className="w-10 h-10 text-muted-foreground" />
+                  <div>
+                    <h3 className="font-medium">Invite collaborators</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Enter an email address and select which proposals to grant access
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="invite-email">Email address</Label>
+                    <Input
+                      id="invite-email"
+                      placeholder="email@example.com"
+                      type="email"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Grant access to proposals</Label>
+                    <ProposalMultiSelect
+                      selectedProposalIds={selectedProposalIds}
+                      onSelectionChange={setSelectedProposalIds}
+                      placeholder="Select proposals..."
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Type an acronym to filter, click to select multiple proposals
+                    </p>
+                  </div>
+
+                  <Button 
+                    className="w-full"
+                    disabled={!inviteEmail || selectedProposalIds.length === 0}
+                  >
+                    Send Invite
+                  </Button>
                 </div>
               </div>
             </TabsContent>
