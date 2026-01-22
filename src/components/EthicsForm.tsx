@@ -123,12 +123,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Ethics Self-Assessment</h1>
-            <p className="text-muted-foreground">
-              Complete the ethics issues table as required by the application form
-            </p>
-          </div>
+          <h1 className="text-2xl font-bold text-foreground">Part A4: Ethics self-assessment</h1>
           <Badge
             variant={issuesCount > 0 ? 'destructive' : 'default'}
             className="gap-2 px-3 py-1.5"

@@ -103,7 +103,7 @@ export function BudgetSpreadsheet({
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div className="space-y-2">
-            <h1 className="text-2xl font-bold text-foreground">Budget</h1>
+            <h1 className="text-2xl font-bold text-foreground">Part A3: Budget</h1>
             <InlineGuideline>
               RIA: 100% funding. IA: 70% (100% for non-profit). Indirect costs are 25% flat rate on direct costs minus subcontracting.
             </InlineGuideline>

@@ -135,7 +135,7 @@ export function ParticipantForm({
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-2">
-            <h1 className="text-2xl font-bold text-foreground">Participant Information</h1>
+            <h1 className="text-2xl font-bold text-foreground">Part A2: Participants</h1>
             <InlineGuideline>
               Enter organisation details using PIC (Participant Identification Code) from the EC Participant Register. Coordinator is always Participant #1.
             </InlineGuideline>

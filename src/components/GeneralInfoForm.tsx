@@ -170,12 +170,7 @@ export function GeneralInfoForm({
       <div className="max-w-3xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Badge variant="outline" className="text-primary border-primary">
-              Section A1
-            </Badge>
-            <h1 className="text-xl font-semibold">General information</h1>
-          </div>
+          <h1 className="text-xl font-semibold">Part A1: General information</h1>
           {canEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
         </div>
 
