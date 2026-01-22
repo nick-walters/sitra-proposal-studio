@@ -341,13 +341,30 @@ function TemplateTypesPanel({
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
   const [editing, setEditing] = useState<TemplateType | null>(null);
   const [duplicating, setDuplicating] = useState<TemplateType | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    code: string;
+    name: string;
+    description: string;
+    funding_programme_id: string;
+    parent_type_id: string;
+    is_active: boolean;
+    base_page_limit: number;
+    submission_stage: 'stage_1' | 'full' | '';
+    includes_branding: boolean;
+    includes_participant_table: boolean;
+    action_types: string[];
+  }>({
     code: '',
     name: '',
     description: '',
     funding_programme_id: '',
     parent_type_id: '',
-    is_active: true
+    is_active: true,
+    base_page_limit: 10,
+    submission_stage: '',
+    includes_branding: false,
+    includes_participant_table: false,
+    action_types: []
   });
   const [duplicateData, setDuplicateData] = useState({ code: '', name: '' });
 
@@ -360,11 +377,28 @@ function TemplateTypesPanel({
         description: type.description || '',
         funding_programme_id: type.funding_programme_id || '',
         parent_type_id: type.parent_type_id || '',
-        is_active: type.is_active
+        is_active: type.is_active,
+        base_page_limit: type.base_page_limit || 10,
+        submission_stage: type.submission_stage || '',
+        includes_branding: type.includes_branding || false,
+        includes_participant_table: type.includes_participant_table || false,
+        action_types: type.action_types || []
       });
     } else {
       setEditing(null);
-      setFormData({ code: '', name: '', description: '', funding_programme_id: '', parent_type_id: '', is_active: true });
+      setFormData({ 
+        code: '', 
+        name: '', 
+        description: '', 
+        funding_programme_id: '', 
+        parent_type_id: '', 
+        is_active: true,
+        base_page_limit: 10,
+        submission_stage: '',
+        includes_branding: false,
+        includes_participant_table: false,
+        action_types: []
+      });
     }
     setDialogOpen(true);
   };
@@ -381,12 +415,20 @@ function TemplateTypesPanel({
       return;
     }
 
+    // Prepare data for submission, converting empty strings to undefined
+    const submitData = {
+      ...formData,
+      submission_stage: formData.submission_stage || undefined,
+      funding_programme_id: formData.funding_programme_id || undefined,
+      parent_type_id: formData.parent_type_id || undefined,
+    };
+
     try {
       if (editing) {
-        await onUpdate(editing.id, formData);
+        await onUpdate(editing.id, submitData);
         toast.success("Template type updated");
       } else {
-        await onCreate(formData);
+        await onCreate(submitData);
         toast.success("Template type created");
       }
       setDialogOpen(false);
@@ -559,7 +601,87 @@ function TemplateTypesPanel({
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
             </div>
-            <div className="flex items-center justify-between">
+            
+            {/* Template Configuration */}
+            <div className="border-t pt-4 mt-4">
+              <h4 className="text-sm font-medium mb-4">Template Configuration</h4>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="submission_stage">Submission Stage</Label>
+                  <Select
+                    value={formData.submission_stage}
+                    onValueChange={(value) => setFormData({ 
+                      ...formData, 
+                      submission_stage: value as 'stage_1' | 'full' | '' 
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select stage" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Not specified</SelectItem>
+                      <SelectItem value="stage_1">Stage 1 (Pre-proposal)</SelectItem>
+                      <SelectItem value="full">Full Proposal</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="base_page_limit">Base Page Limit</Label>
+                  <Input
+                    id="base_page_limit"
+                    type="number"
+                    min={1}
+                    value={formData.base_page_limit}
+                    onChange={(e) => setFormData({ ...formData, base_page_limit: parseInt(e.target.value) || 10 })}
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <Label htmlFor="includes_branding" className="cursor-pointer">Include Branding</Label>
+                  <Switch
+                    id="includes_branding"
+                    checked={formData.includes_branding}
+                    onCheckedChange={(checked) => setFormData({ ...formData, includes_branding: checked })}
+                  />
+                </div>
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <Label htmlFor="includes_participant_table" className="cursor-pointer">Include Participant Table</Label>
+                  <Switch
+                    id="includes_participant_table"
+                    checked={formData.includes_participant_table}
+                    onCheckedChange={(checked) => setFormData({ ...formData, includes_participant_table: checked })}
+                  />
+                </div>
+              </div>
+              
+              <div className="mt-4 space-y-2">
+                <Label>Action Types</Label>
+                <div className="flex gap-2 flex-wrap">
+                  {['RIA', 'IA', 'CSA'].map((actionType) => (
+                    <Button
+                      key={actionType}
+                      type="button"
+                      variant={formData.action_types.includes(actionType) ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        const newTypes = formData.action_types.includes(actionType)
+                          ? formData.action_types.filter(t => t !== actionType)
+                          : [...formData.action_types, actionType];
+                        setFormData({ ...formData, action_types: newTypes });
+                      }}
+                    >
+                      {actionType}
+                    </Button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">Select which action types this template applies to</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between pt-4 border-t">
               <Label htmlFor="type_is_active">Active</Label>
               <Switch
                 id="type_is_active"

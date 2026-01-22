@@ -18,6 +18,13 @@ export interface TemplateType {
   description?: string;
   parent_type_id?: string; // For variants like CBE JU RIA
   is_active: boolean;
+  // Template configuration
+  base_page_limit?: number;
+  submission_stage?: 'stage_1' | 'full' | null;
+  includes_branding?: boolean;
+  includes_participant_table?: boolean;
+  action_types?: string[]; // e.g., ['RIA', 'IA']
+  // Timestamps
   created_at: string;
   updated_at: string;
   // Joined data

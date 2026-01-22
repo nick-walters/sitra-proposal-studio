@@ -176,7 +176,7 @@ export function useTemplates() {
       return null;
     }
 
-    // Create new template type
+    // Create new template type with all configuration fields
     const { data: newType, error: createError } = await supabase
       .from('template_types')
       .insert([{
@@ -185,6 +185,11 @@ export function useTemplates() {
         name: newName,
         description: original.description,
         parent_type_id: id, // Reference original as parent
+        base_page_limit: original.base_page_limit,
+        submission_stage: original.submission_stage,
+        includes_branding: original.includes_branding,
+        includes_participant_table: original.includes_participant_table,
+        action_types: original.action_types,
       }])
       .select('*, funding_programme:funding_programmes(*)')
       .single();
