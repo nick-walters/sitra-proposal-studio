@@ -22,64 +22,51 @@ interface OrganisationInfo {
 }
 
 // Map legal entity types to organisation categories
-// Priority order matters - more specific types checked first
 function mapLegalEntityToCategory(legalEntityType?: string, isSme?: boolean): 'RES' | 'UNI' | 'IND' | 'SME' | 'NGO' | 'CSO' | 'PUB' | 'INT' | 'OTH' {
   if (!legalEntityType) return 'OTH';
   
   const type = legalEntityType.toLowerCase();
   
-  console.log(`Mapping legal entity type: "${legalEntityType}" (isSme: ${isSme})`);
-  
-  // SME check - but only if explicitly marked as SME AND is a private entity
   if (isSme && (type.includes('private') || type.includes('enterprise') || type.includes('company') || type.includes('prc'))) {
     return 'SME';
   }
   
-  // Public organisations - check FIRST as "public" is explicit in EC register
-  // Includes: public body, public organisation, government, authority, ministry
   if (type.includes('public') || type.includes('government') || type.includes('authority') || 
       type.includes('ministry') || type.includes('pub') || type.includes('state') ||
       type.includes('municipal') || type.includes('regional') || type.includes('national body')) {
     return 'PUB';
   }
   
-  // International organisations
   if (type.includes('international') || type.includes('intergovernmental') || type.includes('igo')) {
     return 'INT';
   }
   
-  // Universities and Higher Education
   if (type.includes('university') || type.includes('higher education') || 
       type.includes('academic') || type.includes('hen') || type.includes('hes')) {
     return 'UNI';
   }
   
-  // Research organisations
   if (type.includes('research') || type.includes('rto') || type.includes('rec') || 
       type.includes('r&d') || type.includes('scientific')) {
     return 'RES';
   }
   
-  // Private for-profit / Industry
   if (type.includes('private') || type.includes('enterprise') || type.includes('company') || 
       type.includes('industry') || type.includes('prc') || type.includes('for-profit') ||
       type.includes('commercial')) {
     return isSme ? 'SME' : 'IND';
   }
   
-  // Civil society organisations
   if (type.includes('civil society') || type.includes('cso')) {
     return 'CSO';
   }
   
-  // NGOs - non-governmental, non-profit, foundations (but NOT public foundations)
   if (type.includes('non-governmental') || type.includes('ngo') || 
       type.includes('non-profit') || type.includes('nonprofit') ||
       (type.includes('foundation') && !type.includes('public'))) {
     return 'NGO';
   }
   
-  // Default fallback
   return 'OTH';
 }
 
@@ -100,7 +87,6 @@ async function lookupFromDatabase(supabase: any, picNumber: string): Promise<Org
   try {
     console.log(`Checking database for PIC: ${picNumber}`);
     
-    // First check organisations table
     const { data: org, error } = await supabase
       .from('organisations')
       .select('*')
@@ -158,96 +144,101 @@ async function lookupFromDatabase(supabase: any, picNumber: string): Promise<Org
   }
 }
 
-// Try to fetch from CORDIS Search API (searches by organizationID/PIC)
+// Try to fetch from CORDIS API
 async function lookupFromCordis(picNumber: string): Promise<OrganisationInfo | null> {
-  // Try multiple CORDIS endpoints
-  const endpoints = [
-    // CORDIS search endpoint with JSON format
-    `https://cordis.europa.eu/search/en?q=organizationId:${picNumber}&format=json`,
-    // Alternative organization search
-    `https://cordis.europa.eu/search?q=contenttype%3D%27organization%27+AND+organizationID%3D%27${picNumber}%27&format=json`,
-  ];
-
-  for (const url of endpoints) {
-    try {
-      console.log(`Trying CORDIS: ${url}`);
+  // Use the CORDIS organisation search endpoint
+  const url = `https://cordis.europa.eu/search/en?q=contenttype%3D%27organization%27+AND+organizationID%3D%27${picNumber}%27&format=json`;
+  
+  try {
+    console.log(`Trying CORDIS: ${url}`);
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json, text/plain, */*',
+        'User-Agent': 'Mozilla/5.0 (compatible; ProposalStudio/1.0)',
+      },
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeoutId);
+    console.log(`CORDIS status: ${response.status}`);
+    
+    if (!response.ok) {
+      console.log(`CORDIS returned ${response.status}`);
+      return null;
+    }
+    
+    const text = await response.text();
+    
+    // Skip if it's HTML
+    if (text.trim().startsWith('<!') || text.trim().startsWith('<html')) {
+      console.log('CORDIS returned HTML, skipping');
+      return null;
+    }
+    
+    const data = JSON.parse(text);
+    console.log(`CORDIS response keys: ${Object.keys(data).join(', ')}`);
+    
+    // CORDIS returns {result: [...], hits: number} format
+    const results = data.result || data.results || data.payload?.organizations || [];
+    console.log(`CORDIS found ${results.length} results`);
+    
+    if (results.length === 0) {
+      return null;
+    }
+    
+    // Find the org that matches our PIC exactly
+    let org = null;
+    for (const item of results) {
+      // Handle different field names for PIC
+      const itemPic = item.organizationID || item.pic || item.organisationID;
+      console.log(`Checking item PIC: ${itemPic}`);
       
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
-      
-      const response = await fetch(url, {
-        headers: {
-          'Accept': 'application/json, text/plain, */*',
-        },
-        signal: controller.signal,
-      });
-      
-      clearTimeout(timeoutId);
-      console.log(`CORDIS status: ${response.status}`);
-      
-      if (!response.ok) {
-        continue;
-      }
-      
-      const text = await response.text();
-      
-      // Skip if it's HTML
-      if (text.trim().startsWith('<!') || text.trim().startsWith('<html')) {
-        console.log('CORDIS returned HTML, skipping');
-        continue;
-      }
-      
-      try {
-        const data = JSON.parse(text);
-        console.log(`CORDIS response parsed, keys: ${Object.keys(data).join(', ')}`);
-        
-        // Handle different response formats from CORDIS
-        let org = null;
-        
-        if (data.payload?.organizations?.length > 0) {
-          org = data.payload.organizations[0];
-        } else if (data.organizations?.length > 0) {
-          org = data.organizations[0];
-        } else if (data.results?.length > 0) {
-          org = data.results[0];
-        } else if (Array.isArray(data) && data.length > 0) {
-          org = data[0];
-        }
-        
-        if (org) {
-          const countryCode = org.country || org.countryCode || org.organisationCountry || '';
-          const isSme = org.sme === 'true' || org.sme === true;
-          const legalEntityType = org.activityType || org.legalEntityType || org.organisationType || org.type || '';
-          
-          console.log(`CORDIS found: ${org.legalName || org.name} (${countryCode}, Type: ${legalEntityType})`);
-          
-          return {
-            picNumber: picNumber,
-            legalName: org.legalName || org.name || org.title || 'Unknown',
-            shortName: org.shortName || org.acronym,
-            country: COUNTRY_NAMES[countryCode] || countryCode,
-            countryCode: countryCode,
-            city: org.city,
-            address: org.street || org.address,
-            legalEntityType: legalEntityType,
-            isSme: isSme,
-            organisationCategory: mapLegalEntityToCategory(legalEntityType, isSme),
-          };
-        }
-      } catch (parseError) {
-        console.log('Failed to parse CORDIS response as JSON');
-      }
-    } catch (error: unknown) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.log('CORDIS request timed out');
-      } else {
-        console.error('CORDIS lookup error:', error);
+      if (itemPic && String(itemPic) === picNumber) {
+        org = item;
+        break;
       }
     }
+    
+    // If no exact match, use first result
+    if (!org && results.length > 0) {
+      org = results[0];
+    }
+    
+    if (org) {
+      const countryCode = org.country || org.organisationCountry || '';
+      const isSme = org.sme === 'true' || org.sme === true || org.SME === true;
+      const legalEntityType = org.activityType || org.legalEntityType || org.organisationType || '';
+      const legalName = org.legalName || org.name || org.title || '';
+      
+      console.log(`CORDIS found: ${legalName} (${countryCode}, Type: ${legalEntityType})`);
+      
+      return {
+        picNumber: picNumber,
+        legalName: legalName,
+        shortName: org.shortName || org.acronym,
+        country: COUNTRY_NAMES[countryCode] || countryCode,
+        countryCode: countryCode,
+        city: org.city,
+        address: org.street || org.address,
+        legalEntityType: legalEntityType,
+        isSme: isSme,
+        organisationCategory: mapLegalEntityToCategory(legalEntityType, isSme),
+      };
+    }
+    
+    return null;
+  } catch (error: unknown) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.log('CORDIS request timed out');
+    } else {
+      console.error('CORDIS lookup error:', error);
+    }
+    return null;
   }
-  
-  console.log('No results from any CORDIS endpoint');
-  return null;
 }
 
 serve(async (req: Request) => {
