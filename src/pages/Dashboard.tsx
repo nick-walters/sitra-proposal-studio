@@ -14,6 +14,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfileCompletion } from "@/hooks/useProfileCompletion";
+import { useProposalTemplateCreation } from "@/hooks/useProposalTemplateCreation";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -230,6 +231,7 @@ export function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isComplete: isProfileComplete, isLoading: isProfileLoading, checkProfile } = useProfileCompletion();
+  const { createProposalTemplate } = useProposalTemplateCreation();
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [isLoadingProposals, setIsLoadingProposals] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -524,6 +526,24 @@ export function Dashboard() {
         });
 
       if (roleError) throw roleError;
+
+      // If a template was selected, create the proposal template with copied sections
+      if (data.templateTypeId) {
+        const templateResult = await createProposalTemplate({
+          proposalId: newProposalData.id,
+          sourceTemplateTypeId: data.templateTypeId,
+          budgetType: data.budgetType,
+          actionType: data.type,
+          submissionStage: data.submissionStage,
+          workProgramme: data.workProgramme,
+        });
+
+        if (!templateResult.success) {
+          console.warn('Failed to create proposal template:', templateResult.error);
+          // Don't fail the whole operation, just warn
+          toast.warning('Proposal created but template sections could not be loaded');
+        }
+      }
 
       toast.success('Proposal created successfully');
       

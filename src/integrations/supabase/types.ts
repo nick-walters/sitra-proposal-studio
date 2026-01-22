@@ -421,6 +421,42 @@ export type Database = {
         }
         Relationships: []
       }
+      funding_rules: {
+        Row: {
+          conditions: Json
+          created_at: string
+          description: string | null
+          funding_rate: number
+          id: string
+          is_active: boolean | null
+          name: string
+          priority: number
+          updated_at: string
+        }
+        Insert: {
+          conditions?: Json
+          created_at?: string
+          description?: string | null
+          funding_rate: number
+          id?: string
+          is_active?: boolean | null
+          name: string
+          priority?: number
+          updated_at?: string
+        }
+        Update: {
+          conditions?: Json
+          created_at?: string
+          description?: string | null
+          funding_rate?: number
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          priority?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       member_wp_allocations: {
         Row: {
           created_at: string
@@ -738,6 +774,202 @@ export type Database = {
           website?: string | null
         }
         Relationships: []
+      }
+      proposal_section_guidelines: {
+        Row: {
+          content: string
+          created_at: string
+          guideline_type: string
+          id: string
+          is_active: boolean | null
+          order_index: number
+          proposal_section_id: string
+          source_guideline_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          guideline_type: string
+          id?: string
+          is_active?: boolean | null
+          order_index?: number
+          proposal_section_id: string
+          source_guideline_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          guideline_type?: string
+          id?: string
+          is_active?: boolean | null
+          order_index?: number
+          proposal_section_id?: string
+          source_guideline_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_section_guidelines_proposal_section_id_fkey"
+            columns: ["proposal_section_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_template_sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_section_guidelines_source_guideline_id_fkey"
+            columns: ["source_guideline_id"]
+            isOneToOne: false
+            referencedRelation: "section_guidelines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_template_sections: {
+        Row: {
+          created_at: string
+          description: string | null
+          editor_type: string
+          id: string
+          is_active: boolean | null
+          is_custom: boolean | null
+          is_required: boolean | null
+          order_index: number
+          page_limit: number | null
+          parent_section_id: string | null
+          part: string
+          proposal_template_id: string
+          section_number: string
+          section_tag: string | null
+          source_section_id: string | null
+          title: string
+          updated_at: string
+          word_limit: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          editor_type?: string
+          id?: string
+          is_active?: boolean | null
+          is_custom?: boolean | null
+          is_required?: boolean | null
+          order_index?: number
+          page_limit?: number | null
+          parent_section_id?: string | null
+          part: string
+          proposal_template_id: string
+          section_number: string
+          section_tag?: string | null
+          source_section_id?: string | null
+          title: string
+          updated_at?: string
+          word_limit?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          editor_type?: string
+          id?: string
+          is_active?: boolean | null
+          is_custom?: boolean | null
+          is_required?: boolean | null
+          order_index?: number
+          page_limit?: number | null
+          parent_section_id?: string | null
+          part?: string
+          proposal_template_id?: string
+          section_number?: string
+          section_tag?: string | null
+          source_section_id?: string | null
+          title?: string
+          updated_at?: string
+          word_limit?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_template_sections_parent_section_id_fkey"
+            columns: ["parent_section_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_template_sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_template_sections_proposal_template_id_fkey"
+            columns: ["proposal_template_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_template_sections_source_section_id_fkey"
+            columns: ["source_section_id"]
+            isOneToOne: false
+            referencedRelation: "template_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_templates: {
+        Row: {
+          applied_extension_ids: string[] | null
+          applied_modifier_ids: string[] | null
+          base_page_limit: number | null
+          created_at: string
+          id: string
+          includes_branding: boolean | null
+          includes_participant_table: boolean | null
+          is_customized: boolean | null
+          proposal_id: string
+          source_template_type_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          applied_extension_ids?: string[] | null
+          applied_modifier_ids?: string[] | null
+          base_page_limit?: number | null
+          created_at?: string
+          id?: string
+          includes_branding?: boolean | null
+          includes_participant_table?: boolean | null
+          is_customized?: boolean | null
+          proposal_id: string
+          source_template_type_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          applied_extension_ids?: string[] | null
+          applied_modifier_ids?: string[] | null
+          base_page_limit?: number | null
+          created_at?: string
+          id?: string
+          includes_branding?: boolean | null
+          includes_participant_table?: boolean | null
+          is_customized?: boolean | null
+          proposal_id?: string
+          source_template_type_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_templates_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: true
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_templates_source_template_type_id_fkey"
+            columns: ["source_template_type_id"]
+            isOneToOne: false
+            referencedRelation: "template_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       proposals: {
         Row: {
@@ -1071,6 +1303,48 @@ export type Database = {
           },
         ]
       }
+      template_modifiers: {
+        Row: {
+          code: string
+          conditions: Json
+          created_at: string
+          description: string | null
+          effects: Json
+          id: string
+          is_active: boolean | null
+          is_admin_editable: boolean | null
+          name: string
+          priority: number | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          conditions?: Json
+          created_at?: string
+          description?: string | null
+          effects?: Json
+          id?: string
+          is_active?: boolean | null
+          is_admin_editable?: boolean | null
+          name: string
+          priority?: number | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          conditions?: Json
+          created_at?: string
+          description?: string | null
+          effects?: Json
+          id?: string
+          is_active?: boolean | null
+          is_admin_editable?: boolean | null
+          name?: string
+          priority?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       template_sections: {
         Row: {
           created_at: string
@@ -1145,36 +1419,51 @@ export type Database = {
       }
       template_types: {
         Row: {
+          action_types: string[] | null
+          base_page_limit: number | null
           code: string
           created_at: string
           description: string | null
           funding_programme_id: string | null
           id: string
+          includes_branding: boolean | null
+          includes_participant_table: boolean | null
           is_active: boolean | null
           name: string
           parent_type_id: string | null
+          submission_stage: string | null
           updated_at: string
         }
         Insert: {
+          action_types?: string[] | null
+          base_page_limit?: number | null
           code: string
           created_at?: string
           description?: string | null
           funding_programme_id?: string | null
           id?: string
+          includes_branding?: boolean | null
+          includes_participant_table?: boolean | null
           is_active?: boolean | null
           name: string
           parent_type_id?: string | null
+          submission_stage?: string | null
           updated_at?: string
         }
         Update: {
+          action_types?: string[] | null
+          base_page_limit?: number | null
           code?: string
           created_at?: string
           description?: string | null
           funding_programme_id?: string | null
           id?: string
+          includes_branding?: boolean | null
+          includes_participant_table?: boolean | null
           is_active?: boolean | null
           name?: string
           parent_type_id?: string | null
+          submission_stage?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1314,6 +1603,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      work_programme_extensions: {
+        Row: {
+          created_at: string
+          description: string | null
+          extra_part_a_fields: Json | null
+          extra_section_ids: string[] | null
+          funding_overrides: Json | null
+          id: string
+          is_active: boolean | null
+          name: string
+          page_limit_delta: number | null
+          updated_at: string
+          work_programme_code: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          extra_part_a_fields?: Json | null
+          extra_section_ids?: string[] | null
+          funding_overrides?: Json | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          page_limit_delta?: number | null
+          updated_at?: string
+          work_programme_code: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          extra_part_a_fields?: Json | null
+          extra_section_ids?: string[] | null
+          funding_overrides?: Json | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          page_limit_delta?: number | null
+          updated_at?: string
+          work_programme_code?: string
+        }
+        Relationships: []
       }
     }
     Views: {
