@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
@@ -9,24 +9,20 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { LogoUpload } from '@/components/LogoUpload';
 import { ProposalSchedule } from '@/components/ProposalSchedule';
+import { ParticipantTable, ExtendedParticipant } from '@/components/ParticipantTable';
 
-import { Proposal, Participant, ParticipantMember, PARTICIPANT_TYPE_LABELS, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS, PROPOSAL_TYPE_LABELS, ProposalType, ProposalStatus, getDestinationsForWorkProgramme } from '@/types/proposal';
+import { Proposal, Participant, ParticipantMember, WORK_PROGRAMMES, DESTINATIONS, ProposalStatus, getDestinationsForWorkProgramme } from '@/types/proposal';
 
 import {
   ExternalLink,
   Calendar as CalendarIcon,
   Euro,
-  
-  Building2,
-  MapPin,
-  Clock,
+  Users,
   FileText,
   Target,
   Pencil,
   Check,
   X,
-  Mail,
-  Hash,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -37,6 +33,7 @@ interface ProposalSummaryPageProps {
   participantMembers: ParticipantMember[];
   budgetItems: { amount: number; participantId: string }[];
   onUpdateProposal?: (updates: Partial<Proposal>) => Promise<void>;
+  onUpdateParticipant?: (id: string, updates: Partial<ExtendedParticipant>) => void;
   onSubmit?: () => Promise<void>;
   onUpdateStatus?: (status: ProposalStatus) => Promise<void>;
   canEdit?: boolean;
@@ -118,6 +115,7 @@ export function ProposalSummaryPage({
   participantMembers: realMembers,
   budgetItems,
   onUpdateProposal,
+  onUpdateParticipant,
   onSubmit,
   onUpdateStatus,
   canEdit = true,
@@ -175,7 +173,7 @@ export function ProposalSummaryPage({
 
   return (
     <div className="flex-1 overflow-auto bg-muted/30 relative">
-      <div className="p-6">
+      <div className={cn("p-6", userCanEdit && "pb-20")}>
         <div className="max-w-5xl mx-auto space-y-6">
           {/* Page Header */}
           <div className="mb-2">
@@ -573,76 +571,20 @@ export function ProposalSummaryPage({
           />
         )}
 
-        {/* Participant organisations */}
+        {/* List of participants */}
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2">
-              <Building2 className="w-5 h-5" />
-              Participant organisations
+              <Users className="w-5 h-5" />
+              List of participants
             </CardTitle>
-            <CardDescription>Participating organisations with contact details and PIC numbers</CardDescription>
           </CardHeader>
-          <CardContent>
-            {participants.length > 0 ? (
-              <div className="grid gap-4 sm:grid-cols-2">
-                {participants.map((participant, index) => (
-                  <div
-                    key={participant.id}
-                    className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="w-14 h-14 rounded-lg bg-white border flex items-center justify-center overflow-hidden flex-shrink-0">
-                      {participant.logoUrl ? (
-                        <img
-                          src={participant.logoUrl}
-                          alt={participant.organisationShortName || participant.organisationName}
-                          className="w-12 h-12 object-contain"
-                        />
-                      ) : (
-                        <span className="text-lg font-bold text-muted-foreground">{index + 1}</span>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold text-sm">
-                          {participant.organisationShortName || participant.organisationName}
-                        </p>
-                        <Badge variant="outline" className="text-xs">
-                          {PARTICIPANT_TYPE_LABELS[participant.organisationType].split(' ')[0]}
-                        </Badge>
-                        {participant.isSme && (
-                          <Badge variant="secondary" className="text-xs">SME</Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {participant.organisationName}
-                      </p>
-                      <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
-                          <span>{participant.country || 'Country not set'}</span>
-                        </div>
-                        {participant.picNumber && (
-                          <div className="flex items-center gap-1">
-                            <Hash className="w-3 h-3" />
-                            <span>PIC: {participant.picNumber}</span>
-                          </div>
-                        )}
-                        {participant.contactEmail && (
-                          <div className="flex items-center gap-1">
-                            <Mail className="w-3 h-3" />
-                            <a href={`mailto:${participant.contactEmail}`} className="hover:underline text-primary">
-                              {participant.contactEmail}
-                            </a>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No participants added yet. Add participants in the A2 section.</p>
-            )}
+          <CardContent className="pt-0">
+            <ParticipantTable
+              participants={participants as ExtendedParticipant[]}
+              isEditing={isEditing}
+              onUpdateParticipant={onUpdateParticipant}
+            />
           </CardContent>
         </Card>
 
@@ -650,10 +592,10 @@ export function ProposalSummaryPage({
       </div>
 
 
-      {/* Floating Edit Bar for Owners/Admins */}
+      {/* Fixed Bottom Edit Bar for Owners/Admins */}
       {userCanEdit && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
-          <div className="bg-background border shadow-lg rounded-full px-4 py-2 flex items-center gap-3">
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t shadow-lg">
+          <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-center gap-3">
             {!isEditing ? (
               <Button onClick={() => setIsEditing(true)} className="gap-2">
                 <Pencil className="w-4 h-4" />
