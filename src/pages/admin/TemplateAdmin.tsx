@@ -579,14 +579,14 @@ function TemplateTypesPanel({
             <div className="space-y-2">
               <Label htmlFor="parent_type">Parent Type (for variants)</Label>
               <Select
-                value={formData.parent_type_id}
-                onValueChange={(value) => setFormData({ ...formData, parent_type_id: value })}
+                value={formData.parent_type_id || "none"}
+                onValueChange={(value) => setFormData({ ...formData, parent_type_id: value === "none" ? "" : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="None (base type)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None (base type)</SelectItem>
+                  <SelectItem value="none">None (base type)</SelectItem>
                   {types.filter(t => t.id !== editing?.id).map((t) => (
                     <SelectItem key={t.id} value={t.id}>{t.code} - {t.name}</SelectItem>
                   ))}
@@ -610,17 +610,17 @@ function TemplateTypesPanel({
                 <div className="space-y-2">
                   <Label htmlFor="submission_stage">Submission Stage</Label>
                   <Select
-                    value={formData.submission_stage}
+                    value={formData.submission_stage || "not_specified"}
                     onValueChange={(value) => setFormData({ 
                       ...formData, 
-                      submission_stage: value as 'stage_1' | 'full' | '' 
+                      submission_stage: value === "not_specified" ? "" : value as 'stage_1' | 'full' | '' 
                     })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select stage" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Not specified</SelectItem>
+                      <SelectItem value="not_specified">Not specified</SelectItem>
                       <SelectItem value="stage_1">Stage 1 (Pre-proposal)</SelectItem>
                       <SelectItem value="full">Full Proposal</SelectItem>
                     </SelectContent>
