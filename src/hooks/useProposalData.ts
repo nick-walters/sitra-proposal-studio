@@ -58,7 +58,7 @@ export function useProposalData(proposalId: string) {
   const [participantMembers, setParticipantMembers] = useState<ParticipantMember[]>([]);
   const [ethics, setEthics] = useState<EthicsAssessment | null>(null);
   const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState<'admin' | 'editor' | 'viewer' | null>(null);
+  const [userRole, setUserRole] = useState<'owner' | 'admin' | 'editor' | 'viewer' | null>(null);
 
   // Fetch proposal data
   const fetchProposal = useCallback(async () => {
@@ -114,7 +114,7 @@ export function useProposalData(proposalId: string) {
       .single();
 
     if (data) {
-      setUserRole(data.role as 'admin' | 'editor' | 'viewer');
+      setUserRole(data.role as 'owner' | 'admin' | 'editor' | 'viewer');
     }
   }, [proposalId, user]);
 
@@ -443,8 +443,8 @@ export function useProposalData(proposalId: string) {
   };
 
   const isDraft = proposal?.status === 'draft';
-  const canEdit = isDraft && (userRole === 'admin' || userRole === 'editor');
-  const isAdmin = userRole === 'admin';
+  const canEdit = isDraft && (userRole === 'owner' || userRole === 'admin' || userRole === 'editor');
+  const isAdmin = userRole === 'owner' || userRole === 'admin';
 
   return {
     proposal,
