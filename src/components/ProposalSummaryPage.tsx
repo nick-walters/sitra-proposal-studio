@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Calendar } from '@/components/ui/calendar';
 import { LogoUpload } from '@/components/LogoUpload';
 import { GanttChart } from '@/components/GanttChart';
@@ -315,9 +317,44 @@ export function ProposalSummaryPage({
   return (
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
       <div className="max-w-5xl mx-auto space-y-6">
+        {/* Page Header */}
+        <div className="mb-2">
+          <h1 className="text-2xl font-bold text-foreground">Proposal Information</h1>
+          <p className="text-muted-foreground mt-1">Central hub for proposal metadata, collaborators, and partner organisations</p>
+        </div>
+
         {/* Header with Project Logo and Basic Info */}
         <Card>
-          <CardContent className="pt-6">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                Project Identity
+              </CardTitle>
+              {canEdit && (
+                <div className="flex items-center gap-2">
+                  {isEditing ? (
+                    <>
+                      <Button size="sm" variant="ghost" onClick={handleCancel}>
+                        <X className="w-4 h-4 mr-1" />
+                        Cancel
+                      </Button>
+                      <Button size="sm" onClick={handleSave}>
+                        <Check className="w-4 h-4 mr-1" />
+                        Save
+                      </Button>
+                    </>
+                  ) : (
+                    <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
+                      <Pencil className="w-4 h-4 mr-1" />
+                      Edit
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
             <div className="flex items-start gap-6">
               {/* Project Logo */}
               <div className="flex-shrink-0">
@@ -340,279 +377,317 @@ export function ProposalSummaryPage({
               </div>
 
               <div className="flex-1 space-y-4">
-                {/* Edit toggle */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {isEditing ? (
-                      <Input
-                        value={editedProposal.acronym}
-                        onChange={(e) => setEditedProposal({ ...editedProposal, acronym: e.target.value })}
-                        className="text-lg font-semibold w-40"
-                      />
-                    ) : (
-                      <Badge variant="outline" className="text-lg px-3 py-1 font-semibold">
-                        {proposal.acronym}
-                      </Badge>
-                    )}
-                    
-                    {isEditing ? (
-                      <Select
-                        value={editedProposal.type}
-                        onValueChange={(v) => setEditedProposal({ ...editedProposal, type: v as ProposalType })}
-                      >
-                        <SelectTrigger className="w-32">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="RIA">RIA</SelectItem>
-                          <SelectItem value="IA">IA</SelectItem>
-                          <SelectItem value="CSA">CSA</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Badge variant="secondary">
-                        {PROPOSAL_TYPE_LABELS[proposal.type]}
-                      </Badge>
-                    )}
-                    
-                    <Badge 
-                      variant={proposal.status === 'draft' ? 'outline' : proposal.status === 'funded' ? 'default' : 'secondary'}
-                      className={proposal.status === 'funded' ? 'bg-success text-success-foreground' : ''}
-                    >
-                      {PROPOSAL_STATUS_LABELS[proposal.status]}
+                {/* Acronym & Type & Status */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {isEditing ? (
+                    <Input
+                      value={editedProposal.acronym}
+                      onChange={(e) => setEditedProposal({ ...editedProposal, acronym: e.target.value })}
+                      className="text-lg font-semibold w-40"
+                      placeholder="Acronym"
+                    />
+                  ) : (
+                    <Badge variant="outline" className="text-lg px-3 py-1 font-semibold">
+                      {proposal.acronym}
                     </Badge>
-                  </div>
-                  
-                  {canEdit && (
-                    <div className="flex items-center gap-2">
-                      {isEditing ? (
-                        <>
-                          <Button size="sm" variant="ghost" onClick={handleCancel}>
-                            <X className="w-4 h-4 mr-1" />
-                            Cancel
-                          </Button>
-                          <Button size="sm" onClick={handleSave}>
-                            <Check className="w-4 h-4 mr-1" />
-                            Save
-                          </Button>
-                        </>
-                      ) : (
-                        <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
-                          <Pencil className="w-4 h-4 mr-1" />
-                          Edit
-                        </Button>
-                      )}
-                    </div>
                   )}
+                  
+                  {isEditing ? (
+                    <Select
+                      value={editedProposal.type}
+                      onValueChange={(v) => setEditedProposal({ ...editedProposal, type: v as ProposalType })}
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="RIA">RIA</SelectItem>
+                        <SelectItem value="IA">IA</SelectItem>
+                        <SelectItem value="CSA">CSA</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Badge variant="secondary">
+                      {PROPOSAL_TYPE_LABELS[proposal.type]}
+                    </Badge>
+                  )}
+                  
+                  <Badge 
+                    variant={proposal.status === 'draft' ? 'outline' : proposal.status === 'funded' ? 'default' : 'secondary'}
+                    className={proposal.status === 'funded' ? 'bg-success text-success-foreground' : ''}
+                  >
+                    {PROPOSAL_STATUS_LABELS[proposal.status]}
+                  </Badge>
                 </div>
 
                 {/* Title */}
-                {isEditing ? (
-                  <Input
-                    value={editedProposal.title}
-                    onChange={(e) => setEditedProposal({ ...editedProposal, title: e.target.value })}
-                    className="text-2xl font-bold"
-                    placeholder="Proposal title"
-                  />
-                ) : (
-                  <h1 className="text-2xl font-bold text-foreground">{proposal.title}</h1>
-                )}
-
-                {/* Description */}
-                {isEditing ? (
-                  <Textarea
-                    value={editedProposal.description || ''}
-                    onChange={(e) => setEditedProposal({ ...editedProposal, description: e.target.value })}
-                    placeholder="Brief description of the proposal"
-                    rows={2}
-                  />
-                ) : (
-                  proposal.description && (
-                    <p className="text-muted-foreground line-clamp-2">{proposal.description}</p>
-                  )
-                )}
-
-                {/* Work Programme & Destination */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm text-muted-foreground mb-1 block">Work Programme</label>
-                    {isEditing ? (
-                      <Select
-                        value={editedProposal.workProgramme || ''}
-                        onValueChange={(v) => setEditedProposal({ ...editedProposal, workProgramme: v, destination: undefined })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select work programme" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {WORK_PROGRAMMES.map(wp => (
-                            <SelectItem key={wp.id} value={wp.id}>
-                              {wp.abbreviation} - {wp.fullName}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <p className="font-medium">
-                        {workProgramme ? `${workProgramme.abbreviation} - ${workProgramme.fullName}` : 'Not specified'}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="text-sm text-muted-foreground mb-1 block">Destination</label>
-                    {isEditing ? (
-                      <Select
-                        value={editedProposal.destination || ''}
-                        onValueChange={(v) => setEditedProposal({ ...editedProposal, destination: v })}
-                        disabled={!editedProposal.workProgramme}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select destination" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableDestinations.map(d => (
-                            <SelectItem key={d.id} value={d.id}>
-                              {d.abbreviation} - {d.fullName}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <p className="font-medium">
-                        {destination ? `${destination.abbreviation} - ${destination.fullName}` : 'Not specified'}
-                      </p>
-                    )}
-                  </div>
+                <div>
+                  <label className="text-sm text-muted-foreground mb-1 block">Title</label>
+                  {isEditing ? (
+                    <Input
+                      value={editedProposal.title}
+                      onChange={(e) => setEditedProposal({ ...editedProposal, title: e.target.value })}
+                      className="text-xl font-bold"
+                      placeholder="Full proposal title"
+                    />
+                  ) : (
+                    <h2 className="text-xl font-bold text-foreground">{proposal.title}</h2>
+                  )}
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* General Information (A0 fields from Horizon Europe forms) */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Info className="w-5 h-5" />
-              General Information
-            </CardTitle>
-            <CardDescription>As per Horizon Europe Standard Application Form (Section 1)</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Abstract */}
-            <div>
-              <label className="text-sm font-medium text-muted-foreground mb-2 block">Abstract</label>
-              {isEditing ? (
-                <Textarea
-                  value={editedProposal.description || ''}
-                  onChange={(e) => setEditedProposal({ ...editedProposal, description: e.target.value })}
-                  placeholder="Short, precise description of project objectives, methodology, and relevance to the Work Programme..."
-                  rows={5}
-                  className="resize-none"
-                />
-              ) : (
-                <p className="text-sm text-foreground bg-muted/30 p-3 rounded-md">
-                  {proposal.description || 'No abstract provided. Add a brief description of project objectives, methodology, and relevance to the Work Programme.'}
-                </p>
-              )}
             </div>
 
             <Separator />
 
-            {/* Project Duration & Keywords Grid */}
-            <div className="grid gap-6 sm:grid-cols-2">
-              {/* Project Duration */}
+            {/* Work Programme & Destination */}
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  Project Duration
-                </label>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-lg px-3 py-1">
-                    36 months
-                  </Badge>
-                  <span className="text-sm text-muted-foreground">(Standard duration)</span>
-                </div>
+                <label className="text-sm text-muted-foreground mb-1 block">Work Programme</label>
+                {isEditing ? (
+                  <Select
+                    value={editedProposal.workProgramme || ''}
+                    onValueChange={(v) => setEditedProposal({ ...editedProposal, workProgramme: v, destination: undefined })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select work programme" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {WORK_PROGRAMMES.map(wp => (
+                        <SelectItem key={wp.id} value={wp.id}>
+                          {wp.abbreviation} - {wp.fullName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="font-medium">
+                    {workProgramme ? `${workProgramme.abbreviation} - ${workProgramme.fullName}` : 'Not specified'}
+                  </p>
+                )}
               </div>
-
-              {/* Keywords */}
               <div>
-                <label className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
-                  <Tag className="w-4 h-4" />
-                  Keywords
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {proposal.workProgramme && (
-                    <Badge variant="secondary" className="text-xs">
-                      {workProgramme?.abbreviation || proposal.workProgramme}
-                    </Badge>
-                  )}
-                  {proposal.destination && (
-                    <Badge variant="secondary" className="text-xs">
-                      {destination?.abbreviation || proposal.destination}
-                    </Badge>
-                  )}
-                  <Badge variant="secondary" className="text-xs">
-                    {PROPOSAL_TYPE_LABELS[proposal.type]}
-                  </Badge>
-                </div>
+                <label className="text-sm text-muted-foreground mb-1 block">Destination</label>
+                {isEditing ? (
+                  <Select
+                    value={editedProposal.destination || ''}
+                    onValueChange={(v) => setEditedProposal({ ...editedProposal, destination: v })}
+                    disabled={!editedProposal.workProgramme}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select destination" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableDestinations.map(d => (
+                        <SelectItem key={d.id} value={d.id}>
+                          {d.abbreviation} - {d.fullName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="font-medium">
+                    {destination ? `${destination.abbreviation} - ${destination.fullName}` : 'Not specified'}
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Key Dates for Submitted/Funded/Not Funded */}
-        {proposal.status !== 'draft' && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CalendarIcon className="w-5 h-5" />
-                Key Dates
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Submission Date</p>
-                  <p className="font-medium">
-                    {proposal.submittedAt ? format(proposal.submittedAt, 'dd/MM/yyyy') : 'Not recorded'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Decision Date</p>
-                  {isEditing && canEdit ? (
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" size="sm" className="w-full justify-start text-left font-normal">
-                          {editedProposal.decisionDate ? format(editedProposal.decisionDate, 'PPP') : 'Select date'}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={editedProposal.decisionDate}
-                          onSelect={(date) => setEditedProposal({ ...editedProposal, decisionDate: date })}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  ) : (
-                    <p className="font-medium">
-                      {proposal.decisionDate ? format(proposal.decisionDate, 'dd/MM/yyyy') : 'Pending'}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Original Deadline</p>
-                  <p className="font-medium">
-                    {proposal.deadline ? format(proposal.deadline, 'dd/MM/yyyy') : 'Not set'}
-                  </p>
-                </div>
+        {/* Topic & Funding Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="w-5 h-5" />
+              Call & Topic Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Topic ID</label>
+                {isEditing ? (
+                  <Input
+                    value={editedProposal.topicId || ''}
+                    onChange={(e) => setEditedProposal({ ...editedProposal, topicId: e.target.value })}
+                    placeholder="e.g. HORIZON-CL5-2026-D1-01"
+                  />
+                ) : (
+                  <p className="font-medium">{proposal.topicId || 'Not specified'}</p>
+                )}
               </div>
-            </CardContent>
-          </Card>
-        )}
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Topic Link (Funding & Tenders Portal)</label>
+                {isEditing ? (
+                  <Input
+                    value={editedProposal.topicUrl || ''}
+                    onChange={(e) => setEditedProposal({ ...editedProposal, topicUrl: e.target.value })}
+                    placeholder="https://ec.europa.eu/info/funding-tenders/..."
+                  />
+                ) : proposal.topicUrl ? (
+                  <Button
+                    variant="link"
+                    className="p-0 h-auto font-medium text-primary"
+                    onClick={() => window.open(proposal.topicUrl, '_blank')}
+                  >
+                    View on Portal <ExternalLink className="w-3 h-3 ml-1" />
+                  </Button>
+                ) : (
+                  <span className="font-medium text-muted-foreground">Not set</span>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Quick Stats & Dates */}
+        {/* Budget Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Euro className="w-5 h-5" />
+              Budget Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Budget Available (Topic)</label>
+                {isEditing ? (
+                  <Input
+                    type="number"
+                    value={editedProposal.totalBudget || ''}
+                    onChange={(e) => setEditedProposal({ ...editedProposal, totalBudget: parseFloat(e.target.value) || undefined })}
+                    placeholder="e.g. 5000000"
+                  />
+                ) : (
+                  <p className="font-medium text-lg">
+                    {proposal.totalBudget ? `€${proposal.totalBudget.toLocaleString()}` : 'Not specified'}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Budget Applied For</label>
+                <p className="font-medium text-lg">€{totalBudgetFromItems.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground">(from budget sheet)</p>
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Projects to be Funded</label>
+                {isEditing ? (
+                  <Input
+                    value={editedProposal.expectedProjects || ''}
+                    onChange={(e) => setEditedProposal({ ...editedProposal, expectedProjects: e.target.value })}
+                    placeholder="e.g. 1-3"
+                  />
+                ) : (
+                  <p className="font-medium">{proposal.expectedProjects || 'Not specified'}</p>
+                )}
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Budget Type</label>
+                {isEditing ? (
+                  <Select
+                    value={editedProposal.budgetType}
+                    onValueChange={(v: 'traditional' | 'lump_sum') => setEditedProposal({ ...editedProposal, budgetType: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="traditional">Standard</SelectItem>
+                      <SelectItem value="lump_sum">Lump Sum</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Badge variant={proposal.budgetType === 'lump_sum' ? 'default' : 'secondary'}>
+                    {proposal.budgetType === 'lump_sum' ? 'Lump Sum' : 'Standard'}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Deadline & Decision Dates */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CalendarIcon className="w-5 h-5" />
+              Key Dates
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Deadline</label>
+                {isEditing ? (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !editedProposal.deadline && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {editedProposal.deadline ? format(editedProposal.deadline, 'PPP') : 'Select date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={editedProposal.deadline}
+                        onSelect={(date) => setEditedProposal({ ...editedProposal, deadline: date })}
+                        disabled={(date) => date < new Date()}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                ) : (
+                  <div>
+                    <p className="font-medium text-lg">
+                      {proposal.deadline ? format(proposal.deadline, 'dd MMM yyyy') : 'Not set'}
+                    </p>
+                    {daysUntilDeadline !== null && daysUntilDeadline > 0 && (
+                      <p className="text-sm text-warning font-medium">{daysUntilDeadline} days remaining</p>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              {/* Decision fields only for non-draft proposals */}
+              {proposal.status !== 'draft' && (
+                <>
+                  <div>
+                    <label className="text-sm text-muted-foreground mb-1 block">Submission Date</label>
+                    <p className="font-medium">
+                      {proposal.submittedAt ? format(proposal.submittedAt, 'dd MMM yyyy') : 'Not recorded'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm text-muted-foreground mb-1 block">Decision Date</label>
+                    {isEditing ? (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !editedProposal.decisionDate && "text-muted-foreground")}>
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {editedProposal.decisionDate ? format(editedProposal.decisionDate, 'PPP') : 'Select date'}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={editedProposal.decisionDate}
+                            onSelect={(date) => setEditedProposal({ ...editedProposal, decisionDate: date })}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    ) : (
+                      <p className="font-medium">
+                        {proposal.decisionDate ? format(proposal.decisionDate, 'dd MMM yyyy') : 'Pending'}
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Stats */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardContent className="pt-6">
@@ -621,46 +696,8 @@ export function ProposalSummaryPage({
                   <Euro className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Budget Requested</p>
-                  <p className="text-xl font-bold">€{displayBudget.toLocaleString()}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center">
-                  <CalendarIcon className="w-5 h-5 text-warning" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">Deadline</p>
-                  {isEditing ? (
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" size="sm" className="w-full justify-start text-left font-normal">
-                          {editedProposal.deadline ? format(editedProposal.deadline, 'PPP') : 'Select date'}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={editedProposal.deadline}
-                          onSelect={(date) => setEditedProposal({ ...editedProposal, deadline: date })}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  ) : (
-                    <>
-                      <p className="text-xl font-bold">
-                        {proposal.deadline ? format(proposal.deadline, 'dd MMM yyyy') : 'Not set'}
-                      </p>
-                      {daysUntilDeadline !== null && daysUntilDeadline > 0 && (
-                        <p className="text-xs text-muted-foreground">{daysUntilDeadline} days left</p>
-                      )}
-                    </>
-                  )}
+                  <p className="text-sm text-muted-foreground">Budget Applied</p>
+                  <p className="text-xl font-bold">€{totalBudgetFromItems.toLocaleString()}</p>
                 </div>
               </div>
             </CardContent>
@@ -693,113 +730,21 @@ export function ProposalSummaryPage({
               </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-warning" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Project Duration</p>
+                  <p className="text-xl font-bold">36 months</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-
-        {/* Budget Type */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Euro className="w-5 h-5" />
-              Budget Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Lump Sum</p>
-                {isEditing ? (
-                  <Select
-                    value={editedProposal.budgetType}
-                    onValueChange={(v: 'traditional' | 'lump_sum') => setEditedProposal({ ...editedProposal, budgetType: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="traditional">No (Standard)</SelectItem>
-                      <SelectItem value="lump_sum">Yes (Lump Sum)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Badge variant={proposal.budgetType === 'lump_sum' ? 'default' : 'secondary'}>
-                    {proposal.budgetType === 'lump_sum' ? 'Yes' : 'No'}
-                  </Badge>
-                )}
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Total Budget Available</p>
-                {isEditing ? (
-                  <Input
-                    type="number"
-                    value={editedProposal.totalBudget || ''}
-                    onChange={(e) => setEditedProposal({ ...editedProposal, totalBudget: parseFloat(e.target.value) || undefined })}
-                    placeholder="e.g. 5000000"
-                  />
-                ) : (
-                  <p className="font-medium">€{(proposal.totalBudget || displayBudget).toLocaleString()}</p>
-                )}
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Projects Expected to be Funded</p>
-                {isEditing ? (
-                  <Input
-                    value={editedProposal.expectedProjects || ''}
-                    onChange={(e) => setEditedProposal({ ...editedProposal, expectedProjects: e.target.value })}
-                    placeholder="e.g. 1-3"
-                  />
-                ) : (
-                  <p className="font-medium">{proposal.expectedProjects || 'Not specified'}</p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Topic Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="w-5 h-5" />
-              Call & Topic Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Topic ID</p>
-                {isEditing ? (
-                  <Input
-                    value={editedProposal.topicId || ''}
-                    onChange={(e) => setEditedProposal({ ...editedProposal, topicId: e.target.value })}
-                    placeholder="e.g. HORIZON-CL5-2026-D1-01"
-                  />
-                ) : (
-                  <p className="font-medium">{proposal.topicId || 'Not specified'}</p>
-                )}
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Topic URL</p>
-                {isEditing ? (
-                  <Input
-                    value={editedProposal.topicUrl || ''}
-                    onChange={(e) => setEditedProposal({ ...editedProposal, topicUrl: e.target.value })}
-                    placeholder="https://..."
-                  />
-                ) : proposal.topicUrl ? (
-                  <Button
-                    variant="link"
-                    className="p-0 h-auto font-medium"
-                    onClick={() => window.open(proposal.topicUrl, '_blank')}
-                  >
-                    View on Funding & Tenders Portal <ExternalLink className="w-3 h-3 ml-1" />
-                  </Button>
-                ) : (
-                  <span className="font-medium text-muted-foreground">Not set</span>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Completion Progress */}
         <Card>
@@ -864,35 +809,67 @@ export function ProposalSummaryPage({
               <UserCheck className="w-5 h-5" />
               Collaborators
             </CardTitle>
-            <CardDescription>Users with access to edit or view this proposal</CardDescription>
+            <CardDescription>Users with access to edit or view this proposal (hover for details)</CardDescription>
           </CardHeader>
           <CardContent>
             {collaborators.length > 0 ? (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {collaborators.map((collab) => (
-                  <div
-                    key={collab.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border bg-card"
-                  >
-                    <Avatar className="w-10 h-10">
-                      <AvatarFallback>
-                        {collab.fullName
-                          ? collab.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-                          : collab.email?.slice(0, 2).toUpperCase() || '?'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">
-                        {collab.fullName || collab.email || 'Unknown user'}
-                      </p>
-                      {collab.email && collab.fullName && (
-                        <p className="text-xs text-muted-foreground truncate">{collab.email}</p>
-                      )}
-                    </div>
-                    <Badge variant="outline" className="text-xs capitalize flex-shrink-0">
-                      {collab.role}
-                    </Badge>
-                  </div>
+                  <HoverCard key={collab.id} openDelay={200} closeDelay={100}>
+                    <HoverCardTrigger asChild>
+                      <div className="flex items-center gap-3 p-3 rounded-lg border bg-card cursor-pointer hover:bg-muted/50 transition-colors">
+                        <Avatar className="w-10 h-10">
+                          <AvatarFallback className="bg-primary/10 text-primary">
+                            {collab.fullName
+                              ? collab.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                              : collab.email?.slice(0, 2).toUpperCase() || '?'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">
+                            {collab.fullName || collab.email || 'Unknown user'}
+                          </p>
+                          {collab.email && collab.fullName && (
+                            <p className="text-xs text-muted-foreground truncate">{collab.email}</p>
+                          )}
+                        </div>
+                        <Badge variant="outline" className="text-xs capitalize flex-shrink-0">
+                          {collab.role}
+                        </Badge>
+                      </div>
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-80" side="top">
+                      <div className="flex gap-4">
+                        <Avatar className="w-12 h-12">
+                          <AvatarFallback className="bg-primary/10 text-primary text-lg">
+                            {collab.fullName
+                              ? collab.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                              : collab.email?.slice(0, 2).toUpperCase() || '?'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="space-y-1 flex-1">
+                          <h4 className="text-sm font-semibold">
+                            {collab.fullName || 'Unknown user'}
+                          </h4>
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Mail className="w-3 h-3" />
+                            <span>{collab.email || 'No email'}</span>
+                          </div>
+                          <div className="flex items-center gap-2 pt-1">
+                            <Badge variant={collab.role === 'owner' ? 'default' : collab.role === 'admin' ? 'secondary' : 'outline'} className="text-xs capitalize">
+                              {collab.role}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {collab.role === 'owner' ? 'Full control' : 
+                               collab.role === 'admin' ? 'Can manage team' : 
+                               collab.role === 'editor' ? 'Can edit content' : 
+                               'View only access'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </HoverCardContent>
+                  </HoverCard>
                 ))}
               </div>
             ) : (

@@ -299,50 +299,83 @@ export interface EthicsAssessment {
   otherEthics: boolean;
   otherEthicsDetails?: string;
 }
-
-// Part A sections structure
+// Part A sections structure based on official HE-RIA-IA Standard Application Form
 export const PART_A_SECTIONS: Section[] = [
+  // Proposal Information page (before Part A)
   {
-    id: 'summary',
+    id: 'proposal-info',
     number: '',
     title: 'Proposal Information',
     isPartA: true,
     guidelines: {
-      text: 'Overview of the proposal including general information, abstract, keywords, participants, and project duration as per Horizon Europe Standard Application Form.',
+      text: 'Overview of the proposal including acronym, title, topic details, funding information, deadlines, collaborators, and partner organisations.',
     },
   },
+  // A1 - General Information
   {
-    id: 'admin-forms',
+    id: 'general-info',
     number: 'A1',
-    title: 'Administrative Forms',
+    title: 'General Information',
     isPartA: true,
     guidelines: {
-      text: 'Complete the administrative information for each participant organisation.',
+      text: 'Enter general information about the proposal including abstract, topic, keywords, and free keywords.',
     },
     subsections: [
       {
-        id: 'participant-info',
+        id: 'abstract',
         number: 'A1.1',
-        title: 'Participant Information',
+        title: 'Abstract',
         isPartA: true,
         guidelines: {
-          text: 'Enter details for each participating organisation including PIC number, legal entity type, and contact information.',
+          text: 'Provide a summary/abstract of the proposal (max 2000 characters). This text may be used by the EC for publication.',
         },
+        wordLimit: 2000,
       },
       {
-        id: 'team-members',
+        id: 'keywords',
         number: 'A1.2',
-        title: 'Team Members',
+        title: 'Keywords',
         isPartA: true,
         guidelines: {
-          text: 'List all team members from each participant organisation and their roles in the project.',
+          text: 'Select descriptors (keywords) from the standard keyword list and add any free keywords relevant to your proposal.',
         },
       },
     ],
   },
+  // A2 - Participants
+  {
+    id: 'participants',
+    number: 'A2',
+    title: 'Participants',
+    isPartA: true,
+    guidelines: {
+      text: 'Add all participating organisations and their team members to the proposal.',
+    },
+    subsections: [
+      {
+        id: 'participant-organisations',
+        number: 'A2.1',
+        title: 'Participant Organisations',
+        isPartA: true,
+        guidelines: {
+          text: 'Enter details for each participating organisation including PIC number, legal entity type, country, and contact information.',
+        },
+      },
+      {
+        id: 'team-members',
+        number: 'A2.2',
+        title: 'Team Members & Effort',
+        isPartA: true,
+        guidelines: {
+          text: 'List all team members from each participant organisation, their roles in the project, and work package allocations.',
+        },
+      },
+    ],
+  },
+  // A3 - Budget
   {
     id: 'budget',
-    number: 'A2',
+    number: 'A3',
     title: 'Budget',
     isPartA: true,
     guidelines: {
@@ -351,7 +384,7 @@ export const PART_A_SECTIONS: Section[] = [
     subsections: [
       {
         id: 'budget-overview',
-        number: 'A2.1',
+        number: 'A3.1',
         title: 'Budget Overview',
         isPartA: true,
         guidelines: {
@@ -360,7 +393,7 @@ export const PART_A_SECTIONS: Section[] = [
       },
       {
         id: 'budget-details',
-        number: 'A2.2',
+        number: 'A3.2',
         title: 'Detailed Budget',
         isPartA: true,
         guidelines: {
@@ -369,22 +402,24 @@ export const PART_A_SECTIONS: Section[] = [
       },
     ],
   },
+  // A4 - Ethics
   {
     id: 'ethics',
-    number: 'A3',
-    title: 'Ethics Self-Assessment',
+    number: 'A4',
+    title: 'Ethics & Security',
     isPartA: true,
     guidelines: {
-      text: 'Complete the ethics self-assessment. All partners can edit this section.',
+      text: 'Complete the ethics and security self-assessment. Identify any ethics issues that apply to your proposal.',
     },
   },
+  // A5 - Declarations (full proposals only)
   {
     id: 'declarations',
-    number: 'A4',
+    number: 'A5',
     title: 'Declarations',
     isPartA: true,
     guidelines: {
-      text: 'Declarations required by each participant organisation.',
+      text: 'Declarations required by each participant organisation. Each participant must confirm their acceptance of the call conditions.',
     },
   },
 ];
