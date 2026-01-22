@@ -1,10 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { Slider } from '@/components/ui/slider';
 import {
   Dialog,
   DialogContent,
@@ -35,7 +33,6 @@ import {
   ThumbsDown,
   TrendingUp,
 } from 'lucide-react';
-import { format } from 'date-fns';
 
 interface CheckItem {
   id: string;
@@ -43,13 +40,6 @@ interface CheckItem {
   description: string;
   check: () => boolean;
   icon: React.ComponentType<{ className?: string }>;
-}
-
-interface CompletionStats {
-  partA: number;
-  partB: number;
-  budget: number;
-  ethics: number;
 }
 
 interface ProposalScheduleProps {
@@ -60,9 +50,6 @@ interface ProposalScheduleProps {
   onUpdateStatus: (status: ProposalStatus) => Promise<void>;
   canEdit: boolean;
   isAdmin: boolean;
-  completionStats?: CompletionStats;
-  isEditing?: boolean;
-  onStatsChange?: (stats: CompletionStats) => void;
 }
 
 export function ProposalSchedule({
@@ -73,35 +60,15 @@ export function ProposalSchedule({
   onUpdateStatus,
   canEdit,
   isAdmin,
-  completionStats = { partA: 0, partB: 0, budget: 0, ethics: 0 },
-  isEditing = false,
-  onStatsChange,
 }: ProposalScheduleProps) {
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<ProposalStatus | ''>('');
-  const [editedStats, setEditedStats] = useState(completionStats);
 
   const totalBudget = budgetItems.reduce((sum, item) => sum + (item.amount || 0), 0);
 
   // Determine if user can edit this section (admins and owners only)
   const userCanEdit = canEdit && isAdmin;
-
-  // Sync editedStats when completionStats prop changes or when editing stops
-  useEffect(() => {
-    if (!isEditing) {
-      setEditedStats(completionStats);
-    }
-  }, [completionStats, isEditing]);
-
-  // Notify parent of stats changes when editing
-  const handleStatsChange = (newStats: CompletionStats) => {
-    setEditedStats(newStats);
-    onStatsChange?.(newStats);
-  };
-
-  // Get the stats to display (edited when editing, actual otherwise)
-  const displayStats = isEditing ? editedStats : completionStats;
 
   const checks: CheckItem[] = [
     {
@@ -158,7 +125,7 @@ export function ProposalSchedule({
 
   return (
     <div className="space-y-4">
-      {/* Combined: Proposal Completion & Schedule */}
+      {/* Proposal Schedule - Submission Checklist Only */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -168,82 +135,6 @@ export function ProposalSchedule({
           <CardDescription>Track your progress and readiness for submission</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Section Completion Progress */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-medium text-muted-foreground">Section completion</h4>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span>Part A - Administrative</span>
-                  <span className="font-medium">{displayStats.partA}%</span>
-                </div>
-                {isEditing ? (
-                  <Slider
-                    value={[editedStats.partA]}
-                    onValueChange={(value) => setEditedStats({ ...editedStats, partA: value[0] })}
-                    max={100}
-                    step={5}
-                    className="h-2"
-                  />
-                ) : (
-                  <Progress value={displayStats.partA} className="h-2" />
-                )}
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span>Part B - Technical</span>
-                  <span className="font-medium">{displayStats.partB}%</span>
-                </div>
-                {isEditing ? (
-                  <Slider
-                    value={[editedStats.partB]}
-                    onValueChange={(value) => setEditedStats({ ...editedStats, partB: value[0] })}
-                    max={100}
-                    step={5}
-                    className="h-2"
-                  />
-                ) : (
-                  <Progress value={displayStats.partB} className="h-2" />
-                )}
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span>Budget</span>
-                  <span className="font-medium">{displayStats.budget}%</span>
-                </div>
-                {isEditing ? (
-                  <Slider
-                    value={[editedStats.budget]}
-                    onValueChange={(value) => setEditedStats({ ...editedStats, budget: value[0] })}
-                    max={100}
-                    step={5}
-                    className="h-2"
-                  />
-                ) : (
-                  <Progress value={displayStats.budget} className="h-2" />
-                )}
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span>Ethics self-assessment</span>
-                  <span className="font-medium">{displayStats.ethics}%</span>
-                </div>
-                {isEditing ? (
-                  <Slider
-                    value={[editedStats.ethics]}
-                    onValueChange={(value) => setEditedStats({ ...editedStats, ethics: value[0] })}
-                    max={100}
-                    step={5}
-                    className="h-2"
-                  />
-                ) : (
-                  <Progress value={displayStats.ethics} className="h-2" />
-                )}
-              </div>
-            </div>
-          </div>
-
-          <Separator />
 
           {/* Checklist Items */}
           <div className="space-y-4">

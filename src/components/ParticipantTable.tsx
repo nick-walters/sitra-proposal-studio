@@ -3,6 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Participant } from '@/types/proposal';
 import { EU_MEMBER_STATES, ASSOCIATED_COUNTRIES, THIRD_COUNTRIES } from '@/lib/countries';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,14 +23,14 @@ export type OrganisationCategory =
   | 'OTH';
 
 export const ORGANISATION_CATEGORY_LABELS: Record<OrganisationCategory, string> = {
-  RES: 'Research Organisation',
+  RES: 'Research organisation',
   UNI: 'University',
-  IND: 'Large Enterprise',
-  SME: 'Small/Medium Enterprise',
-  NGO: 'Non-Governmental Organisation',
-  CSO: 'Civil Society Organisation',
-  PUB: 'Public Organisation',
-  INT: 'International Organisation',
+  IND: 'Large enterprise',
+  SME: 'Small/medium enterprise',
+  NGO: 'Non-governmental organisation',
+  CSO: 'Civil society organisation',
+  PUB: 'Public organisation',
+  INT: 'International organisation',
   OTH: 'Other',
 };
 
@@ -143,6 +144,7 @@ export function ParticipantTable({
   };
 
   return (
+    <TooltipProvider>
     <div className="overflow-x-auto">
       <Table className="text-[11px]" style={{ fontFamily: 'Arial, sans-serif' }}>
         <TableHeader>
@@ -261,9 +263,20 @@ export function ParticipantTable({
                     </SelectContent>
                   </Select>
                 ) : (
-                  <span className="font-medium">
-                    {(participant as ExtendedParticipant).organisationCategory || '—'}
-                  </span>
+                  (participant as ExtendedParticipant).organisationCategory ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="font-medium cursor-help">
+                          {(participant as ExtendedParticipant).organisationCategory}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{ORGANISATION_CATEGORY_LABELS[(participant as ExtendedParticipant).organisationCategory as OrganisationCategory]}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <span className="font-medium">—</span>
+                  )
                 )}
               </TableCell>
               <TableCell className="py-0.5 px-1 align-top">
@@ -314,5 +327,6 @@ export function ParticipantTable({
         </TableBody>
       </Table>
     </div>
+    </TooltipProvider>
   );
 }
