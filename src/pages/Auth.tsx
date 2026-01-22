@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +12,7 @@ import { Loader2 } from 'lucide-react';
 
 export default function Auth() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [email, setEmail] = useState('');
@@ -19,12 +20,24 @@ export default function Auth() {
   const [fullName, setFullName] = useState('');
   const [organisation, setOrganisation] = useState('');
   const [showResetPassword, setShowResetPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
-  // Check if user is already authenticated
+  // Check if user is already authenticated or in recovery mode
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      
+      // Check if this is a password recovery callback
+      const type = searchParams.get('type');
+      if (type === 'recovery' && session) {
+        setShowNewPassword(true);
+        setIsCheckingAuth(false);
+        return;
+      }
+      
       if (session) {
         navigate('/dashboard', { replace: true });
       } else {
@@ -36,13 +49,19 @@ export default function Auth() {
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
+      if (event === 'PASSWORD_RECOVERY') {
+        setShowNewPassword(true);
+        setIsCheckingAuth(false);
+        return;
+      }
+      
+      if (session && !showNewPassword) {
         navigate('/dashboard', { replace: true });
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, searchParams, showNewPassword]);
 
   // Show loading while checking auth
   if (isCheckingAuth) {
@@ -122,6 +141,102 @@ export default function Auth() {
       setIsLoading(false);
     }
   };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (newPassword !== confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+    
+    setIsLoading(true);
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) throw error;
+
+      toast.success('Password updated successfully!');
+      setShowNewPassword(false);
+      setNewPassword('');
+      setConfirmPassword('');
+      navigate('/dashboard', { replace: true });
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update password');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Show new password form after recovery
+  if (showNewPassword) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <img src={sitraLogo} alt="Sitra Proposal Studio" className="h-12 mx-auto mb-4" />
+            <p className="text-muted-foreground mt-1">
+              Set your new password
+            </p>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Create New Password</CardTitle>
+              <CardDescription>
+                Enter your new password below.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleUpdatePassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-password">New Password</Label>
+                  <Input
+                    id="new-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    autoComplete="new-password"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">Confirm Password</Label>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    autoComplete="new-password"
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? 'Updating...' : 'Update Password'}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          <p className="text-center text-sm text-muted-foreground mt-6">
+            © {new Date().getFullYear()} Sitra — The Finnish Innovation Fund
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (showResetPassword) {
     return (
