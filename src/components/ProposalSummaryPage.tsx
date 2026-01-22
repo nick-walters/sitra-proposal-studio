@@ -455,18 +455,40 @@ export function ProposalSummaryPage({
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Topic ID */}
+            {/* Topic ID with URL bubble */}
             <div>
               <label className="text-sm text-muted-foreground mb-1 block">Topic ID</label>
               {isEditing ? (
-                <Input
-                  value={editedProposal.topicId || ''}
-                  onChange={(e) => setEditedProposal({ ...editedProposal, topicId: e.target.value })}
-                  placeholder="e.g. HORIZON-CL5-2026-D1-01"
-                  className="max-w-md"
-                />
+                <div className="space-y-2">
+                  <Input
+                    value={editedProposal.topicId || ''}
+                    onChange={(e) => setEditedProposal({ ...editedProposal, topicId: e.target.value })}
+                    placeholder="e.g. HORIZON-CL5-2026-D1-01"
+                    className="max-w-md"
+                  />
+                  <Input
+                    value={editedProposal.topicUrl || ''}
+                    onChange={(e) => setEditedProposal({ ...editedProposal, topicUrl: e.target.value })}
+                    placeholder="Portal URL (https://ec.europa.eu/...)"
+                    type="url"
+                    className="max-w-md"
+                  />
+                </div>
               ) : (
-                <p className="font-medium">{proposal.topicId || 'Not specified'}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium">{proposal.topicId || 'Not specified'}</p>
+                  {proposal.topicUrl && (
+                    <a 
+                      href={proposal.topicUrl.startsWith('http') ? proposal.topicUrl : `https://${proposal.topicUrl}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      Topic
+                    </a>
+                  )}
+                </div>
               )}
             </div>
 
@@ -480,33 +502,6 @@ export function ProposalSummaryPage({
                 />
               ) : (
                 <p className="font-medium">{proposal.topicTitle || '–'}</p>
-              )}
-            </div>
-
-            {/* Topic URL */}
-            <div>
-              <label className="text-sm text-muted-foreground mb-1 block">Portal URL</label>
-              {isEditing ? (
-                <Input
-                  value={editedProposal.topicUrl || ''}
-                  onChange={(e) => setEditedProposal({ ...editedProposal, topicUrl: e.target.value })}
-                  placeholder="https://ec.europa.eu/info/funding-tenders/..."
-                  type="url"
-                />
-              ) : (
-                proposal.topicUrl ? (
-                  <a 
-                    href={proposal.topicUrl.startsWith('http') ? proposal.topicUrl : `https://${proposal.topicUrl}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    Topic
-                  </a>
-                ) : (
-                  <p className="text-muted-foreground">–</p>
-                )
               )}
             </div>
 
