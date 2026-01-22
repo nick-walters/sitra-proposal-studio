@@ -203,6 +203,7 @@ export interface Proposal {
   logoUrl?: string;
   submittedAt?: Date;
   decisionDate?: Date;
+  expectedProjects?: string;
 }
 
 export interface Participant {

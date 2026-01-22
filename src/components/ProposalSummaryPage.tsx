@@ -16,6 +16,7 @@ import { SubmissionWorkflow } from '@/components/SubmissionWorkflow';
 import { TeamMemberCard } from '@/components/TeamMemberCard';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Proposal, Participant, ParticipantMember, PARTICIPANT_TYPE_LABELS, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS, PROPOSAL_TYPE_LABELS, ProposalType, ProposalStatus, getDestinationsForWorkProgramme } from '@/types/proposal';
+import { supabase } from '@/integrations/supabase/client';
 import {
   ExternalLink,
   Calendar as CalendarIcon,
@@ -35,6 +36,7 @@ import {
   Hash,
   Tag,
   Info,
+  UserCheck,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -207,6 +209,51 @@ export function ProposalSummaryPage({
   const [availableDestinations, setAvailableDestinations] = useState(
     proposal.workProgramme ? getDestinationsForWorkProgramme(proposal.workProgramme) : []
   );
+  const [collaborators, setCollaborators] = useState<Array<{
+    id: string;
+    userId: string;
+    role: string;
+    email?: string;
+    fullName?: string;
+  }>>([]);
+
+  // Fetch collaborators (users with roles on this proposal)
+  useEffect(() => {
+    async function fetchCollaborators() {
+      const { data: roles, error } = await supabase
+        .from('user_roles')
+        .select('id, user_id, role')
+        .eq('proposal_id', proposal.id);
+
+      if (error) {
+        console.error('Error fetching collaborators:', error);
+        return;
+      }
+
+      if (roles && roles.length > 0) {
+        // Fetch user details for each role
+        const userIds = roles.map(r => r.user_id);
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .in('id', userIds);
+
+        const collaboratorList = roles.map(role => {
+          const profile = profiles?.find(p => p.id === role.user_id);
+          return {
+            id: role.id,
+            userId: role.user_id,
+            role: role.role,
+            email: profile?.email,
+            fullName: profile?.full_name,
+          };
+        });
+        setCollaborators(collaboratorList);
+      }
+    }
+
+    fetchCollaborators();
+  }, [proposal.id]);
 
   useEffect(() => {
     if (editedProposal.workProgramme) {
@@ -694,7 +741,15 @@ export function ProposalSummaryPage({
               </div>
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Projects Expected to be Funded</p>
-                <p className="font-medium text-muted-foreground">1-3 (estimated)</p>
+                {isEditing ? (
+                  <Input
+                    value={editedProposal.expectedProjects || ''}
+                    onChange={(e) => setEditedProposal({ ...editedProposal, expectedProjects: e.target.value })}
+                    placeholder="e.g. 1-3"
+                  />
+                ) : (
+                  <p className="font-medium">{proposal.expectedProjects || 'Not specified'}</p>
+                )}
               </div>
             </div>
           </CardContent>
@@ -801,6 +856,89 @@ export function ProposalSummaryPage({
             isAdmin={isAdmin}
           />
         )}
+
+        {/* Collaborators Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <UserCheck className="w-5 h-5" />
+              Collaborators
+            </CardTitle>
+            <CardDescription>Users with access to edit or view this proposal</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {collaborators.length > 0 ? (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {collaborators.map((collab) => (
+                  <div
+                    key={collab.id}
+                    className="flex items-center gap-3 p-3 rounded-lg border bg-card"
+                  >
+                    <Avatar className="w-10 h-10">
+                      <AvatarFallback>
+                        {collab.fullName
+                          ? collab.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                          : collab.email?.slice(0, 2).toUpperCase() || '?'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">
+                        {collab.fullName || collab.email || 'Unknown user'}
+                      </p>
+                      {collab.email && collab.fullName && (
+                        <p className="text-xs text-muted-foreground truncate">{collab.email}</p>
+                      )}
+                    </div>
+                    <Badge variant="outline" className="text-xs capitalize flex-shrink-0">
+                      {collab.role}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No collaborators assigned yet.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Partner Organisation Logos */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="w-5 h-5" />
+              Partner Organisation Logos
+            </CardTitle>
+            <CardDescription>Visual representation of the consortium</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap items-center justify-center gap-6 py-4">
+              {participants.map((participant, index) => (
+                <div
+                  key={participant.id}
+                  className="group relative"
+                  title={participant.organisationName}
+                >
+                  <div className="w-16 h-16 rounded-lg bg-white border-2 border-muted flex items-center justify-center overflow-hidden transition-all group-hover:border-primary group-hover:shadow-md">
+                    {participant.logoUrl ? (
+                      <img
+                        src={participant.logoUrl}
+                        alt={participant.organisationShortName || participant.organisationName}
+                        className="w-14 h-14 object-contain"
+                      />
+                    ) : (
+                      <span className="text-lg font-bold text-muted-foreground">
+                        {participant.organisationShortName?.substring(0, 2) || (index + 1)}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-center text-muted-foreground mt-1 max-w-[64px] truncate">
+                    {participant.organisationShortName || `P${index + 1}`}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Consortium Map */}
         <ConsortiumMap participants={participants} />

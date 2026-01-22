@@ -982,6 +982,7 @@ export type Database = {
           decision_date: string | null
           description: string | null
           destination: string | null
+          expected_projects: string | null
           id: string
           logo_url: string | null
           status: Database["public"]["Enums"]["proposal_status"]
@@ -1006,6 +1007,7 @@ export type Database = {
           decision_date?: string | null
           description?: string | null
           destination?: string | null
+          expected_projects?: string | null
           id?: string
           logo_url?: string | null
           status?: Database["public"]["Enums"]["proposal_status"]
@@ -1030,6 +1032,7 @@ export type Database = {
           decision_date?: string | null
           description?: string | null
           destination?: string | null
+          expected_projects?: string | null
           id?: string
           logo_url?: string | null
           status?: Database["public"]["Enums"]["proposal_status"]
