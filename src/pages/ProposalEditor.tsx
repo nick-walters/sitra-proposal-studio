@@ -17,7 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DuplicateProposalDialog } from "@/components/DuplicateProposalDialog";
 import { Section, BudgetType, ProposalStatus, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS } from "@/types/proposal";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -101,6 +101,16 @@ export function ProposalEditor() {
 
   // Dynamically load sections based on template type (or fallback to hardcoded)
   const { sections: allSections, loading: sectionsLoading } = useProposalSections(proposal?.templateTypeId || null);
+
+  // Auto-select Proposal overview on initial load
+  useEffect(() => {
+    if (!sectionsLoading && allSections.length > 0 && !activeSection) {
+      const overviewSection = allSections.find(s => s.id === 'proposal-overview');
+      if (overviewSection) {
+        setActiveSection(overviewSection);
+      }
+    }
+  }, [allSections, sectionsLoading, activeSection]);
 
   const handleSectionClick = (section: Section) => {
     // Clear selected participant when navigating away from A2
