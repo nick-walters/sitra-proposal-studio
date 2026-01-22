@@ -13,7 +13,9 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate('/auth', { replace: true });
+      // Pass current location so Auth can redirect back after login
+      const currentPath = window.location.pathname + window.location.search;
+      navigate(`/auth?redirectTo=${encodeURIComponent(currentPath)}`, { replace: true });
     }
   }, [loading, user, navigate]);
 
