@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
+import { Slider } from '@/components/ui/slider';
 import {
   Dialog,
   DialogContent,
@@ -34,6 +35,8 @@ import {
   ThumbsDown,
   Pencil,
   TrendingUp,
+  Check,
+  X,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -77,11 +80,26 @@ export function SubmissionWorkflow({
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<ProposalStatus | ''>('');
   const [isEditing, setIsEditing] = useState(false);
+  const [editedStats, setEditedStats] = useState(completionStats);
 
   const totalBudget = budgetItems.reduce((sum, item) => sum + (item.amount || 0), 0);
 
   // Determine if user can edit this section (admins and owners only)
   const userCanEdit = isAdmin;
+
+  // Sync editedStats when completionStats prop changes
+  const handleCancelEdit = () => {
+    setEditedStats(completionStats);
+    setIsEditing(false);
+  };
+
+  const handleSaveEdit = () => {
+    // For now just close - in future could persist these values
+    setIsEditing(false);
+  };
+
+  // Get the stats to display (edited when editing, actual otherwise)
+  const displayStats = isEditing ? editedStats : completionStats;
 
   const checks: CheckItem[] = [
     {
@@ -146,12 +164,23 @@ export function SubmissionWorkflow({
               <TrendingUp className="w-5 h-5" />
               Proposal schedule
             </CardTitle>
-            {userCanEdit && !isEditing && (
+            {userCanEdit && !isEditing ? (
               <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
                 <Pencil className="w-4 h-4 mr-1" />
                 Edit
               </Button>
-            )}
+            ) : userCanEdit && isEditing ? (
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="ghost" onClick={handleCancelEdit}>
+                  <X className="w-4 h-4 mr-1" />
+                  Cancel
+                </Button>
+                <Button size="sm" onClick={handleSaveEdit}>
+                  <Check className="w-4 h-4 mr-1" />
+                  Save
+                </Button>
+              </div>
+            ) : null}
           </div>
           <CardDescription>Track your progress and readiness for submission</CardDescription>
         </CardHeader>
@@ -163,30 +192,70 @@ export function SubmissionWorkflow({
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span>Part A - Administrative</span>
-                  <span className="font-medium">{completionStats.partA}%</span>
+                  <span className="font-medium">{displayStats.partA}%</span>
                 </div>
-                <Progress value={completionStats.partA} className="h-2" />
+                {isEditing ? (
+                  <Slider
+                    value={[editedStats.partA]}
+                    onValueChange={(value) => setEditedStats({ ...editedStats, partA: value[0] })}
+                    max={100}
+                    step={5}
+                    className="h-2"
+                  />
+                ) : (
+                  <Progress value={displayStats.partA} className="h-2" />
+                )}
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span>Part B - Technical</span>
-                  <span className="font-medium">{completionStats.partB}%</span>
+                  <span className="font-medium">{displayStats.partB}%</span>
                 </div>
-                <Progress value={completionStats.partB} className="h-2" />
+                {isEditing ? (
+                  <Slider
+                    value={[editedStats.partB]}
+                    onValueChange={(value) => setEditedStats({ ...editedStats, partB: value[0] })}
+                    max={100}
+                    step={5}
+                    className="h-2"
+                  />
+                ) : (
+                  <Progress value={displayStats.partB} className="h-2" />
+                )}
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span>Budget</span>
-                  <span className="font-medium">{completionStats.budget}%</span>
+                  <span className="font-medium">{displayStats.budget}%</span>
                 </div>
-                <Progress value={completionStats.budget} className="h-2" />
+                {isEditing ? (
+                  <Slider
+                    value={[editedStats.budget]}
+                    onValueChange={(value) => setEditedStats({ ...editedStats, budget: value[0] })}
+                    max={100}
+                    step={5}
+                    className="h-2"
+                  />
+                ) : (
+                  <Progress value={displayStats.budget} className="h-2" />
+                )}
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span>Ethics self-assessment</span>
-                  <span className="font-medium">{completionStats.ethics}%</span>
+                  <span className="font-medium">{displayStats.ethics}%</span>
                 </div>
-                <Progress value={completionStats.ethics} className="h-2" />
+                {isEditing ? (
+                  <Slider
+                    value={[editedStats.ethics]}
+                    onValueChange={(value) => setEditedStats({ ...editedStats, ethics: value[0] })}
+                    max={100}
+                    step={5}
+                    className="h-2"
+                  />
+                ) : (
+                  <Progress value={displayStats.ethics} className="h-2" />
+                )}
               </div>
             </div>
           </div>
