@@ -202,8 +202,8 @@ export function ProposalSummaryPage({
     setEditedProposal({ ...editedProposal, logoUrl: url || undefined });
   };
 
-  // Check if user can edit (admin or owner)
-  const userCanEdit = canEdit && (isAdmin || collaborators.some(c => c.role === 'owner' || c.role === 'admin'));
+  // Check if user can edit (admin or owner) - isAdmin already includes owner check from useProposalData
+  const userCanEdit = canEdit && isAdmin;
 
   return (
     <div className="flex-1 overflow-auto p-6 bg-muted/30">

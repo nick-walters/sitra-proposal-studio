@@ -50,10 +50,13 @@ function SectionItem({
   );
   
   // Check if this is a top-level bold item (Proposal overview, Part A, Part B, Figures)
+  // Match both ID-based and number-based checks for database sections
   const isTopLevelBold = 
     section.id === 'proposal-overview' || 
     section.id === 'part-a' || 
+    section.number === 'Part A' ||
     section.id === 'part-b' || 
+    section.number === 'Part B' ||
     section.id === 'figures';
   
   // Check for guideline types
