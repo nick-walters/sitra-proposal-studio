@@ -10,6 +10,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/h
 import { Calendar } from '@/components/ui/calendar';
 import { LogoUpload } from '@/components/LogoUpload';
 import { ProposalSchedule } from '@/components/ProposalSchedule';
+import { DirectChatDialog } from '@/components/DirectChatDialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Proposal, Participant, ParticipantMember, PARTICIPANT_TYPE_LABELS, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS, PROPOSAL_TYPE_LABELS, ProposalType, ProposalStatus, getDestinationsForWorkProgramme } from '@/types/proposal';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,6 +32,7 @@ import {
   Phone,
   Globe,
   Linkedin,
+  MessageCircle,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -149,6 +151,7 @@ export function ProposalSummaryPage({
 }: ProposalSummaryPageProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedProposal, setEditedProposal] = useState(proposal);
+  const [chatUserId, setChatUserId] = useState<string | null>(null);
   const [availableDestinations, setAvailableDestinations] = useState(
     proposal.workProgramme ? getDestinationsForWorkProgramme(proposal.workProgramme) : []
   );
@@ -921,6 +924,17 @@ export function ProposalSummaryPage({
                               <span className="text-xs text-muted-foreground">{member.personMonths} PM</span>
                             )}
                           </div>
+                          {member.isCollaborator && member.id && (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="mt-2 w-full gap-1.5 text-xs"
+                              onClick={() => setChatUserId(member.id)}
+                            >
+                              <MessageCircle className="w-3 h-3" />
+                              Send message
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </HoverCardContent>
@@ -934,6 +948,13 @@ export function ProposalSummaryPage({
         </Card>
         </div>
       </div>
+
+      {/* Direct Chat Dialog */}
+      <DirectChatDialog
+        open={!!chatUserId}
+        onOpenChange={(open) => !open && setChatUserId(null)}
+        userId={chatUserId || ''}
+      />
     </div>
   );
 }
