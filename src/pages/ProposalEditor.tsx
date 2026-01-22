@@ -388,7 +388,7 @@ export function ProposalEditor() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       <Header />
       {/* Proposal Top Bar */}
       <header className="h-14 border-b border-border bg-card/80 backdrop-blur-sm sticky top-16 z-40">
@@ -588,16 +588,15 @@ export function ProposalEditor() {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden" style={{ height: 'calc(100vh - 56px - 56px - 40px)' }}>
+      <div className="flex-1 flex min-h-0">
         {/* Sidebar - scrolls independently */}
         <aside
           className={cn(
-            "border-r border-border bg-card flex flex-col transition-all duration-300",
+            "border-r border-border bg-card flex flex-col transition-all duration-300 flex-shrink-0",
             isSidebarCollapsed ? "w-0 overflow-hidden" : "w-72"
           )}
-          style={{ height: '100%' }}
         >
-          <div className="flex-1 overflow-y-auto overflow-x-hidden" style={{ minHeight: 0 }}>
+          <div className="flex-1 overflow-y-auto overflow-x-hidden">
             <SectionNavigator
               sections={allSections}
               activeSectionId={activeSection?.id || null}
@@ -649,8 +648,10 @@ export function ProposalEditor() {
           )}
         </button>
 
-        {/* Content Area */}
-        {renderContent()}
+        {/* Content Area - scrolls independently */}
+        <main className="flex-1 overflow-auto">
+          {renderContent()}
+        </main>
       </div>
 
       {/* Version History Dialog */}
