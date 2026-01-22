@@ -250,7 +250,6 @@ export function ProposalSummaryPage({
         {/* Page Header */}
         <div className="mb-2">
           <h1 className="text-2xl font-bold text-foreground">Proposal overview</h1>
-          <p className="text-muted-foreground mt-1">Central hub for proposal metadata and consortium information</p>
         </div>
 
         {/* Header with Project Logo and Basic Info */}
@@ -359,6 +358,21 @@ export function ProposalSummaryPage({
                     />
                   ) : (
                     <h2 className="text-xl font-bold text-foreground">{proposal.title}</h2>
+                  )}
+                </div>
+
+                {/* Project Duration */}
+                <div>
+                  <label className="text-sm text-muted-foreground mb-1 block">Project duration</label>
+                  {isEditing ? (
+                    <Input
+                      value={editedProposal.description || ''}
+                      onChange={(e) => setEditedProposal({ ...editedProposal, description: e.target.value })}
+                      placeholder="e.g. 36 months"
+                      className="w-40"
+                    />
+                  ) : (
+                    <p className="font-medium">{proposal.description || '36 months'}</p>
                   )}
                 </div>
               </div>
@@ -516,12 +530,12 @@ export function ProposalSummaryPage({
           </CardContent>
         </Card>
 
-        {/* Budget Information */}
+        {/* Budget Overview */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Euro className="w-5 h-5" />
-              Budget information
+              Budget overview
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -583,64 +597,6 @@ export function ProposalSummaryPage({
           </CardContent>
         </Card>
 
-        {/* Quick Stats */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Euro className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Budget applied</p>
-                  <p className="text-xl font-bold">€{totalBudgetFromItems.toLocaleString()}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
-                  <Building2 className="w-5 h-5 text-success" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Participants</p>
-                  <p className="text-xl font-bold">{participants.length} organisations</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-secondary/50 flex items-center justify-center">
-                  <Users className="w-5 h-5 text-secondary-foreground" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Team members</p>
-                  <p className="text-xl font-bold">{teamMembers.length} people</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-warning" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Project duration</p>
-                  <p className="text-xl font-bold">36 months</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
 
         {/* Completion Progress */}
         <Card>
