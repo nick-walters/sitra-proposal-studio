@@ -320,6 +320,82 @@ async function lookupFromCordis(picNumber: string): Promise<OrganisationInfo | n
   }
 }
 
+// Search CORDIS by organisation name
+async function searchCordisOrganisations(searchTerm: string): Promise<OrganisationInfo[]> {
+  const url = `https://cordis.europa.eu/search/en?q=contenttype%3D%27organization%27+AND+${encodeURIComponent(searchTerm)}&format=json`;
+  
+  try {
+    console.log(`Searching CORDIS for: ${searchTerm}`);
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json, text/plain, */*',
+        'User-Agent': 'Mozilla/5.0 (compatible; ProposalStudio/1.0)',
+      },
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) {
+      console.log(`CORDIS search returned ${response.status}`);
+      return [];
+    }
+    
+    const text = await response.text();
+    
+    if (text.trim().startsWith('<!') || text.trim().startsWith('<html')) {
+      console.log('CORDIS returned HTML, skipping');
+      return [];
+    }
+    
+    const data = JSON.parse(text);
+    
+    let results: any[] = [];
+    if (Array.isArray(data.result)) {
+      results = data.result;
+    } else if (data.result?.payload?.organizations && Array.isArray(data.result.payload.organizations)) {
+      results = data.result.payload.organizations;
+    } else if (data.result?.payload?.results && Array.isArray(data.result.payload.results)) {
+      results = data.result.payload.results;
+    }
+    
+    console.log(`CORDIS search found ${results.length} results`);
+    
+    return results.slice(0, 10).map((org: any) => {
+      const countryCode = org.country || org.organisationCountry || '';
+      const isSme = org.sme === 'true' || org.sme === true || org.SME === true;
+      const legalEntityType = org.activityType || org.legalEntityType || org.organisationType || '';
+      
+      return {
+        picNumber: org.organizationID || org.pic || org.id || '',
+        legalName: org.legalName || org.name || org.title || '',
+        shortName: org.shortName || org.acronym,
+        country: COUNTRY_NAMES[countryCode] || countryCode,
+        countryCode: countryCode,
+        legalEntityType: legalEntityType,
+        isSme: isSme,
+        organisationCategory: mapLegalEntityToCategory(legalEntityType, isSme),
+      };
+    }).filter((org: OrganisationInfo) => org.legalName); // Filter out empty results
+  } catch (error) {
+    console.error('CORDIS search error:', error);
+    return [];
+  }
+}
+
+// Search known organisations by name
+function searchKnownOrganisations(searchTerm: string): OrganisationInfo[] {
+  const term = searchTerm.toLowerCase();
+  return Object.values(KNOWN_ORGANISATIONS).filter(org => 
+    org.legalName.toLowerCase().includes(term) || 
+    (org.shortName && org.shortName.toLowerCase().includes(term))
+  );
+}
+
 serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -387,10 +463,15 @@ serve(async (req: Request) => {
       }
     }
 
-    // Search by name in our database
+    // Search by name
     if (searchTerm && searchTerm.length >= 2) {
       console.log(`Searching for: ${searchTerm}`);
       
+      // 1. Search known organisations first
+      const knownResults = searchKnownOrganisations(searchTerm);
+      console.log(`Found ${knownResults.length} in known organisations`);
+      
+      // 2. Search local database
       const { data: orgs, error } = await supabase
         .from('organisations')
         .select('*')
@@ -401,7 +482,7 @@ serve(async (req: Request) => {
         console.error('Search error:', error);
       }
       
-      const results = (orgs || []).map((org: any) => ({
+      const dbResults = (orgs || []).map((org: any) => ({
         picNumber: org.pic_number || '',
         legalName: org.name,
         shortName: org.short_name,
@@ -411,10 +492,47 @@ serve(async (req: Request) => {
         isSme: org.is_sme || false,
         organisationCategory: mapLegalEntityToCategory(org.legal_entity_type, org.is_sme),
       }));
+      console.log(`Found ${dbResults.length} in database`);
       
-      console.log(`Search found ${results.length} results`);
+      // 3. Search CORDIS if we have few local results
+      let cordisResults: OrganisationInfo[] = [];
+      if (knownResults.length + dbResults.length < 5) {
+        cordisResults = await searchCordisOrganisations(searchTerm);
+      }
+      
+      // Combine and deduplicate results by PIC number
+      const seenPics = new Set<string>();
+      const allResults: OrganisationInfo[] = [];
+      
+      // Add known results first (highest priority)
+      for (const org of knownResults) {
+        if (org.picNumber && !seenPics.has(org.picNumber)) {
+          seenPics.add(org.picNumber);
+          allResults.push(org);
+        }
+      }
+      
+      // Add database results
+      for (const org of dbResults) {
+        if (org.picNumber && !seenPics.has(org.picNumber)) {
+          seenPics.add(org.picNumber);
+          allResults.push(org);
+        } else if (!org.picNumber) {
+          allResults.push(org); // Include orgs without PIC
+        }
+      }
+      
+      // Add CORDIS results
+      for (const org of cordisResults) {
+        if (org.picNumber && !seenPics.has(org.picNumber)) {
+          seenPics.add(org.picNumber);
+          allResults.push(org);
+        }
+      }
+      
+      console.log(`Total search results: ${allResults.length}`);
       return new Response(
-        JSON.stringify({ success: true, results }),
+        JSON.stringify({ success: true, results: allResults.slice(0, 15) }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
