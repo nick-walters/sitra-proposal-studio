@@ -182,8 +182,8 @@ export function ProposalSchedule({
             </div>
           </div>
 
-          {/* Admin Status Controls */}
-          {userCanEdit && proposal?.status !== 'draft' && (
+          {/* Admin Status Controls - Always show for admins when proposal exists */}
+          {userCanEdit && proposal && (
             <>
               <Separator />
               <div className="flex gap-2 flex-wrap">
@@ -195,7 +195,7 @@ export function ProposalSchedule({
                 >
                   Update Status
                 </Button>
-                {proposal?.status === 'submitted' && (
+                {proposal.status === 'submitted' && (
                   <Button
                     variant="outline"
                     size="sm"

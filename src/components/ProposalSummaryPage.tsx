@@ -594,23 +594,25 @@ export function ProposalSummaryPage({
       {/* Fixed Bottom Edit Bar for Owners/Admins - Right Positioned */}
       {userCanEdit && (
         <div className="fixed bottom-4 right-4 z-50">
-          {!isEditing ? (
-            <Button onClick={() => setIsEditing(true)} className="gap-2 shadow-lg">
-              <Pencil className="w-4 h-4" />
-              Edit
-            </Button>
-          ) : (
-            <div className="flex items-center gap-2 bg-background border rounded-lg shadow-lg p-2">
-              <Button variant="ghost" size="sm" onClick={handleCancel} className="gap-2">
-                <X className="w-4 h-4" />
-                Cancel
+          <div className="flex items-center gap-2 bg-background border rounded-lg shadow-lg p-2">
+            {!isEditing ? (
+              <Button onClick={() => setIsEditing(true)} className="gap-2">
+                <Pencil className="w-4 h-4" />
+                Edit
               </Button>
-              <Button size="sm" onClick={handleSave} className="gap-2">
-                <Check className="w-4 h-4" />
-                Save
-              </Button>
-            </div>
-          )}
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" onClick={handleCancel} className="gap-2">
+                  <X className="w-4 h-4" />
+                  Cancel
+                </Button>
+                <Button size="sm" onClick={handleSave} className="gap-2">
+                  <Check className="w-4 h-4" />
+                  Save
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>
