@@ -194,11 +194,11 @@ export function SubmissionWorkflow({
         </CardContent>
       </Card>
 
-      {/* Submission Checklist - Only show for drafts */}
+      {/* Proposal Schedule - Only show for drafts */}
       {proposal?.status === 'draft' && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Submission Checklist</CardTitle>
+            <CardTitle className="text-base">Proposal schedule</CardTitle>
             <CardDescription>
               Complete these items before submitting your proposal
             </CardDescription>
