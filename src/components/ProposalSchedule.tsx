@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -33,10 +33,7 @@ import {
   Clock,
   Trophy,
   ThumbsDown,
-  Pencil,
   TrendingUp,
-  Check,
-  X,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -64,6 +61,8 @@ interface ProposalScheduleProps {
   canEdit: boolean;
   isAdmin: boolean;
   completionStats?: CompletionStats;
+  isEditing?: boolean;
+  onStatsChange?: (stats: CompletionStats) => void;
 }
 
 export function ProposalSchedule({
@@ -75,11 +74,12 @@ export function ProposalSchedule({
   canEdit,
   isAdmin,
   completionStats = { partA: 0, partB: 0, budget: 0, ethics: 0 },
+  isEditing = false,
+  onStatsChange,
 }: ProposalScheduleProps) {
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<ProposalStatus | ''>('');
-  const [isEditing, setIsEditing] = useState(false);
   const [editedStats, setEditedStats] = useState(completionStats);
 
   const totalBudget = budgetItems.reduce((sum, item) => sum + (item.amount || 0), 0);
@@ -87,15 +87,17 @@ export function ProposalSchedule({
   // Determine if user can edit this section (admins and owners only)
   const userCanEdit = canEdit && isAdmin;
 
-  // Sync editedStats when completionStats prop changes
-  const handleCancelEdit = () => {
-    setEditedStats(completionStats);
-    setIsEditing(false);
-  };
+  // Sync editedStats when completionStats prop changes or when editing stops
+  useEffect(() => {
+    if (!isEditing) {
+      setEditedStats(completionStats);
+    }
+  }, [completionStats, isEditing]);
 
-  const handleSaveEdit = () => {
-    // For now just close - in future could persist these values
-    setIsEditing(false);
+  // Notify parent of stats changes when editing
+  const handleStatsChange = (newStats: CompletionStats) => {
+    setEditedStats(newStats);
+    onStatsChange?.(newStats);
   };
 
   // Get the stats to display (edited when editing, actual otherwise)
@@ -159,29 +161,10 @@ export function ProposalSchedule({
       {/* Combined: Proposal Completion & Schedule */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5" />
-              Proposal schedule
-            </CardTitle>
-            {userCanEdit && !isEditing ? (
-              <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
-                <Pencil className="w-4 h-4 mr-1" />
-                Edit
-              </Button>
-            ) : userCanEdit && isEditing ? (
-              <div className="flex items-center gap-2">
-                <Button size="sm" variant="ghost" onClick={handleCancelEdit}>
-                  <X className="w-4 h-4 mr-1" />
-                  Cancel
-                </Button>
-                <Button size="sm" onClick={handleSaveEdit}>
-                  <Check className="w-4 h-4 mr-1" />
-                  Save
-                </Button>
-              </div>
-            ) : null}
-          </div>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="w-5 h-5" />
+            Proposal schedule
+          </CardTitle>
           <CardDescription>Track your progress and readiness for submission</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
