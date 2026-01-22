@@ -255,6 +255,7 @@ export function useProposalData(proposalId: string) {
     if (updates.topicTitle !== undefined) dbUpdates.topic_title = updates.topicTitle;
     if (updates.totalBudget !== undefined) dbUpdates.total_budget = updates.totalBudget;
     if (updates.deadline !== undefined) dbUpdates.deadline = updates.deadline?.toISOString();
+    if (updates.decisionDate !== undefined) dbUpdates.decision_date = updates.decisionDate?.toISOString();
     if (updates.workProgramme !== undefined) dbUpdates.work_programme = updates.workProgramme;
     if (updates.destination !== undefined) dbUpdates.destination = updates.destination;
     if (updates.logoUrl !== undefined) dbUpdates.logo_url = updates.logoUrl;
