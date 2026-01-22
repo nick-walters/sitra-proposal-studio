@@ -44,10 +44,21 @@ export function AddParticipantDialog({
   onAddParticipant,
   participantCount,
 }: AddParticipantDialogProps) {
-  const [activeTab, setActiveTab] = useState<'pic' | 'manual'>('pic');
+  const [activeTab, setActiveTab] = useState<'pic' | 'search' | 'manual'>('pic');
   const [loading, setLoading] = useState(false);
   const [lookupLoading, setLookupLoading] = useState(false);
   const [picNumber, setPicNumber] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Array<{
+    picNumber: string;
+    legalName: string;
+    shortName?: string;
+    country: string;
+    countryCode: string;
+    legalEntityType?: string;
+    isSme: boolean;
+    organisationCategory?: OrganisationCategory;
+  }>>([]);
   const [lookupResult, setLookupResult] = useState<{
     legalName: string;
     shortName?: string;
@@ -104,6 +115,57 @@ export function AddParticipantDialog({
     }
   };
 
+  const handleNameSearch = async () => {
+    if (!searchQuery || searchQuery.length < 2) {
+      toast.error('Please enter at least 2 characters to search');
+      return;
+    }
+
+    setLookupLoading(true);
+    setLookupError(null);
+    setSearchResults([]);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('lookup-pic', {
+        body: { searchTerm: searchQuery.trim() },
+      });
+
+      if (error) {
+        console.error('Search error:', error);
+        setLookupError('Failed to connect to the search service. Please try again.');
+        return;
+      }
+
+      if (data.success && data.results) {
+        setSearchResults(data.results);
+        if (data.results.length === 0) {
+          setLookupError('No organisations found matching your search. Try different terms or add manually.');
+        }
+      } else {
+        setLookupError(data.message || 'Search failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      setLookupError('Search failed. Please try again.');
+    } finally {
+      setLookupLoading(false);
+    }
+  };
+
+  const handleSelectSearchResult = (org: typeof searchResults[0]) => {
+    setLookupResult({
+      legalName: org.legalName,
+      shortName: org.shortName,
+      country: org.country,
+      countryCode: org.countryCode,
+      legalEntityType: org.legalEntityType,
+      isSme: org.isSme,
+      organisationCategory: org.organisationCategory,
+    });
+    setPicNumber(org.picNumber || '');
+    setActiveTab('pic');
+  };
+
   const handleAddFromLookup = async () => {
     if (!lookupResult) return;
 
@@ -157,6 +219,8 @@ export function AddParticipantDialog({
 
   const handleClose = () => {
     setPicNumber('');
+    setSearchQuery('');
+    setSearchResults([]);
     setLookupResult(null);
     setLookupError(null);
     setManualForm({
@@ -183,9 +247,10 @@ export function AddParticipantDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'pic' | 'manual')}>
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'pic' | 'search' | 'manual')}>
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="pic">PIC Lookup</TabsTrigger>
+            <TabsTrigger value="search">Search by Name</TabsTrigger>
             <TabsTrigger value="manual">Manual Entry</TabsTrigger>
           </TabsList>
 
@@ -284,6 +349,87 @@ export function AddParticipantDialog({
             )}
           </TabsContent>
 
+          <TabsContent value="search" className="space-y-4 pt-4">
+            <Alert>
+              <Info className="w-4 h-4" />
+              <AlertDescription>
+                Search for an organisation by name. Select from the results to add as a participant.
+              </AlertDescription>
+            </Alert>
+
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Label htmlFor="search-query">Organisation Name</Label>
+                <Input
+                  id="search-query"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setSearchResults([]);
+                    setLookupError(null);
+                  }}
+                  placeholder="e.g. Fraunhofer, University of Helsinki"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleNameSearch();
+                    }
+                  }}
+                />
+              </div>
+              <div className="flex items-end">
+                <Button 
+                  onClick={handleNameSearch} 
+                  disabled={lookupLoading || searchQuery.length < 2}
+                  className="gap-2"
+                >
+                  {lookupLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Search className="w-4 h-4" />
+                  )}
+                  Search
+                </Button>
+              </div>
+            </div>
+
+            {lookupError && (
+              <Alert variant="destructive">
+                <AlertDescription>{lookupError}</AlertDescription>
+              </Alert>
+            )}
+
+            {searchResults.length > 0 && (
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                <Label className="text-sm text-muted-foreground">
+                  Found {searchResults.length} organisation{searchResults.length !== 1 ? 's' : ''}
+                </Label>
+                {searchResults.map((org, idx) => (
+                  <button
+                    key={`${org.picNumber}-${idx}`}
+                    onClick={() => handleSelectSearchResult(org)}
+                    className="w-full p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors text-left"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{org.legalName}</p>
+                        {org.shortName && (
+                          <p className="text-sm text-muted-foreground">({org.shortName})</p>
+                        )}
+                      </div>
+                      <div className="text-right text-sm shrink-0">
+                        <p className="text-muted-foreground">{org.country}</p>
+                        {org.picNumber && (
+                          <p className="font-mono text-xs">{org.picNumber}</p>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
           <TabsContent value="manual" className="space-y-4 pt-4">
             <div className="grid gap-4">
               <div>
@@ -376,7 +522,7 @@ export function AddParticipantDialog({
           <Button variant="outline" onClick={handleClose} disabled={loading}>
             Cancel
           </Button>
-          {activeTab === 'pic' ? (
+          {activeTab === 'pic' && (
             <Button 
               onClick={handleAddFromLookup} 
               disabled={loading || !lookupResult}
@@ -385,7 +531,18 @@ export function AddParticipantDialog({
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               Add Participant
             </Button>
-          ) : (
+          )}
+          {activeTab === 'search' && (
+            <Button 
+              onClick={handleAddFromLookup} 
+              disabled={loading || !lookupResult}
+              className="gap-2"
+            >
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+              Add Selected
+            </Button>
+          )}
+          {activeTab === 'manual' && (
             <Button 
               onClick={handleAddManual} 
               disabled={loading || !manualForm.organisationName.trim()}
