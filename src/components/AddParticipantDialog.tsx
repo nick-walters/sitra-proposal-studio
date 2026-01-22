@@ -66,10 +66,15 @@ export function AddParticipantDialog({
   const [manualForm, setManualForm] = useState({
     organisationName: '',
     organisationShortName: '',
+    englishName: '',
+    picNumber: '',
     organisationType: 'beneficiary' as ParticipantType,
     country: '',
     organisationCategory: '' as OrganisationCategory | '',
   });
+  
+  // Form validation errors
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const handleSearch = async () => {
     if (!searchQuery || searchQuery.length < 2) {
@@ -141,9 +146,34 @@ export function AddParticipantDialog({
     }
   };
 
-  const handleAddManual = async () => {
+  const validateManualForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    
     if (!manualForm.organisationName.trim()) {
-      toast.error('Organisation name is required');
+      errors.organisationName = 'Legal name is required';
+    }
+    
+    if (!manualForm.picNumber.trim()) {
+      errors.picNumber = 'PIC number is required';
+    } else if (!/^\d{9}$/.test(manualForm.picNumber.trim())) {
+      errors.picNumber = 'PIC must be a 9-digit number';
+    }
+    
+    if (!manualForm.country) {
+      errors.country = 'Country is required';
+    }
+    
+    if (!manualForm.organisationCategory) {
+      errors.organisationCategory = 'Organisation category is required';
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleAddManual = async () => {
+    if (!validateManualForm()) {
+      toast.error('Please fill in all required fields');
       return;
     }
 
@@ -152,6 +182,8 @@ export function AddParticipantDialog({
       await onAddParticipant({
         organisationName: manualForm.organisationName.trim(),
         organisationShortName: manualForm.organisationShortName.trim() || undefined,
+        englishName: manualForm.englishName.trim() || undefined,
+        picNumber: manualForm.picNumber.trim(),
         organisationType: manualForm.organisationType,
         country: manualForm.country || undefined,
         isSme: false,
@@ -172,9 +204,12 @@ export function AddParticipantDialog({
     setSearchResults([]);
     setSelectedResult(null);
     setSearchError(null);
+    setFormErrors({});
     setManualForm({
       organisationName: '',
       organisationShortName: '',
+      englishName: '',
+      picNumber: '',
       organisationType: 'beneficiary',
       country: '',
       organisationCategory: '',
@@ -334,69 +369,128 @@ export function AddParticipantDialog({
           </TabsContent>
 
           <TabsContent value="manual" className="space-y-4 pt-4">
+            <Alert>
+              <Info className="w-4 h-4" />
+              <AlertDescription>
+                Enter organisation details manually. Fields marked with * are required.
+              </AlertDescription>
+            </Alert>
+            
             <div className="grid gap-4">
-              <div>
-                <Label htmlFor="org-name">Organisation Name *</Label>
-                <Input
-                  id="org-name"
-                  value={manualForm.organisationName}
-                  onChange={(e) => setManualForm({ ...manualForm, organisationName: e.target.value })}
-                  placeholder="e.g. University of Helsinki"
-                />
-              </div>
-              
+              {/* PIC Number - Required */}
               <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="pic-number">PIC Number *</Label>
+                  <Input
+                    id="pic-number"
+                    value={manualForm.picNumber}
+                    onChange={(e) => {
+                      setManualForm({ ...manualForm, picNumber: e.target.value.replace(/\D/g, '').slice(0, 9) });
+                      if (formErrors.picNumber) setFormErrors({ ...formErrors, picNumber: '' });
+                    }}
+                    placeholder="e.g. 906912365"
+                    maxLength={9}
+                    className={formErrors.picNumber ? 'border-destructive' : ''}
+                  />
+                  {formErrors.picNumber && (
+                    <p className="text-xs text-destructive mt-1">{formErrors.picNumber}</p>
+                  )}
+                </div>
                 <div>
                   <Label htmlFor="short-name">Short Name</Label>
                   <Input
                     id="short-name"
                     value={manualForm.organisationShortName}
                     onChange={(e) => setManualForm({ ...manualForm, organisationShortName: e.target.value })}
-                    placeholder="e.g. UH"
+                    placeholder="e.g. SITRA"
                   />
-                </div>
-                <div>
-                  <Label>Participant Type</Label>
-                  <Select
-                    value={manualForm.organisationType}
-                    onValueChange={(v) => setManualForm({ ...manualForm, organisationType: v as ParticipantType })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(PARTICIPANT_TYPE_LABELS).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>{label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
               </div>
 
+              {/* Legal Name - Required */}
+              <div>
+                <Label htmlFor="org-name">Legal Name *</Label>
+                <Input
+                  id="org-name"
+                  value={manualForm.organisationName}
+                  onChange={(e) => {
+                    setManualForm({ ...manualForm, organisationName: e.target.value });
+                    if (formErrors.organisationName) setFormErrors({ ...formErrors, organisationName: '' });
+                  }}
+                  placeholder="e.g. Suomen Itsenäisyyden Juhlarahasto"
+                  className={formErrors.organisationName ? 'border-destructive' : ''}
+                />
+                {formErrors.organisationName && (
+                  <p className="text-xs text-destructive mt-1">{formErrors.organisationName}</p>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">
+                  The official legal name as registered
+                </p>
+              </div>
+              
+              {/* English Name - Optional */}
+              <div>
+                <Label htmlFor="english-name">English Name (if different from legal name)</Label>
+                <Input
+                  id="english-name"
+                  value={manualForm.englishName}
+                  onChange={(e) => setManualForm({ ...manualForm, englishName: e.target.value })}
+                  placeholder="e.g. The Finnish Innovation Fund"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Leave blank if the legal name is already in English
+                </p>
+              </div>
+              
+              {/* Country and Category - Required */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Country</Label>
+                  <Label>Country *</Label>
                   <Select
                     value={manualForm.country}
-                    onValueChange={(v) => setManualForm({ ...manualForm, country: v })}
+                    onValueChange={(v) => {
+                      setManualForm({ ...manualForm, country: v });
+                      if (formErrors.country) setFormErrors({ ...formErrors, country: '' });
+                    }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={formErrors.country ? 'border-destructive' : ''}>
                       <SelectValue placeholder="Select country" />
                     </SelectTrigger>
                     <SelectContent className="max-h-60">
-                      {[...EU_MEMBER_STATES, ...ASSOCIATED_COUNTRIES, ...THIRD_COUNTRIES].map((country) => (
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-muted">
+                        EU Member States
+                      </div>
+                      {EU_MEMBER_STATES.map((country) => (
+                        <SelectItem key={country.code} value={country.name}>{country.name}</SelectItem>
+                      ))}
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-muted mt-1">
+                        Associated Countries
+                      </div>
+                      {ASSOCIATED_COUNTRIES.map((country) => (
+                        <SelectItem key={country.code} value={country.name}>{country.name}</SelectItem>
+                      ))}
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-muted mt-1">
+                        Third Countries
+                      </div>
+                      {THIRD_COUNTRIES.map((country) => (
                         <SelectItem key={country.code} value={country.name}>{country.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {formErrors.country && (
+                    <p className="text-xs text-destructive mt-1">{formErrors.country}</p>
+                  )}
                 </div>
                 <div>
-                  <Label>Organisation Category</Label>
+                  <Label>Organisation Category *</Label>
                   <Select
                     value={manualForm.organisationCategory}
-                    onValueChange={(v) => setManualForm({ ...manualForm, organisationCategory: v as OrganisationCategory })}
+                    onValueChange={(v) => {
+                      setManualForm({ ...manualForm, organisationCategory: v as OrganisationCategory });
+                      if (formErrors.organisationCategory) setFormErrors({ ...formErrors, organisationCategory: '' });
+                    }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={formErrors.organisationCategory ? 'border-destructive' : ''}>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
@@ -405,7 +499,28 @@ export function AddParticipantDialog({
                       ))}
                     </SelectContent>
                   </Select>
+                  {formErrors.organisationCategory && (
+                    <p className="text-xs text-destructive mt-1">{formErrors.organisationCategory}</p>
+                  )}
                 </div>
+              </div>
+
+              {/* Participant Type */}
+              <div>
+                <Label>Participant Type</Label>
+                <Select
+                  value={manualForm.organisationType}
+                  onValueChange={(v) => setManualForm({ ...manualForm, organisationType: v as ParticipantType })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(PARTICIPANT_TYPE_LABELS).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </TabsContent>
@@ -427,7 +542,7 @@ export function AddParticipantDialog({
           ) : (
             <Button 
               onClick={handleAddManual} 
-              disabled={loading || !manualForm.organisationName.trim()}
+              disabled={loading}
               className="gap-2"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
