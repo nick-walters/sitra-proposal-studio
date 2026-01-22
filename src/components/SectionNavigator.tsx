@@ -45,8 +45,8 @@ function SectionItem({
   const isCollapsibleHeading = hasSubsections && (
     section.id === 'part-a' || 
     section.id === 'part-b' || 
-    section.id === 'excellence' || 
-    section.id === 'impact'
+    section.id === 'b1' || 
+    section.id === 'b2'
   );
   
   // Check for guideline types

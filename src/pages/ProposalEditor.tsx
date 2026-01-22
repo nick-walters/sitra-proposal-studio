@@ -206,110 +206,113 @@ export function ProposalEditor() {
 
     // Part A sections
     if (activeSection.isPartA) {
-      switch (activeSection.id) {
-        // Proposal overview page (before Part A)
-        case 'proposal-overview':
-          return proposal ? (
-            <ProposalSummaryPage
-              proposal={{
-                ...proposal,
-                members: [],
-                sections: allSections,
-              }}
-              participants={participants}
-              participantMembers={participantMembers}
-              budgetItems={budgetItems.map((b) => ({
-                amount: b.amount,
-                participantId: b.participantId,
-              }))}
-              onUpdateProposal={updateProposal}
-              onSubmit={handleSubmit}
-              onUpdateStatus={handleUpdateStatus}
-              canEdit={canEdit}
-              isAdmin={isAdmin}
-            />
-          ) : null;
-
-        // Part A heading (collapsible only, shows info)
-        case 'part-a':
-          return (
-            <div className="flex-1 flex items-center justify-center bg-muted/30">
-              <div className="text-center max-w-lg">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <FileText className="w-8 h-8 text-primary" />
-                </div>
-                <h3 className="text-lg font-medium">Part A: Administrative forms</h3>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Select a subsection from the navigation to edit participant information, budget details, or other administrative forms.
-                </p>
-              </div>
-            </div>
-          );
-
-        // A1 - General Information (form-based)
-        case 'general-info':
-          return (
-            <DocumentEditor
-              section={activeSection}
-              proposalId={id || ''}
-              proposalAcronym={proposal?.acronym || ''}
-              readOnly={!canEdit}
-              topicId={proposal?.topicId}
-              workProgramme={proposal?.workProgramme}
-              destination={proposal?.destination}
-            />
-          );
-
-        // A2 - Participants (form-based)
-        case 'participants':
-          return (
-            <ParticipantForm
-              participants={participants}
-              participantMembers={participantMembers}
-              onAddParticipant={addParticipant}
-              onUpdateParticipant={updateParticipant}
-              onDeleteParticipant={deleteParticipant}
-              onAddMember={addParticipantMember}
-              onUpdateMember={updateParticipantMember}
-              onDeleteMember={deleteParticipantMember}
-              canEditAll={isAdmin && canEdit}
-              currentUserId={user?.id}
-              proposalId={id || ''}
-            />
-          );
-
-        // A3 - Budget (spreadsheet)
-        case 'budget':
-          return (
-            <BudgetSpreadsheetEnhanced
-              budgetItems={budgetItems}
-              budgetChanges={budgetChanges}
-              participants={participants}
-              budgetType={proposal?.budgetType || 'traditional'}
-              totalBudget={proposal?.totalBudget}
-              onAddBudgetItem={addBudgetItem}
-              onUpdateBudgetItem={updateBudgetItem}
-              onDeleteBudgetItem={deleteBudgetItem}
-              onChangeBudgetType={handleBudgetTypeChange}
-              canEdit={canEdit}
-              proposalId={id || ''}
-              saving={budgetSaving}
-            />
-          );
-
-        default:
-          return (
-            <DocumentEditor
-              section={activeSection}
-              proposalId={id || ''}
-              proposalAcronym={proposal?.acronym || ''}
-              readOnly={!canEdit}
-              topicId={proposal?.topicId}
-              workProgramme={proposal?.workProgramme}
-              destination={proposal?.destination}
-            />
-          );
+      // Proposal overview page (before Part A) - matches "proposal-overview"
+      if (activeSection.id === 'proposal-overview') {
+        return proposal ? (
+          <ProposalSummaryPage
+            proposal={{
+              ...proposal,
+              members: [],
+              sections: allSections,
+            }}
+            participants={participants}
+            participantMembers={participantMembers}
+            budgetItems={budgetItems.map((b) => ({
+              amount: b.amount,
+              participantId: b.participantId,
+            }))}
+            onUpdateProposal={updateProposal}
+            onSubmit={handleSubmit}
+            onUpdateStatus={handleUpdateStatus}
+            canEdit={canEdit}
+            isAdmin={isAdmin}
+          />
+        ) : null;
       }
+
+      // Part A heading (collapsible only, shows info) - matches "part-a"
+      if (activeSection.id === 'part-a') {
+        return (
+          <div className="flex-1 flex items-center justify-center bg-muted/30">
+            <div className="text-center max-w-lg">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                <FileText className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-lg font-medium">Part A: Administrative forms</h3>
+              <p className="text-sm text-muted-foreground mt-2">
+                Select a subsection from the navigation to edit participant information, budget details, or other administrative forms.
+              </p>
+            </div>
+          </div>
+        );
+      }
+
+      // A1 - General Information (form-based) - matches "a1"
+      if (activeSection.id === 'a1' || activeSection.id === 'general-info') {
+        return (
+          <DocumentEditor
+            section={activeSection}
+            proposalId={id || ''}
+            proposalAcronym={proposal?.acronym || ''}
+            readOnly={!canEdit}
+            topicId={proposal?.topicId}
+            workProgramme={proposal?.workProgramme}
+            destination={proposal?.destination}
+          />
+        );
+      }
+
+      // A2 - Participants (form-based) - matches "a2"
+      if (activeSection.id === 'a2' || activeSection.id === 'participants') {
+        return (
+          <ParticipantForm
+            participants={participants}
+            participantMembers={participantMembers}
+            onAddParticipant={addParticipant}
+            onUpdateParticipant={updateParticipant}
+            onDeleteParticipant={deleteParticipant}
+            onAddMember={addParticipantMember}
+            onUpdateMember={updateParticipantMember}
+            onDeleteMember={deleteParticipantMember}
+            canEditAll={isAdmin && canEdit}
+            currentUserId={user?.id}
+            proposalId={id || ''}
+          />
+        );
+      }
+
+      // A3 - Budget (spreadsheet) - matches "a3"
+      if (activeSection.id === 'a3' || activeSection.id === 'budget') {
+        return (
+          <BudgetSpreadsheetEnhanced
+            budgetItems={budgetItems}
+            budgetChanges={budgetChanges}
+            participants={participants}
+            budgetType={proposal?.budgetType || 'traditional'}
+            totalBudget={proposal?.totalBudget}
+            onAddBudgetItem={addBudgetItem}
+            onUpdateBudgetItem={updateBudgetItem}
+            onDeleteBudgetItem={deleteBudgetItem}
+            onChangeBudgetType={handleBudgetTypeChange}
+            canEdit={canEdit}
+            proposalId={id || ''}
+            saving={budgetSaving}
+          />
+        );
+      }
+
+      // Default Part A fallback
+      return (
+        <DocumentEditor
+          section={activeSection}
+          proposalId={id || ''}
+          proposalAcronym={proposal?.acronym || ''}
+          readOnly={!canEdit}
+          topicId={proposal?.topicId}
+          workProgramme={proposal?.workProgramme}
+          destination={proposal?.destination}
+        />
+      );
     }
 
     // Figures section
@@ -323,16 +326,17 @@ export function ProposalEditor() {
     }
 
     // Part B heading sections (collapsible only, show info)
-    if (activeSection.id === 'part-b' || activeSection.id === 'excellence' || activeSection.id === 'impact') {
+    // Matches: "part-b", "b1", "b2"
+    if (activeSection.id === 'part-b' || activeSection.id === 'b1' || activeSection.id === 'b2') {
       const titles: Record<string, string> = {
         'part-b': 'Part B: Technical description',
-        'excellence': 'B1: Excellence',
-        'impact': 'B2: Impact',
+        'b1': 'B1: Excellence',
+        'b2': 'B2: Impact',
       };
       const descriptions: Record<string, string> = {
         'part-b': 'The technical description of your proposal. Select a subsection to start writing.',
-        'excellence': 'Describe the excellence of your proposal. Select a subsection to add content.',
-        'impact': 'Describe the impact of your project. Select a subsection to add content.',
+        'b1': 'Describe the excellence of your proposal. Select a subsection to add content.',
+        'b2': 'Describe the impact of your project. Select a subsection to add content.',
       };
       return (
         <div className="flex-1 flex items-center justify-center bg-muted/30">
@@ -350,6 +354,7 @@ export function ProposalEditor() {
     }
 
     // Part B document sections - use rich text editor
+    // Matches: "b1-1", "b1-2", "b2-1", etc.
     return (
       <DocumentEditor
         section={activeSection}

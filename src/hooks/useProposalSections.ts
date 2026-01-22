@@ -59,8 +59,18 @@ function convertToSection(dbSection: TemplateSectionData): Section {
     .map(g => g.content)
     .join('\n\n');
 
+  // Generate a proper ID from section_number or title
+  let sectionId: string;
+  if (dbSection.section_number && dbSection.section_number.trim() !== '') {
+    // Use section number: "Part A" -> "part-a", "A1" -> "a1", "B1.1" -> "b1-1"
+    sectionId = dbSection.section_number.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '-');
+  } else {
+    // Fallback to title-based ID: "Proposal overview" -> "proposal-overview"
+    sectionId = dbSection.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  }
+
   return {
-    id: dbSection.section_number.toLowerCase().replace(/\./g, '-'),
+    id: sectionId,
     number: dbSection.section_number,
     title: dbSection.title,
     wordLimit: dbSection.word_limit || undefined,
