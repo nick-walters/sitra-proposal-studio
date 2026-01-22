@@ -641,10 +641,12 @@ export type Database = {
           contact_email: string | null
           country: string | null
           created_at: string
+          english_name: string | null
           id: string
           is_sme: boolean | null
           legal_entity_type: string | null
           logo_url: string | null
+          organisation_category: string | null
           organisation_name: string
           organisation_short_name: string | null
           organisation_type: Database["public"]["Enums"]["participant_type"]
@@ -658,10 +660,12 @@ export type Database = {
           contact_email?: string | null
           country?: string | null
           created_at?: string
+          english_name?: string | null
           id?: string
           is_sme?: boolean | null
           legal_entity_type?: string | null
           logo_url?: string | null
+          organisation_category?: string | null
           organisation_name: string
           organisation_short_name?: string | null
           organisation_type?: Database["public"]["Enums"]["participant_type"]
@@ -675,10 +679,12 @@ export type Database = {
           contact_email?: string | null
           country?: string | null
           created_at?: string
+          english_name?: string | null
           id?: string
           is_sme?: boolean | null
           legal_entity_type?: string | null
           logo_url?: string | null
+          organisation_category?: string | null
           organisation_name?: string
           organisation_short_name?: string | null
           organisation_type?: Database["public"]["Enums"]["participant_type"]

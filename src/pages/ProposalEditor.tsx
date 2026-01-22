@@ -249,6 +249,7 @@ export function ProposalEditor() {
               participantId: b.participantId,
             }))}
             onUpdateProposal={updateProposal}
+            onUpdateParticipant={updateParticipant}
             onSubmit={handleSubmit}
             onUpdateStatus={handleUpdateStatus}
             canEdit={canEdit}

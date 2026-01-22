@@ -138,7 +138,7 @@ export function useProposalData(proposalId: string) {
     }
 
     setParticipants(
-      (data || []).map((p) => ({
+      (data || []).map((p: any) => ({
         id: p.id,
         proposalId: p.proposal_id,
         organisationName: p.organisation_name,
@@ -152,6 +152,8 @@ export function useProposalData(proposalId: string) {
         participantNumber: p.participant_number || 1,
         contactEmail: p.contact_email || undefined,
         address: p.address || undefined,
+        organisationCategory: p.organisation_category || undefined,
+        englishName: p.english_name || undefined,
       }))
     );
   }, [proposalId]);
@@ -306,7 +308,7 @@ export function useProposalData(proposalId: string) {
   };
 
   // Update participant
-  const updateParticipant = async (id: string, updates: Partial<Participant>) => {
+  const updateParticipant = async (id: string, updates: Partial<Participant> & { organisationCategory?: string; englishName?: string }) => {
     const dbUpdates: any = {};
     if (updates.organisationName !== undefined) dbUpdates.organisation_name = updates.organisationName;
     if (updates.organisationShortName !== undefined) dbUpdates.organisation_short_name = updates.organisationShortName;
@@ -317,6 +319,8 @@ export function useProposalData(proposalId: string) {
     if (updates.isSme !== undefined) dbUpdates.is_sme = updates.isSme;
     if (updates.contactEmail !== undefined) dbUpdates.contact_email = updates.contactEmail;
     if (updates.address !== undefined) dbUpdates.address = updates.address;
+    if (updates.organisationCategory !== undefined) dbUpdates.organisation_category = updates.organisationCategory;
+    if (updates.englishName !== undefined) dbUpdates.english_name = updates.englishName;
 
     const { error } = await supabase.from('participants').update(dbUpdates).eq('id', id);
 

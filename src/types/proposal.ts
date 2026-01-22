@@ -222,6 +222,8 @@ export interface Participant {
   participantNumber: number;
   contactEmail?: string;
   address?: string;
+  organisationCategory?: string;
+  englishName?: string;
 }
 
 export interface ParticipantMember {
