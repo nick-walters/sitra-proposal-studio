@@ -982,6 +982,7 @@ export type Database = {
           decision_date: string | null
           description: string | null
           destination: string | null
+          duration: number | null
           expected_projects: string | null
           id: string
           logo_url: string | null
@@ -991,6 +992,7 @@ export type Database = {
           template_type_id: string | null
           title: string
           topic_id: string | null
+          topic_title: string | null
           topic_url: string | null
           total_budget: number | null
           type: Database["public"]["Enums"]["proposal_type"]
@@ -1007,6 +1009,7 @@ export type Database = {
           decision_date?: string | null
           description?: string | null
           destination?: string | null
+          duration?: number | null
           expected_projects?: string | null
           id?: string
           logo_url?: string | null
@@ -1016,6 +1019,7 @@ export type Database = {
           template_type_id?: string | null
           title: string
           topic_id?: string | null
+          topic_title?: string | null
           topic_url?: string | null
           total_budget?: number | null
           type?: Database["public"]["Enums"]["proposal_type"]
@@ -1032,6 +1036,7 @@ export type Database = {
           decision_date?: string | null
           description?: string | null
           destination?: string | null
+          duration?: number | null
           expected_projects?: string | null
           id?: string
           logo_url?: string | null
@@ -1041,6 +1046,7 @@ export type Database = {
           template_type_id?: string | null
           title?: string
           topic_id?: string | null
+          topic_title?: string | null
           topic_url?: string | null
           total_budget?: number | null
           type?: Database["public"]["Enums"]["proposal_type"]

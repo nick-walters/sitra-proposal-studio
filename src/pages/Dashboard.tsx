@@ -265,6 +265,8 @@ export function Dashboard() {
         destination: row.destination || undefined,
         topicUrl: row.topic_url || undefined,
         topicId: row.topic_id || undefined,
+        topicTitle: row.topic_title || undefined,
+        duration: row.duration || undefined,
         logoUrl: row.logo_url || undefined,
         totalBudget: row.total_budget || undefined,
         deadline: row.deadline ? new Date(row.deadline) : undefined,
