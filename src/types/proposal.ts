@@ -318,7 +318,7 @@ export const PART_A_SECTIONS: Section[] = [
   {
     id: 'part-a',
     number: 'Part A',
-    title: 'Administrative forms',
+    title: 'Part A: Administrative forms',
     isPartA: true,
     subsections: [
       // A1: General information (form format)
@@ -361,7 +361,7 @@ export const HORIZON_EUROPE_SECTIONS: Section[] = [
   {
     id: 'part-b',
     number: 'Part B',
-    title: 'Technical description',
+    title: 'Part B: Technical description',
     subsections: [
       // B1: Excellence (collapsible heading only)
       {
