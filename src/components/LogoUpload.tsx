@@ -1,10 +1,8 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Upload, Loader2, Sparkles, X, FileText } from 'lucide-react';
+import { Upload, Loader2, Sparkles, X, Download } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 interface LogoUploadProps {
@@ -13,6 +11,23 @@ interface LogoUploadProps {
   proposalAcronym: string;
   proposalTitle: string;
   disabled?: boolean;
+}
+
+// Generate a consistent color from acronym
+function getAcronymColor(acronym: string): string {
+  const colors = [
+    'hsl(221, 83%, 53%)', // Blue
+    'hsl(142, 76%, 36%)', // Green
+    'hsl(262, 83%, 58%)', // Purple
+    'hsl(24, 95%, 53%)',  // Orange
+    'hsl(346, 77%, 50%)', // Red
+    'hsl(199, 89%, 48%)', // Cyan
+  ];
+  let hash = 0;
+  for (let i = 0; i < acronym.length; i++) {
+    hash = acronym.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
 }
 
 export function LogoUpload({
@@ -25,7 +40,7 @@ export function LogoUpload({
   const { user } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [urlInput, setUrlInput] = useState(currentUrl || '');
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,7 +73,7 @@ export function LogoUpload({
         .getPublicUrl(fileName);
 
       onUpload(publicUrl);
-      setUrlInput(publicUrl);
+      setGeneratedImageUrl(null);
       toast.success('Logo uploaded successfully');
     } catch (error) {
       console.error('Upload error:', error);
@@ -74,17 +89,17 @@ export function LogoUpload({
   const handleGenerateLogo = async () => {
     setIsGenerating(true);
     try {
-      const keywords = proposalTitle.split(' ').slice(0, 5).join(', ');
+      const keywords = proposalTitle.split(' ').slice(0, 3).join(' ');
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: {
-          prompt: `Simple, modern, minimalist logo for a research project called "${proposalAcronym}". Keywords: ${keywords}. Clean design, professional, suitable for EU funding proposal.`,
+          prompt: `Create a simple, bold logo icon for "${proposalAcronym}". Requirements: maximum 2 colors only (use one primary color and white or black), flat design with no gradients, fills the entire square canvas edge-to-edge, abstract geometric or symbolic shape representing "${keywords}", professional and modern, suitable for EU research project. No text, no letters, just an iconic symbol.`,
         },
       });
 
       if (error) throw error;
       if (data?.imageUrl) {
         onUpload(data.imageUrl);
-        setUrlInput(data.imageUrl);
+        setGeneratedImageUrl(data.imageUrl);
         toast.success('Logo generated successfully');
       }
     } catch (error) {
@@ -95,29 +110,46 @@ export function LogoUpload({
     }
   };
 
-  const handleUrlSubmit = () => {
-    if (urlInput && urlInput !== currentUrl) {
-      onUpload(urlInput);
-      toast.success('Logo URL updated');
+  const handleDownloadLogo = async () => {
+    const urlToDownload = generatedImageUrl || currentUrl;
+    if (!urlToDownload) return;
+
+    try {
+      const response = await fetch(urlToDownload);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${proposalAcronym}-logo.png`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success('Logo downloaded');
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Failed to download logo');
     }
   };
 
   const handleRemoveLogo = () => {
     onUpload('');
-    setUrlInput('');
+    setGeneratedImageUrl(null);
     toast.success('Logo removed');
   };
 
+  const acronymColor = getAcronymColor(proposalAcronym);
+
   return (
-    <div className="flex items-start gap-6">
+    <div className="flex flex-col gap-4">
       {/* Logo Preview */}
-      <div className="relative w-32 h-32 rounded-lg border-2 border-dashed border-muted-foreground/30 flex items-center justify-center bg-muted/50 overflow-hidden flex-shrink-0">
+      <div className="relative w-28 h-28 rounded-xl border bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
         {currentUrl ? (
           <>
             <img
               src={currentUrl}
               alt={proposalAcronym}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-cover"
             />
             {!disabled && (
               <Button
@@ -131,76 +163,74 @@ export function LogoUpload({
             )}
           </>
         ) : (
-          <FileText className="w-12 h-12 text-muted-foreground/50" />
+          <div 
+            className="w-full h-full flex items-center justify-center"
+            style={{ backgroundColor: acronymColor }}
+          >
+            <span className="text-3xl font-bold text-white tracking-tight">
+              {proposalAcronym.substring(0, 3).toUpperCase()}
+            </span>
+          </div>
         )}
       </div>
 
       {/* Upload Controls */}
-      <div className="flex-1 space-y-3">
-        {!disabled && (
-          <>
-            {/* File Upload */}
-            <div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleFileUpload}
-                disabled={isUploading}
-              />
-              <Button
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
-                className="gap-2"
-              >
-                {isUploading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Upload className="w-4 h-4" />
-                )}
-                Upload Logo
-              </Button>
-            </div>
+      {!disabled && (
+        <div className="flex flex-wrap gap-2">
+          {/* File Upload */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileUpload}
+            disabled={isUploading}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            className="gap-1.5"
+          >
+            {isUploading ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Upload className="w-3.5 h-3.5" />
+            )}
+            Upload
+          </Button>
 
-            {/* URL Input */}
-            <div className="space-y-2">
-              <Label htmlFor="logoUrl">Or enter URL</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="logoUrl"
-                  placeholder="https://..."
-                  value={urlInput}
-                  onChange={(e) => setUrlInput(e.target.value)}
-                />
-                <Button
-                  variant="secondary"
-                  onClick={handleUrlSubmit}
-                  disabled={!urlInput || urlInput === currentUrl}
-                >
-                  Apply
-                </Button>
-              </div>
-            </div>
+          {/* AI Generation */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleGenerateLogo}
+            disabled={isGenerating}
+            className="gap-1.5"
+          >
+            {isGenerating ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="w-3.5 h-3.5" />
+            )}
+            Generate
+          </Button>
 
-            {/* AI Generation */}
+          {/* Download button - only show if there's a logo */}
+          {currentUrl && (
             <Button
               variant="outline"
-              onClick={handleGenerateLogo}
-              disabled={isGenerating}
-              className="gap-2"
+              size="sm"
+              onClick={handleDownloadLogo}
+              className="gap-1.5"
             >
-              {isGenerating ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Sparkles className="w-4 h-4" />
-              )}
-              Auto-generate from keywords
+              <Download className="w-3.5 h-3.5" />
+              Download
             </Button>
-          </>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
