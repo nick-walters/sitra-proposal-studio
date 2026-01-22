@@ -330,14 +330,20 @@ export function ProposalEditor() {
           <ParticipantListView
             participants={visibleParticipants}
             onSelectParticipant={(p) => setSelectedParticipantId(p.id)}
-            onAddParticipant={async () => {
-              // Create new participant and select it
+            onAddParticipant={async (participantData) => {
+              // Create new participant with proper data from dialog
               await addParticipant({
                 proposalId: id || '',
-                organisationName: 'New Participant',
-                organisationType: 'beneficiary',
-                isSme: false,
+                organisationName: participantData.organisationName,
+                organisationShortName: participantData.organisationShortName,
+                organisationType: participantData.organisationType,
+                country: participantData.country,
+                picNumber: participantData.picNumber,
+                legalEntityType: participantData.legalEntityType,
+                isSme: participantData.isSme,
                 participantNumber: participants.length + 1,
+                organisationCategory: participantData.organisationCategory,
+                englishName: participantData.englishName,
               });
             }}
             canAddParticipant={isAdmin && canEdit}
@@ -625,12 +631,6 @@ export function ProposalEditor() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Status badge with icon */}
-            <span className={`proposal-badge ${statusInfo.className} flex items-center gap-1 text-[10px]`}>
-              <StatusIcon className="w-3 h-3" />
-              {statusInfo.label}
-              {statusInfo.days !== undefined && ` (${statusInfo.days}d)`}
-            </span>
             
             {/* Read-only indicator for non-draft proposals */}
             {!isDraft && (
@@ -669,7 +669,7 @@ export function ProposalEditor() {
 
             <Button variant="outline" size="sm" className="gap-2 hidden sm:flex" onClick={() => setIsHistoryOpen(true)}>
               <History className="w-4 h-4" />
-              History
+              Version history
             </Button>
             <Button 
               variant="outline" 

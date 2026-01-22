@@ -61,7 +61,8 @@ function SectionItem({
     section.number === 'Part A' ||
     section.id === 'part-b' || 
     section.number === 'Part B' ||
-    section.id === 'figures';
+    section.id === 'figures' ||
+    section.title === 'Figures';
   
   // Check for guideline types
   const hasOfficialGuideline = section.guidelinesArray?.some(g => g.type === 'official') || 

@@ -407,11 +407,20 @@ export const HORIZON_EUROPE_SECTIONS: Section[] = [
           },
         ],
       },
+      // Figures section (under Part B)
+      {
+        id: 'figures',
+        number: '',
+        title: 'Figures',
+        guidelines: {
+          text: 'Manage and edit figures referenced in Part B sections. Figures are numbered based on their parent section (e.g., Figure B3.1.a).',
+        },
+      },
     ],
   },
 ];
 
-// Figures section (placed below Part B)
+// Figures section (kept for backwards compatibility, but now included in Part B subsections)
 export const FIGURES_SECTION: Section = {
   id: 'figures',
   number: '',
