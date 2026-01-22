@@ -709,7 +709,7 @@ export function ProposalSummaryPage({
           />
         )}
 
-        {/* Consortium Partners - MERGED: Logos + Partner details in one section */}
+        {/* Participants - MERGED: Logos + Partner details in one section */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
