@@ -34,11 +34,12 @@ interface ExportData {
   budgetItems: BudgetItem[];
   workPackages?: WorkPackage[];
   sections: Section[];
+  submissionStage?: string; // 'stage1' for pre-proposals, 'full' or undefined for full proposals
 }
 
 export function usePdfExport() {
   const exportProposalToPdf = useCallback(async (data: ExportData) => {
-    const { proposal, participants, participantMembers, sectionContents, budgetItems, workPackages, sections } = data;
+    const { proposal, participants, participantMembers, sectionContents, budgetItems, workPackages, sections, submissionStage } = data;
 
     try {
       toast.info('Generating PDF...');
@@ -78,6 +79,34 @@ export function usePdfExport() {
         pdf.text(`Page ${pageNum} of ${totalPages}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
         pdf.setDrawColor(...lightGray);
         pdf.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15);
+      };
+
+      // Helper: Convert name to name case
+      const toNameCase = (str: string): string => {
+        if (!str) return '';
+        return str
+          .toLowerCase()
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+      };
+
+      // Helper: Get country code
+      const getCountryCode = (countryName?: string): string => {
+        if (!countryName) return '';
+        // Common country mappings
+        const countryMap: Record<string, string> = {
+          'Germany': 'DE', 'France': 'FR', 'Italy': 'IT', 'Spain': 'ES',
+          'Netherlands': 'NL', 'Belgium': 'BE', 'Austria': 'AT', 'Poland': 'PL',
+          'Sweden': 'SE', 'Denmark': 'DK', 'Finland': 'FI', 'Ireland': 'IE',
+          'Portugal': 'PT', 'Greece': 'GR', 'Czech Republic': 'CZ', 'Romania': 'RO',
+          'Hungary': 'HU', 'Slovakia': 'SK', 'Bulgaria': 'BG', 'Croatia': 'HR',
+          'Slovenia': 'SI', 'Lithuania': 'LT', 'Latvia': 'LV', 'Estonia': 'EE',
+          'Cyprus': 'CY', 'Luxembourg': 'LU', 'Malta': 'MT',
+          'United Kingdom': 'GB', 'Switzerland': 'CH', 'Norway': 'NO',
+          'United States': 'US', 'Canada': 'CA', 'Australia': 'AU',
+        };
+        return countryMap[countryName] || countryName.substring(0, 2).toUpperCase();
       };
 
       const addSectionHeader = (number: string, title: string, sectionTag?: string) => {
@@ -177,7 +206,83 @@ export function usePdfExport() {
       pdf.setTextColor(...gray);
       pdf.setFontSize(10);
       pdf.text('Horizon Europe Framework Programme', pageWidth / 2, 200, { align: 'center' });
-      pdf.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, 208, { align: 'center' });
+      pdf.text(`Generated: ${new Date().toLocaleDateString('en-GB')}`, pageWidth / 2, 208, { align: 'center' });
+
+      // ========== PARTICIPANT TABLE (Only for full proposals, not Stage 1) ==========
+      const isStage1 = submissionStage === 'stage1';
+      
+      if (!isStage1 && participants.length > 0) {
+        pdf.addPage();
+        yPosition = margin;
+
+        // Table title
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(...black);
+        pdf.text('List of Participants', margin, yPosition);
+        yPosition += 10;
+
+        // Table headers
+        const participantTableColWidths = [12, 25, 65, 20, 18, 20];
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFillColor(240, 240, 240);
+        pdf.rect(margin, yPosition - 5, contentWidth, 8, 'F');
+
+        let xPos = margin;
+        const headers = ['№', 'Short', 'Participant', 'Logo', 'Type', 'Country'];
+        headers.forEach((header, i) => {
+          pdf.text(header, xPos + 1, yPosition);
+          xPos += participantTableColWidths[i];
+        });
+        yPosition += 8;
+
+        // Sort participants by number
+        const sortedParticipants = [...participants].sort((a, b) => 
+          (a.participantNumber || 999) - (b.participantNumber || 999)
+        );
+
+        // Table rows
+        pdf.setFont('helvetica', 'normal');
+        sortedParticipants.forEach((p) => {
+          checkPageBreak(10);
+          xPos = margin;
+          
+          // Draw row background (alternating)
+          const rowY = yPosition - 4;
+          
+          // № 
+          pdf.text(String(p.participantNumber || '-'), xPos + 1, yPosition);
+          xPos += participantTableColWidths[0];
+          
+          // Short name
+          const shortName = p.organisationShortName || '-';
+          pdf.text(shortName.substring(0, 10), xPos + 1, yPosition);
+          xPos += participantTableColWidths[1];
+          
+          // Participant name (name case)
+          const orgName = toNameCase(p.organisationName);
+          pdf.text(orgName.substring(0, 35), xPos + 1, yPosition);
+          xPos += participantTableColWidths[2];
+          
+          // Logo placeholder (skip for PDF)
+          pdf.text('-', xPos + 1, yPosition);
+          xPos += participantTableColWidths[3];
+          
+          // Type (category)
+          const category = (p as any).organisationCategory || '-';
+          pdf.text(category, xPos + 1, yPosition);
+          xPos += participantTableColWidths[4];
+          
+          // Country code
+          const countryCode = getCountryCode(p.country);
+          pdf.text(countryCode, xPos + 1, yPosition);
+          
+          yPosition += 7;
+        });
+
+        yPosition += 5;
+      }
 
       // ========== PART A - ADMINISTRATIVE INFORMATION ==========
       pdf.addPage();

@@ -17,6 +17,25 @@ interface OrganisationInfo {
   isSme: boolean;
   vatNumber?: string;
   registrationNumber?: string;
+  organisationCategory?: 'RES' | 'UNI' | 'IND' | 'SME' | 'NGO' | 'CSO' | 'PUB' | 'INT' | 'OTH';
+}
+
+// Map legal entity types from CORDIS to organisation categories
+function mapLegalEntityToCategory(legalEntityType?: string, isSme?: boolean): 'RES' | 'UNI' | 'IND' | 'SME' | 'NGO' | 'CSO' | 'PUB' | 'INT' | 'OTH' {
+  if (!legalEntityType) return 'OTH';
+  
+  const type = legalEntityType.toLowerCase();
+  
+  if (isSme) return 'SME';
+  if (type.includes('university') || type.includes('higher') || type.includes('secondary education')) return 'UNI';
+  if (type.includes('research')) return 'RES';
+  if (type.includes('private for-profit') || type.includes('enterprise') || type.includes('company')) return 'IND';
+  if (type.includes('non-governmental') || type.includes('ngo')) return 'NGO';
+  if (type.includes('civil society')) return 'CSO';
+  if (type.includes('public') || type.includes('government')) return 'PUB';
+  if (type.includes('international')) return 'INT';
+  
+  return 'OTH';
 }
 
 // Mock database of known EU organisations for demo
@@ -31,6 +50,7 @@ const KNOWN_ORGANISATIONS: Record<string, OrganisationInfo> = {
     city: "Heidelberg",
     legalEntityType: "Higher or Secondary Education Establishment",
     isSme: false,
+    organisationCategory: "UNI",
   },
   "999977172": {
     picNumber: "999977172",
@@ -41,6 +61,7 @@ const KNOWN_ORGANISATIONS: Record<string, OrganisationInfo> = {
     city: "Cambridge",
     legalEntityType: "Higher or Secondary Education Establishment",
     isSme: false,
+    organisationCategory: "UNI",
   },
   "999994438": {
     picNumber: "999994438",
@@ -51,6 +72,7 @@ const KNOWN_ORGANISATIONS: Record<string, OrganisationInfo> = {
     city: "Helsinki",
     legalEntityType: "Higher or Secondary Education Establishment",
     isSme: false,
+    organisationCategory: "UNI",
   },
   "999984059": {
     picNumber: "999984059",
@@ -61,6 +83,7 @@ const KNOWN_ORGANISATIONS: Record<string, OrganisationInfo> = {
     city: "München",
     legalEntityType: "Research Organisation",
     isSme: false,
+    organisationCategory: "RES",
   },
   "999985417": {
     picNumber: "999985417",
@@ -71,6 +94,7 @@ const KNOWN_ORGANISATIONS: Record<string, OrganisationInfo> = {
     city: "Oxford",
     legalEntityType: "Higher or Secondary Education Establishment",
     isSme: false,
+    organisationCategory: "UNI",
   },
   "999978433": {
     picNumber: "999978433",
@@ -81,6 +105,7 @@ const KNOWN_ORGANISATIONS: Record<string, OrganisationInfo> = {
     city: "München",
     legalEntityType: "Higher or Secondary Education Establishment",
     isSme: false,
+    organisationCategory: "UNI",
   },
   "999976784": {
     picNumber: "999976784",
@@ -91,6 +116,7 @@ const KNOWN_ORGANISATIONS: Record<string, OrganisationInfo> = {
     city: "Milano",
     legalEntityType: "Higher or Secondary Education Establishment",
     isSme: false,
+    organisationCategory: "UNI",
   },
   "999984253": {
     picNumber: "999984253",
@@ -101,6 +127,7 @@ const KNOWN_ORGANISATIONS: Record<string, OrganisationInfo> = {
     city: "Delft",
     legalEntityType: "Higher or Secondary Education Establishment",
     isSme: false,
+    organisationCategory: "UNI",
   },
   "999997930": {
     picNumber: "999997930",
@@ -111,6 +138,7 @@ const KNOWN_ORGANISATIONS: Record<string, OrganisationInfo> = {
     city: "Paris",
     legalEntityType: "Research Organisation",
     isSme: false,
+    organisationCategory: "RES",
   },
   "999978530": {
     picNumber: "999978530",
@@ -121,6 +149,7 @@ const KNOWN_ORGANISATIONS: Record<string, OrganisationInfo> = {
     city: "Stockholm",
     legalEntityType: "Higher or Secondary Education Establishment",
     isSme: false,
+    organisationCategory: "UNI",
   },
   "999979500": {
     picNumber: "999979500",
@@ -131,6 +160,7 @@ const KNOWN_ORGANISATIONS: Record<string, OrganisationInfo> = {
     city: "Roma",
     legalEntityType: "Research Organisation",
     isSme: false,
+    organisationCategory: "RES",
   },
   "999643007": {
     picNumber: "999643007",
@@ -141,6 +171,7 @@ const KNOWN_ORGANISATIONS: Record<string, OrganisationInfo> = {
     city: "Espoo",
     legalEntityType: "Higher or Secondary Education Establishment",
     isSme: false,
+    organisationCategory: "UNI",
   },
   "999986096": {
     picNumber: "999986096",
@@ -151,6 +182,7 @@ const KNOWN_ORGANISATIONS: Record<string, OrganisationInfo> = {
     city: "Gent",
     legalEntityType: "Higher or Secondary Education Establishment",
     isSme: false,
+    organisationCategory: "UNI",
   },
   "999975620": {
     picNumber: "999975620",
@@ -161,6 +193,7 @@ const KNOWN_ORGANISATIONS: Record<string, OrganisationInfo> = {
     city: "London",
     legalEntityType: "Higher or Secondary Education Establishment",
     isSme: false,
+    organisationCategory: "UNI",
   },
   "888897696": {
     picNumber: "888897696",
@@ -171,6 +204,7 @@ const KNOWN_ORGANISATIONS: Record<string, OrganisationInfo> = {
     city: "Berlin",
     legalEntityType: "Private for-profit entity",
     isSme: true,
+    organisationCategory: "SME",
   },
 };
 
@@ -191,9 +225,15 @@ serve(async (req: Request) => {
       const org = KNOWN_ORGANISATIONS[cleanPic];
       
       if (org) {
-        console.log(`Found organisation: ${org.legalName}`);
+        // Auto-detect category if not already set
+        const organisationWithCategory = {
+          ...org,
+          organisationCategory: org.organisationCategory || mapLegalEntityToCategory(org.legalEntityType, org.isSme),
+        };
+        
+        console.log(`Found organisation: ${org.legalName} (Category: ${organisationWithCategory.organisationCategory})`);
         return new Response(
-          JSON.stringify({ success: true, organisation: org }),
+          JSON.stringify({ success: true, organisation: organisationWithCategory }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       } else {
@@ -212,10 +252,15 @@ serve(async (req: Request) => {
     // If search term provided, search by name
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      const results = Object.values(KNOWN_ORGANISATIONS).filter(org => 
-        org.legalName.toLowerCase().includes(term) ||
-        (org.shortName && org.shortName.toLowerCase().includes(term))
-      );
+      const results = Object.values(KNOWN_ORGANISATIONS)
+        .filter(org => 
+          org.legalName.toLowerCase().includes(term) ||
+          (org.shortName && org.shortName.toLowerCase().includes(term))
+        )
+        .map(org => ({
+          ...org,
+          organisationCategory: org.organisationCategory || mapLegalEntityToCategory(org.legalEntityType, org.isSme),
+        }));
 
       console.log(`Search for "${searchTerm}" found ${results.length} results`);
       return new Response(

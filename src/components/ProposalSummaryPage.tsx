@@ -173,7 +173,7 @@ export function ProposalSummaryPage({
 
   return (
     <div className="flex-1 overflow-auto bg-muted/30 relative">
-      <div className={cn("p-6", userCanEdit && "pb-20")}>
+      <div className="p-6">
         <div className="max-w-5xl mx-auto space-y-6">
           {/* Page Header */}
           <div className="mb-2">
@@ -566,8 +566,6 @@ export function ProposalSummaryPage({
             onUpdateStatus={onUpdateStatus}
             canEdit={canEdit}
             isAdmin={isAdmin}
-            completionStats={completionStats}
-            isEditing={isEditing}
           />
         )}
 
@@ -593,28 +591,26 @@ export function ProposalSummaryPage({
       </div>
 
 
-      {/* Fixed Bottom Edit Bar for Owners/Admins */}
+      {/* Fixed Bottom Edit Bar for Owners/Admins - Right Positioned */}
       {userCanEdit && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t shadow-lg">
-          <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-center gap-3">
-            {!isEditing ? (
-              <Button onClick={() => setIsEditing(true)} className="gap-2">
-                <Pencil className="w-4 h-4" />
-                Edit page
+        <div className="fixed bottom-4 right-4 z-50">
+          {!isEditing ? (
+            <Button onClick={() => setIsEditing(true)} className="gap-2 shadow-lg">
+              <Pencil className="w-4 h-4" />
+              Edit
+            </Button>
+          ) : (
+            <div className="flex items-center gap-2 bg-background border rounded-lg shadow-lg p-2">
+              <Button variant="ghost" size="sm" onClick={handleCancel} className="gap-2">
+                <X className="w-4 h-4" />
+                Cancel
               </Button>
-            ) : (
-              <>
-                <Button variant="ghost" onClick={handleCancel} className="gap-2">
-                  <X className="w-4 h-4" />
-                  Cancel
-                </Button>
-                <Button onClick={handleSave} className="gap-2">
-                  <Check className="w-4 h-4" />
-                  Save changes
-                </Button>
-              </>
-            )}
-          </div>
+              <Button size="sm" onClick={handleSave} className="gap-2">
+                <Check className="w-4 h-4" />
+                Save
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>
