@@ -492,15 +492,15 @@ export function ProposalSummaryPage({
                 />
               ) : (
                 proposal.topicUrl ? (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="gap-1.5"
-                    onClick={() => window.open(proposal.topicUrl, '_blank')}
+                  <a 
+                    href={proposal.topicUrl.startsWith('http') ? proposal.topicUrl : `https://${proposal.topicUrl}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
                   >
                     <ExternalLink className="w-4 h-4" />
-                    View on portal
-                  </Button>
+                    Topic
+                  </a>
                 ) : (
                   <p className="text-muted-foreground">–</p>
                 )
@@ -685,18 +685,27 @@ export function ProposalSummaryPage({
               <div>
                 <label className="text-sm text-muted-foreground mb-1 block">Budget applied for</label>
                 <p className="font-medium text-lg">€{totalBudgetFromItems.toLocaleString('en-IE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
-                <p className="text-xs text-muted-foreground">(from budget sheet)</p>
               </div>
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">Projects to be funded</label>
+                <label className="text-sm text-muted-foreground mb-1 block">№ projects to be funded</label>
                 {isEditing ? (
-                  <Input
+                  <Select
                     value={editedProposal.expectedProjects || ''}
-                    onChange={(e) => setEditedProposal({ ...editedProposal, expectedProjects: e.target.value })}
-                    placeholder="e.g. 1-3"
-                  />
+                    onValueChange={(v) => setEditedProposal({ ...editedProposal, expectedProjects: v })}
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
+                        <SelectItem key={num} value={num.toString()}>
+                          {num}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 ) : (
-                  <p className="font-medium">{proposal.expectedProjects || 'Not specified'}</p>
+                  <p className="font-medium">{proposal.expectedProjects || '–'}</p>
                 )}
               </div>
               <div>
