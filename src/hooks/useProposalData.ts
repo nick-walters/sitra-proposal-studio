@@ -38,8 +38,10 @@ interface ProposalData {
   totalBudget?: number;
   deadline?: Date;
   description?: string;
+  duration?: number;
   topicId?: string;
   topicUrl?: string;
+  topicTitle?: string;
   workProgramme?: string;
   destination?: string;
   logoUrl?: string;
@@ -87,8 +89,10 @@ export function useProposalData(proposalId: string) {
         totalBudget: data.total_budget || undefined,
         deadline: data.deadline ? new Date(data.deadline) : undefined,
         description: data.description || undefined,
+        duration: data.duration || undefined,
         topicId: data.topic_id || undefined,
         topicUrl: data.topic_url || undefined,
+        topicTitle: data.topic_title || undefined,
         workProgramme: data.work_programme || undefined,
         destination: data.destination || undefined,
         logoUrl: data.logo_url || undefined,
@@ -245,8 +249,10 @@ export function useProposalData(proposalId: string) {
     if (updates.title !== undefined) dbUpdates.title = updates.title;
     if (updates.acronym !== undefined) dbUpdates.acronym = updates.acronym;
     if (updates.description !== undefined) dbUpdates.description = updates.description;
+    if (updates.duration !== undefined) dbUpdates.duration = updates.duration;
     if (updates.topicId !== undefined) dbUpdates.topic_id = updates.topicId;
     if (updates.topicUrl !== undefined) dbUpdates.topic_url = updates.topicUrl;
+    if (updates.topicTitle !== undefined) dbUpdates.topic_title = updates.topicTitle;
     if (updates.totalBudget !== undefined) dbUpdates.total_budget = updates.totalBudget;
     if (updates.deadline !== undefined) dbUpdates.deadline = updates.deadline?.toISOString();
     if (updates.workProgramme !== undefined) dbUpdates.work_programme = updates.workProgramme;

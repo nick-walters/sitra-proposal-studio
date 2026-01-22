@@ -335,16 +335,25 @@ export function ProposalSummaryPage({
 
                 {/* Project Duration */}
                 <div>
-                  <label className="text-sm text-muted-foreground mb-1 block">Project duration</label>
+                  <label className="text-sm text-muted-foreground mb-1 block">Project duration (months)</label>
                   {isEditing ? (
-                    <Input
-                      value={editedProposal.description || ''}
-                      onChange={(e) => setEditedProposal({ ...editedProposal, description: e.target.value })}
-                      placeholder="e.g. 36 months"
-                      className="w-40"
-                    />
+                    <Select
+                      value={editedProposal.duration?.toString() || ''}
+                      onValueChange={(v) => setEditedProposal({ ...editedProposal, duration: parseInt(v) })}
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 72 }, (_, i) => i + 1).map((months) => (
+                          <SelectItem key={months} value={months.toString()}>
+                            {months}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   ) : (
-                    <p className="font-medium">{proposal.description || '–'}</p>
+                    <p className="font-medium">{proposal.duration ? `${proposal.duration}` : '–'}</p>
                   )}
                 </div>
               </div>
@@ -402,12 +411,12 @@ export function ProposalSummaryPage({
               <label className="text-sm text-muted-foreground mb-1 block">Topic title</label>
               {isEditing ? (
                 <Input
-                  value={editedProposal.description || ''}
-                  onChange={(e) => setEditedProposal({ ...editedProposal, description: e.target.value })}
+                  value={editedProposal.topicTitle || ''}
+                  onChange={(e) => setEditedProposal({ ...editedProposal, topicTitle: e.target.value })}
                   placeholder="Enter topic title"
                 />
               ) : (
-                <p className="font-medium">{proposal.description || 'Not specified'}</p>
+                <p className="font-medium">{proposal.topicTitle || '–'}</p>
               )}
             </div>
 

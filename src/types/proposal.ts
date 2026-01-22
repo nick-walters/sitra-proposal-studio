@@ -195,9 +195,11 @@ export interface Proposal {
   status: ProposalStatus;
   topicUrl?: string;
   topicId?: string;
+  topicTitle?: string;
   totalBudget?: number;
   deadline?: Date;
   description?: string;
+  duration?: number;
   workProgramme?: string;
   destination?: string;
   logoUrl?: string;
