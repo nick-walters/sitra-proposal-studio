@@ -355,10 +355,31 @@ export function ProposalSummaryPage({
         {/* Topic - consolidated section */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2">
-              <Target className="w-5 h-5" />
-              Topic
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Target className="w-5 h-5" />
+                Topic
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                {proposal.topicUrl && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="gap-1.5"
+                    onClick={() => window.open(proposal.topicUrl, '_blank')}
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    View on portal
+                  </Button>
+                )}
+                {userCanEdit && !isEditing && (
+                  <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
+                    <Pencil className="w-4 h-4 mr-1" />
+                    Edit
+                  </Button>
+                )}
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Topic ID */}
@@ -520,10 +541,18 @@ export function ProposalSummaryPage({
         {/* Budget Overview */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Euro className="w-5 h-5" />
-              Budget overview
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Euro className="w-5 h-5" />
+                Budget overview
+              </CardTitle>
+              {userCanEdit && !isEditing && (
+                <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
+                  <Pencil className="w-4 h-4 mr-1" />
+                  Edit
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
