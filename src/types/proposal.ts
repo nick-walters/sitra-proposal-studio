@@ -323,7 +323,7 @@ export const PART_A_SECTIONS: Section[] = [
     subsections: [
       // A1: General information (form format)
       {
-        id: 'general-info',
+        id: 'a1',
         number: 'A1',
         title: 'General information',
         isPartA: true,
@@ -333,7 +333,7 @@ export const PART_A_SECTIONS: Section[] = [
       },
       // A2: Participants (form format)
       {
-        id: 'participants',
+        id: 'a2',
         number: 'A2',
         title: 'Participants',
         isPartA: true,
@@ -343,7 +343,7 @@ export const PART_A_SECTIONS: Section[] = [
       },
       // A3: Budget (spreadsheet)
       {
-        id: 'budget',
+        id: 'a3',
         number: 'A3',
         title: 'Budget',
         isPartA: true,
@@ -365,12 +365,12 @@ export const HORIZON_EUROPE_SECTIONS: Section[] = [
     subsections: [
       // B1: Excellence (collapsible heading only)
       {
-        id: 'excellence',
+        id: 'b1',
         number: 'B1',
         title: 'Excellence',
         subsections: [
           {
-            id: 'objectives',
+            id: 'b1-1',
             number: 'B1.1',
             title: 'Objectives & ambition',
             guidelines: {
@@ -378,7 +378,7 @@ export const HORIZON_EUROPE_SECTIONS: Section[] = [
             },
           },
           {
-            id: 'methodology',
+            id: 'b1-2',
             number: 'B1.2',
             title: 'Methodology',
             guidelines: {
@@ -389,12 +389,12 @@ export const HORIZON_EUROPE_SECTIONS: Section[] = [
       },
       // B2: Impact (collapsible heading only)
       {
-        id: 'impact',
+        id: 'b2',
         number: 'B2',
         title: 'Impact',
         subsections: [
           {
-            id: 'pathways',
+            id: 'b2-1',
             number: 'B2.1',
             title: "Project's pathways towards impact",
             guidelines: {
