@@ -49,8 +49,8 @@ interface FormData {
     consent: boolean;
     correctComplete: boolean;
     eligibility: boolean;
-    exclusion: boolean;
-    capacity: boolean;
+    communication: boolean;
+    termsPrivacy: boolean;
     ethics: boolean;
     civilApplications: boolean;
     prohibitedResearch: boolean;
@@ -62,59 +62,66 @@ const DECLARATIONS = [
   {
     id: 'consent',
     number: 1,
-    text: 'We have obtained the explicit consent of all applicants on their participation and on the content of this proposal.',
+    text: 'We declare to have the explicit consent of all applicants on their participation and on the content of this proposal.',
   },
   {
     id: 'correctComplete',
     number: 2,
-    text: 'The information contained in this proposal is correct and complete.',
+    text: 'We confirm that the information contained in this proposal is correct and complete and that none of the project activities have started before the proposal was submitted (unless explicitly authorised in the call conditions).',
   },
   {
     id: 'eligibility',
     number: 3,
-    text: 'This proposal complies with the eligibility conditions set out in the call for proposals.',
+    text: 'We declare: to be fully compliant with the eligibility criteria set out in the call; not to be subject to any exclusion grounds under the EU Financial Regulation 2018/1046; to have the financial and operational capacity to carry out the proposed project.',
     links: [
       { text: 'EU Financial Regulation 2018/1046', url: 'https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32018R1046' }
     ],
   },
   {
-    id: 'exclusion',
+    id: 'communication',
     number: 4,
-    text: 'We are not subject to any of the exclusion grounds under Articles 136 to 140 of the EU Financial Regulation 2018/1046.',
+    text: 'We acknowledge that all communication will be made through the Funding & Tenders Portal electronic exchange system and that access and use of this system is subject to the Funding & Tenders Portal Terms and Conditions.',
     links: [
-      { text: 'EU Financial Regulation 2018/1046', url: 'https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32018R1046' }
+      { text: 'Funding & Tenders Portal', url: 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home' },
+      { text: 'Terms and Conditions', url: 'https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/ftp/tc_en.pdf' }
     ],
   },
   {
-    id: 'capacity',
+    id: 'termsPrivacy',
     number: 5,
-    text: 'We have the financial and operational capacity to carry out the proposed action.',
+    text: 'We have read, understood and accepted the Funding & Tenders Portal Terms & Conditions and Privacy Statement that set out the conditions of use of the Portal and the scope, purposes, retention periods, etc. for the processing of personal data of all data subjects whose data we communicate for the purpose of the application, evaluation, award and subsequent management of our grant, prizes and contracts (including financial transactions and audits).',
+    links: [
+      { text: 'Terms & Conditions', url: 'https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/ftp/tc_en.pdf' },
+      { text: 'Privacy Statement', url: 'https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/ftp/privacy-statement_en.pdf' }
+    ],
   },
   {
     id: 'ethics',
     number: 6,
-    text: 'The proposal complies with ethical principles, including those set out in the European Code of Conduct for Research Integrity.',
+    text: 'We declare that the proposal complies with ethical principles (including the highest standards of research integrity as set out in the ALLEA European Code of Conduct for Research Integrity), as well as applicable international and national law, including the Charter of Fundamental Rights of the European Union and the European Convention on Human Rights and its Supplementary Protocols. Appropriate procedures, policies and structures are in place to foster responsible research practices, to prevent questionable research practices and research misconduct, and to handle allegations of breaches of the principles and standards in the Code of Conduct.',
     links: [
-      { text: 'European Code of Conduct for Research Integrity', url: 'https://allea.org/code-of-conduct/' }
+      { text: 'ALLEA European Code of Conduct for Research Integrity', url: 'https://allea.org/code-of-conduct/' },
+      { text: 'Charter of Fundamental Rights of the European Union', url: 'https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:12012P/TXT' },
+      { text: 'European Convention on Human Rights', url: 'https://www.echr.coe.int/documents/convention_eng.pdf' }
     ],
   },
   {
     id: 'civilApplications',
     number: 7,
-    text: 'The proposed action has an exclusive focus on civil applications. For dual-use items covered by Regulation (EU) 2021/821, we confirm that prior authorisation has been obtained where required.',
+    text: 'We declare that the proposal has an exclusive focus on civil applications (activities intended to be used in military application or aiming to serve military purposes cannot be funded). If the project involves dual-use items in the sense of Regulation 428/2009, or other items for which authorisation is required, we confirm that we will comply with the applicable regulatory framework (e.g. obtain export/import licences before these items are used).',
     links: [
-      { text: 'Regulation (EU) 2021/821', url: 'https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32021R0821' }
+      { text: 'Regulation 428/2009', url: 'https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32009R0428' }
     ],
   },
   {
     id: 'prohibitedResearch',
     number: 8,
-    text: 'The proposed activities do not aim at: human cloning for reproductive purposes; modifying the genetic heritage of human beings which could make such modifications heritable (with exceptions for research relating to cancer treatment); or creating human embryos solely for research purposes or stem cell procurement.',
+    text: 'We confirm that the activities proposed do not: aim at human cloning for reproductive purposes; intend to modify the genetic heritage of human beings which could make such changes heritable (with the exception of research relating to cancer treatment of the gonads, which may be financed); intend to create human embryos solely for the purpose of research or for the purpose of stem cell procurement, including by means of somatic cell nuclear transfer; or lead to the destruction of human embryos (for example, for obtaining stem cells). These activities are excluded from funding.',
   },
   {
     id: 'outsideEU',
     number: 9,
-    text: 'Where activities are to be carried out outside the Union, we confirm that they would have been permitted in at least one Member State.',
+    text: 'We confirm that for activities carried out outside the Union, the same activities would have been allowed in at least one Member State.',
   },
 ];
 
@@ -135,8 +142,8 @@ export function GeneralInfoForm({
       consent: false,
       correctComplete: false,
       eligibility: false,
-      exclusion: false,
-      capacity: false,
+      communication: false,
+      termsPrivacy: false,
       ethics: false,
       civilApplications: false,
       prohibitedResearch: false,
@@ -176,8 +183,8 @@ export function GeneralInfoForm({
                 consent: parsed.declarations?.consent || false,
                 correctComplete: parsed.declarations?.correctComplete || false,
                 eligibility: parsed.declarations?.eligibility || false,
-                exclusion: parsed.declarations?.exclusion || false,
-                capacity: parsed.declarations?.capacity || false,
+                communication: parsed.declarations?.communication || false,
+                termsPrivacy: parsed.declarations?.termsPrivacy || false,
                 ethics: parsed.declarations?.ethics || false,
                 civilApplications: parsed.declarations?.civilApplications || false,
                 prohibitedResearch: parsed.declarations?.prohibitedResearch || false,
