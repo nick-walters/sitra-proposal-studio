@@ -20,27 +20,146 @@ interface OrganisationInfo {
   organisationCategory?: 'RES' | 'UNI' | 'IND' | 'SME' | 'NGO' | 'CSO' | 'PUB' | 'INT' | 'OTH';
 }
 
-// Map legal entity types from CORDIS to organisation categories
+// Map legal entity types from CORDIS/EC to organisation categories
 function mapLegalEntityToCategory(legalEntityType?: string, isSme?: boolean): 'RES' | 'UNI' | 'IND' | 'SME' | 'NGO' | 'CSO' | 'PUB' | 'INT' | 'OTH' {
   if (!legalEntityType) return 'OTH';
   
   const type = legalEntityType.toLowerCase();
   
   if (isSme) return 'SME';
-  if (type.includes('university') || type.includes('higher') || type.includes('secondary education')) return 'UNI';
-  if (type.includes('research')) return 'RES';
-  if (type.includes('private for-profit') || type.includes('enterprise') || type.includes('company')) return 'IND';
-  if (type.includes('non-governmental') || type.includes('ngo')) return 'NGO';
+  if (type.includes('university') || type.includes('higher') || type.includes('secondary education') || type.includes('academic')) return 'UNI';
+  if (type.includes('research') || type.includes('rto')) return 'RES';
+  if (type.includes('private for-profit') || type.includes('enterprise') || type.includes('company') || type.includes('industry')) return 'IND';
+  if (type.includes('non-governmental') || type.includes('ngo') || type.includes('foundation')) return 'NGO';
   if (type.includes('civil society')) return 'CSO';
-  if (type.includes('public') || type.includes('government')) return 'PUB';
-  if (type.includes('international')) return 'INT';
+  if (type.includes('public') || type.includes('government') || type.includes('authority') || type.includes('ministry')) return 'PUB';
+  if (type.includes('international') || type.includes('intergovernmental')) return 'INT';
   
   return 'OTH';
 }
 
-// Mock database of known EU organisations for demo
-// In production, this would connect to EC Participant Register API
+// Try to fetch from EC Participant Register via CORDIS
+async function lookupFromCordis(picNumber: string): Promise<OrganisationInfo | null> {
+  try {
+    // Try the CORDIS organisation API
+    const cordisUrl = `https://cordis.europa.eu/api/dataextractions/organization?pic=${picNumber}&format=json`;
+    console.log(`Fetching from CORDIS: ${cordisUrl}`);
+    
+    const response = await fetch(cordisUrl, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'SitraProposalStudio/1.0',
+      },
+    });
+    
+    if (!response.ok) {
+      console.log(`CORDIS returned status ${response.status}`);
+      return null;
+    }
+    
+    const data = await response.json();
+    console.log(`CORDIS response:`, JSON.stringify(data).substring(0, 500));
+    
+    // CORDIS returns an array of organisations
+    if (data && Array.isArray(data) && data.length > 0) {
+      const org = data[0];
+      return {
+        picNumber: picNumber,
+        legalName: org.legalName || org.name || 'Unknown',
+        shortName: org.shortName || org.acronym,
+        country: org.country?.name || org.countryName || '',
+        countryCode: org.country?.isoCode || org.countryCode || '',
+        city: org.city,
+        address: org.street,
+        legalEntityType: org.legalEntityType || org.activityType,
+        isSme: org.sme === true || org.isSme === true,
+        vatNumber: org.vatNumber,
+        registrationNumber: org.registrationNumber,
+      };
+    }
+    
+    // Try alternative structure
+    if (data && data.legalName) {
+      return {
+        picNumber: picNumber,
+        legalName: data.legalName || data.name || 'Unknown',
+        shortName: data.shortName || data.acronym,
+        country: data.country?.name || data.countryName || '',
+        countryCode: data.country?.isoCode || data.countryCode || '',
+        city: data.city,
+        address: data.street,
+        legalEntityType: data.legalEntityType || data.activityType,
+        isSme: data.sme === true || data.isSme === true,
+        vatNumber: data.vatNumber,
+        registrationNumber: data.registrationNumber,
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('CORDIS lookup error:', error);
+    return null;
+  }
+}
+
+// Try EC Participant Portal API (alternative source)
+async function lookupFromEcPortal(picNumber: string): Promise<OrganisationInfo | null> {
+  try {
+    // The EC Participant Portal has an open API for PIC validation
+    const portalUrl = `https://ec.europa.eu/info/funding-tenders/opportunities/api/organisation/${picNumber}`;
+    console.log(`Fetching from EC Portal: ${portalUrl}`);
+    
+    const response = await fetch(portalUrl, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'SitraProposalStudio/1.0',
+      },
+    });
+    
+    if (!response.ok) {
+      console.log(`EC Portal returned status ${response.status}`);
+      return null;
+    }
+    
+    const data = await response.json();
+    console.log(`EC Portal response:`, JSON.stringify(data).substring(0, 500));
+    
+    if (data && (data.legalName || data.name)) {
+      return {
+        picNumber: picNumber,
+        legalName: data.legalName || data.name,
+        shortName: data.shortName || data.acronym,
+        country: data.country?.name || data.countryName || '',
+        countryCode: data.country?.isoCode || data.countryCode || '',
+        city: data.city,
+        address: data.street || data.address,
+        legalEntityType: data.legalEntityType || data.organisationType,
+        isSme: data.sme === true || data.isSme === true,
+        vatNumber: data.vatNumber,
+        registrationNumber: data.registrationNumber,
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('EC Portal lookup error:', error);
+    return null;
+  }
+}
+
+// Fallback database of common EU organisations
 const KNOWN_ORGANISATIONS: Record<string, OrganisationInfo> = {
+  "906912365": {
+    picNumber: "906912365",
+    legalName: "SITRA",
+    shortName: "Sitra",
+    country: "Finland",
+    countryCode: "FI",
+    city: "Helsinki",
+    legalEntityType: "Foundation",
+    isSme: false,
+    organisationCategory: "NGO",
+  },
   "999984156": {
     picNumber: "999984156",
     legalName: "UNIVERSITAET HEIDELBERG",
@@ -222,7 +341,21 @@ serve(async (req: Request) => {
     // If PIC number provided, do exact lookup
     if (picNumber) {
       const cleanPic = picNumber.replace(/\D/g, '');
-      const org = KNOWN_ORGANISATIONS[cleanPic];
+      
+      // First check our local database
+      let org: OrganisationInfo | null = KNOWN_ORGANISATIONS[cleanPic] || null;
+      
+      if (!org) {
+        // Try CORDIS API
+        console.log(`PIC ${cleanPic} not in local DB, trying CORDIS API...`);
+        org = await lookupFromCordis(cleanPic);
+        
+        // If CORDIS fails, try EC Portal
+        if (!org) {
+          console.log(`CORDIS lookup failed, trying EC Portal...`);
+          org = await lookupFromEcPortal(cleanPic);
+        }
+      }
       
       if (org) {
         // Auto-detect category if not already set
@@ -237,19 +370,19 @@ serve(async (req: Request) => {
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       } else {
-        console.log(`PIC ${cleanPic} not found in database`);
+        console.log(`PIC ${cleanPic} not found in any source`);
         return new Response(
           JSON.stringify({ 
             success: false, 
             error: 'PIC not found',
-            message: `Organisation with PIC ${cleanPic} not found in the EC Participant Register. Please verify the PIC number or enter details manually.`
+            message: `Organisation with PIC ${cleanPic} not found. The PIC may not be registered in the EC Participant Portal, or the external APIs may be temporarily unavailable. Please enter details manually.`
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
     }
 
-    // If search term provided, search by name
+    // If search term provided, search by name in local database
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       const results = Object.values(KNOWN_ORGANISATIONS)
