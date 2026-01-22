@@ -32,11 +32,18 @@ interface DeclarationLink {
   url: string;
 }
 
+interface BulletWithLink {
+  text: string;
+  link: DeclarationLink;
+}
+
+type BulletItem = string | BulletWithLink;
+
 interface Declaration {
   id: string;
   number: number;
   text: string;
-  bullets?: string[];
+  bullets?: BulletItem[];
   suffix?: string;
   links?: DeclarationLink[];
 }
@@ -60,7 +67,7 @@ interface FormData {
   };
 }
 
-const DECLARATIONS = [
+const DECLARATIONS: Declaration[] = [
   {
     id: 'consent',
     number: 1,
@@ -77,17 +84,14 @@ const DECLARATIONS = [
     text: 'We declare:',
     bullets: [
       'to be fully compliant with the eligibility criteria set out in the call',
-      'not to be subject to any exclusion grounds under the EU Financial Regulation 2018/1046',
+      { text: 'not to be subject to any exclusion grounds under the ', link: { text: 'EU Financial Regulation 2018/1046', url: 'https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32018R1046' } },
       'to have the financial and operational capacity to carry out the proposed project'
-    ],
-    links: [
-      { text: 'EU Financial Regulation 2018/1046', url: 'https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32018R1046' }
     ],
   },
   {
     id: 'communication',
     number: 4,
-    text: 'We acknowledge that all communication will be made through the Funding & Tenders Portal electronic exchange system and that access and use of this system is subject to the Funding & Tenders Portal Terms and Conditions.',
+    text: 'We acknowledge that all communication will be made through the {{Funding & Tenders Portal}} electronic exchange system and that access and use of this system is subject to the Funding & Tenders Portal {{Terms and Conditions}}.',
     links: [
       { text: 'Funding & Tenders Portal', url: 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home' },
       { text: 'Terms and Conditions', url: 'https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/ftp/tc_en.pdf' }
@@ -96,7 +100,7 @@ const DECLARATIONS = [
   {
     id: 'termsPrivacy',
     number: 5,
-    text: 'We have read, understood and accepted the Funding & Tenders Portal Terms & Conditions and Privacy Statement that set out the conditions of use of the Portal and the scope, purposes, retention periods, etc. for the processing of personal data of all data subjects whose data we communicate for the purpose of the application, evaluation, award and subsequent management of our grant, prizes and contracts (including financial transactions and audits).',
+    text: 'We have read, understood and accepted the Funding & Tenders Portal {{Terms & Conditions}} and {{Privacy Statement}} that set out the conditions of use of the Portal and the scope, purposes, retention periods, etc. for the processing of personal data of all data subjects whose data we communicate for the purpose of the application, evaluation, award and subsequent management of our grant, prizes and contracts (including financial transactions and audits).',
     links: [
       { text: 'Terms & Conditions', url: 'https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/ftp/tc_en.pdf' },
       { text: 'Privacy Statement', url: 'https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/ftp/privacy-statement_en.pdf' }
@@ -105,7 +109,7 @@ const DECLARATIONS = [
   {
     id: 'ethics',
     number: 6,
-    text: 'We declare that the proposal complies with ethical principles (including the highest standards of research integrity as set out in the ALLEA European Code of Conduct for Research Integrity), as well as applicable international and national law, including the Charter of Fundamental Rights of the European Union and the European Convention on Human Rights and its Supplementary Protocols. Appropriate procedures, policies and structures are in place to foster responsible research practices, to prevent questionable research practices and research misconduct, and to handle allegations of breaches of the principles and standards in the Code of Conduct.',
+    text: 'We declare that the proposal complies with ethical principles (including the highest standards of research integrity as set out in the {{ALLEA European Code of Conduct for Research Integrity}}), as well as applicable international and national law, including the {{Charter of Fundamental Rights of the European Union}} and the {{European Convention on Human Rights}} and its Supplementary Protocols. Appropriate procedures, policies and structures are in place to foster responsible research practices, to prevent questionable research practices and research misconduct, and to handle allegations of breaches of the principles and standards in the Code of Conduct.',
     links: [
       { text: 'ALLEA European Code of Conduct for Research Integrity', url: 'https://allea.org/code-of-conduct/' },
       { text: 'Charter of Fundamental Rights of the European Union', url: 'https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:12012P/TXT' },
@@ -115,7 +119,7 @@ const DECLARATIONS = [
   {
     id: 'civilApplications',
     number: 7,
-    text: 'We declare that the proposal has an exclusive focus on civil applications (activities intended to be used in military application or aiming to serve military purposes cannot be funded). If the project involves dual-use items in the sense of Regulation 428/2009, or other items for which authorisation is required, we confirm that we will comply with the applicable regulatory framework (e.g. obtain export/import licences before these items are used).',
+    text: 'We declare that the proposal has an exclusive focus on civil applications (activities intended to be used in military application or aiming to serve military purposes cannot be funded). If the project involves dual-use items in the sense of {{Regulation 428/2009}}, or other items for which authorisation is required, we confirm that we will comply with the applicable regulatory framework (e.g. obtain export/import licences before these items are used).',
     links: [
       { text: 'Regulation 428/2009', url: 'https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32009R0428' }
     ],
@@ -138,6 +142,53 @@ const DECLARATIONS = [
     text: 'We confirm that for activities carried out outside the Union, the same activities would have been allowed in at least one Member State.',
   },
 ];
+
+// Helper function to render text with inline links using {{linkText}} placeholders
+const renderTextWithLinks = (text: string, links?: DeclarationLink[]) => {
+  if (!links || links.length === 0) return text;
+  
+  const linkMap = new Map(links.map(link => [link.text, link.url]));
+  const parts: (string | JSX.Element)[] = [];
+  let lastIndex = 0;
+  const regex = /\{\{([^}]+)\}\}/g;
+  let match;
+  
+  while ((match = regex.exec(text)) !== null) {
+    // Add text before the match
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    
+    const linkText = match[1];
+    const url = linkMap.get(linkText);
+    
+    if (url) {
+      parts.push(
+        <a
+          key={match.index}
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {linkText}
+        </a>
+      );
+    } else {
+      parts.push(linkText);
+    }
+    
+    lastIndex = match.index + match[0].length;
+  }
+  
+  // Add remaining text
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+  
+  return <>{parts}</>;
+};
 
 export function GeneralInfoForm({
   proposalId,
@@ -524,35 +575,34 @@ export function GeneralInfoForm({
                     className="font-normal cursor-pointer"
                   >
                     <span className="font-medium">{declaration.number}.</span>{' '}
-                    {declaration.text}
+                    {renderTextWithLinks(declaration.text, declaration.links)}
                   </Label>
                   {declaration.bullets && declaration.bullets.length > 0 && (
                     <ul className="list-disc ml-5 mt-1 space-y-0.5">
                       {declaration.bullets.map((bullet, idx) => (
-                        <li key={idx}>{bullet}</li>
+                        <li key={idx}>
+                          {typeof bullet === 'string' ? (
+                            bullet
+                          ) : (
+                            <>
+                              {bullet.text}
+                              <a
+                                href={bullet.link.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {bullet.link.text}
+                              </a>
+                            </>
+                          )}
+                        </li>
                       ))}
                     </ul>
                   )}
                   {declaration.suffix && (
                     <p className="mt-1">{declaration.suffix}</p>
-                  )}
-                  {declaration.links && declaration.links.length > 0 && (
-                    <span className="ml-1">
-                      {declaration.links.map((link, idx) => (
-                        <span key={link.url}>
-                          {idx > 0 && ', '}
-                          <a
-                            href={link.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            [{link.text}]
-                          </a>
-                        </span>
-                      ))}
-                    </span>
                   )}
                 </div>
               </div>
