@@ -49,6 +49,13 @@ function SectionItem({
     section.id === 'b2'
   );
   
+  // Check if this is a top-level bold item (Proposal overview, Part A, Part B, Figures)
+  const isTopLevelBold = 
+    section.id === 'proposal-overview' || 
+    section.id === 'part-a' || 
+    section.id === 'part-b' || 
+    section.id === 'figures';
+  
   // Check for guideline types
   const hasOfficialGuideline = section.guidelinesArray?.some(g => g.type === 'official') || 
     (section.guidelines?.text && !section.guidelinesArray);
@@ -64,7 +71,7 @@ function SectionItem({
           "section-nav-item flex items-center gap-2 group",
           isActive && "section-nav-item-active",
           !isActive && "hover:bg-muted",
-          isCollapsibleHeading && "font-semibold"
+          (isCollapsibleHeading || isTopLevelBold) && "font-semibold"
         )}
         style={{ paddingLeft: `${depth * 12 + 12}px` }}
         onClick={() => {
@@ -91,7 +98,8 @@ function SectionItem({
         ) : (
           <FileText className="w-4 h-4 text-muted-foreground" />
         )}
-        {showNumber && (
+        {/* Only show number if not a top-level bold item and number exists */}
+        {showNumber && !isTopLevelBold && (
           <span className="font-medium text-muted-foreground mr-1">
             {formatSectionNumber(section.number, depth)}
           </span>

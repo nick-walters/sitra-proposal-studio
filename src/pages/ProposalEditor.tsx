@@ -4,6 +4,7 @@ import { DocumentEditor } from "@/components/DocumentEditor";
 import { VersionHistoryDialog } from "@/components/VersionHistoryDialog";
 import { ProposalSummaryPage } from "@/components/ProposalSummaryPage";
 import { ParticipantForm } from "@/components/ParticipantForm";
+import { GeneralInfoForm } from "@/components/GeneralInfoForm";
 import { BudgetSpreadsheetEnhanced } from "@/components/BudgetSpreadsheetEnhanced";
 import { EthicsForm } from "@/components/EthicsForm";
 import { DeclarationsForm } from "@/components/DeclarationsForm";
@@ -250,14 +251,12 @@ export function ProposalEditor() {
       // A1 - General Information (form-based) - matches "a1"
       if (activeSection.id === 'a1' || activeSection.id === 'general-info') {
         return (
-          <DocumentEditor
-            section={activeSection}
+          <GeneralInfoForm
             proposalId={id || ''}
-            proposalAcronym={proposal?.acronym || ''}
-            readOnly={!canEdit}
-            topicId={proposal?.topicId}
-            workProgramme={proposal?.workProgramme}
-            destination={proposal?.destination}
+            proposal={proposal}
+            section={activeSection}
+            canEdit={canEdit}
+            onUpdateProposal={updateProposal}
           />
         );
       }
