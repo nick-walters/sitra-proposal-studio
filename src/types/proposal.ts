@@ -299,199 +299,109 @@ export interface EthicsAssessment {
   otherEthics: boolean;
   otherEthicsDetails?: string;
 }
+// Proposal overview (before Part A) - form-based metadata page
+export const PROPOSAL_OVERVIEW_SECTION: Section = {
+  id: 'proposal-overview',
+  number: '',
+  title: 'Proposal overview',
+  isPartA: true,
+  guidelines: {
+    text: 'Overview of the proposal including acronym, title, topic details, funding information, deadlines, collaborators, and partner organisations.',
+  },
+};
+
 // Part A sections structure based on official HE-RIA-IA Standard Application Form
 export const PART_A_SECTIONS: Section[] = [
-  // Proposal Information page (before Part A)
+  // Proposal overview (form-based metadata page)
+  PROPOSAL_OVERVIEW_SECTION,
+  // Part A: Administrative forms (collapsible heading only)
   {
-    id: 'proposal-info',
-    number: '',
-    title: 'Proposal Information',
+    id: 'part-a',
+    number: 'Part A',
+    title: 'Administrative forms',
     isPartA: true,
-    guidelines: {
-      text: 'Overview of the proposal including acronym, title, topic details, funding information, deadlines, collaborators, and partner organisations.',
-    },
-  },
-  // A1 - General Information
-  {
-    id: 'general-info',
-    number: 'A1',
-    title: 'General Information',
-    isPartA: true,
-    guidelines: {
-      text: 'Enter general information about the proposal including abstract, topic, keywords, and free keywords.',
-    },
     subsections: [
+      // A1: General information (form format)
       {
-        id: 'abstract',
-        number: 'A1.1',
-        title: 'Abstract',
+        id: 'general-info',
+        number: 'A1',
+        title: 'General information',
         isPartA: true,
         guidelines: {
-          text: 'Provide a summary/abstract of the proposal (max 2000 characters). This text may be used by the EC for publication.',
+          text: 'Enter general information about the proposal including acronym, title, abstract, topic, and keywords as specified in the application form.',
         },
-        wordLimit: 2000,
       },
+      // A2: Participants (form format)
       {
-        id: 'keywords',
-        number: 'A1.2',
-        title: 'Keywords',
+        id: 'participants',
+        number: 'A2',
+        title: 'Participants',
         isPartA: true,
         guidelines: {
-          text: 'Select descriptors (keywords) from the standard keyword list and add any free keywords relevant to your proposal.',
+          text: 'Add all participating organisations and their team members to the proposal. Include PIC numbers, legal entity types, country, and contact information for each participant.',
+        },
+      },
+      // A3: Budget (spreadsheet)
+      {
+        id: 'budget',
+        number: 'A3',
+        title: 'Budget',
+        isPartA: true,
+        guidelines: {
+          text: 'Complete the budget breakdown for each participant. Select standard or lump sum budget model as appropriate for your call.',
         },
       },
     ],
-  },
-  // A2 - Participants
-  {
-    id: 'participants',
-    number: 'A2',
-    title: 'Participants',
-    isPartA: true,
-    guidelines: {
-      text: 'Add all participating organisations and their team members to the proposal.',
-    },
-    subsections: [
-      {
-        id: 'participant-organisations',
-        number: 'A2.1',
-        title: 'Participant Organisations',
-        isPartA: true,
-        guidelines: {
-          text: 'Enter details for each participating organisation including PIC number, legal entity type, country, and contact information.',
-        },
-      },
-      {
-        id: 'team-members',
-        number: 'A2.2',
-        title: 'Team Members & Effort',
-        isPartA: true,
-        guidelines: {
-          text: 'List all team members from each participant organisation, their roles in the project, and work package allocations.',
-        },
-      },
-    ],
-  },
-  // A3 - Budget
-  {
-    id: 'budget',
-    number: 'A3',
-    title: 'Budget',
-    isPartA: true,
-    guidelines: {
-      text: 'Complete the budget breakdown for each participant. Select standard or lump sum budget model.',
-    },
-    subsections: [
-      {
-        id: 'budget-overview',
-        number: 'A3.1',
-        title: 'Budget Overview',
-        isPartA: true,
-        guidelines: {
-          text: 'Summary of the total project budget and distribution across participants.',
-        },
-      },
-      {
-        id: 'budget-details',
-        number: 'A3.2',
-        title: 'Detailed Budget',
-        isPartA: true,
-        guidelines: {
-          text: 'Detailed breakdown by cost category: personnel, equipment, subcontracting, travel, etc.',
-        },
-      },
-    ],
-  },
-  // A4 - Ethics
-  {
-    id: 'ethics',
-    number: 'A4',
-    title: 'Ethics & Security',
-    isPartA: true,
-    guidelines: {
-      text: 'Complete the ethics and security self-assessment. Identify any ethics issues that apply to your proposal.',
-    },
-  },
-  // A5 - Declarations (full proposals only)
-  {
-    id: 'declarations',
-    number: 'A5',
-    title: 'Declarations',
-    isPartA: true,
-    guidelines: {
-      text: 'Declarations required by each participant organisation. Each participant must confirm their acceptance of the call conditions.',
-    },
   },
 ];
 
 // Horizon Europe Part B structure
 export const HORIZON_EUROPE_SECTIONS: Section[] = [
+  // Part B: Technical description (collapsible heading only)
   {
-    id: 'excellence',
-    number: 'B1',
-    title: 'Excellence',
+    id: 'part-b',
+    number: 'Part B',
+    title: 'Technical description',
     subsections: [
+      // B1: Excellence (collapsible heading only)
       {
-        id: 'objectives',
-        number: 'B1.1',
-        title: 'Objectives and ambition',
-        guidelines: {
-          text: 'Describe the specific objectives for the project, which should be clear, measurable, realistic and achievable within the duration of the project. Objectives should be consistent with the expected exploitation and impact of the project.',
-        },
+        id: 'excellence',
+        number: 'B1',
+        title: 'Excellence',
+        subsections: [
+          {
+            id: 'objectives',
+            number: 'B1.1',
+            title: 'Objectives & ambition',
+            guidelines: {
+              text: 'Describe the specific objectives for the project, which should be clear, measurable, realistic and achievable within the duration of the project. Objectives should be consistent with the expected exploitation and impact of the project.\n\nExplain how achieving the project objectives would contribute to the expected outcomes and impacts outlined in the work programme under the relevant topic.\n\nWhere relevant, explain how the expected results will contribute to:\n• Improving health and wellbeing, and/or addressing diseases\n• Addressing global societal challenges\n• EU priorities such as the European Green Deal, digital transformation, etc.',
+            },
+          },
+          {
+            id: 'methodology',
+            number: 'B1.2',
+            title: 'Methodology',
+            guidelines: {
+              text: 'Describe and explain the overall methodology, including the concepts, models and assumptions that underpin your work. Explain how this will enable you to deliver your project\'s objectives. Refer to any important challenges you may have identified in the relevant section of the work programme.\n\n• Explain the overall research approach and methodology, including:\n  - The scientific/technical approach\n  - How you will address interdisciplinarity\n  - The role of partners and their expertise\n\n• Explain any national or international research and innovation activities linked to the project.\n\n• Where relevant, describe how sex and/or gender analysis is taken into account in the project\'s content.',
+            },
+          },
+        ],
       },
+      // B2: Impact (collapsible heading only)
       {
-        id: 'methodology',
-        number: 'B1.2',
-        title: 'Methodology',
-        guidelines: {
-          text: 'Describe and explain the overall methodology, including the concepts, models and assumptions that underpin your work. Explain how this will enable you to deliver your project objectives.',
-        },
-      },
-    ],
-  },
-  {
-    id: 'impact',
-    number: 'B2',
-    title: 'Impact',
-    subsections: [
-      {
-        id: 'pathways',
-        number: 'B2.1',
-        title: "Project's pathways towards impact",
-        guidelines: {
-          text: "Describe the project's results will contribute to each of the expected impacts mentioned in the work programme, under the relevant topic.",
-        },
-      },
-      {
-        id: 'dissemination',
-        number: 'B2.2',
-        title: 'Measures to maximise impact - Dissemination, exploitation and communication',
-        guidelines: {
-          text: 'Describe the planned measures to maximise the impact of your project by providing a first draft of your plan for the dissemination and exploitation including communication activities.',
-        },
-      },
-    ],
-  },
-  {
-    id: 'implementation',
-    number: 'B3',
-    title: 'Quality and efficiency of the implementation',
-    subsections: [
-      {
-        id: 'workplan',
-        number: 'B3.1',
-        title: 'Work plan and resources',
-        guidelines: {
-          text: 'Describe the work plan, work packages, deliverables and milestones. Describe the requested resources: staff effort, equipment, consumables, travel, etc.',
-        },
-      },
-      {
-        id: 'consortium',
-        number: 'B3.2',
-        title: 'Capacity of participants and consortium as a whole',
-        guidelines: {
-          text: 'Describe and explain the capacity of the participating organisations to successfully carry out the tasks and the complementarity of the different participants.',
-        },
+        id: 'impact',
+        number: 'B2',
+        title: 'Impact',
+        subsections: [
+          {
+            id: 'pathways',
+            number: 'B2.1',
+            title: "Project's pathways towards impact",
+            guidelines: {
+              text: 'Describe how the project\'s results will contribute to each of the expected impacts mentioned in the work programme, under the relevant topic.\n\n• Describe the unique contribution the project would make to the expected impacts.\n\n• Explain the scale and significance of the project\'s contribution to the expected impacts (e.g. number of direct/indirect users, market size, policy reach).\n\n• Describe any barriers/obstacles to achieving these impacts, and any framework conditions necessary for these impacts to be achieved.\n\n• Give an indication of the magnitude and importance of the project\'s contribution to the expected impacts, as compared to a situation without the project.',
+            },
+          },
+        ],
       },
     ],
   },

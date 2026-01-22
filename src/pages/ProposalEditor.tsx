@@ -207,8 +207,8 @@ export function ProposalEditor() {
     // Part A sections
     if (activeSection.isPartA) {
       switch (activeSection.id) {
-        // Proposal Information page (before Part A)
-        case 'proposal-info':
+        // Proposal overview page (before Part A)
+        case 'proposal-overview':
           return proposal ? (
             <ProposalSummaryPage
               proposal={{
@@ -230,10 +230,24 @@ export function ProposalEditor() {
             />
           ) : null;
 
-        // A1 - General Information (abstract, keywords)
+        // Part A heading (collapsible only, shows info)
+        case 'part-a':
+          return (
+            <div className="flex-1 flex items-center justify-center bg-muted/30">
+              <div className="text-center max-w-lg">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <FileText className="w-8 h-8 text-primary" />
+                </div>
+                <h3 className="text-lg font-medium">Part A: Administrative forms</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Select a subsection from the navigation to edit participant information, budget details, or other administrative forms.
+                </p>
+              </div>
+            </div>
+          );
+
+        // A1 - General Information (form-based)
         case 'general-info':
-        case 'abstract':
-        case 'keywords':
           return (
             <DocumentEditor
               section={activeSection}
@@ -246,9 +260,8 @@ export function ProposalEditor() {
             />
           );
 
-        // A2 - Participants
+        // A2 - Participants (form-based)
         case 'participants':
-        case 'participant-organisations':
           return (
             <ParticipantForm
               participants={participants}
@@ -265,20 +278,8 @@ export function ProposalEditor() {
             />
           );
 
-        case 'team-members':
-          return (
-            <WorkPackageManager
-              proposalId={id || ''}
-              participants={participants}
-              participantMembers={participantMembers}
-              canEdit={canEdit}
-            />
-          );
-
-        // A3 - Budget
+        // A3 - Budget (spreadsheet)
         case 'budget':
-        case 'budget-overview':
-        case 'budget-details':
           return (
             <BudgetSpreadsheetEnhanced
               budgetItems={budgetItems}
@@ -293,26 +294,6 @@ export function ProposalEditor() {
               canEdit={canEdit}
               proposalId={id || ''}
               saving={budgetSaving}
-            />
-          );
-
-        // A4 - Ethics & Security
-        case 'ethics':
-          return (
-            <EthicsForm
-              ethics={ethics}
-              onUpdateEthics={updateEthics}
-              canEdit={canEdit}
-            />
-          );
-
-        // A5 - Declarations
-        case 'declarations':
-          return (
-            <DeclarationsForm
-              participants={participants}
-              proposalId={id || ''}
-              canEdit={canEdit}
             />
           );
 
@@ -341,7 +322,34 @@ export function ProposalEditor() {
       );
     }
 
-    // Part B sections - use rich text editor
+    // Part B heading sections (collapsible only, show info)
+    if (activeSection.id === 'part-b' || activeSection.id === 'excellence' || activeSection.id === 'impact') {
+      const titles: Record<string, string> = {
+        'part-b': 'Part B: Technical description',
+        'excellence': 'B1: Excellence',
+        'impact': 'B2: Impact',
+      };
+      const descriptions: Record<string, string> = {
+        'part-b': 'The technical description of your proposal. Select a subsection to start writing.',
+        'excellence': 'Describe the excellence of your proposal. Select a subsection to add content.',
+        'impact': 'Describe the impact of your project. Select a subsection to add content.',
+      };
+      return (
+        <div className="flex-1 flex items-center justify-center bg-muted/30">
+          <div className="text-center max-w-lg">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+              <FileText className="w-8 h-8 text-primary" />
+            </div>
+            <h3 className="text-lg font-medium">{titles[activeSection.id]}</h3>
+            <p className="text-sm text-muted-foreground mt-2">
+              {descriptions[activeSection.id]}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    // Part B document sections - use rich text editor
     return (
       <DocumentEditor
         section={activeSection}
