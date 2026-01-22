@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Dialog,
   DialogContent,
@@ -25,7 +24,6 @@ import {
   Send,
   CheckCircle2,
   XCircle,
-  AlertTriangle,
   Loader2,
   FileCheck,
   Users,
@@ -34,7 +32,8 @@ import {
   Clock,
   Trophy,
   ThumbsDown,
-  Undo,
+  Pencil,
+  TrendingUp,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -46,6 +45,13 @@ interface CheckItem {
   icon: React.ComponentType<{ className?: string }>;
 }
 
+interface CompletionStats {
+  partA: number;
+  partB: number;
+  budget: number;
+  ethics: number;
+}
+
 interface SubmissionWorkflowProps {
   proposal: Proposal | null;
   participants: Participant[];
@@ -54,6 +60,7 @@ interface SubmissionWorkflowProps {
   onUpdateStatus: (status: ProposalStatus) => Promise<void>;
   canEdit: boolean;
   isAdmin: boolean;
+  completionStats?: CompletionStats;
 }
 
 export function SubmissionWorkflow({
@@ -64,14 +71,17 @@ export function SubmissionWorkflow({
   onUpdateStatus,
   canEdit,
   isAdmin,
+  completionStats = { partA: 0, partB: 0, budget: 0, ethics: 0 },
 }: SubmissionWorkflowProps) {
-  const [isSubmitDialogOpen, setIsSubmitDialogOpen] = useState(false);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<ProposalStatus | ''>('');
+  const [isEditing, setIsEditing] = useState(false);
 
   const totalBudget = budgetItems.reduce((sum, item) => sum + (item.amount || 0), 0);
+
+  // Determine if user can edit this section (admins and owners only)
+  const userCanEdit = isAdmin;
 
   const checks: CheckItem[] = [
     {
@@ -113,17 +123,6 @@ export function SubmissionWorkflow({
 
   const passedChecks = checks.filter((c) => c.check());
   const progress = (passedChecks.length / checks.length) * 100;
-  const allChecksPassed = passedChecks.length === checks.length;
-
-  const handleSubmit = async () => {
-    setSubmitting(true);
-    try {
-      await onSubmit();
-      setIsSubmitDialogOpen(false);
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const handleStatusUpdate = async () => {
     if (!selectedStatus) return;
@@ -137,87 +136,72 @@ export function SubmissionWorkflow({
     }
   };
 
-  const getStatusBadge = (status: ProposalStatus) => {
-    switch (status) {
-      case 'draft':
-        return <Badge variant="secondary">Draft</Badge>;
-      case 'submitted':
-        return <Badge className="bg-blue-500">Submitted</Badge>;
-      case 'funded':
-        return <Badge className="bg-green-500">Funded</Badge>;
-      case 'not_funded':
-        return <Badge variant="destructive">Not Funded</Badge>;
-    }
-  };
-
   return (
     <div className="space-y-4">
-      {/* Current Status */}
+      {/* Combined: Proposal Completion & Schedule */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Proposal Status</CardTitle>
-            {proposal?.status && getStatusBadge(proposal.status)}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {proposal?.status === 'submitted' && proposal.submittedAt && (
-            <p className="text-sm text-muted-foreground">
-              Submitted on {format(new Date(proposal.submittedAt), 'dd MMM yyyy, HH:mm')}
-            </p>
-          )}
-
-          {/* Admin Status Controls */}
-          {isAdmin && proposal?.status !== 'draft' && (
-            <div className="flex gap-2 flex-wrap">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsStatusDialogOpen(true)}
-                className="gap-2"
-              >
-                Update Status
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5" />
+              Proposal schedule
+            </CardTitle>
+            {userCanEdit && !isEditing && (
+              <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
+                <Pencil className="w-4 h-4 mr-1" />
+                Edit
               </Button>
-              {proposal?.status === 'submitted' && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onUpdateStatus('draft')}
-                  className="gap-2"
-                >
-                  <Undo className="w-4 h-4" />
-                  Revert to Draft
-                </Button>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Proposal Schedule - Only show for drafts */}
-      {proposal?.status === 'draft' && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Proposal schedule</CardTitle>
-            <CardDescription>
-              Complete these items before submitting your proposal
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Progress */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Completion</span>
-                <span className="font-medium">
-                  {passedChecks.length}/{checks.length} items
-                </span>
+            )}
+          </div>
+          <CardDescription>Track your progress and readiness for submission</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Section Completion Progress */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-medium text-muted-foreground">Section completion</h4>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span>Part A - Administrative</span>
+                  <span className="font-medium">{completionStats.partA}%</span>
+                </div>
+                <Progress value={completionStats.partA} className="h-2" />
               </div>
-              <Progress value={progress} className="h-2" />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span>Part B - Technical</span>
+                  <span className="font-medium">{completionStats.partB}%</span>
+                </div>
+                <Progress value={completionStats.partB} className="h-2" />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span>Budget</span>
+                  <span className="font-medium">{completionStats.budget}%</span>
+                </div>
+                <Progress value={completionStats.budget} className="h-2" />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span>Ethics self-assessment</span>
+                  <span className="font-medium">{completionStats.ethics}%</span>
+                </div>
+                <Progress value={completionStats.ethics} className="h-2" />
+              </div>
             </div>
+          </div>
 
-            <Separator />
+          <Separator />
 
-            {/* Checklist Items */}
+          {/* Checklist Items */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-medium text-muted-foreground">Submission checklist</h4>
+              <span className="text-sm text-muted-foreground">
+                {passedChecks.length}/{checks.length} complete
+              </span>
+            </div>
+            <Progress value={progress} className="h-2" />
             <div className="space-y-3">
               {checks.map((check) => {
                 const passed = check.check();
@@ -253,88 +237,36 @@ export function SubmissionWorkflow({
                 );
               })}
             </div>
-
-            <Separator />
-
-            {/* Submit Button */}
-            {canEdit && (
-              <div className="space-y-3">
-                {!allChecksPassed && (
-                  <Alert>
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription>
-                      Complete all checklist items before submitting.
-                    </AlertDescription>
-                  </Alert>
-                )}
-                <Button
-                  onClick={() => setIsSubmitDialogOpen(true)}
-                  disabled={!allChecksPassed}
-                  className="w-full gap-2"
-                  size="lg"
-                >
-                  <Send className="w-4 h-4" />
-                  Submit Proposal
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Submit Confirmation Dialog */}
-      <Dialog open={isSubmitDialogOpen} onOpenChange={setIsSubmitDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Submit Proposal</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to submit this proposal? Once submitted, editing will be disabled.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="p-4 bg-muted rounded-lg space-y-2">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Title</span>
-                <span className="font-medium">{proposal?.title}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Acronym</span>
-                <span className="font-medium">{proposal?.acronym}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Participants</span>
-                <span className="font-medium">{participants.length}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Total Budget</span>
-                <span className="font-medium">€{totalBudget.toLocaleString()}</span>
-              </div>
-            </div>
-
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                This action cannot be undone by editors. Only administrators can revert a submitted proposal to draft.
-              </AlertDescription>
-            </Alert>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsSubmitDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} disabled={submitting} className="gap-2">
-              {submitting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4" />
-              )}
-              Confirm Submission
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          {/* Admin Status Controls */}
+          {userCanEdit && proposal?.status !== 'draft' && (
+            <>
+              <Separator />
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsStatusDialogOpen(true)}
+                  className="gap-2"
+                >
+                  Update Status
+                </Button>
+                {proposal?.status === 'submitted' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onUpdateStatus('draft')}
+                    className="gap-2"
+                  >
+                    Revert to Draft
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Status Update Dialog (Admin Only) */}
       <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
