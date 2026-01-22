@@ -484,7 +484,7 @@ export function GeneralInfoForm({
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">Declarations</CardTitle>
             <InlineGuideline className="mt-2">
-              By submitting this proposal, the coordinator confirms that all applicants have agreed to the following declarations.
+              By ticking the boxes below, applicants confirm the declarations on behalf of their organisation. If the proposal is retained for EU funding, they will all be required to sign a declaration of honour. False statements or incorrect information may lead to administrative sanctions under the EU Financial Regulation.
             </InlineGuideline>
           </CardHeader>
           <CardContent className="space-y-4">
