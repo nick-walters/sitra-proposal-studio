@@ -82,6 +82,7 @@ export function ProposalEditor() {
     addParticipant,
     updateParticipant,
     deleteParticipant,
+    reorderParticipants,
     addParticipantMember,
     updateParticipantMember,
     deleteParticipantMember,
@@ -346,7 +347,9 @@ export function ProposalEditor() {
                 englishName: participantData.englishName,
               });
             }}
+            onReorderParticipants={reorderParticipants}
             canAddParticipant={isAdmin && canEdit}
+            canReorder={isAdmin && canEdit}
           />
         );
       }

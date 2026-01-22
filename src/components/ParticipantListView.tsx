@@ -2,11 +2,28 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Participant, PARTICIPANT_TYPE_LABELS, ParticipantType } from '@/types/proposal';
-import { Plus, Building2, ChevronRight } from 'lucide-react';
+import { Plus, Building2, ChevronRight, GripVertical } from 'lucide-react';
 import { InlineGuideline } from './GuidelineBox';
 import { Badge } from './ui/badge';
 import { AddParticipantDialog } from './AddParticipantDialog';
 import { OrganisationCategory } from './ParticipantTable';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface ParticipantListViewProps {
   participants: Participant[];
@@ -22,16 +39,106 @@ interface ParticipantListViewProps {
     organisationCategory?: OrganisationCategory;
     englishName?: string;
   }) => Promise<void>;
+  onReorderParticipants?: (participants: Participant[]) => Promise<void>;
   canAddParticipant: boolean;
+  canReorder?: boolean;
+}
+
+interface SortableParticipantCardProps {
+  participant: Participant;
+  onSelect: () => void;
+  canReorder: boolean;
+}
+
+function SortableParticipantCard({ participant, onSelect, canReorder }: SortableParticipantCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: participant.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1000 : 'auto',
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <Card
+        className={`cursor-pointer hover:bg-muted/50 transition-colors ${isDragging ? 'shadow-lg ring-2 ring-primary' : ''}`}
+      >
+        <CardContent className="py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              {canReorder && (
+                <button
+                  {...attributes}
+                  {...listeners}
+                  className="cursor-grab active:cursor-grabbing p-1 -m-1 text-muted-foreground hover:text-foreground touch-none"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <GripVertical className="w-5 h-5" />
+                </button>
+              )}
+              <div 
+                className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center cursor-pointer"
+                onClick={onSelect}
+              >
+                <span className="font-bold text-primary">{participant.participantNumber}</span>
+              </div>
+              <div className="cursor-pointer" onClick={onSelect}>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-medium">
+                    {participant.organisationName || 'Unnamed Organisation'}
+                  </h3>
+                  {participant.organisationShortName && (
+                    <span className="text-muted-foreground">
+                      ({participant.organisationShortName})
+                    </span>
+                  )}
+                  {participant.participantNumber === 1 && (
+                    <Badge variant="outline" className="text-xs">Coordinator</Badge>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {PARTICIPANT_TYPE_LABELS[participant.organisationType]}
+                  {participant.country && ` • ${participant.country}`}
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-muted-foreground cursor-pointer" onClick={onSelect} />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
 
 export function ParticipantListView({
   participants,
   onSelectParticipant,
   onAddParticipant,
+  onReorderParticipants,
   canAddParticipant,
+  canReorder = false,
 }: ParticipantListViewProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const handleAddParticipant = async (participant: {
     organisationName: string;
@@ -47,6 +154,28 @@ export function ParticipantListView({
     await onAddParticipant(participant);
   };
 
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = participants.findIndex((p) => p.id === active.id);
+      const newIndex = participants.findIndex((p) => p.id === over.id);
+
+      const reorderedParticipants = arrayMove(participants, oldIndex, newIndex).map(
+        (p, index) => ({ ...p, participantNumber: index + 1 })
+      );
+
+      if (onReorderParticipants) {
+        await onReorderParticipants(reorderedParticipants);
+      }
+    }
+  };
+
+  // Sort participants by participantNumber for display
+  const sortedParticipants = [...participants].sort(
+    (a, b) => (a.participantNumber || 999) - (b.participantNumber || 999)
+  );
+
   return (
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
       <div className="max-w-3xl mx-auto space-y-6">
@@ -55,7 +184,9 @@ export function ParticipantListView({
           <div className="space-y-2">
             <h1 className="text-xl font-semibold">Part A2: Participants</h1>
             <InlineGuideline>
-              Enter organisation details using PIC (Participant Identification Code) from the EC Participant Register. Coordinator is always Participant #1.
+              Enter organisation details using PIC (Participant Identification Code) from the EC Participant Register. 
+              {canReorder && ' Drag and drop to reorder participants.'}
+              {' '}Coordinator is always Participant #1.
             </InlineGuideline>
           </div>
           {canAddParticipant && (
@@ -67,7 +198,7 @@ export function ParticipantListView({
         </div>
 
         {/* Participants List */}
-        {participants.length === 0 ? (
+        {sortedParticipants.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <Building2 className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -83,9 +214,31 @@ export function ParticipantListView({
               )}
             </CardContent>
           </Card>
+        ) : canReorder && onReorderParticipants ? (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={sortedParticipants.map((p) => p.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-2">
+                {sortedParticipants.map((participant) => (
+                  <SortableParticipantCard
+                    key={participant.id}
+                    participant={participant}
+                    onSelect={() => onSelectParticipant(participant)}
+                    canReorder={canReorder}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         ) : (
           <div className="space-y-2">
-            {participants.map((participant) => (
+            {sortedParticipants.map((participant) => (
               <Card
                 key={participant.id}
                 className="cursor-pointer hover:bg-muted/50 transition-colors"
@@ -109,9 +262,6 @@ export function ParticipantListView({
                           )}
                           {participant.participantNumber === 1 && (
                             <Badge variant="outline" className="text-xs">Coordinator</Badge>
-                          )}
-                          {participant.isSme && (
-                            <Badge variant="secondary" className="text-xs">SME</Badge>
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground">

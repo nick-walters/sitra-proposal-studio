@@ -336,6 +336,33 @@ export function useProposalData(proposalId: string) {
     }
   };
 
+  // Reorder participants (batch update participant numbers)
+  const reorderParticipants = async (reorderedParticipants: Participant[]) => {
+    // Optimistic update
+    setParticipants(reorderedParticipants);
+
+    // Batch update all participant numbers in the database
+    const updates = reorderedParticipants.map((p, index) => ({
+      id: p.id,
+      participant_number: index + 1,
+    }));
+
+    // Update each participant's number
+    const promises = updates.map(({ id, participant_number }) =>
+      supabase.from('participants').update({ participant_number }).eq('id', id)
+    );
+
+    const results = await Promise.all(promises);
+    const errors = results.filter((r) => r.error);
+
+    if (errors.length > 0) {
+      toast.error('Failed to save participant order');
+      console.error('Reorder errors:', errors);
+      // Refresh to get correct state
+      await fetchParticipants();
+    }
+  };
+
   // Delete participant
   const deleteParticipant = async (id: string) => {
     const { error } = await supabase.from('participants').delete().eq('id', id);
@@ -473,6 +500,7 @@ export function useProposalData(proposalId: string) {
     addParticipant,
     updateParticipant,
     deleteParticipant,
+    reorderParticipants,
     addParticipantMember,
     updateParticipantMember,
     deleteParticipantMember,
