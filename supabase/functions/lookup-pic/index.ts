@@ -158,143 +158,95 @@ async function lookupFromDatabase(supabase: any, picNumber: string): Promise<Org
   }
 }
 
-// Known organisations that may not be in CORDIS
-const KNOWN_ORGANISATIONS: Record<string, OrganisationInfo> = {
-  '906912365': {
-    picNumber: '906912365',
-    legalName: 'Suomen itsenäisyyden juhlarahasto Sitra',
-    shortName: 'Sitra',
-    country: 'Finland',
-    countryCode: 'FI',
-    city: 'Helsinki',
-    legalEntityType: 'Public organisation',
-    isSme: false,
-    organisationCategory: 'PUB',
-  },
-  '999994438': {
-    picNumber: '999994438',
-    legalName: 'Aalto-korkeakoulusäätiö sr',
-    shortName: 'Aalto University',
-    country: 'Finland',
-    countryCode: 'FI',
-    city: 'Espoo',
-    legalEntityType: 'Higher or Secondary Education Establishment',
-    isSme: false,
-    organisationCategory: 'UNI',
-  },
-  '999540381': {
-    picNumber: '999540381',
-    legalName: 'Teknologian tutkimuskeskus VTT Oy',
-    shortName: 'VTT',
-    country: 'Finland',
-    countryCode: 'FI',
-    city: 'Espoo',
-    legalEntityType: 'Research Organisation',
-    isSme: false,
-    organisationCategory: 'RES',
-  },
-  '999997930': {
-    picNumber: '999997930',
-    legalName: 'Centre National de la Recherche Scientifique',
-    shortName: 'CNRS',
-    country: 'France',
-    countryCode: 'FR',
-    city: 'Paris',
-    legalEntityType: 'Research Organisation',
-    isSme: false,
-    organisationCategory: 'RES',
-  },
-  '999984059': {
-    picNumber: '999984059',
-    legalName: 'Fraunhofer-Gesellschaft zur Förderung der angewandten Forschung e.V.',
-    shortName: 'Fraunhofer',
-    country: 'Germany',
-    countryCode: 'DE',
-    city: 'München',
-    legalEntityType: 'Research Organisation',
-    isSme: false,
-    organisationCategory: 'RES',
-  },
-};
-
-// Try to fetch from CORDIS Data Extractions API
+// Try to fetch from CORDIS Search API (searches by organizationID/PIC)
 async function lookupFromCordis(picNumber: string): Promise<OrganisationInfo | null> {
-  try {
-    // Use CORDIS Data Extractions API - more reliable JSON endpoint
-    const url = `https://cordis.europa.eu/api/dataextractions/organization?q=pic:${picNumber}&format=json`;
-    console.log(`Trying CORDIS API: ${url}`);
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
-    
-    const response = await fetch(url, {
-      headers: {
-        'Accept': 'application/json',
-      },
-      signal: controller.signal,
-    });
-    
-    clearTimeout(timeoutId);
-    console.log(`CORDIS API status: ${response.status}`);
-    
-    if (!response.ok) {
-      console.log(`CORDIS API returned status ${response.status}`);
-      return null;
-    }
-    
-    const contentType = response.headers.get('content-type') || '';
-    if (!contentType.includes('application/json')) {
-      console.log(`CORDIS API returned non-JSON content type: ${contentType}`);
-      return null;
-    }
-    
-    const data = await response.json();
-    console.log(`CORDIS API response:`, JSON.stringify(data).substring(0, 500));
-    
-    // Handle array response format
-    const results = Array.isArray(data) ? data : (data.results || data.items || []);
-    
-    if (results.length > 0) {
-      const org = results[0];
-      const countryCode = org.country || org.organisationCountry || '';
-      const isSme = org.sme === 'true' || org.sme === true || org.SME === 'true' || org.SME === true;
-      const legalEntityType = org.activityType || org.legalEntityType || org.organisationType || '';
-      
-      console.log(`CORDIS found: ${org.legalName || org.name} (Type: ${legalEntityType})`);
-      
-      return {
-        picNumber: picNumber,
-        legalName: org.legalName || org.name || 'Unknown',
-        shortName: org.shortName || org.acronym,
-        country: COUNTRY_NAMES[countryCode] || countryCode,
-        countryCode: countryCode,
-        city: org.city,
-        address: org.street || org.address,
-        legalEntityType: legalEntityType,
-        isSme: isSme,
-        organisationCategory: mapLegalEntityToCategory(legalEntityType, isSme),
-      };
-    }
-    
-    console.log('No results found in CORDIS API response');
-    return null;
-  } catch (error: unknown) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      console.log('CORDIS API request timed out');
-    } else {
-      console.error('CORDIS API lookup error:', error);
-    }
-    return null;
-  }
-}
+  // Try multiple CORDIS endpoints
+  const endpoints = [
+    // CORDIS search endpoint with JSON format
+    `https://cordis.europa.eu/search/en?q=organizationId:${picNumber}&format=json`,
+    // Alternative organization search
+    `https://cordis.europa.eu/search?q=contenttype%3D%27organization%27+AND+organizationID%3D%27${picNumber}%27&format=json`,
+  ];
 
-// Check known organisations list
-function lookupFromKnownOrganisations(picNumber: string): OrganisationInfo | null {
-  const org = KNOWN_ORGANISATIONS[picNumber];
-  if (org) {
-    console.log(`Found in known organisations: ${org.legalName}`);
-    return org;
+  for (const url of endpoints) {
+    try {
+      console.log(`Trying CORDIS: ${url}`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      
+      const response = await fetch(url, {
+        headers: {
+          'Accept': 'application/json, text/plain, */*',
+        },
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      console.log(`CORDIS status: ${response.status}`);
+      
+      if (!response.ok) {
+        continue;
+      }
+      
+      const text = await response.text();
+      
+      // Skip if it's HTML
+      if (text.trim().startsWith('<!') || text.trim().startsWith('<html')) {
+        console.log('CORDIS returned HTML, skipping');
+        continue;
+      }
+      
+      try {
+        const data = JSON.parse(text);
+        console.log(`CORDIS response parsed, keys: ${Object.keys(data).join(', ')}`);
+        
+        // Handle different response formats from CORDIS
+        let org = null;
+        
+        if (data.payload?.organizations?.length > 0) {
+          org = data.payload.organizations[0];
+        } else if (data.organizations?.length > 0) {
+          org = data.organizations[0];
+        } else if (data.results?.length > 0) {
+          org = data.results[0];
+        } else if (Array.isArray(data) && data.length > 0) {
+          org = data[0];
+        }
+        
+        if (org) {
+          const countryCode = org.country || org.countryCode || org.organisationCountry || '';
+          const isSme = org.sme === 'true' || org.sme === true;
+          const legalEntityType = org.activityType || org.legalEntityType || org.organisationType || org.type || '';
+          
+          console.log(`CORDIS found: ${org.legalName || org.name} (${countryCode}, Type: ${legalEntityType})`);
+          
+          return {
+            picNumber: picNumber,
+            legalName: org.legalName || org.name || org.title || 'Unknown',
+            shortName: org.shortName || org.acronym,
+            country: COUNTRY_NAMES[countryCode] || countryCode,
+            countryCode: countryCode,
+            city: org.city,
+            address: org.street || org.address,
+            legalEntityType: legalEntityType,
+            isSme: isSme,
+            organisationCategory: mapLegalEntityToCategory(legalEntityType, isSme),
+          };
+        }
+      } catch (parseError) {
+        console.log('Failed to parse CORDIS response as JSON');
+      }
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('CORDIS request timed out');
+      } else {
+        console.error('CORDIS lookup error:', error);
+      }
+    }
   }
+  
+  console.log('No results from any CORDIS endpoint');
   return null;
 }
 
@@ -331,17 +283,12 @@ serve(async (req: Request) => {
       
       console.log(`Looking up PIC: ${cleanPic}`);
       
-      // First check known organisations (fastest, for common PICs)
-      let org = lookupFromKnownOrganisations(cleanPic);
-      
-      // If not in known list, check our database
-      if (!org) {
-        org = await lookupFromDatabase(supabase, cleanPic);
-      }
+      // First check our database (fastest, includes previously used orgs)
+      let org = await lookupFromDatabase(supabase, cleanPic);
       
       // If not in database, try CORDIS API
       if (!org) {
-        console.log('Not in database, trying CORDIS API...');
+        console.log('Not in database, trying CORDIS...');
         org = await lookupFromCordis(cleanPic);
       }
       
