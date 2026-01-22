@@ -61,6 +61,45 @@ interface TeamMember {
   collaboratorRole?: string;
 }
 
+// Generate a consistent color from acronym
+function getAcronymColor(acronym: string): string {
+  const colors = [
+    'hsl(221, 83%, 53%)', // Blue
+    'hsl(142, 76%, 36%)', // Green
+    'hsl(262, 83%, 58%)', // Purple
+    'hsl(24, 95%, 53%)',  // Orange
+    'hsl(346, 77%, 50%)', // Red
+    'hsl(199, 89%, 48%)', // Cyan
+  ];
+  let hash = 0;
+  for (let i = 0; i < acronym.length; i++) {
+    hash = acronym.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+}
+
+// Acronym-based logo fallback component
+function AcronymLogo({ logoUrl, acronym }: { logoUrl?: string; acronym: string }) {
+  const acronymColor = getAcronymColor(acronym);
+  
+  return (
+    <div className="w-24 h-24 rounded-xl bg-muted border flex items-center justify-center overflow-hidden">
+      {logoUrl ? (
+        <img src={logoUrl} alt={acronym} className="w-full h-full object-cover" />
+      ) : (
+        <div 
+          className="w-full h-full flex items-center justify-center"
+          style={{ backgroundColor: acronymColor }}
+        >
+          <span className="text-2xl font-bold text-white tracking-tight">
+            {acronym.substring(0, 3).toUpperCase()}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ProposalSummaryPage({
   proposal,
   participants: realParticipants,
@@ -245,7 +284,7 @@ export function ProposalSummaryPage({
               )}
             </div>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4">
             <div className="flex items-start gap-6">
               {/* Project Logo */}
               <div className="flex-shrink-0">
@@ -257,13 +296,10 @@ export function ProposalSummaryPage({
                     onUpload={handleLogoChange}
                   />
                 ) : (
-                  <div className="w-24 h-24 rounded-xl bg-muted border flex items-center justify-center overflow-hidden">
-                    {proposal.logoUrl ? (
-                      <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="text-3xl font-bold text-primary">{proposal.acronym.substring(0, 2)}</div>
-                    )}
-                  </div>
+                  <AcronymLogo 
+                    logoUrl={proposal.logoUrl} 
+                    acronym={proposal.acronym} 
+                  />
                 )}
               </div>
 
@@ -327,11 +363,32 @@ export function ProposalSummaryPage({
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
 
-            <Separator />
-
-            {/* Work Programme & Destination */}
-            <div className="grid grid-cols-2 gap-4">
+        {/* Topic - consolidated section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="w-5 h-5" />
+              Topic
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Topic ID */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Topic ID</label>
+                {isEditing ? (
+                  <Input
+                    value={editedProposal.topicId || ''}
+                    onChange={(e) => setEditedProposal({ ...editedProposal, topicId: e.target.value })}
+                    placeholder="e.g. HORIZON-CL5-2026-D1-01"
+                  />
+                ) : (
+                  <p className="font-medium">{proposal.topicId || 'Not specified'}</p>
+                )}
+              </div>
               <div>
                 <label className="text-sm text-muted-foreground mb-1 block">Work programme</label>
                 {isEditing ? (
@@ -356,90 +413,38 @@ export function ProposalSummaryPage({
                   </p>
                 )}
               </div>
-              <div>
-                <label className="text-sm text-muted-foreground mb-1 block">Destination</label>
-                {isEditing ? (
-                  <Select
-                    value={editedProposal.destination || ''}
-                    onValueChange={(v) => setEditedProposal({ ...editedProposal, destination: v })}
-                    disabled={!editedProposal.workProgramme}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select destination" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableDestinations.map(d => (
-                        <SelectItem key={d.id} value={d.id}>
-                          {d.abbreviation} - {d.fullName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <p className="font-medium">
-                    {destination ? `${destination.abbreviation} - ${destination.fullName}` : 'Not specified'}
-                  </p>
-                )}
-              </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Topic & Funding Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="w-5 h-5" />
-              Call & topic information
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="text-sm text-muted-foreground mb-1 block">Topic ID</label>
-                {isEditing ? (
-                  <Input
-                    value={editedProposal.topicId || ''}
-                    onChange={(e) => setEditedProposal({ ...editedProposal, topicId: e.target.value })}
-                    placeholder="e.g. HORIZON-CL5-2026-D1-01"
-                  />
-                ) : (
-                  <p className="font-medium">{proposal.topicId || 'Not specified'}</p>
-                )}
-              </div>
-              <div>
-                <label className="text-sm text-muted-foreground mb-1 block">Topic link (Funding & Tenders Portal)</label>
-                {isEditing ? (
-                  <Input
-                    value={editedProposal.topicUrl || ''}
-                    onChange={(e) => setEditedProposal({ ...editedProposal, topicUrl: e.target.value })}
-                    placeholder="https://ec.europa.eu/info/funding-tenders/..."
-                  />
-                ) : proposal.topicUrl ? (
-                  <Button
-                    variant="link"
-                    className="p-0 h-auto font-medium text-primary"
-                    onClick={() => window.open(proposal.topicUrl, '_blank')}
-                  >
-                    View on Portal <ExternalLink className="w-3 h-3 ml-1" />
-                  </Button>
-                ) : (
-                  <span className="font-medium text-muted-foreground">Not set</span>
-                )}
-              </div>
+            {/* Destination */}
+            <div>
+              <label className="text-sm text-muted-foreground mb-1 block">Destination</label>
+              {isEditing ? (
+                <Select
+                  value={editedProposal.destination || ''}
+                  onValueChange={(v) => setEditedProposal({ ...editedProposal, destination: v })}
+                  disabled={!editedProposal.workProgramme}
+                >
+                  <SelectTrigger className="max-w-md">
+                    <SelectValue placeholder="Select destination" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableDestinations.map(d => (
+                      <SelectItem key={d.id} value={d.id}>
+                        {d.abbreviation} - {d.fullName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="font-medium">
+                  {destination ? `${destination.abbreviation} - ${destination.fullName}` : 'Not specified'}
+                </p>
+              )}
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Key Dates - MOVED ABOVE BUDGET */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CalendarIcon className="w-5 h-5" />
-              Key dates
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            <Separator />
+
+            {/* Key Dates */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div>
                 <label className="text-sm text-muted-foreground mb-1 block">Deadline</label>
@@ -462,7 +467,7 @@ export function ProposalSummaryPage({
                   </Popover>
                 ) : (
                   <div>
-                    <p className="font-medium text-lg">
+                    <p className="font-medium">
                       {proposal.deadline ? format(proposal.deadline, 'dd MMM yyyy') : 'Not set'}
                     </p>
                     {daysUntilDeadline !== null && daysUntilDeadline > 0 && (
