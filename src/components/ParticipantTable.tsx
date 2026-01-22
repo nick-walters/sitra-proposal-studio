@@ -1,9 +1,13 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Participant } from '@/types/proposal';
 import { EU_MEMBER_STATES, ASSOCIATED_COUNTRIES, THIRD_COUNTRIES } from '@/lib/countries';
+import { supabase } from '@/integrations/supabase/client';
+import { Upload, X, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 // Organisation category types for Horizon Europe
 export type OrganisationCategory = 
@@ -47,15 +51,20 @@ function toNameCase(str: string): string {
 
 interface ParticipantTableProps {
   participants: ExtendedParticipant[];
+  proposalId?: string;
   isEditing?: boolean;
   onUpdateParticipant?: (id: string, updates: Partial<ExtendedParticipant>) => void;
 }
 
 export function ParticipantTable({ 
   participants, 
+  proposalId,
   isEditing = false,
   onUpdateParticipant 
 }: ParticipantTableProps) {
+  const [uploadingLogoId, setUploadingLogoId] = useState<string | null>(null);
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
   // Sort participants: Coordinator (1) first, then by WP lead, then others
   const sortedParticipants = [...participants].sort((a, b) => {
     return (a.participantNumber || 999) - (b.participantNumber || 999);
@@ -71,6 +80,58 @@ export function ParticipantTable({
 
   const handleEnglishNameChange = (id: string, englishName: string) => {
     onUpdateParticipant?.(id, { englishName });
+  };
+
+  const handleLogoUpload = async (participantId: string, file: File) => {
+    if (!file || !proposalId) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Image must be less than 2MB');
+      return;
+    }
+
+    setUploadingLogoId(participantId);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${proposalId}/${participantId}/logo.${fileExt}`;
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('participant-logos')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        toast.error('Failed to upload logo');
+        return;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('participant-logos')
+        .getPublicUrl(fileName);
+
+      // Update participant with new logo URL
+      onUpdateParticipant?.(participantId, { logoUrl: publicUrl });
+      toast.success('Logo uploaded');
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      toast.error('Failed to upload logo');
+    } finally {
+      setUploadingLogoId(null);
+    }
+  };
+
+  const handleRemoveLogo = (participantId: string) => {
+    onUpdateParticipant?.(participantId, { logoUrl: undefined });
   };
 
   // Get country code from country name
@@ -123,17 +184,63 @@ export function ParticipantTable({
                   )}
                 </div>
               </TableCell>
-              <TableCell className="py-0.5 px-1 w-10 align-top">
-                {participant.logoUrl ? (
-                  <img 
-                    src={participant.logoUrl} 
-                    alt="" 
-                    className="w-8 h-8 object-contain"
-                  />
-                ) : (
-                  <div className="w-8 h-8 bg-muted rounded flex items-center justify-center text-[9px] text-muted-foreground">
-                    —
+              <TableCell className="py-0.5 px-1 w-12 align-top">
+                {isEditing ? (
+                  <div className="relative group">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      ref={(el) => { fileInputRefs.current[participant.id] = el; }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleLogoUpload(participant.id, file);
+                      }}
+                    />
+                    {participant.logoUrl ? (
+                      <div className="relative">
+                        <img 
+                          src={participant.logoUrl} 
+                          alt="" 
+                          className="w-8 h-8 object-contain cursor-pointer"
+                          onClick={() => fileInputRefs.current[participant.id]?.click()}
+                        />
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute -top-1 -right-1 w-4 h-4 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => handleRemoveLogo(participant.id)}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ) : uploadingLogoId === participant.id ? (
+                      <div className="w-8 h-8 bg-muted rounded flex items-center justify-center">
+                        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="w-8 h-8 p-0"
+                        onClick={() => fileInputRefs.current[participant.id]?.click()}
+                      >
+                        <Upload className="w-4 h-4 text-muted-foreground" />
+                      </Button>
+                    )}
                   </div>
+                ) : (
+                  participant.logoUrl ? (
+                    <img 
+                      src={participant.logoUrl} 
+                      alt="" 
+                      className="w-8 h-8 object-contain"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-muted rounded flex items-center justify-center text-[9px] text-muted-foreground">
+                      —
+                    </div>
+                  )
                 )}
               </TableCell>
               <TableCell className="py-0.5 px-1 align-top">
