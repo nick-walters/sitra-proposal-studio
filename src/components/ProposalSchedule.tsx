@@ -85,7 +85,7 @@ export function ProposalSchedule({
   const totalBudget = budgetItems.reduce((sum, item) => sum + (item.amount || 0), 0);
 
   // Determine if user can edit this section (admins and owners only)
-  const userCanEdit = isAdmin;
+  const userCanEdit = canEdit && isAdmin;
 
   // Sync editedStats when completionStats prop changes
   const handleCancelEdit = () => {
