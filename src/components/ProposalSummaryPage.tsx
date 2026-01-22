@@ -582,6 +582,7 @@ export function ProposalSummaryPage({
           <CardContent className="pt-0">
             <ParticipantTable
               participants={participants as ExtendedParticipant[]}
+              proposalId={proposal.id}
               isEditing={isEditing}
               onUpdateParticipant={onUpdateParticipant}
             />
