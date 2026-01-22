@@ -73,10 +73,10 @@ export default function Index() {
               <Button
                 size="xl"
                 variant="hero"
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate('/auth')}
                 className="gap-2"
               >
-                Start Writing
+                Sign In
                 <ArrowRight className="w-5 h-5" />
               </Button>
               <Button size="xl" variant="outline" className="gap-2">
@@ -188,10 +188,10 @@ export default function Index() {
           <Button
             size="xl"
             variant="hero-outline"
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/auth')}
             className="gap-2"
           >
-            Go to Dashboard
+            Sign In
             <ArrowRight className="w-5 h-5" />
           </Button>
         </div>
