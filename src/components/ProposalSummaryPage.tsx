@@ -28,6 +28,9 @@ import {
   X,
   Mail,
   Hash,
+  Phone,
+  Globe,
+  Linkedin,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -57,6 +60,12 @@ interface TeamMember {
   // Additional collaborator fields
   isCollaborator?: boolean;
   collaboratorRole?: string;
+  // Profile contact info
+  phone?: string;
+  countryCode?: string;
+  website?: string;
+  linkedin?: string;
+  avatarUrl?: string;
 }
 
 // Generate a consistent color from acronym
@@ -149,6 +158,11 @@ export function ProposalSummaryPage({
     role: string;
     email?: string;
     fullName?: string;
+    phone?: string;
+    countryCode?: string;
+    website?: string;
+    linkedin?: string;
+    avatarUrl?: string;
   }>>([]);
 
   // Fetch collaborators (users with roles on this proposal)
@@ -168,7 +182,7 @@ export function ProposalSummaryPage({
         const userIds = roles.map(r => r.user_id);
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('id, full_name, email')
+          .select('id, full_name, email, phone_number, country_code, website, linkedin, avatar_url')
           .in('id', userIds);
 
         const collaboratorList = roles.map(role => {
@@ -179,6 +193,11 @@ export function ProposalSummaryPage({
             role: role.role,
             email: profile?.email,
             fullName: profile?.full_name,
+            phone: profile?.phone_number,
+            countryCode: profile?.country_code,
+            website: profile?.website,
+            linkedin: profile?.linkedin,
+            avatarUrl: profile?.avatar_url,
           };
         });
         setCollaborators(collaboratorList);
@@ -215,6 +234,11 @@ export function ProposalSummaryPage({
       organisationLogo: participant?.logoUrl,
       isCollaborator: !!collaborator,
       collaboratorRole: collaborator?.role,
+      phone: collaborator?.phone,
+      countryCode: collaborator?.countryCode,
+      website: collaborator?.website,
+      linkedin: collaborator?.linkedin,
+      avatarUrl: collaborator?.avatarUrl,
     };
   });
 
@@ -232,6 +256,11 @@ export function ProposalSummaryPage({
         organisationShortName: '',
         isCollaborator: true,
         collaboratorRole: collab.role,
+        phone: collab.phone,
+        countryCode: collab.countryCode,
+        website: collab.website,
+        linkedin: collab.linkedin,
+        avatarUrl: collab.avatarUrl,
       });
     }
   });
@@ -714,7 +743,7 @@ export function ProposalSummaryPage({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Building2 className="w-5 h-5" />
-              Consortium partners
+              Participants
             </CardTitle>
             <CardDescription>Participating organisations with contact details and PIC numbers</CardDescription>
           </CardHeader>
@@ -832,21 +861,44 @@ export function ProposalSummaryPage({
                     <HoverCardContent className="w-80" side="top">
                       <div className="flex gap-4">
                         <Avatar className="w-12 h-12">
+                          {member.avatarUrl ? (
+                            <AvatarImage src={member.avatarUrl} alt={member.fullName} />
+                          ) : null}
                           <AvatarFallback className="bg-primary/10 text-primary text-lg">
                             {member.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="space-y-1 flex-1">
+                        <div className="space-y-1.5 flex-1">
                           <h4 className="text-sm font-semibold">{member.fullName}</h4>
-                          {member.email && (
-                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                              <Mail className="w-3 h-3" />
-                              <span>{member.email}</span>
-                            </div>
-                          )}
                           {member.organisation && (
                             <p className="text-xs text-muted-foreground">{member.organisation}</p>
                           )}
+                          <div className="space-y-1 pt-1">
+                            {member.email && (
+                              <a href={`mailto:${member.email}`} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors">
+                                <Mail className="w-3 h-3" />
+                                <span>{member.email}</span>
+                              </a>
+                            )}
+                            {member.phone && (
+                              <a href={`tel:${member.countryCode || ''}${member.phone}`} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors">
+                                <Phone className="w-3 h-3" />
+                                <span>{member.countryCode && `${member.countryCode} `}{member.phone}</span>
+                              </a>
+                            )}
+                            {member.linkedin && (
+                              <a href={member.linkedin.startsWith('http') ? member.linkedin : `https://linkedin.com/in/${member.linkedin}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors">
+                                <Linkedin className="w-3 h-3" />
+                                <span>LinkedIn</span>
+                              </a>
+                            )}
+                            {member.website && (
+                              <a href={member.website.startsWith('http') ? member.website : `https://${member.website}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors">
+                                <Globe className="w-3 h-3" />
+                                <span className="truncate">{member.website.replace(/^https?:\/\//, '')}</span>
+                              </a>
+                            )}
+                          </div>
                           <div className="flex items-center gap-2 pt-1 flex-wrap">
                             {member.roleInProject && (
                               <Badge variant="outline" className="text-xs">{member.roleInProject}</Badge>
@@ -857,7 +909,7 @@ export function ProposalSummaryPage({
                               </Badge>
                             )}
                             {member.personMonths && (
-                              <span className="text-xs text-muted-foreground">{member.personMonths} person-months</span>
+                              <span className="text-xs text-muted-foreground">{member.personMonths} PM</span>
                             )}
                           </div>
                         </div>
