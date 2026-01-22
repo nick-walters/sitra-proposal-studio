@@ -187,9 +187,6 @@ export function GeneralInfoForm({
               <div className="space-y-1">
                 <Label className="text-muted-foreground text-sm">Acronym</Label>
                 <p className="font-medium">{proposal?.acronym || '-'}</p>
-                <InlineGuideline className="mt-1">
-                  Maximum 20 characters. Should be readable as a word or abbreviation.
-                </InlineGuideline>
               </div>
               <div className="space-y-1">
                 <Label className="text-muted-foreground text-sm">Topic ID</Label>
@@ -200,7 +197,7 @@ export function GeneralInfoForm({
               <Label className="text-muted-foreground text-sm">Title</Label>
               <p className="font-medium">{proposal?.title || '-'}</p>
               <InlineGuideline className="mt-1">
-                Maximum 200 characters. Should convey the essence of the project.
+                Max 200 characters (with spaces). Must be understandable for non-specialists. The following characters are not accepted: {'< > " &'}
               </InlineGuideline>
             </div>
           </CardContent>
@@ -211,7 +208,7 @@ export function GeneralInfoForm({
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">Abstract</CardTitle>
             <InlineGuideline className="mt-2">
-              Maximum 2000 characters. Include objectives, methodology, and expected impact. Used for evaluation and publication if funded.
+              Max 2000 characters (with spaces). It will be used as the short description of your proposal in the evaluation process and in communications if your proposal is funded.
             </InlineGuideline>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -237,7 +234,7 @@ export function GeneralInfoForm({
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">Keywords</CardTitle>
             <InlineGuideline className="mt-2">
-              Add up to 5 free-text keywords to help evaluators understand the scope. Avoid highly specialized or technical terms.
+              Max 5 keywords. Use free-text keywords to describe your project.
             </InlineGuideline>
           </CardHeader>
           <CardContent className="space-y-4">
