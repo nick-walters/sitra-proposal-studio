@@ -221,6 +221,18 @@ export function ParticipantDetailForm({
                   disabled={!canEdit}
                 />
               </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>English name</Label>
+                <Input
+                  value={participant.englishName || ''}
+                  onChange={(e) => handleFieldUpdate('englishName', e.target.value)}
+                  placeholder="English name (if legal name is not in English)"
+                  disabled={!canEdit}
+                />
+                <p className="text-xs text-muted-foreground">
+                  If the legal name is not in English, provide the English translation here
+                </p>
+              </div>
               <div className="space-y-2">
                 <Label>Short name</Label>
                 <Input
