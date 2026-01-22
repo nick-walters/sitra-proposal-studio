@@ -305,25 +305,6 @@ export function ProposalSummaryPage({
 
   return (
     <div className="flex-1 overflow-auto bg-muted/30 relative">
-      {/* Sticky Save Bar when editing */}
-      {isEditing && userCanEdit && (
-        <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b px-6 py-3">
-          <div className="max-w-5xl mx-auto flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Editing proposal overview...</span>
-            <div className="flex items-center gap-2">
-              <Button size="sm" variant="ghost" onClick={handleCancel}>
-                <X className="w-4 h-4 mr-1" />
-                Cancel
-              </Button>
-              <Button size="sm" onClick={handleSave}>
-                <Check className="w-4 h-4 mr-1" />
-                Save
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="p-6">
         <div className="max-w-5xl mx-auto space-y-6">
           {/* Page Header */}
@@ -339,12 +320,23 @@ export function ProposalSummaryPage({
                 <FileText className="w-5 h-5" />
                 Project identity
               </CardTitle>
-              {userCanEdit && !isEditing && (
+              {userCanEdit && !isEditing ? (
                 <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
                   <Pencil className="w-4 h-4 mr-1" />
                   Edit
                 </Button>
-              )}
+              ) : userCanEdit && isEditing ? (
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="ghost" onClick={handleCancel}>
+                    <X className="w-4 h-4 mr-1" />
+                    Cancel
+                  </Button>
+                  <Button size="sm" onClick={handleSave}>
+                    <Check className="w-4 h-4 mr-1" />
+                    Save
+                  </Button>
+                </div>
+              ) : null}
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -434,7 +426,7 @@ export function ProposalSummaryPage({
                 Topic
               </CardTitle>
               <div className="flex items-center gap-2">
-                {proposal.topicUrl && (
+                {proposal.topicUrl && !isEditing && (
                   <Button 
                     variant="outline" 
                     size="sm" 
@@ -445,12 +437,23 @@ export function ProposalSummaryPage({
                     View on portal
                   </Button>
                 )}
-                {userCanEdit && !isEditing && (
+                {userCanEdit && !isEditing ? (
                   <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
                     <Pencil className="w-4 h-4 mr-1" />
                     Edit
                   </Button>
-                )}
+                ) : userCanEdit && isEditing ? (
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="ghost" onClick={handleCancel}>
+                      <X className="w-4 h-4 mr-1" />
+                      Cancel
+                    </Button>
+                    <Button size="sm" onClick={handleSave}>
+                      <Check className="w-4 h-4 mr-1" />
+                      Save
+                    </Button>
+                  </div>
+                ) : null}
               </div>
             </div>
           </CardHeader>
@@ -655,12 +658,23 @@ export function ProposalSummaryPage({
                 <Euro className="w-5 h-5" />
                 Budget overview
               </CardTitle>
-              {userCanEdit && !isEditing && (
+              {userCanEdit && !isEditing ? (
                 <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
                   <Pencil className="w-4 h-4 mr-1" />
                   Edit
                 </Button>
-              )}
+              ) : userCanEdit && isEditing ? (
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="ghost" onClick={handleCancel}>
+                    <X className="w-4 h-4 mr-1" />
+                    Cancel
+                  </Button>
+                  <Button size="sm" onClick={handleSave}>
+                    <Check className="w-4 h-4 mr-1" />
+                    Save
+                  </Button>
+                </div>
+              ) : null}
             </div>
           </CardHeader>
           <CardContent>
