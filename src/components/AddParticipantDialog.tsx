@@ -384,7 +384,6 @@ export function AddParticipantDialog({
                       <SelectValue placeholder="Select country" />
                     </SelectTrigger>
                     <SelectContent className="max-h-60">
-                      <SelectItem value="" disabled>Select country</SelectItem>
                       {[...EU_MEMBER_STATES, ...ASSOCIATED_COUNTRIES, ...THIRD_COUNTRIES].map((country) => (
                         <SelectItem key={country.code} value={country.name}>{country.name}</SelectItem>
                       ))}
@@ -401,7 +400,6 @@ export function AddParticipantDialog({
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="" disabled>Select category</SelectItem>
                       {Object.entries(ORGANISATION_CATEGORY_LABELS).map(([code, label]) => (
                         <SelectItem key={code} value={code}>{code} - {label}</SelectItem>
                       ))}
