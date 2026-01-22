@@ -11,10 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Search, Building2, Info } from 'lucide-react';
+import { Loader2, Search, Building2, Info, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { PARTICIPANT_TYPE_LABELS, ParticipantType } from '@/types/proposal';
@@ -38,38 +37,30 @@ interface AddParticipantDialogProps {
   participantCount: number;
 }
 
+interface SearchResult {
+  picNumber: string;
+  legalName: string;
+  shortName?: string;
+  country: string;
+  countryCode: string;
+  legalEntityType?: string;
+  isSme: boolean;
+  organisationCategory?: OrganisationCategory;
+}
+
 export function AddParticipantDialog({
   open,
   onOpenChange,
   onAddParticipant,
   participantCount,
 }: AddParticipantDialogProps) {
-  const [activeTab, setActiveTab] = useState<'pic' | 'search' | 'manual'>('pic');
+  const [activeTab, setActiveTab] = useState<'search' | 'manual'>('search');
   const [loading, setLoading] = useState(false);
-  const [lookupLoading, setLookupLoading] = useState(false);
-  const [picNumber, setPicNumber] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Array<{
-    picNumber: string;
-    legalName: string;
-    shortName?: string;
-    country: string;
-    countryCode: string;
-    legalEntityType?: string;
-    isSme: boolean;
-    organisationCategory?: OrganisationCategory;
-  }>>([]);
-  const [lookupResult, setLookupResult] = useState<{
-    legalName: string;
-    shortName?: string;
-    country: string;
-    countryCode: string;
-    city?: string;
-    legalEntityType?: string;
-    isSme: boolean;
-    organisationCategory?: OrganisationCategory;
-  } | null>(null);
-  const [lookupError, setLookupError] = useState<string | null>(null);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [selectedResult, setSelectedResult] = useState<SearchResult | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
   
   // Manual entry form state
   const [manualForm, setManualForm] = useState({
@@ -80,50 +71,16 @@ export function AddParticipantDialog({
     organisationCategory: '' as OrganisationCategory | '',
   });
 
-  const handlePicLookup = async () => {
-    if (!picNumber || picNumber.length < 5) {
-      toast.error('Please enter a valid PIC number (minimum 5 digits)');
-      return;
-    }
-
-    setLookupLoading(true);
-    setLookupError(null);
-    setLookupResult(null);
-
-    try {
-      const { data, error } = await supabase.functions.invoke('lookup-pic', {
-        body: { picNumber: picNumber.trim() },
-      });
-
-      if (error) {
-        console.error('Lookup error:', error);
-        setLookupError('Failed to connect to the lookup service. Please try again or enter details manually.');
-        return;
-      }
-
-      if (data.success && data.organisation) {
-        setLookupResult(data.organisation);
-        toast.success(`Found: ${data.organisation.legalName}`);
-      } else {
-        setLookupError(data.message || 'Organisation not found. Try entering details manually.');
-      }
-    } catch (error) {
-      console.error('Lookup error:', error);
-      setLookupError('Lookup failed. Please try again or enter details manually.');
-    } finally {
-      setLookupLoading(false);
-    }
-  };
-
-  const handleNameSearch = async () => {
+  const handleSearch = async () => {
     if (!searchQuery || searchQuery.length < 2) {
       toast.error('Please enter at least 2 characters to search');
       return;
     }
 
-    setLookupLoading(true);
-    setLookupError(null);
+    setSearchLoading(true);
+    setSearchError(null);
     setSearchResults([]);
+    setSelectedResult(null);
 
     try {
       const { data, error } = await supabase.functions.invoke('lookup-pic', {
@@ -132,54 +89,47 @@ export function AddParticipantDialog({
 
       if (error) {
         console.error('Search error:', error);
-        setLookupError('Failed to connect to the search service. Please try again.');
+        setSearchError('Failed to connect to the search service. Please try again or enter details manually.');
         return;
       }
 
       if (data.success && data.results) {
         setSearchResults(data.results);
         if (data.results.length === 0) {
-          setLookupError('No organisations found matching your search. Try different terms or add manually.');
+          setSearchError('No organisations found. Try different search terms, or enter details manually.');
+        } else if (data.results.length === 1) {
+          // Auto-select if only one result
+          setSelectedResult(data.results[0]);
         }
       } else {
-        setLookupError(data.message || 'Search failed. Please try again.');
+        setSearchError(data.message || 'Search failed. Please try again.');
       }
     } catch (error) {
       console.error('Search error:', error);
-      setLookupError('Search failed. Please try again.');
+      setSearchError('Search failed. Please try again or enter details manually.');
     } finally {
-      setLookupLoading(false);
+      setSearchLoading(false);
     }
   };
 
-  const handleSelectSearchResult = (org: typeof searchResults[0]) => {
-    setLookupResult({
-      legalName: org.legalName,
-      shortName: org.shortName,
-      country: org.country,
-      countryCode: org.countryCode,
-      legalEntityType: org.legalEntityType,
-      isSme: org.isSme,
-      organisationCategory: org.organisationCategory,
-    });
-    setPicNumber(org.picNumber || '');
-    setActiveTab('pic');
+  const handleSelectResult = (org: SearchResult) => {
+    setSelectedResult(org);
   };
 
-  const handleAddFromLookup = async () => {
-    if (!lookupResult) return;
+  const handleAddFromSearch = async () => {
+    if (!selectedResult) return;
 
     setLoading(true);
     try {
       await onAddParticipant({
-        organisationName: lookupResult.legalName,
-        organisationShortName: lookupResult.shortName,
+        organisationName: selectedResult.legalName,
+        organisationShortName: selectedResult.shortName,
         organisationType: 'beneficiary',
-        country: lookupResult.country,
-        picNumber: picNumber.trim(),
-        legalEntityType: lookupResult.legalEntityType,
-        isSme: lookupResult.isSme,
-        organisationCategory: lookupResult.organisationCategory,
+        country: selectedResult.country,
+        picNumber: selectedResult.picNumber,
+        legalEntityType: selectedResult.legalEntityType,
+        isSme: selectedResult.isSme,
+        organisationCategory: selectedResult.organisationCategory,
       });
       handleClose();
       toast.success('Participant added successfully');
@@ -218,11 +168,10 @@ export function AddParticipantDialog({
   };
 
   const handleClose = () => {
-    setPicNumber('');
     setSearchQuery('');
     setSearchResults([]);
-    setLookupResult(null);
-    setLookupError(null);
+    setSelectedResult(null);
+    setSearchError(null);
     setManualForm({
       organisationName: '',
       organisationShortName: '',
@@ -230,7 +179,7 @@ export function AddParticipantDialog({
       country: '',
       organisationCategory: '',
     });
-    setActiveTab('pic');
+    setActiveTab('search');
     onOpenChange(false);
   };
 
@@ -247,185 +196,139 @@ export function AddParticipantDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'pic' | 'search' | 'manual')}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="pic">PIC Lookup</TabsTrigger>
-            <TabsTrigger value="search">Search by Name</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'search' | 'manual')}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="search">Search</TabsTrigger>
             <TabsTrigger value="manual">Manual Entry</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="pic" className="space-y-4 pt-4">
-            <Alert>
-              <Info className="w-4 h-4" />
-              <AlertDescription>
-                Enter the 9-digit PIC (Participant Identification Code) from the{' '}
-                <a 
-                  href="https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/participant-register" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="underline text-primary hover:no-underline"
-                >
-                  EC Participant Register
-                </a>
-                .
-              </AlertDescription>
-            </Alert>
-
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <Label htmlFor="pic-number">PIC Number</Label>
-                <Input
-                  id="pic-number"
-                  value={picNumber}
-                  onChange={(e) => {
-                    setPicNumber(e.target.value.replace(/\D/g, ''));
-                    setLookupResult(null);
-                    setLookupError(null);
-                  }}
-                  placeholder="e.g. 999994438"
-                  maxLength={9}
-                  className="font-mono"
-                />
-              </div>
-              <div className="flex items-end">
-                <Button 
-                  onClick={handlePicLookup} 
-                  disabled={lookupLoading || !picNumber}
-                  className="gap-2"
-                >
-                  {lookupLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Search className="w-4 h-4" />
-                  )}
-                  Lookup
-                </Button>
-              </div>
-            </div>
-
-            {lookupError && (
-              <Alert variant="destructive">
-                <AlertDescription>{lookupError}</AlertDescription>
-              </Alert>
-            )}
-
-            {lookupResult && (
-              <div className="p-4 rounded-lg border bg-muted/50 space-y-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h4 className="font-semibold">{lookupResult.legalName}</h4>
-                    {lookupResult.shortName && (
-                      <p className="text-sm text-muted-foreground">Short name: {lookupResult.shortName}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Country:</span>{' '}
-                    <span className="font-medium">{lookupResult.country}</span>
-                  </div>
-                  {lookupResult.city && (
-                    <div>
-                      <span className="text-muted-foreground">City:</span>{' '}
-                      <span className="font-medium">{lookupResult.city}</span>
-                    </div>
-                  )}
-                  {lookupResult.legalEntityType && (
-                    <div className="col-span-2">
-                      <span className="text-muted-foreground">Type:</span>{' '}
-                      <span className="font-medium">{lookupResult.legalEntityType}</span>
-                    </div>
-                  )}
-                  {lookupResult.organisationCategory && (
-                    <div className="col-span-2">
-                      <span className="text-muted-foreground">Category:</span>{' '}
-                      <span className="font-medium">
-                        {lookupResult.organisationCategory} - {ORGANISATION_CATEGORY_LABELS[lookupResult.organisationCategory]}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </TabsContent>
 
           <TabsContent value="search" className="space-y-4 pt-4">
             <Alert>
               <Info className="w-4 h-4" />
               <AlertDescription>
-                Search for an organisation by name. Select from the results to add as a participant.
+                Search by PIC number (e.g. 906912365) or organisation name (e.g. Sitra, University of Helsinki).
               </AlertDescription>
             </Alert>
 
             <div className="flex gap-2">
               <div className="flex-1">
-                <Label htmlFor="search-query">Organisation Name</Label>
+                <Label htmlFor="search-query" className="sr-only">Search</Label>
                 <Input
                   id="search-query"
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
                     setSearchResults([]);
-                    setLookupError(null);
+                    setSelectedResult(null);
+                    setSearchError(null);
                   }}
-                  placeholder="e.g. Fraunhofer, University of Helsinki"
+                  placeholder="Enter PIC number or organisation name..."
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
-                      handleNameSearch();
+                      handleSearch();
                     }
                   }}
                 />
               </div>
-              <div className="flex items-end">
-                <Button 
-                  onClick={handleNameSearch} 
-                  disabled={lookupLoading || searchQuery.length < 2}
-                  className="gap-2"
-                >
-                  {lookupLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Search className="w-4 h-4" />
-                  )}
-                  Search
-                </Button>
-              </div>
+              <Button 
+                onClick={handleSearch} 
+                disabled={searchLoading || searchQuery.length < 2}
+                className="gap-2"
+              >
+                {searchLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Search className="w-4 h-4" />
+                )}
+                Search
+              </Button>
             </div>
 
-            {lookupError && (
+            {searchError && (
               <Alert variant="destructive">
-                <AlertDescription>{lookupError}</AlertDescription>
+                <AlertDescription>{searchError}</AlertDescription>
               </Alert>
             )}
 
             {searchResults.length > 0 && (
-              <div className="space-y-2 max-h-60 overflow-y-auto">
+              <div className="space-y-2">
                 <Label className="text-sm text-muted-foreground">
-                  Found {searchResults.length} organisation{searchResults.length !== 1 ? 's' : ''}
+                  Found {searchResults.length} organisation{searchResults.length !== 1 ? 's' : ''} - click to select
                 </Label>
-                {searchResults.map((org, idx) => (
-                  <button
-                    key={`${org.picNumber}-${idx}`}
-                    onClick={() => handleSelectSearchResult(org)}
-                    className="w-full p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors text-left"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{org.legalName}</p>
-                        {org.shortName && (
-                          <p className="text-sm text-muted-foreground">({org.shortName})</p>
-                        )}
+                <div className="max-h-52 overflow-y-auto space-y-2">
+                  {searchResults.map((org, idx) => (
+                    <button
+                      key={`${org.picNumber || org.legalName}-${idx}`}
+                      onClick={() => handleSelectResult(org)}
+                      className={`w-full p-3 rounded-lg border transition-colors text-left ${
+                        selectedResult?.legalName === org.legalName && selectedResult?.picNumber === org.picNumber
+                          ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                          : 'bg-card hover:bg-muted/50'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium truncate">{org.legalName}</p>
+                            {selectedResult?.legalName === org.legalName && selectedResult?.picNumber === org.picNumber && (
+                              <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                            )}
+                          </div>
+                          {org.shortName && (
+                            <p className="text-sm text-muted-foreground">({org.shortName})</p>
+                          )}
+                        </div>
+                        <div className="text-right text-sm shrink-0">
+                          <p className="text-muted-foreground">{org.country}</p>
+                          {org.picNumber && (
+                            <p className="font-mono text-xs text-muted-foreground">{org.picNumber}</p>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-right text-sm shrink-0">
-                        <p className="text-muted-foreground">{org.country}</p>
-                        {org.picNumber && (
-                          <p className="font-mono text-xs">{org.picNumber}</p>
-                        )}
-                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {selectedResult && (
+              <div className="p-4 rounded-lg border bg-muted/50 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h4 className="font-semibold">{selectedResult.legalName}</h4>
+                    {selectedResult.shortName && (
+                      <p className="text-sm text-muted-foreground">Short name: {selectedResult.shortName}</p>
+                    )}
+                  </div>
+                  <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Country:</span>{' '}
+                    <span className="font-medium">{selectedResult.country}</span>
+                  </div>
+                  {selectedResult.picNumber && (
+                    <div>
+                      <span className="text-muted-foreground">PIC:</span>{' '}
+                      <span className="font-medium font-mono">{selectedResult.picNumber}</span>
                     </div>
-                  </button>
-                ))}
+                  )}
+                  {selectedResult.legalEntityType && (
+                    <div className="col-span-2">
+                      <span className="text-muted-foreground">Type:</span>{' '}
+                      <span className="font-medium">{selectedResult.legalEntityType}</span>
+                    </div>
+                  )}
+                  {selectedResult.organisationCategory && (
+                    <div className="col-span-2">
+                      <span className="text-muted-foreground">Category:</span>{' '}
+                      <span className="font-medium">
+                        {selectedResult.organisationCategory} - {ORGANISATION_CATEGORY_LABELS[selectedResult.organisationCategory]}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </TabsContent>
@@ -481,17 +384,9 @@ export function AddParticipantDialog({
                       <SelectValue placeholder="Select country" />
                     </SelectTrigger>
                     <SelectContent className="max-h-60">
-                      <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">EU Member States</div>
-                      {EU_MEMBER_STATES.map((c) => (
-                        <SelectItem key={c.code} value={c.name}>{c.name}</SelectItem>
-                      ))}
-                      <div className="px-2 py-1 text-xs font-semibold text-muted-foreground mt-1">Associated Countries</div>
-                      {ASSOCIATED_COUNTRIES.map((c) => (
-                        <SelectItem key={c.code} value={c.name}>{c.name}</SelectItem>
-                      ))}
-                      <div className="px-2 py-1 text-xs font-semibold text-muted-foreground mt-1">Third Countries</div>
-                      {THIRD_COUNTRIES.map((c) => (
-                        <SelectItem key={c.code} value={c.name}>{c.name}</SelectItem>
+                      <SelectItem value="" disabled>Select country</SelectItem>
+                      {[...EU_MEMBER_STATES, ...ASSOCIATED_COUNTRIES, ...THIRD_COUNTRIES].map((country) => (
+                        <SelectItem key={country.code} value={country.name}>{country.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -506,6 +401,7 @@ export function AddParticipantDialog({
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="" disabled>Select category</SelectItem>
                       {Object.entries(ORGANISATION_CATEGORY_LABELS).map(([code, label]) => (
                         <SelectItem key={code} value={code}>{code} - {label}</SelectItem>
                       ))}
@@ -513,36 +409,24 @@ export function AddParticipantDialog({
                   </Select>
                 </div>
               </div>
-
             </div>
           </TabsContent>
         </Tabs>
 
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={handleClose} disabled={loading}>
+          <Button variant="outline" onClick={handleClose}>
             Cancel
           </Button>
-          {activeTab === 'pic' && (
+          {activeTab === 'search' ? (
             <Button 
-              onClick={handleAddFromLookup} 
-              disabled={loading || !lookupResult}
+              onClick={handleAddFromSearch} 
+              disabled={loading || !selectedResult}
               className="gap-2"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               Add Participant
             </Button>
-          )}
-          {activeTab === 'search' && (
-            <Button 
-              onClick={handleAddFromLookup} 
-              disabled={loading || !lookupResult}
-              className="gap-2"
-            >
-              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              Add Selected
-            </Button>
-          )}
-          {activeTab === 'manual' && (
+          ) : (
             <Button 
               onClick={handleAddManual} 
               disabled={loading || !manualForm.organisationName.trim()}
