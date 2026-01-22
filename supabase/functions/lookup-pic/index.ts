@@ -22,20 +22,64 @@ interface OrganisationInfo {
 }
 
 // Map legal entity types to organisation categories
+// Priority order matters - more specific types checked first
 function mapLegalEntityToCategory(legalEntityType?: string, isSme?: boolean): 'RES' | 'UNI' | 'IND' | 'SME' | 'NGO' | 'CSO' | 'PUB' | 'INT' | 'OTH' {
   if (!legalEntityType) return 'OTH';
   
   const type = legalEntityType.toLowerCase();
   
-  if (isSme) return 'SME';
-  if (type.includes('university') || type.includes('higher') || type.includes('education') || type.includes('academic') || type.includes('hen')) return 'UNI';
-  if (type.includes('research') || type.includes('rto') || type.includes('rec')) return 'RES';
-  if (type.includes('private') || type.includes('enterprise') || type.includes('company') || type.includes('industry') || type.includes('prc')) return 'IND';
-  if (type.includes('non-governmental') || type.includes('ngo') || type.includes('foundation') || type === 'oth') return 'NGO';
-  if (type.includes('civil society')) return 'CSO';
-  if (type.includes('public') || type.includes('government') || type.includes('authority') || type.includes('ministry') || type.includes('pub')) return 'PUB';
-  if (type.includes('international') || type.includes('intergovernmental')) return 'INT';
+  console.log(`Mapping legal entity type: "${legalEntityType}" (isSme: ${isSme})`);
   
+  // SME check - but only if explicitly marked as SME AND is a private entity
+  if (isSme && (type.includes('private') || type.includes('enterprise') || type.includes('company') || type.includes('prc'))) {
+    return 'SME';
+  }
+  
+  // Public organisations - check FIRST as "public" is explicit in EC register
+  // Includes: public body, public organisation, government, authority, ministry
+  if (type.includes('public') || type.includes('government') || type.includes('authority') || 
+      type.includes('ministry') || type.includes('pub') || type.includes('state') ||
+      type.includes('municipal') || type.includes('regional') || type.includes('national body')) {
+    return 'PUB';
+  }
+  
+  // International organisations
+  if (type.includes('international') || type.includes('intergovernmental') || type.includes('igo')) {
+    return 'INT';
+  }
+  
+  // Universities and Higher Education
+  if (type.includes('university') || type.includes('higher education') || 
+      type.includes('academic') || type.includes('hen') || type.includes('hes')) {
+    return 'UNI';
+  }
+  
+  // Research organisations
+  if (type.includes('research') || type.includes('rto') || type.includes('rec') || 
+      type.includes('r&d') || type.includes('scientific')) {
+    return 'RES';
+  }
+  
+  // Private for-profit / Industry
+  if (type.includes('private') || type.includes('enterprise') || type.includes('company') || 
+      type.includes('industry') || type.includes('prc') || type.includes('for-profit') ||
+      type.includes('commercial')) {
+    return isSme ? 'SME' : 'IND';
+  }
+  
+  // Civil society organisations
+  if (type.includes('civil society') || type.includes('cso')) {
+    return 'CSO';
+  }
+  
+  // NGOs - non-governmental, non-profit, foundations (but NOT public foundations)
+  if (type.includes('non-governmental') || type.includes('ngo') || 
+      type.includes('non-profit') || type.includes('nonprofit') ||
+      (type.includes('foundation') && !type.includes('public'))) {
+    return 'NGO';
+  }
+  
+  // Default fallback
   return 'OTH';
 }
 
