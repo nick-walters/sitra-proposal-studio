@@ -226,15 +226,7 @@ export function DeclarationsForm({ participants, proposalId, canEdit }: Declarat
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <FileCheck className="w-6 h-6" />
-              Declarations
-            </h1>
-            <p className="text-muted-foreground">
-              Each participant must complete the required declarations
-            </p>
-          </div>
+          <h1 className="text-2xl font-bold text-foreground">Part A5: Declarations</h1>
         </div>
 
         {/* Info Banner */}
