@@ -18,7 +18,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DuplicateProposalDialog } from "@/components/DuplicateProposalDialog";
 import { Section, BudgetType, ProposalStatus, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS } from "@/types/proposal";
 import { useState, useEffect } from "react";
-import { format } from "date-fns";
+import { format, differenceInDays } from "date-fns";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -30,12 +30,17 @@ import {
   Share2,
   ChevronLeft,
   ChevronRight,
-  Lock,
   Eye,
   Copy,
   Calendar,
   ExternalLink,
   FileText,
+  AlertTriangle,
+  Clock,
+  CheckCircle2,
+  Send,
+  PartyPopper,
+  XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePdfExport } from "@/hooks/usePdfExport";
@@ -462,21 +467,87 @@ export function ProposalEditor() {
   const workProgramme = WORK_PROGRAMMES.find(wp => wp.id === proposal?.workProgramme);
   const destination = DESTINATIONS.find(d => d.id === proposal?.destination);
 
-  // Status badge styling
-  const getStatusBadgeClass = (status?: ProposalStatus) => {
-    switch (status) {
-      case 'draft':
-        return 'bg-yellow-500/15 text-yellow-600 border border-yellow-500/30';
-      case 'submitted':
-        return 'bg-orange-500/15 text-orange-600 border border-orange-500/30';
-      case 'funded':
-        return 'bg-green-500/15 text-green-600 border border-green-500/30';
-      case 'not_funded':
-        return 'bg-red-500/15 text-red-600 border border-red-500/30';
-      default:
-        return 'bg-muted text-muted-foreground';
+  // Combined status info with icons (matches dashboard)
+  const getCombinedStatusInfo = () => {
+    const status = proposal?.status;
+    const deadline = proposal?.deadline;
+    
+    if (status === 'draft' && deadline) {
+      const daysLeft = differenceInDays(new Date(deadline), new Date());
+      
+      if (daysLeft <= 28) {
+        return {
+          label: 'Draft – critical',
+          days: daysLeft,
+          icon: AlertTriangle,
+          className: 'bg-red-500/15 text-red-600 border border-red-500/30',
+          iconColor: 'text-red-600',
+          alertBg: 'bg-red-500/10 border-b-red-500'
+        };
+      } else if (daysLeft <= 56) {
+        return {
+          label: 'Draft – due soon',
+          days: daysLeft,
+          icon: Clock,
+          className: 'bg-orange-500/15 text-orange-600 border border-orange-500/30',
+          iconColor: 'text-orange-600',
+          alertBg: 'bg-orange-500/10 border-b-orange-500'
+        };
+      } else {
+        return {
+          label: 'Draft – on track',
+          days: daysLeft,
+          icon: CheckCircle2,
+          className: 'bg-green-500/15 text-green-600 border border-green-500/30',
+          iconColor: 'text-green-600',
+          alertBg: 'bg-green-500/10 border-b-green-500'
+        };
+      }
+    } else if (status === 'draft') {
+      return {
+        label: 'Draft',
+        icon: Clock,
+        className: 'bg-yellow-500/15 text-yellow-600 border border-yellow-500/30',
+        iconColor: 'text-yellow-600',
+        alertBg: 'bg-yellow-500/10 border-b-yellow-500'
+      };
+    } else if (status === 'submitted') {
+      return {
+        label: 'Under evaluation',
+        icon: Send,
+        className: 'bg-orange-500/15 text-orange-600 border border-orange-500/30',
+        iconColor: 'text-orange-600',
+        alertBg: 'bg-orange-500/10 border-b-orange-500'
+      };
+    } else if (status === 'funded') {
+      return {
+        label: 'Funded',
+        icon: PartyPopper,
+        className: 'bg-white text-green-600 border border-green-500/30',
+        iconColor: 'text-green-600',
+        alertBg: 'bg-green-500/10 border-b-green-500'
+      };
+    } else if (status === 'not_funded') {
+      return {
+        label: 'Not funded',
+        icon: XCircle,
+        className: 'bg-white text-red-600 border border-red-500/30',
+        iconColor: 'text-red-600',
+        alertBg: 'bg-red-500/10 border-b-red-500'
+      };
     }
+    
+    return {
+      label: status || 'Unknown',
+      icon: Clock,
+      className: 'bg-muted text-muted-foreground',
+      iconColor: 'text-muted-foreground',
+      alertBg: 'bg-muted/50 border-b-muted'
+    };
   };
+
+  const statusInfo = getCombinedStatusInfo();
+  const StatusIcon = statusInfo.icon;
 
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
@@ -553,10 +624,17 @@ export function ProposalEditor() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Status badge with icon */}
+            <span className={`proposal-badge ${statusInfo.className} flex items-center gap-1 text-[10px]`}>
+              <StatusIcon className="w-3 h-3" />
+              {statusInfo.label}
+              {statusInfo.days !== undefined && ` (${statusInfo.days}d)`}
+            </span>
+            
             {/* Read-only indicator for non-draft proposals */}
             {!isDraft && (
               <Badge variant="outline" className="gap-1 bg-muted">
-                <Lock className="w-3 h-3" />
+                <Eye className="w-3 h-3" />
                 View Only
               </Badge>
             )}
@@ -609,35 +687,21 @@ export function ProposalEditor() {
       {proposal && (
         <Alert className={cn(
           "rounded-none border-x-0 border-t-0 border-b-2",
-          proposal.status === 'draft' 
-            ? "bg-yellow-500/10 border-b-yellow-500" 
-            : proposal.status === 'submitted' 
-            ? "bg-blue-500/10 border-b-blue-500" 
-            : proposal.status === 'funded' 
-            ? "bg-green-500/10 border-b-green-500" 
-            : proposal.status === 'not_funded' 
-            ? "bg-red-500/10 border-b-red-500" 
-            : "bg-muted/50 border-b-muted"
+          statusInfo.alertBg
         )}>
-          <Lock className={cn(
-            "h-4 w-4",
-            proposal.status === 'draft' ? "text-yellow-600" :
-            proposal.status === 'submitted' ? "text-blue-600" :
-            proposal.status === 'funded' ? "text-green-600" :
-            proposal.status === 'not_funded' ? "text-red-600" :
-            "text-muted-foreground"
-          )} />
+          <StatusIcon className={cn("h-4 w-4", statusInfo.iconColor)} />
           <AlertDescription className={cn(
             proposal.status === 'draft' ? "text-yellow-800" :
-            proposal.status === 'submitted' ? "text-blue-800" :
+            proposal.status === 'submitted' ? "text-orange-800" :
             proposal.status === 'funded' ? "text-green-800" :
             proposal.status === 'not_funded' ? "text-red-800" :
             ""
           )}>
             {proposal.status === 'draft' && (
               <>
-                <strong>Draft</strong> – this proposal is due by the deadline{' '}
-                {proposal.deadline ? format(new Date(proposal.deadline), 'dd/MM/yyyy') : 'not set'}.
+                <strong>{statusInfo.label}</strong> – this proposal is due by the deadline{' '}
+                {proposal.deadline ? format(new Date(proposal.deadline), 'dd/MM/yyyy') : 'not set'}
+                {statusInfo.days !== undefined && ` (${statusInfo.days} days remaining)`}.
               </>
             )}
             {proposal.status === 'submitted' && (
