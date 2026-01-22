@@ -3,7 +3,8 @@ import { SectionNavigator } from "@/components/SectionNavigator";
 import { DocumentEditor } from "@/components/DocumentEditor";
 import { VersionHistoryDialog } from "@/components/VersionHistoryDialog";
 import { ProposalSummaryPage } from "@/components/ProposalSummaryPage";
-import { ParticipantForm } from "@/components/ParticipantForm";
+import { ParticipantListView } from "@/components/ParticipantListView";
+import { ParticipantDetailForm } from "@/components/ParticipantDetailForm";
 import { GeneralInfoForm } from "@/components/GeneralInfoForm";
 import { BudgetSpreadsheetEnhanced } from "@/components/BudgetSpreadsheetEnhanced";
 import { EthicsForm } from "@/components/EthicsForm";
@@ -55,9 +56,11 @@ export function ProposalEditor() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [activeSection, setActiveSection] = useState<Section | null>(null);
+  const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isDuplicateOpen, setIsDuplicateOpen] = useState(false);
+  const [isAddParticipantOpen, setIsAddParticipantOpen] = useState(false);
   const { exportToPdf, exportProposalToPdf } = usePdfExport();
 
   // Fetch proposal data from database
@@ -100,6 +103,14 @@ export function ProposalEditor() {
   const { sections: allSections, loading: sectionsLoading } = useProposalSections(proposal?.templateTypeId || null);
 
   const handleSectionClick = (section: Section) => {
+    // Clear selected participant when navigating away from A2
+    if (section.id !== 'a2' && !section.id.startsWith('a2-')) {
+      setSelectedParticipantId(null);
+    }
+    // If clicking on a participant section, extract the ID
+    if (section.id.startsWith('a2-')) {
+      setSelectedParticipantId(section.id.replace('a2-', ''));
+    }
     setActiveSection(section);
   };
 
@@ -261,23 +272,93 @@ export function ProposalEditor() {
         );
       }
 
-      // A2 - Participants (form-based) - matches "a2"
+      // A2 - Participants (list or detail view) - matches "a2" or "a2-{participantId}"
       if (activeSection.id === 'a2' || activeSection.id === 'participants') {
+        // Check if a specific participant is selected (from navigation or state)
+        if (selectedParticipantId) {
+          const selectedParticipant = participants.find(p => p.id === selectedParticipantId);
+          if (selectedParticipant) {
+            // Check if current user can edit this participant
+            const userParticipantMembers = participantMembers.filter(m => m.userId === user?.id);
+            const isUserMemberOfParticipant = userParticipantMembers.some(m => m.participantId === selectedParticipantId);
+            const canEditThisParticipant = canEdit && (isAdmin || isUserMemberOfParticipant);
+            
+            return (
+              <ParticipantDetailForm
+                participant={selectedParticipant}
+                participantMembers={participantMembers}
+                onUpdateParticipant={updateParticipant}
+                onDeleteParticipant={(id) => {
+                  deleteParticipant(id);
+                  setSelectedParticipantId(null);
+                }}
+                onAddMember={addParticipantMember}
+                onUpdateMember={updateParticipantMember}
+                onDeleteMember={deleteParticipantMember}
+                canEdit={canEditThisParticipant}
+                canDelete={isAdmin && canEdit}
+              />
+            );
+          }
+        }
+
+        // Filter participants for non-admin users
+        const visibleParticipants = isAdmin 
+          ? participants 
+          : participants.filter(p => {
+              const userMembers = participantMembers.filter(m => m.userId === user?.id);
+              return userMembers.some(m => m.participantId === p.id);
+            });
+
         return (
-          <ParticipantForm
-            participants={participants}
-            participantMembers={participantMembers}
-            onAddParticipant={addParticipant}
-            onUpdateParticipant={updateParticipant}
-            onDeleteParticipant={deleteParticipant}
-            onAddMember={addParticipantMember}
-            onUpdateMember={updateParticipantMember}
-            onDeleteMember={deleteParticipantMember}
-            canEditAll={isAdmin && canEdit}
-            currentUserId={user?.id}
-            proposalId={id || ''}
+          <ParticipantListView
+            participants={visibleParticipants}
+            onSelectParticipant={(p) => setSelectedParticipantId(p.id)}
+            onAddParticipant={() => {
+              // Create new participant and select it
+              addParticipant({
+                proposalId: id || '',
+                organisationName: 'New Participant',
+                organisationType: 'beneficiary',
+                isSme: false,
+                participantNumber: participants.length + 1,
+              });
+            }}
+            canAddParticipant={isAdmin && canEdit}
           />
         );
+      }
+
+      // Handle specific participant section (a2-{id})
+      if (activeSection.id.startsWith('a2-')) {
+        const participantId = activeSection.id.replace('a2-', '');
+        const participant = participants.find(p => p.id === participantId);
+        
+        if (participant) {
+          const userParticipantMembers = participantMembers.filter(m => m.userId === user?.id);
+          const isUserMemberOfParticipant = userParticipantMembers.some(m => m.participantId === participantId);
+          const canEditThisParticipant = canEdit && (isAdmin || isUserMemberOfParticipant);
+          
+          return (
+            <ParticipantDetailForm
+              participant={participant}
+              participantMembers={participantMembers}
+              onUpdateParticipant={updateParticipant}
+              onDeleteParticipant={(id) => {
+                deleteParticipant(id);
+                // Navigate back to A2 list
+                const a2Section = allSections.find(s => s.id === 'a2') || 
+                  allSections.flatMap(s => s.subsections || []).find(s => s.id === 'a2');
+                if (a2Section) setActiveSection(a2Section);
+              }}
+              onAddMember={addParticipantMember}
+              onUpdateMember={updateParticipantMember}
+              onDeleteMember={deleteParticipantMember}
+              canEdit={canEditThisParticipant}
+              canDelete={isAdmin && canEdit}
+            />
+          );
+        }
       }
 
       // A3 - Budget (spreadsheet) - matches "a3"
@@ -599,8 +680,12 @@ export function ProposalEditor() {
           <div className="flex-1 overflow-y-auto overflow-x-hidden">
             <SectionNavigator
               sections={allSections}
-              activeSectionId={activeSection?.id || null}
+              activeSectionId={activeSection?.id || selectedParticipantId ? `a2-${selectedParticipantId}` : null}
               onSectionClick={handleSectionClick}
+              participants={participants}
+              isAdmin={isAdmin}
+              currentUserId={user?.id}
+              participantMembers={participantMembers.map(m => ({ participantId: m.participantId, userId: m.userId }))}
             />
           </div>
 

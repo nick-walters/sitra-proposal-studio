@@ -1,6 +1,6 @@
-import { Section } from "@/types/proposal";
-import { ChevronRight, ChevronDown, FileText, Info, Lightbulb } from "lucide-react";
-import { useState } from "react";
+import { Section, Participant } from "@/types/proposal";
+import { ChevronRight, ChevronDown, FileText, Info, Lightbulb, Building2 } from "lucide-react";
+import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 
@@ -8,6 +8,10 @@ interface SectionNavigatorProps {
   sections: Section[];
   activeSectionId: string | null;
   onSectionClick: (section: Section) => void;
+  participants?: Participant[];
+  isAdmin?: boolean;
+  currentUserId?: string;
+  participantMembers?: { participantId: string; userId?: string }[];
 }
 
 // Format section number for display
@@ -160,7 +164,45 @@ export function SectionNavigator({
   sections,
   activeSectionId,
   onSectionClick,
+  participants = [],
+  isAdmin = false,
+  currentUserId,
+  participantMembers = [],
 }: SectionNavigatorProps) {
+  // Filter visible participants based on role
+  const visibleParticipants = useMemo(() => {
+    if (isAdmin) return participants;
+    return participants.filter(p => 
+      participantMembers.some(m => m.participantId === p.id && m.userId === currentUserId)
+    );
+  }, [participants, isAdmin, currentUserId, participantMembers]);
+
+  // Inject participants under A2 section
+  const sectionsWithParticipants = useMemo(() => {
+    return sections.map(section => {
+      if (section.subsections) {
+        return {
+          ...section,
+          subsections: section.subsections.map(sub => {
+            if (sub.id === 'a2' && visibleParticipants.length > 0) {
+              return {
+                ...sub,
+                subsections: visibleParticipants.map(p => ({
+                  id: `a2-${p.id}`,
+                  number: `${p.participantNumber}`,
+                  title: p.organisationShortName || p.organisationName || 'Participant',
+                  isPartA: true,
+                })),
+              };
+            }
+            return sub;
+          }),
+        };
+      }
+      return section;
+    });
+  }, [sections, visibleParticipants]);
+
   return (
     <nav className="py-2">
       <div className="px-4 py-2 mb-2">
@@ -169,7 +211,7 @@ export function SectionNavigator({
         </h2>
       </div>
       <div className="space-y-0.5">
-        {sections.map((section) => (
+        {sectionsWithParticipants.map((section) => (
           <SectionItem
             key={section.id}
             section={section}
