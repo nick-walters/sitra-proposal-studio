@@ -50,6 +50,23 @@ interface SortableParticipantCardProps {
   canReorder: boolean;
 }
 
+/**
+ * Format organisation display name following EC conventions:
+ * - If English name exists and differs from legal name: "English Name (Legal Name)"
+ * - Otherwise: just the legal/organisation name
+ */
+function formatOrganisationDisplayName(participant: Participant): string {
+  const legalName = participant.organisationName || 'Unnamed Organisation';
+  const englishName = participant.englishName;
+  
+  // If there's an English name and it's different from the legal name
+  if (englishName && englishName.trim() && englishName.trim().toLowerCase() !== legalName.trim().toLowerCase()) {
+    return `${englishName} (${legalName})`;
+  }
+  
+  return legalName;
+}
+
 function SortableParticipantCard({ participant, onSelect, canReorder }: SortableParticipantCardProps) {
   const {
     attributes,
@@ -94,11 +111,11 @@ function SortableParticipantCard({ participant, onSelect, canReorder }: Sortable
               <div className="cursor-pointer" onClick={onSelect}>
                 <div className="flex items-center gap-2">
                   <h3 className="font-medium">
-                    {participant.organisationName || 'Unnamed Organisation'}
+                    {formatOrganisationDisplayName(participant)}
                   </h3>
                   {participant.organisationShortName && (
-                    <span className="text-muted-foreground">
-                      ({participant.organisationShortName})
+                    <span className="text-muted-foreground text-sm">
+                      [{participant.organisationShortName}]
                     </span>
                   )}
                   {participant.participantNumber === 1 && (
@@ -253,11 +270,11 @@ export function ParticipantListView({
                       <div>
                         <div className="flex items-center gap-2">
                           <h3 className="font-medium">
-                            {participant.organisationName || 'Unnamed Organisation'}
+                            {formatOrganisationDisplayName(participant)}
                           </h3>
                           {participant.organisationShortName && (
-                            <span className="text-muted-foreground">
-                              ({participant.organisationShortName})
+                            <span className="text-muted-foreground text-sm">
+                              [{participant.organisationShortName}]
                             </span>
                           )}
                           {participant.participantNumber === 1 && (
