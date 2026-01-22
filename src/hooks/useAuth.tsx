@@ -13,7 +13,14 @@ export function useAuth() {
     }
   });
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  // If we have a cached user, don't show loading state - prevents redirect flash
+  const [loading, setLoading] = useState(() => {
+    try {
+      return !sessionStorage.getItem('auth-user');
+    } catch {
+      return true;
+    }
+  });
 
   const updateAuthState = useCallback((newSession: Session | null) => {
     setSession(newSession);
