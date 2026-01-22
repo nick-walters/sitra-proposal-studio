@@ -109,19 +109,9 @@ export function BudgetSpreadsheet({
             </InlineGuideline>
           </div>
           <div className="flex items-center gap-3">
-            <Select
-              value={budgetType}
-              onValueChange={(v) => onChangeBudgetType(v as BudgetType)}
-              disabled={!canEdit}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="traditional">Standard Budget</SelectItem>
-                <SelectItem value="lump_sum">Lump Sum Budget</SelectItem>
-              </SelectContent>
-            </Select>
+            <Badge variant={budgetType === 'lump_sum' ? 'default' : 'secondary'}>
+              {budgetType === 'lump_sum' ? 'Lump Sum' : 'Standard'}
+            </Badge>
             <Button variant="outline" className="gap-2">
               <Download className="w-4 h-4" />
               Export

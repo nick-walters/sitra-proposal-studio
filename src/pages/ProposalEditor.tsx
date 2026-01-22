@@ -314,9 +314,9 @@ export function ProposalEditor() {
           <ParticipantListView
             participants={visibleParticipants}
             onSelectParticipant={(p) => setSelectedParticipantId(p.id)}
-            onAddParticipant={() => {
+            onAddParticipant={async () => {
               // Create new participant and select it
-              addParticipant({
+              await addParticipant({
                 proposalId: id || '',
                 organisationName: 'New Participant',
                 organisationType: 'beneficiary',

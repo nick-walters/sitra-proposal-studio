@@ -245,20 +245,9 @@ export function BudgetSpreadsheetEnhanced({
             </p>
           </div>
           <div className="flex items-center gap-3">
-            {canEdit && (
-              <Select
-                value={budgetType}
-                onValueChange={(v) => onChangeBudgetType(v as BudgetType)}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="traditional">Standard Budget</SelectItem>
-                  <SelectItem value="lump_sum">Lump Sum Budget</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
+            <Badge variant={budgetType === 'lump_sum' ? 'default' : 'secondary'}>
+              {budgetType === 'lump_sum' ? 'Lump Sum' : 'Standard'}
+            </Badge>
             <Sheet open={showChangeHistory} onOpenChange={setShowChangeHistory}>
               <SheetTrigger asChild>
                 <Button variant="outline" className="gap-2">
