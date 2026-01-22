@@ -6,19 +6,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { Calendar } from '@/components/ui/calendar';
 import { LogoUpload } from '@/components/LogoUpload';
 import { ProposalSchedule } from '@/components/ProposalSchedule';
-import { DirectChatDialog } from '@/components/DirectChatDialog';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
 import { Proposal, Participant, ParticipantMember, PARTICIPANT_TYPE_LABELS, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS, PROPOSAL_TYPE_LABELS, ProposalType, ProposalStatus, getDestinationsForWorkProgramme } from '@/types/proposal';
-import { supabase } from '@/integrations/supabase/client';
+
 import {
   ExternalLink,
   Calendar as CalendarIcon,
   Euro,
-  Users,
+  
   Building2,
   MapPin,
   Clock,
@@ -29,10 +27,6 @@ import {
   X,
   Mail,
   Hash,
-  Phone,
-  Globe,
-  Linkedin,
-  MessageCircle,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -49,26 +43,6 @@ interface ProposalSummaryPageProps {
   isAdmin?: boolean;
 }
 
-interface TeamMember {
-  id: string;
-  fullName: string;
-  email?: string;
-  roleInProject?: string;
-  personMonths?: number;
-  participantId: string;
-  organisation: string;
-  organisationShortName?: string;
-  organisationLogo?: string;
-  // Additional collaborator fields
-  isCollaborator?: boolean;
-  collaboratorRole?: string;
-  // Profile contact info
-  phone?: string;
-  countryCode?: string;
-  website?: string;
-  linkedin?: string;
-  avatarUrl?: string;
-}
 
 // Generate a consistent color from acronym
 function getAcronymColor(acronym: string): string {
@@ -151,64 +125,9 @@ export function ProposalSummaryPage({
 }: ProposalSummaryPageProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedProposal, setEditedProposal] = useState(proposal);
-  const [chatUserId, setChatUserId] = useState<string | null>(null);
   const [availableDestinations, setAvailableDestinations] = useState(
     proposal.workProgramme ? getDestinationsForWorkProgramme(proposal.workProgramme) : []
   );
-  const [collaborators, setCollaborators] = useState<Array<{
-    id: string;
-    userId: string;
-    role: string;
-    email?: string;
-    fullName?: string;
-    phone?: string;
-    countryCode?: string;
-    website?: string;
-    linkedin?: string;
-    avatarUrl?: string;
-  }>>([]);
-
-  // Fetch collaborators (users with roles on this proposal)
-  useEffect(() => {
-    async function fetchCollaborators() {
-      const { data: roles, error } = await supabase
-        .from('user_roles')
-        .select('id, user_id, role')
-        .eq('proposal_id', proposal.id);
-
-      if (error) {
-        console.error('Error fetching collaborators:', error);
-        return;
-      }
-
-      if (roles && roles.length > 0) {
-        const userIds = roles.map(r => r.user_id);
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, full_name, email, phone_number, country_code, website, linkedin, avatar_url')
-          .in('id', userIds);
-
-        const collaboratorList = roles.map(role => {
-          const profile = profiles?.find(p => p.id === role.user_id);
-          return {
-            id: role.id,
-            userId: role.user_id,
-            role: role.role,
-            email: profile?.email,
-            fullName: profile?.full_name,
-            phone: profile?.phone_number,
-            countryCode: profile?.country_code,
-            website: profile?.website,
-            linkedin: profile?.linkedin,
-            avatarUrl: profile?.avatar_url,
-          };
-        });
-        setCollaborators(collaboratorList);
-      }
-    }
-
-    fetchCollaborators();
-  }, [proposal.id]);
 
   useEffect(() => {
     if (editedProposal.workProgramme) {
@@ -220,55 +139,6 @@ export function ProposalSummaryPage({
   const destination = DESTINATIONS.find(d => d.id === proposal.destination);
 
   const participants = realParticipants;
-  
-  // Merge team members with collaborator info
-  const teamMembers: TeamMember[] = realMembers.map(m => {
-    const participant = participants.find(p => p.id === m.participantId);
-    const collaborator = collaborators.find(c => c.email === m.email);
-    return {
-      id: m.id,
-      fullName: m.fullName,
-      email: m.email,
-      roleInProject: m.roleInProject,
-      personMonths: m.personMonths,
-      participantId: m.participantId,
-      organisation: participant?.organisationName || 'Unknown',
-      organisationShortName: participant?.organisationShortName || '',
-      organisationLogo: participant?.logoUrl,
-      isCollaborator: !!collaborator,
-      collaboratorRole: collaborator?.role,
-      phone: collaborator?.phone,
-      countryCode: collaborator?.countryCode,
-      website: collaborator?.website,
-      linkedin: collaborator?.linkedin,
-      avatarUrl: collaborator?.avatarUrl,
-    };
-  });
-
-  // Add collaborators who aren't in team members list
-  collaborators.forEach(collab => {
-    if (!teamMembers.find(m => m.email === collab.email)) {
-      teamMembers.push({
-        id: collab.id,
-        fullName: collab.fullName || collab.email || 'Unknown',
-        email: collab.email,
-        roleInProject: undefined,
-        personMonths: undefined,
-        participantId: '',
-        organisation: '',
-        organisationShortName: '',
-        isCollaborator: true,
-        collaboratorRole: collab.role,
-        phone: collab.phone,
-        countryCode: collab.countryCode,
-        website: collab.website,
-        linkedin: collab.linkedin,
-        avatarUrl: collab.avatarUrl,
-      });
-    }
-  });
-
-  // Calculate total budget from items
   const totalBudgetFromItems = budgetItems.reduce((sum, item) => sum + item.amount, 0);
 
   // Calculate days until deadline
@@ -776,138 +646,9 @@ export function ProposalSummaryPage({
           </CardContent>
         </Card>
 
-        {/* Collaborators */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              Collaborators
-            </CardTitle>
-            <CardDescription>
-              People working on this proposal
-              {teamMembers.filter(m => m.personMonths).length > 0 && (
-                <> ({teamMembers.reduce((sum, m) => sum + (m.personMonths || 0), 0)} total person-months)</>
-              )}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {teamMembers.length > 0 ? (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {teamMembers.map((member) => (
-                  <HoverCard key={member.id} openDelay={200} closeDelay={100}>
-                    <HoverCardTrigger asChild>
-                      <div className="flex items-center gap-3 p-3 rounded-lg border bg-card cursor-pointer hover:bg-muted/50 transition-colors">
-                        <Avatar className="w-10 h-10">
-                          {member.organisationLogo ? (
-                            <AvatarImage src={member.organisationLogo} alt={member.organisationShortName} />
-                          ) : null}
-                          <AvatarFallback className="bg-primary/10 text-primary">
-                            {member.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{member.fullName}</p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {member.roleInProject || member.organisationShortName || member.organisation}
-                          </p>
-                        </div>
-                        <div className="flex flex-col items-end gap-1">
-                          {member.collaboratorRole && (
-                            <Badge variant={member.collaboratorRole === 'owner' ? 'default' : member.collaboratorRole === 'admin' ? 'secondary' : 'outline'} className="text-xs capitalize">
-                              {member.collaboratorRole}
-                            </Badge>
-                          )}
-                          {member.personMonths && (
-                            <span className="text-xs text-muted-foreground">{member.personMonths} PM</span>
-                          )}
-                        </div>
-                      </div>
-                    </HoverCardTrigger>
-                    <HoverCardContent className="w-80" side="top">
-                      <div className="flex gap-4">
-                        <Avatar className="w-12 h-12">
-                          {member.avatarUrl ? (
-                            <AvatarImage src={member.avatarUrl} alt={member.fullName} />
-                          ) : null}
-                          <AvatarFallback className="bg-primary/10 text-primary text-lg">
-                            {member.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="space-y-1.5 flex-1">
-                          <h4 className="text-sm font-semibold">{member.fullName}</h4>
-                          {member.organisation && (
-                            <p className="text-xs text-muted-foreground">{member.organisation}</p>
-                          )}
-                          <div className="space-y-1 pt-1">
-                            {member.email && (
-                              <a href={`mailto:${member.email}`} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors">
-                                <Mail className="w-3 h-3" />
-                                <span>{member.email}</span>
-                              </a>
-                            )}
-                            {member.phone && (
-                              <a href={`tel:${member.countryCode || ''}${member.phone}`} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors">
-                                <Phone className="w-3 h-3" />
-                                <span>{member.countryCode && `${member.countryCode} `}{member.phone}</span>
-                              </a>
-                            )}
-                            {member.linkedin && (
-                              <a href={member.linkedin.startsWith('http') ? member.linkedin : `https://linkedin.com/in/${member.linkedin}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors">
-                                <Linkedin className="w-3 h-3" />
-                                <span>LinkedIn</span>
-                              </a>
-                            )}
-                            {member.website && (
-                              <a href={member.website.startsWith('http') ? member.website : `https://${member.website}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors">
-                                <Globe className="w-3 h-3" />
-                                <span className="truncate">{member.website.replace(/^https?:\/\//, '')}</span>
-                              </a>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 pt-1 flex-wrap">
-                            {member.roleInProject && (
-                              <Badge variant="outline" className="text-xs">{member.roleInProject}</Badge>
-                            )}
-                            {member.collaboratorRole && (
-                              <Badge variant={member.collaboratorRole === 'owner' ? 'default' : 'secondary'} className="text-xs capitalize">
-                                {member.collaboratorRole}
-                              </Badge>
-                            )}
-                            {member.personMonths && (
-                              <span className="text-xs text-muted-foreground">{member.personMonths} PM</span>
-                            )}
-                          </div>
-                          {member.isCollaborator && member.id && (
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="mt-2 w-full gap-1.5 text-xs"
-                              onClick={() => setChatUserId(member.id)}
-                            >
-                              <MessageCircle className="w-3 h-3" />
-                              Send message
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </HoverCardContent>
-                  </HoverCard>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No team members added yet.</p>
-            )}
-          </CardContent>
-        </Card>
         </div>
       </div>
 
-      {/* Direct Chat Dialog */}
-      <DirectChatDialog
-        open={!!chatUserId}
-        onOpenChange={(open) => !open && setChatUserId(null)}
-        userId={chatUserId || ''}
-      />
 
       {/* Floating Edit Bar for Owners/Admins */}
       {userCanEdit && (
