@@ -588,15 +588,15 @@ export function ProposalEditor() {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex min-h-0">
-        {/* Sidebar */}
+      <div className="flex-1 flex min-h-0 overflow-hidden">
+        {/* Sidebar - scrolls independently */}
         <aside
           className={cn(
-            "border-r border-border bg-card flex flex-col transition-all duration-300",
+            "border-r border-border bg-card flex flex-col transition-all duration-300 h-full",
             isSidebarCollapsed ? "w-0 overflow-hidden" : "w-72"
           )}
         >
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0">
             <SectionNavigator
               sections={allSections}
               activeSectionId={activeSection?.id || null}
@@ -604,8 +604,8 @@ export function ProposalEditor() {
             />
           </div>
 
-          {/* Collaborators */}
-          <div className="p-4 border-t border-border">
+          {/* Collaborators - fixed at bottom */}
+          <div className="p-4 border-t border-border flex-shrink-0">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Collaborators
