@@ -1,14 +1,27 @@
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Participant, PARTICIPANT_TYPE_LABELS } from '@/types/proposal';
+import { Participant, PARTICIPANT_TYPE_LABELS, ParticipantType } from '@/types/proposal';
 import { Plus, Building2, ChevronRight } from 'lucide-react';
 import { InlineGuideline } from './GuidelineBox';
 import { Badge } from './ui/badge';
+import { AddParticipantDialog } from './AddParticipantDialog';
+import { OrganisationCategory } from './ParticipantTable';
 
 interface ParticipantListViewProps {
   participants: Participant[];
   onSelectParticipant: (participant: Participant) => void;
-  onAddParticipant: () => void;
+  onAddParticipant: (participant: {
+    organisationName: string;
+    organisationShortName?: string;
+    organisationType: ParticipantType;
+    country?: string;
+    picNumber?: string;
+    legalEntityType?: string;
+    isSme: boolean;
+    organisationCategory?: OrganisationCategory;
+    englishName?: string;
+  }) => Promise<void>;
   canAddParticipant: boolean;
 }
 
@@ -18,6 +31,22 @@ export function ParticipantListView({
   onAddParticipant,
   canAddParticipant,
 }: ParticipantListViewProps) {
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+
+  const handleAddParticipant = async (participant: {
+    organisationName: string;
+    organisationShortName?: string;
+    organisationType: ParticipantType;
+    country?: string;
+    picNumber?: string;
+    legalEntityType?: string;
+    isSme: boolean;
+    organisationCategory?: OrganisationCategory;
+    englishName?: string;
+  }) => {
+    await onAddParticipant(participant);
+  };
+
   return (
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
       <div className="max-w-3xl mx-auto space-y-6">
@@ -30,7 +59,7 @@ export function ParticipantListView({
             </InlineGuideline>
           </div>
           {canAddParticipant && (
-            <Button onClick={onAddParticipant} className="gap-2">
+            <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
               <Plus className="w-4 h-4" />
               Add Participant
             </Button>
@@ -47,7 +76,7 @@ export function ParticipantListView({
                 Add the first participant organisation to get started
               </p>
               {canAddParticipant && (
-                <Button onClick={onAddParticipant} className="mt-4 gap-2">
+                <Button onClick={() => setIsAddDialogOpen(true)} className="mt-4 gap-2">
                   <Plus className="w-4 h-4" />
                   Add Participant
                 </Button>
@@ -99,6 +128,14 @@ export function ParticipantListView({
           </div>
         )}
       </div>
+
+      {/* Add Participant Dialog */}
+      <AddParticipantDialog
+        open={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        onAddParticipant={handleAddParticipant}
+        participantCount={participants.length}
+      />
     </div>
   );
 }

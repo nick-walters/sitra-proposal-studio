@@ -165,7 +165,7 @@ export function ParticipantTable({
               <TableCell className="py-0.5 px-1 font-medium align-top whitespace-nowrap">
                 {participant.organisationShortName || '—'}
               </TableCell>
-              <TableCell className="py-0.5 px-1 align-top">
+              <TableCell className="py-0.5 px-1 align-top text-left">
                 <div className="flex flex-col gap-0.5">
                   <span className="font-medium">
                     {toNameCase(participant.organisationName)}
@@ -186,7 +186,7 @@ export function ParticipantTable({
                   )}
                 </div>
               </TableCell>
-              <TableCell className="py-0.5 px-1 w-12 align-top">
+              <TableCell className="py-0.5 px-1 w-12 align-top text-right">
                 {isEditing ? (
                   <div className="relative group">
                     <input

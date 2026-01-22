@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Section } from '@/types/proposal';
-import { PART_A_SECTIONS, HORIZON_EUROPE_SECTIONS, FIGURES_SECTION } from '@/types/proposal';
+import { PART_A_SECTIONS, HORIZON_EUROPE_SECTIONS } from '@/types/proposal';
 
 interface TemplateSectionData {
   id: string;
@@ -174,12 +174,12 @@ export function useProposalSections(templateTypeId: string | null) {
       const partASections = templateSections.filter(s => s.isPartA);
       const partBSections = templateSections.filter(s => !s.isPartA);
       
-      // Always include figures section
-      return [...partASections, ...partBSections, FIGURES_SECTION];
+      // Note: Figures section is now included within Part B subsections
+      return [...partASections, ...partBSections];
     }
     
-    // Fallback to hardcoded sections
-    return [...PART_A_SECTIONS, ...HORIZON_EUROPE_SECTIONS, FIGURES_SECTION];
+    // Fallback to hardcoded sections (Figures is now inside Part B subsections)
+    return [...PART_A_SECTIONS, ...HORIZON_EUROPE_SECTIONS];
   }, [templateSections, hasTemplateSections]);
 
   // Create a refetch function that can be called externally

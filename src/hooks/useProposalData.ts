@@ -279,7 +279,7 @@ export function useProposalData(proposalId: string) {
   };
 
   // Add participant
-  const addParticipant = async (participant: Omit<Participant, 'id'>) => {
+  const addParticipant = async (participant: Omit<Participant, 'id'> & { organisationCategory?: string; englishName?: string }) => {
     const { data, error } = await supabase
       .from('participants')
       .insert({
@@ -294,6 +294,8 @@ export function useProposalData(proposalId: string) {
         participant_number: participant.participantNumber,
         contact_email: participant.contactEmail,
         address: participant.address,
+        organisation_category: participant.organisationCategory,
+        english_name: participant.englishName,
       })
       .select()
       .single();
@@ -303,7 +305,6 @@ export function useProposalData(proposalId: string) {
       console.error(error);
     } else if (data) {
       await fetchParticipants();
-      toast.success('Participant added');
     }
   };
 
