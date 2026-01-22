@@ -320,12 +320,15 @@ async function lookupFromCordis(picNumber: string): Promise<OrganisationInfo | n
   }
 }
 
-// Search CORDIS by organisation name
+// Search CORDIS by organisation name - use same approach as PIC lookup
 async function searchCordisOrganisations(searchTerm: string): Promise<OrganisationInfo[]> {
-  const url = `https://cordis.europa.eu/search/en?q=contenttype%3D%27organization%27+AND+${encodeURIComponent(searchTerm)}&format=json`;
+  // Use legalName field search similar to PIC lookup
+  const encodedTerm = encodeURIComponent(searchTerm);
+  const url = `https://cordis.europa.eu/search/en?q=contenttype%3D%27organization%27+AND+legalName%3D%27*${encodedTerm}*%27&format=json`;
   
   try {
     console.log(`Searching CORDIS for: ${searchTerm}`);
+    console.log(`CORDIS search URL: ${url}`);
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000);
@@ -339,6 +342,7 @@ async function searchCordisOrganisations(searchTerm: string): Promise<Organisati
     });
     
     clearTimeout(timeoutId);
+    console.log(`CORDIS search status: ${response.status}`);
     
     if (!response.ok) {
       console.log(`CORDIS search returned ${response.status}`);
@@ -353,7 +357,9 @@ async function searchCordisOrganisations(searchTerm: string): Promise<Organisati
     }
     
     const data = JSON.parse(text);
+    console.log(`CORDIS search response keys: ${Object.keys(data).join(', ')}`);
     
+    // Use same parsing logic as PIC lookup
     let results: any[] = [];
     if (Array.isArray(data.result)) {
       results = data.result;
@@ -361,17 +367,25 @@ async function searchCordisOrganisations(searchTerm: string): Promise<Organisati
       results = data.result.payload.organizations;
     } else if (data.result?.payload?.results && Array.isArray(data.result.payload.results)) {
       results = data.result.payload.results;
+    } else if (data.payload?.organizations && Array.isArray(data.payload.organizations)) {
+      results = data.payload.organizations;
+    } else if (data.results && Array.isArray(data.results)) {
+      results = data.results;
     }
     
     console.log(`CORDIS search found ${results.length} results`);
     
-    return results.slice(0, 10).map((org: any) => {
+    if (results.length > 0) {
+      console.log(`First result sample: ${JSON.stringify(results[0]).substring(0, 200)}`);
+    }
+    
+    return results.slice(0, 15).map((org: any) => {
       const countryCode = org.country || org.organisationCountry || '';
       const isSme = org.sme === 'true' || org.sme === true || org.SME === true;
       const legalEntityType = org.activityType || org.legalEntityType || org.organisationType || '';
       
       return {
-        picNumber: org.organizationID || org.pic || org.id || '',
+        picNumber: String(org.organizationID || org.pic || org.id || ''),
         legalName: org.legalName || org.name || org.title || '',
         shortName: org.shortName || org.acronym,
         country: COUNTRY_NAMES[countryCode] || countryCode,
@@ -380,9 +394,13 @@ async function searchCordisOrganisations(searchTerm: string): Promise<Organisati
         isSme: isSme,
         organisationCategory: mapLegalEntityToCategory(legalEntityType, isSme),
       };
-    }).filter((org: OrganisationInfo) => org.legalName); // Filter out empty results
-  } catch (error) {
-    console.error('CORDIS search error:', error);
+    }).filter((org: OrganisationInfo) => org.legalName && org.picNumber); // Filter out empty results
+  } catch (error: unknown) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.log('CORDIS search request timed out');
+    } else {
+      console.error('CORDIS search error:', error);
+    }
     return [];
   }
 }
