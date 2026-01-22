@@ -315,29 +315,10 @@ export function ProposalSummaryPage({
         {/* Header with Project Logo and Basic Info */}
         <Card>
           <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                Project identity
-              </CardTitle>
-              {userCanEdit && !isEditing ? (
-                <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
-                  <Pencil className="w-4 h-4 mr-1" />
-                  Edit
-                </Button>
-              ) : userCanEdit && isEditing ? (
-                <div className="flex items-center gap-2">
-                  <Button size="sm" variant="ghost" onClick={handleCancel}>
-                    <X className="w-4 h-4 mr-1" />
-                    Cancel
-                  </Button>
-                  <Button size="sm" onClick={handleSave}>
-                    <Check className="w-4 h-4 mr-1" />
-                    Save
-                  </Button>
-                </div>
-              ) : null}
-            </div>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Project identity
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-start gap-6">
@@ -425,36 +406,17 @@ export function ProposalSummaryPage({
                 <Target className="w-5 h-5" />
                 Topic
               </CardTitle>
-              <div className="flex items-center gap-2">
-                {proposal.topicUrl && !isEditing && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="gap-1.5"
-                    onClick={() => window.open(proposal.topicUrl, '_blank')}
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    View on portal
-                  </Button>
-                )}
-                {userCanEdit && !isEditing ? (
-                  <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
-                    <Pencil className="w-4 h-4 mr-1" />
-                    Edit
-                  </Button>
-                ) : userCanEdit && isEditing ? (
-                  <div className="flex items-center gap-2">
-                    <Button size="sm" variant="ghost" onClick={handleCancel}>
-                      <X className="w-4 h-4 mr-1" />
-                      Cancel
-                    </Button>
-                    <Button size="sm" onClick={handleSave}>
-                      <Check className="w-4 h-4 mr-1" />
-                      Save
-                    </Button>
-                  </div>
-                ) : null}
-              </div>
+              {proposal.topicUrl && !isEditing && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="gap-1.5"
+                  onClick={() => window.open(proposal.topicUrl, '_blank')}
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  View on portal
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -653,29 +615,10 @@ export function ProposalSummaryPage({
         {/* Budget Overview */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Euro className="w-5 h-5" />
-                Budget overview
-              </CardTitle>
-              {userCanEdit && !isEditing ? (
-                <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
-                  <Pencil className="w-4 h-4 mr-1" />
-                  Edit
-                </Button>
-              ) : userCanEdit && isEditing ? (
-                <div className="flex items-center gap-2">
-                  <Button size="sm" variant="ghost" onClick={handleCancel}>
-                    <X className="w-4 h-4 mr-1" />
-                    Cancel
-                  </Button>
-                  <Button size="sm" onClick={handleSave}>
-                    <Check className="w-4 h-4 mr-1" />
-                    Save
-                  </Button>
-                </div>
-              ) : null}
-            </div>
+            <CardTitle className="flex items-center gap-2">
+              <Euro className="w-5 h-5" />
+              Budget overview
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -756,6 +699,7 @@ export function ProposalSummaryPage({
             canEdit={canEdit}
             isAdmin={isAdmin}
             completionStats={completionStats}
+            isEditing={isEditing}
           />
         )}
 
@@ -964,6 +908,31 @@ export function ProposalSummaryPage({
         onOpenChange={(open) => !open && setChatUserId(null)}
         userId={chatUserId || ''}
       />
+
+      {/* Floating Edit Bar for Owners/Admins */}
+      {userCanEdit && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+          <div className="bg-background border shadow-lg rounded-full px-4 py-2 flex items-center gap-3">
+            {!isEditing ? (
+              <Button onClick={() => setIsEditing(true)} className="gap-2">
+                <Pencil className="w-4 h-4" />
+                Edit page
+              </Button>
+            ) : (
+              <>
+                <Button variant="ghost" onClick={handleCancel} className="gap-2">
+                  <X className="w-4 h-4" />
+                  Cancel
+                </Button>
+                <Button onClick={handleSave} className="gap-2">
+                  <Check className="w-4 h-4" />
+                  Save changes
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
