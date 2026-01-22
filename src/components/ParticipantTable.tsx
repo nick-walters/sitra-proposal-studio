@@ -311,7 +311,7 @@ export function ParticipantTable({
                   </Select>
                 ) : (
                   <span className="font-medium">
-                    {getCountryCode(participant.country) || '—'}
+                    {participant.country || '—'}
                   </span>
                 )}
               </TableCell>
