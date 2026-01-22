@@ -36,6 +36,8 @@ interface Declaration {
   id: string;
   number: number;
   text: string;
+  bullets?: string[];
+  suffix?: string;
   links?: DeclarationLink[];
 }
 
@@ -72,7 +74,12 @@ const DECLARATIONS = [
   {
     id: 'eligibility',
     number: 3,
-    text: 'We declare: to be fully compliant with the eligibility criteria set out in the call; not to be subject to any exclusion grounds under the EU Financial Regulation 2018/1046; to have the financial and operational capacity to carry out the proposed project.',
+    text: 'We declare:',
+    bullets: [
+      'to be fully compliant with the eligibility criteria set out in the call',
+      'not to be subject to any exclusion grounds under the EU Financial Regulation 2018/1046',
+      'to have the financial and operational capacity to carry out the proposed project'
+    ],
     links: [
       { text: 'EU Financial Regulation 2018/1046', url: 'https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32018R1046' }
     ],
@@ -116,7 +123,14 @@ const DECLARATIONS = [
   {
     id: 'prohibitedResearch',
     number: 8,
-    text: 'We confirm that the activities proposed do not: aim at human cloning for reproductive purposes; intend to modify the genetic heritage of human beings which could make such changes heritable (with the exception of research relating to cancer treatment of the gonads, which may be financed); intend to create human embryos solely for the purpose of research or for the purpose of stem cell procurement, including by means of somatic cell nuclear transfer; or lead to the destruction of human embryos (for example, for obtaining stem cells). These activities are excluded from funding.',
+    text: 'We confirm that the activities proposed do not:',
+    bullets: [
+      'aim at human cloning for reproductive purposes',
+      'intend to modify the genetic heritage of human beings which could make such changes heritable (with the exception of research relating to cancer treatment of the gonads, which may be financed)',
+      'intend to create human embryos solely for the purpose of research or for the purpose of stem cell procurement, including by means of somatic cell nuclear transfer',
+      'lead to the destruction of human embryos (for example, for obtaining stem cells)'
+    ],
+    suffix: 'These activities are excluded from funding.',
   },
   {
     id: 'outsideEU',
@@ -504,12 +518,24 @@ export function GeneralInfoForm({
                   disabled={!canEdit}
                   className="mt-0.5"
                 />
-                <Label 
-                  htmlFor={declaration.id} 
-                  className="font-normal text-sm leading-relaxed cursor-pointer"
-                >
-                  <span className="font-medium">{declaration.number}.</span>{' '}
-                  {declaration.text}
+                <div className="font-normal text-sm leading-relaxed">
+                  <Label 
+                    htmlFor={declaration.id} 
+                    className="font-normal cursor-pointer"
+                  >
+                    <span className="font-medium">{declaration.number}.</span>{' '}
+                    {declaration.text}
+                  </Label>
+                  {declaration.bullets && declaration.bullets.length > 0 && (
+                    <ul className="list-disc ml-5 mt-1 space-y-0.5">
+                      {declaration.bullets.map((bullet, idx) => (
+                        <li key={idx}>{bullet}</li>
+                      ))}
+                    </ul>
+                  )}
+                  {declaration.suffix && (
+                    <p className="mt-1">{declaration.suffix}</p>
+                  )}
                   {declaration.links && declaration.links.length > 0 && (
                     <span className="ml-1">
                       {declaration.links.map((link, idx) => (
@@ -528,7 +554,7 @@ export function GeneralInfoForm({
                       ))}
                     </span>
                   )}
-                </Label>
+                </div>
               </div>
             ))}
           </CardContent>
