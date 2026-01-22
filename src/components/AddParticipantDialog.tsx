@@ -66,7 +66,6 @@ export function AddParticipantDialog({
     organisationShortName: '',
     organisationType: 'beneficiary' as ParticipantType,
     country: '',
-    isSme: false,
     organisationCategory: '' as OrganisationCategory | '',
   });
 
@@ -143,7 +142,7 @@ export function AddParticipantDialog({
         organisationShortName: manualForm.organisationShortName.trim() || undefined,
         organisationType: manualForm.organisationType,
         country: manualForm.country || undefined,
-        isSme: manualForm.isSme,
+        isSme: false,
         organisationCategory: manualForm.organisationCategory || undefined,
       });
       handleClose();
@@ -165,7 +164,6 @@ export function AddParticipantDialog({
       organisationShortName: '',
       organisationType: 'beneficiary',
       country: '',
-      isSme: false,
       organisationCategory: '',
     });
     setActiveTab('pic');
@@ -255,11 +253,6 @@ export function AddParticipantDialog({
                       <p className="text-sm text-muted-foreground">Short name: {lookupResult.shortName}</p>
                     )}
                   </div>
-                  {lookupResult.isSme && (
-                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
-                      SME
-                    </span>
-                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
@@ -375,16 +368,6 @@ export function AddParticipantDialog({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="is-sme"
-                  checked={manualForm.isSme}
-                  onCheckedChange={(checked) => setManualForm({ ...manualForm, isSme: checked === true })}
-                />
-                <Label htmlFor="is-sme" className="cursor-pointer">
-                  This is an SME (Small or Medium-sized Enterprise)
-                </Label>
-              </div>
             </div>
           </TabsContent>
         </Tabs>
