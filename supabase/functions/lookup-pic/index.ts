@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,312 +21,173 @@ interface OrganisationInfo {
   organisationCategory?: 'RES' | 'UNI' | 'IND' | 'SME' | 'NGO' | 'CSO' | 'PUB' | 'INT' | 'OTH';
 }
 
-// Map legal entity types from CORDIS/EC to organisation categories
+// Map legal entity types to organisation categories
 function mapLegalEntityToCategory(legalEntityType?: string, isSme?: boolean): 'RES' | 'UNI' | 'IND' | 'SME' | 'NGO' | 'CSO' | 'PUB' | 'INT' | 'OTH' {
   if (!legalEntityType) return 'OTH';
   
   const type = legalEntityType.toLowerCase();
   
   if (isSme) return 'SME';
-  if (type.includes('university') || type.includes('higher') || type.includes('secondary education') || type.includes('academic')) return 'UNI';
-  if (type.includes('research') || type.includes('rto')) return 'RES';
-  if (type.includes('private for-profit') || type.includes('enterprise') || type.includes('company') || type.includes('industry')) return 'IND';
-  if (type.includes('non-governmental') || type.includes('ngo') || type.includes('foundation')) return 'NGO';
+  if (type.includes('university') || type.includes('higher') || type.includes('education') || type.includes('academic') || type.includes('hen')) return 'UNI';
+  if (type.includes('research') || type.includes('rto') || type.includes('rec')) return 'RES';
+  if (type.includes('private') || type.includes('enterprise') || type.includes('company') || type.includes('industry') || type.includes('prc')) return 'IND';
+  if (type.includes('non-governmental') || type.includes('ngo') || type.includes('foundation') || type === 'oth') return 'NGO';
   if (type.includes('civil society')) return 'CSO';
-  if (type.includes('public') || type.includes('government') || type.includes('authority') || type.includes('ministry')) return 'PUB';
+  if (type.includes('public') || type.includes('government') || type.includes('authority') || type.includes('ministry') || type.includes('pub')) return 'PUB';
   if (type.includes('international') || type.includes('intergovernmental')) return 'INT';
   
   return 'OTH';
 }
 
-// Try to fetch from EC Participant Register via CORDIS
+// Map country codes to country names
+const COUNTRY_NAMES: Record<string, string> = {
+  'AT': 'Austria', 'BE': 'Belgium', 'BG': 'Bulgaria', 'HR': 'Croatia', 'CY': 'Cyprus',
+  'CZ': 'Czech Republic', 'DK': 'Denmark', 'EE': 'Estonia', 'FI': 'Finland', 'FR': 'France',
+  'DE': 'Germany', 'GR': 'Greece', 'HU': 'Hungary', 'IE': 'Ireland', 'IT': 'Italy',
+  'LV': 'Latvia', 'LT': 'Lithuania', 'LU': 'Luxembourg', 'MT': 'Malta', 'NL': 'Netherlands',
+  'PL': 'Poland', 'PT': 'Portugal', 'RO': 'Romania', 'SK': 'Slovakia', 'SI': 'Slovenia',
+  'ES': 'Spain', 'SE': 'Sweden', 'GB': 'United Kingdom', 'UK': 'United Kingdom',
+  'NO': 'Norway', 'IS': 'Iceland', 'CH': 'Switzerland', 'IL': 'Israel', 'TR': 'Turkey',
+  'UA': 'Ukraine', 'RS': 'Serbia', 'ME': 'Montenegro', 'AL': 'Albania', 'MK': 'North Macedonia',
+};
+
+// Search our database of previously added organisations
+async function lookupFromDatabase(supabase: any, picNumber: string): Promise<OrganisationInfo | null> {
+  try {
+    console.log(`Checking database for PIC: ${picNumber}`);
+    
+    // First check organisations table
+    const { data: org, error } = await supabase
+      .from('organisations')
+      .select('*')
+      .eq('pic_number', picNumber)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('Database lookup error:', error);
+    }
+    
+    if (org) {
+      console.log(`Found in organisations table: ${org.name}`);
+      return {
+        picNumber: picNumber,
+        legalName: org.name,
+        shortName: org.short_name,
+        country: COUNTRY_NAMES[org.country] || org.country || '',
+        countryCode: org.country || '',
+        legalEntityType: org.legal_entity_type,
+        isSme: org.is_sme || false,
+        organisationCategory: mapLegalEntityToCategory(org.legal_entity_type, org.is_sme) as any,
+      };
+    }
+    
+    // Also check participants table for previously used PICs
+    const { data: participant, error: partError } = await supabase
+      .from('participants')
+      .select('*')
+      .eq('pic_number', picNumber)
+      .limit(1)
+      .maybeSingle();
+    
+    if (partError) {
+      console.error('Participants lookup error:', partError);
+    }
+    
+    if (participant) {
+      console.log(`Found in participants table: ${participant.organisation_name}`);
+      return {
+        picNumber: picNumber,
+        legalName: participant.english_name || participant.organisation_name,
+        shortName: participant.organisation_short_name,
+        country: COUNTRY_NAMES[participant.country] || participant.country || '',
+        countryCode: participant.country || '',
+        legalEntityType: participant.legal_entity_type,
+        isSme: participant.is_sme || false,
+        organisationCategory: participant.organisation_category as any || mapLegalEntityToCategory(participant.legal_entity_type, participant.is_sme),
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Database lookup error:', error);
+    return null;
+  }
+}
+
+// Try to fetch from CORDIS open data
 async function lookupFromCordis(picNumber: string): Promise<OrganisationInfo | null> {
   try {
-    // Try the CORDIS organisation API
-    const cordisUrl = `https://cordis.europa.eu/api/dataextractions/organization?pic=${picNumber}&format=json`;
-    console.log(`Fetching from CORDIS: ${cordisUrl}`);
+    // CORDIS organization search endpoint
+    const url = `https://cordis.europa.eu/search/result_en?q=contenttype%3D%27organization%27%20AND%20organisationID%3D%27${picNumber}%27&format=json`;
+    console.log(`Trying CORDIS search: ${url}`);
     
-    const response = await fetch(cordisUrl, {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    const response = await fetch(url, {
       headers: {
         'Accept': 'application/json',
         'User-Agent': 'SitraProposalStudio/1.0',
       },
+      signal: controller.signal,
     });
     
+    clearTimeout(timeoutId);
+    console.log(`CORDIS search status: ${response.status}`);
+    
     if (!response.ok) {
-      console.log(`CORDIS returned status ${response.status}`);
       return null;
     }
     
-    const data = await response.json();
-    console.log(`CORDIS response:`, JSON.stringify(data).substring(0, 500));
+    const text = await response.text();
+    console.log(`CORDIS response length: ${text.length}`);
     
-    // CORDIS returns an array of organisations
-    if (data && Array.isArray(data) && data.length > 0) {
-      const org = data[0];
-      return {
-        picNumber: picNumber,
-        legalName: org.legalName || org.name || 'Unknown',
-        shortName: org.shortName || org.acronym,
-        country: org.country?.name || org.countryName || '',
-        countryCode: org.country?.isoCode || org.countryCode || '',
-        city: org.city,
-        address: org.street,
-        legalEntityType: org.legalEntityType || org.activityType,
-        isSme: org.sme === true || org.isSme === true,
-        vatNumber: org.vatNumber,
-        registrationNumber: org.registrationNumber,
-      };
-    }
-    
-    // Try alternative structure
-    if (data && data.legalName) {
-      return {
-        picNumber: picNumber,
-        legalName: data.legalName || data.name || 'Unknown',
-        shortName: data.shortName || data.acronym,
-        country: data.country?.name || data.countryName || '',
-        countryCode: data.country?.isoCode || data.countryCode || '',
-        city: data.city,
-        address: data.street,
-        legalEntityType: data.legalEntityType || data.activityType,
-        isSme: data.sme === true || data.isSme === true,
-        vatNumber: data.vatNumber,
-        registrationNumber: data.registrationNumber,
-      };
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('CORDIS lookup error:', error);
-    return null;
-  }
-}
-
-// Try EC Participant Portal API (alternative source)
-async function lookupFromEcPortal(picNumber: string): Promise<OrganisationInfo | null> {
-  try {
-    // The EC Participant Portal has an open API for PIC validation
-    const portalUrl = `https://ec.europa.eu/info/funding-tenders/opportunities/api/organisation/${picNumber}`;
-    console.log(`Fetching from EC Portal: ${portalUrl}`);
-    
-    const response = await fetch(portalUrl, {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'SitraProposalStudio/1.0',
-      },
-    });
-    
-    if (!response.ok) {
-      console.log(`EC Portal returned status ${response.status}`);
-      return null;
-    }
-    
-    const data = await response.json();
-    console.log(`EC Portal response:`, JSON.stringify(data).substring(0, 500));
-    
-    if (data && (data.legalName || data.name)) {
-      return {
-        picNumber: picNumber,
-        legalName: data.legalName || data.name,
-        shortName: data.shortName || data.acronym,
-        country: data.country?.name || data.countryName || '',
-        countryCode: data.country?.isoCode || data.countryCode || '',
-        city: data.city,
-        address: data.street || data.address,
-        legalEntityType: data.legalEntityType || data.organisationType,
-        isSme: data.sme === true || data.isSme === true,
-        vatNumber: data.vatNumber,
-        registrationNumber: data.registrationNumber,
-      };
+    if (text && text.trim() !== '' && text.trim() !== '[]') {
+      try {
+        const data = JSON.parse(text);
+        
+        // Handle different response formats
+        let results = data.results || data.items || data.response?.docs || [];
+        if (!Array.isArray(results) && data.organisation) {
+          results = [data.organisation];
+        }
+        
+        if (results.length > 0) {
+          const org = results[0];
+          const countryCode = org.organisationCountry || org.country || '';
+          const isSme = org.sme === 'true' || org.sme === true;
+          const legalEntityType = org.activityType || org.legalEntityType || '';
+          
+          console.log(`CORDIS found: ${org.legalName || org.name}`);
+          
+          return {
+            picNumber: picNumber,
+            legalName: org.legalName || org.name || org.title || 'Unknown',
+            shortName: org.shortName || org.acronym,
+            country: COUNTRY_NAMES[countryCode] || countryCode,
+            countryCode: countryCode,
+            city: org.city,
+            address: org.street,
+            legalEntityType: legalEntityType,
+            isSme: isSme,
+            organisationCategory: mapLegalEntityToCategory(legalEntityType, isSme),
+          };
+        }
+      } catch (parseError) {
+        console.log('Failed to parse CORDIS response:', parseError);
+      }
     }
     
     return null;
-  } catch (error) {
-    console.error('EC Portal lookup error:', error);
+  } catch (error: unknown) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.log('CORDIS request timed out');
+    } else {
+      console.error('CORDIS lookup error:', error);
+    }
     return null;
   }
 }
-
-// Fallback database of common EU organisations
-const KNOWN_ORGANISATIONS: Record<string, OrganisationInfo> = {
-  "906912365": {
-    picNumber: "906912365",
-    legalName: "SITRA",
-    shortName: "Sitra",
-    country: "Finland",
-    countryCode: "FI",
-    city: "Helsinki",
-    legalEntityType: "Foundation",
-    isSme: false,
-    organisationCategory: "NGO",
-  },
-  "999984156": {
-    picNumber: "999984156",
-    legalName: "UNIVERSITAET HEIDELBERG",
-    shortName: "UNI-HD",
-    country: "Germany",
-    countryCode: "DE",
-    city: "Heidelberg",
-    legalEntityType: "Higher or Secondary Education Establishment",
-    isSme: false,
-    organisationCategory: "UNI",
-  },
-  "999977172": {
-    picNumber: "999977172",
-    legalName: "THE CHANCELLOR, MASTERS AND SCHOLARS OF THE UNIVERSITY OF CAMBRIDGE",
-    shortName: "UCAM",
-    country: "United Kingdom",
-    countryCode: "GB",
-    city: "Cambridge",
-    legalEntityType: "Higher or Secondary Education Establishment",
-    isSme: false,
-    organisationCategory: "UNI",
-  },
-  "999994438": {
-    picNumber: "999994438",
-    legalName: "UNIVERSITY OF HELSINKI",
-    shortName: "UH",
-    country: "Finland",
-    countryCode: "FI",
-    city: "Helsinki",
-    legalEntityType: "Higher or Secondary Education Establishment",
-    isSme: false,
-    organisationCategory: "UNI",
-  },
-  "999984059": {
-    picNumber: "999984059",
-    legalName: "FRAUNHOFER GESELLSCHAFT ZUR FOERDERUNG DER ANGEWANDTEN FORSCHUNG E.V.",
-    shortName: "Fraunhofer",
-    country: "Germany",
-    countryCode: "DE",
-    city: "München",
-    legalEntityType: "Research Organisation",
-    isSme: false,
-    organisationCategory: "RES",
-  },
-  "999985417": {
-    picNumber: "999985417",
-    legalName: "UNIVERSITY OF OXFORD",
-    shortName: "UOXF",
-    country: "United Kingdom",
-    countryCode: "GB",
-    city: "Oxford",
-    legalEntityType: "Higher or Secondary Education Establishment",
-    isSme: false,
-    organisationCategory: "UNI",
-  },
-  "999978433": {
-    picNumber: "999978433",
-    legalName: "LUDWIG-MAXIMILIANS-UNIVERSITAET MUENCHEN",
-    shortName: "LMU",
-    country: "Germany",
-    countryCode: "DE",
-    city: "München",
-    legalEntityType: "Higher or Secondary Education Establishment",
-    isSme: false,
-    organisationCategory: "UNI",
-  },
-  "999976784": {
-    picNumber: "999976784",
-    legalName: "POLITECNICO DI MILANO",
-    shortName: "POLIMI",
-    country: "Italy",
-    countryCode: "IT",
-    city: "Milano",
-    legalEntityType: "Higher or Secondary Education Establishment",
-    isSme: false,
-    organisationCategory: "UNI",
-  },
-  "999984253": {
-    picNumber: "999984253",
-    legalName: "TECHNISCHE UNIVERSITEIT DELFT",
-    shortName: "TU Delft",
-    country: "Netherlands",
-    countryCode: "NL",
-    city: "Delft",
-    legalEntityType: "Higher or Secondary Education Establishment",
-    isSme: false,
-    organisationCategory: "UNI",
-  },
-  "999997930": {
-    picNumber: "999997930",
-    legalName: "CENTRE NATIONAL DE LA RECHERCHE SCIENTIFIQUE CNRS",
-    shortName: "CNRS",
-    country: "France",
-    countryCode: "FR",
-    city: "Paris",
-    legalEntityType: "Research Organisation",
-    isSme: false,
-    organisationCategory: "RES",
-  },
-  "999978530": {
-    picNumber: "999978530",
-    legalName: "KAROLINSKA INSTITUTET",
-    shortName: "KI",
-    country: "Sweden",
-    countryCode: "SE",
-    city: "Stockholm",
-    legalEntityType: "Higher or Secondary Education Establishment",
-    isSme: false,
-    organisationCategory: "UNI",
-  },
-  "999979500": {
-    picNumber: "999979500",
-    legalName: "CONSIGLIO NAZIONALE DELLE RICERCHE",
-    shortName: "CNR",
-    country: "Italy",
-    countryCode: "IT",
-    city: "Roma",
-    legalEntityType: "Research Organisation",
-    isSme: false,
-    organisationCategory: "RES",
-  },
-  "999643007": {
-    picNumber: "999643007",
-    legalName: "AALTO KORKEAKOULUSAATIO SR",
-    shortName: "Aalto",
-    country: "Finland",
-    countryCode: "FI",
-    city: "Espoo",
-    legalEntityType: "Higher or Secondary Education Establishment",
-    isSme: false,
-    organisationCategory: "UNI",
-  },
-  "999986096": {
-    picNumber: "999986096",
-    legalName: "UNIVERSITEIT GENT",
-    shortName: "UGent",
-    country: "Belgium",
-    countryCode: "BE",
-    city: "Gent",
-    legalEntityType: "Higher or Secondary Education Establishment",
-    isSme: false,
-    organisationCategory: "UNI",
-  },
-  "999975620": {
-    picNumber: "999975620",
-    legalName: "UNIVERSITY COLLEGE LONDON",
-    shortName: "UCL",
-    country: "United Kingdom",
-    countryCode: "GB",
-    city: "London",
-    legalEntityType: "Higher or Secondary Education Establishment",
-    isSme: false,
-    organisationCategory: "UNI",
-  },
-  "888897696": {
-    picNumber: "888897696",
-    legalName: "ACME INNOVATION GMBH",
-    shortName: "ACME",
-    country: "Germany",
-    countryCode: "DE",
-    city: "Berlin",
-    legalEntityType: "Private for-profit entity",
-    isSme: true,
-    organisationCategory: "SME",
-  },
-};
 
 serve(async (req: Request) => {
   // Handle CORS preflight
@@ -337,65 +199,84 @@ serve(async (req: Request) => {
     const { picNumber, searchTerm } = await req.json();
     
     console.log(`PIC Lookup request - PIC: ${picNumber}, Search: ${searchTerm}`);
+    
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // If PIC number provided, do exact lookup
     if (picNumber) {
       const cleanPic = picNumber.replace(/\D/g, '');
       
-      // First check our local database
-      let org: OrganisationInfo | null = KNOWN_ORGANISATIONS[cleanPic] || null;
+      if (!cleanPic || cleanPic.length < 6 || cleanPic.length > 12) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Invalid PIC format',
+            message: 'PIC numbers should be 9 digits. Please check and try again.'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       
+      console.log(`Looking up PIC: ${cleanPic}`);
+      
+      // First check our database (fastest, includes previously used orgs)
+      let org = await lookupFromDatabase(supabase, cleanPic);
+      
+      // If not in database, try CORDIS
       if (!org) {
-        // Try CORDIS API
-        console.log(`PIC ${cleanPic} not in local DB, trying CORDIS API...`);
+        console.log('Not in database, trying CORDIS...');
         org = await lookupFromCordis(cleanPic);
-        
-        // If CORDIS fails, try EC Portal
-        if (!org) {
-          console.log(`CORDIS lookup failed, trying EC Portal...`);
-          org = await lookupFromEcPortal(cleanPic);
-        }
       }
       
       if (org) {
-        // Auto-detect category if not already set
-        const organisationWithCategory = {
-          ...org,
-          organisationCategory: org.organisationCategory || mapLegalEntityToCategory(org.legalEntityType, org.isSme),
-        };
-        
-        console.log(`Found organisation: ${org.legalName} (Category: ${organisationWithCategory.organisationCategory})`);
+        console.log(`Found organisation: ${org.legalName} (${org.countryCode}, Category: ${org.organisationCategory})`);
         return new Response(
-          JSON.stringify({ success: true, organisation: organisationWithCategory }),
+          JSON.stringify({ success: true, organisation: org }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       } else {
-        console.log(`PIC ${cleanPic} not found in any source`);
+        console.log(`PIC ${cleanPic} not found`);
         return new Response(
           JSON.stringify({ 
             success: false, 
             error: 'PIC not found',
-            message: `Organisation with PIC ${cleanPic} not found. The PIC may not be registered in the EC Participant Portal, or the external APIs may be temporarily unavailable. Please enter details manually.`
+            message: `Organisation with PIC ${cleanPic} was not found. The organisation may not have participated in previous EU projects, or the PIC may be new. Please enter details manually.`,
+            suggestManualEntry: true
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
     }
 
-    // If search term provided, search by name in local database
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      const results = Object.values(KNOWN_ORGANISATIONS)
-        .filter(org => 
-          org.legalName.toLowerCase().includes(term) ||
-          (org.shortName && org.shortName.toLowerCase().includes(term))
-        )
-        .map(org => ({
-          ...org,
-          organisationCategory: org.organisationCategory || mapLegalEntityToCategory(org.legalEntityType, org.isSme),
-        }));
-
-      console.log(`Search for "${searchTerm}" found ${results.length} results`);
+    // Search by name in our database
+    if (searchTerm && searchTerm.length >= 2) {
+      console.log(`Searching for: ${searchTerm}`);
+      
+      const { data: orgs, error } = await supabase
+        .from('organisations')
+        .select('*')
+        .or(`name.ilike.%${searchTerm}%,short_name.ilike.%${searchTerm}%`)
+        .limit(10);
+      
+      if (error) {
+        console.error('Search error:', error);
+      }
+      
+      const results = (orgs || []).map((org: any) => ({
+        picNumber: org.pic_number || '',
+        legalName: org.name,
+        shortName: org.short_name,
+        country: COUNTRY_NAMES[org.country] || org.country || '',
+        countryCode: org.country || '',
+        legalEntityType: org.legal_entity_type,
+        isSme: org.is_sme || false,
+        organisationCategory: mapLegalEntityToCategory(org.legal_entity_type, org.is_sme),
+      }));
+      
+      console.log(`Search found ${results.length} results`);
       return new Response(
         JSON.stringify({ success: true, results }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -410,7 +291,7 @@ serve(async (req: Request) => {
   } catch (error) {
     console.error('PIC Lookup error:', error);
     return new Response(
-      JSON.stringify({ success: false, error: 'Internal server error' }),
+      JSON.stringify({ success: false, error: 'Internal server error', message: String(error) }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
