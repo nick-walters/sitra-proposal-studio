@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -24,7 +23,6 @@ import {
   Clock,
   FileText,
   Target,
-  TrendingUp,
   Pencil,
   Check,
   X,
@@ -82,18 +80,47 @@ function getAcronymColor(acronym: string): string {
 function AcronymLogo({ logoUrl, acronym }: { logoUrl?: string; acronym: string }) {
   const acronymColor = getAcronymColor(acronym);
   
+  // Split acronym intelligently for display (e.g., TESTSTAGE1 -> TEST STAGE1)
+  const formatAcronymForDisplay = (acr: string) => {
+    // If short enough, display as is
+    if (acr.length <= 6) return [acr];
+    
+    // Try to find a natural split point (capital letter followed by capital, or before numbers)
+    const midPoint = Math.ceil(acr.length / 2);
+    // Look for a good split point near the middle
+    let splitIndex = midPoint;
+    
+    // Check for number boundary
+    for (let i = midPoint - 2; i < Math.min(midPoint + 3, acr.length); i++) {
+      if (i > 0 && /[A-Za-z]/.test(acr[i-1]) && /[0-9]/.test(acr[i])) {
+        splitIndex = i;
+        break;
+      }
+    }
+    
+    return [acr.substring(0, splitIndex), acr.substring(splitIndex)].filter(Boolean);
+  };
+
+  const acronymLines = formatAcronymForDisplay(acronym.toUpperCase());
+  
   return (
     <div className="w-24 h-24 rounded-xl bg-muted border flex items-center justify-center overflow-hidden">
       {logoUrl ? (
         <img src={logoUrl} alt={acronym} className="w-full h-full object-cover" />
       ) : (
         <div 
-          className="w-full h-full flex items-center justify-center"
+          className="w-full h-full flex flex-col items-center justify-center gap-0.5 p-1"
           style={{ backgroundColor: acronymColor }}
         >
-          <span className="text-2xl font-bold text-white tracking-tight">
-            {acronym.substring(0, 3).toUpperCase()}
-          </span>
+          {acronymLines.map((line, idx) => (
+            <span 
+              key={idx} 
+              className="font-bold text-white tracking-tight text-center leading-tight"
+              style={{ fontSize: acronymLines.length > 1 ? '0.9rem' : '1.5rem' }}
+            >
+              {line}
+            </span>
+          ))}
         </div>
       )}
     </div>
@@ -245,12 +272,32 @@ export function ProposalSummaryPage({
   const userCanEdit = canEdit && isAdmin;
 
   return (
-    <div className="flex-1 overflow-auto p-6 bg-muted/30">
-      <div className="max-w-5xl mx-auto space-y-6">
-        {/* Page Header */}
-        <div className="mb-2">
-          <h1 className="text-2xl font-bold text-foreground">Proposal overview</h1>
+    <div className="flex-1 overflow-auto bg-muted/30 relative">
+      {/* Sticky Save Bar when editing */}
+      {isEditing && userCanEdit && (
+        <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b px-6 py-3">
+          <div className="max-w-5xl mx-auto flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Editing proposal overview...</span>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="ghost" onClick={handleCancel}>
+                <X className="w-4 h-4 mr-1" />
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleSave}>
+                <Check className="w-4 h-4 mr-1" />
+                Save
+              </Button>
+            </div>
+          </div>
         </div>
+      )}
+
+      <div className="p-6">
+        <div className="max-w-5xl mx-auto space-y-6">
+          {/* Page Header */}
+          <div className="mb-2">
+            <h1 className="text-2xl font-bold text-foreground">Proposal overview</h1>
+          </div>
 
         {/* Header with Project Logo and Basic Info */}
         <Card>
@@ -260,26 +307,11 @@ export function ProposalSummaryPage({
                 <FileText className="w-5 h-5" />
                 Project identity
               </CardTitle>
-              {userCanEdit && (
-                <div className="flex items-center gap-2">
-                  {isEditing ? (
-                    <>
-                      <Button size="sm" variant="ghost" onClick={handleCancel}>
-                        <X className="w-4 h-4 mr-1" />
-                        Cancel
-                      </Button>
-                      <Button size="sm" onClick={handleSave}>
-                        <Check className="w-4 h-4 mr-1" />
-                        Save
-                      </Button>
-                    </>
-                  ) : (
-                    <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
-                      <Pencil className="w-4 h-4 mr-1" />
-                      Edit
-                    </Button>
-                  )}
-                </div>
+              {userCanEdit && !isEditing && (
+                <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
+                  <Pencil className="w-4 h-4 mr-1" />
+                  Edit
+                </Button>
               )}
             </div>
           </CardHeader>
@@ -576,13 +608,13 @@ export function ProposalSummaryPage({
                   />
                 ) : (
                   <p className="font-medium text-lg">
-                    {proposal.totalBudget ? `€${proposal.totalBudget.toLocaleString()}` : 'Not specified'}
+                    {proposal.totalBudget ? `€${proposal.totalBudget.toLocaleString('en-IE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '–'}
                   </p>
                 )}
               </div>
               <div>
                 <label className="text-sm text-muted-foreground mb-1 block">Budget applied for</label>
-                <p className="font-medium text-lg">€{totalBudgetFromItems.toLocaleString()}</p>
+                <p className="font-medium text-lg">€{totalBudgetFromItems.toLocaleString('en-IE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
                 <p className="text-xs text-muted-foreground">(from budget sheet)</p>
               </div>
               <div>
@@ -622,51 +654,7 @@ export function ProposalSummaryPage({
           </CardContent>
         </Card>
 
-
-        {/* Completion Progress */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5" />
-              Proposal completion
-            </CardTitle>
-            <CardDescription>Track your progress across all sections</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span>Part A - Administrative</span>
-                  <span className="font-medium">{completionStats.partA}%</span>
-                </div>
-                <Progress value={completionStats.partA} className="h-2" />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span>Part B - Technical</span>
-                  <span className="font-medium">{completionStats.partB}%</span>
-                </div>
-                <Progress value={completionStats.partB} className="h-2" />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span>Budget</span>
-                  <span className="font-medium">{completionStats.budget}%</span>
-                </div>
-                <Progress value={completionStats.budget} className="h-2" />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span>Ethics self-assessment</span>
-                  <span className="font-medium">{completionStats.ethics}%</span>
-                </div>
-                <Progress value={completionStats.ethics} className="h-2" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Submission Workflow */}
+        {/* Proposal Schedule (Combined Completion + Checklist) */}
         {onSubmit && onUpdateStatus && (
           <SubmissionWorkflow
             proposal={proposal}
@@ -676,6 +664,7 @@ export function ProposalSummaryPage({
             onUpdateStatus={onUpdateStatus}
             canEdit={canEdit}
             isAdmin={isAdmin}
+            completionStats={completionStats}
           />
         )}
 
@@ -841,6 +830,7 @@ export function ProposalSummaryPage({
             )}
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );
