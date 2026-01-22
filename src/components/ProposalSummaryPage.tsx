@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { Calendar } from '@/components/ui/calendar';
 import { LogoUpload } from '@/components/LogoUpload';
-import { SubmissionWorkflow } from '@/components/SubmissionWorkflow';
+import { ProposalSchedule } from '@/components/ProposalSchedule';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Proposal, Participant, ParticipantMember, PARTICIPANT_TYPE_LABELS, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS, PROPOSAL_TYPE_LABELS, ProposalType, ProposalStatus, getDestinationsForWorkProgramme } from '@/types/proposal';
 import { supabase } from '@/integrations/supabase/client';
@@ -735,7 +735,7 @@ export function ProposalSummaryPage({
 
         {/* Proposal Schedule (Combined Completion + Checklist) */}
         {onSubmit && onUpdateStatus && (
-          <SubmissionWorkflow
+          <ProposalSchedule
             proposal={proposal}
             participants={participants}
             budgetItems={budgetItems}
