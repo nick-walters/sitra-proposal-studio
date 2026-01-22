@@ -304,7 +304,8 @@ export function ProposalSummaryPage({
 
               <div className="flex-1 space-y-4">
                 {/* Acronym */}
-                <div className="flex items-center gap-2 flex-wrap">
+                <div>
+                  <label className="text-sm text-muted-foreground mb-1 block">Acronym</label>
                   {isEditing ? (
                     <Input
                       value={editedProposal.acronym}
@@ -313,9 +314,7 @@ export function ProposalSummaryPage({
                       placeholder="Acronym"
                     />
                   ) : (
-                    <Badge variant="outline" className="text-lg px-3 py-1 font-semibold">
-                      {proposal.acronym}
-                    </Badge>
+                    <p className="text-lg font-semibold">{proposal.acronym}</p>
                   )}
                 </div>
 
@@ -345,7 +344,7 @@ export function ProposalSummaryPage({
                       className="w-40"
                     />
                   ) : (
-                    <p className="font-medium">{proposal.description || '36 months'}</p>
+                    <p className="font-medium">{proposal.description || '–'}</p>
                   )}
                 </div>
               </div>
