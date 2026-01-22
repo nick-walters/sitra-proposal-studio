@@ -229,7 +229,7 @@ const sampleProposals: Proposal[] = [
 
 export function Dashboard() {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const { isComplete: isProfileComplete, isLoading: isProfileLoading, checkProfile } = useProfileCompletion();
   const { createProposalTemplate } = useProposalTemplateCreation();
   const [proposals, setProposals] = useState<Proposal[]>([]);
@@ -238,13 +238,6 @@ export function Dashboard() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'table' | 'kanban'>('grid');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-
-  // Redirect to auth if not logged in
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/auth', { replace: true });
-    }
-  }, [authLoading, user, navigate]);
 
   // Fetch proposals from database
   const fetchProposals = useCallback(async () => {
@@ -564,20 +557,6 @@ export function Dashboard() {
       toast.error(error.message || 'Failed to create proposal');
     }
   };
-
-  // Show loading while checking auth
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
-  }
-
-  // Don't render if not authenticated (redirect will happen via useEffect)
-  if (!user) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-background">
