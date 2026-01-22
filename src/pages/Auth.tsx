@@ -25,6 +25,12 @@ export default function Auth() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  // Get the redirect destination from URL params
+  const getRedirectUrl = () => {
+    const redirectTo = searchParams.get('redirectTo');
+    return redirectTo ? decodeURIComponent(redirectTo) : '/dashboard';
+  };
+
   // Check if user is already authenticated or in recovery mode
   useEffect(() => {
     const checkAuth = async () => {
@@ -39,7 +45,7 @@ export default function Auth() {
       }
       
       if (session) {
-        navigate('/dashboard', { replace: true });
+        navigate(getRedirectUrl(), { replace: true });
       } else {
         setIsCheckingAuth(false);
       }
@@ -56,7 +62,7 @@ export default function Auth() {
       }
       
       if (session && !showNewPassword) {
-        navigate('/dashboard', { replace: true });
+        navigate(getRedirectUrl(), { replace: true });
       }
     });
 
@@ -112,7 +118,7 @@ export default function Auth() {
 
       if (error) throw error;
 
-      navigate('/dashboard');
+      navigate(getRedirectUrl());
     } catch (error: any) {
       toast.error(error.message || 'Failed to sign in');
     } finally {
