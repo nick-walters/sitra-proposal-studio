@@ -207,7 +207,8 @@ export function ProposalEditor() {
     // Part A sections
     if (activeSection.isPartA) {
       switch (activeSection.id) {
-        case 'summary':
+        // Proposal Information page (before Part A)
+        case 'proposal-info':
           return proposal ? (
             <ProposalSummaryPage
               proposal={{
@@ -229,8 +230,25 @@ export function ProposalEditor() {
             />
           ) : null;
 
-        case 'admin-forms':
-        case 'participant-info':
+        // A1 - General Information (abstract, keywords)
+        case 'general-info':
+        case 'abstract':
+        case 'keywords':
+          return (
+            <DocumentEditor
+              section={activeSection}
+              proposalId={id || ''}
+              proposalAcronym={proposal?.acronym || ''}
+              readOnly={!canEdit}
+              topicId={proposal?.topicId}
+              workProgramme={proposal?.workProgramme}
+              destination={proposal?.destination}
+            />
+          );
+
+        // A2 - Participants
+        case 'participants':
+        case 'participant-organisations':
           return (
             <ParticipantForm
               participants={participants}
@@ -257,6 +275,7 @@ export function ProposalEditor() {
             />
           );
 
+        // A3 - Budget
         case 'budget':
         case 'budget-overview':
         case 'budget-details':
@@ -277,6 +296,7 @@ export function ProposalEditor() {
             />
           );
 
+        // A4 - Ethics & Security
         case 'ethics':
           return (
             <EthicsForm
@@ -286,6 +306,7 @@ export function ProposalEditor() {
             />
           );
 
+        // A5 - Declarations
         case 'declarations':
           return (
             <DeclarationsForm
