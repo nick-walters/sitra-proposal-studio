@@ -36,6 +36,7 @@ const COUNTRY_NAMES: Record<string, string> = {
   'IT': 'Italy', 'LT': 'Lithuania', 'LU': 'Luxembourg', 'LV': 'Latvia', 'MT': 'Malta',
   'NL': 'Netherlands', 'PL': 'Poland', 'PT': 'Portugal', 'RO': 'Romania', 'SE': 'Sweden',
   'SI': 'Slovenia', 'SK': 'Slovakia', 'NO': 'Norway', 'CH': 'Switzerland', 'UK': 'United Kingdom',
+  'GB': 'United Kingdom', 'IL': 'Israel', 'TR': 'Turkey', 'IS': 'Iceland',
 };
 
 // Search database
@@ -68,51 +69,63 @@ async function searchDatabase(supabase: any, searchTerm: string): Promise<Organi
   return results;
 }
 
-// Search CORDIS using their public search
-async function searchCordis(searchQuery: string): Promise<OrganisationInfo[]> {
+// Lookup specific PIC from CORDIS organisation page
+async function lookupPicFromCordis(pic: string): Promise<OrganisationInfo | null> {
   try {
-    // Use simple text search in CORDIS
-    const url = `https://cordis.europa.eu/search/en?q=${encodeURIComponent(searchQuery)}+contenttype%3D%27organization%27&format=json&num=20`;
-    console.log(`CORDIS search: ${url}`);
+    // Try direct organisation page
+    const url = `https://cordis.europa.eu/organisation/rcn/${pic}`;
+    console.log(`Trying CORDIS org page: ${url}`);
     
     const response = await fetch(url, {
-      headers: { 'Accept': 'application/json' },
+      headers: {
+        'Accept': 'text/html',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
     });
     
-    if (!response.ok) {
-      console.log(`CORDIS status: ${response.status}`);
-      return [];
+    console.log(`CORDIS page status: ${response.status}`);
+    
+    if (!response.ok) return null;
+    
+    const html = await response.text();
+    
+    // Try to extract organization data from JSON-LD in the page
+    const jsonLdMatch = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+    if (jsonLdMatch) {
+      try {
+        const jsonLd = JSON.parse(jsonLdMatch[1]);
+        console.log(`Found JSON-LD: ${JSON.stringify(jsonLd).substring(0, 200)}`);
+        
+        if (jsonLd['@type'] === 'Organization' || jsonLd.name) {
+          return {
+            picNumber: pic,
+            legalName: jsonLd.name || jsonLd.legalName || '',
+            country: jsonLd.address?.addressCountry || '',
+            countryCode: jsonLd.address?.addressCountry || '',
+            isSme: false,
+            organisationCategory: 'OTH',
+          };
+        }
+      } catch (e) {
+        console.log('Failed to parse JSON-LD');
+      }
     }
     
-    const text = await response.text();
-    if (text.startsWith('<!') || text.startsWith('<html')) return [];
-    
-    const data = JSON.parse(text);
-    console.log(`CORDIS keys: ${Object.keys(data).join(',')}`);
-    
-    // Find payload in response
-    let items: any[] = [];
-    if (data.payload?.organizations) items = data.payload.organizations;
-    else if (data.result?.payload?.organizations) items = data.result.payload.organizations;
-    else if (Array.isArray(data.result)) items = data.result;
-    else if (Array.isArray(data)) items = data;
-    
-    console.log(`CORDIS items: ${items.length}`);
-    
-    return items.slice(0, 15).map((org: any) => ({
-      picNumber: String(org.organizationID || org.pic || org.id || ''),
-      legalName: org.legalName || org.name || '',
-      shortName: org.shortName || org.acronym,
-      country: COUNTRY_NAMES[org.country] || org.country || '',
-      countryCode: org.country || '',
-      legalEntityType: org.activityType || org.legalEntityType || '',
-      isSme: org.sme === true || org.sme === 'true',
-      organisationCategory: mapLegalEntityToCategory(org.activityType || org.legalEntityType, org.sme === true),
-    })).filter((o: OrganisationInfo) => o.legalName);
+    return null;
   } catch (error) {
-    console.error('CORDIS error:', error);
-    return [];
+    console.error('CORDIS lookup error:', error);
+    return null;
   }
+}
+
+// Search for organizations - currently limited to database only
+// CORDIS APIs require authentication, so we'll rely on building up our database
+// as users add organizations
+async function searchCordis(searchQuery: string): Promise<OrganisationInfo[]> {
+  // CORDIS public APIs currently return 0 results or require auth
+  // Will return empty and rely on database results
+  console.log(`CORDIS search not available for: ${searchQuery}`);
+  return [];
 }
 
 serve(async (req: Request) => {
@@ -137,29 +150,43 @@ serve(async (req: Request) => {
       );
     }
 
-    // Search both sources
-    const [dbResults, cordisResults] = await Promise.all([
-      searchDatabase(supabase, query),
-      searchCordis(query),
-    ]);
+    // Search database
+    const dbResults = await searchDatabase(supabase, query);
+    console.log(`DB results: ${dbResults.length}`);
     
-    console.log(`DB: ${dbResults.length}, CORDIS: ${cordisResults.length}`);
+    // If searching by PIC and not found in DB, try CORDIS page
+    const isNumeric = /^\d{6,12}$/.test(query.trim());
+    let cordisResult: OrganisationInfo | null = null;
+    
+    if (isNumeric && dbResults.length === 0) {
+      cordisResult = await lookupPicFromCordis(query.trim());
+      if (cordisResult) {
+        console.log(`Found in CORDIS: ${cordisResult.legalName}`);
+      }
+    }
+    
+    // Combine results
+    const allResults = [...dbResults];
+    if (cordisResult) {
+      allResults.push(cordisResult);
+    }
     
     // Deduplicate by PIC
     const seen = new Set<string>();
-    const allResults: OrganisationInfo[] = [];
+    const uniqueResults: OrganisationInfo[] = [];
     
-    for (const org of [...dbResults, ...cordisResults]) {
+    for (const org of allResults) {
       const key = org.picNumber || org.legalName.toLowerCase();
       if (!seen.has(key)) {
         seen.add(key);
-        allResults.push(org);
+        uniqueResults.push(org);
       }
     }
     
     // For direct PIC lookup, return single organisation
     if (picNumber) {
-      const match = allResults.find(o => o.picNumber === picNumber.replace(/\D/g, ''));
+      const cleanPic = picNumber.replace(/\D/g, '');
+      const match = uniqueResults.find(o => o.picNumber === cleanPic);
       if (match) {
         return new Response(
           JSON.stringify({ success: true, organisation: match }),
@@ -167,13 +194,22 @@ serve(async (req: Request) => {
         );
       }
       return new Response(
-        JSON.stringify({ success: false, error: 'PIC not found', suggestManualEntry: true }),
+        JSON.stringify({ 
+          success: false, 
+          error: 'PIC not found',
+          message: 'This PIC was not found in available databases. The organisation may not have participated in EU projects yet, or you may need to enter details manually.',
+          suggestManualEntry: true 
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
     return new Response(
-      JSON.stringify({ success: true, results: allResults.slice(0, 20) }),
+      JSON.stringify({ 
+        success: true, 
+        results: uniqueResults.slice(0, 20),
+        note: uniqueResults.length === 0 ? 'No results found. Try a different search term or enter details manually.' : undefined
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
