@@ -759,12 +759,12 @@ export function ProposalSummaryPage({
           />
         )}
 
-        {/* Participants - MERGED: Logos + Partner details in one section */}
+        {/* Participant organisations */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Building2 className="w-5 h-5" />
-              Participants
+              Participant organisations
             </CardTitle>
             <CardDescription>Participating organisations with contact details and PIC numbers</CardDescription>
           </CardHeader>
@@ -832,15 +832,15 @@ export function ProposalSummaryPage({
           </CardContent>
         </Card>
 
-        {/* Team - MERGED: Collaborators + Team Members in one section */}
+        {/* Collaborators */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="w-5 h-5" />
-              Team
+              Collaborators
             </CardTitle>
             <CardDescription>
-              Collaborators and team members working on this proposal
+              People working on this proposal
               {teamMembers.filter(m => m.personMonths).length > 0 && (
                 <> ({teamMembers.reduce((sum, m) => sum + (m.personMonths || 0), 0)} total person-months)</>
               )}
