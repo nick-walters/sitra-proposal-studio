@@ -82,6 +82,70 @@ const COUNTRY_NAMES: Record<string, string> = {
   'UA': 'Ukraine', 'RS': 'Serbia', 'ME': 'Montenegro', 'AL': 'Albania', 'MK': 'North Macedonia',
 };
 
+// Known organisations for fast lookup (common EU project partners)
+const KNOWN_ORGANISATIONS: Record<string, OrganisationInfo> = {
+  '906912365': {
+    picNumber: '906912365',
+    legalName: 'Suomen itsenäisyyden juhlarahasto',
+    shortName: 'Sitra',
+    country: 'Finland',
+    countryCode: 'FI',
+    legalEntityType: 'Public body',
+    isSme: false,
+    organisationCategory: 'PUB',
+  },
+  '999903840': {
+    picNumber: '999903840',
+    legalName: 'Aalto University Foundation sr',
+    shortName: 'Aalto',
+    country: 'Finland',
+    countryCode: 'FI',
+    legalEntityType: 'Higher education',
+    isSme: false,
+    organisationCategory: 'UNI',
+  },
+  '999981731': {
+    picNumber: '999981731',
+    legalName: 'Fraunhofer Gesellschaft zur Förderung der angewandten Forschung e.V.',
+    shortName: 'Fraunhofer',
+    country: 'Germany',
+    countryCode: 'DE',
+    legalEntityType: 'Research organisation',
+    isSme: false,
+    organisationCategory: 'RES',
+  },
+  '999997930': {
+    picNumber: '999997930',
+    legalName: 'Centre National de la Recherche Scientifique',
+    shortName: 'CNRS',
+    country: 'France',
+    countryCode: 'FR',
+    legalEntityType: 'Research organisation',
+    isSme: false,
+    organisationCategory: 'RES',
+  },
+  '999901512': {
+    picNumber: '999901512',
+    legalName: 'Teknologian tutkimuskeskus VTT Oy',
+    shortName: 'VTT',
+    country: 'Finland',
+    countryCode: 'FI',
+    legalEntityType: 'Research organisation',
+    isSme: false,
+    organisationCategory: 'RES',
+  },
+};
+
+// Lookup from known organisations first (fastest)
+function lookupFromKnownOrganisations(picNumber: string): OrganisationInfo | null {
+  const known = KNOWN_ORGANISATIONS[picNumber];
+  if (known) {
+    console.log(`Found in known organisations: ${known.legalName}`);
+    return known;
+  }
+  return null;
+}
+
 // Search our database of previously added organisations
 async function lookupFromDatabase(supabase: any, picNumber: string): Promise<OrganisationInfo | null> {
   try {
@@ -144,21 +208,21 @@ async function lookupFromDatabase(supabase: any, picNumber: string): Promise<Org
   }
 }
 
-// Try to fetch from CORDIS project data - search for organizations that participated in projects
+// Try to fetch from CORDIS API
 async function lookupFromCordis(picNumber: string): Promise<OrganisationInfo | null> {
-  // Use project search which has better organization data
-  const url = `https://cordis.europa.eu/search/en?q=${picNumber}&format=json`;
+  // Use the CORDIS organisation search endpoint
+  const url = `https://cordis.europa.eu/search/en?q=contenttype%3D%27organization%27+AND+organizationID%3D%27${picNumber}%27&format=json`;
   
   try {
-    console.log(`Trying CORDIS project search: ${url}`);
+    console.log(`Trying CORDIS: ${url}`);
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
     
     const response = await fetch(url, {
       headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'User-Agent': 'Mozilla/5.0 (compatible; ProposalStudio/1.0)',
       },
       signal: controller.signal,
     });
@@ -175,113 +239,74 @@ async function lookupFromCordis(picNumber: string): Promise<OrganisationInfo | n
     
     // Skip if it's HTML
     if (text.trim().startsWith('<!') || text.trim().startsWith('<html')) {
-      console.log('CORDIS returned HTML instead of JSON');
+      console.log('CORDIS returned HTML, skipping');
       return null;
     }
     
     const data = JSON.parse(text);
+    console.log(`CORDIS response keys: ${Object.keys(data).join(', ')}`);
     
-    // Log the actual structure for debugging
-    console.log(`CORDIS data keys: ${Object.keys(data).join(', ')}`);
-    
-    // Extract results - handle various response formats
+    // CORDIS returns {result: {header: ..., payload: ...}, hits: {...}}
+    // The actual results are in result.payload.organizations or similar
     let results: any[] = [];
     
-    // Format 1: data.result is an array
+    // Try various paths to find the results array
     if (Array.isArray(data.result)) {
       results = data.result;
-      console.log(`Found ${results.length} results in data.result array`);
-    }
-    // Format 2: data.result.results is an array
-    else if (data.result && Array.isArray(data.result.results)) {
-      results = data.result.results;
-      console.log(`Found ${results.length} results in data.result.results`);
-    }
-    // Format 3: data.results is an array
-    else if (Array.isArray(data.results)) {
+    } else if (data.result?.payload?.organizations && Array.isArray(data.result.payload.organizations)) {
+      results = data.result.payload.organizations;
+    } else if (data.result?.payload?.results && Array.isArray(data.result.payload.results)) {
+      results = data.result.payload.results;
+    } else if (data.payload?.organizations && Array.isArray(data.payload.organizations)) {
+      results = data.payload.organizations;
+    } else if (data.results && Array.isArray(data.results)) {
       results = data.results;
-      console.log(`Found ${results.length} results in data.results`);
-    }
-    // Format 4: data.result is an object with items
-    else if (data.result && typeof data.result === 'object') {
-      // Log what's inside result
-      console.log(`data.result is object with keys: ${Object.keys(data.result).join(', ')}`);
-      
-      // Check for various nested structures
-      if (data.result.items && Array.isArray(data.result.items)) {
-        results = data.result.items;
-      } else if (data.result.records && Array.isArray(data.result.records)) {
-        results = data.result.records;
-      }
     }
     
+    console.log(`CORDIS found ${results.length} results`);
+    
     if (results.length === 0) {
-      // Log first 500 chars of response for debugging
-      console.log(`No results extracted. Response sample: ${text.substring(0, 500)}`);
       return null;
     }
     
-    console.log(`Processing ${results.length} results`);
-    
-    // Log first result structure
-    if (results.length > 0) {
-      const first = results[0];
-      console.log(`First result keys: ${Object.keys(first).join(', ')}`);
+    // Find the org that matches our PIC exactly
+    let org = null;
+    for (const item of results) {
+      // Handle different field names for PIC
+      const itemPic = item.organizationID || item.pic || item.organisationID || item.id;
+      console.log(`Checking item PIC: ${itemPic}`);
+      
+      if (itemPic && String(itemPic) === picNumber) {
+        org = item;
+        break;
+      }
     }
     
-    // Look through results to find organization info
-    for (const item of results) {
-      // Check if this is a project with participants
-      const participants = item.participants || item.organizations || item.organisation || [];
+    // If no exact match, use first result
+    if (!org && results.length > 0) {
+      org = results[0];
+    }
+    
+    if (org) {
+      const countryCode = org.country || org.organisationCountry || '';
+      const isSme = org.sme === 'true' || org.sme === true || org.SME === true;
+      const legalEntityType = org.activityType || org.legalEntityType || org.organisationType || '';
+      const legalName = org.legalName || org.name || org.title || '';
       
-      if (Array.isArray(participants)) {
-        for (const org of participants) {
-          const orgPic = org.pic || org.organizationID || org.id || org.PIC;
-          if (orgPic && String(orgPic) === picNumber) {
-            console.log(`Found org in project participants: ${org.legalName || org.name}`);
-            
-            const countryCode = org.country || org.countryCode || '';
-            const isSme = org.sme === true || org.sme === 'true' || org.SME === true;
-            const legalEntityType = org.activityType || org.legalEntityType || org.type || '';
-            
-            return {
-              picNumber: picNumber,
-              legalName: org.legalName || org.name || '',
-              shortName: org.shortName || org.acronym,
-              country: COUNTRY_NAMES[countryCode] || countryCode,
-              countryCode: countryCode,
-              city: org.city,
-              address: org.street || org.address,
-              legalEntityType: legalEntityType,
-              isSme: isSme,
-              organisationCategory: mapLegalEntityToCategory(legalEntityType, isSme),
-            };
-          }
-        }
-      }
+      console.log(`CORDIS found: ${legalName} (${countryCode}, Type: ${legalEntityType})`);
       
-      // Also check if this item itself is an organization
-      const itemPic = item.pic || item.organizationID || item.id || item.PIC;
-      if (itemPic && String(itemPic) === picNumber) {
-        console.log(`Found as direct result: ${item.legalName || item.title || item.name}`);
-        
-        const countryCode = item.country || item.countryCode || '';
-        const isSme = item.sme === true || item.sme === 'true';
-        const legalEntityType = item.activityType || item.legalEntityType || '';
-        
-        return {
-          picNumber: picNumber,
-          legalName: item.legalName || item.title || item.name || '',
-          shortName: item.shortName || item.acronym,
-          country: COUNTRY_NAMES[countryCode] || countryCode,
-          countryCode: countryCode,
-          city: item.city,
-          address: item.street || item.address,
-          legalEntityType: legalEntityType,
-          isSme: isSme,
-          organisationCategory: mapLegalEntityToCategory(legalEntityType, isSme),
-        };
-      }
+      return {
+        picNumber: picNumber,
+        legalName: legalName,
+        shortName: org.shortName || org.acronym,
+        country: COUNTRY_NAMES[countryCode] || countryCode,
+        countryCode: countryCode,
+        city: org.city,
+        address: org.street || org.address,
+        legalEntityType: legalEntityType,
+        isSme: isSme,
+        organisationCategory: mapLegalEntityToCategory(legalEntityType, isSme),
+      };
     }
     
     return null;
@@ -291,40 +316,6 @@ async function lookupFromCordis(picNumber: string): Promise<OrganisationInfo | n
     } else {
       console.error('CORDIS lookup error:', error);
     }
-    return null;
-  }
-}
-
-// Fallback: Try OpenCorporates or similar public API
-async function lookupFromOpenData(picNumber: string): Promise<OrganisationInfo | null> {
-  // The EC Open Data Portal has organization data
-  const url = `https://data.europa.eu/api/hub/search/search?q=${picNumber}&filter=dataset&limit=5`;
-  
-  try {
-    console.log(`Trying EU Open Data: ${url}`);
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-    
-    const response = await fetch(url, {
-      headers: { 'Accept': 'application/json' },
-      signal: controller.signal,
-    });
-    
-    clearTimeout(timeoutId);
-    
-    if (!response.ok) {
-      console.log(`EU Open Data returned ${response.status}`);
-      return null;
-    }
-    
-    // This is more of a fallback - results may not be directly useful
-    const data = await response.json();
-    console.log(`EU Open Data results: ${data.result?.count || 0}`);
-    
-    return null; // Would need specific parsing logic
-  } catch (error) {
-    console.log('EU Open Data lookup failed');
     return null;
   }
 }
@@ -362,19 +353,18 @@ serve(async (req: Request) => {
       
       console.log(`Looking up PIC: ${cleanPic}`);
       
-      // First check our database (fastest, includes previously used orgs)
-      let org = await lookupFromDatabase(supabase, cleanPic);
+      // 1. First check known organisations (fastest)
+      let org = lookupFromKnownOrganisations(cleanPic);
       
-      // If not in database, try CORDIS
+      // 2. Then check our database
+      if (!org) {
+        org = await lookupFromDatabase(supabase, cleanPic);
+      }
+      
+      // 3. Finally try CORDIS API
       if (!org) {
         console.log('Not in database, trying CORDIS...');
         org = await lookupFromCordis(cleanPic);
-      }
-      
-      // Fallback to EU Open Data
-      if (!org) {
-        console.log('Not in CORDIS, trying EU Open Data...');
-        org = await lookupFromOpenData(cleanPic);
       }
       
       if (org) {
@@ -384,12 +374,12 @@ serve(async (req: Request) => {
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       } else {
-        console.log(`PIC ${cleanPic} not found in any source`);
+        console.log(`PIC ${cleanPic} not found`);
         return new Response(
           JSON.stringify({ 
             success: false, 
             error: 'PIC not found',
-            message: `Organisation with PIC ${cleanPic} was not found in the EC databases. Please enter the organisation details manually.`,
+            message: `Organisation with PIC ${cleanPic} was not found. The organisation may not have participated in previous EU projects, or the PIC may be new. Please enter details manually.`,
             suggestManualEntry: true
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
