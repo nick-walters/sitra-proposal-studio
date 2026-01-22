@@ -180,29 +180,63 @@ async function lookupFromCordis(picNumber: string): Promise<OrganisationInfo | n
     }
     
     const data = JSON.parse(text);
-    console.log(`CORDIS response: hits=${data.hits}, resultType=${typeof data.result}`);
     
-    // Check if we have any results
+    // Log the actual structure for debugging
+    console.log(`CORDIS data keys: ${Object.keys(data).join(', ')}`);
+    
+    // Extract results - handle various response formats
     let results: any[] = [];
+    
+    // Format 1: data.result is an array
     if (Array.isArray(data.result)) {
       results = data.result;
+      console.log(`Found ${results.length} results in data.result array`);
+    }
+    // Format 2: data.result.results is an array
+    else if (data.result && Array.isArray(data.result.results)) {
+      results = data.result.results;
+      console.log(`Found ${results.length} results in data.result.results`);
+    }
+    // Format 3: data.results is an array
+    else if (Array.isArray(data.results)) {
+      results = data.results;
+      console.log(`Found ${results.length} results in data.results`);
+    }
+    // Format 4: data.result is an object with items
+    else if (data.result && typeof data.result === 'object') {
+      // Log what's inside result
+      console.log(`data.result is object with keys: ${Object.keys(data.result).join(', ')}`);
+      
+      // Check for various nested structures
+      if (data.result.items && Array.isArray(data.result.items)) {
+        results = data.result.items;
+      } else if (data.result.records && Array.isArray(data.result.records)) {
+        results = data.result.records;
+      }
     }
     
     if (results.length === 0) {
-      console.log('No results from CORDIS');
+      // Log first 500 chars of response for debugging
+      console.log(`No results extracted. Response sample: ${text.substring(0, 500)}`);
       return null;
     }
     
-    console.log(`CORDIS returned ${results.length} results`);
+    console.log(`Processing ${results.length} results`);
     
-    // Look through projects to find organization info
+    // Log first result structure
+    if (results.length > 0) {
+      const first = results[0];
+      console.log(`First result keys: ${Object.keys(first).join(', ')}`);
+    }
+    
+    // Look through results to find organization info
     for (const item of results) {
       // Check if this is a project with participants
-      const participants = item.participants || item.organizations || [];
+      const participants = item.participants || item.organizations || item.organisation || [];
       
       if (Array.isArray(participants)) {
         for (const org of participants) {
-          const orgPic = org.pic || org.organizationID || org.id;
+          const orgPic = org.pic || org.organizationID || org.id || org.PIC;
           if (orgPic && String(orgPic) === picNumber) {
             console.log(`Found org in project participants: ${org.legalName || org.name}`);
             
@@ -227,7 +261,7 @@ async function lookupFromCordis(picNumber: string): Promise<OrganisationInfo | n
       }
       
       // Also check if this item itself is an organization
-      const itemPic = item.pic || item.organizationID || item.id;
+      const itemPic = item.pic || item.organizationID || item.id || item.PIC;
       if (itemPic && String(itemPic) === picNumber) {
         console.log(`Found as direct result: ${item.legalName || item.title || item.name}`);
         
@@ -248,14 +282,6 @@ async function lookupFromCordis(picNumber: string): Promise<OrganisationInfo | n
           organisationCategory: mapLegalEntityToCategory(legalEntityType, isSme),
         };
       }
-    }
-    
-    // If we have results but didn't find exact PIC match, log first result structure for debugging
-    if (results.length > 0) {
-      const first = results[0];
-      console.log(`First result keys: ${Object.keys(first).join(', ')}`);
-      console.log(`First result contentType: ${first.contentType}`);
-      console.log(`First result title: ${first.title}`);
     }
     
     return null;
