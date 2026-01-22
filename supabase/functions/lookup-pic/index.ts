@@ -182,8 +182,15 @@ async function lookupFromCordis(picNumber: string): Promise<OrganisationInfo | n
     const data = JSON.parse(text);
     console.log(`CORDIS response keys: ${Object.keys(data).join(', ')}`);
     
-    // CORDIS returns {result: [...], hits: number} format
-    const results = data.result || data.results || data.payload?.organizations || [];
+    // CORDIS returns {result: [...], hits: number} format - result is an array
+    let results: any[] = [];
+    if (Array.isArray(data.result)) {
+      results = data.result;
+    } else if (Array.isArray(data.results)) {
+      results = data.results;
+    } else if (data.payload?.organizations && Array.isArray(data.payload.organizations)) {
+      results = data.payload.organizations;
+    }
     console.log(`CORDIS found ${results.length} results`);
     
     if (results.length === 0) {
