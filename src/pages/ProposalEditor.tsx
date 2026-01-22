@@ -495,13 +495,6 @@ export function ProposalEditor() {
               {proposal?.submissionStage === 'stage_1' && <span className="font-normal text-muted-foreground text-sm"> (Stage 1)</span>}
             </h1>
             
-            {/* Status */}
-            {proposal?.status && (
-              <span className={`proposal-badge ${getStatusBadgeClass(proposal.status)} text-[10px]`}>
-                {PROPOSAL_STATUS_LABELS[proposal.status]}
-              </span>
-            )}
-            
             {/* Type */}
             {proposal?.type && (
               <span className="proposal-badge bg-white text-foreground border border-foreground text-[10px]">
@@ -585,10 +578,6 @@ export function ProposalEditor() {
               ))}
             </div>
 
-            <Button variant="outline" size="sm" className="gap-2 hidden sm:flex">
-              <Share2 className="w-4 h-4" />
-              Share
-            </Button>
             <Button variant="outline" size="sm" className="gap-2 hidden sm:flex" onClick={() => setIsHistoryOpen(true)}>
               <History className="w-4 h-4" />
               History
@@ -602,24 +591,39 @@ export function ProposalEditor() {
               <Download className="w-4 h-4" />
               <span className="hidden sm:inline">Export PDF</span>
             </Button>
-            <Button variant="ghost" size="icon">
-              <Settings className="w-4 h-4" />
-            </Button>
           </div>
         </div>
       </header>
 
-      {/* Status alert */}
+      {/* Status alert - color coded like dashboard */}
       {proposal && (
         <Alert className={cn(
-          "rounded-none border-x-0 border-t-0",
-          proposal.status === 'draft' ? "bg-primary/10" : 
-          proposal.status === 'funded' ? "bg-success/10" : 
-          proposal.status === 'not_funded' ? "bg-destructive/10" : 
-          "bg-muted/50"
+          "rounded-none border-x-0 border-t-0 border-b-2",
+          proposal.status === 'draft' 
+            ? "bg-yellow-500/10 border-b-yellow-500" 
+            : proposal.status === 'submitted' 
+            ? "bg-blue-500/10 border-b-blue-500" 
+            : proposal.status === 'funded' 
+            ? "bg-green-500/10 border-b-green-500" 
+            : proposal.status === 'not_funded' 
+            ? "bg-red-500/10 border-b-red-500" 
+            : "bg-muted/50 border-b-muted"
         )}>
-          <Lock className="h-4 w-4" />
-          <AlertDescription>
+          <Lock className={cn(
+            "h-4 w-4",
+            proposal.status === 'draft' ? "text-yellow-600" :
+            proposal.status === 'submitted' ? "text-blue-600" :
+            proposal.status === 'funded' ? "text-green-600" :
+            proposal.status === 'not_funded' ? "text-red-600" :
+            "text-muted-foreground"
+          )} />
+          <AlertDescription className={cn(
+            proposal.status === 'draft' ? "text-yellow-800" :
+            proposal.status === 'submitted' ? "text-blue-800" :
+            proposal.status === 'funded' ? "text-green-800" :
+            proposal.status === 'not_funded' ? "text-red-800" :
+            ""
+          )}>
             {proposal.status === 'draft' && (
               <>
                 <strong>Draft</strong> – this proposal is due by the deadline{' '}
