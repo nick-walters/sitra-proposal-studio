@@ -4,6 +4,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { InlineGuideline } from "./GuidelineBox";
 import { Section } from "@/types/proposal";
 import { useState, useEffect, useCallback } from "react";
@@ -27,8 +29,36 @@ interface GeneralInfoFormProps {
 
 interface FormData {
   abstract: string;
-  keywords: string[];
+  fixedKeywords: string[];
+  freeKeywords: string;
+  previousSubmission: 'yes' | 'no' | '';
+  previousSubmissionReference: string;
+  declarations: {
+    noFinancialSupport: boolean;
+    noOtherApplications: boolean;
+    informedPartners: boolean;
+    accurateInformation: boolean;
+  };
 }
+
+const DECLARATIONS = [
+  {
+    id: 'noFinancialSupport',
+    text: 'We declare that this proposal has not received any financial support from the European Commission or any other source for the same activities.',
+  },
+  {
+    id: 'noOtherApplications',
+    text: 'We declare that this proposal is not being submitted in response to any other call under EU funding programmes for the same activities.',
+  },
+  {
+    id: 'informedPartners',
+    text: 'We confirm that all partners in this consortium have been informed of the content of this proposal and agree to participate.',
+  },
+  {
+    id: 'accurateInformation',
+    text: 'We declare that the information contained in this proposal is accurate and complete to the best of our knowledge.',
+  },
+];
 
 export function GeneralInfoForm({
   proposalId,
@@ -39,14 +69,23 @@ export function GeneralInfoForm({
 }: GeneralInfoFormProps) {
   const [formData, setFormData] = useState<FormData>({
     abstract: '',
-    keywords: [],
+    fixedKeywords: [],
+    freeKeywords: '',
+    previousSubmission: '',
+    previousSubmissionReference: '',
+    declarations: {
+      noFinancialSupport: false,
+      noOtherApplications: false,
+      informedPartners: false,
+      accurateInformation: false,
+    },
   });
   const [keywordInput, setKeywordInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-  // Load existing abstract from section_content
+  // Load existing content from section_content
   useEffect(() => {
     const loadContent = async () => {
       if (!proposalId) return;
@@ -66,14 +105,23 @@ export function GeneralInfoForm({
             const parsed = JSON.parse(data.content);
             setFormData({
               abstract: parsed.abstract || '',
-              keywords: parsed.keywords || [],
+              fixedKeywords: parsed.fixedKeywords || parsed.keywords || [],
+              freeKeywords: parsed.freeKeywords || '',
+              previousSubmission: parsed.previousSubmission || '',
+              previousSubmissionReference: parsed.previousSubmissionReference || '',
+              declarations: {
+                noFinancialSupport: parsed.declarations?.noFinancialSupport || false,
+                noOtherApplications: parsed.declarations?.noOtherApplications || false,
+                informedPartners: parsed.declarations?.informedPartners || false,
+                accurateInformation: parsed.declarations?.accurateInformation || false,
+              },
             });
           } catch {
             // If content is plain text, treat as abstract
-            setFormData({
+            setFormData(prev => ({
+              ...prev,
               abstract: data.content,
-              keywords: [],
-            });
+            }));
           }
         }
       } catch (error) {
@@ -130,10 +178,10 @@ export function GeneralInfoForm({
 
   const handleAddKeyword = () => {
     const keyword = keywordInput.trim();
-    if (keyword && formData.keywords.length < 5 && !formData.keywords.includes(keyword)) {
+    if (keyword && formData.fixedKeywords.length < 5 && !formData.fixedKeywords.includes(keyword)) {
       setFormData(prev => ({
         ...prev,
-        keywords: [...prev.keywords, keyword],
+        fixedKeywords: [...prev.fixedKeywords, keyword],
       }));
       setKeywordInput('');
     }
@@ -142,7 +190,7 @@ export function GeneralInfoForm({
   const handleRemoveKeyword = (keyword: string) => {
     setFormData(prev => ({
       ...prev,
-      keywords: prev.keywords.filter(k => k !== keyword),
+      fixedKeywords: prev.fixedKeywords.filter(k => k !== keyword),
     }));
   };
 
@@ -153,9 +201,20 @@ export function GeneralInfoForm({
     }
   };
 
+  const handleDeclarationChange = (id: string, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      declarations: {
+        ...prev.declarations,
+        [id]: checked,
+      },
+    }));
+  };
+
   // Word count for abstract (limit 2000 characters as per HE standard)
   const abstractCharCount = formData.abstract.length;
   const abstractWordCount = formData.abstract.trim() ? formData.abstract.trim().split(/\s+/).length : 0;
+  const freeKeywordsCharCount = formData.freeKeywords.length;
 
   if (loading) {
     return (
@@ -229,16 +288,13 @@ export function GeneralInfoForm({
           </CardContent>
         </Card>
 
-        {/* Keywords */}
+        {/* Fixed Keywords */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Keywords</CardTitle>
-            <InlineGuideline className="mt-2">
-              Max 5 keywords. Use free-text keywords to describe your project.
-            </InlineGuideline>
+            <CardTitle className="text-lg">Fixed keywords</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {canEdit && formData.keywords.length < 5 && (
+            {canEdit && formData.fixedKeywords.length < 5 && (
               <div className="flex gap-2">
                 <Input
                   value={keywordInput}
@@ -259,7 +315,7 @@ export function GeneralInfoForm({
             )}
             
             <div className="flex flex-wrap gap-2">
-              {formData.keywords.map((keyword, index) => (
+              {formData.fixedKeywords.map((keyword, index) => (
                 <Badge 
                   key={index} 
                   variant="secondary" 
@@ -277,10 +333,107 @@ export function GeneralInfoForm({
                   )}
                 </Badge>
               ))}
-              {formData.keywords.length === 0 && (
-                <p className="text-sm text-muted-foreground italic">No keywords added yet</p>
+              {formData.fixedKeywords.length === 0 && (
+                <p className="text-sm text-muted-foreground italic">No fixed keywords added yet</p>
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Free Keywords */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Free keywords</CardTitle>
+            <InlineGuideline className="mt-2">
+              Enter any words you think give extra detail of the scope of your proposal (max 200 characters with spaces).
+            </InlineGuideline>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Textarea
+              value={formData.freeKeywords}
+              onChange={(e) => setFormData(prev => ({ ...prev, freeKeywords: e.target.value }))}
+              placeholder="Enter free keywords..."
+              className="min-h-[80px] resize-none"
+              maxLength={200}
+              disabled={!canEdit}
+            />
+            <div className="flex justify-end text-sm text-muted-foreground">
+              <span className={freeKeywordsCharCount > 180 ? 'text-warning' : ''}>
+                {freeKeywordsCharCount} / 200 characters
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Previous Submission */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Previous submission</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <Label>
+                Has this proposal (or a very similar one) been submitted in the past 2 years in response to a call for proposals under any EU programme, including the current call?
+              </Label>
+              <RadioGroup
+                value={formData.previousSubmission}
+                onValueChange={(value: 'yes' | 'no') => setFormData(prev => ({ 
+                  ...prev, 
+                  previousSubmission: value,
+                  previousSubmissionReference: value === 'no' ? '' : prev.previousSubmissionReference,
+                }))}
+                disabled={!canEdit}
+                className="flex gap-6"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="yes" id="prev-yes" />
+                  <Label htmlFor="prev-yes" className="font-normal cursor-pointer">Yes</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="no" id="prev-no" />
+                  <Label htmlFor="prev-no" className="font-normal cursor-pointer">No</Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            {formData.previousSubmission === 'yes' && (
+              <div className="space-y-2 pt-2">
+                <Label htmlFor="prev-reference">Please give the proposal reference or contract number:</Label>
+                <Input
+                  id="prev-reference"
+                  value={formData.previousSubmissionReference}
+                  onChange={(e) => setFormData(prev => ({ ...prev, previousSubmissionReference: e.target.value }))}
+                  placeholder="Enter proposal reference or contract number..."
+                  disabled={!canEdit}
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Declarations */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Declarations</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {DECLARATIONS.map((declaration) => (
+              <div key={declaration.id} className="flex items-start space-x-3">
+                <Checkbox
+                  id={declaration.id}
+                  checked={formData.declarations[declaration.id as keyof typeof formData.declarations]}
+                  onCheckedChange={(checked) => handleDeclarationChange(declaration.id, checked as boolean)}
+                  disabled={!canEdit}
+                  className="mt-1"
+                />
+                <Label 
+                  htmlFor={declaration.id} 
+                  className="font-normal text-sm leading-relaxed cursor-pointer"
+                >
+                  {declaration.text}
+                </Label>
+              </div>
+            ))}
           </CardContent>
         </Card>
       </div>
