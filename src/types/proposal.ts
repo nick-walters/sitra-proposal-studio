@@ -413,7 +413,7 @@ export const FIGURES_SECTION: Section = {
   number: '',
   title: 'Figures',
   guidelines: {
-    text: 'Manage and edit figures referenced in Part B sections. Figures are automatically numbered based on their parent section (e.g. Figure B3.1.a).',
+    text: 'Manage and edit figures referenced in Part B sections. Figures are numbered based on their parent section (e.g., Figure B3.1.a).',
   },
 };
 

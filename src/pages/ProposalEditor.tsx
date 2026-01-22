@@ -588,15 +588,16 @@ export function ProposalEditor() {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex min-h-0 overflow-hidden">
+      <div className="flex-1 flex overflow-hidden" style={{ height: 'calc(100vh - 56px - 56px - 40px)' }}>
         {/* Sidebar - scrolls independently */}
         <aside
           className={cn(
-            "border-r border-border bg-card flex flex-col transition-all duration-300 h-full",
+            "border-r border-border bg-card flex flex-col transition-all duration-300",
             isSidebarCollapsed ? "w-0 overflow-hidden" : "w-72"
           )}
+          style={{ height: '100%' }}
         >
-          <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden" style={{ minHeight: 0 }}>
             <SectionNavigator
               sections={allSections}
               activeSectionId={activeSection?.id || null}
