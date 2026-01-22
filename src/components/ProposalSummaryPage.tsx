@@ -445,10 +445,36 @@ export function ProposalSummaryPage({
                 <Input
                   value={editedProposal.topicTitle || ''}
                   onChange={(e) => setEditedProposal({ ...editedProposal, topicTitle: e.target.value })}
-                  placeholder="Enter topic title"
                 />
               ) : (
                 <p className="font-medium">{proposal.topicTitle || '–'}</p>
+              )}
+            </div>
+
+            {/* Topic URL */}
+            <div>
+              <label className="text-sm text-muted-foreground mb-1 block">Portal URL</label>
+              {isEditing ? (
+                <Input
+                  value={editedProposal.topicUrl || ''}
+                  onChange={(e) => setEditedProposal({ ...editedProposal, topicUrl: e.target.value })}
+                  placeholder="https://ec.europa.eu/info/funding-tenders/..."
+                  type="url"
+                />
+              ) : (
+                proposal.topicUrl ? (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="gap-1.5"
+                    onClick={() => window.open(proposal.topicUrl, '_blank')}
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    View on portal
+                  </Button>
+                ) : (
+                  <p className="text-muted-foreground">–</p>
+                )
               )}
             </div>
 
