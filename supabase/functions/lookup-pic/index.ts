@@ -481,9 +481,32 @@ serve(async (req: Request) => {
       }
     }
 
-    // Search by name
+    // Search by name - also check if it might be a PIC first
     if (searchTerm && searchTerm.length >= 2) {
       console.log(`Searching for: ${searchTerm}`);
+      
+      // Check if the search term looks like a PIC number (5-9 digits)
+      const cleanedSearchTerm = searchTerm.replace(/\s/g, '');
+      if (/^\d{5,9}$/.test(cleanedSearchTerm)) {
+        console.log(`Search term looks like a PIC number, doing PIC lookup first`);
+        
+        // Try PIC lookup first
+        let org = lookupFromKnownOrganisations(cleanedSearchTerm);
+        if (!org) {
+          org = await lookupFromDatabase(supabase, cleanedSearchTerm);
+        }
+        if (!org) {
+          org = await lookupFromCordis(cleanedSearchTerm);
+        }
+        
+        if (org) {
+          console.log(`Found organisation by PIC: ${org.legalName}`);
+          return new Response(
+            JSON.stringify({ success: true, results: [org] }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
       
       // 1. Search known organisations first
       const knownResults = searchKnownOrganisations(searchTerm);
@@ -512,45 +535,57 @@ serve(async (req: Request) => {
       }));
       console.log(`Found ${dbResults.length} in database`);
       
-      // 3. Search CORDIS if we have few local results
-      let cordisResults: OrganisationInfo[] = [];
-      if (knownResults.length + dbResults.length < 5) {
-        cordisResults = await searchCordisOrganisations(searchTerm);
+      // 3. Also search participants table for previously used organisations
+      const { data: participants, error: partError } = await supabase
+        .from('participants')
+        .select('*')
+        .or(`organisation_name.ilike.%${searchTerm}%,organisation_short_name.ilike.%${searchTerm}%,english_name.ilike.%${searchTerm}%`)
+        .limit(10);
+      
+      if (partError) {
+        console.error('Participants search error:', partError);
       }
       
-      // Combine and deduplicate results by PIC number
+      const participantResults = (participants || []).map((p: any) => ({
+        picNumber: p.pic_number || '',
+        legalName: p.english_name || p.organisation_name,
+        shortName: p.organisation_short_name,
+        country: COUNTRY_NAMES[p.country] || p.country || '',
+        countryCode: p.country || '',
+        legalEntityType: p.legal_entity_type,
+        isSme: p.is_sme || false,
+        organisationCategory: p.organisation_category || mapLegalEntityToCategory(p.legal_entity_type, p.is_sme),
+      }));
+      console.log(`Found ${participantResults.length} in participants`);
+      
+      // Combine and deduplicate results
       const seenPics = new Set<string>();
+      const seenNames = new Set<string>();
       const allResults: OrganisationInfo[] = [];
       
+      const addResult = (org: OrganisationInfo) => {
+        const nameKey = org.legalName.toLowerCase();
+        // Dedupe by PIC or by name
+        if (org.picNumber && seenPics.has(org.picNumber)) return;
+        if (!org.picNumber && seenNames.has(nameKey)) return;
+        
+        if (org.picNumber) seenPics.add(org.picNumber);
+        seenNames.add(nameKey);
+        allResults.push(org);
+      };
+      
       // Add known results first (highest priority)
-      for (const org of knownResults) {
-        if (org.picNumber && !seenPics.has(org.picNumber)) {
-          seenPics.add(org.picNumber);
-          allResults.push(org);
-        }
-      }
+      knownResults.forEach(addResult);
       
       // Add database results
-      for (const org of dbResults) {
-        if (org.picNumber && !seenPics.has(org.picNumber)) {
-          seenPics.add(org.picNumber);
-          allResults.push(org);
-        } else if (!org.picNumber) {
-          allResults.push(org); // Include orgs without PIC
-        }
-      }
+      dbResults.forEach(addResult);
       
-      // Add CORDIS results
-      for (const org of cordisResults) {
-        if (org.picNumber && !seenPics.has(org.picNumber)) {
-          seenPics.add(org.picNumber);
-          allResults.push(org);
-        }
-      }
+      // Add participant results
+      participantResults.forEach(addResult);
       
       console.log(`Total search results: ${allResults.length}`);
       return new Response(
-        JSON.stringify({ success: true, results: allResults.slice(0, 15) }),
+        JSON.stringify({ success: true, results: allResults.slice(0, 20) }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
