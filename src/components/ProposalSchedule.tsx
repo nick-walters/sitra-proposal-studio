@@ -55,7 +55,7 @@ interface CompletionStats {
   ethics: number;
 }
 
-interface SubmissionWorkflowProps {
+interface ProposalScheduleProps {
   proposal: Proposal | null;
   participants: Participant[];
   budgetItems: { amount: number }[];
@@ -66,7 +66,7 @@ interface SubmissionWorkflowProps {
   completionStats?: CompletionStats;
 }
 
-export function SubmissionWorkflow({
+export function ProposalSchedule({
   proposal,
   participants,
   budgetItems,
@@ -75,7 +75,7 @@ export function SubmissionWorkflow({
   canEdit,
   isAdmin,
   completionStats = { partA: 0, partB: 0, budget: 0, ethics: 0 },
-}: SubmissionWorkflowProps) {
+}: ProposalScheduleProps) {
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<ProposalStatus | ''>('');
