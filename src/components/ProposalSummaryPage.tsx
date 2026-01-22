@@ -303,7 +303,7 @@ export function ProposalSummaryPage({
               </div>
 
               <div className="flex-1 space-y-4">
-                {/* Acronym & Type & Status */}
+                {/* Acronym */}
                 <div className="flex items-center gap-2 flex-wrap">
                   {isEditing ? (
                     <Input
@@ -317,33 +317,6 @@ export function ProposalSummaryPage({
                       {proposal.acronym}
                     </Badge>
                   )}
-                  
-                  {isEditing ? (
-                    <Select
-                      value={editedProposal.type}
-                      onValueChange={(v) => setEditedProposal({ ...editedProposal, type: v as ProposalType })}
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="RIA">RIA</SelectItem>
-                        <SelectItem value="IA">IA</SelectItem>
-                        <SelectItem value="CSA">CSA</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Badge variant="secondary">
-                      {PROPOSAL_TYPE_LABELS[proposal.type]}
-                    </Badge>
-                  )}
-                  
-                  <Badge 
-                    variant={proposal.status === 'draft' ? 'outline' : proposal.status === 'funded' ? 'default' : 'secondary'}
-                    className={proposal.status === 'funded' ? 'bg-success text-success-foreground' : ''}
-                  >
-                    {PROPOSAL_STATUS_LABELS[proposal.status]}
-                  </Badge>
                 </div>
 
                 {/* Title */}
@@ -382,27 +355,44 @@ export function ProposalSummaryPage({
 
         {/* Topic - consolidated section */}
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <Target className="w-5 h-5" />
               Topic
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4">
             {/* Topic ID */}
+            <div>
+              <label className="text-sm text-muted-foreground mb-1 block">Topic ID</label>
+              {isEditing ? (
+                <Input
+                  value={editedProposal.topicId || ''}
+                  onChange={(e) => setEditedProposal({ ...editedProposal, topicId: e.target.value })}
+                  placeholder="e.g. HORIZON-CL5-2026-D1-01"
+                  className="max-w-md"
+                />
+              ) : (
+                <p className="font-medium">{proposal.topicId || 'Not specified'}</p>
+              )}
+            </div>
+
+            {/* Topic Title */}
+            <div>
+              <label className="text-sm text-muted-foreground mb-1 block">Topic title</label>
+              {isEditing ? (
+                <Input
+                  value={editedProposal.description || ''}
+                  onChange={(e) => setEditedProposal({ ...editedProposal, description: e.target.value })}
+                  placeholder="Enter topic title"
+                />
+              ) : (
+                <p className="font-medium">{proposal.description || 'Not specified'}</p>
+              )}
+            </div>
+
+            {/* Work Programme & Destination - side by side */}
             <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="text-sm text-muted-foreground mb-1 block">Topic ID</label>
-                {isEditing ? (
-                  <Input
-                    value={editedProposal.topicId || ''}
-                    onChange={(e) => setEditedProposal({ ...editedProposal, topicId: e.target.value })}
-                    placeholder="e.g. HORIZON-CL5-2026-D1-01"
-                  />
-                ) : (
-                  <p className="font-medium">{proposal.topicId || 'Not specified'}</p>
-                )}
-              </div>
               <div>
                 <label className="text-sm text-muted-foreground mb-1 block">Work programme</label>
                 {isEditing ? (
@@ -427,33 +417,31 @@ export function ProposalSummaryPage({
                   </p>
                 )}
               </div>
-            </div>
-
-            {/* Destination */}
-            <div>
-              <label className="text-sm text-muted-foreground mb-1 block">Destination</label>
-              {isEditing ? (
-                <Select
-                  value={editedProposal.destination || ''}
-                  onValueChange={(v) => setEditedProposal({ ...editedProposal, destination: v })}
-                  disabled={!editedProposal.workProgramme}
-                >
-                  <SelectTrigger className="max-w-md">
-                    <SelectValue placeholder="Select destination" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableDestinations.map(d => (
-                      <SelectItem key={d.id} value={d.id}>
-                        {d.abbreviation} - {d.fullName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <p className="font-medium">
-                  {destination ? `${destination.abbreviation} - ${destination.fullName}` : 'Not specified'}
-                </p>
-              )}
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Destination</label>
+                {isEditing ? (
+                  <Select
+                    value={editedProposal.destination || ''}
+                    onValueChange={(v) => setEditedProposal({ ...editedProposal, destination: v })}
+                    disabled={!editedProposal.workProgramme}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select destination" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableDestinations.map(d => (
+                        <SelectItem key={d.id} value={d.id}>
+                          {d.abbreviation} - {d.fullName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="font-medium">
+                    {destination ? `${destination.abbreviation} - ${destination.fullName}` : 'Not specified'}
+                  </p>
+                )}
+              </div>
             </div>
 
             <Separator />
