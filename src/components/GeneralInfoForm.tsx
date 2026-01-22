@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { GuidelineBox } from "./GuidelineBox";
+import { InlineGuideline } from "./GuidelineBox";
 import { Section } from "@/types/proposal";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -179,28 +179,9 @@ export function GeneralInfoForm({
           {canEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
         </div>
 
-        {/* Guidelines */}
-        {section.guidelinesArray && section.guidelinesArray.length > 0 ? (
-          <div className="space-y-4">
-            {section.guidelinesArray.map((guideline) => (
-              <GuidelineBox
-                key={guideline.id}
-                type={guideline.type}
-                title={guideline.title}
-              >
-                {guideline.content}
-              </GuidelineBox>
-            ))}
-          </div>
-        ) : (
-          <GuidelineBox type="official" title="Official guidance">
-            Complete the general information for your proposal. The abstract should summarize the proposal in a maximum of 2000 characters. Keywords help evaluators and reviewers understand the scope of your project.
-          </GuidelineBox>
-        )}
-
         {/* Proposal Summary Card */}
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-3">
             <CardTitle className="text-lg">Proposal summary</CardTitle>
             <CardDescription>
               Basic information about your proposal (editable in Proposal overview)
@@ -208,29 +189,35 @@ export function GeneralInfoForm({
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div>
+              <div className="space-y-1">
                 <Label className="text-muted-foreground text-sm">Acronym</Label>
                 <p className="font-medium">{proposal?.acronym || '-'}</p>
+                <InlineGuideline className="mt-1">
+                  Maximum 20 characters. Should be readable as a word or abbreviation.
+                </InlineGuideline>
               </div>
-              <div>
+              <div className="space-y-1">
                 <Label className="text-muted-foreground text-sm">Topic ID</Label>
                 <p className="font-medium">{proposal?.topicId || '-'}</p>
               </div>
             </div>
-            <div>
+            <div className="space-y-1">
               <Label className="text-muted-foreground text-sm">Title</Label>
               <p className="font-medium">{proposal?.title || '-'}</p>
+              <InlineGuideline className="mt-1">
+                Maximum 200 characters. Should convey the essence of the project.
+              </InlineGuideline>
             </div>
           </CardContent>
         </Card>
 
         {/* Abstract */}
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-3">
             <CardTitle className="text-lg">Abstract</CardTitle>
-            <CardDescription>
-              Provide a brief summary of your proposal (max 2000 characters)
-            </CardDescription>
+            <InlineGuideline className="mt-2">
+              Maximum 2000 characters. Include objectives, methodology, and expected impact. Used for evaluation and publication if funded.
+            </InlineGuideline>
           </CardHeader>
           <CardContent className="space-y-3">
             <Textarea
@@ -252,11 +239,11 @@ export function GeneralInfoForm({
 
         {/* Keywords */}
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-3">
             <CardTitle className="text-lg">Keywords</CardTitle>
-            <CardDescription>
-              Add up to 5 keywords that describe your proposal (max 5)
-            </CardDescription>
+            <InlineGuideline className="mt-2">
+              Add up to 5 free-text keywords to help evaluators understand the scope. Avoid highly specialized or technical terms.
+            </InlineGuideline>
           </CardHeader>
           <CardContent className="space-y-4">
             {canEdit && formData.keywords.length < 5 && (

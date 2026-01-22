@@ -27,8 +27,9 @@ import {
   BUDGET_CATEGORIES_TRADITIONAL,
   BUDGET_CATEGORIES_LUMP_SUM,
 } from '@/types/proposal';
-import { Plus, Trash2, Download, Euro, Calculator } from 'lucide-react';
+import { Plus, Trash2, Download, Euro, Calculator, Info } from 'lucide-react';
 import { toast } from 'sonner';
+import { InlineGuideline } from './GuidelineBox';
 
 interface BudgetSpreadsheetProps {
   budgetItems: BudgetItem[];
@@ -100,10 +101,12 @@ export function BudgetSpreadsheet({
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div className="space-y-2">
             <h1 className="text-2xl font-bold text-foreground">Budget</h1>
-            <p className="text-muted-foreground">Detailed budget breakdown for the proposal</p>
+            <InlineGuideline>
+              RIA: 100% funding. IA: 70% (100% for non-profit). Indirect costs are 25% flat rate on direct costs minus subcontracting.
+            </InlineGuideline>
           </div>
           <div className="flex items-center gap-3">
             <Select

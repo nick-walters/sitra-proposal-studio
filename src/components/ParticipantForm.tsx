@@ -20,8 +20,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Participant, ParticipantMember, ParticipantType, PARTICIPANT_TYPE_LABELS } from '@/types/proposal';
-import { Plus, Trash2, Building2, User, Save } from 'lucide-react';
+import { Plus, Trash2, Building2, User, Save, Info } from 'lucide-react';
 import { toast } from 'sonner';
+import { InlineGuideline } from './GuidelineBox';
 
 interface ParticipantFormProps {
   participants: Participant[];
@@ -132,12 +133,12 @@ export function ParticipantForm({
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-2">
             <h1 className="text-2xl font-bold text-foreground">Participant Information</h1>
-            <p className="text-muted-foreground">
-              Enter details for each participating organisation
-            </p>
+            <InlineGuideline>
+              Enter organisation details using PIC (Participant Identification Code) from the EC Participant Register. Coordinator is always Participant #1.
+            </InlineGuideline>
           </div>
           {canEditAll && (
             <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
