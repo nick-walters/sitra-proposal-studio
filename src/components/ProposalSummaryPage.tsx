@@ -549,7 +549,16 @@ export function ProposalSummaryPage({
                       <Calendar
                         mode="single"
                         selected={editedProposal.deadline}
-                        onSelect={(date) => setEditedProposal({ ...editedProposal, deadline: date })}
+                        onSelect={(date) => {
+                          setEditedProposal({ 
+                            ...editedProposal, 
+                            deadline: date,
+                            // Auto-calculate decision date as 3 months after deadline if not already set
+                            decisionDate: !editedProposal.decisionDate && date 
+                              ? new Date(date.getFullYear(), date.getMonth() + 3, date.getDate()) 
+                              : editedProposal.decisionDate
+                          });
+                        }}
                         disabled={(date) => date < new Date()}
                       />
                     </PopoverContent>
@@ -566,40 +575,46 @@ export function ProposalSummaryPage({
                 )}
               </div>
               
-              {/* Decision fields only for non-draft proposals */}
+              {/* Decision date - show for all statuses, with "(estimated)" for drafts */}
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">
+                  Decision{proposal.status === 'draft' && ' (estimated)'}
+                </label>
+                {isEditing ? (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !editedProposal.decisionDate && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {editedProposal.decisionDate ? format(editedProposal.decisionDate, 'PPP') : 'Select date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 z-50 bg-popover" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={editedProposal.decisionDate}
+                        onSelect={(date) => setEditedProposal({ ...editedProposal, decisionDate: date })}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                ) : (
+                  <p className="font-medium">
+                    {proposal.decisionDate 
+                      ? format(proposal.decisionDate, 'dd MMM yyyy') 
+                      : proposal.deadline 
+                        ? format(new Date(proposal.deadline.getFullYear(), proposal.deadline.getMonth() + 3, proposal.deadline.getDate()), 'dd MMM yyyy')
+                        : 'Not set'}
+                  </p>
+                )}
+              </div>
+
+              {/* Submission date only for non-draft proposals */}
               {proposal.status !== 'draft' && (
-                <>
-                  <div>
-                    <label className="text-sm text-muted-foreground mb-1 block">Submission date</label>
-                    <p className="font-medium">
-                      {proposal.submittedAt ? format(proposal.submittedAt, 'dd MMM yyyy') : 'Not recorded'}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm text-muted-foreground mb-1 block">Decision date</label>
-                    {isEditing ? (
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !editedProposal.decisionDate && "text-muted-foreground")}>
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {editedProposal.decisionDate ? format(editedProposal.decisionDate, 'PPP') : 'Select date'}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0 z-50 bg-popover" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={editedProposal.decisionDate}
-                            onSelect={(date) => setEditedProposal({ ...editedProposal, decisionDate: date })}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    ) : (
-                      <p className="font-medium">
-                        {proposal.decisionDate ? format(proposal.decisionDate, 'dd MMM yyyy') : 'Pending'}
-                      </p>
-                    )}
-                  </div>
-                </>
+                <div>
+                  <label className="text-sm text-muted-foreground mb-1 block">Submission date</label>
+                  <p className="font-medium">
+                    {proposal.submittedAt ? format(proposal.submittedAt, 'dd MMM yyyy') : 'Not recorded'}
+                  </p>
+                </div>
               )}
             </div>
           </CardContent>
