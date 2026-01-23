@@ -11,7 +11,6 @@ import { TableHeader } from '@tiptap/extension-table-header';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
-  Bold,
   Italic,
   Underline as UnderlineIcon,
   Strikethrough,
@@ -21,7 +20,6 @@ import {
   AlignCenter,
   AlignRight,
   AlignJustify,
-  Heading3,
   ImageIcon,
   Link as LinkIcon,
   Undo,
@@ -163,7 +161,7 @@ export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootn
 
   return (
     <div className={className}>
-      {/* Toolbar */}
+      {/* Formatting Toolbar */}
       <div className="editor-toolbar rounded-t-lg">
         <div className="flex items-center gap-0.5">
           <ToolbarButton 
@@ -183,24 +181,44 @@ export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootn
         <Separator orientation="vertical" className="h-6 mx-2" />
 
         <div className="flex items-center gap-0.5">
-          <ToolbarButton 
-            icon={<Heading3 className="w-4 h-4" />} 
-            tooltip="Subheading (Bold & Underlined)"
-            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-            active={editor.isActive('heading', { level: 3 })}
-          />
+          {/* Subheading button with text instead of icon */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={editor.isActive('heading', { level: 3 }) ? "secondary" : "ghost"}
+                size="sm"
+                className="h-8 px-2 text-xs"
+                onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+              >
+                <span className="font-black underline">Subheading</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              Subheading (Bold & Underlined)
+            </TooltipContent>
+          </Tooltip>
         </div>
 
         <Separator orientation="vertical" className="h-6 mx-2" />
 
         <div className="flex items-center gap-0.5">
-          <ToolbarButton 
-            icon={<Bold className="w-4 h-4" />} 
-            tooltip="Bold (Ctrl+B)"
-            onClick={() => editor.chain().focus().toggleBold().run()}
-            active={editor.isActive('bold')}
-          />
-          <ToolbarButton 
+          {/* Bold button with bolder B */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={editor.isActive('bold') ? "secondary" : "ghost"}
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => editor.chain().focus().toggleBold().run()}
+              >
+                <span className="font-black text-sm">B</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              Bold (Ctrl+B)
+            </TooltipContent>
+          </Tooltip>
+          <ToolbarButton
             icon={<Italic className="w-4 h-4" />} 
             tooltip="Italic (Ctrl+I)"
             onClick={() => editor.chain().focus().toggleItalic().run()}
