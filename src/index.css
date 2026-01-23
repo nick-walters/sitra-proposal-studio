@@ -184,11 +184,34 @@
     line-height: 1.5;
   }
 
+  /* Body text justified by default */
+  .document-content p {
+    text-align: justify;
+  }
+
+  /* Headings left-aligned by default */
+  .document-content h1,
+  .document-content h2,
+  .document-content h3,
+  .document-content h4,
+  .document-content h5,
+  .document-content h6 {
+    text-align: left;
+  }
+
+  /* Table content left-aligned by default */
+  .document-content table,
+  .document-content th,
+  .document-content td {
+    text-align: left;
+  }
+
   .document-h1 {
     font-family: 'Times New Roman', Times, serif;
     font-size: 14pt;
     font-weight: 700;
     line-height: 1.3;
+    text-align: left;
   }
 
   .document-h2 {
@@ -196,6 +219,7 @@
     font-size: 12pt;
     font-weight: 700;
     line-height: 1.3;
+    text-align: left;
   }
 
   .document-h3 {
@@ -203,6 +227,7 @@
     font-size: 11pt;
     font-weight: 700;
     line-height: 1.3;
+    text-align: left;
   }
 
   /* Inline H3 sub-header styling for Part B templates */
@@ -222,6 +247,7 @@
     text-decoration: underline;
     display: inline;
     margin: 0;
+    text-align: left;
   }
 
   /* Ensure text after H3 can continue on same line */

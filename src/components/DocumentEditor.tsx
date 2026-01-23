@@ -3,7 +3,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sparkles, BookOpen, Wand2, Route, History, Info, Upload } from "lucide-react";
 import { useState, useCallback } from "react";
-import { RichTextEditor } from "./RichTextEditor";
+import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
+import { EditorContent } from "@tiptap/react";
 import { GrammarChecker } from "./GrammarChecker";
 import { CitationDialog } from "./CitationDialog";
 import { ImageGeneratorDialog } from "./ImageGeneratorDialog";
@@ -63,9 +64,11 @@ export function DocumentEditor({
   
   const { content, setContent, loading, saving, lastSaved } = sectionContentHook;
 
-  const handleContentChange = useCallback((newContent: string) => {
-    setContent(newContent);
-  }, [setContent]);
+  // Use the editor hook for external toolbar control
+  const editor = useRichTextEditor({
+    content,
+    onChange: readOnly ? () => {} : (newContent) => setContent(newContent),
+  });
 
   const handleInsertCitation = useCallback((reference: Reference, formattedCitation: string, citationNumber: number) => {
     // Add superscript citation to content
@@ -204,7 +207,8 @@ export function DocumentEditor({
           </div>
         </div>
 
-        {/* Formatting Toolbar - rendered by RichTextEditor but we need to extract it */}
+        {/* Formatting Toolbar - immediately below Features toolbar */}
+        <FormattingToolbar editor={editor} onInsertImage={() => setIsImageGenOpen(true)} />
       </div>
 
       <div className="flex-1 overflow-auto p-6 bg-muted/30">
@@ -233,10 +237,10 @@ export function DocumentEditor({
                 <Skeleton className="h-4 w-2/3" />
               </div>
             ) : (
-              <RichTextEditor
-                content={content}
-                onChange={readOnly ? () => {} : handleContentChange}
-                onInsertImage={() => setIsImageGenOpen(true)}
+              <EditorContent 
+                editor={editor} 
+                className="document-content min-h-[400px] outline-none prose prose-sm max-w-none"
+                style={{ fontFamily: '"Times New Roman", Times, serif' }}
               />
             )}
 
