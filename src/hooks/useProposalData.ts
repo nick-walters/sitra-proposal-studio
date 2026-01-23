@@ -280,28 +280,16 @@ export function useProposalData(proposalId: string) {
 
   // Add participant
   const addParticipant = async (participant: Omit<Participant, 'id'> & { organisationCategory?: string; englishName?: string }) => {
-    // Check for duplicates before adding
+    // Check for duplicate PIC before adding
+    // Note: Same organisation name is allowed as orgs can have multiple PICs (e.g., different departments/offices)
     const picNumber = participant.picNumber?.trim();
-    const orgName = participant.organisationName?.trim().toLowerCase();
     
-    // Check by PIC number first (most reliable identifier)
     if (picNumber) {
       const existingByPic = participants.find(
         p => p.picNumber?.trim() === picNumber
       );
       if (existingByPic) {
-        toast.error(`This organisation (PIC: ${picNumber}) is already in the consortium as "${existingByPic.organisationShortName || existingByPic.organisationName}"`);
-        throw new Error('Duplicate participant');
-      }
-    }
-    
-    // Also check by organisation name (case-insensitive)
-    if (orgName) {
-      const existingByName = participants.find(
-        p => p.organisationName?.trim().toLowerCase() === orgName
-      );
-      if (existingByName) {
-        toast.error(`An organisation with the name "${participant.organisationName}" is already in the consortium`);
+        toast.error(`This PIC (${picNumber}) is already in the consortium as "${existingByPic.organisationShortName || existingByPic.organisationName}"`);
         throw new Error('Duplicate participant');
       }
     }
