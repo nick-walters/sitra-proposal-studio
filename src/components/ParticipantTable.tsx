@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Participant } from '@/types/proposal';
 import { EU_MEMBER_STATES, ASSOCIATED_COUNTRIES, THIRD_COUNTRIES } from '@/lib/countries';
-import { supabase } from '@/integrations/supabase/client';
 import { Upload, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { generateParticipantLogoPath, uploadProposalFile } from '@/lib/proposalStorage';
 
 // Official EC organisation category types for Horizon Europe
 export type OrganisationCategory = 
@@ -95,27 +95,23 @@ export function ParticipantTable({
     setUploadingLogoId(participantId);
 
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${proposalId}/${participantId}/logo.${fileExt}`;
+      // Find participant number for organized file naming
+      const participant = participants.find(p => p.id === participantId);
+      const participantNumber = participant?.participantNumber || 0;
+      
+      // Generate organized file path: {proposalId}/participants/partner-{number}-logo-{timestamp}.{ext}
+      const filePath = generateParticipantLogoPath(proposalId, participantNumber, file.name);
 
-      // Upload to storage
-      const { error: uploadError } = await supabase.storage
-        .from('participant-logos')
-        .upload(fileName, file, { upsert: true });
+      const { url, error } = await uploadProposalFile(file, filePath, { upsert: true });
 
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
+      if (error) {
+        console.error('Upload error:', error);
         toast.error('Failed to upload logo');
         return;
       }
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('participant-logos')
-        .getPublicUrl(fileName);
-
       // Update participant with new logo URL
-      onUpdateParticipant?.(participantId, { logoUrl: publicUrl });
+      onUpdateParticipant?.(participantId, { logoUrl: url || undefined });
       toast.success('Logo uploaded');
     } catch (error) {
       console.error('Error uploading logo:', error);

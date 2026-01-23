@@ -204,6 +204,7 @@ export function ProposalSummaryPage({
                 {isEditing ? (
                   <LogoUpload
                     currentUrl={editedProposal.logoUrl || null}
+                    proposalId={proposal.id}
                     proposalAcronym={editedProposal.acronym}
                     proposalTitle={editedProposal.title}
                     onUpload={handleLogoChange}
