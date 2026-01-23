@@ -5,7 +5,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Info, Lightbulb, ClipboardCheck, AlertCircle } from "lucide-react";
+import { Info, Lightbulb, ClipboardCheck, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
 
@@ -25,35 +25,35 @@ interface GuidelinesDialogProps {
   guidelines: Guideline[];
 }
 
-// Parse content to handle special markers (e.g., yellow exclamation marks become blue info icons)
+// Parse content to handle special markers (e.g., yellow exclamation marks become blue warning triangles)
 function parseGuidelineContent(content: string): React.ReactNode {
   // Split by newlines to handle bullet points
   const lines = content.split('\n');
   
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       {lines.map((line, index) => {
         // Check for warning markers (⚠️, ⚠, !, [!], etc.) at the start of line
         const hasWarning = /^[⚠️⚠!]/.test(line.trim());
         // Clean the line of warning markers at the start
         const cleanLine = line.replace(/^[⚠️⚠!]\s*/, '').trim();
         
-        // Handle bullet points
+        // Handle bullet points - reduced indent
         if (cleanLine.startsWith('•') || cleanLine.startsWith('-') || cleanLine.startsWith('–')) {
           const bulletContent = cleanLine.replace(/^[•\-–]\s*/, '');
           return (
-            <div key={index} className="flex items-start gap-2 pl-2">
-              <span className="text-muted-foreground mt-1">•</span>
+            <div key={index} className="flex items-start gap-1.5">
+              <span className="text-muted-foreground mt-0.5">•</span>
               <span className="text-sm text-muted-foreground">{bulletContent}</span>
             </div>
           );
         }
         
-        // Line starting with warning marker - show with blue info icon
+        // Line starting with warning marker - show with blue warning triangle
         if (hasWarning && cleanLine) {
           return (
             <div key={index} className="flex items-start gap-2 mt-3 p-2 bg-blue-50 rounded border border-blue-200">
-              <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-500" />
+              <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-500" />
               <span className="text-sm text-blue-700">{cleanLine}</span>
             </div>
           );
@@ -123,7 +123,7 @@ function ConsolidatedGuidelineBox({
         </div>
         <div className="flex-1 min-w-0">
           <div className="mb-3">
-            <span className={cn("text-xs font-medium uppercase tracking-wide", titleColor)}>
+            <span className={cn("text-sm font-bold", titleColor)}>
               {label}
             </span>
           </div>
@@ -176,7 +176,7 @@ export function GuidelinesDialog({ isOpen, onClose, sectionTitle, guidelines }: 
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] w-[90vw]">
         <DialogHeader>
-          <DialogTitle>Guidelines for {sectionTitle}</DialogTitle>
+          <DialogTitle>Guidelines for Part {sectionTitle}</DialogTitle>
         </DialogHeader>
         <ScrollArea className="max-h-[75vh] pr-4">
           <div className="space-y-4">
