@@ -2,14 +2,16 @@ import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
-import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
 import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
+import { ResizableImage } from './ResizableImage';
+import { ImageCropDialog } from './ImageCropDialog';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
 import {
   Italic,
   Underline as UnderlineIcon,
@@ -28,6 +30,8 @@ import {
   Minus,
   Trash2,
   Grid3X3,
+  Crop,
+  ImageIcon,
 } from "lucide-react";
 import {
   Tooltip,
@@ -146,6 +150,64 @@ export function FormattingToolbar({
   content?: string;
 }) {
   const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
+  const [isCropOpen, setIsCropOpen] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState('');
+  const [imageWidth, setImageWidth] = useState('');
+  const [imageHeight, setImageHeight] = useState('');
+  const [aspectRatio, setAspectRatio] = useState(1);
+
+  // Check if an image is selected and get its attributes
+  const isImageSelected = editor?.isActive('image');
+  const selectedImageAttrs = isImageSelected ? editor?.getAttributes('image') : null;
+  
+  // Update image dimension inputs when selection changes
+  useEffect(() => {
+    if (selectedImageAttrs) {
+      const w = selectedImageAttrs.width || '';
+      const h = selectedImageAttrs.height || '';
+      setImageWidth(w.toString());
+      setImageHeight(h.toString());
+      if (w && h) {
+        setAspectRatio(Number(w) / Number(h));
+      }
+    } else {
+      setImageWidth('');
+      setImageHeight('');
+    }
+  }, [selectedImageAttrs?.width, selectedImageAttrs?.height, isImageSelected]);
+
+  const handleWidthChange = useCallback((value: string) => {
+    setImageWidth(value);
+    const numValue = parseInt(value);
+    if (!isNaN(numValue) && numValue > 0 && editor) {
+      const newHeight = Math.round(numValue / aspectRatio);
+      setImageHeight(newHeight.toString());
+      editor.commands.updateAttributes('image', { width: numValue, height: newHeight });
+    }
+  }, [editor, aspectRatio]);
+
+  const handleHeightChange = useCallback((value: string) => {
+    setImageHeight(value);
+    const numValue = parseInt(value);
+    if (!isNaN(numValue) && numValue > 0 && editor) {
+      const newWidth = Math.round(numValue * aspectRatio);
+      setImageWidth(newWidth.toString());
+      editor.commands.updateAttributes('image', { width: newWidth, height: numValue });
+    }
+  }, [editor, aspectRatio]);
+
+  const handleCropClick = useCallback(() => {
+    if (selectedImageAttrs?.src) {
+      setCropImageSrc(selectedImageAttrs.src);
+      setIsCropOpen(true);
+    }
+  }, [selectedImageAttrs]);
+
+  const handleCropComplete = useCallback((croppedImageUrl: string) => {
+    if (editor) {
+      editor.commands.updateAttributes('image', { src: croppedImageUrl });
+    }
+  }, [editor]);
   
   const setLink = useCallback(() => {
     if (!editor) return;
@@ -419,7 +481,47 @@ export function FormattingToolbar({
             </DropdownMenuContent>
           </DropdownMenu>
         )}
+
+        {/* Image controls - show when image is selected */}
+        {isImageSelected && (
+          <>
+            <Separator orientation="vertical" className="h-5 mx-1.5" />
+            <div className="flex items-center gap-1">
+              <ImageIcon className="w-4 h-4 text-muted-foreground" />
+              <Input
+                type="number"
+                value={imageWidth}
+                onChange={(e) => handleWidthChange(e.target.value)}
+                className="w-16 h-7 text-xs"
+                placeholder="W"
+                title="Width (px)"
+              />
+              <span className="text-xs text-muted-foreground">×</span>
+              <Input
+                type="number"
+                value={imageHeight}
+                onChange={(e) => handleHeightChange(e.target.value)}
+                className="w-16 h-7 text-xs"
+                placeholder="H"
+                title="Height (px)"
+              />
+              <ToolbarButton
+                icon={<Crop className="w-4 h-4" />}
+                tooltip="Crop image"
+                onClick={handleCropClick}
+              />
+            </div>
+          </>
+        )}
       </div>
+
+      {/* Crop Dialog */}
+      <ImageCropDialog
+        isOpen={isCropOpen}
+        onClose={() => setIsCropOpen(false)}
+        imageSrc={cropImageSrc}
+        onCrop={handleCropComplete}
+      />
     </div>
   );
 }
@@ -437,11 +539,7 @@ export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootn
         types: ['heading', 'paragraph'],
         defaultAlignment: 'justify',
       }),
-      Image.configure({
-        HTMLAttributes: {
-          class: 'max-w-full h-auto rounded-md',
-        },
-      }),
+      ResizableImage,
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
@@ -512,11 +610,7 @@ export function useRichTextEditor({ content, onChange }: { content: string; onCh
         types: ['heading', 'paragraph'],
         defaultAlignment: 'justify',
       }),
-      Image.configure({
-        HTMLAttributes: {
-          class: 'max-w-full h-auto rounded-md',
-        },
-      }),
+      ResizableImage,
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
@@ -571,7 +665,10 @@ export function useRichTextEditor({ content, onChange }: { content: string; onCh
 export function useEditorActions(editor: ReturnType<typeof useEditor>) {
   const insertImage = useCallback((url: string) => {
     if (!editor) return;
-    editor.chain().focus().setImage({ src: url }).run();
+    editor.chain().focus().insertContent({
+      type: 'image',
+      attrs: { src: url },
+    }).run();
   }, [editor]);
 
   return { insertImage };
