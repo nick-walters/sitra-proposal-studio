@@ -56,10 +56,13 @@ export function DocumentEditor({
   const [footnotes, setFootnotes] = useState<Array<{ number: number; citation: string }>>([]);
 
   // Use the section content hook for database persistence and real-time updates
-  const { content, setContent, loading, saving, lastSaved } = useSectionContent({
+  // IMPORTANT: Always call hooks with the same parameters to avoid "rendered more hooks" error
+  const sectionContentHook = useSectionContent({
     proposalId: proposalId || '',
     sectionId: section?.id || '',
   });
+  
+  const { content, setContent, loading, saving, lastSaved } = sectionContentHook;
 
   const handleContentChange = useCallback((newContent: string) => {
     setContent(newContent);
