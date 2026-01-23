@@ -246,7 +246,7 @@ export function BudgetSpreadsheetEnhanced({
           </div>
           <div className="flex items-center gap-3">
             <Badge variant={budgetType === 'lump_sum' ? 'default' : 'secondary'}>
-              {budgetType === 'lump_sum' ? 'Lump Sum' : 'Standard'}
+              {budgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}
             </Badge>
             <Sheet open={showChangeHistory} onOpenChange={setShowChangeHistory}>
               <SheetTrigger asChild>
@@ -352,10 +352,10 @@ export function BudgetSpreadsheetEnhanced({
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg">
-                {budgetType === 'traditional' ? 'Standard Budget Model' : 'Lump Sum Budget Model'}
+                {budgetType === 'traditional' ? 'Actual Costs Budget Model' : 'Lump Sum Budget Model'}
               </CardTitle>
               <Badge variant={budgetType === 'traditional' ? 'default' : 'secondary'}>
-                {budgetType === 'traditional' ? 'Actual Costs' : 'Fixed Lump Sums'}
+                {budgetType === 'traditional' ? 'Actual costs' : 'Fixed lump sums'}
               </Badge>
             </div>
             <CardDescription>

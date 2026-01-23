@@ -551,13 +551,13 @@ export function ProposalSummaryPage({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="traditional">Standard</SelectItem>
-                      <SelectItem value="lump_sum">Lump Sum</SelectItem>
+                      <SelectItem value="traditional">Actual costs</SelectItem>
+                      <SelectItem value="lump_sum">Lump sum</SelectItem>
                     </SelectContent>
                   </Select>
                 ) : (
                   <Badge variant={proposal.budgetType === 'lump_sum' ? 'default' : 'secondary'}>
-                    {proposal.budgetType === 'lump_sum' ? 'Lump Sum' : 'Standard'}
+                    {proposal.budgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}
                   </Badge>
                 )}
               </div>

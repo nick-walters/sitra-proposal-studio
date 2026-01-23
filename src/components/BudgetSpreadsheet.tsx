@@ -189,10 +189,10 @@ export function BudgetSpreadsheet({
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg">
-                {budgetType === 'traditional' ? 'Standard Budget Model' : 'Lump Sum Budget Model'}
+                {budgetType === 'traditional' ? 'Actual Costs Budget Model' : 'Lump Sum Budget Model'}
               </CardTitle>
               <Badge variant={budgetType === 'traditional' ? 'default' : 'secondary'}>
-                {budgetType === 'traditional' ? 'Cost Categories' : 'Work Packages'}
+                {budgetType === 'traditional' ? 'Cost categories' : 'Work packages'}
               </Badge>
             </div>
             <CardDescription>
