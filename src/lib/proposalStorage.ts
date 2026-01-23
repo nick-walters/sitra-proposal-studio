@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 /**
  * File categories for organizing proposal files
  */
-export type FileCategory = 'logo' | 'figures' | 'attachments' | 'exports' | 'participants';
+export type FileCategory = 'logo' | 'figures' | 'attachments' | 'exports' | 'participants' | 'generated';
 
 /**
  * Generates a human-readable, organized file path for proposal files.
@@ -14,6 +14,7 @@ export type FileCategory = 'logo' | 'figures' | 'attachments' | 'exports' | 'par
  * - d687661f-afbc-44fc-ac39-fad26b5d3336/logo/project-logo.png
  * - d687661f-afbc-44fc-ac39-fad26b5d3336/figures/figure-1-1-a-impact-pathway.png
  * - d687661f-afbc-44fc-ac39-fad26b5d3336/participants/partner-1-logo.png
+ * - d687661f-afbc-44fc-ac39-fad26b5d3336/generated/ai-generated-diagram.png
  */
 export function generateProposalFilePath(
   proposalId: string,
