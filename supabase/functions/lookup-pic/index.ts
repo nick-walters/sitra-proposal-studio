@@ -73,147 +73,178 @@ async function searchDatabase(supabase: any, searchTerm: string): Promise<Organi
   return results;
 }
 
-// Parse organisation info from Firecrawl search results
-function parseOrganisationFromSearchResult(content: string, query: string): OrganisationInfo | null {
-  try {
-    console.log('Parsing content for organisation info...');
-    
-    // Try to extract PIC number (9 digits)
-    const picMatch = content.match(/\b(\d{9})\b/);
-    const pic = picMatch ? picMatch[1] : '';
-    
-    // If we're searching by PIC and found a different one, this isn't a match
-    if (/^\d{9}$/.test(query) && pic && pic !== query) {
-      return null;
-    }
-    
-    // Extract organisation name - look for patterns like "Legal Name:" or organisation names near PIC
-    let legalName = '';
-    const legalNamePatterns = [
-      /legal\s*name[:\s]+([^\n,]+)/i,
-      /organisation[:\s]+([^\n,]+)/i,
-      /organization[:\s]+([^\n,]+)/i,
-      /name[:\s]+([^\n,]+)/i,
-    ];
-    
-    for (const pattern of legalNamePatterns) {
-      const match = content.match(pattern);
-      if (match && match[1].trim().length > 2) {
-        legalName = match[1].trim();
-        break;
-      }
-    }
-    
-    // Extract country
-    let country = '';
-    let countryCode = '';
-    
-    // Check for country codes or names
-    for (const [code, name] of Object.entries(COUNTRY_NAMES)) {
-      if (content.toLowerCase().includes(name.toLowerCase())) {
-        country = name;
-        countryCode = code;
-        break;
-      }
-      if (new RegExp(`\\b${code}\\b`).test(content)) {
-        country = name;
-        countryCode = code;
-        break;
-      }
-    }
-    
-    // Determine organisation type
-    let isSme = content.toLowerCase().includes('sme') || content.toLowerCase().includes('small and medium');
-    let organisationCategory: OrganisationInfo['organisationCategory'] = 'OTH';
-    
-    if (content.toLowerCase().includes('university') || content.toLowerCase().includes('higher education')) {
-      organisationCategory = 'UNI';
-    } else if (content.toLowerCase().includes('research') || content.toLowerCase().includes('institute')) {
-      organisationCategory = 'RES';
-    } else if (content.toLowerCase().includes('public body') || content.toLowerCase().includes('government')) {
-      organisationCategory = 'PUB';
-    } else if (isSme) {
-      organisationCategory = 'SME';
-    }
-    
-    // Only return if we have meaningful data
-    if (!pic && !legalName) {
-      return null;
-    }
-    
-    return {
-      picNumber: pic || query,
-      legalName: legalName || `Organisation (${query})`,
-      country,
-      countryCode,
-      isSme,
-      organisationCategory,
-    };
-  } catch (error) {
-    console.error('Error parsing organisation info:', error);
-    return null;
-  }
-}
-
-// Search using Firecrawl web search
-async function searchWithFirecrawl(query: string): Promise<OrganisationInfo[]> {
+// Scrape CORDIS organisation page directly using Firecrawl
+async function lookupPicFromCordis(pic: string): Promise<OrganisationInfo | null> {
   const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
   if (!apiKey) {
     console.error('FIRECRAWL_API_KEY not configured');
-    return [];
+    return null;
   }
   
   try {
-    // Search for EU participant register data
-    const searchQuery = `EU participant register ${query} PIC number`;
-    console.log(`Firecrawl search: "${searchQuery}"`);
+    // CORDIS organisation pages use the PIC as identifier
+    // Format: https://cordis.europa.eu/organisation/id/{pic}/en
+    const url = `https://cordis.europa.eu/organisation/id/${pic}/en`;
+    console.log(`Scraping CORDIS organisation page: ${url}`);
     
-    const response = await fetch('https://api.firecrawl.dev/v1/search', {
+    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        query: searchQuery,
-        limit: 5,
-        scrapeOptions: {
-          formats: ['markdown'],
-        },
+        url,
+        formats: ['markdown'],
+        onlyMainContent: true,
+        waitFor: 2000,
       }),
     });
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`Firecrawl API error: ${response.status} - ${errorText}`);
-      return [];
+      console.error(`Firecrawl scrape error: ${response.status} - ${errorText}`);
+      return null;
     }
     
     const data = await response.json();
-    console.log(`Firecrawl returned ${data.data?.length || 0} results`);
+    const content = data.data?.markdown || data.markdown || '';
     
-    const results: OrganisationInfo[] = [];
+    console.log(`CORDIS page content length: ${content.length}`);
+    console.log(`CORDIS content preview: ${content.substring(0, 600)}`);
     
-    for (const result of data.data || []) {
-      // Combine title, description, and markdown content
-      const content = [
-        result.title || '',
-        result.description || '',
-        result.markdown || '',
-      ].join('\n');
+    // Check for 404 or error page
+    if (!content || content.length < 100 || 
+        content.includes('Page not found') || 
+        content.includes('Page not available') ||
+        content.includes('Error [404]') ||
+        content.includes('Error 404') ||
+        content.includes('This organisation could not be found')) {
+      console.log('CORDIS organisation page not found (404)');
+      return null;
+    }
+    
+    // Parse the organisation details from CORDIS page structure
+    // CORDIS typically shows: Organisation name prominently, then country, type, etc.
+    const lines = content.split('\n').filter((line: string) => line.trim());
+    
+    let legalName = '';
+    let country = '';
+    let countryCode = '';
+    let organisationType = '';
+    
+    // The organisation name is usually a prominent heading
+    for (const line of lines) {
+      const trimmed = line.trim();
       
-      const org = parseOrganisationFromSearchResult(content, query);
-      if (org) {
-        results.push(org);
+      // Skip obvious navigation elements
+      if (trimmed.startsWith('![') || trimmed.startsWith('[') || 
+          trimmed.includes('europa.eu') || trimmed.includes('CORDIS') ||
+          trimmed.includes('Cookie') || trimmed.includes('Search') ||
+          trimmed.length < 5 || trimmed.length > 300) {
+        continue;
+      }
+      
+      // First substantial heading is likely the org name
+      if (trimmed.startsWith('#') && !legalName) {
+        const name = trimmed.replace(/^#+\s*/, '');
+        if (name.length > 3 && !name.toLowerCase().includes('organisation') &&
+            !name.toLowerCase().includes('participant')) {
+          legalName = name;
+          continue;
+        }
+      }
+      
+      // Look for country field
+      if (trimmed.toLowerCase().includes('country')) {
+        const match = trimmed.match(/country[:\s]+([A-Za-z\s]+)/i);
+        if (match) {
+          const countryText = match[1].trim();
+          for (const [code, name] of Object.entries(COUNTRY_NAMES)) {
+            if (countryText.toLowerCase() === name.toLowerCase()) {
+              country = name;
+              countryCode = code;
+              break;
+            }
+          }
+        }
+      }
+      
+      // Look for type
+      if (trimmed.toLowerCase().includes('type') || trimmed.toLowerCase().includes('activity type')) {
+        const match = trimmed.match(/(?:type|activity type)[:\s]+(.+)/i);
+        if (match) {
+          organisationType = match[1].trim();
+        }
       }
     }
     
-    return results;
+    // If no name found yet, look for the first line that looks like an org name
+    if (!legalName) {
+      for (const line of lines.slice(0, 20)) {
+        const trimmed = line.replace(/[#*_\[\]]/g, '').trim();
+        // Skip short lines, navigation, or metadata
+        if (trimmed.length > 10 && trimmed.length < 200 &&
+            !trimmed.includes('|') && !trimmed.includes('europa') &&
+            !trimmed.includes('CORDIS') && !trimmed.includes('cookie') &&
+            /^[A-Z]/.test(trimmed)) {
+          legalName = trimmed;
+          break;
+        }
+      }
+    }
+    
+    // Scan for country if not found
+    if (!country) {
+      for (const [code, name] of Object.entries(COUNTRY_NAMES)) {
+        const regex = new RegExp(`\\b${name}\\b`, 'i');
+        if (regex.test(content)) {
+          country = name;
+          countryCode = code;
+          break;
+        }
+      }
+    }
+    
+    // Determine category from type or content
+    let organisationCategory: OrganisationInfo['organisationCategory'] = 'OTH';
+    let isSme = false;
+    const typeCheck = (organisationType + ' ' + content).toLowerCase();
+    
+    if (typeCheck.includes('hes') || typeCheck.includes('higher education')) {
+      organisationCategory = 'UNI';
+    } else if (typeCheck.includes('rec') || typeCheck.includes('research organisation')) {
+      organisationCategory = 'RES';
+    } else if (typeCheck.includes('pub') || typeCheck.includes('public body')) {
+      organisationCategory = 'PUB';
+    } else if (typeCheck.includes('sme') || typeCheck.includes('small and medium')) {
+      organisationCategory = 'SME';
+      isSme = true;
+    } else if (typeCheck.includes('prc') || typeCheck.includes('private')) {
+      organisationCategory = 'IND';
+    }
+    
+    if (!legalName) {
+      console.log('Could not extract organisation name from CORDIS page');
+      return null;
+    }
+    
+    console.log(`Found: ${legalName} | ${country} (${countryCode}) | ${organisationCategory}`);
+    
+    return {
+      picNumber: pic,
+      legalName,
+      country,
+      countryCode,
+      isSme,
+      organisationCategory,
+    };
   } catch (error) {
-    console.error('Firecrawl search error:', error);
-    return [];
+    console.error('CORDIS scrape error:', error);
+    return null;
   }
 }
+
 
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -241,15 +272,20 @@ serve(async (req: Request) => {
     const dbResults = await searchDatabase(supabase, query);
     console.log(`DB results: ${dbResults.length}`);
     
-    // Step 2: If no results, try Firecrawl web search
-    let firecrawlResults: OrganisationInfo[] = [];
-    if (dbResults.length === 0) {
-      firecrawlResults = await searchWithFirecrawl(query.trim());
-      console.log(`Firecrawl results: ${firecrawlResults.length}`);
+    // Step 2: If searching by PIC and no DB results, try CORDIS search
+    const isNumericPic = /^\d{9}$/.test(query.trim());
+    let cordisResult: OrganisationInfo | null = null;
+    
+    if (isNumericPic && dbResults.length === 0) {
+      cordisResult = await lookupPicFromCordis(query.trim());
+      console.log(`CORDIS result: ${cordisResult ? 'found' : 'not found'}`);
     }
     
     // Combine results
-    const allResults = [...dbResults, ...firecrawlResults];
+    const allResults = [...dbResults];
+    if (cordisResult) {
+      allResults.push(cordisResult);
+    }
     
     // Deduplicate by PIC
     const seen = new Set<string>();
