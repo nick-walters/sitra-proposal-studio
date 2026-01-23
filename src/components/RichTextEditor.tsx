@@ -20,7 +20,6 @@ import {
   AlignCenter,
   AlignRight,
   AlignJustify,
-  ImageIcon,
   Link as LinkIcon,
   Undo,
   Redo,
@@ -28,6 +27,7 @@ import {
   Plus,
   Minus,
   Trash2,
+  Grid3X3,
 } from "lucide-react";
 import {
   Tooltip,
@@ -40,8 +40,16 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface RichTextEditorProps {
   content: string;
@@ -67,7 +75,7 @@ function ToolbarButton({ icon, tooltip, onClick, active, disabled }: ToolbarButt
         <Button
           variant={active ? "secondary" : "ghost"}
           size="icon"
-          className="h-8 w-8"
+          className="h-7 w-7"
           onClick={onClick}
           disabled={disabled}
         >
@@ -81,14 +89,56 @@ function ToolbarButton({ icon, tooltip, onClick, active, disabled }: ToolbarButt
   );
 }
 
+// Table size selector grid
+function TableSizeSelector({ onSelect }: { onSelect: (rows: number, cols: number) => void }) {
+  const [hoveredRows, setHoveredRows] = useState(0);
+  const [hoveredCols, setHoveredCols] = useState(0);
+  const maxRows = 8;
+  const maxCols = 8;
+
+  return (
+    <div className="p-2">
+      <div className="text-xs text-muted-foreground mb-2 text-center">
+        {hoveredRows > 0 && hoveredCols > 0 
+          ? `${hoveredRows} × ${hoveredCols} table` 
+          : 'Select table size'}
+      </div>
+      <div 
+        className="grid gap-0.5"
+        style={{ gridTemplateColumns: `repeat(${maxCols}, 1fr)` }}
+        onMouseLeave={() => { setHoveredRows(0); setHoveredCols(0); }}
+      >
+        {Array.from({ length: maxRows * maxCols }).map((_, index) => {
+          const row = Math.floor(index / maxCols) + 1;
+          const col = (index % maxCols) + 1;
+          const isHighlighted = row <= hoveredRows && col <= hoveredCols;
+          
+          return (
+            <button
+              key={index}
+              className={`w-4 h-4 border rounded-sm transition-colors ${
+                isHighlighted 
+                  ? 'bg-primary border-primary' 
+                  : 'bg-muted border-border hover:border-primary/50'
+              }`}
+              onMouseEnter={() => { setHoveredRows(row); setHoveredCols(col); }}
+              onClick={() => onSelect(row, col)}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // Export the formatting toolbar as a separate component
 export function FormattingToolbar({ 
-  editor, 
-  onInsertImage 
+  editor
 }: { 
   editor: Editor | null; 
-  onInsertImage?: () => void;
 }) {
+  const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
+  
   const setLink = useCallback(() => {
     if (!editor) return;
     
@@ -104,9 +154,10 @@ export function FormattingToolbar({
     editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
   }, [editor]);
 
-  const insertTable = useCallback(() => {
+  const insertTable = useCallback((rows: number, cols: number) => {
     if (!editor) return;
-    editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+    editor.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run();
+    setTablePopoverOpen(false);
   }, [editor]);
 
   if (!editor) {
@@ -116,7 +167,7 @@ export function FormattingToolbar({
   const isInTable = editor.isActive('table');
 
   return (
-    <div className="editor-toolbar border-b border-border bg-card p-2">
+    <div className="editor-toolbar border-b border-border bg-card px-2 py-1">
       <div className="flex items-center gap-0.5">
         <ToolbarButton 
           icon={<Undo className="w-4 h-4" />} 
@@ -132,7 +183,7 @@ export function FormattingToolbar({
         />
       </div>
 
-      <Separator orientation="vertical" className="h-6 mx-2" />
+      <Separator orientation="vertical" className="h-5 mx-1.5" />
 
       <div className="flex items-center gap-0.5">
         {/* Subheading button with text instead of icon */}
@@ -141,7 +192,7 @@ export function FormattingToolbar({
             <Button
               variant={editor.isActive('heading', { level: 3 }) ? "secondary" : "ghost"}
               size="sm"
-              className="h-8 px-2 text-xs"
+              className="h-7 px-2 text-xs"
               onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
             >
               <span className="font-black underline">Subheading</span>
@@ -153,7 +204,7 @@ export function FormattingToolbar({
         </Tooltip>
       </div>
 
-      <Separator orientation="vertical" className="h-6 mx-2" />
+      <Separator orientation="vertical" className="h-5 mx-1.5" />
 
       <div className="flex items-center gap-0.5">
         {/* Bold button with bolder B */}
@@ -162,7 +213,7 @@ export function FormattingToolbar({
             <Button
               variant={editor.isActive('bold') ? "secondary" : "ghost"}
               size="icon"
-              className="h-8 w-8"
+              className="h-7 w-7"
               onClick={() => editor.chain().focus().toggleBold().run()}
             >
               <span className="font-black text-sm">B</span>
@@ -192,7 +243,7 @@ export function FormattingToolbar({
         />
       </div>
 
-      <Separator orientation="vertical" className="h-6 mx-2" />
+      <Separator orientation="vertical" className="h-5 mx-1.5" />
 
       <div className="flex items-center gap-0.5">
         <ToolbarButton 
@@ -209,7 +260,7 @@ export function FormattingToolbar({
         />
       </div>
 
-      <Separator orientation="vertical" className="h-6 mx-2" />
+      <Separator orientation="vertical" className="h-5 mx-1.5" />
 
       <div className="flex items-center gap-0.5">
         <ToolbarButton 
@@ -238,14 +289,9 @@ export function FormattingToolbar({
         />
       </div>
 
-      <Separator orientation="vertical" className="h-6 mx-2" />
+      <Separator orientation="vertical" className="h-5 mx-1.5" />
 
       <div className="flex items-center gap-0.5">
-        <ToolbarButton 
-          icon={<ImageIcon className="w-4 h-4" />} 
-          tooltip="Insert Image"
-          onClick={onInsertImage}
-        />
         <ToolbarButton 
           icon={<LinkIcon className="w-4 h-4" />} 
           tooltip="Insert Link"
@@ -253,76 +299,91 @@ export function FormattingToolbar({
           active={editor.isActive('link')}
         />
         
-        {/* Table dropdown */}
-        <DropdownMenu>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant={isInTable ? "secondary" : "ghost"}
-                  size="icon"
-                  className="h-8 w-8"
-                >
-                  <TableIcon className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">
-              Table
-            </TooltipContent>
-          </Tooltip>
-          <DropdownMenuContent align="start" className="w-48">
-            {!isInTable ? (
-              <DropdownMenuItem onClick={insertTable}>
+        {/* Table - with size selector or operations */}
+        {!isInTable ? (
+          <Popover open={tablePopoverOpen} onOpenChange={setTablePopoverOpen}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                  >
+                    <TableIcon className="w-4 h-4" />
+                  </Button>
+                </PopoverTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                Insert Table
+              </TooltipContent>
+            </Tooltip>
+            <PopoverContent align="start" className="w-auto p-0">
+              <TableSizeSelector onSelect={insertTable} />
+            </PopoverContent>
+          </Popover>
+        ) : (
+          <DropdownMenu>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="h-7 w-7"
+                  >
+                    <TableIcon className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                Table Options
+              </TooltipContent>
+            </Tooltip>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuItem onClick={() => editor.chain().focus().addColumnBefore().run()}>
                 <Plus className="w-4 h-4 mr-2" />
-                Insert table (3×3)
+                Add column before
               </DropdownMenuItem>
-            ) : (
-              <>
-                <DropdownMenuItem onClick={() => editor.chain().focus().addColumnBefore().run()}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add column before
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => editor.chain().focus().addColumnAfter().run()}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add column after
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => editor.chain().focus().deleteColumn().run()}>
-                  <Minus className="w-4 h-4 mr-2" />
-                  Delete column
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => editor.chain().focus().addRowBefore().run()}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add row before
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => editor.chain().focus().addRowAfter().run()}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add row after
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => editor.chain().focus().deleteRow().run()}>
-                  <Minus className="w-4 h-4 mr-2" />
-                  Delete row
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => editor.chain().focus().mergeCells().run()}>
-                  Merge cells
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => editor.chain().focus().splitCell().run()}>
-                  Split cell
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={() => editor.chain().focus().deleteTable().run()}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete table
-                </DropdownMenuItem>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <DropdownMenuItem onClick={() => editor.chain().focus().addColumnAfter().run()}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add column after
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => editor.chain().focus().deleteColumn().run()}>
+                <Minus className="w-4 h-4 mr-2" />
+                Delete column
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => editor.chain().focus().addRowBefore().run()}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add row before
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => editor.chain().focus().addRowAfter().run()}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add row after
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => editor.chain().focus().deleteRow().run()}>
+                <Minus className="w-4 h-4 mr-2" />
+                Delete row
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => editor.chain().focus().mergeCells().run()}>
+                Merge cells
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => editor.chain().focus().splitCell().run()}>
+                Split cell
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={() => editor.chain().focus().deleteTable().run()}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete table
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
     </div>
   );
@@ -390,7 +451,7 @@ export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootn
     <div className={className}>
       {/* Allow external toolbar rendering or use default */}
       {renderToolbar ? renderToolbar(editor) : (
-        <FormattingToolbar editor={editor} onInsertImage={onInsertImage} />
+        <FormattingToolbar editor={editor} />
       )}
 
       {/* Editor Content */}
