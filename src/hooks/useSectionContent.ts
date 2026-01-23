@@ -10,18 +10,75 @@ interface UseSectionContentProps {
 
 // Version save interval: 5 minutes
 const VERSION_SAVE_INTERVAL = 5 * 60 * 1000;
+// Debounce delay for autosave
+const AUTOSAVE_DEBOUNCE = 1000;
 
 export function useSectionContent({ proposalId, sectionId }: UseSectionContentProps) {
-  const [content, setContent] = useState('');
+  const [content, setContentState] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const { user } = useAuth();
+  
+  // Refs for managing state across effects
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const versionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const contentIdRef = useRef<string | null>(null);
   const lastVersionContentRef = useRef<string>('');
   const lastVersionTimeRef = useRef<number>(0);
+  const pendingContentRef = useRef<string | null>(null);
+  const isSavingRef = useRef(false);
+
+  // Immediate save function (no debounce) - used for urgent saves
+  const saveContentImmediately = useCallback(async (contentToSave: string): Promise<boolean> => {
+    if (!proposalId || !sectionId || !user?.id) return false;
+    if (isSavingRef.current) return false;
+
+    isSavingRef.current = true;
+    setSaving(true);
+
+    try {
+      if (contentIdRef.current) {
+        // Update existing
+        const { error } = await supabase
+          .from('section_content')
+          .update({
+            content: contentToSave,
+            last_edited_by: user.id,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', contentIdRef.current);
+
+        if (error) throw error;
+      } else {
+        // Insert new
+        const { data, error } = await supabase
+          .from('section_content')
+          .insert({
+            proposal_id: proposalId,
+            section_id: sectionId,
+            content: contentToSave,
+            last_edited_by: user.id,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        contentIdRef.current = data.id;
+      }
+
+      setLastSaved(new Date());
+      pendingContentRef.current = null;
+      return true;
+    } catch (error) {
+      console.error('Error saving content:', error);
+      toast.error('Failed to save content');
+      return false;
+    } finally {
+      isSavingRef.current = false;
+      setSaving(false);
+    }
+  }, [proposalId, sectionId, user?.id]);
 
   // Fetch content on mount
   useEffect(() => {
@@ -42,11 +99,11 @@ export function useSectionContent({ proposalId, sectionId }: UseSectionContentPr
       }
 
       if (data) {
-        setContent(data.content || '');
+        setContentState(data.content || '');
         contentIdRef.current = data.id;
         lastVersionContentRef.current = data.content || '';
       } else {
-        setContent('');
+        setContentState('');
         contentIdRef.current = null;
         lastVersionContentRef.current = '';
       }
@@ -74,7 +131,7 @@ export function useSectionContent({ proposalId, sectionId }: UseSectionContentPr
           if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
             const newData = payload.new as { section_id: string; content: string; id: string; last_edited_by: string | null };
             if (newData.section_id === sectionId && newData.last_edited_by !== user?.id) {
-              setContent(newData.content || '');
+              setContentState(newData.content || '');
               contentIdRef.current = newData.id;
             }
           }
@@ -128,44 +185,13 @@ export function useSectionContent({ proposalId, sectionId }: UseSectionContentPr
     }
   }, [proposalId, sectionId, user?.id]);
 
-  // Auto-save with debounce
+  // Debounced save with queuing
   const saveContent = useCallback(async (newContent: string) => {
     if (!proposalId || !sectionId || !user?.id) return;
 
-    setSaving(true);
-
-    try {
-      if (contentIdRef.current) {
-        // Update existing
-        const { error } = await supabase
-          .from('section_content')
-          .update({
-            content: newContent,
-            last_edited_by: user.id,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', contentIdRef.current);
-
-        if (error) throw error;
-      } else {
-        // Insert new
-        const { data, error } = await supabase
-          .from('section_content')
-          .insert({
-            proposal_id: proposalId,
-            section_id: sectionId,
-            content: newContent,
-            last_edited_by: user.id,
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-        contentIdRef.current = data.id;
-      }
-
-      setLastSaved(new Date());
-
+    const success = await saveContentImmediately(newContent);
+    
+    if (success) {
       // Schedule version save check
       if (versionTimeoutRef.current) {
         clearTimeout(versionTimeoutRef.current);
@@ -173,42 +199,116 @@ export function useSectionContent({ proposalId, sectionId }: UseSectionContentPr
       versionTimeoutRef.current = setTimeout(() => {
         saveVersion(newContent);
       }, VERSION_SAVE_INTERVAL);
-
-    } catch (error) {
-      console.error('Error saving content:', error);
-      toast.error('Failed to save content');
-    } finally {
-      setSaving(false);
     }
-  }, [proposalId, sectionId, user?.id, saveVersion]);
+  }, [proposalId, sectionId, user?.id, saveVersion, saveContentImmediately]);
 
+  // Handle content change with debounce
   const handleContentChange = useCallback((newContent: string) => {
-    setContent(newContent);
+    setContentState(newContent);
+    pendingContentRef.current = newContent;
 
-    // Debounced save (1 second for autosave)
+    // Debounced save
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
     saveTimeoutRef.current = setTimeout(() => {
       saveContent(newContent);
-    }, 1000);
+    }, AUTOSAVE_DEBOUNCE);
   }, [saveContent]);
 
-  // Save version on unmount if content changed
+  // Flush pending changes immediately
+  const flushPendingChanges = useCallback(async () => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+    
+    if (pendingContentRef.current !== null) {
+      await saveContentImmediately(pendingContentRef.current);
+    }
+  }, [saveContentImmediately]);
+
+  // Handle beforeunload - save immediately when user leaves page
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (pendingContentRef.current !== null) {
+        // Use sendBeacon for reliable save on page unload
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/section_content?id=eq.${contentIdRef.current}`;
+        const data = JSON.stringify({
+          content: pendingContentRef.current,
+          last_edited_by: user?.id,
+          updated_at: new Date().toISOString(),
+        });
+        
+        navigator.sendBeacon(url, new Blob([data], { type: 'application/json' }));
+        
+        // Also try to save synchronously
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [user?.id]);
+
+  // Handle visibility change - save when tab becomes hidden
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && pendingContentRef.current !== null) {
+        flushPendingChanges();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [flushPendingChanges]);
+
+  // Cleanup on unmount - flush any pending changes
   useEffect(() => {
     return () => {
+      // Clear timeouts
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
       if (versionTimeoutRef.current) {
         clearTimeout(versionTimeoutRef.current);
       }
+      
+      // Synchronously save any pending content using sendBeacon
+      if (pendingContentRef.current !== null && contentIdRef.current && user?.id) {
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/section_content?id=eq.${contentIdRef.current}`;
+        const headers = {
+          'Content-Type': 'application/json',
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          'Prefer': 'return=minimal',
+        };
+        
+        // sendBeacon doesn't support custom headers, so we'll use a sync XHR as fallback
+        try {
+          const xhr = new XMLHttpRequest();
+          xhr.open('PATCH', url, false); // Synchronous
+          xhr.setRequestHeader('Content-Type', 'application/json');
+          xhr.setRequestHeader('apikey', import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
+          xhr.setRequestHeader('Authorization', `Bearer ${localStorage.getItem('sb-nfeoyxjstfehwrkgapho-auth-token') ? JSON.parse(localStorage.getItem('sb-nfeoyxjstfehwrkgapho-auth-token') || '{}')?.access_token : ''}`);
+          xhr.setRequestHeader('Prefer', 'return=minimal');
+          xhr.send(JSON.stringify({
+            content: pendingContentRef.current,
+            last_edited_by: user.id,
+            updated_at: new Date().toISOString(),
+          }));
+        } catch (e) {
+          console.error('Failed to save on unmount:', e);
+        }
+      }
+      
       // Save version if content changed when leaving the section
-      if (content !== lastVersionContentRef.current && content.trim()) {
-        saveVersion(content);
+      const currentContent = pendingContentRef.current || '';
+      if (currentContent !== lastVersionContentRef.current && currentContent.trim()) {
+        saveVersion(currentContent);
       }
     };
-  }, [content, saveVersion]);
+  }, [user?.id, saveVersion]);
 
   return {
     content,
@@ -216,7 +316,7 @@ export function useSectionContent({ proposalId, sectionId }: UseSectionContentPr
     loading,
     saving,
     lastSaved,
-    saveNow: () => saveContent(content),
+    saveNow: flushPendingChanges,
     saveVersionNow: () => saveVersion(content),
   };
 }
