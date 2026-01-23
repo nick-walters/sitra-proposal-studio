@@ -280,6 +280,32 @@ export function useProposalData(proposalId: string) {
 
   // Add participant
   const addParticipant = async (participant: Omit<Participant, 'id'> & { organisationCategory?: string; englishName?: string }) => {
+    // Check for duplicates before adding
+    const picNumber = participant.picNumber?.trim();
+    const orgName = participant.organisationName?.trim().toLowerCase();
+    
+    // Check by PIC number first (most reliable identifier)
+    if (picNumber) {
+      const existingByPic = participants.find(
+        p => p.picNumber?.trim() === picNumber
+      );
+      if (existingByPic) {
+        toast.error(`This organisation (PIC: ${picNumber}) is already in the consortium as "${existingByPic.organisationShortName || existingByPic.organisationName}"`);
+        throw new Error('Duplicate participant');
+      }
+    }
+    
+    // Also check by organisation name (case-insensitive)
+    if (orgName) {
+      const existingByName = participants.find(
+        p => p.organisationName?.trim().toLowerCase() === orgName
+      );
+      if (existingByName) {
+        toast.error(`An organisation with the name "${participant.organisationName}" is already in the consortium`);
+        throw new Error('Duplicate participant');
+      }
+    }
+
     const { data, error } = await supabase
       .from('participants')
       .insert({
@@ -303,6 +329,7 @@ export function useProposalData(proposalId: string) {
     if (error) {
       toast.error('Failed to add participant');
       console.error(error);
+      throw error;
     } else if (data) {
       await fetchParticipants();
     }
