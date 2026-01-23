@@ -971,6 +971,8 @@ function SectionsPanel({
                     allSections={sections}
                     onEdit={() => handleOpenSectionDialog(section)}
                     onDelete={() => handleDeleteSection(section.id)}
+                    onEditSection={handleOpenSectionDialog}
+                    onDeleteSection={handleDeleteSection}
                     onCreateGuideline={createGuideline}
                     onUpdateGuideline={updateGuideline}
                     onDeleteGuideline={deleteGuideline}
@@ -996,6 +998,8 @@ function SectionsPanel({
                     allSections={sections}
                     onEdit={() => handleOpenSectionDialog(section)}
                     onDelete={() => handleDeleteSection(section.id)}
+                    onEditSection={handleOpenSectionDialog}
+                    onDeleteSection={handleDeleteSection}
                     onCreateGuideline={createGuideline}
                     onUpdateGuideline={updateGuideline}
                     onDeleteGuideline={deleteGuideline}
@@ -1127,6 +1131,8 @@ function SectionAccordionItem({
   allSections,
   onEdit,
   onDelete,
+  onEditSection,
+  onDeleteSection,
   onCreateGuideline,
   onUpdateGuideline,
   onDeleteGuideline,
@@ -1138,6 +1144,8 @@ function SectionAccordionItem({
   allSections: TemplateSection[];
   onEdit: () => void;
   onDelete: () => void;
+  onEditSection?: (section: TemplateSection) => void;
+  onDeleteSection?: (id: string) => void;
   onCreateGuideline: (sectionId: string, data: any) => Promise<any>;
   onUpdateGuideline: (id: string, data: any) => Promise<any>;
   onDeleteGuideline: (id: string) => Promise<any>;
@@ -1145,7 +1153,7 @@ function SectionAccordionItem({
   onUpdateFormField: (id: string, data: any) => Promise<any>;
   onDeleteFormField: (id: string) => Promise<any>;
 }) {
-  const childSections = allSections.filter(s => s.parent_section_id === section.id);
+  const childSections = section.children || [];
   const [guidelineDialogOpen, setGuidelineDialogOpen] = useState(false);
   const [editingGuideline, setEditingGuideline] = useState<SectionGuideline | null>(null);
 
@@ -1245,16 +1253,29 @@ function SectionAccordionItem({
             </Button>
           </div>
 
-          {/* Child Sections */}
+          {/* Child Sections - Nested Accordions */}
           {childSections.length > 0 && (
-            <div className="pl-4 border-l-2 space-y-2">
-              <h4 className="text-sm font-medium text-muted-foreground">Subsections</h4>
-              {childSections.map(child => (
-                <div key={child.id} className="p-2 bg-muted/50 rounded text-sm">
-                  <Badge variant="secondary" className="mr-2">{child.section_number}</Badge>
-                  {child.title}
-                </div>
-              ))}
+            <div className="pl-4 border-l-2 space-y-2 mt-4">
+              <h4 className="text-sm font-medium text-muted-foreground mb-2">Subsections ({childSections.length})</h4>
+              <Accordion type="multiple" className="space-y-2">
+                {childSections.map(child => (
+                  <SectionAccordionItem
+                    key={child.id}
+                    section={child}
+                    allSections={allSections}
+                    onEdit={() => onEditSection?.(child)}
+                    onDelete={() => onDeleteSection?.(child.id)}
+                    onEditSection={onEditSection}
+                    onDeleteSection={onDeleteSection}
+                    onCreateGuideline={onCreateGuideline}
+                    onUpdateGuideline={onUpdateGuideline}
+                    onDeleteGuideline={onDeleteGuideline}
+                    onCreateFormField={onCreateFormField}
+                    onUpdateFormField={onUpdateFormField}
+                    onDeleteFormField={onDeleteFormField}
+                  />
+                ))}
+              </Accordion>
             </div>
           )}
 
