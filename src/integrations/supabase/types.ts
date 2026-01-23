@@ -1256,6 +1256,47 @@ export type Database = {
           },
         ]
       }
+      section_versions: {
+        Row: {
+          content: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_auto_save: boolean | null
+          proposal_id: string
+          section_id: string
+          version_number: number
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_auto_save?: boolean | null
+          proposal_id: string
+          section_id: string
+          version_number?: number
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_auto_save?: boolean | null
+          proposal_id?: string
+          section_id?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "section_versions_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       template_form_fields: {
         Row: {
           created_at: string

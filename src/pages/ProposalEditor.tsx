@@ -1,7 +1,6 @@
 import { Header } from "@/components/Header";
 import { SectionNavigator } from "@/components/SectionNavigator";
 import { DocumentEditor } from "@/components/DocumentEditor";
-import { VersionHistoryDialog } from "@/components/VersionHistoryDialog";
 import { ProposalSummaryPage } from "@/components/ProposalSummaryPage";
 import { ParticipantListView } from "@/components/ParticipantListView";
 import { ParticipantDetailForm } from "@/components/ParticipantDetailForm";
@@ -16,31 +15,27 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DuplicateProposalDialog } from "@/components/DuplicateProposalDialog";
-import { Section, BudgetType, ProposalStatus, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS } from "@/types/proposal";
+import { Section, BudgetType, ProposalStatus, WORK_PROGRAMMES, DESTINATIONS } from "@/types/proposal";
 import { useState, useEffect } from "react";
 import { format, differenceInDays } from "date-fns";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   ArrowLeft,
-  Users,
-  Settings,
-  Download,
-  History,
-  Share2,
   ChevronLeft,
   ChevronRight,
   Eye,
-  Copy,
   Calendar,
   ExternalLink,
   FileText,
   AlertTriangle,
   Clock,
   CheckCircle2,
-  Send,
   PartyPopper,
   XCircle,
+  Send,
+  Copy,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePdfExport } from "@/hooks/usePdfExport";
@@ -63,7 +58,6 @@ export function ProposalEditor() {
   const [activeSection, setActiveSection] = useState<Section | null>(null);
   const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isDuplicateOpen, setIsDuplicateOpen] = useState(false);
   const [isAddParticipantOpen, setIsAddParticipantOpen] = useState(false);
   const { exportToPdf, exportProposalToPdf } = usePdfExport();
@@ -274,9 +268,10 @@ export function ProposalEditor() {
         if (selectedParticipantId) {
           const selectedParticipant = participants.find(p => p.id === selectedParticipantId);
           if (selectedParticipant) {
-            // Check if current user can edit this participant
+            // Admins/Owners can edit any participant, members can edit their own
             const userParticipantMembers = participantMembers.filter(m => m.userId === user?.id);
             const isUserMemberOfParticipant = userParticipantMembers.some(m => m.participantId === selectedParticipantId);
+            // isAdmin already includes owner (owner || admin), so admins AND owners can edit any participant
             const canEditThisParticipant = canEdit && (isAdmin || isUserMemberOfParticipant);
             
             return (
@@ -649,11 +644,8 @@ export function ProposalEditor() {
               ))}
             </div>
 
-            <Button variant="outline" size="sm" className="gap-2 hidden sm:flex" onClick={() => setIsHistoryOpen(true)}>
-              <History className="w-4 h-4" />
-              Version history
-            </Button>
-{/* PDF export button removed from header - only available on Proposal Overview */}
+            {/* Version history now section-specific in DocumentEditor */}
+            {/* PDF export button removed from header - only available on Proposal Overview */}
           </div>
         </div>
       </header>
@@ -792,13 +784,7 @@ export function ProposalEditor() {
         </main>
       </div>
 
-      {/* Version History Dialog */}
-      <VersionHistoryDialog
-        isOpen={isHistoryOpen}
-        onClose={() => setIsHistoryOpen(false)}
-        proposalId={id || ''}
-        onRestoreVersion={(snapshot) => console.log('Restore:', snapshot)}
-      />
+      {/* Version History is now section-specific in DocumentEditor */}
 
       {/* Duplicate Proposal Dialog */}
       {proposal && (

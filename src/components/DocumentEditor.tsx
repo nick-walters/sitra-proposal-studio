@@ -2,7 +2,7 @@ import { Section } from "@/types/proposal";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Info, Video, ImageIcon, Sparkles, BookOpen, Wand2, BarChart3, Route } from "lucide-react";
+import { Info, Video, ImageIcon, Sparkles, BookOpen, Wand2, BarChart3, Route, History } from "lucide-react";
 import { useState, useCallback } from "react";
 import { RichTextEditor } from "./RichTextEditor";
 import { GrammarChecker } from "./GrammarChecker";
@@ -10,6 +10,7 @@ import { CitationDialog } from "./CitationDialog";
 import { ImageGeneratorDialog } from "./ImageGeneratorDialog";
 import { InsertFigureDialog } from "./InsertFigureDialog";
 import { ImpactPathwayGenerator } from "./ImpactPathwayGenerator";
+import { SectionVersionHistoryDialog } from "./SectionVersionHistoryDialog";
 import { WordCountBadge } from "./WordCountBadge";
 import { SaveIndicator } from "./SaveIndicator";
 import { GuidelineBox } from "./GuidelineBox";
@@ -50,6 +51,7 @@ export function DocumentEditor({
   const [isImageGenOpen, setIsImageGenOpen] = useState(false);
   const [isFigureDialogOpen, setIsFigureDialogOpen] = useState(false);
   const [isImpactPathwayOpen, setIsImpactPathwayOpen] = useState(false);
+  const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
   const [references, setReferences] = useState<Reference[]>([]);
   const [footnotes, setFootnotes] = useState<Array<{ number: number; citation: string }>>([]);
 
@@ -92,6 +94,10 @@ export function DocumentEditor({
   const handleInsertImpactContent = useCallback((impactContent: string) => {
     setContent(content + impactContent);
   }, [content, setContent]);
+
+  const handleRestoreVersion = useCallback((restoredContent: string) => {
+    setContent(restoredContent);
+  }, [setContent]);
 
   // Check if this is the B2.1 section (impact pathways)
   const isImpactSection = section?.id === 'b2-1' || section?.number === '2.1';
@@ -170,7 +176,16 @@ export function DocumentEditor({
             </Button>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="gap-2 text-muted-foreground" 
+            onClick={() => setIsVersionHistoryOpen(true)}
+          >
+            <History className="w-4 h-4" />
+            <span className="hidden sm:inline">History</span>
+          </Button>
           <WordCountBadge content={content} wordLimit={section.wordLimit} />
           {!readOnly && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
         </div>
@@ -310,6 +325,14 @@ export function DocumentEditor({
         workProgramme={workProgramme}
         destination={destination}
         onInsertContent={handleInsertImpactContent}
+      />
+      <SectionVersionHistoryDialog
+        isOpen={isVersionHistoryOpen}
+        onClose={() => setIsVersionHistoryOpen(false)}
+        proposalId={proposalId}
+        sectionId={section?.id || ''}
+        sectionTitle={`${section?.number || ''} ${section?.title || ''}`}
+        onRestoreVersion={handleRestoreVersion}
       />
     </div>
   );
