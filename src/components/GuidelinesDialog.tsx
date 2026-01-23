@@ -170,11 +170,11 @@ export function GuidelinesDialog({ isOpen, onClose, sectionTitle, guidelines }: 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh]">
+      <DialogContent className="max-w-4xl max-h-[90vh] w-[90vw]">
         <DialogHeader>
           <DialogTitle>Guidelines for {sectionTitle}</DialogTitle>
         </DialogHeader>
-        <ScrollArea className="max-h-[60vh] pr-4">
+        <ScrollArea className="max-h-[75vh] pr-4">
           <div className="space-y-4">
             {typeOrder.map((type) => {
               const typeGuidelines = groupedGuidelines[type];
