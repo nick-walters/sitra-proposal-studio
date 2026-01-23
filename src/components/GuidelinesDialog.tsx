@@ -117,35 +117,32 @@ function ConsolidatedGuidelineBox({
         bgColor
       )}
     >
-      <div className="flex items-start gap-3">
-        <div className={cn("mt-0.5 flex-shrink-0", iconColor)}>
+      {/* Header row with icon and label */}
+      <div className="flex items-center gap-2 mb-3">
+        <div className={cn("flex-shrink-0", iconColor)}>
           <Icon className="h-5 w-5" />
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="mb-3">
-            <span className={cn("text-sm font-bold", titleColor)}>
-              {label}
-            </span>
+        <span className={cn("text-sm font-bold", titleColor)}>
+          {label}
+        </span>
+      </div>
+      
+      {/* Content - no indent, aligned with icon */}
+      <div className="space-y-4">
+        {guidelines.map((guideline, index) => (
+          <div key={guideline.id}>
+            {guideline.title && (
+              <h4 className={cn("font-semibold mb-2", titleColor)}>
+                {guideline.title}
+              </h4>
+            )}
+            {parseGuidelineContent(guideline.content)}
+            {/* Add separator between multiple items, but not after last */}
+            {index < guidelines.length - 1 && (
+              <div className="mt-4 border-t border-current/10" />
+            )}
           </div>
-          
-          {/* Render all guidelines of this type */}
-          <div className="space-y-4">
-            {guidelines.map((guideline, index) => (
-              <div key={guideline.id}>
-                {guideline.title && (
-                  <h4 className={cn("font-semibold mb-2", titleColor)}>
-                    {guideline.title}
-                  </h4>
-                )}
-                {parseGuidelineContent(guideline.content)}
-                {/* Add separator between multiple items, but not after last */}
-                {index < guidelines.length - 1 && (
-                  <div className="mt-4 border-t border-current/10" />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   );
