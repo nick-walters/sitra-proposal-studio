@@ -438,8 +438,9 @@ export function AddParticipantDialog({
                     id="pic-number"
                     value={manualForm.picNumber}
                     onChange={(e) => {
-                      setManualForm({ ...manualForm, picNumber: e.target.value.replace(/\D/g, '').slice(0, 9) });
-                      if (formErrors.picNumber) setFormErrors({ ...formErrors, picNumber: '' });
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 9);
+                      setManualForm(prev => ({ ...prev, picNumber: value }));
+                      if (formErrors.picNumber) setFormErrors(prev => ({ ...prev, picNumber: '' }));
                     }}
                     placeholder="e.g. 906912365"
                     maxLength={9}
@@ -454,7 +455,10 @@ export function AddParticipantDialog({
                   <Input
                     id="short-name"
                     value={manualForm.organisationShortName}
-                    onChange={(e) => setManualForm({ ...manualForm, organisationShortName: e.target.value })}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setManualForm(prev => ({ ...prev, organisationShortName: value }));
+                    }}
                     placeholder="e.g. Sitra"
                   />
                 </div>
@@ -467,8 +471,9 @@ export function AddParticipantDialog({
                   id="org-name"
                   value={manualForm.organisationName}
                   onChange={(e) => {
-                    setManualForm({ ...manualForm, organisationName: e.target.value });
-                    if (formErrors.organisationName) setFormErrors({ ...formErrors, organisationName: '' });
+                    const value = e.target.value;
+                    setManualForm(prev => ({ ...prev, organisationName: value }));
+                    if (formErrors.organisationName) setFormErrors(prev => ({ ...prev, organisationName: '' }));
                   }}
                   placeholder="e.g. Suomen Itsenäisyyden Juhlarahasto"
                   className={formErrors.organisationName ? 'border-destructive' : ''}
@@ -484,10 +489,13 @@ export function AddParticipantDialog({
               {/* English Name - Optional */}
               <div>
                 <Label htmlFor="english-name">English Name (if different from legal name)</Label>
-                <Input
+              <Input
                   id="english-name"
                   value={manualForm.englishName}
-                  onChange={(e) => setManualForm({ ...manualForm, englishName: e.target.value })}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setManualForm(prev => ({ ...prev, englishName: value }));
+                  }}
                   placeholder="e.g. The Finnish Innovation Fund"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
@@ -526,8 +534,8 @@ export function AddParticipantDialog({
                                 key={country.code}
                                 value={country.name}
                                 onSelect={() => {
-                                  setManualForm({ ...manualForm, country: country.name });
-                                  if (formErrors.country) setFormErrors({ ...formErrors, country: '' });
+                                  setManualForm(prev => ({ ...prev, country: country.name }));
+                                  if (formErrors.country) setFormErrors(prev => ({ ...prev, country: '' }));
                                   setCountryPopoverOpen(false);
                                 }}
                               >
@@ -547,8 +555,8 @@ export function AddParticipantDialog({
                                 key={country.code}
                                 value={country.name}
                                 onSelect={() => {
-                                  setManualForm({ ...manualForm, country: country.name });
-                                  if (formErrors.country) setFormErrors({ ...formErrors, country: '' });
+                                  setManualForm(prev => ({ ...prev, country: country.name }));
+                                  if (formErrors.country) setFormErrors(prev => ({ ...prev, country: '' }));
                                   setCountryPopoverOpen(false);
                                 }}
                               >
@@ -568,8 +576,8 @@ export function AddParticipantDialog({
                                 key={country.code}
                                 value={country.name}
                                 onSelect={() => {
-                                  setManualForm({ ...manualForm, country: country.name });
-                                  if (formErrors.country) setFormErrors({ ...formErrors, country: '' });
+                                  setManualForm(prev => ({ ...prev, country: country.name }));
+                                  if (formErrors.country) setFormErrors(prev => ({ ...prev, country: '' }));
                                   setCountryPopoverOpen(false);
                                 }}
                               >
@@ -596,8 +604,8 @@ export function AddParticipantDialog({
                   <Select
                     value={manualForm.organisationCategory}
                     onValueChange={(v) => {
-                      setManualForm({ ...manualForm, organisationCategory: v as OrganisationCategory });
-                      if (formErrors.organisationCategory) setFormErrors({ ...formErrors, organisationCategory: '' });
+                      setManualForm(prev => ({ ...prev, organisationCategory: v as OrganisationCategory }));
+                      if (formErrors.organisationCategory) setFormErrors(prev => ({ ...prev, organisationCategory: '' }));
                     }}
                   >
                     <SelectTrigger className={formErrors.organisationCategory ? 'border-destructive' : ''}>
@@ -620,7 +628,7 @@ export function AddParticipantDialog({
                 <Label>Participant Type</Label>
                 <Select
                   value={manualForm.organisationType}
-                  onValueChange={(v) => setManualForm({ ...manualForm, organisationType: v as ParticipantType })}
+                  onValueChange={(v) => setManualForm(prev => ({ ...prev, organisationType: v as ParticipantType }))}
                 >
                   <SelectTrigger>
                     <SelectValue />
