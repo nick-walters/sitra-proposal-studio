@@ -10,7 +10,7 @@
 
 .he-table th,
 .he-table td {
-  @apply border border-black;
+  border: 0.25pt solid black;
   padding: 4px 6px;
   vertical-align: top;
   white-space: nowrap;
