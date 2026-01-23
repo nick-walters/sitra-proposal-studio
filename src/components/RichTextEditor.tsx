@@ -58,6 +58,7 @@ interface RichTextEditorProps {
   onInsertFootnote?: () => void;
   className?: string;
   renderToolbar?: (editor: Editor) => React.ReactNode;
+  sectionNumber?: string; // Section number for caption numbering (e.g., "1.1")
 }
 
 interface ToolbarButtonProps {
@@ -133,9 +134,13 @@ function TableSizeSelector({ onSelect }: { onSelect: (rows: number, cols: number
 
 // Export the formatting toolbar as a separate component
 export function FormattingToolbar({ 
-  editor
+  editor,
+  sectionNumber,
+  content,
 }: { 
-  editor: Editor | null; 
+  editor: Editor | null;
+  sectionNumber?: string;
+  content?: string;
 }) {
   const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
   
@@ -154,11 +159,32 @@ export function FormattingToolbar({
     editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
   }, [editor]);
 
+  // Helper to get the next table letter for the current section
+  const getNextTableLetter = useCallback(() => {
+    if (!content || !sectionNumber) return 'a';
+    const tablePattern = new RegExp(`Table ${sectionNumber.replace('.', '\\.')}\\.([a-z])`, 'g');
+    const matches = content.match(tablePattern) || [];
+    const nextLetterCode = 'a'.charCodeAt(0) + matches.length;
+    return String.fromCharCode(nextLetterCode);
+  }, [content, sectionNumber]);
+
   const insertTable = useCallback((rows: number, cols: number) => {
     if (!editor) return;
-    editor.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run();
+    
+    // Get the table label
+    const sectionNum = sectionNumber || '1.1';
+    const tableLetter = getNextTableLetter();
+    const tableLabel = `Table ${sectionNum}.${tableLetter}`;
+    
+    // Insert caption paragraph first, then table
+    editor.chain()
+      .focus()
+      .insertContent(`<p class="table-caption"><span class="caption-label">${tableLabel}.</span> [Add caption here]</p>`)
+      .insertTable({ rows, cols, withHeaderRow: true })
+      .run();
+    
     setTablePopoverOpen(false);
-  }, [editor]);
+  }, [editor, sectionNumber, getNextTableLetter]);
 
   if (!editor) {
     return null;

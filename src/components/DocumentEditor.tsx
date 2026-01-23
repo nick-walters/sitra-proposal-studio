@@ -82,10 +82,29 @@ export function DocumentEditor({
     }
   }, [references, content, setContent]);
 
+  // Helper to get the next figure letter for the current section
+  const getNextFigureLetter = useCallback((sectionNumber: string) => {
+    // Count existing figures in content for this section
+    const figurePattern = new RegExp(`Figure ${sectionNumber.replace('.', '\\.')}\\.([a-z])`, 'g');
+    const matches = content.match(figurePattern) || [];
+    const nextLetterCode = 'a'.charCodeAt(0) + matches.length;
+    return String.fromCharCode(nextLetterCode);
+  }, [content]);
+
   const handleInsertImage = useCallback((imageUrl: string) => {
-    const imgTag = `<img src="${imageUrl}" alt="Generated image" class="max-w-full h-auto my-4" />`;
-    setContent(content + imgTag);
-  }, [content, setContent]);
+    // Get the section number for figure numbering (e.g., "1.1" from section B1.1)
+    const sectionNum = section?.number || '1.1';
+    const figureLetter = getNextFigureLetter(sectionNum);
+    const figureLabel = `Figure ${sectionNum}.${figureLetter}`;
+    
+    const figureHtml = `
+      <div class="figure-container">
+        <img src="${imageUrl}" alt="Generated image" class="max-w-full h-auto" />
+        <p class="figure-caption"><span class="caption-label">${figureLabel}.</span> [Add caption here]</p>
+      </div>
+    `;
+    setContent(content + figureHtml);
+  }, [content, setContent, section, getNextFigureLetter]);
 
   const handleInsertFigure = useCallback((figure: { figureNumber: string; title: string }) => {
     const figureRef = `<span class="figure-reference text-primary cursor-pointer hover:underline">(see Figure ${figure.figureNumber})</span>`;
@@ -208,7 +227,11 @@ export function DocumentEditor({
         </div>
 
         {/* Formatting Toolbar - immediately below Features toolbar */}
-        <FormattingToolbar editor={editor} />
+        <FormattingToolbar 
+          editor={editor} 
+          sectionNumber={section?.number}
+          content={content}
+        />
       </div>
 
       <div className="flex-1 overflow-auto p-6 bg-muted/30">
