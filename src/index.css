@@ -17,7 +17,7 @@
 .he-table td,
 .he-table-header,
 .he-table-cell {
-  border: 1px solid black !important;
+  border: 0.25pt solid black !important;
   padding: 4px 6px !important;
   vertical-align: top;
   line-height: 1;
@@ -335,7 +335,7 @@
 .ProseMirror table th,
 .ProseMirror table td {
   position: relative;
-  border: 1px solid black !important;
+  border: 0.25pt solid black !important;
   padding: 4px 6px !important;
   min-width: 30px;
   vertical-align: top;
