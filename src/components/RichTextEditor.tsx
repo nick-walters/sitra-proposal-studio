@@ -122,7 +122,7 @@ function TableSizeSelector({ onSelect }: { onSelect: (rows: number, cols: number
                 isHeaderRow
                   ? 'bg-foreground border-foreground'
                   : isHighlighted 
-                    ? 'bg-primary border-primary' 
+                    ? 'bg-primary/40 border-primary/60'
                     : 'bg-muted border-border hover:border-primary/50'
               }`}
               onMouseEnter={() => { setHoveredRows(row); setHoveredCols(col); }}
