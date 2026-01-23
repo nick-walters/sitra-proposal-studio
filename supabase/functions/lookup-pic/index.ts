@@ -14,25 +14,22 @@ interface OrganisationInfo {
   countryCode: string;
   legalEntityType?: string;
   isSme: boolean;
-  organisationCategory?: 'RES' | 'HES' | 'PRC' | 'SME' | 'NGO' | 'CSO' | 'AGO' | 'PUB' | 'INT' | 'OTH';
+  organisationCategory?: 'HES' | 'RES' | 'PRC' | 'PUB' | 'INT' | 'OTH';
 }
 
-function mapLegalEntityToCategory(legalEntityType?: string, isSme?: boolean): 'RES' | 'HES' | 'PRC' | 'SME' | 'NGO' | 'CSO' | 'AGO' | 'PUB' | 'INT' | 'OTH' {
+// Map legal entity type to official EC organisation categories
+function mapLegalEntityToCategory(legalEntityType?: string, isSme?: boolean): 'HES' | 'RES' | 'PRC' | 'PUB' | 'INT' | 'OTH' {
   if (!legalEntityType) return 'OTH';
   const type = legalEntityType.toLowerCase();
-  // Public bodies and agencies first (highest priority)
-  if (type.includes('agency') || type.includes('regulatory')) return 'AGO';
-  if (type.includes('public') || type.includes('government') || type.includes('pub')) return 'PUB';
+  // Public bodies first (highest priority)
+  if (type.includes('public') || type.includes('government') || type.includes('pub') || type.includes('agency') || type.includes('regulatory')) return 'PUB';
   // Education and research
   if (type.includes('university') || type.includes('higher education') || type.includes('secondary education') || type.includes('hes')) return 'HES';
   if (type.includes('research') || type.includes('rto') || type.includes('rec')) return 'RES';
-  // Private sector
-  if (isSme && (type.includes('private') || type.includes('prc') || type.includes('enterprise'))) return 'SME';
-  if (type.includes('private') || type.includes('prc') || type.includes('for-profit')) return isSme ? 'SME' : 'PRC';
-  // Non-profits and civil society
-  if (type.includes('ngo') || type.includes('non-governmental')) return 'NGO';
-  if (type.includes('cso') || type.includes('civil society')) return 'CSO';
-  if (type.includes('non-profit') || type.includes('nonprofit')) return 'NGO';
+  // Private sector (SMEs are also PRC in official EC categorization)
+  if (type.includes('private') || type.includes('prc') || type.includes('for-profit') || type.includes('enterprise') || type.includes('sme')) return 'PRC';
+  // Non-profits and civil society map to OTH
+  if (type.includes('ngo') || type.includes('non-governmental') || type.includes('cso') || type.includes('civil society') || type.includes('non-profit') || type.includes('nonprofit')) return 'OTH';
   // International
   if (type.includes('international')) return 'INT';
   return 'OTH';
@@ -230,11 +227,9 @@ async function lookupPicFromCordis(pic: string): Promise<OrganisationInfo | null
       organisationCategory = 'RES';
     } else if (typeCheck.includes('pub') || typeCheck.includes('public body')) {
       organisationCategory = 'PUB';
-    } else if (typeCheck.includes('sme')) {
-      organisationCategory = 'SME';
-      isSme = true;
-    } else if (typeCheck.includes('prc') || typeCheck.includes('private')) {
+    } else if (typeCheck.includes('sme') || typeCheck.includes('prc') || typeCheck.includes('private')) {
       organisationCategory = 'PRC';
+      isSme = typeCheck.includes('sme');
     }
     
     if (!legalName) return null;
