@@ -462,6 +462,8 @@ export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootn
 
 // Hook to get editor instance for external toolbar control
 export function useRichTextEditor({ content, onChange }: { content: string; onChange: (content: string) => void }) {
+  const [isInitialized, setIsInitialized] = useState(false);
+  
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -513,7 +515,23 @@ export function useRichTextEditor({ content, onChange }: { content: string; onCh
         style: 'font-family: "Times New Roman", Times, serif',
       },
     },
+    onCreate: () => {
+      setIsInitialized(true);
+    },
   });
+
+  // Sync editor content when content prop changes externally (e.g., from DB load or section switch)
+  // Only update if the content is different from what's currently in the editor
+  // to avoid cursor position issues during typing
+  if (editor && isInitialized) {
+    const currentContent = editor.getHTML();
+    if (content !== currentContent && content !== '') {
+      // Use queueMicrotask to avoid React state update during render
+      queueMicrotask(() => {
+        editor.commands.setContent(content, { emitUpdate: false });
+      });
+    }
+  }
 
   return editor;
 }
