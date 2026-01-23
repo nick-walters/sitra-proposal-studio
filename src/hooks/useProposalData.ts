@@ -306,6 +306,27 @@ export function useProposalData(proposalId: string) {
       }
     }
 
+    // Upsert to shared organisations registry (by PIC number)
+    if (picNumber) {
+      const { data: existingOrg } = await supabase
+        .from('organisations')
+        .select('id')
+        .eq('pic_number', picNumber)
+        .maybeSingle();
+      
+      if (!existingOrg) {
+        // Insert new organisation to shared registry
+        await supabase.from('organisations').insert({
+          name: participant.organisationName,
+          short_name: participant.organisationShortName,
+          pic_number: picNumber,
+          country: participant.country,
+          legal_entity_type: participant.legalEntityType,
+          is_sme: participant.isSme,
+        });
+      }
+    }
+
     const { data, error } = await supabase
       .from('participants')
       .insert({

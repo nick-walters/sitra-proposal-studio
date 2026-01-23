@@ -43,10 +43,37 @@ const COUNTRY_CODES: Record<string, string> = Object.fromEntries(
   Object.entries(COUNTRY_NAMES).map(([code, name]) => [name.toLowerCase(), code])
 );
 
-// Search database
+// Search shared organisations registry first, then participants as fallback
 async function searchDatabase(supabase: any, searchTerm: string): Promise<OrganisationInfo[]> {
   const results: OrganisationInfo[] = [];
+  const seenPics = new Set<string>();
+  
   try {
+    // First, search the shared organisations registry
+    const { data: organisations } = await supabase
+      .from('organisations')
+      .select('*')
+      .or(`name.ilike.%${searchTerm}%,short_name.ilike.%${searchTerm}%,pic_number.eq.${searchTerm}`)
+      .limit(15);
+    
+    for (const org of organisations || []) {
+      if (org.pic_number || org.name) {
+        const picKey = org.pic_number || '';
+        if (picKey) seenPics.add(picKey);
+        results.push({
+          picNumber: org.pic_number || '',
+          legalName: org.name,
+          shortName: org.short_name,
+          country: COUNTRY_NAMES[org.country] || org.country || '',
+          countryCode: org.country || '',
+          legalEntityType: org.legal_entity_type,
+          isSme: org.is_sme || false,
+          organisationCategory: mapLegalEntityToCategory(org.legal_entity_type, org.is_sme),
+        });
+      }
+    }
+    
+    // Also search participants table for any not in organisations registry
     const { data: participants } = await supabase
       .from('participants')
       .select('*')
@@ -54,7 +81,11 @@ async function searchDatabase(supabase: any, searchTerm: string): Promise<Organi
       .limit(15);
     
     for (const p of participants || []) {
+      // Skip if we already have this PIC from organisations table
+      if (p.pic_number && seenPics.has(p.pic_number)) continue;
+      
       if (p.pic_number || p.organisation_name) {
+        if (p.pic_number) seenPics.add(p.pic_number);
         results.push({
           picNumber: p.pic_number || '',
           legalName: p.english_name || p.organisation_name,
