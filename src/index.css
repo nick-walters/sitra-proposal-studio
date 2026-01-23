@@ -1,4 +1,37 @@
 @tailwind base;
+
+/* Horizon Europe Table Styles - Auto-fit columns */
+.he-table {
+  @apply w-auto border-collapse my-4;
+  font-family: Arial, sans-serif;
+  font-size: 11pt;
+  table-layout: auto;
+}
+
+.he-table th,
+.he-table td {
+  @apply border border-black;
+  padding: 4px 6px;
+  vertical-align: top;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+/* Allow text wrapping only when needed */
+.he-table td {
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+.he-table th,
+.he-table-header {
+  @apply bg-black text-white font-bold;
+  padding: 4px 6px;
+}
+
+.he-table-cell {
+  @apply bg-white text-black;
+}
 @tailwind components;
 @tailwind utilities;
 
@@ -257,51 +290,28 @@
     @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl;
   }
 
-  /* Horizon Europe Table Styles */
-  .he-table {
-    @apply w-full border-collapse my-4;
-    font-family: Arial, sans-serif;
-    font-size: 11pt;
-  }
-
-  .he-table th,
-  .he-table td {
-    @apply border border-black;
-    padding: 0.03pt;
-    vertical-align: top;
-  }
-
-  .he-table th,
-  .he-table-header {
-    @apply bg-black text-white font-bold;
-    padding: 4px 6px;
-  }
-
-  .he-table td,
-  .he-table-cell {
-    @apply text-black bg-transparent;
-    padding: 4px 6px;
-  }
-
-  .he-table p {
-    margin: 0;
-    padding: 0;
-    line-height: 1.2;
-  }
-
-  /* TipTap table styles */
+  /* TipTap table styles - auto-fit columns */
   .ProseMirror table {
-    @apply w-full border-collapse my-4;
+    @apply border-collapse my-4;
     font-family: Arial, sans-serif;
     font-size: 11pt;
+    table-layout: auto;
+    width: auto;
   }
 
   .ProseMirror table th,
   .ProseMirror table td {
     @apply border border-black relative;
     padding: 4px 6px;
-    min-width: 50px;
+    min-width: 30px;
     vertical-align: top;
+    white-space: nowrap;
+    line-height: 1;
+  }
+
+  .ProseMirror table td {
+    white-space: normal;
+    word-wrap: break-word;
   }
 
   .ProseMirror table th {
@@ -316,6 +326,7 @@
   .ProseMirror table td p {
     margin: 0;
     padding: 0;
+    line-height: 1;
   }
 
   /* Column resize handle */

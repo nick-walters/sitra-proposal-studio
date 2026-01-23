@@ -122,73 +122,78 @@ export function DocumentEditor({
 
   return (
     <div className="flex-1 flex flex-col min-h-0 relative">
-      {/* Extra toolbar with AI features */}
-      <div className="flex items-center justify-between p-2 border-b border-border bg-card">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsGrammarOpen(true)}>
-            <Sparkles className="w-4 h-4" />
-            Grammar Check
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="gap-2" 
-            onClick={() => setIsCitationOpen(true)}
-            disabled={readOnly}
-          >
-            <BookOpen className="w-4 h-4" />
-            Add Citation
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="gap-2" 
-            onClick={() => setIsImageGenOpen(true)}
-            disabled={readOnly}
-          >
-            <Wand2 className="w-4 h-4" />
-            AI Image
-          </Button>
-          {/* Only show Insert Figure for Part B sections */}
-          {section && !section.isPartA && (
+      {/* Fixed toolbar container */}
+      <div className="sticky top-0 z-10 bg-background">
+        {/* AI Features Bar */}
+        <div className="flex items-center justify-between p-2 border-b border-border bg-card">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsGrammarOpen(true)}>
+              <Sparkles className="w-4 h-4" />
+              Grammar Check
+            </Button>
             <Button 
               variant="outline" 
               size="sm" 
               className="gap-2" 
-              onClick={() => setIsFigureDialogOpen(true)}
+              onClick={() => setIsCitationOpen(true)}
               disabled={readOnly}
             >
-              <BarChart3 className="w-4 h-4" />
-              Insert Figure
+              <BookOpen className="w-4 h-4" />
+              Add Citation
             </Button>
-          )}
-          {/* Impact Pathway Generator for B2.1 section */}
-          {isImpactSection && (
             <Button 
               variant="outline" 
               size="sm" 
-              className="gap-2 bg-primary/5 border-primary/30 hover:bg-primary/10" 
-              onClick={() => setIsImpactPathwayOpen(true)}
+              className="gap-2" 
+              onClick={() => setIsImageGenOpen(true)}
               disabled={readOnly}
             >
-              <Route className="w-4 h-4" />
-              Impact Pathways
+              <Wand2 className="w-4 h-4" />
+              AI Image
             </Button>
-          )}
+            {/* Only show Insert Figure for Part B sections */}
+            {section && !section.isPartA && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-2" 
+                onClick={() => setIsFigureDialogOpen(true)}
+                disabled={readOnly}
+              >
+                <BarChart3 className="w-4 h-4" />
+                Insert Figure
+              </Button>
+            )}
+            {/* Impact Pathway Generator for B2.1 section */}
+            {isImpactSection && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-2 bg-primary/5 border-primary/30 hover:bg-primary/10" 
+                onClick={() => setIsImpactPathwayOpen(true)}
+                disabled={readOnly}
+              >
+                <Route className="w-4 h-4" />
+                Impact Pathways
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="gap-2 text-muted-foreground" 
+              onClick={() => setIsVersionHistoryOpen(true)}
+            >
+              <History className="w-4 h-4" />
+              <span className="hidden sm:inline">History</span>
+            </Button>
+            <WordCountBadge content={content} wordLimit={section.wordLimit} />
+            {!readOnly && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="gap-2 text-muted-foreground" 
-            onClick={() => setIsVersionHistoryOpen(true)}
-          >
-            <History className="w-4 h-4" />
-            <span className="hidden sm:inline">History</span>
-          </Button>
-          <WordCountBadge content={content} wordLimit={section.wordLimit} />
-          {!readOnly && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
-        </div>
+
+        {/* Formatting Toolbar - rendered by RichTextEditor but we need to extract it */}
       </div>
 
       <div className="flex-1 overflow-auto p-6 bg-muted/30">
