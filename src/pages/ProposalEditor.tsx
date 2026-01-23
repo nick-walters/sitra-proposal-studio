@@ -150,38 +150,16 @@ export function ProposalEditor() {
       ({ supabase }) => supabase.from('section_content').select('*').eq('proposal_id', id)
     );
 
-    // Fetch work packages
-    const { data: workPackages } = await import('@/integrations/supabase/client').then(
-      ({ supabase }) => supabase.from('work_packages').select('*').eq('proposal_id', id).order('number')
-    );
-
     exportProposalToPdf({
       proposal: {
         ...proposal,
         members: [],
         sections: allSections,
       },
-      participants,
-      participantMembers,
       sectionContents: (sectionContents || []).map((sc) => ({
         id: sc.id,
         sectionId: sc.section_id,
         content: sc.content || '',
-      })),
-      budgetItems: budgetItems.map((b) => ({
-        category: b.category,
-        subcategory: b.subcategory,
-        description: b.description,
-        amount: b.amount,
-        participantId: b.participantId,
-      })),
-      workPackages: (workPackages || []).map((wp) => ({
-        number: wp.number,
-        title: wp.title,
-        description: wp.description || undefined,
-        leadParticipantId: wp.lead_participant_id || undefined,
-        startMonth: wp.start_month || 1,
-        endMonth: wp.end_month || 36,
       })),
       sections: allSections,
     });
@@ -255,6 +233,7 @@ export function ProposalEditor() {
             onUpdateStatus={handleUpdateStatus}
             canEdit={canEdit}
             isAdmin={isAdmin}
+            onExportPdf={handleExportPdf}
           />
         ) : null;
       }
@@ -674,15 +653,7 @@ export function ProposalEditor() {
               <History className="w-4 h-4" />
               Version history
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="gap-2" 
-              onClick={handleExportPdf}
-            >
-              <Download className="w-4 h-4" />
-              <span className="hidden sm:inline">Export PDF</span>
-            </Button>
+{/* PDF export button removed from header - only available on Proposal Overview */}
           </div>
         </div>
       </header>
