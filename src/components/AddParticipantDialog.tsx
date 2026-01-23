@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -13,12 +13,15 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Search, Building2, Info, CheckCircle2 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Loader2, Search, Building2, Info, CheckCircle2, ChevronsUpDown, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { PARTICIPANT_TYPE_LABELS, ParticipantType } from '@/types/proposal';
 import { EU_MEMBER_STATES, ASSOCIATED_COUNTRIES, THIRD_COUNTRIES } from '@/lib/countries';
 import { ORGANISATION_CATEGORY_LABELS, OrganisationCategory } from '@/components/ParticipantTable';
+import { cn } from '@/lib/utils';
 
 interface AddParticipantDialogProps {
   open: boolean;
@@ -62,6 +65,14 @@ export function AddParticipantDialog({
   const [selectedResult, setSelectedResult] = useState<SearchResult | null>(null);
   const [searchEnglishName, setSearchEnglishName] = useState('');
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [countryPopoverOpen, setCountryPopoverOpen] = useState(false);
+  
+  // All countries combined for searching
+  const allCountries = useMemo(() => [
+    ...EU_MEMBER_STATES.map(c => ({ ...c, group: 'EU Member States' })),
+    ...ASSOCIATED_COUNTRIES.map(c => ({ ...c, group: 'Associated Countries' })),
+    ...THIRD_COUNTRIES.map(c => ({ ...c, group: 'Third Countries' })),
+  ], []);
   
   // Manual entry form state
   const [manualForm, setManualForm] = useState({
@@ -444,7 +455,7 @@ export function AddParticipantDialog({
                     id="short-name"
                     value={manualForm.organisationShortName}
                     onChange={(e) => setManualForm({ ...manualForm, organisationShortName: e.target.value })}
-                    placeholder="e.g. SITRA"
+                    placeholder="e.g. Sitra"
                   />
                 </div>
               </div>
@@ -488,37 +499,94 @@ export function AddParticipantDialog({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Country *</Label>
-                  <Select
-                    value={manualForm.country}
-                    onValueChange={(v) => {
-                      setManualForm({ ...manualForm, country: v });
-                      if (formErrors.country) setFormErrors({ ...formErrors, country: '' });
-                    }}
-                  >
-                    <SelectTrigger className={formErrors.country ? 'border-destructive' : ''}>
-                      <SelectValue placeholder="Select country" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-60">
-                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-muted">
-                        EU Member States
-                      </div>
-                      {EU_MEMBER_STATES.map((country) => (
-                        <SelectItem key={country.code} value={country.name}>{country.name}</SelectItem>
-                      ))}
-                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-muted mt-1">
-                        Associated Countries
-                      </div>
-                      {ASSOCIATED_COUNTRIES.map((country) => (
-                        <SelectItem key={country.code} value={country.name}>{country.name}</SelectItem>
-                      ))}
-                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-muted mt-1">
-                        Third Countries
-                      </div>
-                      {THIRD_COUNTRIES.map((country) => (
-                        <SelectItem key={country.code} value={country.name}>{country.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={countryPopoverOpen} onOpenChange={setCountryPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={countryPopoverOpen}
+                        className={cn(
+                          "w-full justify-between font-normal",
+                          !manualForm.country && "text-muted-foreground",
+                          formErrors.country && "border-destructive"
+                        )}
+                      >
+                        {manualForm.country || "Select country"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[250px] p-0 z-50 bg-popover" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search country..." />
+                        <CommandList className="max-h-60 overflow-y-auto">
+                          <CommandEmpty>No country found.</CommandEmpty>
+                          <CommandGroup heading="EU Member States">
+                            {EU_MEMBER_STATES.map((country) => (
+                              <CommandItem
+                                key={country.code}
+                                value={country.name}
+                                onSelect={() => {
+                                  setManualForm({ ...manualForm, country: country.name });
+                                  if (formErrors.country) setFormErrors({ ...formErrors, country: '' });
+                                  setCountryPopoverOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    manualForm.country === country.name ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {country.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                          <CommandGroup heading="Associated Countries">
+                            {ASSOCIATED_COUNTRIES.map((country) => (
+                              <CommandItem
+                                key={country.code}
+                                value={country.name}
+                                onSelect={() => {
+                                  setManualForm({ ...manualForm, country: country.name });
+                                  if (formErrors.country) setFormErrors({ ...formErrors, country: '' });
+                                  setCountryPopoverOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    manualForm.country === country.name ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {country.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                          <CommandGroup heading="Third Countries">
+                            {THIRD_COUNTRIES.map((country) => (
+                              <CommandItem
+                                key={country.code}
+                                value={country.name}
+                                onSelect={() => {
+                                  setManualForm({ ...manualForm, country: country.name });
+                                  if (formErrors.country) setFormErrors({ ...formErrors, country: '' });
+                                  setCountryPopoverOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    manualForm.country === country.name ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {country.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   {formErrors.country && (
                     <p className="text-xs text-destructive mt-1">{formErrors.country}</p>
                   )}
