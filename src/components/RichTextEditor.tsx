@@ -113,14 +113,17 @@ function TableSizeSelector({ onSelect }: { onSelect: (rows: number, cols: number
           const row = Math.floor(index / maxCols) + 1;
           const col = (index % maxCols) + 1;
           const isHighlighted = row <= hoveredRows && col <= hoveredCols;
+          const isHeaderRow = row === 1 && isHighlighted;
           
           return (
             <button
               key={index}
               className={`w-4 h-4 border rounded-sm transition-colors ${
-                isHighlighted 
-                  ? 'bg-primary border-primary' 
-                  : 'bg-muted border-border hover:border-primary/50'
+                isHeaderRow
+                  ? 'bg-foreground border-foreground'
+                  : isHighlighted 
+                    ? 'bg-primary border-primary' 
+                    : 'bg-muted border-border hover:border-primary/50'
               }`}
               onMouseEnter={() => { setHoveredRows(row); setHoveredCols(col); }}
               onClick={() => onSelect(row, col)}
