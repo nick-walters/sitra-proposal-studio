@@ -4,6 +4,10 @@ import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -22,12 +26,23 @@ import {
   Link as LinkIcon,
   Undo,
   Redo,
+  Table as TableIcon,
+  Plus,
+  Minus,
+  Trash2,
 } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useCallback } from 'react';
 
 interface RichTextEditorProps {
@@ -90,6 +105,23 @@ export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootn
           class: 'text-primary underline',
         },
       }),
+      Table.configure({
+        resizable: true,
+        HTMLAttributes: {
+          class: 'he-table',
+        },
+      }),
+      TableRow,
+      TableHeader.configure({
+        HTMLAttributes: {
+          class: 'he-table-header',
+        },
+      }),
+      TableCell.configure({
+        HTMLAttributes: {
+          class: 'he-table-cell',
+        },
+      }),
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -118,14 +150,16 @@ export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootn
     editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
   }, [editor]);
 
-  const addImage = useCallback((url: string) => {
+  const insertTable = useCallback(() => {
     if (!editor) return;
-    editor.chain().focus().setImage({ src: url }).run();
+    editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
   }, [editor]);
 
   if (!editor) {
     return null;
   }
+
+  const isInTable = editor.isActive('table');
 
   return (
     <div className={className}>
@@ -246,6 +280,77 @@ export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootn
             onClick={setLink}
             active={editor.isActive('link')}
           />
+          
+          {/* Table dropdown */}
+          <DropdownMenu>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant={isInTable ? "secondary" : "ghost"}
+                    size="icon"
+                    className="h-8 w-8"
+                  >
+                    <TableIcon className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                Table
+              </TooltipContent>
+            </Tooltip>
+            <DropdownMenuContent align="start" className="w-48">
+              {!isInTable ? (
+                <DropdownMenuItem onClick={insertTable}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Insert table (3×3)
+                </DropdownMenuItem>
+              ) : (
+                <>
+                  <DropdownMenuItem onClick={() => editor.chain().focus().addColumnBefore().run()}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add column before
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => editor.chain().focus().addColumnAfter().run()}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add column after
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => editor.chain().focus().deleteColumn().run()}>
+                    <Minus className="w-4 h-4 mr-2" />
+                    Delete column
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => editor.chain().focus().addRowBefore().run()}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add row before
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => editor.chain().focus().addRowAfter().run()}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add row after
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => editor.chain().focus().deleteRow().run()}>
+                    <Minus className="w-4 h-4 mr-2" />
+                    Delete row
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => editor.chain().focus().mergeCells().run()}>
+                    Merge cells
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => editor.chain().focus().splitCell().run()}>
+                    Split cell
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => editor.chain().focus().deleteTable().run()}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete table
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
