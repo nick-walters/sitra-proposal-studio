@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { GanttChartFigure } from '@/components/GanttChartFigure';
-import { ArrowLeft, Save, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, Image } from 'lucide-react';
 
 interface Figure {
   id: string;
@@ -43,6 +43,24 @@ export function FigureEditor({
   };
 
   const renderFigureContent = () => {
+    // For image-based figures (uploaded or AI generated)
+    if (figure.content?.imageUrl) {
+      return (
+        <div className="space-y-4">
+          <div className="border rounded-lg overflow-hidden bg-muted/30">
+            <img 
+              src={figure.content.imageUrl} 
+              alt={figure.title}
+              className="max-w-full h-auto mx-auto"
+            />
+          </div>
+          <p className="text-sm text-muted-foreground text-center">
+            <em><strong>Figure {figure.figureNumber}.</strong> {caption || title}</em>
+          </p>
+        </div>
+      );
+    }
+
     switch (figure.figureType) {
       case 'gantt':
         return (
@@ -53,6 +71,14 @@ export function FigureEditor({
             onContentChange={(content) => onUpdate({ content })}
             canEdit={canEdit}
           />
+        );
+      case 'image':
+      case 'ai':
+        return (
+          <div className="min-h-[200px] border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-muted-foreground gap-2">
+            <Image className="w-12 h-12" />
+            <p>No image uploaded yet</p>
+          </div>
         );
       default:
         return (
@@ -75,7 +101,7 @@ export function FigureEditor({
             <div>
               <h1 className="text-xl font-bold">Figure {figure.figureNumber}</h1>
               <p className="text-sm text-muted-foreground">
-                Edit figure for section {figure.sectionId}
+                {figure.figureType === 'ai' ? 'AI Generated' : figure.figureType === 'image' ? 'Uploaded Image' : `${figure.figureType} figure`} for section {figure.sectionId}
               </p>
             </div>
           </div>
@@ -117,7 +143,7 @@ export function FigureEditor({
                 id="caption"
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
-                placeholder="Optional caption for the figure"
+                placeholder="Optional caption for the figure (appears below the image)"
                 rows={2}
                 disabled={!canEdit}
               />

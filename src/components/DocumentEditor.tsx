@@ -1,13 +1,12 @@
 import { Section } from "@/types/proposal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, BookOpen, Wand2, Route, History, Info, Upload, Link2 } from "lucide-react";
+import { Sparkles, BookOpen, Route, History, Info, Image, Link2 } from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
 import { EditorContent } from "@tiptap/react";
 import { GrammarChecker } from "./GrammarChecker";
 import { CitationDialog } from "./CitationDialog";
-import { ImageGeneratorDialog } from "./ImageGeneratorDialog";
 import { InsertFigureDialog } from "./InsertFigureDialog";
 import { InsertCrossReferenceDialog } from "./InsertCrossReferenceDialog";
 import { ImpactPathwayGenerator } from "./ImpactPathwayGenerator";
@@ -17,7 +16,6 @@ import { SaveIndicator } from "./SaveIndicator";
 import { useSectionContent } from "@/hooks/useSectionContent";
 import { renumberFootnotes } from "@/lib/captionRenumbering";
 import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "sonner";
 
 interface Reference {
   authors: string[];
@@ -52,7 +50,6 @@ export function DocumentEditor({
 }: DocumentEditorProps) {
   const [isGrammarOpen, setIsGrammarOpen] = useState(false);
   const [isCitationOpen, setIsCitationOpen] = useState(false);
-  const [isImageGenOpen, setIsImageGenOpen] = useState(false);
   const [isFigureDialogOpen, setIsFigureDialogOpen] = useState(false);
   const [isCrossRefOpen, setIsCrossRefOpen] = useState(false);
   const [isImpactPathwayOpen, setIsImpactPathwayOpen] = useState(false);
@@ -134,21 +131,28 @@ export function DocumentEditor({
     return String.fromCharCode(nextLetterCode);
   }, [content, getSectionNumberWithoutPrefix]);
 
-  const handleInsertImage = useCallback((imageUrl: string) => {
-    if (!imageUrl || !editor) return;
+  // Handle inserting a figure image into the document
+  const handleInsertFigureImage = useCallback((figure: { figureNumber: string; title: string; content: any }) => {
+    if (!editor) return;
     
-    // Get the section number for figure numbering (e.g., "1.1" from section B1.1)
-    const sectionNum = getSectionNumberWithoutPrefix(section?.number || '1.1');
-    const figureLetter = getNextFigureLetter(section?.number || '1.1');
-    const figureLabel = `Figure ${sectionNum}.${figureLetter}`;
+    const imageUrl = figure.content?.imageUrl;
+    if (!imageUrl) {
+      // For non-image figures, just insert a reference
+      editor.chain().focus().insertContent(
+        `<span class="figure-reference text-primary cursor-pointer hover:underline">(see Figure ${figure.figureNumber})</span>`
+      ).run();
+      return;
+    }
     
-    // Insert image and caption together using insertContent for proper rendering
+    // Insert image and caption together
+    const figureLabel = `Figure ${figure.figureNumber}`;
+    
     editor.chain()
       .focus()
       .insertContent([
         {
           type: 'image',
-          attrs: { src: imageUrl, alt: 'Generated image' }
+          attrs: { src: imageUrl, alt: figure.title }
         },
         {
           type: 'paragraph',
@@ -162,20 +166,12 @@ export function DocumentEditor({
             {
               type: 'text',
               marks: [{ type: 'italic' }],
-              text: ' '
+              text: ' ' + (figure.title || '')
             }
           ]
         }
       ])
       .run();
-  }, [editor, section, getNextFigureLetter, getSectionNumberWithoutPrefix]);
-
-  const handleInsertFigure = useCallback((figure: { figureNumber: string; title: string }) => {
-    if (!editor) return;
-    // Insert figure reference at cursor position
-    editor.chain().focus().insertContent(
-      `<span class="figure-reference text-primary cursor-pointer hover:underline">(see Figure ${figure.figureNumber})</span>`
-    ).run();
   }, [editor]);
 
   const handleApplyGrammarSuggestion = useCallback((original: string, replacement: string) => {
@@ -185,6 +181,14 @@ export function DocumentEditor({
   const handleInsertImpactContent = useCallback((impactContent: string) => {
     if (!editor) return;
     editor.chain().focus().insertContent(impactContent).run();
+  }, [editor]);
+
+  // Handle figure reference insertion (text link only)
+  const handleInsertFigureReference = useCallback((figure: { figureNumber: string; title: string }) => {
+    if (!editor) return;
+    editor.chain().focus().insertContent(
+      `<span class="figure-reference text-primary cursor-pointer hover:underline">(see Figure ${figure.figureNumber})</span>`
+    ).run();
   }, [editor]);
 
   const handleRestoreVersion = useCallback((restoredContent: string) => {
@@ -249,7 +253,7 @@ export function DocumentEditor({
               <BookOpen className="w-4 h-4" />
               Add Citation
             </Button>
-            {/* Only show Upload Figure for Part B sections */}
+            {/* Insert Figure button - only show for Part B sections */}
             {section && !section.isPartA && (
               <Button 
                 variant="outline" 
@@ -258,20 +262,10 @@ export function DocumentEditor({
                 onClick={() => setIsFigureDialogOpen(true)}
                 disabled={readOnly}
               >
-                <Upload className="w-4 h-4" />
-                Upload Figure
+                <Image className="w-4 h-4" />
+                Insert Figure
               </Button>
             )}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="gap-2" 
-              onClick={() => setIsImageGenOpen(true)}
-              disabled={readOnly}
-            >
-              <Wand2 className="w-4 h-4" />
-              AI Image
-            </Button>
             {/* Cross-reference button - only show for Part B sections */}
             {section && !section.isPartA && (
               <Button 
@@ -400,19 +394,13 @@ export function DocumentEditor({
         existingReferences={references}
         nextCitationNumber={references.length + 1}
       />
-      <ImageGeneratorDialog
-        isOpen={isImageGenOpen}
-        onClose={() => setIsImageGenOpen(false)}
-        onInsertImage={handleInsertImage}
-        proposalId={proposalId}
-        sectionNumber={section?.number}
-      />
       <InsertFigureDialog
         isOpen={isFigureDialogOpen}
         onClose={() => setIsFigureDialogOpen(false)}
         proposalId={proposalId}
         currentSectionId={section?.id || ''}
-        onInsertFigure={handleInsertFigure}
+        onInsertFigure={handleInsertFigureReference}
+        onInsertFigureImage={handleInsertFigureImage}
       />
       <ImpactPathwayGenerator
         isOpen={isImpactPathwayOpen}
