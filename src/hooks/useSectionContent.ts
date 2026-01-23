@@ -8,6 +8,9 @@ interface UseSectionContentProps {
   sectionId: string;
 }
 
+// Version save interval: 5 minutes
+const VERSION_SAVE_INTERVAL = 5 * 60 * 1000;
+
 export function useSectionContent({ proposalId, sectionId }: UseSectionContentProps) {
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
@@ -15,7 +18,10 @@ export function useSectionContent({ proposalId, sectionId }: UseSectionContentPr
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const { user } = useAuth();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const versionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const contentIdRef = useRef<string | null>(null);
+  const lastVersionContentRef = useRef<string>('');
+  const lastVersionTimeRef = useRef<number>(0);
 
   // Fetch content on mount
   useEffect(() => {
@@ -38,9 +44,11 @@ export function useSectionContent({ proposalId, sectionId }: UseSectionContentPr
       if (data) {
         setContent(data.content || '');
         contentIdRef.current = data.id;
+        lastVersionContentRef.current = data.content || '';
       } else {
         setContent('');
         contentIdRef.current = null;
+        lastVersionContentRef.current = '';
       }
       setLoading(false);
     };
@@ -77,6 +85,47 @@ export function useSectionContent({ proposalId, sectionId }: UseSectionContentPr
     return () => {
       supabase.removeChannel(channel);
     };
+  }, [proposalId, sectionId, user?.id]);
+
+  // Save a version snapshot
+  const saveVersion = useCallback(async (contentToSave: string) => {
+    if (!proposalId || !sectionId || !user?.id) return;
+    
+    // Don't save if content hasn't changed since last version
+    if (contentToSave === lastVersionContentRef.current) return;
+    
+    // Don't save too frequently
+    const now = Date.now();
+    if (now - lastVersionTimeRef.current < VERSION_SAVE_INTERVAL) return;
+
+    try {
+      // Get the next version number
+      const { data: existingVersions } = await supabase
+        .from('section_versions')
+        .select('version_number')
+        .eq('proposal_id', proposalId)
+        .eq('section_id', sectionId)
+        .order('version_number', { ascending: false })
+        .limit(1);
+
+      const nextVersion = (existingVersions?.[0]?.version_number || 0) + 1;
+
+      await supabase
+        .from('section_versions')
+        .insert({
+          proposal_id: proposalId,
+          section_id: sectionId,
+          content: contentToSave,
+          created_by: user.id,
+          version_number: nextVersion,
+          is_auto_save: true,
+        });
+
+      lastVersionContentRef.current = contentToSave;
+      lastVersionTimeRef.current = now;
+    } catch (error) {
+      console.error('Error saving version:', error);
+    }
   }, [proposalId, sectionId, user?.id]);
 
   // Auto-save with debounce
@@ -116,18 +165,27 @@ export function useSectionContent({ proposalId, sectionId }: UseSectionContentPr
       }
 
       setLastSaved(new Date());
+
+      // Schedule version save check
+      if (versionTimeoutRef.current) {
+        clearTimeout(versionTimeoutRef.current);
+      }
+      versionTimeoutRef.current = setTimeout(() => {
+        saveVersion(newContent);
+      }, VERSION_SAVE_INTERVAL);
+
     } catch (error) {
       console.error('Error saving content:', error);
       toast.error('Failed to save content');
     } finally {
       setSaving(false);
     }
-  }, [proposalId, sectionId, user?.id]);
+  }, [proposalId, sectionId, user?.id, saveVersion]);
 
   const handleContentChange = useCallback((newContent: string) => {
     setContent(newContent);
 
-    // Debounced save
+    // Debounced save (1 second for autosave)
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
@@ -136,14 +194,21 @@ export function useSectionContent({ proposalId, sectionId }: UseSectionContentPr
     }, 1000);
   }, [saveContent]);
 
-  // Cleanup timeout on unmount
+  // Save version on unmount if content changed
   useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
+      if (versionTimeoutRef.current) {
+        clearTimeout(versionTimeoutRef.current);
+      }
+      // Save version if content changed when leaving the section
+      if (content !== lastVersionContentRef.current && content.trim()) {
+        saveVersion(content);
+      }
     };
-  }, []);
+  }, [content, saveVersion]);
 
   return {
     content,
@@ -152,5 +217,6 @@ export function useSectionContent({ proposalId, sectionId }: UseSectionContentPr
     saving,
     lastSaved,
     saveNow: () => saveContent(content),
+    saveVersionNow: () => saveVersion(content),
   };
 }
