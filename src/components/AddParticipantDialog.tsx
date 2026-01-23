@@ -124,6 +124,28 @@ export function AddParticipantDialog({
   const handleAddFromSearch = async () => {
     if (!selectedResult) return;
 
+    // Validate required fields from search result
+    const missingFields: string[] = [];
+    if (!selectedResult.picNumber?.trim()) missingFields.push('PIC number');
+    if (!selectedResult.legalName?.trim()) missingFields.push('Organisation name');
+    if (!selectedResult.country?.trim()) missingFields.push('Country');
+    
+    if (missingFields.length > 0) {
+      toast.error(`Missing required fields: ${missingFields.join(', ')}. Please use manual entry to complete the details.`);
+      setActiveTab('manual');
+      // Pre-fill manual form with available data
+      setManualForm({
+        organisationName: selectedResult.legalName || '',
+        organisationShortName: selectedResult.shortName || '',
+        englishName: '',
+        picNumber: selectedResult.picNumber || '',
+        organisationType: 'beneficiary',
+        country: selectedResult.country || '',
+        organisationCategory: selectedResult.organisationCategory || '',
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       await onAddParticipant({
@@ -140,7 +162,7 @@ export function AddParticipantDialog({
       toast.success('Participant added successfully');
     } catch (error) {
       console.error('Add participant error:', error);
-      toast.error('Failed to add participant');
+      // Don't show duplicate toast - the hook already shows it
     } finally {
       setLoading(false);
     }
