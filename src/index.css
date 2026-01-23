@@ -5,10 +5,10 @@
 /* Horizon Europe Table Styles - Auto-fit columns */
 /* These must come AFTER Tailwind directives to ensure they take precedence */
 .he-table {
-  width: auto !important;
+  width: 100% !important;
   border-collapse: collapse !important;
   margin: 1rem 0;
-  font-family: Arial, sans-serif;
+  font-family: "Times New Roman", Times, serif !important;
   font-size: 11pt;
   table-layout: auto;
 }
@@ -21,6 +21,7 @@
   padding: 4px 6px !important;
   vertical-align: top;
   line-height: 1;
+  font-family: "Times New Roman", Times, serif !important;
 }
 
 .he-table th,
@@ -29,6 +30,7 @@
   color: white !important;
   font-weight: bold !important;
   white-space: nowrap;
+  font-family: "Times New Roman", Times, serif !important;
 }
 
 .he-table td,
@@ -49,7 +51,7 @@
 }
 
 .figure-caption {
-  margin-top: 0 !important;
+  margin-top: 0pt !important;
   margin-bottom: 3pt !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
@@ -57,7 +59,7 @@
 
 .table-caption {
   margin-top: 3pt !important;
-  margin-bottom: 0 !important;
+  margin-bottom: 0pt !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
 }
@@ -76,6 +78,7 @@
 .figure-container img {
   max-width: 100% !important;
   height: auto !important;
+  display: block !important;
 }
 
 /* Horizon Europe Proposal Platform Design System */
@@ -365,10 +368,10 @@
 .ProseMirror table {
   border-collapse: collapse !important;
   margin: 1rem 0;
-  font-family: Arial, sans-serif;
+  font-family: "Times New Roman", Times, serif !important;
   font-size: 11pt;
   table-layout: auto;
-  width: auto;
+  width: 100% !important;
 }
 
 .ProseMirror table th,
@@ -379,6 +382,7 @@
   min-width: 30px;
   vertical-align: top;
   line-height: 1;
+  font-family: "Times New Roman", Times, serif !important;
 }
 
 .ProseMirror table th {
@@ -386,6 +390,7 @@
   color: white !important;
   font-weight: bold !important;
   white-space: nowrap;
+  font-family: "Times New Roman", Times, serif !important;
 }
 
 .ProseMirror table td {
@@ -400,6 +405,43 @@
   margin: 0 !important;
   padding: 0 !important;
   line-height: 1;
+  font-family: "Times New Roman", Times, serif !important;
+}
+
+/* Caption styles in ProseMirror */
+.ProseMirror .table-caption,
+.ProseMirror .figure-caption,
+.ProseMirror p.table-caption,
+.ProseMirror p.figure-caption {
+  font-style: italic !important;
+  font-family: "Times New Roman", Times, serif !important;
+  font-size: 11pt !important;
+  line-height: 1.2 !important;
+}
+
+.ProseMirror .table-caption,
+.ProseMirror p.table-caption {
+  margin-top: 3pt !important;
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.ProseMirror .figure-caption,
+.ProseMirror p.figure-caption {
+  margin-top: 0 !important;
+  margin-bottom: 3pt !important;
+  padding-top: 0 !important;
+}
+
+.ProseMirror .caption-label {
+  font-weight: bold !important;
+  font-style: italic !important;
+}
+
+/* Ensure table caption followed by table has no gap */
+.ProseMirror .table-caption + table,
+.ProseMirror p.table-caption + table {
+  margin-top: 0 !important;
 }
 
 /* Column resize handle */
