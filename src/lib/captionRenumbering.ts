@@ -1,11 +1,12 @@
 /**
  * Utility functions for dynamic renumbering of figure and table captions
- * Captions follow the format: "Figure X.X.x" or "Table X.X.x"
+ * Captions follow the format: "Figure X.X.x." or "Table X.X.x."
  * where X.X is the section number and x is a lowercase letter (a, b, c, ...)
  */
 
 /**
  * Renumbers all figure captions in the content based on their order
+ * Handles multiple HTML formatting variations (bold, italic, or plain)
  * @param content HTML content string
  * @param sectionNumber The current section number (e.g., "1.1" or "B1.1")
  * @returns Updated content with renumbered figure captions
@@ -14,21 +15,25 @@ export function renumberFigureCaptions(content: string, sectionNumber: string): 
   // Extract section number without letter prefix (e.g., "1.1" from "B1.1")
   const cleanSectionNum = sectionNumber.replace(/^[A-Za-z]+/, '');
   
-  // Pattern to match figure captions with bold label: "<strong>Figure X.X.letter.</strong>" or "<em><strong>Figure..."
-  // Also match non-bold patterns for backwards compatibility
-  const figurePattern = /(<em>)?(<strong>)?Figure \d+\.\d+\.([a-z])\.(<\/strong>)?(<\/em>)?/gi;
+  // Pattern to match figure captions in various formats:
+  // - <em><strong>Figure X.X.x.</strong>...</em>
+  // - <strong>Figure X.X.x.</strong>
+  // - Figure X.X.x.
+  // Uses a broad pattern that captures any figure numbering
+  const figurePattern = /(<em>)?(<strong>)?(Figure )\d+\.\d+\.([a-z])\.(<\/strong>)?/gi;
   
   let letterIndex = 0;
   
-  return content.replace(figurePattern, (match, emStart, strongStart, _oldLetter, strongEnd, emEnd) => {
+  return content.replace(figurePattern, (match, emStart, strongStart, figureText, _oldLetter, strongEnd) => {
     const newLetter = String.fromCharCode('a'.charCodeAt(0) + letterIndex);
     letterIndex++;
-    // Preserve the original formatting structure
+    
+    // Reconstruct with same formatting but new numbering
     const em1 = emStart || '';
     const strong1 = strongStart || '';
     const strong2 = strongEnd || '';
-    const em2 = emEnd || '';
-    return `${em1}${strong1}Figure ${cleanSectionNum}.${newLetter}.${strong2}${em2}`;
+    
+    return `${em1}${strong1}${figureText}${cleanSectionNum}.${newLetter}.${strong2}`;
   });
 }
 
@@ -42,24 +47,26 @@ export function renumberTableCaptions(content: string, sectionNumber: string): s
   // Extract section number without letter prefix (e.g., "1.1" from "B1.1")
   const cleanSectionNum = sectionNumber.replace(/^[A-Za-z]+/, '');
   
-  // Pattern to match table captions with bold label
-  const tablePattern = /(<em>)?(<strong>)?Table \d+\.\d+\.([a-z])\.(<\/strong>)?(<\/em>)?/gi;
+  // Pattern to match table captions in various formats
+  const tablePattern = /(<em>)?(<strong>)?(Table )\d+\.\d+\.([a-z])\.(<\/strong>)?/gi;
   
   let letterIndex = 0;
   
-  return content.replace(tablePattern, (match, emStart, strongStart, _oldLetter, strongEnd, emEnd) => {
+  return content.replace(tablePattern, (match, emStart, strongStart, tableText, _oldLetter, strongEnd) => {
     const newLetter = String.fromCharCode('a'.charCodeAt(0) + letterIndex);
     letterIndex++;
+    
     const em1 = emStart || '';
     const strong1 = strongStart || '';
     const strong2 = strongEnd || '';
-    const em2 = emEnd || '';
-    return `${em1}${strong1}Table ${cleanSectionNum}.${newLetter}.${strong2}${em2}`;
+    
+    return `${em1}${strong1}${tableText}${cleanSectionNum}.${newLetter}.${strong2}`;
   });
 }
 
 /**
  * Renumbers all captions (figures and tables) in the content
+ * Also updates cross-references to match new numbering
  * @param content HTML content string
  * @param sectionNumber The current section number (e.g., "1.1" or "B1.1")
  * @returns Updated content with renumbered captions
@@ -78,7 +85,8 @@ export function renumberAllCaptions(content: string, sectionNumber: string): str
  */
 export function getNextFigureLetterFromContent(content: string, sectionNumber: string): string {
   const cleanSectionNum = sectionNumber.replace(/^[A-Za-z]+/, '');
-  const figurePattern = new RegExp(`Figure ${cleanSectionNum.replace('.', '\\\\.')}\\.([a-z])`, 'g');
+  // Match both formatted and plain figure references
+  const figurePattern = new RegExp(`Figure ${cleanSectionNum.replace('.', '\\.')}\\.([a-z])`, 'gi');
   const matches = content.match(figurePattern) || [];
   return String.fromCharCode('a'.charCodeAt(0) + matches.length);
 }
@@ -91,7 +99,7 @@ export function getNextFigureLetterFromContent(content: string, sectionNumber: s
  */
 export function getNextTableLetterFromContent(content: string, sectionNumber: string): string {
   const cleanSectionNum = sectionNumber.replace(/^[A-Za-z]+/, '');
-  const tablePattern = new RegExp(`Table ${cleanSectionNum.replace('.', '\\\\.')}\\.([a-z])`, 'g');
+  const tablePattern = new RegExp(`Table ${cleanSectionNum.replace('.', '\\.')}\\.([a-z])`, 'gi');
   const matches = content.match(tablePattern) || [];
   return String.fromCharCode('a'.charCodeAt(0) + matches.length);
 }

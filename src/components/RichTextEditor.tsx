@@ -29,7 +29,6 @@ import {
   Plus,
   Minus,
   Trash2,
-  Grid3X3,
   Crop,
   ImageIcon,
 } from "lucide-react";
@@ -44,9 +43,6 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCallback, useState, useRef, useEffect } from 'react';
 import {

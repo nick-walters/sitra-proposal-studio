@@ -1,7 +1,7 @@
 import { Section } from "@/types/proposal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, BookOpen, Wand2, Route, History, Info, Upload, RefreshCw } from "lucide-react";
+import { Sparkles, BookOpen, Wand2, Route, History, Info, Upload, Link2 } from "lucide-react";
 import { useState, useCallback } from "react";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
 import { EditorContent } from "@tiptap/react";
@@ -9,13 +9,13 @@ import { GrammarChecker } from "./GrammarChecker";
 import { CitationDialog } from "./CitationDialog";
 import { ImageGeneratorDialog } from "./ImageGeneratorDialog";
 import { InsertFigureDialog } from "./InsertFigureDialog";
+import { InsertCrossReferenceDialog } from "./InsertCrossReferenceDialog";
 import { ImpactPathwayGenerator } from "./ImpactPathwayGenerator";
 import { SectionVersionHistoryDialog } from "./SectionVersionHistoryDialog";
 import { GuidelinesDialog } from "./GuidelinesDialog";
 import { SaveIndicator } from "./SaveIndicator";
 import { useSectionContent } from "@/hooks/useSectionContent";
 import { Skeleton } from "@/components/ui/skeleton";
-import { renumberAllCaptions } from "@/lib/captionRenumbering";
 import { toast } from "sonner";
 
 interface Reference {
@@ -53,6 +53,7 @@ export function DocumentEditor({
   const [isCitationOpen, setIsCitationOpen] = useState(false);
   const [isImageGenOpen, setIsImageGenOpen] = useState(false);
   const [isFigureDialogOpen, setIsFigureDialogOpen] = useState(false);
+  const [isCrossRefOpen, setIsCrossRefOpen] = useState(false);
   const [isImpactPathwayOpen, setIsImpactPathwayOpen] = useState(false);
   const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
   const [isGuidelinesOpen, setIsGuidelinesOpen] = useState(false);
@@ -64,6 +65,7 @@ export function DocumentEditor({
   const sectionContentHook = useSectionContent({
     proposalId: proposalId || '',
     sectionId: section?.id || '',
+    sectionNumber: section?.number,
   });
   
   const { content, setContent, loading, saving, lastSaved } = sectionContentHook;
@@ -75,16 +77,17 @@ export function DocumentEditor({
   });
 
   const handleInsertCitation = useCallback((reference: Reference, formattedCitation: string, citationNumber: number) => {
-    // Add superscript citation to content
-    const superscript = `<sup>${citationNumber}</sup>`;
-    setContent(content + superscript);
+    if (!editor) return;
+    
+    // Insert superscript citation at cursor position
+    editor.chain().focus().insertContent(`<sup>[${citationNumber}]</sup>`).run();
     
     // Add to references if new
     if (!references.some(r => r.doi === reference.doi)) {
       setReferences(prev => [...prev, reference]);
       setFootnotes(prev => [...prev, { number: citationNumber, citation: formattedCitation }]);
     }
-  }, [references, content, setContent]);
+  }, [editor, references]);
 
   // Helper to extract section number without "B" prefix (e.g., "1.1" from "B1.1" or just "1.1")
   const getSectionNumberWithoutPrefix = useCallback((sectionNum: string) => {
@@ -146,37 +149,31 @@ export function DocumentEditor({
   }, [editor, section, getNextFigureLetter, getSectionNumberWithoutPrefix]);
 
   const handleInsertFigure = useCallback((figure: { figureNumber: string; title: string }) => {
-    const figureRef = `<span class="figure-reference text-primary cursor-pointer hover:underline">(see Figure ${figure.figureNumber})</span>`;
-    setContent(content + figureRef);
-  }, [content, setContent]);
+    if (!editor) return;
+    // Insert figure reference at cursor position
+    editor.chain().focus().insertContent(
+      `<span class="figure-reference text-primary cursor-pointer hover:underline">(see Figure ${figure.figureNumber})</span>`
+    ).run();
+  }, [editor]);
 
   const handleApplyGrammarSuggestion = useCallback((original: string, replacement: string) => {
     setContent(content.replace(original, replacement));
   }, [content, setContent]);
 
   const handleInsertImpactContent = useCallback((impactContent: string) => {
-    setContent(content + impactContent);
-  }, [content, setContent]);
+    if (!editor) return;
+    editor.chain().focus().insertContent(impactContent).run();
+  }, [editor]);
 
   const handleRestoreVersion = useCallback((restoredContent: string) => {
     setContent(restoredContent);
   }, [setContent]);
 
-  // Renumber all figure and table captions based on their current order
-  const handleRenumberCaptions = useCallback(() => {
-    if (!section?.number) return;
-    const updatedContent = renumberAllCaptions(content, section.number);
-    if (updatedContent !== content) {
-      setContent(updatedContent);
-      // Also update the editor content directly
-      if (editor) {
-        editor.commands.setContent(updatedContent, { emitUpdate: false });
-      }
-      toast.success("Captions renumbered successfully");
-    } else {
-      toast.info("No captions to renumber");
-    }
-  }, [content, section?.number, setContent, editor]);
+  // Handle cross-reference insertion
+  const handleInsertCrossRef = useCallback((refText: string) => {
+    if (!editor) return;
+    editor.chain().focus().insertContent(refText).run();
+  }, [editor]);
 
   // Check if this is the B2.1 section (impact pathways)
   const isImpactSection = section?.id === 'b2-1' || section?.number === '2.1';
@@ -253,18 +250,18 @@ export function DocumentEditor({
               <Wand2 className="w-4 h-4" />
               AI Image
             </Button>
-            {/* Renumber captions button - only show for Part B sections */}
+            {/* Cross-reference button - only show for Part B sections */}
             {section && !section.isPartA && (
               <Button 
                 variant="outline" 
                 size="sm" 
                 className="gap-2" 
-                onClick={handleRenumberCaptions}
+                onClick={() => setIsCrossRefOpen(true)}
                 disabled={readOnly}
-                title="Renumber all figure and table captions in order"
+                title="Insert a reference to a figure or table"
               >
-                <RefreshCw className="w-4 h-4" />
-                Renumber
+                <Link2 className="w-4 h-4" />
+                Cross-ref
               </Button>
             )}
             {/* Impact Pathway Generator for B2.1 section */}
@@ -415,6 +412,13 @@ export function DocumentEditor({
         onClose={() => setIsGuidelinesOpen(false)}
         sectionTitle={`${section?.number || ''} ${section?.title || ''}`}
         guidelines={section?.guidelinesArray || []}
+      />
+      <InsertCrossReferenceDialog
+        isOpen={isCrossRefOpen}
+        onClose={() => setIsCrossRefOpen(false)}
+        content={content}
+        sectionNumber={section?.number || ''}
+        onInsert={handleInsertCrossRef}
       />
     </div>
   );

@@ -81,6 +81,43 @@
   display: block !important;
 }
 
+/* Resizable image wrapper in TipTap editor */
+.resizable-image-wrapper {
+  display: inline-block;
+  position: relative;
+  max-width: 100%;
+}
+
+.resizable-image-wrapper img {
+  display: block;
+  max-width: 100%;
+}
+
+/* TipTap image node styles */
+.ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+.ProseMirror .resizable-image-wrapper {
+  display: block;
+  text-align: center;
+}
+
+/* Cross-reference styling */
+.figure-reference,
+.table-reference {
+  color: hsl(var(--primary));
+  cursor: pointer;
+}
+
+.figure-reference:hover,
+.table-reference:hover {
+  text-decoration: underline;
+}
+
 /* Horizon Europe Proposal Platform Design System */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Source+Serif+4:wght@400;500;600;700&display=swap');

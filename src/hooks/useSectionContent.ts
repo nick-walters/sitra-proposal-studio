@@ -2,10 +2,12 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
+import { renumberAllCaptions } from '@/lib/captionRenumbering';
 
 interface UseSectionContentProps {
   proposalId: string;
   sectionId: string;
+  sectionNumber?: string; // For caption renumbering
 }
 
 // Version save interval: 5 minutes
@@ -13,7 +15,7 @@ const VERSION_SAVE_INTERVAL = 5 * 60 * 1000;
 // Debounce delay for autosave
 const AUTOSAVE_DEBOUNCE = 1000;
 
-export function useSectionContent({ proposalId, sectionId }: UseSectionContentProps) {
+export function useSectionContent({ proposalId, sectionId, sectionNumber }: UseSectionContentProps) {
   const [content, setContentState] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -30,12 +32,18 @@ export function useSectionContent({ proposalId, sectionId }: UseSectionContentPr
   const isSavingRef = useRef(false);
 
   // Immediate save function (no debounce) - used for urgent saves
-  const saveContentImmediately = useCallback(async (contentToSave: string): Promise<boolean> => {
+  const saveContentImmediately = useCallback(async (contentToSave: string, shouldRenumber = true): Promise<boolean> => {
     if (!proposalId || !sectionId || !user?.id) return false;
     if (isSavingRef.current) return false;
 
     isSavingRef.current = true;
     setSaving(true);
+
+    // Auto-renumber captions before saving if section number is provided
+    let finalContent = contentToSave;
+    if (shouldRenumber && sectionNumber) {
+      finalContent = renumberAllCaptions(contentToSave, sectionNumber);
+    }
 
     try {
       if (contentIdRef.current) {
@@ -43,7 +51,7 @@ export function useSectionContent({ proposalId, sectionId }: UseSectionContentPr
         const { error } = await supabase
           .from('section_content')
           .update({
-            content: contentToSave,
+            content: finalContent,
             last_edited_by: user.id,
             updated_at: new Date().toISOString(),
           })
@@ -57,7 +65,7 @@ export function useSectionContent({ proposalId, sectionId }: UseSectionContentPr
           .insert({
             proposal_id: proposalId,
             section_id: sectionId,
-            content: contentToSave,
+            content: finalContent,
             last_edited_by: user.id,
           })
           .select()
@@ -69,6 +77,12 @@ export function useSectionContent({ proposalId, sectionId }: UseSectionContentPr
 
       setLastSaved(new Date());
       pendingContentRef.current = null;
+      
+      // Update state if content was renumbered
+      if (finalContent !== contentToSave) {
+        setContentState(finalContent);
+      }
+      
       return true;
     } catch (error) {
       console.error('Error saving content:', error);
@@ -78,7 +92,7 @@ export function useSectionContent({ proposalId, sectionId }: UseSectionContentPr
       isSavingRef.current = false;
       setSaving(false);
     }
-  }, [proposalId, sectionId, user?.id]);
+  }, [proposalId, sectionId, sectionNumber, user?.id]);
 
   // Fetch content on mount
   useEffect(() => {
