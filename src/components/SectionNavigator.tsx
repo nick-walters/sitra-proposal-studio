@@ -14,15 +14,16 @@ interface SectionNavigatorProps {
   participantMembers?: { participantId: string; userId?: string }[];
 }
 
-// Format section number for display
+// Format section number for display in left navigation
 function formatSectionNumber(number: string, depth: number): string {
   // If already has "Part" prefix, return as-is
   if (number.startsWith('Part')) {
     return number;
   }
   // Remove dots between letter and first number (e.g., "B.1.1" -> "B1.1")
+  // Then add trailing period (e.g., "B1.1" -> "B1.1.")
   const formatted = number.replace(/^([AB])\./, '$1');
-  return formatted;
+  return formatted + '.';
 }
 
 // Replace "and" with "&" in titles
