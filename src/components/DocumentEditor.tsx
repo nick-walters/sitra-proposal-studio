@@ -82,29 +82,42 @@ export function DocumentEditor({
     }
   }, [references, content, setContent]);
 
+  // Helper to extract section number without "B" prefix (e.g., "1.1" from "B1.1" or just "1.1")
+  const getSectionNumberWithoutPrefix = useCallback((sectionNum: string) => {
+    // Remove any letter prefix (B, A, etc.) from the section number
+    return sectionNum.replace(/^[A-Za-z]+/, '');
+  }, []);
+
   // Helper to get the next figure letter for the current section
   const getNextFigureLetter = useCallback((sectionNumber: string) => {
-    // Count existing figures in content for this section
-    const figurePattern = new RegExp(`Figure ${sectionNumber.replace('.', '\\.')}\\.([a-z])`, 'g');
+    // Count existing figures in content for this section (without B prefix)
+    const cleanSectionNum = getSectionNumberWithoutPrefix(sectionNumber);
+    const figurePattern = new RegExp(`Figure ${cleanSectionNum.replace('.', '\\.')}\\.([a-z])`, 'g');
     const matches = content.match(figurePattern) || [];
     const nextLetterCode = 'a'.charCodeAt(0) + matches.length;
     return String.fromCharCode(nextLetterCode);
-  }, [content]);
+  }, [content, getSectionNumberWithoutPrefix]);
 
   const handleInsertImage = useCallback((imageUrl: string) => {
+    if (!imageUrl || !editor) return;
+    
     // Get the section number for figure numbering (e.g., "1.1" from section B1.1)
-    const sectionNum = section?.number || '1.1';
-    const figureLetter = getNextFigureLetter(sectionNum);
+    const sectionNum = getSectionNumberWithoutPrefix(section?.number || '1.1');
+    const figureLetter = getNextFigureLetter(section?.number || '1.1');
     const figureLabel = `Figure ${sectionNum}.${figureLetter}`;
     
-    const figureHtml = `
-      <div class="figure-container">
-        <img src="${imageUrl}" alt="Generated image" class="max-w-full h-auto" />
-        <p class="figure-caption"><span class="caption-label">${figureLabel}.</span> [Add caption here]</p>
-      </div>
-    `;
-    setContent(content + figureHtml);
-  }, [content, setContent, section, getNextFigureLetter]);
+    // Insert image using editor's setImage command, then add caption
+    editor.chain()
+      .focus()
+      .setImage({ src: imageUrl, alt: 'Generated image' })
+      .run();
+    
+    // Add caption after the image
+    editor.chain()
+      .focus()
+      .insertContent(`<p class="figure-caption"><em><strong>${figureLabel}.</strong> </em></p>`)
+      .run();
+  }, [editor, section, getNextFigureLetter, getSectionNumberWithoutPrefix]);
 
   const handleInsertFigure = useCallback((figure: { figureNumber: string; title: string }) => {
     const figureRef = `<span class="figure-reference text-primary cursor-pointer hover:underline">(see Figure ${figure.figureNumber})</span>`;

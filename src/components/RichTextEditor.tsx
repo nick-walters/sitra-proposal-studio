@@ -159,32 +159,38 @@ export function FormattingToolbar({
     editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
   }, [editor]);
 
+  // Helper to extract section number without "B" prefix
+  const getSectionNumberWithoutPrefix = useCallback((sectionNum: string) => {
+    return sectionNum.replace(/^[A-Za-z]+/, '');
+  }, []);
+
   // Helper to get the next table letter for the current section
   const getNextTableLetter = useCallback(() => {
     if (!content || !sectionNumber) return 'a';
-    const tablePattern = new RegExp(`Table ${sectionNumber.replace('.', '\\.')}\\.([a-z])`, 'g');
+    const cleanSectionNum = getSectionNumberWithoutPrefix(sectionNumber);
+    const tablePattern = new RegExp(`Table ${cleanSectionNum.replace('.', '\\.')}\\.([a-z])`, 'g');
     const matches = content.match(tablePattern) || [];
     const nextLetterCode = 'a'.charCodeAt(0) + matches.length;
     return String.fromCharCode(nextLetterCode);
-  }, [content, sectionNumber]);
+  }, [content, sectionNumber, getSectionNumberWithoutPrefix]);
 
   const insertTable = useCallback((rows: number, cols: number) => {
     if (!editor) return;
     
-    // Get the table label
-    const sectionNum = sectionNumber || '1.1';
+    // Get the table label (without B prefix)
+    const sectionNum = getSectionNumberWithoutPrefix(sectionNumber || '1.1');
     const tableLetter = getNextTableLetter();
     const tableLabel = `Table ${sectionNum}.${tableLetter}`;
     
-    // Insert caption paragraph first, then table
+    // Insert caption paragraph first (italic text, bold label), then table
     editor.chain()
       .focus()
-      .insertContent(`<p class="table-caption"><span class="caption-label">${tableLabel}.</span> [Add caption here]</p>`)
+      .insertContent(`<p class="table-caption"><em><strong>${tableLabel}.</strong> </em></p>`)
       .insertTable({ rows, cols, withHeaderRow: true })
       .run();
     
     setTablePopoverOpen(false);
-  }, [editor, sectionNumber, getNextTableLetter]);
+  }, [editor, sectionNumber, getNextTableLetter, getSectionNumberWithoutPrefix]);
 
   if (!editor) {
     return null;
