@@ -39,6 +39,45 @@
   word-wrap: break-word;
 }
 
+/* Figure and Table Caption Styles */
+.figure-caption,
+.table-caption {
+  font-style: italic !important;
+  font-family: "Times New Roman", Times, serif !important;
+  font-size: 11pt !important;
+  line-height: 1.2 !important;
+}
+
+.figure-caption {
+  margin-top: 0 !important;
+  margin-bottom: 3pt !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.table-caption {
+  margin-top: 3pt !important;
+  margin-bottom: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.figure-caption .caption-label,
+.table-caption .caption-label {
+  font-weight: bold !important;
+  font-style: italic !important;
+}
+
+/* Figure container styling */
+.figure-container {
+  margin: 1rem 0 !important;
+}
+
+.figure-container img {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
 /* Horizon Europe Proposal Platform Design System */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Source+Serif+4:wght@400;500;600;700&display=swap');
