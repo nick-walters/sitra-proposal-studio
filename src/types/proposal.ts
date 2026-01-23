@@ -16,7 +16,6 @@ export type ParticipantType =
   | 'third_party_against_payment'
   | 'third_party_free_of_charge'
   | 'subcontractor'
-  | 'international_partner'
   | 'associated_country_partner';
 
 export const PARTICIPANT_TYPE_LABELS: Record<ParticipantType, string> = {
@@ -26,7 +25,6 @@ export const PARTICIPANT_TYPE_LABELS: Record<ParticipantType, string> = {
   third_party_against_payment: 'Third Party (Against Payment)',
   third_party_free_of_charge: 'Third Party (Free of Charge)',
   subcontractor: 'Subcontractor',
-  international_partner: 'International Partner',
   associated_country_partner: 'Associated Country Partner',
 };
 

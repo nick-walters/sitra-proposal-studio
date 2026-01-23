@@ -181,7 +181,6 @@ const PARTNER_TYPE_COLORS: Record<ParticipantType, string> = {
   third_party_against_payment: 'fill-amber-500',
   third_party_free_of_charge: 'fill-orange-500',
   subcontractor: 'fill-purple-500',
-  international_partner: 'fill-cyan-500',
   associated_country_partner: 'fill-rose-500',
 };
 
@@ -192,7 +191,6 @@ const PARTNER_TYPE_BG_COLORS: Record<ParticipantType, string> = {
   third_party_against_payment: 'bg-amber-500',
   third_party_free_of_charge: 'bg-orange-500',
   subcontractor: 'bg-purple-500',
-  international_partner: 'bg-cyan-500',
   associated_country_partner: 'bg-rose-500',
 };
 
