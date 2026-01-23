@@ -304,6 +304,8 @@ export function ProposalEditor() {
         return (
           <ParticipantListView
             participants={visibleParticipants}
+            proposalId={id || ''}
+            proposalAcronym={proposal?.acronym || ''}
             onSelectParticipant={(p) => setSelectedParticipantId(p.id)}
             onAddParticipant={async (participantData) => {
               // Create new participant with proper data from dialog
@@ -322,7 +324,11 @@ export function ProposalEditor() {
               });
             }}
             onReorderParticipants={reorderParticipants}
+            onMemberAdded={(member) => {
+              addParticipantMember(member);
+            }}
             canAddParticipant={isAdmin && canEdit}
+            canInvite={isAdmin && canEdit}
             canReorder={isAdmin && canEdit}
           />
         );

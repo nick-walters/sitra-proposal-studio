@@ -13,23 +13,25 @@ import { toast } from 'sonner';
 // Organisation category types for Horizon Europe
 export type OrganisationCategory = 
   | 'RES' 
-  | 'UNI' 
-  | 'IND' 
+  | 'HES' 
+  | 'PRC' 
   | 'SME' 
-  | 'NGO' 
-  | 'CSO' 
   | 'PUB' 
+  | 'NGO' 
+  | 'AGO' 
+  | 'CSO' 
   | 'INT' 
   | 'OTH';
 
 export const ORGANISATION_CATEGORY_LABELS: Record<OrganisationCategory, string> = {
   RES: 'Research organisation',
-  UNI: 'University',
-  IND: 'Large enterprise',
+  HES: 'Higher or secondary education',
+  PRC: 'Private for-profit',
   SME: 'Small/medium enterprise',
+  PUB: 'Public body',
   NGO: 'Non-governmental organisation',
+  AGO: 'Agency or regulatory body',
   CSO: 'Civil society organisation',
-  PUB: 'Public organisation',
   INT: 'International organisation',
   OTH: 'Other',
 };
