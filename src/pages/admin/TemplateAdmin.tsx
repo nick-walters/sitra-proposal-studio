@@ -1043,8 +1043,8 @@ function SectionsPanel({
         )}
       </CardContent>
 
-      {/* Section Dialog */}
-      <Dialog open={sectionDialogOpen} onOpenChange={setSectionDialogOpen}>
+      {/* Section Dialog - keyed to force re-render for different sections */}
+      <Dialog key={editingSection?.id || 'new-section'} open={sectionDialogOpen} onOpenChange={setSectionDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{editingSection ? 'Edit' : 'Create'} Section</DialogTitle>
@@ -1319,10 +1319,19 @@ function SectionAccordionItem({
             </div>
           )}
 
-          {/* Guidelines */}
+          {/* Guidelines - sorted by type priority then order_index */}
           <div className="space-y-2">
             <h4 className="text-sm font-medium">Guidelines ({section.guidelines?.length || 0})</h4>
-            {section.guidelines?.map(g => {
+            {/* Sort guidelines: evaluation first, then official, then sitra_tip */}
+            {[...(section.guidelines || [])]
+              .sort((a, b) => {
+                const typePriority: Record<string, number> = { 'evaluation': 0, 'official': 1, 'sitra_tip': 2 };
+                const aPriority = typePriority[a.guideline_type] ?? 99;
+                const bPriority = typePriority[b.guideline_type] ?? 99;
+                if (aPriority !== bPriority) return aPriority - bPriority;
+                return a.order_index - b.order_index;
+              })
+              .map(g => {
               const style = getGuidelineStyle(g.guideline_type);
               const IconComponent = style.icon;
               return (
