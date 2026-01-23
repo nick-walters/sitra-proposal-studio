@@ -65,16 +65,64 @@ export function renumberTableCaptions(content: string, sectionNumber: string): s
 }
 
 /**
- * Renumbers all captions (figures and tables) in the content
+ * Renumbers all citation superscripts based on their order of appearance
+ * Citations follow the format: <sup>[N]</sup>
+ * @param content HTML content string
+ * @returns Object containing updated content and a mapping of old to new numbers
+ */
+export function renumberCitations(content: string): { content: string; mapping: Map<number, number> } {
+  // Find all citations and their positions
+  const citationPattern = /<sup>\[(\d+)\]<\/sup>/gi;
+  const citations: { fullMatch: string; number: number; index: number }[] = [];
+  
+  let match;
+  while ((match = citationPattern.exec(content)) !== null) {
+    citations.push({
+      fullMatch: match[0],
+      number: parseInt(match[1], 10),
+      index: match.index
+    });
+  }
+  
+  if (citations.length === 0) {
+    return { content, mapping: new Map() };
+  }
+  
+  // Create mapping from old numbers to new sequential numbers based on position
+  const mapping = new Map<number, number>();
+  let nextNumber = 1;
+  
+  // Sort by position (already in order from regex exec)
+  for (const citation of citations) {
+    if (!mapping.has(citation.number)) {
+      mapping.set(citation.number, nextNumber);
+      nextNumber++;
+    }
+  }
+  
+  // Replace all citations with their new numbers
+  const updatedContent = content.replace(citationPattern, (match, oldNum) => {
+    const oldNumber = parseInt(oldNum, 10);
+    const newNumber = mapping.get(oldNumber) ?? oldNumber;
+    return `<sup>[${newNumber}]</sup>`;
+  });
+  
+  return { content: updatedContent, mapping };
+}
+
+/**
+ * Renumbers all captions (figures and tables) and citations in the content
  * Also updates cross-references to match new numbering
  * @param content HTML content string
  * @param sectionNumber The current section number (e.g., "1.1" or "B1.1")
- * @returns Updated content with renumbered captions
+ * @returns Updated content with renumbered captions and citations
  */
 export function renumberAllCaptions(content: string, sectionNumber: string): string {
   let updated = renumberFigureCaptions(content, sectionNumber);
   updated = renumberTableCaptions(updated, sectionNumber);
-  return updated;
+  // Also renumber citations
+  const citationResult = renumberCitations(updated);
+  return citationResult.content;
 }
 
 /**
