@@ -208,7 +208,7 @@ export function DocumentEditor({
         </div>
 
         {/* Formatting Toolbar - immediately below Features toolbar */}
-        <FormattingToolbar editor={editor} onInsertImage={() => setIsImageGenOpen(true)} />
+        <FormattingToolbar editor={editor} />
       </div>
 
       <div className="flex-1 overflow-auto p-6 bg-muted/30">
