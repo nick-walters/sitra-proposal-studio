@@ -10,7 +10,7 @@
 
 .he-table th,
 .he-table td {
-  border: 0.25pt solid black;
+  border: 1px solid black;
   padding: 4px 6px;
   vertical-align: top;
   white-space: nowrap;
@@ -328,7 +328,7 @@
   .ProseMirror table th,
   .ProseMirror table td {
     @apply relative;
-    border: 0.5pt solid black;
+    border: 1px solid black;
     padding: 4px 6px;
     min-width: 30px;
     vertical-align: top;
