@@ -38,8 +38,9 @@ const LEGAL_ENTITY_TYPES = [
   'Higher or Secondary Education Establishment',
   'Research Organisation',
   'Private for-profit entity',
-  'Public body (excluding Research and Education)',
-  'Non-profit (excluding Research and Education)',
+  'Public body',
+  'Non-profit',
+  'Agency or regulatory body',
   'International organisation',
   'Other',
 ];
@@ -299,36 +300,6 @@ export function ParticipantDetailForm({
                 onChange={(e) => handleFieldUpdate('address', e.target.value)}
                 placeholder="Street, city, postal code"
                 className="min-h-[80px]"
-                disabled={!canEdit}
-              />
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id={`sme-${participant.id}`}
-                checked={participant.isSme}
-                onCheckedChange={(checked) => handleFieldUpdate('isSme', !!checked)}
-                disabled={!canEdit}
-              />
-              <Label htmlFor={`sme-${participant.id}`}>
-                This is an SME (Small and Medium-sized Enterprise)
-              </Label>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Contact Information */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Contact information</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <Label>Contact email</Label>
-              <Input
-                type="email"
-                value={participant.contactEmail || ''}
-                onChange={(e) => handleFieldUpdate('contactEmail', e.target.value)}
-                placeholder="organisation@example.com"
                 disabled={!canEdit}
               />
             </div>

@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Participant, PARTICIPANT_TYPE_LABELS, ParticipantType } from '@/types/proposal';
-import { Plus, Building2, ChevronRight, GripVertical } from 'lucide-react';
+import { Participant, ParticipantMember, PARTICIPANT_TYPE_LABELS, ParticipantType } from '@/types/proposal';
+import { Plus, Building2, ChevronRight, GripVertical, UserPlus } from 'lucide-react';
 import { InlineGuideline } from './GuidelineBox';
 import { Badge } from './ui/badge';
 import { AddParticipantDialog } from './AddParticipantDialog';
+import { InviteToProposalDialog } from './InviteToProposalDialog';
 import { OrganisationCategory } from './ParticipantTable';
 import {
   DndContext,
@@ -27,6 +28,8 @@ import { CSS } from '@dnd-kit/utilities';
 
 interface ParticipantListViewProps {
   participants: Participant[];
+  proposalId: string;
+  proposalAcronym: string;
   onSelectParticipant: (participant: Participant) => void;
   onAddParticipant: (participant: {
     organisationName: string;
@@ -40,7 +43,9 @@ interface ParticipantListViewProps {
     englishName?: string;
   }) => Promise<void>;
   onReorderParticipants?: (participants: Participant[]) => Promise<void>;
+  onMemberAdded: (member: Omit<ParticipantMember, 'id'>) => void;
   canAddParticipant: boolean;
+  canInvite: boolean;
   canReorder?: boolean;
 }
 
@@ -138,13 +143,18 @@ function SortableParticipantCard({ participant, onSelect, canReorder }: Sortable
 
 export function ParticipantListView({
   participants,
+  proposalId,
+  proposalAcronym,
   onSelectParticipant,
   onAddParticipant,
   onReorderParticipants,
+  onMemberAdded,
   canAddParticipant,
+  canInvite,
   canReorder = false,
 }: ParticipantListViewProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -206,12 +216,20 @@ export function ParticipantListView({
               {' '}Coordinator is always Participant #1.
             </InlineGuideline>
           </div>
-          {canAddParticipant && (
-            <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
-              <Plus className="w-4 h-4" />
-              Add Participant
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {canInvite && (
+              <Button variant="outline" onClick={() => setIsInviteDialogOpen(true)} className="gap-2">
+                <UserPlus className="w-4 h-4" />
+                Invite
+              </Button>
+            )}
+            {canAddParticipant && (
+              <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
+                <Plus className="w-4 h-4" />
+                Add Participant
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Participants List */}
@@ -302,6 +320,16 @@ export function ParticipantListView({
         onOpenChange={setIsAddDialogOpen}
         onAddParticipant={handleAddParticipant}
         participantCount={participants.length}
+      />
+
+      {/* Invite to Proposal Dialog */}
+      <InviteToProposalDialog
+        open={isInviteDialogOpen}
+        onOpenChange={setIsInviteDialogOpen}
+        proposalId={proposalId}
+        proposalAcronym={proposalAcronym}
+        participants={participants}
+        onMemberAdded={onMemberAdded}
       />
     </div>
   );
