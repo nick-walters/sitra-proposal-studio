@@ -1,7 +1,7 @@
 import { Section } from "@/types/proposal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, BookOpen, Wand2, BarChart3, Route, History, FileText, Info } from "lucide-react";
+import { Sparkles, BookOpen, Wand2, Route, History, Info, Upload } from "lucide-react";
 import { useState, useCallback } from "react";
 import { RichTextEditor } from "./RichTextEditor";
 import { GrammarChecker } from "./GrammarChecker";
@@ -11,7 +11,6 @@ import { InsertFigureDialog } from "./InsertFigureDialog";
 import { ImpactPathwayGenerator } from "./ImpactPathwayGenerator";
 import { SectionVersionHistoryDialog } from "./SectionVersionHistoryDialog";
 import { GuidelinesDialog } from "./GuidelinesDialog";
-import { WordCountBadge } from "./WordCountBadge";
 import { SaveIndicator } from "./SaveIndicator";
 import { useSectionContent } from "@/hooks/useSectionContent";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -137,7 +136,7 @@ export function DocumentEditor({
               className="gap-2"
               onClick={() => setIsGuidelinesOpen(true)}
             >
-              <FileText className="w-4 h-4" />
+              <Info className="w-4 h-4" />
               Guidelines
             </Button>
             <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsGrammarOpen(true)}>
@@ -154,6 +153,19 @@ export function DocumentEditor({
               <BookOpen className="w-4 h-4" />
               Add Citation
             </Button>
+            {/* Only show Upload Figure for Part B sections */}
+            {section && !section.isPartA && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-2" 
+                onClick={() => setIsFigureDialogOpen(true)}
+                disabled={readOnly}
+              >
+                <Upload className="w-4 h-4" />
+                Upload Figure
+              </Button>
+            )}
             <Button 
               variant="outline" 
               size="sm" 
@@ -164,19 +176,6 @@ export function DocumentEditor({
               <Wand2 className="w-4 h-4" />
               AI Image
             </Button>
-            {/* Only show Insert Figure for Part B sections */}
-            {section && !section.isPartA && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="gap-2" 
-                onClick={() => setIsFigureDialogOpen(true)}
-                disabled={readOnly}
-              >
-                <BarChart3 className="w-4 h-4" />
-                Insert Figure
-              </Button>
-            )}
             {/* Impact Pathway Generator for B2.1 section */}
             {isImpactSection && (
               <Button 
@@ -193,15 +192,14 @@ export function DocumentEditor({
           </div>
           <div className="flex items-center gap-2">
             <Button 
-              variant="ghost" 
+              variant="outline" 
               size="sm" 
-              className="gap-2 text-muted-foreground" 
+              className="gap-2" 
               onClick={() => setIsVersionHistoryOpen(true)}
             >
               <History className="w-4 h-4" />
-              <span className="hidden sm:inline">History</span>
+              Version History
             </Button>
-            <WordCountBadge content={content} wordLimit={section.wordLimit} />
             {!readOnly && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
           </div>
         </div>

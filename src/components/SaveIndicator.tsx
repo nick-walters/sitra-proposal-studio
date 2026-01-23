@@ -28,7 +28,7 @@ export function SaveIndicator({ saving, lastSaved, className }: SaveIndicatorPro
       ) : (
         <>
           <Cloud className="w-3 h-3" />
-          <span>Ready</span>
+          <span>Autosaved</span>
         </>
       )}
     </div>
