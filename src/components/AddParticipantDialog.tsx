@@ -60,6 +60,7 @@ export function AddParticipantDialog({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [selectedResult, setSelectedResult] = useState<SearchResult | null>(null);
+  const [searchEnglishName, setSearchEnglishName] = useState('');
   const [searchError, setSearchError] = useState<string | null>(null);
   
   // Manual entry form state
@@ -137,7 +138,7 @@ export function AddParticipantDialog({
       setManualForm({
         organisationName: selectedResult.legalName || '',
         organisationShortName: selectedResult.shortName || '',
-        englishName: '',
+        englishName: searchEnglishName,
         picNumber: selectedResult.picNumber || '',
         organisationType: 'beneficiary',
         country: selectedResult.country || '',
@@ -157,6 +158,7 @@ export function AddParticipantDialog({
         legalEntityType: selectedResult.legalEntityType,
         isSme: selectedResult.isSme,
         organisationCategory: selectedResult.organisationCategory,
+        englishName: searchEnglishName.trim() || undefined,
       });
       handleClose();
       toast.success('Participant added successfully');
@@ -225,6 +227,7 @@ export function AddParticipantDialog({
     setSearchQuery('');
     setSearchResults([]);
     setSelectedResult(null);
+    setSearchEnglishName('');
     setSearchError(null);
     setFormErrors({});
     setManualForm({
@@ -385,6 +388,23 @@ export function AddParticipantDialog({
                       </span>
                     </div>
                   )}
+                </div>
+                
+                {/* English name input - optional */}
+                <div className="pt-2 border-t">
+                  <Label htmlFor="search-english-name" className="text-sm">
+                    English Name (if different from legal name)
+                  </Label>
+                  <Input
+                    id="search-english-name"
+                    value={searchEnglishName}
+                    onChange={(e) => setSearchEnglishName(e.target.value)}
+                    placeholder="e.g. The Finnish Innovation Fund"
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Leave blank if the legal name is already in English
+                  </p>
                 </div>
               </div>
             )}
