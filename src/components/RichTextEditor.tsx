@@ -31,6 +31,8 @@ import {
   Trash2,
   Crop,
   ImageIcon,
+  Lock,
+  Unlock,
 } from "lucide-react";
 import {
   Tooltip,
@@ -151,6 +153,7 @@ export function FormattingToolbar({
   const [imageWidth, setImageWidth] = useState('');
   const [imageHeight, setImageHeight] = useState('');
   const [aspectRatio, setAspectRatio] = useState(1);
+  const [aspectRatioLocked, setAspectRatioLocked] = useState(true);
 
   // Check if an image is selected and get its attributes
   const isImageSelected = editor?.isActive('image');
@@ -176,21 +179,29 @@ export function FormattingToolbar({
     setImageWidth(value);
     const numValue = parseInt(value);
     if (!isNaN(numValue) && numValue > 0 && editor) {
-      const newHeight = Math.round(numValue / aspectRatio);
-      setImageHeight(newHeight.toString());
-      editor.commands.updateAttributes('image', { width: numValue, height: newHeight });
+      if (aspectRatioLocked) {
+        const newHeight = Math.round(numValue / aspectRatio);
+        setImageHeight(newHeight.toString());
+        editor.commands.updateAttributes('image', { width: numValue, height: newHeight });
+      } else {
+        editor.commands.updateAttributes('image', { width: numValue });
+      }
     }
-  }, [editor, aspectRatio]);
+  }, [editor, aspectRatio, aspectRatioLocked]);
 
   const handleHeightChange = useCallback((value: string) => {
     setImageHeight(value);
     const numValue = parseInt(value);
     if (!isNaN(numValue) && numValue > 0 && editor) {
-      const newWidth = Math.round(numValue * aspectRatio);
-      setImageWidth(newWidth.toString());
-      editor.commands.updateAttributes('image', { width: newWidth, height: numValue });
+      if (aspectRatioLocked) {
+        const newWidth = Math.round(numValue * aspectRatio);
+        setImageWidth(newWidth.toString());
+        editor.commands.updateAttributes('image', { width: newWidth, height: numValue });
+      } else {
+        editor.commands.updateAttributes('image', { height: numValue });
+      }
     }
-  }, [editor, aspectRatio]);
+  }, [editor, aspectRatio, aspectRatioLocked]);
 
   const handleCropClick = useCallback(() => {
     if (selectedImageAttrs?.src) {
@@ -492,7 +503,12 @@ export function FormattingToolbar({
                 placeholder="W"
                 title="Width (px)"
               />
-              <span className="text-xs text-muted-foreground">×</span>
+              <ToolbarButton
+                icon={aspectRatioLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+                tooltip={aspectRatioLocked ? "Aspect ratio locked" : "Aspect ratio unlocked"}
+                onClick={() => setAspectRatioLocked(!aspectRatioLocked)}
+                active={aspectRatioLocked}
+              />
               <Input
                 type="number"
                 value={imageHeight}
