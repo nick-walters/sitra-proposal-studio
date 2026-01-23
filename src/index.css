@@ -1,39 +1,43 @@
 @tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* Horizon Europe Table Styles - Auto-fit columns */
+/* These must come AFTER Tailwind directives to ensure they take precedence */
 .he-table {
-  @apply w-auto border-collapse my-4;
+  width: auto !important;
+  border-collapse: collapse !important;
+  margin: 1rem 0;
   font-family: Arial, sans-serif;
   font-size: 11pt;
   table-layout: auto;
 }
 
 .he-table th,
-.he-table td {
-  border: 1px solid black;
-  padding: 4px 6px;
+.he-table td,
+.he-table-header,
+.he-table-cell {
+  border: 1px solid black !important;
+  padding: 4px 6px !important;
   vertical-align: top;
-  white-space: nowrap;
   line-height: 1;
-}
-
-/* Allow text wrapping only when needed */
-.he-table td {
-  white-space: normal;
-  word-wrap: break-word;
 }
 
 .he-table th,
 .he-table-header {
-  @apply bg-black text-white font-bold;
-  padding: 4px 6px;
+  background-color: black !important;
+  color: white !important;
+  font-weight: bold !important;
+  white-space: nowrap;
 }
 
+.he-table td,
 .he-table-cell {
-  @apply bg-white text-black;
+  background-color: white !important;
+  color: black !important;
+  white-space: normal;
+  word-wrap: break-word;
 }
-@tailwind components;
-@tailwind utilities;
 
 /* Horizon Europe Proposal Platform Design System */
 
@@ -316,60 +320,71 @@
     @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl;
   }
 
-  /* TipTap table styles - auto-fit columns */
-  .ProseMirror table {
-    @apply border-collapse my-4;
-    font-family: Arial, sans-serif;
-    font-size: 11pt;
-    table-layout: auto;
-    width: auto;
-  }
+}
 
-  .ProseMirror table th,
-  .ProseMirror table td {
-    @apply relative;
-    border: 1px solid black;
-    padding: 4px 6px;
-    min-width: 30px;
-    vertical-align: top;
-    white-space: nowrap;
-    line-height: 1;
-  }
+/* TipTap/ProseMirror table styles - OUTSIDE @layer for higher specificity */
+.ProseMirror table {
+  border-collapse: collapse !important;
+  margin: 1rem 0;
+  font-family: Arial, sans-serif;
+  font-size: 11pt;
+  table-layout: auto;
+  width: auto;
+}
 
-  .ProseMirror table td {
-    white-space: normal;
-    word-wrap: break-word;
-  }
+.ProseMirror table th,
+.ProseMirror table td {
+  position: relative;
+  border: 1px solid black !important;
+  padding: 4px 6px !important;
+  min-width: 30px;
+  vertical-align: top;
+  line-height: 1;
+}
 
-  .ProseMirror table th {
-    @apply bg-black text-white font-bold;
-  }
+.ProseMirror table th {
+  background-color: black !important;
+  color: white !important;
+  font-weight: bold !important;
+  white-space: nowrap;
+}
 
-  .ProseMirror table td {
-    @apply text-black bg-white;
-  }
+.ProseMirror table td {
+  background-color: white !important;
+  color: black !important;
+  white-space: normal;
+  word-wrap: break-word;
+}
 
-  .ProseMirror table th p,
-  .ProseMirror table td p {
-    margin: 0;
-    padding: 0;
-    line-height: 1;
-  }
+.ProseMirror table th p,
+.ProseMirror table td p {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1;
+}
 
-  /* Column resize handle */
-  .ProseMirror .column-resize-handle {
-    @apply absolute top-0 right-0 w-1 h-full bg-primary/50 cursor-col-resize;
-  }
+/* Column resize handle */
+.ProseMirror .column-resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
+  height: 100%;
+  background-color: hsl(var(--primary) / 0.5);
+  cursor: col-resize;
+}
 
-  /* Selected cell styling */
-  .ProseMirror .selectedCell {
-    @apply bg-primary/10;
-  }
+/* Selected cell styling */
+.ProseMirror .selectedCell {
+  background-color: hsl(var(--primary) / 0.1) !important;
+}
 
-  .ProseMirror .selectedCell::after {
-    content: "";
-    @apply absolute inset-0 pointer-events-none border-2 border-primary;
-  }
+.ProseMirror .selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border: 2px solid hsl(var(--primary));
 }
 
 @layer utilities {
