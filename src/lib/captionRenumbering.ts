@@ -111,6 +111,52 @@ export function renumberCitations(content: string): { content: string; mapping: 
 }
 
 /**
+ * Renumbers footnotes based on a citation mapping
+ * @param footnotes Array of footnotes with number and citation
+ * @param mapping Map from old citation numbers to new numbers
+ * @returns Renumbered and reordered footnotes array
+ */
+export function renumberFootnotes(
+  footnotes: Array<{ number: number; citation: string }>,
+  mapping: Map<number, number>
+): Array<{ number: number; citation: string }> {
+  if (footnotes.length === 0 || mapping.size === 0) {
+    return footnotes;
+  }
+
+  // Apply mapping to each footnote
+  const renumbered = footnotes.map(fn => ({
+    number: mapping.get(fn.number) ?? fn.number,
+    citation: fn.citation,
+  }));
+
+  // Sort by new number
+  renumbered.sort((a, b) => a.number - b.number);
+
+  return renumbered;
+}
+
+/**
+ * Renumbers all captions (figures and tables) and citations in the content
+ * Also updates cross-references to match new numbering
+ * @param content HTML content string
+ * @param sectionNumber The current section number (e.g., "1.1" or "B1.1")
+ * @returns Object with updated content and citation mapping for footnote sync
+ */
+export function renumberAllCaptionsWithMapping(
+  content: string, 
+  sectionNumber: string
+): { content: string; citationMapping: Map<number, number> } {
+  let updated = renumberFigureCaptions(content, sectionNumber);
+  updated = renumberTableCaptions(updated, sectionNumber);
+  const citationResult = renumberCitations(updated);
+  return { 
+    content: citationResult.content, 
+    citationMapping: citationResult.mapping 
+  };
+}
+
+/**
  * Renumbers all captions (figures and tables) and citations in the content
  * Also updates cross-references to match new numbering
  * @param content HTML content string
@@ -118,11 +164,8 @@ export function renumberCitations(content: string): { content: string; mapping: 
  * @returns Updated content with renumbered captions and citations
  */
 export function renumberAllCaptions(content: string, sectionNumber: string): string {
-  let updated = renumberFigureCaptions(content, sectionNumber);
-  updated = renumberTableCaptions(updated, sectionNumber);
-  // Also renumber citations
-  const citationResult = renumberCitations(updated);
-  return citationResult.content;
+  const result = renumberAllCaptionsWithMapping(content, sectionNumber);
+  return result.content;
 }
 
 /**
