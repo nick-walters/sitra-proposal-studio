@@ -445,6 +445,7 @@ export function ProposalEditor() {
         section={activeSection}
         proposalId={id || ''}
         proposalAcronym={proposal?.acronym || ''}
+        proposalTitle={proposal?.title}
         readOnly={!canEdit}
         topicId={proposal?.topicId}
         workProgramme={proposal?.workProgramme}

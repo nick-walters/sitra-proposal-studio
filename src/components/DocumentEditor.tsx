@@ -30,6 +30,7 @@ interface DocumentEditorProps {
   section: Section | null;
   proposalId: string;
   proposalAcronym: string;
+  proposalTitle?: string;
   readOnly?: boolean;
   topicId?: string;
   workProgramme?: string;
@@ -40,6 +41,7 @@ export function DocumentEditor({
   section, 
   proposalId, 
   proposalAcronym, 
+  proposalTitle,
   readOnly = false,
   topicId,
   workProgramme,
@@ -263,6 +265,12 @@ export function DocumentEditor({
 
           {/* Document Page with Rich Text Editor */}
           <div className="document-page animate-fade-in">
+            {/* Page Header - inside margin at top */}
+            <div className="document-page-header">
+              <span>{topicId || ''}</span>
+              <span>{proposalTitle || proposalAcronym}</span>
+            </div>
+
             <h1 className="document-h1 text-foreground mb-6">{section.number} {section.title}</h1>
             
             {loading ? (
@@ -295,8 +303,8 @@ export function DocumentEditor({
               </div>
             )}
 
-            {/* Page Footer */}
-            <div className="mt-auto pt-8 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
+            {/* Page Footer - inside margin at bottom */}
+            <div className="document-page-footer">
               <span>{proposalAcronym}</span>
               <span>Section {section.number}: {section.title}</span>
               <span>Page 1 of 1</span>
