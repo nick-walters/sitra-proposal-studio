@@ -138,7 +138,7 @@ export function AddParticipantDialog({
 
     // Validate required fields from search result
     const missingFields: string[] = [];
-    if (!selectedResult.picNumber?.trim()) missingFields.push('PIC number');
+    if (!selectedResult.picNumber?.trim()) missingFields.push('PIC');
     if (!selectedResult.legalName?.trim()) missingFields.push('Organisation name');
     if (!selectedResult.country?.trim()) missingFields.push('Country');
     
@@ -189,9 +189,9 @@ export function AddParticipantDialog({
     }
     
     if (!manualForm.picNumber.trim()) {
-      errors.picNumber = 'PIC number is required';
+      errors.picNumber = 'PIC is required';
     } else if (!/^\d{9}$/.test(manualForm.picNumber.trim())) {
-      errors.picNumber = 'PIC must be a 9-digit number';
+      errors.picNumber = 'PIC must be a 9-digit code';
     }
     
     if (!manualForm.country) {
@@ -277,7 +277,7 @@ export function AddParticipantDialog({
             <Alert>
               <Info className="w-4 h-4" />
               <AlertDescription>
-                Search by PIC number (e.g. 906912365) or organisation name (e.g. Sitra, University of Helsinki).
+                Search by PIC (e.g. 906912365) or organisation name (e.g. Sitra, University of Helsinki).
               </AlertDescription>
             </Alert>
 
@@ -430,10 +430,10 @@ export function AddParticipantDialog({
             </Alert>
             
             <div className="grid gap-4">
-              {/* PIC Number - Required */}
+              {/* PIC and Short Name */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="pic-number">PIC Number *</Label>
+                  <Label htmlFor="pic-number">PIC *</Label>
                   <Input
                     id="pic-number"
                     value={manualForm.picNumber}
@@ -464,14 +464,15 @@ export function AddParticipantDialog({
                 </div>
               </div>
 
-              {/* Legal Name - Required */}
+              {/* Legal Name - Required - Name Case */}
               <div>
                 <Label htmlFor="org-name">Legal Name *</Label>
                 <Input
                   id="org-name"
                   value={manualForm.organisationName}
                   onChange={(e) => {
-                    const value = e.target.value;
+                    // Apply name case
+                    const value = e.target.value.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
                     setManualForm(prev => ({ ...prev, organisationName: value }));
                     if (formErrors.organisationName) setFormErrors(prev => ({ ...prev, organisationName: '' }));
                   }}
@@ -486,14 +487,15 @@ export function AddParticipantDialog({
                 </p>
               </div>
               
-              {/* English Name - Optional */}
+              {/* English Name - Optional - Name Case */}
               <div>
                 <Label htmlFor="english-name">English Name (if different from legal name)</Label>
-              <Input
+                <Input
                   id="english-name"
                   value={manualForm.englishName}
                   onChange={(e) => {
-                    const value = e.target.value;
+                    // Apply name case
+                    const value = e.target.value.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
                     setManualForm(prev => ({ ...prev, englishName: value }));
                   }}
                   placeholder="e.g. The Finnish Innovation Fund"
@@ -623,7 +625,7 @@ export function AddParticipantDialog({
                 </div>
               </div>
 
-              {/* Participant Type */}
+              {/* Participant Type - exclude international_partner */}
               <div>
                 <Label>Participant Type</Label>
                 <Select
@@ -634,9 +636,11 @@ export function AddParticipantDialog({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(PARTICIPANT_TYPE_LABELS).map(([value, label]) => (
-                      <SelectItem key={value} value={value}>{label}</SelectItem>
-                    ))}
+                    {Object.entries(PARTICIPANT_TYPE_LABELS)
+                      .filter(([value]) => value !== 'international_partner')
+                      .map(([value, label]) => (
+                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>

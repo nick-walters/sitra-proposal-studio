@@ -14,12 +14,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Participant, ParticipantMember, ParticipantType, PARTICIPANT_TYPE_LABELS } from '@/types/proposal';
-import { InlineGuideline } from './GuidelineBox';
 import { SaveIndicator } from './SaveIndicator';
 import { CountrySelect } from './CountrySelect';
-import { Search, User, Plus, Trash2, Loader2, Building2, CheckCircle2 } from 'lucide-react';
+import { User, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 
 interface ParticipantDetailFormProps {
   participant: Participant;
@@ -56,8 +54,6 @@ export function ParticipantDetailForm({
   canEdit,
   canDelete,
 }: ParticipantDetailFormProps) {
-  const [picLookupLoading, setPicLookupLoading] = useState(false);
-  const [picVerified, setPicVerified] = useState(false);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [newMember, setNewMember] = useState({
@@ -71,45 +67,16 @@ export function ParticipantDetailForm({
 
   const members = participantMembers.filter(m => m.participantId === participant.id);
 
-  const handlePicLookup = async () => {
-    if (!participant.picNumber) {
-      toast.error('Please enter a PIC number');
-      return;
-    }
-
-    setPicLookupLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('lookup-pic', {
-        body: { picNumber: participant.picNumber },
-      });
-
-      if (error) throw error;
-
-      if (data.success && data.organisation) {
-        const org = data.organisation;
-        onUpdateParticipant(participant.id, {
-          organisationName: org.legalName,
-          organisationShortName: org.shortName || '',
-          country: org.countryCode,
-          legalEntityType: org.legalEntityType || '',
-          isSme: org.isSme || false,
-          address: org.city ? `${org.city}, ${org.country}` : org.country,
-        });
-        setPicVerified(true);
-        toast.success(`Found: ${org.legalName}`);
-      } else {
-        toast.error(data.message || 'PIC not found');
-        setPicVerified(false);
-      }
-    } catch (error) {
-      console.error('PIC lookup error:', error);
-      toast.error('Failed to look up PIC number');
-    } finally {
-      setPicLookupLoading(false);
-    }
+  // Helper to convert to Name Case
+  const toNameCase = (str: string) => {
+    return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
   };
 
   const handleFieldUpdate = (field: string, value: any) => {
+    // Apply name case to legal name and English name
+    if (field === 'organisationName' || field === 'englishName') {
+      value = toNameCase(value);
+    }
     setSaving(true);
     onUpdateParticipant(participant.id, { [field]: value });
     setTimeout(() => {
@@ -164,47 +131,8 @@ export function ParticipantDetailForm({
               </p>
             </div>
           </div>
-          {canEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
+        {canEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
         </div>
-
-        {/* PIC Lookup */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">PIC Lookup</CardTitle>
-            <InlineGuideline>
-              Enter the 9-digit Participant Identification Code (PIC) from the EC Participant Register to auto-fill organisation details.
-            </InlineGuideline>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-3">
-              <div className="flex-1 relative">
-                <Input
-                  value={participant.picNumber || ''}
-                  onChange={(e) => handleFieldUpdate('picNumber', e.target.value)}
-                  placeholder="Enter 9-digit PIC number"
-                  disabled={!canEdit}
-                  className={picVerified ? 'pr-10 border-green-500' : ''}
-                />
-                {picVerified && (
-                  <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" />
-                )}
-              </div>
-              <Button
-                onClick={handlePicLookup}
-                disabled={!canEdit || !participant.picNumber || picLookupLoading}
-                variant="outline"
-                className="gap-2"
-              >
-                {picLookupLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Search className="w-4 h-4" />
-                )}
-                Lookup
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Organisation Details */}
         <Card>
@@ -220,6 +148,7 @@ export function ParticipantDetailForm({
                   onChange={(e) => handleFieldUpdate('organisationName', e.target.value)}
                   placeholder="Full legal name of the organisation"
                   disabled={!canEdit}
+                  required
                 />
               </div>
               <div className="space-y-2 sm:col-span-2">
@@ -235,16 +164,17 @@ export function ParticipantDetailForm({
                 </p>
               </div>
               <div className="space-y-2">
-                <Label>Short name</Label>
+                <Label>Short name *</Label>
                 <Input
                   value={participant.organisationShortName || ''}
                   onChange={(e) => handleFieldUpdate('organisationShortName', e.target.value)}
                   placeholder="e.g. UH, CNRS"
                   disabled={!canEdit}
+                  required
                 />
               </div>
               <div className="space-y-2">
-                <Label>Participant type</Label>
+                <Label>Participant type *</Label>
                 <Select
                   value={participant.organisationType}
                   onValueChange={(v) => handleFieldUpdate('organisationType', v)}
@@ -263,7 +193,7 @@ export function ParticipantDetailForm({
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Legal entity type</Label>
+                <Label>Legal entity type *</Label>
                 <Select
                   value={participant.legalEntityType || ''}
                   onValueChange={(v) => handleFieldUpdate('legalEntityType', v)}
@@ -282,7 +212,7 @@ export function ParticipantDetailForm({
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Country</Label>
+                <Label>Country *</Label>
                 {canEdit ? (
                   <CountrySelect
                     value={participant.country || ''}
@@ -294,7 +224,7 @@ export function ParticipantDetailForm({
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Address</Label>
+              <Label>Address *</Label>
               <Textarea
                 value={participant.address || ''}
                 onChange={(e) => handleFieldUpdate('address', e.target.value)}
