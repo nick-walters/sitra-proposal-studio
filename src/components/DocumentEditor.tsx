@@ -92,6 +92,13 @@ export function DocumentEditor({
     return sectionNum.replace(/^[A-Za-z]+/, '');
   }, []);
 
+  // Format section heading for display: "B1" -> "1.", "B1.1" -> "1.1."
+  const formatSectionHeading = useCallback((sectionNum: string) => {
+    // Remove letter prefix and add trailing period
+    const numPart = sectionNum.replace(/^[A-Za-z]+/, '');
+    return numPart ? `${numPart}.` : '';
+  }, []);
+
   // Helper to get the next figure letter for the current section
   const getNextFigureLetter = useCallback((sectionNumber: string) => {
     // Count existing figures in content for this section (without B prefix)
@@ -313,7 +320,7 @@ export function DocumentEditor({
               <span>{proposalTitle || proposalAcronym}</span>
             </div>
 
-            <h1 className="document-h1 text-foreground mb-6">{section.number} {section.title}</h1>
+            <h1 className="document-h1 text-foreground mb-6">{formatSectionHeading(section.number)} {section.title}</h1>
             
             {loading ? (
               <div className="space-y-4">
