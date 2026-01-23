@@ -39,6 +39,10 @@ const COUNTRY_NAMES: Record<string, string> = {
   'GB': 'United Kingdom', 'IL': 'Israel', 'TR': 'Turkey', 'IS': 'Iceland',
 };
 
+const COUNTRY_CODES: Record<string, string> = Object.fromEntries(
+  Object.entries(COUNTRY_NAMES).map(([code, name]) => [name.toLowerCase(), code])
+);
+
 // Search database
 async function searchDatabase(supabase: any, searchTerm: string): Promise<OrganisationInfo[]> {
   const results: OrganisationInfo[] = [];
@@ -69,63 +73,146 @@ async function searchDatabase(supabase: any, searchTerm: string): Promise<Organi
   return results;
 }
 
-// Lookup specific PIC from CORDIS organisation page
-async function lookupPicFromCordis(pic: string): Promise<OrganisationInfo | null> {
+// Parse organisation info from Firecrawl search results
+function parseOrganisationFromSearchResult(content: string, query: string): OrganisationInfo | null {
   try {
-    // Try direct organisation page
-    const url = `https://cordis.europa.eu/organisation/rcn/${pic}`;
-    console.log(`Trying CORDIS org page: ${url}`);
+    console.log('Parsing content for organisation info...');
     
-    const response = await fetch(url, {
-      headers: {
-        'Accept': 'text/html',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      },
-    });
+    // Try to extract PIC number (9 digits)
+    const picMatch = content.match(/\b(\d{9})\b/);
+    const pic = picMatch ? picMatch[1] : '';
     
-    console.log(`CORDIS page status: ${response.status}`);
+    // If we're searching by PIC and found a different one, this isn't a match
+    if (/^\d{9}$/.test(query) && pic && pic !== query) {
+      return null;
+    }
     
-    if (!response.ok) return null;
+    // Extract organisation name - look for patterns like "Legal Name:" or organisation names near PIC
+    let legalName = '';
+    const legalNamePatterns = [
+      /legal\s*name[:\s]+([^\n,]+)/i,
+      /organisation[:\s]+([^\n,]+)/i,
+      /organization[:\s]+([^\n,]+)/i,
+      /name[:\s]+([^\n,]+)/i,
+    ];
     
-    const html = await response.text();
-    
-    // Try to extract organization data from JSON-LD in the page
-    const jsonLdMatch = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
-    if (jsonLdMatch) {
-      try {
-        const jsonLd = JSON.parse(jsonLdMatch[1]);
-        console.log(`Found JSON-LD: ${JSON.stringify(jsonLd).substring(0, 200)}`);
-        
-        if (jsonLd['@type'] === 'Organization' || jsonLd.name) {
-          return {
-            picNumber: pic,
-            legalName: jsonLd.name || jsonLd.legalName || '',
-            country: jsonLd.address?.addressCountry || '',
-            countryCode: jsonLd.address?.addressCountry || '',
-            isSme: false,
-            organisationCategory: 'OTH',
-          };
-        }
-      } catch (e) {
-        console.log('Failed to parse JSON-LD');
+    for (const pattern of legalNamePatterns) {
+      const match = content.match(pattern);
+      if (match && match[1].trim().length > 2) {
+        legalName = match[1].trim();
+        break;
       }
     }
     
-    return null;
+    // Extract country
+    let country = '';
+    let countryCode = '';
+    
+    // Check for country codes or names
+    for (const [code, name] of Object.entries(COUNTRY_NAMES)) {
+      if (content.toLowerCase().includes(name.toLowerCase())) {
+        country = name;
+        countryCode = code;
+        break;
+      }
+      if (new RegExp(`\\b${code}\\b`).test(content)) {
+        country = name;
+        countryCode = code;
+        break;
+      }
+    }
+    
+    // Determine organisation type
+    let isSme = content.toLowerCase().includes('sme') || content.toLowerCase().includes('small and medium');
+    let organisationCategory: OrganisationInfo['organisationCategory'] = 'OTH';
+    
+    if (content.toLowerCase().includes('university') || content.toLowerCase().includes('higher education')) {
+      organisationCategory = 'UNI';
+    } else if (content.toLowerCase().includes('research') || content.toLowerCase().includes('institute')) {
+      organisationCategory = 'RES';
+    } else if (content.toLowerCase().includes('public body') || content.toLowerCase().includes('government')) {
+      organisationCategory = 'PUB';
+    } else if (isSme) {
+      organisationCategory = 'SME';
+    }
+    
+    // Only return if we have meaningful data
+    if (!pic && !legalName) {
+      return null;
+    }
+    
+    return {
+      picNumber: pic || query,
+      legalName: legalName || `Organisation (${query})`,
+      country,
+      countryCode,
+      isSme,
+      organisationCategory,
+    };
   } catch (error) {
-    console.error('CORDIS lookup error:', error);
+    console.error('Error parsing organisation info:', error);
     return null;
   }
 }
 
-// Search for organizations - currently limited to database only
-// CORDIS APIs require authentication, so we'll rely on building up our database
-// as users add organizations
-async function searchCordis(searchQuery: string): Promise<OrganisationInfo[]> {
-  // CORDIS public APIs currently return 0 results or require auth
-  // Will return empty and rely on database results
-  console.log(`CORDIS search not available for: ${searchQuery}`);
-  return [];
+// Search using Firecrawl web search
+async function searchWithFirecrawl(query: string): Promise<OrganisationInfo[]> {
+  const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
+  if (!apiKey) {
+    console.error('FIRECRAWL_API_KEY not configured');
+    return [];
+  }
+  
+  try {
+    // Search for EU participant register data
+    const searchQuery = `EU participant register ${query} PIC number`;
+    console.log(`Firecrawl search: "${searchQuery}"`);
+    
+    const response = await fetch('https://api.firecrawl.dev/v1/search', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: searchQuery,
+        limit: 5,
+        scrapeOptions: {
+          formats: ['markdown'],
+        },
+      }),
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Firecrawl API error: ${response.status} - ${errorText}`);
+      return [];
+    }
+    
+    const data = await response.json();
+    console.log(`Firecrawl returned ${data.data?.length || 0} results`);
+    
+    const results: OrganisationInfo[] = [];
+    
+    for (const result of data.data || []) {
+      // Combine title, description, and markdown content
+      const content = [
+        result.title || '',
+        result.description || '',
+        result.markdown || '',
+      ].join('\n');
+      
+      const org = parseOrganisationFromSearchResult(content, query);
+      if (org) {
+        results.push(org);
+      }
+    }
+    
+    return results;
+  } catch (error) {
+    console.error('Firecrawl search error:', error);
+    return [];
+  }
 }
 
 serve(async (req: Request) => {
@@ -150,26 +237,19 @@ serve(async (req: Request) => {
       );
     }
 
-    // Search database
+    // Step 1: Search local database first
     const dbResults = await searchDatabase(supabase, query);
     console.log(`DB results: ${dbResults.length}`);
     
-    // If searching by PIC and not found in DB, try CORDIS page
-    const isNumeric = /^\d{6,12}$/.test(query.trim());
-    let cordisResult: OrganisationInfo | null = null;
-    
-    if (isNumeric && dbResults.length === 0) {
-      cordisResult = await lookupPicFromCordis(query.trim());
-      if (cordisResult) {
-        console.log(`Found in CORDIS: ${cordisResult.legalName}`);
-      }
+    // Step 2: If no results, try Firecrawl web search
+    let firecrawlResults: OrganisationInfo[] = [];
+    if (dbResults.length === 0) {
+      firecrawlResults = await searchWithFirecrawl(query.trim());
+      console.log(`Firecrawl results: ${firecrawlResults.length}`);
     }
     
     // Combine results
-    const allResults = [...dbResults];
-    if (cordisResult) {
-      allResults.push(cordisResult);
-    }
+    const allResults = [...dbResults, ...firecrawlResults];
     
     // Deduplicate by PIC
     const seen = new Set<string>();
