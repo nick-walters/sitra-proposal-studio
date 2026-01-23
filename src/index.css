@@ -47,11 +47,11 @@
   font-style: italic !important;
   font-family: "Times New Roman", Times, serif !important;
   font-size: 11pt !important;
-  line-height: 1.2 !important;
+  line-height: 1.0 !important;
 }
 
 .figure-caption {
-  margin-top: 0pt !important;
+  margin-top: 0 !important;
   margin-bottom: 3pt !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
@@ -59,7 +59,7 @@
 
 .table-caption {
   margin-top: 3pt !important;
-  margin-bottom: 0pt !important;
+  margin-bottom: 0 !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
 }
@@ -227,12 +227,22 @@
   .document-content {
     font-family: 'Times New Roman', Times, serif;
     font-size: 11pt;
-    line-height: 1.5;
+    line-height: 1.0;
   }
 
-  /* Body text justified by default */
+  /* Body text justified by default with 3pt spacing */
   .document-content p {
     text-align: justify;
+    margin-top: 3pt;
+    margin-bottom: 3pt;
+  }
+
+  /* Soft line breaks (shift+enter) have 0pt spacing */
+  .document-content br {
+    display: block;
+    content: "";
+    margin: 0;
+    line-height: 1.0;
   }
 
   /* Headings left-aligned by default */
@@ -332,11 +342,41 @@
   }
 
   .document-page {
-    @apply bg-white shadow-lg rounded-sm;
+    @apply bg-white shadow-lg rounded-sm relative;
     width: 210mm;
     min-height: 297mm;
     padding: 1.5cm;
+    padding-top: 2cm; /* Extra space for header */
+    padding-bottom: 2cm; /* Extra space for footer */
     margin: 0 auto;
+  }
+
+  /* Document header - positioned at top within margin */
+  .document-page-header {
+    position: absolute;
+    top: 0.5cm;
+    left: 1.5cm;
+    right: 1.5cm;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 8pt;
+    color: hsl(var(--muted-foreground));
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* Document footer - positioned at bottom within margin */
+  .document-page-footer {
+    position: absolute;
+    bottom: 0.5cm;
+    left: 1.5cm;
+    right: 1.5cm;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 8pt;
+    color: hsl(var(--muted-foreground));
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
 
   .proposal-badge {
@@ -416,7 +456,7 @@
   font-style: italic !important;
   font-family: "Times New Roman", Times, serif !important;
   font-size: 11pt !important;
-  line-height: 1.2 !important;
+  line-height: 1.0 !important;
 }
 
 .ProseMirror .table-caption,
@@ -442,6 +482,23 @@
 .ProseMirror .table-caption + table,
 .ProseMirror p.table-caption + table {
   margin-top: 0 !important;
+}
+
+/* Paragraph spacing in ProseMirror */
+.ProseMirror p {
+  margin-top: 3pt;
+  margin-bottom: 3pt;
+}
+
+/* Override spacing for caption paragraphs */
+.ProseMirror p.table-caption {
+  margin-top: 3pt !important;
+  margin-bottom: 0 !important;
+}
+
+.ProseMirror p.figure-caption {
+  margin-top: 0 !important;
+  margin-bottom: 3pt !important;
 }
 
 /* Column resize handle */
