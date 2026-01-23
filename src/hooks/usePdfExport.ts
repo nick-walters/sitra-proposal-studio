@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import jsPDF from 'jspdf';
 import { toast } from 'sonner';
-import { Proposal, Participant, ParticipantMember, Section, PROPOSAL_TYPE_LABELS, PARTICIPANT_TYPE_LABELS } from '@/types/proposal';
+import { Proposal, Section } from '@/types/proposal';
 
 interface SectionContent {
   id: string;
@@ -9,37 +9,18 @@ interface SectionContent {
   content: string;
 }
 
-interface BudgetItem {
-  category: string;
-  subcategory?: string;
-  description?: string;
-  amount: number;
-  participantId: string;
-}
-
-interface WorkPackage {
-  number: number;
-  title: string;
-  description?: string;
-  leadParticipantId?: string;
-  startMonth: number;
-  endMonth: number;
-}
-
 interface ExportData {
   proposal: Proposal;
-  participants: Participant[];
-  participantMembers: ParticipantMember[];
   sectionContents: SectionContent[];
-  budgetItems: BudgetItem[];
-  workPackages?: WorkPackage[];
   sections: Section[];
-  submissionStage?: string; // 'stage1' for pre-proposals, 'full' or undefined for full proposals
 }
+
+// Convert mm to pt for jsPDF (1mm = 2.835pt)
+const mmToPt = (mm: number) => mm * 2.835;
 
 export function usePdfExport() {
   const exportProposalToPdf = useCallback(async (data: ExportData) => {
-    const { proposal, participants, participantMembers, sectionContents, budgetItems, workPackages, sections, submissionStage } = data;
+    const { proposal, sectionContents, sections } = data;
 
     try {
       toast.info('Generating PDF...');
@@ -52,404 +33,311 @@ export function usePdfExport() {
 
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 20;
+      const margin = 15; // 1.5cm margins
       const contentWidth = pageWidth - margin * 2;
-      let yPosition = margin;
+      let yPosition = margin + 10; // Leave space for header
+
+      // Track current section for footer
+      let currentSectionName = '';
 
       // Colors
-      const euBlue = [0, 51, 153] as [number, number, number];
-      const black = [0, 0, 0] as [number, number, number];
-      const gray = [100, 100, 100] as [number, number, number];
-      const lightGray = [200, 200, 200] as [number, number, number];
+      const black: [number, number, number] = [0, 0, 0];
+      const white: [number, number, number] = [255, 255, 255];
+      const gray: [number, number, number] = [128, 128, 128];
 
-      // Helper functions
+      // Font sizes in pt (jsPDF uses pt for setFontSize)
+      const FONT_SIZE_TITLE = 14;
+      const FONT_SIZE_H1 = 13;
+      const FONT_SIZE_H2 = 12;
+      const FONT_SIZE_BODY = 11;
+      const FONT_SIZE_FOOTNOTE = 8;
+      const FONT_SIZE_HEADER_FOOTER = 8;
+
+      // Line heights in mm (approximation based on font size)
+      const lineHeightBody = 4.5; // For 11pt with line spacing 1
+      const paragraphSpacing = 1.1; // 3pt ≈ 1.1mm
+      const paragraphSpacingH1 = 2.1; // 6pt ≈ 2.1mm
+      const titleParagraphSpacing = 4.2; // 12pt ≈ 4.2mm
+
+      // Helper: Check if we need a new page
       const checkPageBreak = (requiredSpace: number): boolean => {
-        if (yPosition + requiredSpace > pageHeight - margin - 15) {
+        const footerSpace = 15;
+        if (yPosition + requiredSpace > pageHeight - margin - footerSpace) {
           pdf.addPage();
-          yPosition = margin;
+          yPosition = margin + 10; // Reset with header space
           return true;
         }
         return false;
       };
 
-      const addFooter = (pageNum: number, totalPages: number) => {
-        pdf.setFontSize(9);
+      // Helper: Add header to a page
+      const addHeader = () => {
+        pdf.setFontSize(FONT_SIZE_HEADER_FOOTER);
+        pdf.setFont('times', 'normal');
         pdf.setTextColor(...gray);
-        pdf.text(proposal.acronym, margin, pageHeight - 10);
-        pdf.text(`Page ${pageNum} of ${totalPages}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
-        pdf.setDrawColor(...lightGray);
-        pdf.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15);
+        const headerText = `${proposal.topicId || ''} ${proposal.topicTitle || proposal.title}`;
+        const truncatedHeader = headerText.length > 100 ? headerText.substring(0, 97) + '...' : headerText;
+        pdf.text(truncatedHeader, margin, margin);
       };
 
-      // Helper: Convert name to name case
-      const toNameCase = (str: string): string => {
-        if (!str) return '';
-        return str
-          .toLowerCase()
-          .split(' ')
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(' ');
+      // Helper: Add footer to a page
+      const addFooter = (pageNum: number, totalPages: number, sectionName: string) => {
+        pdf.setFontSize(FONT_SIZE_HEADER_FOOTER);
+        pdf.setFont('times', 'normal');
+        pdf.setTextColor(...gray);
+        
+        const footerY = pageHeight - margin + 5;
+        
+        // Left: acronym
+        pdf.text(proposal.acronym, margin, footerY);
+        
+        // Center: section name
+        const sectionText = sectionName || '';
+        pdf.text(sectionText, pageWidth / 2, footerY, { align: 'center' });
+        
+        // Right: page number
+        pdf.text(`Page ${pageNum} of ${totalPages}`, pageWidth - margin, footerY, { align: 'right' });
       };
 
-      // Helper: Get country code
-      const getCountryCode = (countryName?: string): string => {
-        if (!countryName) return '';
-        // Common country mappings
-        const countryMap: Record<string, string> = {
-          'Germany': 'DE', 'France': 'FR', 'Italy': 'IT', 'Spain': 'ES',
-          'Netherlands': 'NL', 'Belgium': 'BE', 'Austria': 'AT', 'Poland': 'PL',
-          'Sweden': 'SE', 'Denmark': 'DK', 'Finland': 'FI', 'Ireland': 'IE',
-          'Portugal': 'PT', 'Greece': 'GR', 'Czech Republic': 'CZ', 'Romania': 'RO',
-          'Hungary': 'HU', 'Slovakia': 'SK', 'Bulgaria': 'BG', 'Croatia': 'HR',
-          'Slovenia': 'SI', 'Lithuania': 'LT', 'Latvia': 'LV', 'Estonia': 'EE',
-          'Cyprus': 'CY', 'Luxembourg': 'LU', 'Malta': 'MT',
-          'United Kingdom': 'GB', 'Switzerland': 'CH', 'Norway': 'NO',
-          'United States': 'US', 'Canada': 'CA', 'Australia': 'AU',
-        };
-        return countryMap[countryName] || countryName.substring(0, 2).toUpperCase();
-      };
-
-      const addSectionHeader = (number: string, title: string, sectionTag?: string) => {
-        checkPageBreak(20);
-        pdf.setFontSize(14);
-        pdf.setFont('helvetica', 'bold');
-        pdf.setTextColor(...euBlue);
-        
-        const headerText = `${number} ${title}`;
-        pdf.text(headerText, margin, yPosition);
-        
-        // Render section tag on same line, right-aligned, 10pt mid-grey
-        if (sectionTag) {
-          pdf.setFontSize(10);
-          pdf.setFont('helvetica', 'normal');
-          pdf.setTextColor(128, 128, 128); // mid-grey
-          pdf.text(sectionTag, pageWidth - margin, yPosition, { align: 'right' });
-        }
-        
-        yPosition += 8;
-        pdf.setDrawColor(...euBlue);
-        pdf.setLineWidth(0.5);
-        pdf.line(margin, yPosition, margin + 40, yPosition);
-        yPosition += 8;
+      // Helper: Add title (14pt bold, 12pt paragraph spacing after)
+      const addTitle = (text: string) => {
+        checkPageBreak(15);
+        pdf.setFontSize(FONT_SIZE_TITLE);
+        pdf.setFont('times', 'bold');
         pdf.setTextColor(...black);
-        pdf.setFont('helvetica', 'normal');
-      };
-
-      const addParagraph = (text: string, fontSize = 10) => {
-        pdf.setFontSize(fontSize);
+        
         const lines = pdf.splitTextToSize(text, contentWidth);
         for (const line of lines) {
           checkPageBreak(6);
           pdf.text(line, margin, yPosition);
-          yPosition += 5;
+          yPosition += 5.5;
         }
-        yPosition += 3;
+        yPosition += titleParagraphSpacing;
       };
 
-      const addTableRow = (cells: string[], isHeader = false, colWidths: number[]) => {
-        checkPageBreak(8);
-        const rowHeight = 7;
-        let xPos = margin;
-
-        if (isHeader) {
-          pdf.setFillColor(240, 240, 240);
-          pdf.rect(margin, yPosition - 5, contentWidth, rowHeight, 'F');
-          pdf.setFont('helvetica', 'bold');
-        } else {
-          pdf.setFont('helvetica', 'normal');
-        }
-
-        pdf.setFontSize(8);
-        cells.forEach((cell, i) => {
-          const truncated = cell.length > 40 ? cell.substring(0, 37) + '...' : cell;
-          pdf.text(truncated, xPos + 1, yPosition);
-          xPos += colWidths[i];
-        });
-
-        yPosition += rowHeight;
-      };
-
-      // ========== COVER PAGE ==========
-      // EU Flag placeholder
-      pdf.setFillColor(...euBlue);
-      pdf.rect(pageWidth / 2 - 20, 30, 40, 25, 'F');
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(20);
-      pdf.text('EU', pageWidth / 2, 47, { align: 'center' });
-
-      // Title
-      pdf.setTextColor(...euBlue);
-      pdf.setFontSize(28);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text(proposal.acronym, pageWidth / 2, 80, { align: 'center' });
-
-      pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(...black);
-      const titleLines = pdf.splitTextToSize(proposal.title, contentWidth - 20);
-      pdf.text(titleLines, pageWidth / 2, 95, { align: 'center' });
-
-      // Proposal info box
-      pdf.setDrawColor(...euBlue);
-      pdf.setLineWidth(0.5);
-      pdf.rect(margin + 20, 120, contentWidth - 40, 50);
-
-      pdf.setFontSize(10);
-      pdf.setTextColor(...gray);
-      const infoY = 130;
-      pdf.text(`Proposal Type: ${PROPOSAL_TYPE_LABELS[proposal.type]}`, pageWidth / 2, infoY, { align: 'center' });
-      pdf.text(`Topic ID: ${proposal.topicId || 'Not specified'}`, pageWidth / 2, infoY + 10, { align: 'center' });
-      pdf.text(`Total Budget: €${(proposal.totalBudget || 0).toLocaleString()}`, pageWidth / 2, infoY + 20, { align: 'center' });
-      pdf.text(`Consortium: ${participants.length} organisations`, pageWidth / 2, infoY + 30, { align: 'center' });
-
-      // Footer info
-      pdf.setTextColor(...gray);
-      pdf.setFontSize(10);
-      pdf.text('Horizon Europe Framework Programme', pageWidth / 2, 200, { align: 'center' });
-      pdf.text(`Generated: ${new Date().toLocaleDateString('en-GB')}`, pageWidth / 2, 208, { align: 'center' });
-
-      // ========== PARTICIPANT TABLE (Only for full proposals, not Stage 1) ==========
-      const isStage1 = submissionStage === 'stage1';
-      
-      if (!isStage1 && participants.length > 0) {
-        pdf.addPage();
-        yPosition = margin;
-
-        // Table title
-        pdf.setFontSize(12);
-        pdf.setFont('helvetica', 'bold');
+      // Helper: Add H1 heading (13pt bold, 6pt before and after)
+      const addH1 = (text: string) => {
+        yPosition += paragraphSpacingH1; // 6pt before
+        checkPageBreak(12);
+        pdf.setFontSize(FONT_SIZE_H1);
+        pdf.setFont('times', 'bold');
         pdf.setTextColor(...black);
-        pdf.text('List of Participants', margin, yPosition);
-        yPosition += 10;
-
-        // Table headers
-        const participantTableColWidths = [12, 25, 65, 20, 18, 20];
-        pdf.setFontSize(9);
-        pdf.setFont('helvetica', 'bold');
-        pdf.setFillColor(240, 240, 240);
-        pdf.rect(margin, yPosition - 5, contentWidth, 8, 'F');
-
-        let xPos = margin;
-        const headers = ['№', 'Short', 'Participant', 'Logo', 'Type', 'Country'];
-        headers.forEach((header, i) => {
-          pdf.text(header, xPos + 1, yPosition);
-          xPos += participantTableColWidths[i];
-        });
-        yPosition += 8;
-
-        // Sort participants by number
-        const sortedParticipants = [...participants].sort((a, b) => 
-          (a.participantNumber || 999) - (b.participantNumber || 999)
-        );
-
-        // Table rows
-        pdf.setFont('helvetica', 'normal');
-        sortedParticipants.forEach((p) => {
-          checkPageBreak(10);
-          xPos = margin;
-          
-          // Draw row background (alternating)
-          const rowY = yPosition - 4;
-          
-          // № 
-          pdf.text(String(p.participantNumber || '-'), xPos + 1, yPosition);
-          xPos += participantTableColWidths[0];
-          
-          // Short name
-          const shortName = p.organisationShortName || '-';
-          pdf.text(shortName.substring(0, 10), xPos + 1, yPosition);
-          xPos += participantTableColWidths[1];
-          
-          // Participant name (name case)
-          const orgName = toNameCase(p.organisationName);
-          pdf.text(orgName.substring(0, 35), xPos + 1, yPosition);
-          xPos += participantTableColWidths[2];
-          
-          // Logo placeholder (skip for PDF)
-          pdf.text('-', xPos + 1, yPosition);
-          xPos += participantTableColWidths[3];
-          
-          // Type (category)
-          const category = (p as any).organisationCategory || '-';
-          pdf.text(category, xPos + 1, yPosition);
-          xPos += participantTableColWidths[4];
-          
-          // Country code
-          const countryCode = getCountryCode(p.country);
-          pdf.text(countryCode, xPos + 1, yPosition);
-          
-          yPosition += 7;
-        });
-
-        yPosition += 5;
-      }
-
-      // ========== PART A - ADMINISTRATIVE INFORMATION ==========
-      pdf.addPage();
-      yPosition = margin;
-
-      // Part A Header
-      pdf.setFontSize(18);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(...euBlue);
-      pdf.text('PART A – ADMINISTRATIVE INFORMATION', margin, yPosition);
-      yPosition += 15;
-
-      // A.1 Consortium
-      addSectionHeader('A.1', 'Consortium');
-      addParagraph(`The consortium consists of ${participants.length} participating organisations from various countries.`);
-
-      // Participants table
-      const partColWidths = [10, 60, 40, 30, 30];
-      addTableRow(['#', 'Organisation', 'Type', 'Country', 'Role'], true, partColWidths);
-      participants.forEach((p, i) => {
-        addTableRow(
-          [
-            String(i + 1),
-            p.organisationName,
-            PARTICIPANT_TYPE_LABELS[p.organisationType].substring(0, 15),
-            p.country || '-',
-            i === 0 ? 'Coordinator' : 'Partner',
-          ],
-          false,
-          partColWidths
-        );
-      });
-      yPosition += 5;
-
-      // A.2 Budget Summary
-      addSectionHeader('A.2', 'Budget Summary');
-      const totalBudget = budgetItems.reduce((sum, item) => sum + item.amount, 0);
-      addParagraph(`Total requested EU contribution: €${totalBudget.toLocaleString()}`);
-
-      // Budget by participant
-      const budgetColWidths = [10, 80, 40, 40];
-      addTableRow(['#', 'Organisation', 'Budget (€)', '% Share'], true, budgetColWidths);
-      participants.forEach((p, i) => {
-        const partBudget = budgetItems
-          .filter((b) => b.participantId === p.id)
-          .reduce((sum, b) => sum + b.amount, 0);
-        const percentage = totalBudget > 0 ? ((partBudget / totalBudget) * 100).toFixed(1) : '0';
-        addTableRow(
-          [String(i + 1), p.organisationShortName || p.organisationName, partBudget.toLocaleString(), `${percentage}%`],
-          false,
-          budgetColWidths
-        );
-      });
-      yPosition += 5;
-
-      // A.3 Work Packages (if available)
-      if (workPackages && workPackages.length > 0) {
-        addSectionHeader('A.3', 'Work Packages');
-        const wpColWidths = [20, 70, 40, 40];
-        addTableRow(['WP', 'Title', 'Lead', 'Duration'], true, wpColWidths);
-        workPackages.forEach((wp) => {
-          const lead = participants.find((p) => p.id === wp.leadParticipantId);
-          addTableRow(
-            [
-              `WP${wp.number}`,
-              wp.title,
-              lead?.organisationShortName || lead?.organisationName || '-',
-              `M${wp.startMonth}-M${wp.endMonth}`,
-            ],
-            false,
-            wpColWidths
-          );
-        });
-        yPosition += 5;
-      }
-
-      // ========== PART B - TECHNICAL PROPOSAL ==========
-      pdf.addPage();
-      yPosition = margin;
-
-      pdf.setFontSize(18);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(...euBlue);
-      pdf.text('PART B – TECHNICAL PROPOSAL', margin, yPosition);
-      yPosition += 15;
-
-      // Process Part B sections
-      const flattenSections = (sections: Section[]): Section[] => {
-        const flat: Section[] = [];
-        sections.forEach((s) => {
-          if (!s.isPartA) {
-            flat.push(s);
-            if (s.subsections) {
-              s.subsections.forEach((sub) => {
-                if (!sub.isPartA) flat.push(sub);
-              });
-            }
-          }
-        });
-        return flat;
+        
+        pdf.text(text, margin, yPosition);
+        yPosition += 5 + paragraphSpacingH1; // Line height + 6pt after
+        currentSectionName = text;
       };
 
-      const partBSections = flattenSections(sections);
+      // Helper: Add H2 heading (12pt bold, 6pt before and after)
+      const addH2 = (text: string) => {
+        yPosition += paragraphSpacingH1; // 6pt before
+        checkPageBreak(10);
+        pdf.setFontSize(FONT_SIZE_H2);
+        pdf.setFont('times', 'bold');
+        pdf.setTextColor(...black);
+        
+        pdf.text(text, margin, yPosition);
+        yPosition += 4.5 + paragraphSpacingH1; // Line height + 6pt after
+        currentSectionName = text;
+      };
 
-      for (const section of partBSections) {
-        const content = sectionContents.find((sc) => sc.sectionId === section.id);
-        const plainText = content?.content
-          ? content.content
-              .replace(/<[^>]+>/g, ' ')
+      // Helper: Add body paragraph (11pt, 3pt before and after)
+      const addParagraph = (text: string) => {
+        if (!text.trim()) return;
+        
+        yPosition += paragraphSpacing; // 3pt before
+        pdf.setFontSize(FONT_SIZE_BODY);
+        pdf.setFont('times', 'normal');
+        pdf.setTextColor(...black);
+        
+        const lines = pdf.splitTextToSize(text, contentWidth);
+        for (const line of lines) {
+          checkPageBreak(lineHeightBody);
+          pdf.text(line, margin, yPosition);
+          yPosition += lineHeightBody;
+        }
+        yPosition += paragraphSpacing; // 3pt after
+      };
+
+      // Helper: Parse HTML content and extract text with formatting
+      const parseHtmlContent = (html: string): { type: 'paragraph' | 'h3'; text: string }[] => {
+        if (!html) return [];
+        
+        const result: { type: 'paragraph' | 'h3'; text: string }[] = [];
+        
+        // Split by block elements
+        const blocks = html
+          .replace(/<h3[^>]*>(.*?)<\/h3>/gi, '\n[[H3]]$1[[/H3]]\n')
+          .replace(/<p[^>]*>/gi, '\n')
+          .replace(/<\/p>/gi, '\n')
+          .replace(/<br\s*\/?>/gi, '\n')
+          .replace(/<div[^>]*>/gi, '\n')
+          .replace(/<\/div>/gi, '\n')
+          .split('\n');
+        
+        for (const block of blocks) {
+          // Check for H3
+          const h3Match = block.match(/\[\[H3\]\](.*?)\[\[\/H3\]\]/);
+          if (h3Match) {
+            const text = h3Match[1]
+              .replace(/<[^>]+>/g, '')
               .replace(/&nbsp;/g, ' ')
               .replace(/&amp;/g, '&')
               .replace(/&lt;/g, '<')
               .replace(/&gt;/g, '>')
               .replace(/\s+/g, ' ')
-              .trim()
-          : '';
-
-        if (plainText || section.subsections) {
-          addSectionHeader(section.number, section.title);
-          if (plainText) {
-            addParagraph(plainText);
-          } else {
-            addParagraph('[Section content to be completed]', 10);
+              .trim();
+            if (text) {
+              result.push({ type: 'h3', text });
+            }
+            continue;
           }
+          
+          // Regular paragraph
+          const plainText = block
+            .replace(/<[^>]+>/g, '')
+            .replace(/&nbsp;/g, ' ')
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/\s+/g, ' ')
+            .trim();
+          
+          if (plainText) {
+            result.push({ type: 'paragraph', text: plainText });
+          }
+        }
+        
+        return result;
+      };
+
+      // Helper: Add H3 (inline, bold and underlined, 11pt)
+      const addH3 = (text: string) => {
+        yPosition += paragraphSpacing;
+        checkPageBreak(lineHeightBody);
+        
+        pdf.setFontSize(FONT_SIZE_BODY);
+        pdf.setFont('times', 'bold');
+        pdf.setTextColor(...black);
+        
+        // Draw text with underline
+        const textWidth = pdf.getTextWidth(text);
+        pdf.text(text, margin, yPosition);
+        
+        // Add underline
+        const underlineY = yPosition + 0.5;
+        pdf.setDrawColor(...black);
+        pdf.setLineWidth(0.1);
+        pdf.line(margin, underlineY, margin + textWidth, underlineY);
+        
+        yPosition += lineHeightBody + paragraphSpacing;
+      };
+
+      // Helper: Get section content
+      const getSectionContent = (sectionId: string): string => {
+        const content = sectionContents.find(sc => sc.sectionId === sectionId);
+        return content?.content || '';
+      };
+
+      // Find the relevant sections
+      const findSection = (idPattern: string): Section | undefined => {
+        // First check top-level
+        for (const section of sections) {
+          if (section.id === idPattern || section.number === idPattern) {
+            return section;
+          }
+          // Check subsections
+          if (section.subsections) {
+            for (const sub of section.subsections) {
+              if (sub.id === idPattern || sub.number === idPattern) {
+                return sub;
+              }
+            }
+          }
+        }
+        return undefined;
+      };
+
+      // ========== DOCUMENT CONTENT ==========
+
+      // Add header to first page
+      addHeader();
+
+      // Title: Proposal title followed by acronym in parentheses
+      addTitle(`${proposal.title} (${proposal.acronym})`);
+
+      // Part B1 heading as H1
+      const b1Section = findSection('b1') || findSection('B1');
+      addH1(`${b1Section?.number || 'B1'} ${b1Section?.title || 'Excellence'}`);
+
+      // B1.1 with heading as H2 followed by content
+      const b1_1Section = findSection('b1-1') || findSection('b1.1') || findSection('B1.1');
+      if (b1_1Section) {
+        addH2(`${b1_1Section.number} ${b1_1Section.title}`);
+        const b1_1Content = getSectionContent(b1_1Section.id);
+        const b1_1Blocks = parseHtmlContent(b1_1Content);
+        for (const block of b1_1Blocks) {
+          if (block.type === 'h3') {
+            addH3(block.text);
+          } else {
+            addParagraph(block.text);
+          }
+        }
+        if (!b1_1Content) {
+          addParagraph('[Section content to be completed]');
         }
       }
 
-      // ========== APPENDIX - TEAM MEMBERS ==========
-      pdf.addPage();
-      yPosition = margin;
-
-      pdf.setFontSize(18);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(...euBlue);
-      pdf.text('APPENDIX – TEAM COMPOSITION', margin, yPosition);
-      yPosition += 15;
-
-      participants.forEach((p, i) => {
-        checkPageBreak(30);
-        addSectionHeader(`${i + 1}`, p.organisationName);
-
-        const members = participantMembers.filter((m) => m.participantId === p.id);
-        if (members.length > 0) {
-          const memberColWidths = [60, 50, 30, 30];
-          addTableRow(['Name', 'Role', 'PM', 'Contact'], true, memberColWidths);
-          members.forEach((m) => {
-            addTableRow(
-              [m.fullName, m.roleInProject || '-', String(m.personMonths || '-'), m.isPrimaryContact ? 'Primary' : '-'],
-              false,
-              memberColWidths
-            );
-          });
-        } else {
-          addParagraph('No team members specified.');
+      // B1.2 with heading as H2 followed by content
+      const b1_2Section = findSection('b1-2') || findSection('b1.2') || findSection('B1.2');
+      if (b1_2Section) {
+        addH2(`${b1_2Section.number} ${b1_2Section.title}`);
+        const b1_2Content = getSectionContent(b1_2Section.id);
+        const b1_2Blocks = parseHtmlContent(b1_2Content);
+        for (const block of b1_2Blocks) {
+          if (block.type === 'h3') {
+            addH3(block.text);
+          } else {
+            addParagraph(block.text);
+          }
         }
-        yPosition += 5;
-      });
+        if (!b1_2Content) {
+          addParagraph('[Section content to be completed]');
+        }
+      }
 
-      // Add footers to all pages
+      // Part B2 heading as H1
+      const b2Section = findSection('b2') || findSection('B2');
+      addH1(`${b2Section?.number || 'B2'} ${b2Section?.title || 'Impact'}`);
+
+      // B2.1 with heading as H2 followed by content
+      const b2_1Section = findSection('b2-1') || findSection('b2.1') || findSection('B2.1');
+      if (b2_1Section) {
+        addH2(`${b2_1Section.number} ${b2_1Section.title}`);
+        const b2_1Content = getSectionContent(b2_1Section.id);
+        const b2_1Blocks = parseHtmlContent(b2_1Content);
+        for (const block of b2_1Blocks) {
+          if (block.type === 'h3') {
+            addH3(block.text);
+          } else {
+            addParagraph(block.text);
+          }
+        }
+        if (!b2_1Content) {
+          addParagraph('[Section content to be completed]');
+        }
+      }
+
+      // Add headers and footers to all pages
       const totalPages = pdf.internal.pages.length - 1;
       for (let i = 1; i <= totalPages; i++) {
         pdf.setPage(i);
-        addFooter(i, totalPages);
+        addHeader();
+        addFooter(i, totalPages, currentSectionName);
       }
 
       // Save
-      const filename = `${proposal.acronym}_proposal_${new Date().toISOString().split('T')[0]}.pdf`;
+      const filename = `${proposal.acronym}_Part_B_${new Date().toISOString().split('T')[0]}.pdf`;
       pdf.save(filename);
 
       toast.success('PDF exported successfully!');
@@ -474,62 +362,44 @@ export function usePdfExport() {
         });
 
         const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
-        const margin = 25;
+        const margin = 15;
         const contentWidth = pageWidth - margin * 2;
         let yPosition = margin;
 
-        const checkPageBreak = (requiredSpace: number) => {
-          if (yPosition + requiredSpace > pageHeight - margin) {
-            pdf.addPage();
-            yPosition = margin;
-          }
-        };
-
-        // Title page
-        pdf.setFontSize(24);
-        pdf.setFont('helvetica', 'bold');
-        pdf.setTextColor(0, 51, 153);
-        pdf.text(acronym, pageWidth / 2, 80, { align: 'center' });
-
+        // Title
         pdf.setFontSize(14);
-        pdf.setFont('helvetica', 'normal');
-        pdf.setTextColor(0, 0, 0);
-        const titleLines = pdf.splitTextToSize(title, contentWidth);
-        pdf.text(titleLines, pageWidth / 2, 100, { align: 'center' });
+        pdf.setFont('times', 'bold');
+        pdf.text(`${title} (${acronym})`, margin, yPosition);
+        yPosition += 10;
 
-        // Content pages
+        // Sections
         for (const section of sections) {
-          pdf.addPage();
-          yPosition = margin;
-
-          pdf.setFontSize(14);
-          pdf.setFont('helvetica', 'bold');
+          pdf.setFontSize(12);
+          pdf.setFont('times', 'bold');
           pdf.text(`${section.number} ${section.title}`, margin, yPosition);
-          yPosition += 10;
+          yPosition += 6;
 
           pdf.setFontSize(11);
-          pdf.setFont('helvetica', 'normal');
-
-          const plainText = section.content.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
-
-          if (plainText) {
-            const lines = pdf.splitTextToSize(plainText, contentWidth);
-            for (const line of lines) {
-              checkPageBreak(7);
-              pdf.text(line, margin, yPosition);
-              yPosition += 6;
+          pdf.setFont('times', 'normal');
+          const lines = pdf.splitTextToSize(section.content || '', contentWidth);
+          for (const line of lines) {
+            if (yPosition > 270) {
+              pdf.addPage();
+              yPosition = margin;
             }
+            pdf.text(line, margin, yPosition);
+            yPosition += 4.5;
           }
+          yPosition += 4;
         }
 
-        const filename = `${acronym}_proposal_${new Date().toISOString().split('T')[0]}.pdf`;
+        const filename = `${acronym}_export_${new Date().toISOString().split('T')[0]}.pdf`;
         pdf.save(filename);
 
         toast.success('PDF exported successfully!');
       } catch (error) {
         console.error('PDF export error:', error);
-        toast.error('Failed to export PDF.');
+        toast.error('Failed to export PDF');
       }
     },
     []

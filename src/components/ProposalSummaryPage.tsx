@@ -23,6 +23,7 @@ import {
   Pencil,
   Check,
   X,
+  Download,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -38,6 +39,7 @@ interface ProposalSummaryPageProps {
   onUpdateStatus?: (status: ProposalStatus) => Promise<void>;
   canEdit?: boolean;
   isAdmin?: boolean;
+  onExportPdf?: () => void;
 }
 
 
@@ -120,6 +122,7 @@ export function ProposalSummaryPage({
   onUpdateStatus,
   canEdit = true,
   isAdmin = false,
+  onExportPdf,
 }: ProposalSummaryPageProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedProposal, setEditedProposal] = useState(proposal);
@@ -176,8 +179,14 @@ export function ProposalSummaryPage({
       <div className="p-6">
         <div className="max-w-5xl mx-auto space-y-6">
           {/* Page Header */}
-          <div className="mb-2">
+          <div className="mb-2 flex items-center justify-between">
             <h1 className="text-2xl font-bold text-foreground">Proposal overview</h1>
+            {onExportPdf && (
+              <Button variant="outline" size="sm" className="gap-2" onClick={onExportPdf}>
+                <Download className="w-4 h-4" />
+                Export PDF
+              </Button>
+            )}
           </div>
 
         {/* Header with Project Logo and Basic Info */}
