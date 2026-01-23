@@ -636,11 +636,9 @@ export function AddParticipantDialog({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(PARTICIPANT_TYPE_LABELS)
-                      .filter(([value]) => value !== 'international_partner')
-                      .map(([value, label]) => (
-                        <SelectItem key={value} value={value}>{label}</SelectItem>
-                      ))}
+                    {Object.entries(PARTICIPANT_TYPE_LABELS).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

@@ -14,18 +14,27 @@ interface OrganisationInfo {
   countryCode: string;
   legalEntityType?: string;
   isSme: boolean;
-  organisationCategory?: 'RES' | 'UNI' | 'IND' | 'SME' | 'NGO' | 'CSO' | 'PUB' | 'INT' | 'OTH';
+  organisationCategory?: 'RES' | 'HES' | 'PRC' | 'SME' | 'NGO' | 'CSO' | 'AGO' | 'PUB' | 'INT' | 'OTH';
 }
 
-function mapLegalEntityToCategory(legalEntityType?: string, isSme?: boolean): 'RES' | 'UNI' | 'IND' | 'SME' | 'NGO' | 'CSO' | 'PUB' | 'INT' | 'OTH' {
+function mapLegalEntityToCategory(legalEntityType?: string, isSme?: boolean): 'RES' | 'HES' | 'PRC' | 'SME' | 'NGO' | 'CSO' | 'AGO' | 'PUB' | 'INT' | 'OTH' {
   if (!legalEntityType) return 'OTH';
   const type = legalEntityType.toLowerCase();
-  if (isSme && (type.includes('private') || type.includes('prc'))) return 'SME';
+  // Public bodies and agencies first (highest priority)
+  if (type.includes('agency') || type.includes('regulatory')) return 'AGO';
   if (type.includes('public') || type.includes('government') || type.includes('pub')) return 'PUB';
-  if (type.includes('university') || type.includes('higher education') || type.includes('hes')) return 'UNI';
+  // Education and research
+  if (type.includes('university') || type.includes('higher education') || type.includes('secondary education') || type.includes('hes')) return 'HES';
   if (type.includes('research') || type.includes('rto') || type.includes('rec')) return 'RES';
-  if (type.includes('private') || type.includes('prc')) return isSme ? 'SME' : 'IND';
-  if (type.includes('ngo') || type.includes('non-profit')) return 'NGO';
+  // Private sector
+  if (isSme && (type.includes('private') || type.includes('prc') || type.includes('enterprise'))) return 'SME';
+  if (type.includes('private') || type.includes('prc') || type.includes('for-profit')) return isSme ? 'SME' : 'PRC';
+  // Non-profits and civil society
+  if (type.includes('ngo') || type.includes('non-governmental')) return 'NGO';
+  if (type.includes('cso') || type.includes('civil society')) return 'CSO';
+  if (type.includes('non-profit') || type.includes('nonprofit')) return 'NGO';
+  // International
+  if (type.includes('international')) return 'INT';
   return 'OTH';
 }
 
@@ -216,7 +225,7 @@ async function lookupPicFromCordis(pic: string): Promise<OrganisationInfo | null
     const typeCheck = (organisationType + ' ' + content).toLowerCase();
     
     if (typeCheck.includes('hes') || typeCheck.includes('higher education')) {
-      organisationCategory = 'UNI';
+      organisationCategory = 'HES';
     } else if (typeCheck.includes('rec') || typeCheck.includes('research organisation')) {
       organisationCategory = 'RES';
     } else if (typeCheck.includes('pub') || typeCheck.includes('public body')) {
@@ -225,7 +234,7 @@ async function lookupPicFromCordis(pic: string): Promise<OrganisationInfo | null
       organisationCategory = 'SME';
       isSme = true;
     } else if (typeCheck.includes('prc') || typeCheck.includes('private')) {
-      organisationCategory = 'IND';
+      organisationCategory = 'PRC';
     }
     
     if (!legalName) return null;

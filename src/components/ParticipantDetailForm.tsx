@@ -31,14 +31,16 @@ interface ParticipantDetailFormProps {
   canDelete: boolean;
 }
 
-// Legal entity types from HE template
+// Legal entity types aligned with organisation categories
 const LEGAL_ENTITY_TYPES = [
-  'Higher or Secondary Education Establishment',
-  'Research Organisation',
-  'Private for-profit entity',
+  'Higher or secondary education',
+  'Research organisation',
+  'Private for-profit',
+  'Small/medium enterprise',
   'Public body',
-  'Non-profit',
+  'Non-governmental organisation',
   'Agency or regulatory body',
+  'Civil society organisation',
   'International organisation',
   'Other',
 ];
