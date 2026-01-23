@@ -1,8 +1,7 @@
 import { Section } from "@/types/proposal";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Info, Video, ImageIcon, Sparkles, BookOpen, Wand2, BarChart3, Route, History } from "lucide-react";
+import { Sparkles, BookOpen, Wand2, BarChart3, Route, History, FileText, Info } from "lucide-react";
 import { useState, useCallback } from "react";
 import { RichTextEditor } from "./RichTextEditor";
 import { GrammarChecker } from "./GrammarChecker";
@@ -11,9 +10,9 @@ import { ImageGeneratorDialog } from "./ImageGeneratorDialog";
 import { InsertFigureDialog } from "./InsertFigureDialog";
 import { ImpactPathwayGenerator } from "./ImpactPathwayGenerator";
 import { SectionVersionHistoryDialog } from "./SectionVersionHistoryDialog";
+import { GuidelinesDialog } from "./GuidelinesDialog";
 import { WordCountBadge } from "./WordCountBadge";
 import { SaveIndicator } from "./SaveIndicator";
-import { GuidelineBox } from "./GuidelineBox";
 import { useSectionContent } from "@/hooks/useSectionContent";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -52,6 +51,7 @@ export function DocumentEditor({
   const [isFigureDialogOpen, setIsFigureDialogOpen] = useState(false);
   const [isImpactPathwayOpen, setIsImpactPathwayOpen] = useState(false);
   const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
+  const [isGuidelinesOpen, setIsGuidelinesOpen] = useState(false);
   const [references, setReferences] = useState<Reference[]>([]);
   const [footnotes, setFootnotes] = useState<Array<{ number: number; citation: string }>>([]);
 
@@ -124,9 +124,19 @@ export function DocumentEditor({
     <div className="flex-1 flex flex-col min-h-0 relative">
       {/* Fixed toolbar container */}
       <div className="sticky top-0 z-10 bg-background">
-        {/* AI Features Bar */}
+        {/* Features Toolbar */}
         <div className="flex items-center justify-between p-2 border-b border-border bg-card">
           <div className="flex items-center gap-2">
+            {/* Guidelines button - first, non-AI feature */}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-2"
+              onClick={() => setIsGuidelinesOpen(true)}
+            >
+              <FileText className="w-4 h-4" />
+              Guidelines
+            </Button>
             <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsGrammarOpen(true)}>
               <Sparkles className="w-4 h-4" />
               Grammar Check
@@ -198,58 +208,16 @@ export function DocumentEditor({
 
       <div className="flex-1 overflow-auto p-6 bg-muted/30">
         <div className="max-w-4xl mx-auto space-y-6">
-          {/* Section Header */}
-          <div className="flex items-center gap-3 mb-6">
-            <Badge variant="outline" className="text-primary border-primary">
-              Section {section.number}
-            </Badge>
-            {section.wordLimit && (
-              <Badge variant="secondary">Word limit: {section.wordLimit}</Badge>
-            )}
-            {section.pageLimit && (
-              <Badge variant="secondary">Page limit: {section.pageLimit}</Badge>
-            )}
-          </div>
-
-          {/* Guidelines - Use GuidelineBox for typed guidelines */}
-          {section.guidelinesArray && section.guidelinesArray.length > 0 ? (
-            <div className="space-y-4">
-              {section.guidelinesArray.map((guideline) => (
-                <GuidelineBox
-                  key={guideline.id}
-                  type={guideline.type}
-                  title={guideline.title}
-                >
-                  {guideline.content}
-                </GuidelineBox>
-              ))}
+          {/* Section Header - word/page limits only */}
+          {(section.wordLimit || section.pageLimit) && (
+            <div className="flex items-center gap-3 mb-6">
+              {section.wordLimit && (
+                <Badge variant="secondary">Word limit: {section.wordLimit}</Badge>
+              )}
+              {section.pageLimit && (
+                <Badge variant="secondary">Page limit: {section.pageLimit}</Badge>
+              )}
             </div>
-          ) : section.guidelines && (
-            <Card className="p-4 bg-accent/50 border-primary/20">
-              <div className="flex items-start gap-3">
-                <Info className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <h4 className="font-medium text-sm text-primary mb-2">Guidelines</h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{section.guidelines.text}</p>
-                  {(section.guidelines.imageUrl || section.guidelines.videoUrl) && (
-                    <div className="flex items-center gap-3 mt-3">
-                      {section.guidelines.imageUrl && (
-                        <button className="flex items-center gap-1.5 text-xs text-primary hover:underline">
-                          <ImageIcon className="w-3.5 h-3.5" />
-                          View image guide
-                        </button>
-                      )}
-                      {section.guidelines.videoUrl && (
-                        <button className="flex items-center gap-1.5 text-xs text-primary hover:underline">
-                          <Video className="w-3.5 h-3.5" />
-                          Watch video guide
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </Card>
           )}
 
           {/* Document Page with Rich Text Editor */}
@@ -338,6 +306,12 @@ export function DocumentEditor({
         sectionId={section?.id || ''}
         sectionTitle={`${section?.number || ''} ${section?.title || ''}`}
         onRestoreVersion={handleRestoreVersion}
+      />
+      <GuidelinesDialog
+        isOpen={isGuidelinesOpen}
+        onClose={() => setIsGuidelinesOpen(false)}
+        sectionTitle={`${section?.number || ''} ${section?.title || ''}`}
+        guidelines={section?.guidelinesArray || []}
       />
     </div>
   );
