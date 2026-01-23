@@ -1,4 +1,4 @@
-import { useEditor, EditorContent, Editor } from '@tiptap/react';
+import { useEditor, EditorContent, Editor, Extension } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
@@ -9,6 +9,7 @@ import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
 import { ResizableImage } from './ResizableImage';
 import { ImageCropDialog } from './ImageCropDialog';
+import { createCitationTooltipPlugin } from './CitationMark';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
@@ -675,9 +676,20 @@ export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootn
 }
 
 // Hook to get editor instance for external toolbar control
-export function useRichTextEditor({ content, onChange }: { content: string; onChange: (content: string) => void }) {
+export function useRichTextEditor({ 
+  content, 
+  onChange,
+  getReference,
+}: { 
+  content: string; 
+  onChange: (content: string) => void;
+  getReference?: (citationNumber: number) => { citation: string } | undefined;
+}) {
   // Track the last content we set to the editor to avoid infinite loops
   const lastSetContentRef = useRef<string>(content);
+  // Store getReference in a ref to avoid recreating the extension
+  const getReferenceRef = useRef(getReference);
+  getReferenceRef.current = getReference;
   
   const editor = useEditor({
     extensions: [
@@ -713,6 +725,15 @@ export function useRichTextEditor({ content, onChange }: { content: string; onCh
       TableCell.configure({
         HTMLAttributes: {
           class: 'he-table-cell',
+        },
+      }),
+      // Add citation tooltip extension
+      Extension.create({
+        name: 'citationTooltip',
+        addProseMirrorPlugins() {
+          return [
+            createCitationTooltipPlugin((num) => getReferenceRef.current?.(num)),
+          ];
         },
       }),
     ],

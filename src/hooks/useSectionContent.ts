@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
-import { renumberAllCaptions } from '@/lib/captionRenumbering';
+import { renumberAllCaptionsWithMapping } from '@/lib/captionRenumbering';
 
 interface UseSectionContentProps {
   proposalId: string;
@@ -20,6 +20,7 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber }: UseS
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [lastCitationMapping, setLastCitationMapping] = useState<Map<number, number>>(new Map());
   const { user } = useAuth();
   
   // Refs for managing state across effects
@@ -41,8 +42,11 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber }: UseS
 
     // Auto-renumber captions before saving if section number is provided
     let finalContent = contentToSave;
+    let citationMapping = new Map<number, number>();
     if (shouldRenumber && sectionNumber) {
-      finalContent = renumberAllCaptions(contentToSave, sectionNumber);
+      const result = renumberAllCaptionsWithMapping(contentToSave, sectionNumber);
+      finalContent = result.content;
+      citationMapping = result.citationMapping;
     }
 
     try {
@@ -77,6 +81,11 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber }: UseS
 
       setLastSaved(new Date());
       pendingContentRef.current = null;
+      
+      // Update citation mapping for footnote sync
+      if (citationMapping.size > 0) {
+        setLastCitationMapping(citationMapping);
+      }
       
       // Update state if content was renumbered
       if (finalContent !== contentToSave) {
@@ -330,6 +339,7 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber }: UseS
     loading,
     saving,
     lastSaved,
+    lastCitationMapping,
     saveNow: flushPendingChanges,
     saveVersionNow: () => saveVersion(content),
   };

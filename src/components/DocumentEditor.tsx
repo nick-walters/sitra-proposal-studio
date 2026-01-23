@@ -2,7 +2,7 @@ import { Section } from "@/types/proposal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sparkles, BookOpen, Wand2, Route, History, Info, Upload, Link2 } from "lucide-react";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
 import { EditorContent } from "@tiptap/react";
 import { GrammarChecker } from "./GrammarChecker";
@@ -15,6 +15,7 @@ import { SectionVersionHistoryDialog } from "./SectionVersionHistoryDialog";
 import { GuidelinesDialog } from "./GuidelinesDialog";
 import { SaveIndicator } from "./SaveIndicator";
 import { useSectionContent } from "@/hooks/useSectionContent";
+import { renumberFootnotes } from "@/lib/captionRenumbering";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
@@ -68,12 +69,33 @@ export function DocumentEditor({
     sectionNumber: section?.number,
   });
   
-  const { content, setContent, loading, saving, lastSaved } = sectionContentHook;
+  const { content, setContent, loading, saving, lastSaved, lastCitationMapping } = sectionContentHook;
 
-  // Use the editor hook for external toolbar control
+  // Sync footnotes when citations are renumbered
+  useEffect(() => {
+    if (lastCitationMapping && lastCitationMapping.size > 0 && footnotes.length > 0) {
+      const renumberedFootnotes = renumberFootnotes(footnotes, lastCitationMapping);
+      // Only update if there's an actual change
+      const hasChanges = renumberedFootnotes.some((fn, idx) => 
+        fn.number !== footnotes[idx]?.number || fn.citation !== footnotes[idx]?.citation
+      );
+      if (hasChanges) {
+        setFootnotes(renumberedFootnotes);
+      }
+    }
+  }, [lastCitationMapping]);
+
+  // Helper to get reference by citation number for tooltip display
+  const getReference = useCallback((citationNumber: number) => {
+    const footnote = footnotes.find(fn => fn.number === citationNumber);
+    return footnote ? { citation: footnote.citation } : undefined;
+  }, [footnotes]);
+
+  // Use the editor hook for external toolbar control with citation tooltips
   const editor = useRichTextEditor({
     content,
     onChange: readOnly ? () => {} : (newContent) => setContent(newContent),
+    getReference,
   });
 
   const handleInsertCitation = useCallback((reference: Reference, formattedCitation: string, citationNumber: number) => {
