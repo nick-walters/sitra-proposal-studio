@@ -33,6 +33,7 @@ import {
   ImageIcon,
   Lock,
   Unlock,
+  Percent,
 } from "lucide-react";
 import {
   Tooltip,
@@ -152,6 +153,8 @@ export function FormattingToolbar({
   const [cropImageSrc, setCropImageSrc] = useState('');
   const [imageWidth, setImageWidth] = useState('');
   const [imageHeight, setImageHeight] = useState('');
+  const [imageWidthPercent, setImageWidthPercent] = useState('');
+  const [widthMode, setWidthMode] = useState<'px' | '%'>('px');
   const [aspectRatio, setAspectRatio] = useState(1);
   const [aspectRatioLocked, setAspectRatioLocked] = useState(true);
 
@@ -164,16 +167,28 @@ export function FormattingToolbar({
     if (selectedImageAttrs) {
       const w = selectedImageAttrs.width || '';
       const h = selectedImageAttrs.height || '';
+      const wp = selectedImageAttrs.widthPercent || '';
+      
       setImageWidth(w.toString());
       setImageHeight(h.toString());
+      setImageWidthPercent(wp.toString());
+      
+      // Set mode based on current image attributes
+      if (wp && Number(wp) > 0) {
+        setWidthMode('%');
+      } else {
+        setWidthMode('px');
+      }
+      
       if (w && h) {
         setAspectRatio(Number(w) / Number(h));
       }
     } else {
       setImageWidth('');
       setImageHeight('');
+      setImageWidthPercent('');
     }
-  }, [selectedImageAttrs?.width, selectedImageAttrs?.height, isImageSelected]);
+  }, [selectedImageAttrs?.width, selectedImageAttrs?.height, selectedImageAttrs?.widthPercent, isImageSelected]);
 
   const handleWidthChange = useCallback((value: string) => {
     setImageWidth(value);
@@ -182,9 +197,9 @@ export function FormattingToolbar({
       if (aspectRatioLocked) {
         const newHeight = Math.round(numValue / aspectRatio);
         setImageHeight(newHeight.toString());
-        editor.commands.updateAttributes('image', { width: numValue, height: newHeight });
+        editor.commands.updateAttributes('image', { width: numValue, height: newHeight, widthPercent: null });
       } else {
-        editor.commands.updateAttributes('image', { width: numValue });
+        editor.commands.updateAttributes('image', { width: numValue, widthPercent: null });
       }
     }
   }, [editor, aspectRatio, aspectRatioLocked]);
@@ -196,12 +211,36 @@ export function FormattingToolbar({
       if (aspectRatioLocked) {
         const newWidth = Math.round(numValue * aspectRatio);
         setImageWidth(newWidth.toString());
-        editor.commands.updateAttributes('image', { width: newWidth, height: numValue });
+        editor.commands.updateAttributes('image', { width: newWidth, height: numValue, widthPercent: null });
       } else {
-        editor.commands.updateAttributes('image', { height: numValue });
+        editor.commands.updateAttributes('image', { height: numValue, widthPercent: null });
       }
     }
   }, [editor, aspectRatio, aspectRatioLocked]);
+
+  const handleWidthPercentChange = useCallback((value: string) => {
+    setImageWidthPercent(value);
+    const numValue = parseInt(value);
+    if (!isNaN(numValue) && numValue > 0 && numValue <= 100 && editor) {
+      editor.commands.updateAttributes('image', { widthPercent: numValue });
+    }
+  }, [editor]);
+
+  const toggleWidthMode = useCallback(() => {
+    if (!editor) return;
+    const newMode = widthMode === 'px' ? '%' : 'px';
+    setWidthMode(newMode);
+    
+    if (newMode === '%') {
+      // Switch to percentage mode - default to 100%
+      const defaultPercent = imageWidthPercent || '100';
+      setImageWidthPercent(defaultPercent);
+      editor.commands.updateAttributes('image', { widthPercent: parseInt(defaultPercent) });
+    } else {
+      // Switch to pixel mode - clear percentage
+      editor.commands.updateAttributes('image', { widthPercent: null });
+    }
+  }, [editor, widthMode, imageWidthPercent]);
 
   const handleCropClick = useCallback(() => {
     if (selectedImageAttrs?.src) {
@@ -495,28 +534,58 @@ export function FormattingToolbar({
             <Separator orientation="vertical" className="h-5 mx-1.5" />
             <div className="flex items-center gap-1">
               <ImageIcon className="w-4 h-4 text-muted-foreground" />
-              <Input
-                type="number"
-                value={imageWidth}
-                onChange={(e) => handleWidthChange(e.target.value)}
-                className="w-16 h-7 text-xs"
-                placeholder="W"
-                title="Width (px)"
-              />
+              
+              {/* Mode toggle button */}
               <ToolbarButton
-                icon={aspectRatioLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
-                tooltip={aspectRatioLocked ? "Aspect ratio locked" : "Aspect ratio unlocked"}
-                onClick={() => setAspectRatioLocked(!aspectRatioLocked)}
-                active={aspectRatioLocked}
+                icon={<Percent className="w-3 h-3" />}
+                tooltip={widthMode === 'px' ? "Switch to percentage width" : "Switch to pixel width"}
+                onClick={toggleWidthMode}
+                active={widthMode === '%'}
               />
-              <Input
-                type="number"
-                value={imageHeight}
-                onChange={(e) => handleHeightChange(e.target.value)}
-                className="w-16 h-7 text-xs"
-                placeholder="H"
-                title="Height (px)"
-              />
+              
+              {widthMode === '%' ? (
+                // Percentage mode - single input
+                <>
+                  <Input
+                    type="number"
+                    value={imageWidthPercent}
+                    onChange={(e) => handleWidthPercentChange(e.target.value)}
+                    className="w-16 h-7 text-xs"
+                    placeholder="%"
+                    title="Width (%)"
+                    min={1}
+                    max={100}
+                  />
+                  <span className="text-xs text-muted-foreground">%</span>
+                </>
+              ) : (
+                // Pixel mode - width × height with aspect lock
+                <>
+                  <Input
+                    type="number"
+                    value={imageWidth}
+                    onChange={(e) => handleWidthChange(e.target.value)}
+                    className="w-16 h-7 text-xs"
+                    placeholder="W"
+                    title="Width (px)"
+                  />
+                  <ToolbarButton
+                    icon={aspectRatioLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+                    tooltip={aspectRatioLocked ? "Aspect ratio locked" : "Aspect ratio unlocked"}
+                    onClick={() => setAspectRatioLocked(!aspectRatioLocked)}
+                    active={aspectRatioLocked}
+                  />
+                  <Input
+                    type="number"
+                    value={imageHeight}
+                    onChange={(e) => handleHeightChange(e.target.value)}
+                    className="w-16 h-7 text-xs"
+                    placeholder="H"
+                    title="Height (px)"
+                  />
+                </>
+              )}
+              
               <ToolbarButton
                 icon={<Crop className="w-4 h-4" />}
                 tooltip="Crop image"

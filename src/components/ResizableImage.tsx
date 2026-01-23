@@ -3,11 +3,12 @@ import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from '@tiptap/r
 import { useState, useCallback, useRef } from 'react';
 
 function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewProps) {
-  const { src, alt, width, height } = node.attrs as { 
+  const { src, alt, width, height, widthPercent } = node.attrs as { 
     src: string; 
     alt?: string; 
     width?: number | string; 
-    height?: number | string; 
+    height?: number | string;
+    widthPercent?: number; 
   };
   const [isResizing, setIsResizing] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -55,9 +56,11 @@ function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewP
         newWidth = newHeight * aspectRatio;
       }
       
+      // When resizing with handles, switch to pixel mode
       updateAttributes({ 
         width: Math.round(newWidth), 
-        height: Math.round(newHeight) 
+        height: Math.round(newHeight),
+        widthPercent: null // Clear percentage when manually resizing
       });
     };
 
@@ -80,16 +83,18 @@ function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewP
     return undefined;
   };
 
+  // Use percentage width if set, otherwise use pixel dimensions
+  const usePercentage = widthPercent && widthPercent > 0;
   const imgWidth = parseDimension(width);
   const imgHeight = parseDimension(height);
 
   return (
-    <NodeViewWrapper className="resizable-image-wrapper inline-block relative">
+    <NodeViewWrapper className="resizable-image-wrapper inline-block relative" style={{ width: usePercentage ? '100%' : 'auto' }}>
       <div 
         className={`relative inline-block ${selected ? 'ring-2 ring-primary' : ''}`}
         style={{ 
-          width: imgWidth ? `${imgWidth}px` : 'auto',
-          height: imgHeight ? `${imgHeight}px` : 'auto',
+          width: usePercentage ? `${widthPercent}%` : (imgWidth ? `${imgWidth}px` : 'auto'),
+          height: usePercentage ? 'auto' : (imgHeight ? `${imgHeight}px` : 'auto'),
         }}
       >
         <img
@@ -98,14 +103,14 @@ function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewP
           alt={alt || ''}
           className="max-w-full block"
           style={{ 
-            width: imgWidth ? `${imgWidth}px` : 'auto',
-            height: imgHeight ? `${imgHeight}px` : 'auto',
+            width: '100%',
+            height: 'auto',
           }}
           draggable={false}
         />
         
-        {/* Resize handles - only show when selected */}
-        {selected && (
+        {/* Resize handles - only show when selected and not using percentage */}
+        {selected && !usePercentage && (
           <>
             {/* Corner handles */}
             <div
@@ -153,6 +158,9 @@ export const ResizableImage = Node.create({
       height: {
         default: null,
       },
+      widthPercent: {
+        default: null,
+      },
     };
   },
 
@@ -165,6 +173,11 @@ export const ResizableImage = Node.create({
   },
 
   renderHTML({ HTMLAttributes }) {
+    // If widthPercent is set, use percentage width in the output
+    const { widthPercent, width, height, ...rest } = HTMLAttributes;
+    if (widthPercent) {
+      return ['img', mergeAttributes(rest, { style: `width: ${widthPercent}%; height: auto;` })];
+    }
     return ['img', mergeAttributes(HTMLAttributes)];
   },
 
@@ -177,7 +190,7 @@ export const ResizableImage = Node.create({
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     resizableImage: {
-      setImage: (options: { src: string; alt?: string; width?: number; height?: number }) => ReturnType;
+      setImage: (options: { src: string; alt?: string; width?: number; height?: number; widthPercent?: number }) => ReturnType;
     };
   }
 }
