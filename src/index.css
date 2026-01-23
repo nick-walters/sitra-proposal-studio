@@ -328,7 +328,7 @@
   .ProseMirror table th,
   .ProseMirror table td {
     @apply relative;
-    border: 0.25pt solid black;
+    border: 0.5pt solid black;
     padding: 4px 6px;
     min-width: 30px;
     vertical-align: top;
