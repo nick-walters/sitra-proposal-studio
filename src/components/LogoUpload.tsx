@@ -4,10 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Upload, Loader2, Sparkles, X, Download } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { generateLogoPath, uploadProposalFile, extractFilePathFromUrl, deleteProposalFile } from '@/lib/proposalStorage';
 
 interface LogoUploadProps {
   currentUrl: string | null;
   onUpload: (url: string) => void;
+  proposalId: string;
   proposalAcronym: string;
   proposalTitle: string;
   disabled?: boolean;
@@ -33,6 +35,7 @@ function getAcronymColor(acronym: string): string {
 export function LogoUpload({
   currentUrl,
   onUpload,
+  proposalId,
   proposalAcronym,
   proposalTitle,
   disabled = false,
@@ -59,20 +62,23 @@ export function LogoUpload({
 
     setIsUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      // Delete old logo if exists
+      if (currentUrl) {
+        const oldPath = extractFilePathFromUrl(currentUrl);
+        if (oldPath) {
+          await deleteProposalFile(oldPath);
+        }
+      }
 
-      const { error: uploadError } = await supabase.storage
-        .from('proposal-logos')
-        .upload(fileName, file);
+      // Generate organized file path: {proposalId}/logo/project-logo-{timestamp}.{ext}
+      const filePath = generateLogoPath(proposalId, file.name);
 
-      if (uploadError) throw uploadError;
+      const { url, error } = await uploadProposalFile(file, filePath);
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('proposal-logos')
-        .getPublicUrl(fileName);
+      if (error) throw error;
+      if (!url) throw new Error('Failed to get public URL');
 
-      onUpload(publicUrl);
+      onUpload(url);
       setGeneratedImageUrl(null);
       toast.success('Logo uploaded successfully');
     } catch (error) {
