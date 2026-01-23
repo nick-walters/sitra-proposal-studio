@@ -46,6 +46,7 @@ function SectionItem({
   const isActive = activeSectionId === section.id;
   
   // Check if this is a collapsible heading (Part A, Part B, B1, B2, etc.)
+  // Note: A2 is NOT a collapsible heading - it should navigate to ParticipantListView
   const isCollapsibleHeading = hasSubsections && (
     section.id === 'part-a' || 
     section.id === 'part-b' || 
