@@ -1,7 +1,7 @@
 import { Section } from "@/types/proposal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, BookOpen, Wand2, Route, History, Info, Upload } from "lucide-react";
+import { Sparkles, BookOpen, Wand2, Route, History, Info, Upload, RefreshCw } from "lucide-react";
 import { useState, useCallback } from "react";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
 import { EditorContent } from "@tiptap/react";
@@ -15,6 +15,8 @@ import { GuidelinesDialog } from "./GuidelinesDialog";
 import { SaveIndicator } from "./SaveIndicator";
 import { useSectionContent } from "@/hooks/useSectionContent";
 import { Skeleton } from "@/components/ui/skeleton";
+import { renumberAllCaptions } from "@/lib/captionRenumbering";
+import { toast } from "sonner";
 
 interface Reference {
   authors: string[];
@@ -108,16 +110,26 @@ export function DocumentEditor({
     const figureLetter = getNextFigureLetter(section?.number || '1.1');
     const figureLabel = `Figure ${sectionNum}.${figureLetter}`;
     
-    // Insert image using editor's setImage command, then add caption
+    // Insert image and caption together using insertContent for proper rendering
     editor.chain()
       .focus()
-      .setImage({ src: imageUrl, alt: 'Generated image' })
-      .run();
-    
-    // Add caption after the image
-    editor.chain()
-      .focus()
-      .insertContent(`<p class="figure-caption"><em><strong>${figureLabel}.</strong> </em></p>`)
+      .insertContent([
+        {
+          type: 'image',
+          attrs: { src: imageUrl, alt: 'Generated image' }
+        },
+        {
+          type: 'paragraph',
+          attrs: { class: 'figure-caption' },
+          content: [
+            {
+              type: 'text',
+              marks: [{ type: 'italic' }],
+              text: figureLabel + '. '
+            }
+          ]
+        }
+      ])
       .run();
   }, [editor, section, getNextFigureLetter, getSectionNumberWithoutPrefix]);
 
@@ -137,6 +149,22 @@ export function DocumentEditor({
   const handleRestoreVersion = useCallback((restoredContent: string) => {
     setContent(restoredContent);
   }, [setContent]);
+
+  // Renumber all figure and table captions based on their current order
+  const handleRenumberCaptions = useCallback(() => {
+    if (!section?.number) return;
+    const updatedContent = renumberAllCaptions(content, section.number);
+    if (updatedContent !== content) {
+      setContent(updatedContent);
+      // Also update the editor content directly
+      if (editor) {
+        editor.commands.setContent(updatedContent, { emitUpdate: false });
+      }
+      toast.success("Captions renumbered successfully");
+    } else {
+      toast.info("No captions to renumber");
+    }
+  }, [content, section?.number, setContent, editor]);
 
   // Check if this is the B2.1 section (impact pathways)
   const isImpactSection = section?.id === 'b2-1' || section?.number === '2.1';
@@ -213,6 +241,20 @@ export function DocumentEditor({
               <Wand2 className="w-4 h-4" />
               AI Image
             </Button>
+            {/* Renumber captions button - only show for Part B sections */}
+            {section && !section.isPartA && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-2" 
+                onClick={handleRenumberCaptions}
+                disabled={readOnly}
+                title="Renumber all figure and table captions in order"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Renumber
+              </Button>
+            )}
             {/* Impact Pathway Generator for B2.1 section */}
             {isImpactSection && (
               <Button 

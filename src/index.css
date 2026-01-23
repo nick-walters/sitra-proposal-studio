@@ -52,14 +52,14 @@
 
 .figure-caption {
   margin-top: 0 !important;
-  margin-bottom: 3pt !important;
+  margin-bottom: 6pt !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
 }
 
 .table-caption {
-  margin-top: 3pt !important;
-  margin-bottom: 0 !important;
+  margin-top: 6pt !important;
+  margin-bottom: 1pt !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
 }
@@ -230,11 +230,11 @@
     line-height: 1.0;
   }
 
-  /* Body text justified by default with 3pt spacing */
+  /* Body text justified by default with 6pt spacing */
   .document-content p {
     text-align: justify;
-    margin-top: 3pt;
-    margin-bottom: 3pt;
+    margin-top: 6pt;
+    margin-bottom: 6pt;
   }
 
   /* Soft line breaks (shift+enter) have 0pt spacing */
@@ -407,7 +407,7 @@
 /* TipTap/ProseMirror table styles - OUTSIDE @layer for higher specificity */
 .ProseMirror table {
   border-collapse: collapse !important;
-  margin: 1rem 0;
+  margin: 0 0 6pt 0 !important;
   font-family: "Times New Roman", Times, serif !important;
   font-size: 11pt;
   table-layout: auto;
@@ -461,15 +461,15 @@
 
 .ProseMirror .table-caption,
 .ProseMirror p.table-caption {
-  margin-top: 3pt !important;
-  margin-bottom: 0 !important;
+  margin-top: 6pt !important;
+  margin-bottom: 1pt !important;
   padding-bottom: 0 !important;
 }
 
 .ProseMirror .figure-caption,
 .ProseMirror p.figure-caption {
   margin-top: 0 !important;
-  margin-bottom: 3pt !important;
+  margin-bottom: 6pt !important;
   padding-top: 0 !important;
 }
 
@@ -484,21 +484,26 @@
   margin-top: 0 !important;
 }
 
+/* Also target table margin directly */
+.ProseMirror table {
+  margin-top: 0 !important;
+}
+
 /* Paragraph spacing in ProseMirror */
 .ProseMirror p {
-  margin-top: 3pt;
-  margin-bottom: 3pt;
+  margin-top: 6pt;
+  margin-bottom: 6pt;
 }
 
 /* Override spacing for caption paragraphs */
 .ProseMirror p.table-caption {
-  margin-top: 3pt !important;
-  margin-bottom: 0 !important;
+  margin-top: 6pt !important;
+  margin-bottom: 1pt !important;
 }
 
 .ProseMirror p.figure-caption {
   margin-top: 0 !important;
-  margin-bottom: 3pt !important;
+  margin-bottom: 6pt !important;
 }
 
 /* Column resize handle */
