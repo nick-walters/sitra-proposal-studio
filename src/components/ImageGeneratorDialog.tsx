@@ -13,16 +13,20 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Sparkles, ImageIcon, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { generateProposalFilePath, uploadProposalFile } from "@/lib/proposalStorage";
 
 interface ImageGeneratorDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onInsertImage: (imageUrl: string) => void;
+  proposalId: string;
+  sectionNumber?: string;
 }
 
-export function ImageGeneratorDialog({ isOpen, onClose, onInsertImage }: ImageGeneratorDialogProps) {
+export function ImageGeneratorDialog({ isOpen, onClose, onInsertImage, proposalId, sectionNumber }: ImageGeneratorDialogProps) {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
 
   const handleGenerate = async () => {
@@ -60,10 +64,40 @@ export function ImageGeneratorDialog({ isOpen, onClose, onInsertImage }: ImageGe
     }
   };
 
-  const handleInsert = () => {
-    if (generatedImage) {
-      onInsertImage(generatedImage);
+  const handleInsert = async () => {
+    if (!generatedImage) return;
+    
+    setIsUploading(true);
+    try {
+      // Fetch the generated image and upload to proposal storage
+      const response = await fetch(generatedImage);
+      const blob = await response.blob();
+      
+      // Generate a descriptive filename based on section and prompt
+      const sectionPrefix = sectionNumber ? `section-${sectionNumber.replace(/\./g, '-')}` : 'ai';
+      const promptSlug = prompt.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 30);
+      const filename = `${sectionPrefix}-${promptSlug || 'generated'}.png`;
+      
+      // Upload to the proposal's figures folder
+      const filePath = generateProposalFilePath(proposalId, 'figures', filename, {
+        prefix: 'ai-generated',
+        addTimestamp: true,
+      });
+      
+      const { url, error } = await uploadProposalFile(blob, filePath, {
+        contentType: 'image/png',
+      });
+      
+      if (error) throw error;
+      if (!url) throw new Error('Failed to get public URL');
+      
+      onInsertImage(url);
       handleClose();
+    } catch (error) {
+      console.error('Failed to upload generated image:', error);
+      toast.error("Failed to save image to proposal storage");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -157,11 +191,20 @@ export function ImageGeneratorDialog({ isOpen, onClose, onInsertImage }: ImageGe
           </Button>
           <Button 
             onClick={handleInsert} 
-            disabled={!generatedImage}
+            disabled={!generatedImage || isUploading}
             className="gap-2"
           >
-            <ImageIcon className="w-4 h-4" />
-            Insert Image
+            {isUploading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <ImageIcon className="w-4 h-4" />
+                Insert Image
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

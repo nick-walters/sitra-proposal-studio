@@ -404,6 +404,8 @@ export function DocumentEditor({
         isOpen={isImageGenOpen}
         onClose={() => setIsImageGenOpen(false)}
         onInsertImage={handleInsertImage}
+        proposalId={proposalId}
+        sectionNumber={section?.number}
       />
       <InsertFigureDialog
         isOpen={isFigureDialogOpen}
