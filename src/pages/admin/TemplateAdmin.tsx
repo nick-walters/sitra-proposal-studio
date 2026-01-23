@@ -831,6 +831,31 @@ function SectionsPanel({
   const partASections = sections.filter(s => s.part === 'A' && !s.parent_section_id);
   const partBSections = sections.filter(s => s.part === 'B' && !s.parent_section_id);
 
+  // Collect all section IDs including children for default expanded state
+  const getAllSectionIds = (sectionList: TemplateSection[]): string[] => {
+    return sectionList.flatMap(s => [s.id, ...getAllSectionIds(s.children || [])]);
+  };
+  
+  // State for expanded accordions - default to all expanded
+  const [expandedPartA, setExpandedPartA] = useState<string[]>(() => getAllSectionIds(partASections));
+  const [expandedPartB, setExpandedPartB] = useState<string[]>(() => getAllSectionIds(partBSections));
+
+  // Update expanded state when sections change to include new sections
+  useEffect(() => {
+    const allPartAIds = getAllSectionIds(partASections);
+    const allPartBIds = getAllSectionIds(partBSections);
+    
+    // Add any new section IDs that aren't already in the expanded state
+    setExpandedPartA(prev => {
+      const newIds = allPartAIds.filter(id => !prev.includes(id));
+      return newIds.length > 0 ? [...prev, ...newIds] : prev;
+    });
+    setExpandedPartB(prev => {
+      const newIds = allPartBIds.filter(id => !prev.includes(id));
+      return newIds.length > 0 ? [...prev, ...newIds] : prev;
+    });
+  }, [sections]);
+
   const handleOpenSectionDialog = (section?: TemplateSection) => {
     if (section) {
       setEditingSection(section);
@@ -963,12 +988,14 @@ function SectionsPanel({
                 <Badge variant="outline">Part A</Badge>
                 Administrative Forms
               </h3>
-              <Accordion type="multiple" className="space-y-2">
+              <Accordion type="multiple" value={expandedPartA} onValueChange={setExpandedPartA} className="space-y-2">
                 {partASections.map((section) => (
                   <SectionAccordionItem
                     key={section.id}
                     section={section}
                     allSections={sections}
+                    expandedSections={expandedPartA}
+                    onExpandChange={setExpandedPartA}
                     onEdit={() => handleOpenSectionDialog(section)}
                     onDelete={() => handleDeleteSection(section.id)}
                     onEditSection={handleOpenSectionDialog}
@@ -990,12 +1017,14 @@ function SectionsPanel({
                 <Badge variant="outline">Part B</Badge>
                 Technical Annex
               </h3>
-              <Accordion type="multiple" className="space-y-2">
+              <Accordion type="multiple" value={expandedPartB} onValueChange={setExpandedPartB} className="space-y-2">
                 {partBSections.map((section) => (
                   <SectionAccordionItem
                     key={section.id}
                     section={section}
                     allSections={sections}
+                    expandedSections={expandedPartB}
+                    onExpandChange={setExpandedPartB}
                     onEdit={() => handleOpenSectionDialog(section)}
                     onDelete={() => handleDeleteSection(section.id)}
                     onEditSection={handleOpenSectionDialog}
@@ -1129,6 +1158,8 @@ function SectionsPanel({
 function SectionAccordionItem({
   section,
   allSections,
+  expandedSections,
+  onExpandChange,
   onEdit,
   onDelete,
   onEditSection,
@@ -1142,6 +1173,8 @@ function SectionAccordionItem({
 }: {
   section: TemplateSection;
   allSections: TemplateSection[];
+  expandedSections?: string[];
+  onExpandChange?: React.Dispatch<React.SetStateAction<string[]>>;
   onEdit: () => void;
   onDelete: () => void;
   onEditSection?: (section: TemplateSection) => void;
@@ -1257,12 +1290,19 @@ function SectionAccordionItem({
           {childSections.length > 0 && (
             <div className="pl-4 border-l-2 space-y-2 mt-4">
               <h4 className="text-sm font-medium text-muted-foreground mb-2">Subsections ({childSections.length})</h4>
-              <Accordion type="multiple" className="space-y-2">
+              <Accordion 
+                type="multiple" 
+                value={expandedSections} 
+                onValueChange={onExpandChange}
+                className="space-y-2"
+              >
                 {childSections.map(child => (
                   <SectionAccordionItem
                     key={child.id}
                     section={child}
                     allSections={allSections}
+                    expandedSections={expandedSections}
+                    onExpandChange={onExpandChange}
                     onEdit={() => onEditSection?.(child)}
                     onDelete={() => onDeleteSection?.(child.id)}
                     onEditSection={onEditSection}
