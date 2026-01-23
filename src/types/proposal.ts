@@ -4,6 +4,11 @@ export type UserRole = 'admin' | 'editor' | 'viewer';
 export type ProposalStatus = 'draft' | 'submitted' | 'funded' | 'not_funded';
 export type SubmissionStage = 'full' | 'stage_1';
 
+export const BUDGET_TYPE_LABELS: Record<BudgetType, string> = {
+  traditional: 'Actual costs',
+  lump_sum: 'Lump sum',
+};
+
 export const SUBMISSION_STAGE_LABELS: Record<SubmissionStage, string> = {
   full: 'Full Proposal',
   stage_1: 'Stage 1 of 2',
@@ -350,7 +355,7 @@ export const PART_A_SECTIONS: Section[] = [
         title: 'Budget',
         isPartA: true,
         guidelines: {
-          text: 'Complete the budget breakdown for each participant. Select standard or lump sum budget model as appropriate for your call.',
+          text: 'Complete the budget breakdown for each participant. Select actual costs or lump sum budget model as appropriate for your call.',
         },
       },
     ],
@@ -428,8 +433,8 @@ export const FIGURES_SECTION: Section = {
   },
 };
 
-// Budget categories for standard proposals
-export const BUDGET_CATEGORIES_STANDARD = [
+// Budget categories for actual costs proposals
+export const BUDGET_CATEGORIES_ACTUAL_COSTS = [
   { id: 'personnel', label: 'A. Personnel costs', subcategories: ['Researchers', 'Technicians', 'Administrative'] },
   { id: 'subcontracting', label: 'B. Subcontracting', subcategories: [] },
   { id: 'purchase', label: 'C. Purchase costs', subcategories: ['Travel', 'Equipment', 'Other goods and services'] },
@@ -437,8 +442,9 @@ export const BUDGET_CATEGORIES_STANDARD = [
   { id: 'indirect', label: 'E. Indirect costs (25% flat rate)', subcategories: [] },
 ];
 
-// Backwards compatibility alias
-export const BUDGET_CATEGORIES_TRADITIONAL = BUDGET_CATEGORIES_STANDARD;
+// Backwards compatibility aliases
+export const BUDGET_CATEGORIES_STANDARD = BUDGET_CATEGORIES_ACTUAL_COSTS;
+export const BUDGET_CATEGORIES_TRADITIONAL = BUDGET_CATEGORIES_ACTUAL_COSTS;
 
 // Budget categories for lump sum proposals
 export const BUDGET_CATEGORIES_LUMP_SUM = [
