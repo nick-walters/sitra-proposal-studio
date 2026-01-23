@@ -33,21 +33,28 @@ function parseGuidelineContent(content: string): React.ReactNode {
   return (
     <div className="space-y-2">
       {lines.map((line, index) => {
-        // Check for warning markers (⚠️, ⚠, [!], etc.) and convert to blue info
-        const hasWarning = /[⚠️⚠!]|^\s*-\s*\[!\]/.test(line);
-        const cleanLine = line.replace(/[⚠️⚠]/g, '').replace(/^\s*-\s*\[!\]/, '- ').trim();
+        // Check for warning markers (⚠️, ⚠, !, [!], etc.) at the start of line
+        const hasWarning = /^[⚠️⚠!]/.test(line.trim());
+        // Clean the line of warning markers at the start
+        const cleanLine = line.replace(/^[⚠️⚠!]\s*/, '').trim();
         
         // Handle bullet points
         if (cleanLine.startsWith('•') || cleanLine.startsWith('-') || cleanLine.startsWith('–')) {
           const bulletContent = cleanLine.replace(/^[•\-–]\s*/, '');
           return (
             <div key={index} className="flex items-start gap-2 pl-2">
-              {hasWarning ? (
-                <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-500" />
-              ) : (
-                <span className="text-muted-foreground">•</span>
-              )}
+              <span className="text-muted-foreground mt-1">•</span>
               <span className="text-sm text-muted-foreground">{bulletContent}</span>
+            </div>
+          );
+        }
+        
+        // Line starting with warning marker - show with blue info icon
+        if (hasWarning && cleanLine) {
+          return (
+            <div key={index} className="flex items-start gap-2 mt-3 p-2 bg-blue-50 rounded border border-blue-200">
+              <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-500" />
+              <span className="text-sm text-blue-700">{cleanLine}</span>
             </div>
           );
         }
@@ -55,10 +62,7 @@ function parseGuidelineContent(content: string): React.ReactNode {
         // Regular line
         if (cleanLine) {
           return (
-            <p key={index} className="text-sm text-muted-foreground">
-              {hasWarning && <AlertCircle className="inline h-4 w-4 mr-1 text-blue-500" />}
-              {cleanLine}
-            </p>
+            <p key={index} className="text-sm text-muted-foreground">{cleanLine}</p>
           );
         }
         
