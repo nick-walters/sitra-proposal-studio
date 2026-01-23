@@ -10,28 +10,20 @@ import { supabase } from '@/integrations/supabase/client';
 import { Upload, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-// Organisation category types for Horizon Europe
+// Official EC organisation category types for Horizon Europe
 export type OrganisationCategory = 
-  | 'RES' 
   | 'HES' 
+  | 'RES' 
   | 'PRC' 
-  | 'SME' 
   | 'PUB' 
-  | 'NGO' 
-  | 'AGO' 
-  | 'CSO' 
   | 'INT' 
   | 'OTH';
 
 export const ORGANISATION_CATEGORY_LABELS: Record<OrganisationCategory, string> = {
+  HES: 'Higher or secondary education establishment',
   RES: 'Research organisation',
-  HES: 'Higher or secondary education',
-  PRC: 'Private for-profit',
-  SME: 'Small/medium enterprise',
+  PRC: 'Private for-profit entity',
   PUB: 'Public body',
-  NGO: 'Non-governmental organisation',
-  AGO: 'Agency or regulatory body',
-  CSO: 'Civil society organisation',
   INT: 'International organisation',
   OTH: 'Other',
 };
@@ -154,7 +146,6 @@ export function ParticipantTable({
             <TableHead className="w-8 py-0.5 px-1 font-bold">№</TableHead>
             <TableHead className="py-0.5 px-1 font-bold">Short name</TableHead>
             <TableHead className="py-0.5 px-1 font-bold" colSpan={2}>Participant</TableHead>
-            <TableHead className="w-20 py-0.5 px-1 font-bold">Type</TableHead>
             <TableHead className="w-20 py-0.5 px-1 font-bold">Country</TableHead>
           </TableRow>
         </TableHeader>
@@ -250,40 +241,6 @@ export function ParticipantTable({
               <TableCell className="py-0.5 px-1 align-top">
                 {isEditing ? (
                   <Select
-                    value={(participant as ExtendedParticipant).organisationCategory || ''}
-                    onValueChange={(v) => handleCategoryChange(participant.id, v as OrganisationCategory)}
-                  >
-                    <SelectTrigger className="h-6 text-[10px] px-1 w-16">
-                      <SelectValue placeholder="—" />
-                    </SelectTrigger>
-                    <SelectContent className="z-50 bg-popover">
-                      {Object.entries(ORGANISATION_CATEGORY_LABELS).map(([code, label]) => (
-                        <SelectItem key={code} value={code} className="text-[10px]">
-                          {code}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  (participant as ExtendedParticipant).organisationCategory ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="font-medium cursor-help">
-                          {(participant as ExtendedParticipant).organisationCategory}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{ORGANISATION_CATEGORY_LABELS[(participant as ExtendedParticipant).organisationCategory as OrganisationCategory]}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    <span className="font-medium">—</span>
-                  )
-                )}
-              </TableCell>
-              <TableCell className="py-0.5 px-1 align-top">
-                {isEditing ? (
-                  <Select
                     value={participant.country || ''}
                     onValueChange={(v) => handleCountryChange(participant.id, v)}
                   >
@@ -321,7 +278,7 @@ export function ParticipantTable({
           ))}
           {sortedParticipants.length === 0 && (
             <TableRow>
-              <TableCell colSpan={6} className="py-4 text-center text-muted-foreground">
+              <TableCell colSpan={5} className="py-4 text-center text-muted-foreground">
                 No participants added yet. Add participants in the A2 section.
               </TableCell>
             </TableRow>
