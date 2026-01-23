@@ -26,9 +26,13 @@ import {
   Layers,
   BookOpen,
   FormInput,
-  AlertCircle
+  AlertCircle,
+  Info,
+  Lightbulb,
+  ClipboardCheck
 } from "lucide-react";
 import { toast } from "sonner";
+import { GuidelineEditorDialog } from "@/components/admin/GuidelineEditorDialog";
 import type { FundingProgramme, TemplateType, TemplateSection, SectionGuideline, TemplateFormField } from "@/types/templates";
 
 export function TemplateAdmin() {
@@ -1142,6 +1146,72 @@ function SectionAccordionItem({
   onDeleteFormField: (id: string) => Promise<any>;
 }) {
   const childSections = allSections.filter(s => s.parent_section_id === section.id);
+  const [guidelineDialogOpen, setGuidelineDialogOpen] = useState(false);
+  const [editingGuideline, setEditingGuideline] = useState<SectionGuideline | null>(null);
+
+  const handleOpenGuidelineDialog = (guideline?: SectionGuideline) => {
+    setEditingGuideline(guideline || null);
+    setGuidelineDialogOpen(true);
+  };
+
+  const handleSaveGuideline = async (data: Partial<SectionGuideline>) => {
+    try {
+      if (editingGuideline) {
+        await onUpdateGuideline(editingGuideline.id, data);
+        toast.success("Guideline updated");
+      } else {
+        await onCreateGuideline(section.id, data);
+        toast.success("Guideline created");
+      }
+    } catch (error) {
+      toast.error("Failed to save guideline");
+    }
+  };
+
+  const handleDeleteGuideline = async (id: string) => {
+    if (confirm("Are you sure you want to delete this guideline?")) {
+      try {
+        await onDeleteGuideline(id);
+        toast.success("Guideline deleted");
+      } catch (error) {
+        toast.error("Failed to delete guideline");
+      }
+    }
+  };
+
+  // Get icon and colors for guideline type
+  const getGuidelineStyle = (type: string) => {
+    switch (type) {
+      case 'evaluation':
+        return { 
+          icon: ClipboardCheck, 
+          bgColor: 'bg-amber-50', 
+          borderColor: 'border-amber-500',
+          label: 'Evaluation Criterion'
+        };
+      case 'official':
+        return { 
+          icon: Info, 
+          bgColor: 'bg-blue-50', 
+          borderColor: 'border-blue-500',
+          label: 'Official Guidelines'
+        };
+      case 'sitra_tip':
+        return { 
+          icon: Lightbulb, 
+          bgColor: 'bg-gray-50', 
+          borderColor: 'border-gray-800',
+          label: "Sitra's Tips"
+        };
+      default:
+        return { 
+          icon: Info, 
+          bgColor: 'bg-gray-50', 
+          borderColor: 'border-gray-300',
+          label: type
+        };
+    }
+  };
 
   return (
     <AccordionItem value={section.id} className="border rounded-lg px-4">
@@ -1191,35 +1261,51 @@ function SectionAccordionItem({
           {/* Guidelines */}
           <div className="space-y-2">
             <h4 className="text-sm font-medium">Guidelines ({section.guidelines?.length || 0})</h4>
-            {section.guidelines?.map(g => (
-              <div key={g.id} className={`p-3 rounded text-sm ${g.guideline_type === 'official' ? 'bg-blue-50 border-l-4 border-blue-500' : 'bg-gray-50 border-l-4 border-gray-800'}`}>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <Badge variant={g.guideline_type === 'official' ? 'default' : 'secondary'} className="mb-1">
-                      {g.guideline_type === 'official' ? 'Official' : 'Sitra Tip'}
-                    </Badge>
-                    <p className="font-medium">{g.title}</p>
-                    <p className="text-muted-foreground line-clamp-2">{g.content}</p>
+            {section.guidelines?.map(g => {
+              const style = getGuidelineStyle(g.guideline_type);
+              const IconComponent = style.icon;
+              return (
+                <div 
+                  key={g.id} 
+                  className={`p-3 rounded text-sm ${style.bgColor} border-l-4 ${style.borderColor}`}
+                >
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <IconComponent className="w-4 h-4 flex-shrink-0" />
+                        <Badge variant="secondary" className="text-xs">
+                          {style.label}
+                        </Badge>
+                      </div>
+                      <p className="font-medium">{g.title}</p>
+                      <p className="text-muted-foreground line-clamp-3 whitespace-pre-wrap">{g.content}</p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => handleOpenGuidelineDialog(g)}
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => handleDeleteGuideline(g.id)}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
                   </div>
-                  <Button variant="ghost" size="icon" className="shrink-0" onClick={() => onDeleteGuideline(g.id)}>
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
                 </div>
-              </div>
-            ))}
-            <Button variant="outline" size="sm" className="w-full" onClick={() => {
-              const title = prompt("Guideline title:");
-              const content = prompt("Guideline content:");
-              const type = prompt("Type (official or sitra_tip):");
-              if (title && content && (type === 'official' || type === 'sitra_tip')) {
-                onCreateGuideline(section.id, { 
-                  title, 
-                  content, 
-                  guideline_type: type,
-                  order_index: (section.guidelines?.length || 0)
-                });
-              }
-            }}>
+              );
+            })}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full" 
+              onClick={() => handleOpenGuidelineDialog()}
+            >
               <Plus className="w-3 h-3 mr-1" />
               Add Guideline
             </Button>
@@ -1261,6 +1347,19 @@ function SectionAccordionItem({
             </div>
           )}
         </div>
+
+        {/* Guideline Editor Dialog */}
+        <GuidelineEditorDialog
+          isOpen={guidelineDialogOpen}
+          onClose={() => {
+            setGuidelineDialogOpen(false);
+            setEditingGuideline(null);
+          }}
+          guideline={editingGuideline}
+          sectionId={section.id}
+          existingGuidelinesCount={section.guidelines?.length || 0}
+          onSave={handleSaveGuideline}
+        />
       </AccordionContent>
     </AccordionItem>
   );
