@@ -163,6 +163,16 @@ export function GuidelinesDialog({ isOpen, onClose, sectionTitle, guidelines }: 
       }
     });
     
+    // Sort each group by order_index if available
+    Object.keys(groups).forEach((key) => {
+      groups[key as GuidelineType].sort((a, b) => {
+        // If guidelines have an order property, sort by it
+        const aOrder = (a as any).order_index ?? 0;
+        const bOrder = (b as any).order_index ?? 0;
+        return aOrder - bOrder;
+      });
+    });
+    
     return groups;
   }, [guidelines]);
 
