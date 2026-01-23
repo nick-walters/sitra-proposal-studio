@@ -3,12 +3,13 @@ import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from '@tiptap/r
 import { useState, useCallback, useRef } from 'react';
 
 function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewProps) {
-  const { src, alt, width, height, widthPercent } = node.attrs as { 
+  const { src, alt, width, height, widthPercent, alignment } = node.attrs as { 
     src: string; 
     alt?: string; 
     width?: number | string; 
     height?: number | string;
-    widthPercent?: number; 
+    widthPercent?: number;
+    alignment?: 'left' | 'center' | 'right';
   };
   const [isResizing, setIsResizing] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -88,8 +89,24 @@ function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewP
   const imgWidth = parseDimension(width);
   const imgHeight = parseDimension(height);
 
+  // Determine wrapper alignment styles
+  const getAlignmentStyles = () => {
+    switch (alignment) {
+      case 'left':
+        return { justifyContent: 'flex-start' };
+      case 'right':
+        return { justifyContent: 'flex-end' };
+      case 'center':
+      default:
+        return { justifyContent: 'center' };
+    }
+  };
+
   return (
-    <NodeViewWrapper className="resizable-image-wrapper inline-block relative" style={{ width: usePercentage ? '100%' : 'auto' }}>
+    <NodeViewWrapper 
+      className="resizable-image-wrapper w-full flex" 
+      style={getAlignmentStyles()}
+    >
       <div 
         className={`relative inline-block ${selected ? 'ring-2 ring-primary' : ''}`}
         style={{ 
@@ -161,6 +178,9 @@ export const ResizableImage = Node.create({
       widthPercent: {
         default: null,
       },
+      alignment: {
+        default: 'center',
+      },
     };
   },
 
@@ -173,12 +193,28 @@ export const ResizableImage = Node.create({
   },
 
   renderHTML({ HTMLAttributes }) {
-    // If widthPercent is set, use percentage width in the output
-    const { widthPercent, width, height, ...rest } = HTMLAttributes;
-    if (widthPercent) {
-      return ['img', mergeAttributes(rest, { style: `width: ${widthPercent}%; height: auto;` })];
+    // Build inline styles for alignment and sizing
+    const { widthPercent, width, height, alignment, ...rest } = HTMLAttributes;
+    const styles: string[] = [];
+    
+    // Add alignment via display block + margin
+    if (alignment === 'center') {
+      styles.push('display: block', 'margin-left: auto', 'margin-right: auto');
+    } else if (alignment === 'right') {
+      styles.push('display: block', 'margin-left: auto', 'margin-right: 0');
+    } else {
+      styles.push('display: block', 'margin-left: 0', 'margin-right: auto');
     }
-    return ['img', mergeAttributes(HTMLAttributes)];
+    
+    // Add width/height
+    if (widthPercent) {
+      styles.push(`width: ${widthPercent}%`, 'height: auto');
+    } else {
+      if (width) styles.push(`width: ${width}px`);
+      if (height) styles.push(`height: ${height}px`);
+    }
+    
+    return ['img', mergeAttributes(rest, { style: styles.join('; ') })];
   },
 
   addNodeView() {
@@ -190,7 +226,7 @@ export const ResizableImage = Node.create({
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     resizableImage: {
-      setImage: (options: { src: string; alt?: string; width?: number; height?: number; widthPercent?: number }) => ReturnType;
+      setImage: (options: { src: string; alt?: string; width?: number; height?: number; widthPercent?: number; alignment?: 'left' | 'center' | 'right' }) => ReturnType;
     };
   }
 }

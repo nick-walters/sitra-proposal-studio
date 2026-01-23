@@ -35,6 +35,9 @@ import {
   Lock,
   Unlock,
   Percent,
+  AlignHorizontalJustifyStart,
+  AlignHorizontalJustifyCenter,
+  AlignHorizontalJustifyEnd,
 } from "lucide-react";
 import {
   Tooltip,
@@ -162,6 +165,7 @@ export function FormattingToolbar({
   // Check if an image is selected and get its attributes
   const isImageSelected = editor?.isActive('image');
   const selectedImageAttrs = isImageSelected ? editor?.getAttributes('image') : null;
+  const currentImageAlignment = selectedImageAttrs?.alignment || 'center';
   
   // Update image dimension inputs when selection changes
   useEffect(() => {
@@ -253,6 +257,12 @@ export function FormattingToolbar({
   const handleCropComplete = useCallback((croppedImageUrl: string) => {
     if (editor) {
       editor.commands.updateAttributes('image', { src: croppedImageUrl });
+    }
+  }, [editor]);
+
+  const setImageAlignment = useCallback((alignment: 'left' | 'center' | 'right') => {
+    if (editor) {
+      editor.commands.updateAttributes('image', { alignment });
     }
   }, [editor]);
   
@@ -591,6 +601,28 @@ export function FormattingToolbar({
                 icon={<Crop className="w-4 h-4" />}
                 tooltip="Crop image"
                 onClick={handleCropClick}
+              />
+              
+              <Separator orientation="vertical" className="h-5 mx-1" />
+              
+              {/* Image alignment controls */}
+              <ToolbarButton
+                icon={<AlignHorizontalJustifyStart className="w-4 h-4" />}
+                tooltip="Align left"
+                onClick={() => setImageAlignment('left')}
+                active={currentImageAlignment === 'left'}
+              />
+              <ToolbarButton
+                icon={<AlignHorizontalJustifyCenter className="w-4 h-4" />}
+                tooltip="Align center"
+                onClick={() => setImageAlignment('center')}
+                active={currentImageAlignment === 'center'}
+              />
+              <ToolbarButton
+                icon={<AlignHorizontalJustifyEnd className="w-4 h-4" />}
+                tooltip="Align right"
+                onClick={() => setImageAlignment('right')}
+                active={currentImageAlignment === 'right'}
               />
             </div>
           </>
