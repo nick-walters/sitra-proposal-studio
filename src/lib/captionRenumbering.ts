@@ -14,16 +14,21 @@ export function renumberFigureCaptions(content: string, sectionNumber: string): 
   // Extract section number without letter prefix (e.g., "1.1" from "B1.1")
   const cleanSectionNum = sectionNumber.replace(/^[A-Za-z]+/, '');
   
-  // Pattern to match figure captions: "Figure X.X.letter"
-  // Matches patterns like "Figure 1.1.a", "Figure 2.3.b", etc.
-  const figurePattern = /(<strong>Figure )\d+\.\d+\.([a-z])(\.<\/strong>)/gi;
+  // Pattern to match figure captions with bold label: "<strong>Figure X.X.letter.</strong>" or "<em><strong>Figure..."
+  // Also match non-bold patterns for backwards compatibility
+  const figurePattern = /(<em>)?(<strong>)?Figure \d+\.\d+\.([a-z])\.(<\/strong>)?(<\/em>)?/gi;
   
   let letterIndex = 0;
   
-  return content.replace(figurePattern, (_match, prefix, _oldLetter, suffix) => {
+  return content.replace(figurePattern, (match, emStart, strongStart, _oldLetter, strongEnd, emEnd) => {
     const newLetter = String.fromCharCode('a'.charCodeAt(0) + letterIndex);
     letterIndex++;
-    return `${prefix}${cleanSectionNum}.${newLetter}${suffix}`;
+    // Preserve the original formatting structure
+    const em1 = emStart || '';
+    const strong1 = strongStart || '';
+    const strong2 = strongEnd || '';
+    const em2 = emEnd || '';
+    return `${em1}${strong1}Figure ${cleanSectionNum}.${newLetter}.${strong2}${em2}`;
   });
 }
 
@@ -37,15 +42,19 @@ export function renumberTableCaptions(content: string, sectionNumber: string): s
   // Extract section number without letter prefix (e.g., "1.1" from "B1.1")
   const cleanSectionNum = sectionNumber.replace(/^[A-Za-z]+/, '');
   
-  // Pattern to match table captions: "Table X.X.letter"
-  const tablePattern = /(<strong>Table )\d+\.\d+\.([a-z])(\.<\/strong>)/gi;
+  // Pattern to match table captions with bold label
+  const tablePattern = /(<em>)?(<strong>)?Table \d+\.\d+\.([a-z])\.(<\/strong>)?(<\/em>)?/gi;
   
   let letterIndex = 0;
   
-  return content.replace(tablePattern, (_match, prefix, _oldLetter, suffix) => {
+  return content.replace(tablePattern, (match, emStart, strongStart, _oldLetter, strongEnd, emEnd) => {
     const newLetter = String.fromCharCode('a'.charCodeAt(0) + letterIndex);
     letterIndex++;
-    return `${prefix}${cleanSectionNum}.${newLetter}${suffix}`;
+    const em1 = emStart || '';
+    const strong1 = strongStart || '';
+    const strong2 = strongEnd || '';
+    const em2 = emEnd || '';
+    return `${em1}${strong1}Table ${cleanSectionNum}.${newLetter}.${strong2}${em2}`;
   });
 }
 

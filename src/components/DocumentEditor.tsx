@@ -131,8 +131,13 @@ export function DocumentEditor({
           content: [
             {
               type: 'text',
+              marks: [{ type: 'italic' }, { type: 'bold' }],
+              text: figureLabel + '.'
+            },
+            {
+              type: 'text',
               marks: [{ type: 'italic' }],
-              text: figureLabel + '. '
+              text: ' '
             }
           ]
         }
