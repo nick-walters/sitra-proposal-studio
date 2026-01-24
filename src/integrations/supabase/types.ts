@@ -219,6 +219,45 @@ export type Database = {
           },
         ]
       }
+      common_figures: {
+        Row: {
+          category: string | null
+          content: Json | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          figure_type: string
+          id: string
+          tags: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          content?: Json | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          figure_type?: string
+          id?: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          content?: Json | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          figure_type?: string
+          id?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ethics_assessment: {
         Row: {
           animals: boolean | null

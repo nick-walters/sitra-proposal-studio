@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FigureEditor } from '@/components/FigureEditor';
-import { Plus, Image, BarChart3, Network, FileImage, Upload, Sparkles, Loader2, LayoutGrid, List } from 'lucide-react';
+import { Plus, Image, BarChart3, Network, FileImage, Upload, Sparkles, Loader2, LayoutGrid, List, Library } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -36,6 +36,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { SortableFigureItem } from './SortableFigureList';
+import { CommonFiguresDialog } from './CommonFiguresDialog';
 
 interface Figure {
   id: string;
@@ -77,6 +78,8 @@ export function FigureManager({ proposalId, canEdit }: FigureManagerProps) {
   const [newFigureType, setNewFigureType] = useState('image');
   const [newFigureSection, setNewFigureSection] = useState('workplan');
   const [viewMode, setViewMode] = useState<'list' | 'gallery'>('list');
+  const [isLibraryDialogOpen, setIsLibraryDialogOpen] = useState(false);
+  const [isAddingFromLibrary, setIsAddingFromLibrary] = useState(false);
   
   // For image upload
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -222,6 +225,45 @@ export function FigureManager({ proposalId, canEdit }: FigureManagerProps) {
       toast.error('Failed to reorder figures');
     },
   });
+
+  // Add figure from common library
+  const handleAddFromLibrary = useCallback(async (
+    commonFigure: { id: string; title: string; description: string | null; figure_type: string; content: any },
+    sectionId: string
+  ) => {
+    setIsAddingFromLibrary(true);
+    try {
+      const section = SECTION_OPTIONS.find(s => s.id === sectionId);
+      const sectionNumber = section?.number.replace('B', '') || '1.1';
+      const existingInSection = figures.filter(f => f.sectionId === sectionId);
+      const letter = String.fromCharCode(97 + existingInSection.length);
+      const figureNumber = `${sectionNumber}.${letter}`;
+
+      const { error } = await supabase
+        .from('figures')
+        .insert({
+          proposal_id: proposalId,
+          figure_number: figureNumber,
+          section_id: sectionId,
+          title: commonFigure.title,
+          figure_type: commonFigure.figure_type,
+          content: commonFigure.content,
+          caption: commonFigure.description,
+          order_index: figures.length,
+        });
+
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ['figures', proposalId] });
+      setIsLibraryDialogOpen(false);
+      toast.success('Figure added from library');
+    } catch (error) {
+      console.error('Error adding figure from library:', error);
+      toast.error('Failed to add figure');
+    } finally {
+      setIsAddingFromLibrary(false);
+    }
+  }, [figures, proposalId, queryClient]);
 
   // DnD sensors
   const sensors = useSensors(
@@ -497,13 +539,22 @@ export function FigureManager({ proposalId, canEdit }: FigureManagerProps) {
               </Button>
             </div>
             {canEdit && (
-              <Dialog open={isCreateDialogOpen} onOpenChange={(open) => open ? setIsCreateDialogOpen(true) : resetCreateDialog()}>
-                <DialogTrigger asChild>
-                  <Button className="gap-2">
-                    <Plus className="w-4 h-4" />
-                    Add Figure
-                  </Button>
-                </DialogTrigger>
+              <>
+                <Button 
+                  variant="outline" 
+                  className="gap-2"
+                  onClick={() => setIsLibraryDialogOpen(true)}
+                >
+                  <Library className="w-4 h-4" />
+                  From Library
+                </Button>
+                <Dialog open={isCreateDialogOpen} onOpenChange={(open) => open ? setIsCreateDialogOpen(true) : resetCreateDialog()}>
+                  <DialogTrigger asChild>
+                    <Button className="gap-2">
+                      <Plus className="w-4 h-4" />
+                      Add Figure
+                    </Button>
+                  </DialogTrigger>
               <DialogContent className="max-w-lg">
                 <DialogHeader>
                   <DialogTitle>Create New Figure</DialogTitle>
@@ -584,7 +635,8 @@ export function FigureManager({ proposalId, canEdit }: FigureManagerProps) {
                 </div>
               </DialogContent>
             </Dialog>
-          )}
+              </>
+            )}
           </div>
         </div>
 
@@ -699,6 +751,15 @@ export function FigureManager({ proposalId, canEdit }: FigureManagerProps) {
           );
         })}
       </div>
+
+      {/* Common Figures Library Dialog */}
+      <CommonFiguresDialog
+        open={isLibraryDialogOpen}
+        onOpenChange={setIsLibraryDialogOpen}
+        onSelectFigure={handleAddFromLibrary}
+        sectionOptions={SECTION_OPTIONS}
+        isAdding={isAddingFromLibrary}
+      />
     </div>
   );
 }
