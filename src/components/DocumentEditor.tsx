@@ -523,6 +523,38 @@ export function DocumentEditor({
                 Impact Pathways
               </Button>
             )}
+            {/* AI Writing Assistant */}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-2"
+              onClick={() => setIsWritingAssistantOpen(true)}
+              disabled={!editor || isEffectivelyReadOnly}
+            >
+              <Wand2 className="w-4 h-4" />
+              AI Assistant
+            </Button>
+            {/* Snippets Library */}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-2"
+              onClick={() => setIsSnippetsOpen(true)}
+              disabled={!editor || isEffectivelyReadOnly}
+            >
+              <FileCode className="w-4 h-4" />
+              Snippets
+            </Button>
+            {/* Split View */}
+            <Button 
+              variant={isSplitViewOpen ? "default" : "outline"}
+              size="sm" 
+              className="gap-2"
+              onClick={() => setIsSplitViewOpen(!isSplitViewOpen)}
+            >
+              <SplitSquareHorizontal className="w-4 h-4" />
+              Split View
+            </Button>
           </div>
           <div className="flex items-center gap-2">
             {/* Assignment button - only visible to admins/owners */}
@@ -913,6 +945,40 @@ export function DocumentEditor({
         isOpen={isShortcutsOpen}
         onClose={() => setIsShortcutsOpen(false)}
       />
+      <WritingAssistantDialog
+        isOpen={isWritingAssistantOpen}
+        onClose={() => setIsWritingAssistantOpen(false)}
+        selectedText={selectedText}
+        onApply={(newText) => {
+          if (editor && selectionRange) {
+            editor.chain()
+              .focus()
+              .setTextSelection({ from: selectionRange.start, to: selectionRange.end })
+              .deleteSelection()
+              .insertContent(newText)
+              .run();
+          }
+        }}
+      />
+      <SnippetsDialog
+        isOpen={isSnippetsOpen}
+        onClose={() => setIsSnippetsOpen(false)}
+        onInsert={(snippetContent) => {
+          if (editor) {
+            editor.chain().focus().insertContent(snippetContent).run();
+          }
+          setIsSnippetsOpen(false);
+        }}
+      />
+      {/* Split View Panel */}
+      {isSplitViewOpen && (
+        <SplitViewPanel
+          proposalId={proposalId}
+          currentSectionId={section?.id || ''}
+          sections={allSections}
+          onClose={() => setIsSplitViewOpen(false)}
+        />
+      )}
     </div>
   );
 }
