@@ -1,7 +1,7 @@
 import { Section } from "@/types/proposal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, BookOpen, Route, History, Info, Image, Link2 } from "lucide-react";
+import { Sparkles, BookOpen, Route, History, Info, Image, Link2, Lock, Unlock } from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
 import { EditorContent } from "@tiptap/react";
@@ -14,8 +14,15 @@ import { SectionVersionHistoryDialog } from "./SectionVersionHistoryDialog";
 import { GuidelinesDialog } from "./GuidelinesDialog";
 import { SaveIndicator } from "./SaveIndicator";
 import { useSectionContent } from "@/hooks/useSectionContent";
+import { useSectionLocking } from "@/hooks/useSectionLocking";
 import { renumberFootnotes } from "@/lib/captionRenumbering";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Reference {
   authors: string[];
@@ -66,6 +73,26 @@ export function DocumentEditor({
     sectionNumber: section?.number,
   });
   
+  // Use section locking hook
+  const sectionLockingHook = useSectionLocking({
+    proposalId: proposalId || '',
+    sectionId: section?.id || '',
+  });
+
+  const { 
+    isLocked, 
+    lockedByName, 
+    lockedAt, 
+    lockReason, 
+    canManageLock, 
+    isLockedByMe, 
+    toggleLock, 
+    updating: lockUpdating 
+  } = sectionLockingHook;
+
+  // Determine if section is effectively read-only (prop or locked)
+  const isEffectivelyReadOnly = readOnly || (isLocked && !isLockedByMe);
+
   const { content, setContent, loading, saving, lastSaved, lastCitationMapping } = sectionContentHook;
 
   // Sync footnotes when citations are renumbered
@@ -91,7 +118,7 @@ export function DocumentEditor({
   // Use the editor hook for external toolbar control with citation tooltips
   const editor = useRichTextEditor({
     content,
-    onChange: readOnly ? () => {} : (newContent) => setContent(newContent),
+    onChange: isEffectivelyReadOnly ? () => {} : (newContent) => setContent(newContent),
     getReference,
   });
 
@@ -248,7 +275,7 @@ export function DocumentEditor({
               size="sm" 
               className="gap-2" 
               onClick={() => setIsCitationOpen(true)}
-              disabled={readOnly}
+              disabled={isEffectivelyReadOnly}
             >
               <BookOpen className="w-4 h-4" />
               Add Citation
@@ -260,7 +287,7 @@ export function DocumentEditor({
                 size="sm" 
                 className="gap-2" 
                 onClick={() => setIsFigureDialogOpen(true)}
-                disabled={readOnly}
+                disabled={isEffectivelyReadOnly}
               >
                 <Image className="w-4 h-4" />
                 Insert Figure
@@ -273,7 +300,7 @@ export function DocumentEditor({
                 size="sm" 
                 className="gap-2" 
                 onClick={() => setIsCrossRefOpen(true)}
-                disabled={readOnly}
+                disabled={isEffectivelyReadOnly}
                 title="Insert a reference to a figure or table"
               >
                 <Link2 className="w-4 h-4" />
@@ -287,7 +314,7 @@ export function DocumentEditor({
                 size="sm" 
                 className="gap-2 bg-primary/5 border-primary/30 hover:bg-primary/10" 
                 onClick={() => setIsImpactPathwayOpen(true)}
-                disabled={readOnly}
+                disabled={isEffectivelyReadOnly}
               >
                 <Route className="w-4 h-4" />
                 Impact Pathways
@@ -295,6 +322,37 @@ export function DocumentEditor({
             )}
           </div>
           <div className="flex items-center gap-2">
+            {/* Lock/Unlock button - only visible to admins/owners */}
+            {canManageLock && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant={isLocked ? "default" : "outline"}
+                    size="sm" 
+                    className={`gap-2 ${isLocked ? 'bg-amber-500 hover:bg-amber-600 text-white' : ''}`}
+                    onClick={() => toggleLock()}
+                    disabled={lockUpdating}
+                  >
+                    {isLocked ? (
+                      <>
+                        <Lock className="w-4 h-4" />
+                        Unlock
+                      </>
+                    ) : (
+                      <>
+                        <Unlock className="w-4 h-4" />
+                        Lock
+                      </>
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isLocked 
+                    ? 'Unlock this section to allow editing' 
+                    : 'Lock this section to prevent editing during review'}
+                </TooltipContent>
+              </Tooltip>
+            )}
             <Button 
               variant="outline" 
               size="sm" 
@@ -304,9 +362,21 @@ export function DocumentEditor({
               <History className="w-4 h-4" />
               Version History
             </Button>
-            {!readOnly && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
+            {!isEffectivelyReadOnly && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
           </div>
         </div>
+
+        {/* Locked section banner */}
+        {isLocked && !isLockedByMe && (
+          <Alert className="mx-0 rounded-none border-x-0 bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
+            <Lock className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-800 dark:text-amber-200">
+              This section is locked{lockedByName ? ` by ${lockedByName}` : ''} 
+              {lockReason ? `: ${lockReason}` : ' for review'}. 
+              Editing is disabled.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Formatting Toolbar - immediately below Features toolbar */}
         <FormattingToolbar 
@@ -351,7 +421,7 @@ export function DocumentEditor({
             ) : (
               <EditorContent 
                 editor={editor} 
-                className="document-content min-h-[400px] outline-none prose prose-sm max-w-none"
+                className={`document-content min-h-[400px] outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''}`}
                 style={{ fontFamily: '"Times New Roman", Times, serif' }}
               />
             )}
