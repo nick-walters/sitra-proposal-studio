@@ -53,6 +53,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useCallback, useState, useRef, useEffect } from 'react';
 import {
   Popover,
@@ -165,6 +175,7 @@ export function FormattingToolbar({
   const [widthMode, setWidthMode] = useState<'px' | '%'>('px');
   const [aspectRatio, setAspectRatio] = useState(1);
   const [aspectRatioLocked, setAspectRatioLocked] = useState(true);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Check if an image is selected and get its attributes
   const isImageSelected = editor?.isActive('image');
@@ -697,7 +708,7 @@ export function FormattingToolbar({
               <ToolbarButton
                 icon={<Trash2 className="w-4 h-4 text-destructive" />}
                 tooltip="Delete figure with caption"
-                onClick={deleteFigureWithCaption}
+                onClick={() => setShowDeleteConfirm(true)}
               />
             </div>
           </>
@@ -711,6 +722,30 @@ export function FormattingToolbar({
         imageSrc={cropImageSrc}
         onCrop={handleCropComplete}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Figure</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this figure and its caption? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                deleteFigureWithCaption();
+                setShowDeleteConfirm(false);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
