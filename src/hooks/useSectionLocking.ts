@@ -53,9 +53,17 @@ export function useSectionLocking({ proposalId, sectionId }: UseSectionLockingPr
           .from('proposal_templates')
           .select('id')
           .eq('proposal_id', proposalId)
-          .single();
+          .maybeSingle();
 
-        if (templateError) throw templateError;
+        // If no template exists yet, just return - lock status defaults to unlocked
+        if (templateError && templateError.code !== 'PGRST116') {
+          console.error('Error fetching template:', templateError);
+        }
+        
+        if (!templateData) {
+          setLoading(false);
+          return;
+        }
 
         const { data, error } = await supabase
           .from('proposal_template_sections')
@@ -82,7 +90,7 @@ export function useSectionLocking({ proposalId, sectionId }: UseSectionLockingPr
               .from('profiles')
               .select('full_name, first_name, last_name')
               .eq('id', data.locked_by)
-              .single();
+              .maybeSingle();
             
             if (profileData) {
               lockedByName = profileData.full_name || 
@@ -125,9 +133,14 @@ export function useSectionLocking({ proposalId, sectionId }: UseSectionLockingPr
         .from('proposal_templates')
         .select('id')
         .eq('proposal_id', proposalId)
-        .single();
+        .maybeSingle();
 
-      if (templateError) throw templateError;
+      if (templateError && templateError.code !== 'PGRST116') throw templateError;
+      
+      if (!templateData) {
+        toast.error('No template found for this proposal');
+        return false;
+      }
 
       const newLockState = !lockInfo.isLocked;
 
