@@ -70,6 +70,113 @@
   font-style: italic !important;
 }
 
+/* Draggable Block Styles */
+.draggable-block {
+  position: relative;
+}
+
+.draggable-block:hover .drag-handle {
+  opacity: 1;
+}
+
+.drag-handle {
+  position: absolute;
+  left: -24px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  border-radius: 3px;
+  background: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+}
+
+.drag-handle:hover {
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.drag-handle svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Drop target indicator */
+.drop-target-indicator {
+  position: relative;
+}
+
+.drop-target-indicator::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: hsl(var(--primary));
+  border-radius: 2px;
+}
+
+/* Dragging state */
+.ProseMirror [draggable="true"] {
+  opacity: 0.5;
+}
+
+/* Wrapper for draggable figures and tables */
+.draggable-figure-wrapper,
+.draggable-table-wrapper,
+.draggable-table-node {
+  position: relative;
+  padding-left: 28px;
+  margin-left: -28px;
+}
+
+.draggable-figure-wrapper:hover .drag-handle,
+.draggable-table-wrapper:hover .drag-handle,
+.draggable-table-node:hover .drag-handle {
+  opacity: 1;
+}
+
+/* Table drag handle via pseudo-element */
+.draggable-table-node::before {
+  content: '⋮⋮';
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  border-radius: 3px;
+  background: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+  font-size: 10px;
+  letter-spacing: -2px;
+}
+
+.draggable-table-node:hover::before {
+  opacity: 1;
+}
+
+.draggable-table-node:active::before {
+  cursor: grabbing;
+}
+
 /* Figure container styling */
 .figure-container {
   margin: 1rem 0 !important;
