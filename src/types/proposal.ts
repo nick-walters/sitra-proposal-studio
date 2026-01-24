@@ -182,6 +182,7 @@ export interface Section {
   pageLimit?: number;
   isPartA?: boolean;
   sectionTag?: string; // Official HE tag for PDF export (e.g., [#Objectives])
+  placeholderContent?: string; // Pre-filled guidance text for new sections
 }
 
 export interface Proposal {

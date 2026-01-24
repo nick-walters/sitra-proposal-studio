@@ -119,6 +119,7 @@ export interface ProposalTemplateSection {
   page_limit?: number;
   word_limit?: number;
   section_tag?: string;
+  placeholder_content?: string; // Pre-filled guidance text for writers
   order_index: number;
   parent_section_id?: string;
   is_required: boolean;

@@ -8,6 +8,7 @@ interface UseSectionContentProps {
   proposalId: string;
   sectionId: string;
   sectionNumber?: string; // For caption renumbering
+  placeholderContent?: string; // Pre-filled guidance text for new sections
 }
 
 // Version save interval: 5 minutes
@@ -15,12 +16,13 @@ const VERSION_SAVE_INTERVAL = 5 * 60 * 1000;
 // Debounce delay for autosave
 const AUTOSAVE_DEBOUNCE = 1000;
 
-export function useSectionContent({ proposalId, sectionId, sectionNumber }: UseSectionContentProps) {
+export function useSectionContent({ proposalId, sectionId, sectionNumber, placeholderContent }: UseSectionContentProps) {
   const [content, setContentState] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [lastCitationMapping, setLastCitationMapping] = useState<Map<number, number>>(new Map());
+  const [isPlaceholder, setIsPlaceholder] = useState(false); // Track if content is still placeholder
   const { user } = useAuth();
   
   // Refs for managing state across effects
@@ -125,8 +127,16 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber }: UseS
         setContentState(data.content || '');
         contentIdRef.current = data.id;
         lastVersionContentRef.current = data.content || '';
+        setIsPlaceholder(false);
       } else {
-        setContentState('');
+        // No saved content - use placeholder if available
+        if (placeholderContent) {
+          setContentState(placeholderContent);
+          setIsPlaceholder(true);
+        } else {
+          setContentState('');
+          setIsPlaceholder(false);
+        }
         contentIdRef.current = null;
         lastVersionContentRef.current = '';
       }
@@ -229,6 +239,11 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber }: UseS
   const handleContentChange = useCallback((newContent: string) => {
     setContentState(newContent);
     pendingContentRef.current = newContent;
+    
+    // Clear placeholder flag when user starts editing
+    if (isPlaceholder) {
+      setIsPlaceholder(false);
+    }
 
     // Debounced save
     if (saveTimeoutRef.current) {
@@ -237,7 +252,14 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber }: UseS
     saveTimeoutRef.current = setTimeout(() => {
       saveContent(newContent);
     }, AUTOSAVE_DEBOUNCE);
-  }, [saveContent]);
+  }, [saveContent, isPlaceholder]);
+
+  // Clear placeholder content and start fresh
+  const clearPlaceholder = useCallback(() => {
+    setContentState('');
+    setIsPlaceholder(false);
+    pendingContentRef.current = '';
+  }, []);
 
   // Flush pending changes immediately
   const flushPendingChanges = useCallback(async () => {
@@ -340,6 +362,8 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber }: UseS
     saving,
     lastSaved,
     lastCitationMapping,
+    isPlaceholder,
+    clearPlaceholder,
     saveNow: flushPendingChanges,
     saveVersionNow: () => saveVersion(content),
   };

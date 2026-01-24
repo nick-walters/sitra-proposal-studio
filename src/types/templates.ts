@@ -44,6 +44,7 @@ export interface TemplateSection {
   editor_type: EditorType;
   word_limit?: number;
   page_limit?: number;
+  placeholder_content?: string; // Pre-filled guidance text for writers
   order_index: number;
   parent_section_id?: string;
   is_required: boolean;

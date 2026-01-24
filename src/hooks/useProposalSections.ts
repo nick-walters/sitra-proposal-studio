@@ -18,6 +18,7 @@ interface TemplateSectionData {
   is_required: boolean;
   is_active: boolean;
   section_tag: string | null; // Official HE tag for PDF export
+  placeholder_content: string | null; // Pre-filled guidance text for writers
   guidelines?: {
     id: string;
     guideline_type: 'official' | 'sitra_tip' | 'evaluation';
@@ -79,6 +80,7 @@ function convertToSection(dbSection: TemplateSectionData): Section {
     guidelinesArray: guidelinesArray.length > 0 ? guidelinesArray : undefined,
     isPartA: dbSection.part === 'A',
     sectionTag: dbSection.section_tag || undefined,
+    placeholderContent: dbSection.placeholder_content || undefined,
     subsections: [],
   };
 }
