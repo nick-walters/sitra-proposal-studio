@@ -74,7 +74,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
         },
       acceptChange:
         (changeId: string) =>
-        ({ editor, tr }) => {
+        ({ editor, tr, state }) => {
           const changeIndex = this.storage.changes.findIndex(
             (c: TrackChange) => c.id === changeId
           );
@@ -82,9 +82,16 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
 
           const change = this.storage.changes[changeIndex];
           
-          if (change.type === 'deletion') {
-            // For deletions, accepting means removing the content permanently
-            // The content is already visually struck through, just remove the tracking
+          if (change.type === 'deletion' && change.content) {
+            // For deletions, accepting means actually deleting the content
+            // Find and remove the content that was marked for deletion
+            try {
+              if (change.from >= 0 && change.to <= state.doc.content.size && change.to > change.from) {
+                tr.delete(change.from, change.to);
+              }
+            } catch (e) {
+              console.warn('Could not delete content for accepted deletion:', e);
+            }
           }
           // For insertions, accepting means keeping the content (already there)
           
@@ -105,11 +112,15 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           
           if (change.type === 'insertion') {
             // For insertions, rejecting means removing the content
-            tr.delete(change.from, change.to);
-          } else if (change.type === 'deletion' && change.content) {
-            // For deletions, rejecting means restoring the content
-            // Content is already there (struck through), just remove tracking
+            try {
+              if (change.from >= 0 && change.to <= state.doc.content.size) {
+                tr.delete(change.from, change.to);
+              }
+            } catch (e) {
+              console.warn('Could not delete rejected insertion:', e);
+            }
           }
+          // For deletions, rejecting means keeping the content (already there, just remove strike-through)
           
           this.storage.changes.splice(changeIndex, 1);
           this.options.onChangesUpdate?.(this.storage.changes);
@@ -219,12 +230,12 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
               const stepMap = step.getMap();
               
               stepMap.forEach((oldStart, oldEnd, newStart, newEnd) => {
-                // Deletion
+                // Deletion: old content existed but new content doesn't
                 if (oldEnd > oldStart && newEnd === newStart) {
                   const deletedContent = oldState.doc.textBetween(oldStart, oldEnd, ' ');
                   if (deletedContent.trim()) {
-                    // In real track changes, we'd keep the content but mark it
-                    // For simplicity, we'll track the deletion position
+                    // For proper track changes, we need to mark the deletion
+                    // Since content is actually deleted, we store metadata only
                     extension.storage.changes.push({
                       id: generateChangeId(),
                       type: 'deletion',
@@ -233,28 +244,32 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                       authorColor: extension.options.authorColor,
                       timestamp: new Date(),
                       from: newStart,
-                      to: newStart, // Deletion is at a point
+                      to: newStart, // Point position after deletion
                       content: deletedContent,
                     });
                     hasChanges = true;
                   }
                 }
                 
-                // Insertion
-                if (newEnd > newStart && oldEnd === oldStart) {
-                  const insertedContent = newState.doc.textBetween(newStart, newEnd, ' ');
-                  if (insertedContent.trim()) {
-                    extension.storage.changes.push({
-                      id: generateChangeId(),
-                      type: 'insertion',
-                      authorId: extension.options.authorId,
-                      authorName: extension.options.authorName,
-                      authorColor: extension.options.authorColor,
-                      timestamp: new Date(),
-                      from: newStart,
-                      to: newEnd,
-                    });
-                    hasChanges = true;
+                // Insertion: new content appeared where there was none or less
+                if (newEnd > newStart) {
+                  // Check if this is pure insertion (no replacement)
+                  if (oldEnd === oldStart) {
+                    const insertedContent = newState.doc.textBetween(newStart, newEnd, ' ');
+                    if (insertedContent.trim()) {
+                      extension.storage.changes.push({
+                        id: generateChangeId(),
+                        type: 'insertion',
+                        authorId: extension.options.authorId,
+                        authorName: extension.options.authorName,
+                        authorColor: extension.options.authorColor,
+                        timestamp: new Date(),
+                        from: newStart,
+                        to: newEnd,
+                        content: insertedContent,
+                      });
+                      hasChanges = true;
+                    }
                   }
                 }
               });
