@@ -1,7 +1,7 @@
 import { Section } from "@/types/proposal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, BookOpen, Route, History, Info, Image, Link2, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X } from "lucide-react";
+import { Sparkles, BookOpen, Route, History, Info, Image, Link2, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search } from "lucide-react";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
 import { EditorContent } from "@tiptap/react";
@@ -26,6 +26,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format, isPast, isToday, differenceInDays } from "date-fns";
 import { CollaborativeCursors } from "./CollaborativeCursors";
 import { TrackChangesToolbar } from "./TrackChangesToolbar";
+import { SearchReplaceDialog } from "./SearchReplaceDialog";
+import { TableFormulaDialog } from "./TableFormulaDialog";
 import { TrackChange } from "@/extensions/TrackChanges";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -83,6 +85,8 @@ export function DocumentEditor({
   // Track changes state
   const [trackChangesEnabled, setTrackChangesEnabled] = useState(false);
   const [trackedChanges, setTrackedChanges] = useState<TrackChange[]>([]);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isFormulaOpen, setIsFormulaOpen] = useState(false);
   
   // Editor container ref for cursor overlays
   const editorContainerRef = useRef<HTMLDivElement>(null);
@@ -392,6 +396,10 @@ export function DocumentEditor({
               <Info className="w-4 h-4" />
               Guidelines
             </Button>
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsSearchOpen(true)}>
+              <Search className="w-4 h-4" />
+              Find & Replace
+            </Button>
             <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsGrammarOpen(true)}>
               <Sparkles className="w-4 h-4" />
               Grammar Check
@@ -618,6 +626,7 @@ export function DocumentEditor({
           sectionNumber={section?.number}
           content={content}
           onOpenFigureDialog={() => setIsFigureDialogOpen(true)}
+          onOpenFormulaDialog={() => setIsFormulaOpen(true)}
         />
       </div>
 
@@ -775,6 +784,16 @@ export function DocumentEditor({
         updating={assignmentUpdating}
         onAssign={assignSection}
         onClearAssignment={clearAssignment}
+      />
+      <SearchReplaceDialog
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        editor={editor}
+      />
+      <TableFormulaDialog
+        isOpen={isFormulaOpen}
+        onClose={() => setIsFormulaOpen(false)}
+        editor={editor}
       />
     </div>
   );
