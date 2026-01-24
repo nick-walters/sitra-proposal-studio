@@ -2,7 +2,7 @@ import { Section } from "@/types/proposal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sparkles, BookOpen, Route, History, Info, Image, Link2, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X } from "lucide-react";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
 import { EditorContent } from "@tiptap/react";
 import { GrammarChecker } from "./GrammarChecker";
@@ -18,11 +18,16 @@ import { SaveIndicator } from "./SaveIndicator";
 import { useSectionContent } from "@/hooks/useSectionContent";
 import { useSectionLocking } from "@/hooks/useSectionLocking";
 import { useSectionAssignment } from "@/hooks/useSectionAssignment";
+import { useCollaborativeCursors } from "@/hooks/useCollaborativeCursors";
 import { renumberFootnotes } from "@/lib/captionRenumbering";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format, isPast, isToday, differenceInDays } from "date-fns";
+import { CollaborativeCursors } from "./CollaborativeCursors";
+import { TrackChangesToolbar } from "./TrackChangesToolbar";
+import { TrackChange } from "@/extensions/TrackChanges";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Tooltip,
   TooltipContent,
@@ -60,6 +65,7 @@ export function DocumentEditor({
   workProgramme,
   destination,
 }: DocumentEditorProps) {
+  const { user } = useAuth();
   const [isGrammarOpen, setIsGrammarOpen] = useState(false);
   const [isCitationOpen, setIsCitationOpen] = useState(false);
   const [isFigureDialogOpen, setIsFigureDialogOpen] = useState(false);
@@ -73,7 +79,26 @@ export function DocumentEditor({
   const [selectionRange, setSelectionRange] = useState<{ start: number; end: number } | undefined>();
   const [references, setReferences] = useState<Reference[]>([]);
   const [footnotes, setFootnotes] = useState<Array<{ number: number; citation: string }>>([]);
-
+  
+  // Track changes state
+  const [trackChangesEnabled, setTrackChangesEnabled] = useState(false);
+  const [trackedChanges, setTrackedChanges] = useState<TrackChange[]>([]);
+  
+  // Editor container ref for cursor overlays
+  const editorContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Collaborative cursors hook
+  const { 
+    collaboratorsInSection, 
+    updateCursorPosition,
+    getColorForUser 
+  } = useCollaborativeCursors({
+    proposalId: proposalId || '',
+    currentSectionId: section?.id || null,
+  });
+  
+  // Get user color for track changes
+  const userColor = user ? getColorForUser(user.id) : '#3B82F6';
   // Use the section content hook for database persistence and real-time updates
   // IMPORTANT: Always call hooks with the same parameters to avoid "rendered more hooks" error
   const sectionContentHook = useSectionContent({
@@ -160,7 +185,32 @@ export function DocumentEditor({
     content,
     onChange: isEffectivelyReadOnly ? () => {} : (newContent) => setContent(newContent),
     getReference,
+    trackChanges: {
+      enabled: trackChangesEnabled,
+      authorId: user?.id || '',
+      authorName: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Anonymous',
+      authorColor: userColor,
+      onChangesUpdate: setTrackedChanges,
+    },
   });
+
+  // Track cursor position for collaboration
+  useEffect(() => {
+    if (!editor) return;
+    
+    const handleSelectionUpdate = () => {
+      const { from, to } = editor.state.selection;
+      updateCursorPosition(
+        { line: 0, ch: to }, // Use 'to' as cursor position
+        from !== to ? { from, to } : null // Include selection range if text is selected
+      );
+    };
+    
+    editor.on('selectionUpdate', handleSelectionUpdate);
+    return () => {
+      editor.off('selectionUpdate', handleSelectionUpdate);
+    };
+  }, [editor, updateCursorPosition]);
 
   const handleInsertCitation = useCallback((reference: Reference, formattedCitation: string, citationNumber: number) => {
     if (!editor) return;
@@ -451,6 +501,13 @@ export function DocumentEditor({
                 </TooltipContent>
               </Tooltip>
             )}
+            {/* Track Changes Toggle */}
+            <TrackChangesToolbar
+              editor={editor}
+              enabled={trackChangesEnabled}
+              onToggle={setTrackChangesEnabled}
+              changes={trackedChanges}
+            />
             <Button 
               variant="outline" 
               size="sm" 
@@ -598,11 +655,19 @@ export function DocumentEditor({
                   <Skeleton className="h-4 w-2/3" />
                 </div>
               ) : (
-                <EditorContent 
-                  editor={editor} 
-                  className={`document-content min-h-[400px] outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''}`}
-                  style={{ fontFamily: '"Times New Roman", Times, serif' }}
-                />
+                <div ref={editorContainerRef} className="relative">
+                  <EditorContent 
+                    editor={editor} 
+                    className={`document-content min-h-[400px] outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''}`}
+                    style={{ fontFamily: '"Times New Roman", Times, serif' }}
+                  />
+                  {/* Collaborative cursors overlay */}
+                  <CollaborativeCursors
+                    editor={editor}
+                    collaborators={collaboratorsInSection}
+                    containerRef={editorContainerRef}
+                  />
+                </div>
               )}
 
               {/* Footnotes */}

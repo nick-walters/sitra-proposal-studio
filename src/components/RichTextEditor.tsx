@@ -11,6 +11,7 @@ import { ResizableImage } from './ResizableImage';
 import { ImageCropDialog } from './ImageCropDialog';
 import { createCitationTooltipPlugin } from './CitationMark';
 import { DraggableBlock } from './DraggableBlock';
+import { TrackChanges, TrackChangesOptions } from '@/extensions/TrackChanges';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
@@ -824,16 +825,26 @@ export function useRichTextEditor({
   content, 
   onChange,
   getReference,
+  trackChanges,
 }: { 
   content: string; 
   onChange: (content: string) => void;
   getReference?: (citationNumber: number) => { citation: string } | undefined;
+  trackChanges?: {
+    enabled: boolean;
+    authorId: string;
+    authorName: string;
+    authorColor: string;
+    onChangesUpdate?: (changes: any[]) => void;
+  };
 }) {
   // Track the last content we set to the editor to avoid infinite loops
   const lastSetContentRef = useRef<string>(content);
   // Store getReference in a ref to avoid recreating the extension
   const getReferenceRef = useRef(getReference);
   getReferenceRef.current = getReference;
+  // Store track changes config in a ref
+  const trackChangesRef = useRef(trackChanges);
   
   const editor = useEditor({
     extensions: [
@@ -882,6 +893,15 @@ export function useRichTextEditor({
       }),
       // Add draggable block extension for figures and tables
       DraggableBlock,
+      // Track changes extension
+      TrackChanges.configure({
+        enabled: trackChanges?.enabled || false,
+        authorId: trackChanges?.authorId || '',
+        authorName: trackChanges?.authorName || 'Anonymous',
+        authorColor: trackChanges?.authorColor || '#3B82F6',
+        changes: [],
+        onChangesUpdate: trackChanges?.onChangesUpdate,
+      }),
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -905,6 +925,18 @@ export function useRichTextEditor({
       editor.commands.setContent(content, { emitUpdate: false });
     }
   }, [editor, content]);
+
+  // Sync track changes enabled state
+  useEffect(() => {
+    if (!editor) return;
+    trackChangesRef.current = trackChanges;
+    const storage = (editor.storage as any).trackChanges;
+    if (storage && storage.enabled !== trackChanges?.enabled) {
+      storage.enabled = trackChanges?.enabled || false;
+      // Force re-render of decorations
+      editor.view.dispatch(editor.state.tr);
+    }
+  }, [editor, trackChanges?.enabled]);
 
   return editor;
 }
