@@ -10,6 +10,7 @@ import { EthicsForm } from "@/components/EthicsForm";
 import { DeclarationsForm } from "@/components/DeclarationsForm";
 import { WorkPackageManager } from "@/components/WorkPackageManager";
 import { FigureManager } from "@/components/FigureManager";
+import { SectionProgressDashboard } from "@/components/SectionProgressDashboard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -36,6 +37,7 @@ import {
   Send,
   Copy,
   Users,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePdfExport } from "@/hooks/usePdfExport";
@@ -414,6 +416,16 @@ export function ProposalEditor() {
         <FigureManager
           proposalId={id || ''}
           canEdit={canEdit}
+        />
+      );
+    }
+
+    // Progress dashboard section
+    if (activeSection.id === 'progress') {
+      return (
+        <SectionProgressDashboard
+          proposalId={id || ''}
+          proposalAcronym={proposal?.acronym}
         />
       );
     }

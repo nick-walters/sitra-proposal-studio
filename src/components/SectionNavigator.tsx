@@ -1,5 +1,5 @@
 import { Section, Participant } from "@/types/proposal";
-import { ChevronRight, ChevronDown, FileText, Info, Lightbulb, User, Clock, AlertTriangle } from "lucide-react";
+import { ChevronRight, ChevronDown, FileText, Info, Lightbulb, User, Clock, AlertTriangle, BarChart3 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
@@ -78,7 +78,7 @@ function SectionItem({
     section.id === 'b2'
   );
   
-  // Check if this is a top-level bold item (Proposal overview, Part A, Part B, Figures)
+  // Check if this is a top-level bold item (Proposal overview, Part A, Part B, Figures, Progress)
   // Match both ID-based and number-based checks for database sections
   const isTopLevelBold = 
     section.id === 'proposal-overview' || 
@@ -87,7 +87,8 @@ function SectionItem({
     section.id === 'part-b' || 
     section.number === 'Part B' ||
     section.id === 'figures' ||
-    section.title === 'Figures';
+    section.title === 'Figures' ||
+    section.id === 'progress';
   
   // Check for guideline types
   const hasOfficialGuideline = section.guidelinesArray?.some(g => g.type === 'official') || 
@@ -132,6 +133,8 @@ function SectionItem({
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             )}
           </button>
+        ) : section.id === 'progress' ? (
+          <BarChart3 className="w-4 h-4 text-muted-foreground" />
         ) : (
           <FileText className="w-4 h-4 text-muted-foreground" />
         )}
