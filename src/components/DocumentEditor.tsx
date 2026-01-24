@@ -19,12 +19,14 @@ import { useSectionContent } from "@/hooks/useSectionContent";
 import { useSectionLocking } from "@/hooks/useSectionLocking";
 import { useSectionAssignment } from "@/hooks/useSectionAssignment";
 import { useCollaborativeCursors } from "@/hooks/useCollaborativeCursors";
+import { useBlockLocking } from "@/hooks/useBlockLocking";
 import { renumberFootnotes } from "@/lib/captionRenumbering";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format, isPast, isToday, differenceInDays } from "date-fns";
 import { CollaborativeCursors } from "./CollaborativeCursors";
+import { BlockLockIndicator } from "./BlockLockIndicator";
 import { TrackChangesToolbar } from "./TrackChangesToolbar";
 import { SearchReplaceDialog } from "./SearchReplaceDialog";
 import { TableFormulaDialog } from "./TableFormulaDialog";
@@ -104,7 +106,10 @@ export function DocumentEditor({
     proposalId: proposalId || '',
     currentSectionId: section?.id || null,
   });
-  
+
+  // Create a temporary editor ref for block locking initialization
+  const editorRef = useRef<any>(null);
+
   // Get user color for track changes
   const userColor = user ? getColorForUser(user.id) : '#3B82F6';
   // Use the section content hook for database persistence and real-time updates
@@ -188,6 +193,13 @@ export function DocumentEditor({
     return footnote ? { citation: footnote.citation } : undefined;
   }, [footnotes]);
 
+  // Block locking refs for editor integration
+  const blockLocksRef = useRef<Map<string, { userId: string; blockId: string; blockType: string }>>(new Map());
+  const getLockedBlocksForEditor = useCallback(() => {
+    return Array.from(blockLocksRef.current.values());
+  }, []);
+  const getCurrentUserIdForEditor = useCallback(() => user?.id || null, [user?.id]);
+
   // Use the editor hook for external toolbar control with citation tooltips
   const editor = useRichTextEditor({
     content,
@@ -200,25 +212,51 @@ export function DocumentEditor({
       authorColor: userColor,
       onChangesUpdate: setTrackedChanges,
     },
+    blockLocking: {
+      getLockedBlocks: getLockedBlocksForEditor,
+      getCurrentUserId: getCurrentUserIdForEditor,
+    },
   });
 
-  // Track cursor position for collaboration
+  // Block locking hook - needs editor for position tracking
+  const {
+    blockLocks,
+    updateCurrentBlock,
+    getLockedBlocks,
+  } = useBlockLocking({
+    proposalId: proposalId || '',
+    sectionId: section?.id || null,
+    editor,
+  });
+
+  // Keep blockLocksRef in sync with blockLocks
+  useEffect(() => {
+    blockLocksRef.current = blockLocks;
+  }, [blockLocks]);
+
+  // Track cursor position for collaboration AND block locking
   useEffect(() => {
     if (!editor) return;
     
     const handleSelectionUpdate = () => {
       const { from, to } = editor.state.selection;
+      // Update collaborative cursor position
       updateCursorPosition(
         { line: 0, ch: to }, // Use 'to' as cursor position
         from !== to ? { from, to } : null // Include selection range if text is selected
       );
+      // Update block lock position
+      updateCurrentBlock(from);
     };
     
     editor.on('selectionUpdate', handleSelectionUpdate);
+    editor.on('focus', handleSelectionUpdate);
+    
     return () => {
       editor.off('selectionUpdate', handleSelectionUpdate);
+      editor.off('focus', handleSelectionUpdate);
     };
-  }, [editor, updateCursorPosition]);
+  }, [editor, updateCursorPosition, updateCurrentBlock]);
 
   // Keyboard shortcuts for dialogs
   useEffect(() => {
@@ -718,11 +756,17 @@ export function DocumentEditor({
                   <Skeleton className="h-4 w-2/3" />
                 </div>
               ) : (
-                <div ref={editorContainerRef} className="relative">
+                <div ref={editorContainerRef} className="relative pl-8">
                   <EditorContent 
                     editor={editor} 
                     className={`document-content min-h-[400px] outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''}`}
                     style={{ fontFamily: '"Times New Roman", Times, serif' }}
+                  />
+                  {/* Block lock indicators */}
+                  <BlockLockIndicator
+                    editor={editor}
+                    blockLocks={blockLocks}
+                    containerRef={editorContainerRef}
                   />
                   {/* Collaborative cursors overlay */}
                   <CollaborativeCursors

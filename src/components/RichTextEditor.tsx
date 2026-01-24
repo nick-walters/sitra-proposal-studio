@@ -1,4 +1,5 @@
 import { useEditor, EditorContent, Editor, Extension } from '@tiptap/react';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
@@ -839,6 +840,7 @@ export function useRichTextEditor({
   onChange,
   getReference,
   trackChanges,
+  blockLocking,
 }: { 
   content: string; 
   onChange: (content: string) => void;
@@ -850,6 +852,10 @@ export function useRichTextEditor({
     authorColor: string;
     onChangesUpdate?: (changes: any[]) => void;
   };
+  blockLocking?: {
+    getLockedBlocks: () => { userId: string; blockId: string; blockType: string }[];
+    getCurrentUserId: () => string | null;
+  };
 }) {
   // Track the last content we set to the editor to avoid infinite loops
   const lastSetContentRef = useRef<string>(content);
@@ -858,6 +864,17 @@ export function useRichTextEditor({
   getReferenceRef.current = getReference;
   // Store track changes config in a ref
   const trackChangesRef = useRef(trackChanges);
+  // Store block locking config in refs
+  const getLockedBlocksRef = useRef(blockLocking?.getLockedBlocks || (() => []));
+  const getCurrentUserIdRef = useRef(blockLocking?.getCurrentUserId || (() => null));
+  
+  // Update refs when props change
+  useEffect(() => {
+    if (blockLocking) {
+      getLockedBlocksRef.current = blockLocking.getLockedBlocks;
+      getCurrentUserIdRef.current = blockLocking.getCurrentUserId;
+    }
+  }, [blockLocking]);
   
   const editor = useEditor({
     extensions: [
@@ -901,6 +918,60 @@ export function useRichTextEditor({
         addProseMirrorPlugins() {
           return [
             createCitationTooltipPlugin((num) => getReferenceRef.current?.(num)),
+          ];
+        },
+      }),
+      // Add block locking extension
+      Extension.create({
+        name: 'blockLocking',
+        addProseMirrorPlugins() {
+          return [
+            new Plugin({
+              key: new PluginKey('blockLocking'),
+              filterTransaction(tr, state) {
+                // Allow non-content changes
+                if (!tr.docChanged) return true;
+
+                const lockedBlocks = getLockedBlocksRef.current();
+                if (lockedBlocks.length === 0) return true;
+
+                const userId = getCurrentUserIdRef.current();
+                const lockedBlockIds = new Set(
+                  lockedBlocks
+                    .filter(lock => lock.userId !== userId)
+                    .map(lock => lock.blockId)
+                );
+
+                if (lockedBlockIds.size === 0) return true;
+
+                // Check if transaction affects locked block
+                let affectsLocked = false;
+                tr.steps.forEach((step) => {
+                  const stepMap = step.getMap();
+                  stepMap.forEach((oldStart, oldEnd) => {
+                    for (let pos = oldStart; pos <= Math.min(oldEnd, state.doc.content.size); pos++) {
+                      try {
+                        const $pos = state.doc.resolve(pos);
+                        let depth = $pos.depth;
+                        while (depth > 1) depth--;
+                        if (depth >= 1) {
+                          const node = $pos.node(depth);
+                          const start = $pos.start(depth);
+                          const blockId = `${start}-${node.type.name}`;
+                          if (lockedBlockIds.has(blockId)) {
+                            affectsLocked = true;
+                          }
+                        }
+                      } catch {
+                        // Ignore invalid positions
+                      }
+                    }
+                  });
+                });
+
+                return !affectsLocked;
+              },
+            }),
           ];
         },
       }),
