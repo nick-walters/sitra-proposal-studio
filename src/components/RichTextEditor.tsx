@@ -12,6 +12,7 @@ import { ImageCropDialog } from './ImageCropDialog';
 import { createCitationTooltipPlugin } from './CitationMark';
 import { DraggableBlock } from './DraggableBlock';
 import { TrackChanges, TrackChangesOptions } from '@/extensions/TrackChanges';
+import { TableFormula } from '@/extensions/TableFormula';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
@@ -41,6 +42,9 @@ import {
   AlignHorizontalJustifyCenter,
   AlignHorizontalJustifyEnd,
   RefreshCw,
+  Combine,
+  SplitSquareHorizontal,
+  Calculator,
 } from "lucide-react";
 import {
   Tooltip,
@@ -161,11 +165,13 @@ export function FormattingToolbar({
   sectionNumber,
   content,
   onOpenFigureDialog,
+  onOpenFormulaDialog,
 }: { 
   editor: Editor | null;
   sectionNumber?: string;
   content?: string;
   onOpenFigureDialog?: () => void;
+  onOpenFormulaDialog?: () => void;
 }) {
   const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
   const [isCropOpen, setIsCropOpen] = useState(false);
@@ -593,10 +599,17 @@ export function FormattingToolbar({
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => editor.chain().focus().mergeCells().run()}>
+                <Combine className="w-4 h-4 mr-2" />
                 Merge cells
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => editor.chain().focus().splitCell().run()}>
+                <SplitSquareHorizontal className="w-4 h-4 mr-2" />
                 Split cell
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => onOpenFormulaDialog?.()}>
+                <Calculator className="w-4 h-4 mr-2" />
+                Insert Formula
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
@@ -902,6 +915,8 @@ export function useRichTextEditor({
         changes: [],
         onChangesUpdate: trackChanges?.onChangesUpdate,
       }),
+      // Table formula extension
+      TableFormula,
     ],
     content,
     onUpdate: ({ editor }) => {
