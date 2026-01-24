@@ -171,17 +171,27 @@ export function useProposalSections(templateTypeId: string | null) {
 
   // Return either template sections or fallback to hardcoded sections
   const allSections = useMemo(() => {
+    // Define the Progress section
+    const progressSection: Section = {
+      id: 'progress',
+      number: '',
+      title: 'Progress',
+      isPartA: false,
+    };
+
     if (hasTemplateSections && templateSections.length > 0) {
       // Separate Part A and Part B sections
       const partASections = templateSections.filter(s => s.isPartA);
       const partBSections = templateSections.filter(s => !s.isPartA);
       
       // Note: Figures section is now included within Part B subsections
-      return [...partASections, ...partBSections];
+      // Add Progress section at the end
+      return [...partASections, ...partBSections, progressSection];
     }
     
     // Fallback to hardcoded sections (Figures is now inside Part B subsections)
-    return [...PART_A_SECTIONS, ...HORIZON_EUROPE_SECTIONS];
+    // Add Progress section at the end
+    return [...PART_A_SECTIONS, ...HORIZON_EUROPE_SECTIONS, progressSection];
   }, [templateSections, hasTemplateSections]);
 
   // Create a refetch function that can be called externally
