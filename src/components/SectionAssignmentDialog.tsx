@@ -52,7 +52,7 @@ interface SectionAssignmentDialogProps {
   assignmentInfo: AssignmentInfo;
   teamMembers: TeamMember[];
   updating: boolean;
-  onAssign: (userId: string | null, dueDate: string | null) => Promise<void>;
+  onAssign: (userId: string | null, dueDate: string | null, sectionTitle?: string) => Promise<void>;
   onClearAssignment: () => Promise<void>;
 }
 
@@ -100,7 +100,7 @@ export function SectionAssignmentDialog({
   };
 
   const handleSave = async () => {
-    await onAssign(selectedUserId, selectedDate ? selectedDate.toISOString() : null);
+    await onAssign(selectedUserId, selectedDate ? selectedDate.toISOString() : null, sectionTitle);
     onOpenChange(false);
   };
 
