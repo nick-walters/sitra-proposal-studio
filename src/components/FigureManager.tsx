@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FigureEditor } from '@/components/FigureEditor';
-import { Plus, Image, BarChart3, Network, FileImage, Upload, Sparkles, Loader2 } from 'lucide-react';
+import { Plus, Image, BarChart3, Network, FileImage, Upload, Sparkles, Loader2, LayoutGrid, List } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -76,6 +76,7 @@ export function FigureManager({ proposalId, canEdit }: FigureManagerProps) {
   const [newFigureTitle, setNewFigureTitle] = useState('');
   const [newFigureType, setNewFigureType] = useState('image');
   const [newFigureSection, setNewFigureSection] = useState('workplan');
+  const [viewMode, setViewMode] = useState<'list' | 'gallery'>('list');
   
   // For image upload
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -468,21 +469,41 @@ export function FigureManager({ proposalId, canEdit }: FigureManagerProps) {
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex-1">
             <h1 className="text-2xl font-bold text-foreground">Figures</h1>
             <p className="text-muted-foreground">
               Create and manage figures for your proposal. Insert them into Part B sections using the Insert Figure tool.
             </p>
           </div>
-          {canEdit && (
-            <Dialog open={isCreateDialogOpen} onOpenChange={(open) => open ? setIsCreateDialogOpen(true) : resetCreateDialog()}>
-              <DialogTrigger asChild>
-                <Button className="gap-2">
-                  <Plus className="w-4 h-4" />
-                  Add Figure
-                </Button>
-              </DialogTrigger>
+          <div className="flex items-center gap-2">
+            {/* View Toggle */}
+            <div className="flex items-center border rounded-lg p-1">
+              <Button
+                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                size="sm"
+                className="h-8 px-3"
+                onClick={() => setViewMode('list')}
+              >
+                <List className="w-4 h-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'gallery' ? 'secondary' : 'ghost'}
+                size="sm"
+                className="h-8 px-3"
+                onClick={() => setViewMode('gallery')}
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </Button>
+            </div>
+            {canEdit && (
+              <Dialog open={isCreateDialogOpen} onOpenChange={(open) => open ? setIsCreateDialogOpen(true) : resetCreateDialog()}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2">
+                    <Plus className="w-4 h-4" />
+                    Add Figure
+                  </Button>
+                </DialogTrigger>
               <DialogContent className="max-w-lg">
                 <DialogHeader>
                   <DialogTitle>Create New Figure</DialogTitle>
@@ -564,10 +585,73 @@ export function FigureManager({ proposalId, canEdit }: FigureManagerProps) {
               </DialogContent>
             </Dialog>
           )}
+          </div>
         </div>
 
-        {/* Figures List by Section */}
-        {SECTION_OPTIONS.map((section) => {
+        {/* Gallery View */}
+        {viewMode === 'gallery' && (
+          <div className="space-y-4">
+            {figures.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Image className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">No figures yet. Add your first figure to get started.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {figures.map((figure) => {
+                  const section = SECTION_OPTIONS.find(s => s.id === figure.sectionId);
+                  const hasImage = figure.content?.imageUrl;
+                  
+                  return (
+                    <Card
+                      key={figure.id}
+                      className="overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all group"
+                      onClick={() => setSelectedFigure(figure)}
+                    >
+                      <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden relative">
+                        {hasImage ? (
+                          <img 
+                            src={figure.content.imageUrl} 
+                            alt={figure.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          />
+                        ) : figure.figureType === 'gantt' ? (
+                          <BarChart3 className="w-12 h-12 text-muted-foreground" />
+                        ) : figure.figureType === 'pert' ? (
+                          <Network className="w-12 h-12 text-muted-foreground" />
+                        ) : figure.figureType === 'ai' ? (
+                          <Sparkles className="w-12 h-12 text-muted-foreground" />
+                        ) : (
+                          <Image className="w-12 h-12 text-muted-foreground" />
+                        )}
+                        {/* Section badge overlay */}
+                        <Badge 
+                          variant="secondary" 
+                          className="absolute top-2 left-2 text-xs"
+                        >
+                          {section?.number || 'B'}
+                        </Badge>
+                      </div>
+                      <CardContent className="p-3">
+                        <p className="font-medium text-sm truncate">
+                          Figure {figure.figureNumber}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {figure.title}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* List View - Figures by Section */}
+        {viewMode === 'list' && SECTION_OPTIONS.map((section) => {
           const sectionFigures = figuresBySection[section.id] || [];
           const figureIds = sectionFigures.map(f => f.id);
           
