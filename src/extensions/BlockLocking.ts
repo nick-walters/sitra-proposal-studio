@@ -1,9 +1,14 @@
 import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
-import { BlockLock } from '@/hooks/useBlockLocking';
+
+// Simplified BlockLock interface for the extension - only needs userId and blockId for filtering
+export interface BlockLockForFiltering {
+  userId: string;
+  blockId: string;
+}
 
 export interface BlockLockingOptions {
-  getLockedBlocks: () => BlockLock[];
+  getLockedBlocks: () => BlockLockForFiltering[];
   getCurrentUserId: () => string | null;
 }
 
