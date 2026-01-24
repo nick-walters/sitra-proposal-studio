@@ -1,7 +1,7 @@
 import { Section } from "@/types/proposal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, BookOpen, Route, History, Info, Image, Link2, Lock, Unlock } from "lucide-react";
+import { Sparkles, BookOpen, Route, History, Info, Image, Link2, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight } from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
 import { EditorContent } from "@tiptap/react";
@@ -9,6 +9,7 @@ import { GrammarChecker } from "./GrammarChecker";
 import { CitationDialog } from "./CitationDialog";
 import { InsertFigureDialog } from "./InsertFigureDialog";
 import { InsertCrossReferenceDialog } from "./InsertCrossReferenceDialog";
+import { CommentsSidebar } from "./CommentsSidebar";
 import { ImpactPathwayGenerator } from "./ImpactPathwayGenerator";
 import { SectionVersionHistoryDialog } from "./SectionVersionHistoryDialog";
 import { GuidelinesDialog } from "./GuidelinesDialog";
@@ -62,6 +63,9 @@ export function DocumentEditor({
   const [isImpactPathwayOpen, setIsImpactPathwayOpen] = useState(false);
   const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
   const [isGuidelinesOpen, setIsGuidelinesOpen] = useState(false);
+  const [isCommentsSidebarOpen, setIsCommentsSidebarOpen] = useState(false);
+  const [selectedText, setSelectedText] = useState<string>('');
+  const [selectionRange, setSelectionRange] = useState<{ start: number; end: number } | undefined>();
   const [references, setReferences] = useState<Reference[]>([]);
   const [footnotes, setFootnotes] = useState<Array<{ number: number; citation: string }>>([]);
 
@@ -230,6 +234,42 @@ export function DocumentEditor({
     editor.chain().focus().insertContent(refText).run();
   }, [editor]);
 
+  // Handle applying a suggestion from comments
+  const handleApplySuggestion = useCallback((originalText: string, suggestedText: string) => {
+    if (!originalText || !suggestedText || !content) return;
+    const newContent = content.replace(originalText, suggestedText);
+    setContent(newContent);
+  }, [content, setContent]);
+
+  // Handle text selection for comments
+  const handleTextSelection = useCallback(() => {
+    if (!editor) return;
+    
+    const { from, to } = editor.state.selection;
+    if (from === to) {
+      // No selection
+      setSelectedText('');
+      setSelectionRange(undefined);
+      return;
+    }
+
+    const text = editor.state.doc.textBetween(from, to, ' ');
+    if (text.trim()) {
+      setSelectedText(text);
+      setSelectionRange({ start: from, end: to });
+    }
+  }, [editor]);
+
+  // Track selection changes
+  useEffect(() => {
+    if (!editor) return;
+    
+    editor.on('selectionUpdate', handleTextSelection);
+    return () => {
+      editor.off('selectionUpdate', handleTextSelection);
+    };
+  }, [editor, handleTextSelection]);
+
   // Check if this is the B2.1 section (impact pathways)
   const isImpactSection = section?.id === 'b2-1' || section?.number === '2.1';
   // Strip HTML for grammar checking
@@ -364,6 +404,26 @@ export function DocumentEditor({
               <History className="w-4 h-4" />
               Version History
             </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant={isCommentsSidebarOpen ? "default" : "outline"}
+                  size="sm" 
+                  className="gap-2"
+                  onClick={() => setIsCommentsSidebarOpen(!isCommentsSidebarOpen)}
+                >
+                  {isCommentsSidebarOpen ? (
+                    <PanelRightClose className="w-4 h-4" />
+                  ) : (
+                    <MessageSquare className="w-4 h-4" />
+                  )}
+                  Comments
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {isCommentsSidebarOpen ? 'Hide comments sidebar' : 'Show comments sidebar'}
+              </TooltipContent>
+            </Tooltip>
             {!isEffectivelyReadOnly && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
           </div>
         </div>
@@ -389,68 +449,88 @@ export function DocumentEditor({
         />
       </div>
 
-      <div className="flex-1 overflow-auto p-6 bg-muted/30">
-        <div className="max-w-4xl mx-auto space-y-6">
-          {/* Section Header - word/page limits only */}
-          {(section.wordLimit || section.pageLimit) && (
-            <div className="flex items-center gap-3 mb-6">
-              {section.wordLimit && (
-                <Badge variant="secondary">Word limit: {section.wordLimit}</Badge>
-              )}
-              {section.pageLimit && (
-                <Badge variant="secondary">Page limit: {section.pageLimit}</Badge>
-              )}
-            </div>
-          )}
-
-          {/* Document Page with Rich Text Editor */}
-          <div className="document-page animate-fade-in">
-            {/* Page Header - inside margin at top */}
-            <div className="document-page-header">
-              <span>{topicId || ''}</span>
-              <span>{proposalTitle || proposalAcronym}</span>
-            </div>
-
-            <h1 className="document-h1 text-foreground mb-6">{formatSectionHeading(section.number)} {section.title}</h1>
-            
-            {loading ? (
-              <div className="space-y-4">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-5/6" />
-                <Skeleton className="h-4 w-2/3" />
+      <div className="flex-1 flex overflow-hidden">
+        {/* Main content area */}
+        <div className={`flex-1 overflow-auto p-6 bg-muted/30 transition-all ${isCommentsSidebarOpen ? 'mr-0' : ''}`}>
+          <div className="max-w-4xl mx-auto space-y-6">
+            {/* Section Header - word/page limits only */}
+            {(section.wordLimit || section.pageLimit) && (
+              <div className="flex items-center gap-3 mb-6">
+                {section.wordLimit && (
+                  <Badge variant="secondary">Word limit: {section.wordLimit}</Badge>
+                )}
+                {section.pageLimit && (
+                  <Badge variant="secondary">Page limit: {section.pageLimit}</Badge>
+                )}
               </div>
-            ) : (
-              <EditorContent 
-                editor={editor} 
-                className={`document-content min-h-[400px] outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''}`}
-                style={{ fontFamily: '"Times New Roman", Times, serif' }}
-              />
             )}
 
-            {/* Footnotes */}
-            {footnotes.length > 0 && (
-              <div className="mt-8 pt-4 border-t border-border">
-                <div className="space-y-1">
-                  {footnotes.map((fn) => (
-                    <p key={fn.number} className="text-[8pt] text-muted-foreground" 
-                       dangerouslySetInnerHTML={{ 
-                         __html: `<sup>${fn.number}</sup> ${fn.citation.replace(/\*([^*]+)\*/g, '<em>$1</em>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')}` 
-                       }} 
-                    />
-                  ))}
+            {/* Document Page with Rich Text Editor */}
+            <div className="document-page animate-fade-in">
+              {/* Page Header - inside margin at top */}
+              <div className="document-page-header">
+                <span>{topicId || ''}</span>
+                <span>{proposalTitle || proposalAcronym}</span>
+              </div>
+
+              <h1 className="document-h1 text-foreground mb-6">{formatSectionHeading(section.number)} {section.title}</h1>
+              
+              {loading ? (
+                <div className="space-y-4">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-5/6" />
+                  <Skeleton className="h-4 w-2/3" />
                 </div>
-              </div>
-            )}
+              ) : (
+                <EditorContent 
+                  editor={editor} 
+                  className={`document-content min-h-[400px] outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''}`}
+                  style={{ fontFamily: '"Times New Roman", Times, serif' }}
+                />
+              )}
 
-            {/* Page Footer - inside margin at bottom */}
-            <div className="document-page-footer">
-              <span>{proposalAcronym}</span>
-              <span>Section {section.number}: {section.title}</span>
-              <span>Page 1 of 1</span>
+              {/* Footnotes */}
+              {footnotes.length > 0 && (
+                <div className="mt-8 pt-4 border-t border-border">
+                  <div className="space-y-1">
+                    {footnotes.map((fn) => (
+                      <p key={fn.number} className="text-[8pt] text-muted-foreground" 
+                         dangerouslySetInnerHTML={{ 
+                           __html: `<sup>${fn.number}</sup> ${fn.citation.replace(/\*([^*]+)\*/g, '<em>$1</em>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')}` 
+                         }} 
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Page Footer - inside margin at bottom */}
+              <div className="document-page-footer">
+                <span>{proposalAcronym}</span>
+                <span>Section {section.number}: {section.title}</span>
+                <span>Page 1 of 1</span>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Comments Sidebar */}
+        {isCommentsSidebarOpen && (
+          <div className="w-80 shrink-0 h-full">
+            <CommentsSidebar
+              proposalId={proposalId}
+              sectionId={section?.id || ''}
+              selectedText={selectedText}
+              selectionRange={selectionRange}
+              onApplySuggestion={handleApplySuggestion}
+              onClearSelection={() => {
+                setSelectedText('');
+                setSelectionRange(undefined);
+              }}
+            />
+          </div>
+        )}
       </div>
 
       {/* Dialogs */}
