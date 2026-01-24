@@ -1,7 +1,7 @@
 import { Section } from "@/types/proposal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, BookOpen, Route, History, Info, Image, Link2, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search } from "lucide-react";
+import { Sparkles, BookOpen, Route, History, Info, Image, Link2, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search, GitCompare, Keyboard } from "lucide-react";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
 import { EditorContent } from "@tiptap/react";
@@ -28,6 +28,8 @@ import { CollaborativeCursors } from "./CollaborativeCursors";
 import { TrackChangesToolbar } from "./TrackChangesToolbar";
 import { SearchReplaceDialog } from "./SearchReplaceDialog";
 import { TableFormulaDialog } from "./TableFormulaDialog";
+import { VersionComparisonDialog } from "./VersionComparisonDialog";
+import { KeyboardShortcutsDialog } from "./KeyboardShortcutsDialog";
 import { TrackChange } from "@/extensions/TrackChanges";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -87,6 +89,8 @@ export function DocumentEditor({
   const [trackedChanges, setTrackedChanges] = useState<TrackChange[]>([]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isFormulaOpen, setIsFormulaOpen] = useState(false);
+  const [isComparisonOpen, setIsComparisonOpen] = useState(false);
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   
   // Editor container ref for cursor overlays
   const editorContainerRef = useRef<HTMLDivElement>(null);
@@ -215,6 +219,25 @@ export function DocumentEditor({
       editor.off('selectionUpdate', handleSelectionUpdate);
     };
   }, [editor, updateCursorPosition]);
+
+  // Keyboard shortcuts for dialogs
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+/ or Ctrl+? to open shortcuts dialog
+      if ((e.ctrlKey || e.metaKey) && (e.key === '/' || e.key === '?')) {
+        e.preventDefault();
+        setIsShortcutsOpen(true);
+      }
+      // Ctrl+F to open search
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleInsertCitation = useCallback((reference: Reference, formattedCitation: string, citationNumber: number) => {
     if (!editor) return;
@@ -523,8 +546,39 @@ export function DocumentEditor({
               onClick={() => setIsVersionHistoryOpen(true)}
             >
               <History className="w-4 h-4" />
-              Version History
+              History
             </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="gap-2" 
+                  onClick={() => setIsComparisonOpen(true)}
+                >
+                  <GitCompare className="w-4 h-4" />
+                  Compare
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                Compare two versions side-by-side
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="h-8 w-8" 
+                  onClick={() => setIsShortcutsOpen(true)}
+                >
+                  <Keyboard className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                Keyboard shortcuts (Ctrl+/)
+              </TooltipContent>
+            </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button 
@@ -794,6 +848,18 @@ export function DocumentEditor({
         isOpen={isFormulaOpen}
         onClose={() => setIsFormulaOpen(false)}
         editor={editor}
+      />
+      <VersionComparisonDialog
+        isOpen={isComparisonOpen}
+        onClose={() => setIsComparisonOpen(false)}
+        proposalId={proposalId}
+        sectionId={section?.id || ''}
+        sectionTitle={`${section?.number || ''} ${section?.title || ''}`}
+        currentContent={content}
+      />
+      <KeyboardShortcutsDialog
+        isOpen={isShortcutsOpen}
+        onClose={() => setIsShortcutsOpen(false)}
       />
     </div>
   );
