@@ -1,7 +1,7 @@
 import { Section } from "@/types/proposal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, BookOpen, Route, History, Info, Image, Link2, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight } from "lucide-react";
+import { Sparkles, BookOpen, Route, History, Info, Image, Link2, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User } from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
 import { EditorContent } from "@tiptap/react";
@@ -10,15 +10,19 @@ import { CitationDialog } from "./CitationDialog";
 import { InsertFigureDialog } from "./InsertFigureDialog";
 import { InsertCrossReferenceDialog } from "./InsertCrossReferenceDialog";
 import { CommentsSidebar } from "./CommentsSidebar";
+import { SectionAssignmentDialog } from "./SectionAssignmentDialog";
 import { ImpactPathwayGenerator } from "./ImpactPathwayGenerator";
 import { SectionVersionHistoryDialog } from "./SectionVersionHistoryDialog";
 import { GuidelinesDialog } from "./GuidelinesDialog";
 import { SaveIndicator } from "./SaveIndicator";
 import { useSectionContent } from "@/hooks/useSectionContent";
 import { useSectionLocking } from "@/hooks/useSectionLocking";
+import { useSectionAssignment } from "@/hooks/useSectionAssignment";
 import { renumberFootnotes } from "@/lib/captionRenumbering";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { format, isPast, isToday, differenceInDays } from "date-fns";
 import {
   Tooltip,
   TooltipContent,
@@ -64,6 +68,7 @@ export function DocumentEditor({
   const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
   const [isGuidelinesOpen, setIsGuidelinesOpen] = useState(false);
   const [isCommentsSidebarOpen, setIsCommentsSidebarOpen] = useState(false);
+  const [isAssignmentDialogOpen, setIsAssignmentDialogOpen] = useState(false);
   const [selectedText, setSelectedText] = useState<string>('');
   const [selectionRange, setSelectionRange] = useState<{ start: number; end: number } | undefined>();
   const [references, setReferences] = useState<Reference[]>([]);
@@ -83,6 +88,12 @@ export function DocumentEditor({
     sectionId: section?.id || '',
   });
 
+  // Use section assignment hook
+  const sectionAssignmentHook = useSectionAssignment({
+    proposalId: proposalId || '',
+    sectionId: section?.number || '',
+  });
+
   const { 
     isLocked, 
     lockedByName, 
@@ -95,9 +106,31 @@ export function DocumentEditor({
     updating: lockUpdating 
   } = sectionLockingHook;
 
+  const {
+    assignmentInfo,
+    teamMembers,
+    canManageAssignment,
+    isAssignedToMe,
+    assignSection,
+    clearAssignment,
+    updating: assignmentUpdating,
+  } = sectionAssignmentHook;
+
   // Determine if section is effectively read-only (prop or locked)
   // Admins/owners can always edit locked sections
   const isEffectivelyReadOnly = readOnly || (isLocked && !canEditWhenLocked);
+
+  // Helper to get due date display info
+  const getDueDateInfo = () => {
+    if (!assignmentInfo.dueDate) return null;
+    const dueDate = new Date(assignmentInfo.dueDate);
+    const isOverdue = isPast(dueDate) && !isToday(dueDate);
+    const daysUntil = differenceInDays(dueDate, new Date());
+    const isDueSoon = daysUntil >= 0 && daysUntil <= 3;
+    return { dueDate, isOverdue, isDueSoon, daysUntil };
+  };
+
+  const dueDateInfo = getDueDateInfo();
 
   const { content, setContent, loading, saving, lastSaved, lastCitationMapping } = sectionContentHook;
 
@@ -364,6 +397,28 @@ export function DocumentEditor({
             )}
           </div>
           <div className="flex items-center gap-2">
+            {/* Assignment button - only visible to admins/owners */}
+            {canManageAssignment && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant={assignmentInfo.assignedTo ? "default" : "outline"}
+                    size="sm" 
+                    className={`gap-2 ${assignmentInfo.assignedTo ? 'bg-blue-500 hover:bg-blue-600 text-white' : ''}`}
+                    onClick={() => setIsAssignmentDialogOpen(true)}
+                    disabled={assignmentUpdating}
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    {assignmentInfo.assignedTo ? 'Assigned' : 'Assign'}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {assignmentInfo.assignedTo 
+                    ? `Assigned to ${assignmentInfo.assignedToName}${dueDateInfo ? ` • Due ${format(dueDateInfo.dueDate, 'MMM d')}` : ''}`
+                    : 'Assign this section to a team member'}
+                </TooltipContent>
+              </Tooltip>
+            )}
             {/* Lock/Unlock button - only visible to admins/owners */}
             {canManageLock && (
               <Tooltip>
@@ -427,6 +482,44 @@ export function DocumentEditor({
             {!isEffectivelyReadOnly && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
           </div>
         </div>
+
+        {/* Assignment info banner - show when section is assigned */}
+        {assignmentInfo.assignedTo && (
+          <Alert className={`mx-0 rounded-none border-x-0 ${
+            dueDateInfo?.isOverdue 
+              ? 'bg-destructive/10 border-destructive/30 dark:bg-destructive/20' 
+              : dueDateInfo?.isDueSoon 
+                ? 'bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800'
+                : 'bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800'
+          }`}>
+            <div className="flex items-center gap-3 w-full">
+              <Avatar className="h-6 w-6">
+                <AvatarImage src={assignmentInfo.assignedToAvatar || undefined} />
+                <AvatarFallback className="text-xs bg-blue-500 text-white">
+                  {assignmentInfo.assignedToName?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || <User className="h-3 w-3" />}
+                </AvatarFallback>
+              </Avatar>
+              <AlertDescription className={`flex-1 ${
+                dueDateInfo?.isOverdue 
+                  ? 'text-destructive dark:text-destructive' 
+                  : dueDateInfo?.isDueSoon 
+                    ? 'text-amber-800 dark:text-amber-200'
+                    : 'text-blue-800 dark:text-blue-200'
+              }`}>
+                <span className="font-medium">{assignmentInfo.assignedToName}</span>
+                {isAssignedToMe && <Badge variant="secondary" className="ml-2 text-xs">You</Badge>}
+                {dueDateInfo && (
+                  <span className="ml-2">
+                    <CalendarClock className="inline h-3.5 w-3.5 mr-1" />
+                    Due {format(dueDateInfo.dueDate, 'MMM d, yyyy')}
+                    {dueDateInfo.isOverdue && <Badge variant="destructive" className="ml-2 text-xs">Overdue</Badge>}
+                    {dueDateInfo.isDueSoon && !dueDateInfo.isOverdue && <Badge className="ml-2 text-xs bg-amber-500">Due soon</Badge>}
+                  </span>
+                )}
+              </AlertDescription>
+            </div>
+          </Alert>
+        )}
 
         {/* Locked section banner - show to non-admin users */}
         {isLocked && !canEditWhenLocked && (
@@ -584,6 +677,17 @@ export function DocumentEditor({
         content={content}
         sectionNumber={section?.number || ''}
         onInsert={handleInsertCrossRef}
+      />
+      <SectionAssignmentDialog
+        open={isAssignmentDialogOpen}
+        onOpenChange={setIsAssignmentDialogOpen}
+        sectionTitle={section?.title || ''}
+        sectionNumber={section?.number || ''}
+        assignmentInfo={assignmentInfo}
+        teamMembers={teamMembers}
+        updating={assignmentUpdating}
+        onAssign={assignSection}
+        onClearAssignment={clearAssignment}
       />
     </div>
   );
