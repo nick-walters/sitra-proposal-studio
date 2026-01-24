@@ -41,7 +41,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePdfExport } from "@/hooks/usePdfExport";
-import { useRealtimePresence } from "@/hooks/useRealtimePresence";
+import { useCollaborativeCursors } from "@/hooks/useCollaborativeCursors";
 import { useProposalData } from "@/hooks/useProposalData";
 import { useProposalSections } from "@/hooks/useProposalSections";
 import { useBudget } from "@/hooks/useBudget";
@@ -96,8 +96,8 @@ export function ProposalEditor() {
     deleteBudgetItem,
   } = useBudget(id || '');
 
-  // Real-time presence for collaborators
-  const { collaborators } = useRealtimePresence({
+  // Real-time presence for collaborators with cursor tracking
+  const { collaborators } = useCollaborativeCursors({
     proposalId: id || '',
     currentSectionId: activeSection?.id || null,
   });
@@ -759,6 +759,7 @@ export function ProposalEditor() {
               currentUserId={user?.id}
               participantMembers={participantMembers.map(m => ({ participantId: m.participantId, userId: m.userId }))}
               assignments={assignments}
+              collaborators={collaborators}
             />
           </div>
 

@@ -7,6 +7,16 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SectionAssignment } from "@/hooks/useSectionAssignments";
 import { isPast, isToday, differenceInDays, format } from "date-fns";
 
+// Collaborator presence info for real-time editing indicators
+interface CollaboratorPresence {
+  id: string;
+  name: string;
+  email: string;
+  sectionId: string | null;
+  color: string;
+  avatar_url?: string | null;
+}
+
 interface SectionNavigatorProps {
   sections: Section[];
   activeSectionId: string | null;
@@ -16,6 +26,7 @@ interface SectionNavigatorProps {
   currentUserId?: string;
   participantMembers?: { participantId: string; userId?: string }[];
   assignments?: Map<string, SectionAssignment>;
+  collaborators?: CollaboratorPresence[];
 }
 
 // Format section number for display in left navigation
@@ -52,6 +63,7 @@ function SectionItem({
   onSectionClick,
   assignments,
   currentUserId,
+  collaborators = [],
 }: {
   section: Section;
   depth?: number;
@@ -59,10 +71,14 @@ function SectionItem({
   onSectionClick: (section: Section) => void;
   assignments?: Map<string, SectionAssignment>;
   currentUserId?: string;
+  collaborators?: CollaboratorPresence[];
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
   const hasSubsections = section.subsections && section.subsections.length > 0;
   const isActive = activeSectionId === section.id;
+  
+  // Get collaborators currently editing this section
+  const sectionCollaborators = collaborators.filter(c => c.sectionId === section.id);
   
   // Get assignment info for this section
   const assignment = assignments?.get(section.number);
@@ -147,6 +163,68 @@ function SectionItem({
         <span className={cn("flex-1 truncate", isActive && "font-medium")}>
           {formatTitle(section.title)}
         </span>
+        
+        {/* Real-time collaborator presence indicators */}
+        {sectionCollaborators.length > 0 && (
+          <div className="flex items-center -space-x-1.5 shrink-0">
+            {sectionCollaborators.slice(0, 3).map((collab) => (
+              <TooltipProvider key={collab.id}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="relative">
+                      <Avatar 
+                        className="h-5 w-5 border-2 ring-1 ring-offset-0"
+                        style={{ 
+                          borderColor: collab.color,
+                          boxShadow: `0 0 0 1px ${collab.color}40`
+                        }}
+                      >
+                        <AvatarImage src={collab.avatar_url || undefined} />
+                        <AvatarFallback 
+                          className="text-[8px] text-white"
+                          style={{ backgroundColor: collab.color }}
+                        >
+                          {collab.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      {/* Pulsing indicator showing active editing */}
+                      <span 
+                        className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full animate-pulse"
+                        style={{ backgroundColor: collab.color }}
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <span 
+                        className="w-2 h-2 rounded-full animate-pulse" 
+                        style={{ backgroundColor: collab.color }}
+                      />
+                      <span className="font-medium">{collab.name}</span>
+                      <span className="text-muted-foreground">is editing</span>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ))}
+            {sectionCollaborators.length > 3 && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Avatar className="h-5 w-5 border bg-muted">
+                      <AvatarFallback className="text-[8px]">
+                        +{sectionCollaborators.length - 3}
+                      </AvatarFallback>
+                    </Avatar>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="text-xs">
+                    {sectionCollaborators.slice(3).map(c => c.name).join(', ')}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
+        )}
         
         {/* Assignment indicators */}
         {assignment && (
@@ -250,6 +328,7 @@ function SectionItem({
               onSectionClick={onSectionClick}
               assignments={assignments}
               currentUserId={currentUserId}
+              collaborators={collaborators}
             />
           ))}
         </div>
@@ -267,6 +346,7 @@ export function SectionNavigator({
   currentUserId,
   participantMembers = [],
   assignments,
+  collaborators = [],
 }: SectionNavigatorProps) {
   // Filter visible participants based on role
   const visibleParticipants = useMemo(() => {
@@ -318,6 +398,7 @@ export function SectionNavigator({
             onSectionClick={onSectionClick}
             assignments={assignments}
             currentUserId={currentUserId}
+            collaborators={collaborators}
           />
         ))}
       </div>
