@@ -171,7 +171,7 @@ function SectionItem({
               <TooltipProvider key={collab.id}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="relative">
+                    <span className="relative inline-block">
                       <Avatar 
                         className="h-5 w-5 border-2 ring-1 ring-offset-0"
                         style={{ 
@@ -192,7 +192,7 @@ function SectionItem({
                         className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full animate-pulse"
                         style={{ backgroundColor: collab.color }}
                       />
-                    </div>
+                    </span>
                   </TooltipTrigger>
                   <TooltipContent side="right" className="text-xs">
                     <div className="flex items-center gap-1.5">
@@ -234,7 +234,7 @@ function SectionItem({
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className={cn(
+                    <span className={cn(
                       "flex items-center",
                       dueDateInfo.isOverdue && "text-destructive",
                       dueDateInfo.isDueSoon && !dueDateInfo.isOverdue && "text-amber-500"
@@ -244,7 +244,7 @@ function SectionItem({
                       ) : dueDateInfo.isDueSoon ? (
                         <Clock className="w-3 h-3" />
                       ) : null}
-                    </div>
+                    </span>
                   </TooltipTrigger>
                   <TooltipContent side="right" className="text-xs">
                     {dueDateInfo.isOverdue 

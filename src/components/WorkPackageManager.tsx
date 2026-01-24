@@ -84,22 +84,32 @@ export function WorkPackageManager({
 
   const fetchData = async () => {
     try {
-      const [wpRes, allocRes] = await Promise.all([
-        supabase
-          .from('work_packages')
-          .select('*')
-          .eq('proposal_id', proposalId)
-          .order('number'),
-        supabase
-          .from('member_wp_allocations')
-          .select('*'),
-      ]);
+      // First fetch work packages for this proposal
+      const wpRes = await supabase
+        .from('work_packages')
+        .select('*')
+        .eq('proposal_id', proposalId)
+        .order('number');
 
       if (wpRes.error) throw wpRes.error;
-      if (allocRes.error) throw allocRes.error;
+
+      const workPackageData = wpRes.data || [];
+      const workPackageIds = workPackageData.map(wp => wp.id);
+
+      // Only fetch allocations for these work packages (not all allocations in the system)
+      let allocationsData: any[] = [];
+      if (workPackageIds.length > 0) {
+        const allocRes = await supabase
+          .from('member_wp_allocations')
+          .select('*')
+          .in('work_package_id', workPackageIds);
+
+        if (allocRes.error) throw allocRes.error;
+        allocationsData = allocRes.data || [];
+      }
 
       setWorkPackages(
-        wpRes.data.map((wp) => ({
+        workPackageData.map((wp) => ({
           id: wp.id,
           proposalId: wp.proposal_id,
           number: wp.number,
@@ -112,7 +122,7 @@ export function WorkPackageManager({
       );
 
       setAllocations(
-        allocRes.data.map((a) => ({
+        allocationsData.map((a) => ({
           id: a.id,
           memberId: a.member_id,
           workPackageId: a.work_package_id,
