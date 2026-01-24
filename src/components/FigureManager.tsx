@@ -102,6 +102,7 @@ export function FigureManager({ proposalId, canEdit }: FigureManagerProps) {
         .from('figures')
         .select('*')
         .eq('proposal_id', proposalId)
+        .order('section_id')
         .order('order_index');
       if (error) throw error;
       return data.map((f) => ({
@@ -115,6 +116,20 @@ export function FigureManager({ proposalId, canEdit }: FigureManagerProps) {
         orderIndex: f.order_index,
       })) as Figure[];
     },
+  });
+
+  // Sort figures numerically by figure number (e.g., 1.1.a, 1.1.b, 1.2.a)
+  const sortedFigures = [...figures].sort((a, b) => {
+    // Parse figure numbers like "1.1.a", "1.2.b"
+    const parseNumber = (num: string) => {
+      const parts = num.split('.');
+      const major = parseInt(parts[0] || '0', 10);
+      const minor = parseInt(parts[1] || '0', 10);
+      const letter = parts[2] || 'a';
+      const letterValue = letter.charCodeAt(0) - 'a'.charCodeAt(0);
+      return major * 10000 + minor * 100 + letterValue;
+    };
+    return parseNumber(a.figureNumber) - parseNumber(b.figureNumber);
   });
 
   // Create figure mutation
@@ -412,14 +427,19 @@ export function FigureManager({ proposalId, canEdit }: FigureManagerProps) {
     }
   };
 
-  // Group figures by section
-  const figuresBySection = figures.reduce((acc, figure) => {
+  // Group figures by section (using sorted figures)
+  const figuresBySection = sortedFigures.reduce((acc, figure) => {
     if (!acc[figure.sectionId]) {
       acc[figure.sectionId] = [];
     }
     acc[figure.sectionId].push(figure);
     return acc;
   }, {} as Record<string, Figure[]>);
+
+  // Helper to format caption like Part B templates: "Figure X.X.x. Title"
+  const formatFigureCaption = (figure: Figure) => {
+    return `Figure ${figure.figureNumber}. ${figure.title}`;
+  };
 
   if (selectedFigure) {
     return (
@@ -643,7 +663,7 @@ export function FigureManager({ proposalId, canEdit }: FigureManagerProps) {
         {/* Gallery View */}
         {viewMode === 'gallery' && (
           <div className="space-y-4">
-            {figures.length === 0 ? (
+            {sortedFigures.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
                   <Image className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
@@ -652,7 +672,7 @@ export function FigureManager({ proposalId, canEdit }: FigureManagerProps) {
               </Card>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {figures.map((figure) => {
+                {sortedFigures.map((figure) => {
                   const section = SECTION_OPTIONS.find(s => s.id === figure.sectionId);
                   const hasImage = figure.content?.imageUrl;
                   
@@ -687,10 +707,9 @@ export function FigureManager({ proposalId, canEdit }: FigureManagerProps) {
                         </Badge>
                       </div>
                       <CardContent className="p-3">
-                        <p className="font-medium text-sm truncate">
-                          Figure {figure.figureNumber}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
+                        {/* Caption matching Part B format: "Figure X.X.x. Title" */}
+                        <p className="text-sm italic truncate" title={formatFigureCaption(figure)}>
+                          <span className="font-semibold">Figure {figure.figureNumber}.</span>{' '}
                           {figure.title}
                         </p>
                       </CardContent>

@@ -313,6 +313,7 @@ export function DocumentEditor({
           editor={editor} 
           sectionNumber={section?.number}
           content={content}
+          onOpenFigureDialog={() => setIsFigureDialogOpen(true)}
         />
       </div>
 
