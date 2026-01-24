@@ -40,6 +40,7 @@ interface ProposalSummaryPageProps {
   canEdit?: boolean;
   isAdmin?: boolean;
   onExportPdf?: () => void;
+  onExportPdfNoWatermark?: () => void;
 }
 
 
@@ -123,6 +124,7 @@ export function ProposalSummaryPage({
   canEdit = true,
   isAdmin = false,
   onExportPdf,
+  onExportPdfNoWatermark,
 }: ProposalSummaryPageProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedProposal, setEditedProposal] = useState(proposal);
@@ -181,12 +183,20 @@ export function ProposalSummaryPage({
           {/* Page Header */}
           <div className="mb-2 flex items-center justify-between">
             <h1 className="text-2xl font-bold text-foreground">Proposal overview</h1>
-            {onExportPdf && (
-              <Button variant="outline" size="sm" className="gap-2" onClick={onExportPdf}>
-                <Download className="w-4 h-4" />
-                Export PDF
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {onExportPdf && (
+                <Button variant="outline" size="sm" className="gap-2" onClick={onExportPdf}>
+                  <Download className="w-4 h-4" />
+                  Export PDF
+                </Button>
+              )}
+              {isAdmin && onExportPdfNoWatermark && (
+                <Button variant="outline" size="sm" className="gap-2" onClick={onExportPdfNoWatermark}>
+                  <Download className="w-4 h-4" />
+                  Export watermark-free
+                </Button>
+              )}
+            </div>
           </div>
 
         {/* Header with Project Logo and Basic Info */}

@@ -136,7 +136,7 @@ export function ProposalEditor() {
     await updateProposal({ status });
   };
 
-  const handleExportPdf = async () => {
+  const handleExportPdf = async (includeWatermark: boolean = true) => {
     if (!proposal) return;
     
     // Fetch section contents
@@ -156,8 +156,11 @@ export function ProposalEditor() {
         content: sc.content || '',
       })),
       sections: allSections,
-    });
+    }, { includeWatermark });
   };
+
+  const handleExportPdfWithWatermark = () => handleExportPdf(true);
+  const handleExportPdfNoWatermark = () => handleExportPdf(false);
 
   const handleDuplicateProposal = async (newAcronym: string, newTitle: string) => {
     if (!proposal) return;
@@ -227,7 +230,8 @@ export function ProposalEditor() {
             onUpdateStatus={handleUpdateStatus}
             canEdit={canEdit}
             isAdmin={isAdmin}
-            onExportPdf={handleExportPdf}
+            onExportPdf={handleExportPdfWithWatermark}
+            onExportPdfNoWatermark={handleExportPdfNoWatermark}
           />
         ) : null;
       }
