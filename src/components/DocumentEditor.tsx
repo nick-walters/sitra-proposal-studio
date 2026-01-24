@@ -842,6 +842,16 @@ export function DocumentEditor({
           </div>
         </div>
 
+        {/* Split View Panel */}
+        {isSplitViewOpen && (
+          <SplitViewPanel
+            proposalId={proposalId}
+            currentSectionId={section?.id || ''}
+            sections={allSections}
+            onClose={() => setIsSplitViewOpen(false)}
+          />
+        )}
+
         {/* Comments Sidebar */}
         {isCommentsSidebarOpen && (
           <div className="w-80 shrink-0 h-full">
@@ -970,15 +980,6 @@ export function DocumentEditor({
           setIsSnippetsOpen(false);
         }}
       />
-      {/* Split View Panel */}
-      {isSplitViewOpen && (
-        <SplitViewPanel
-          proposalId={proposalId}
-          currentSectionId={section?.id || ''}
-          sections={allSections}
-          onClose={() => setIsSplitViewOpen(false)}
-        />
-      )}
     </div>
   );
 }
