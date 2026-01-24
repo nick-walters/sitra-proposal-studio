@@ -147,13 +147,12 @@
   opacity: 1;
 }
 
-/* Table drag handle via pseudo-element */
+/* Table drag handle via pseudo-element - using SVG grip icon */
 .draggable-table-node::before {
-  content: '⋮⋮';
+  content: '';
   position: absolute;
-  left: 4px;
-  top: 50%;
-  transform: translateY(-50%);
+  left: -24px;
+  top: 8px;
   width: 18px;
   height: 18px;
   display: flex;
@@ -164,13 +163,16 @@
   transition: opacity 0.15s ease;
   border-radius: 3px;
   background: hsl(var(--muted));
-  color: hsl(var(--muted-foreground));
-  font-size: 10px;
-  letter-spacing: -2px;
+  /* Using CSS to create grip dots pattern */
+  background-image: radial-gradient(circle, hsl(var(--muted-foreground)) 1.5px, transparent 1.5px);
+  background-size: 5px 5px;
+  background-position: center;
+  background-repeat: repeat-y;
 }
 
 .draggable-table-node:hover::before {
   opacity: 1;
+  background-color: hsl(var(--accent));
 }
 
 .draggable-table-node:active::before {

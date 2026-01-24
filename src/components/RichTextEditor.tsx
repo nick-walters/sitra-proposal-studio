@@ -752,6 +752,8 @@ export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootn
           class: 'he-table-cell',
         },
       }),
+      // Add draggable block extension for figures and tables
+      DraggableBlock,
     ],
     content,
     onUpdate: ({ editor }) => {
