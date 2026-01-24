@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,11 +15,27 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FigureEditor } from '@/components/FigureEditor';
-import { Plus, Image, BarChart3, Network, FileImage, ArrowRight, Upload, Sparkles, Loader2 } from 'lucide-react';
+import { Plus, Image, BarChart3, Network, FileImage, Upload, Sparkles, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { generateProposalFilePath, uploadProposalFile } from '@/lib/proposalStorage';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { SortableFigureItem } from './SortableFigureList';
 
 interface Figure {
   id: string;
@@ -172,6 +188,60 @@ export function FigureManager({ proposalId, canEdit }: FigureManagerProps) {
       toast.error('Failed to delete figure');
     },
   });
+
+  // Reorder figures mutation with automatic renumbering
+  const reorderFigures = useMutation({
+    mutationFn: async ({ sectionId, reorderedFigures }: { sectionId: string; reorderedFigures: Figure[] }) => {
+      const section = SECTION_OPTIONS.find(s => s.id === sectionId);
+      const sectionNumber = section?.number.replace('B', '') || '1.1';
+      
+      // Update each figure with new order and figure number
+      const updates = reorderedFigures.map((figure, index) => {
+        const newLetter = String.fromCharCode(97 + index); // a, b, c...
+        const newFigureNumber = `${sectionNumber}.${newLetter}`;
+        
+        return supabase
+          .from('figures')
+          .update({
+            order_index: index,
+            figure_number: newFigureNumber,
+          })
+          .eq('id', figure.id);
+      });
+
+      const results = await Promise.all(updates);
+      const errors = results.filter(r => r.error);
+      if (errors.length > 0) throw errors[0].error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['figures', proposalId] });
+      toast.success('Figures reordered');
+    },
+    onError: () => {
+      toast.error('Failed to reorder figures');
+    },
+  });
+
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  // Handle drag end for a specific section
+  const handleDragEnd = useCallback((sectionId: string) => (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const sectionFigures = figures.filter(f => f.sectionId === sectionId);
+    const oldIndex = sectionFigures.findIndex(f => f.id === active.id);
+    const newIndex = sectionFigures.findIndex(f => f.id === over.id);
+
+    if (oldIndex !== -1 && newIndex !== -1) {
+      const reordered = arrayMove(sectionFigures, oldIndex, newIndex);
+      reorderFigures.mutate({ sectionId, reorderedFigures: reordered });
+    }
+  }, [figures, reorderFigures]);
 
   const resetCreateDialog = () => {
     setIsCreateDialogOpen(false);
@@ -499,6 +569,8 @@ export function FigureManager({ proposalId, canEdit }: FigureManagerProps) {
         {/* Figures List by Section */}
         {SECTION_OPTIONS.map((section) => {
           const sectionFigures = figuresBySection[section.id] || [];
+          const figureIds = sectionFigures.map(f => f.id);
+          
           return (
             <Card key={section.id}>
               <CardHeader className="pb-3">
@@ -508,6 +580,9 @@ export function FigureManager({ proposalId, canEdit }: FigureManagerProps) {
                 </CardTitle>
                 <CardDescription>
                   {sectionFigures.length} figure{sectionFigures.length !== 1 ? 's' : ''}
+                  {canEdit && sectionFigures.length > 1 && (
+                    <span className="text-xs ml-2">(drag to reorder)</span>
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -516,41 +591,24 @@ export function FigureManager({ proposalId, canEdit }: FigureManagerProps) {
                     No figures for this section yet
                   </p>
                 ) : (
-                  <div className="space-y-2">
-                    {sectionFigures.map((figure) => {
-                      const hasImage = figure.content?.imageUrl;
-                      return (
-                        <button
-                          key={figure.id}
-                          className="w-full flex items-center gap-3 p-3 rounded-lg border hover:bg-muted transition-colors text-left"
-                          onClick={() => setSelectedFigure(figure)}
-                        >
-                          <div className="w-10 h-10 rounded bg-muted flex items-center justify-center overflow-hidden">
-                            {hasImage ? (
-                              <img src={figure.content.imageUrl} alt="" className="w-full h-full object-cover" />
-                            ) : figure.figureType === 'gantt' ? (
-                              <BarChart3 className="w-5 h-5 text-muted-foreground" />
-                            ) : figure.figureType === 'pert' ? (
-                              <Network className="w-5 h-5 text-muted-foreground" />
-                            ) : figure.figureType === 'ai' ? (
-                              <Sparkles className="w-5 h-5 text-muted-foreground" />
-                            ) : (
-                              <Image className="w-5 h-5 text-muted-foreground" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm">
-                              Figure {figure.figureNumber}: {figure.title}
-                            </p>
-                            <p className="text-xs text-muted-foreground capitalize">
-                              {figure.figureType === 'ai' ? 'AI Generated' : figure.figureType === 'image' ? 'Uploaded Image' : `${figure.figureType} chart`}
-                            </p>
-                          </div>
-                          <ArrowRight className="w-4 h-4 text-muted-foreground" />
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd(section.id)}
+                  >
+                    <SortableContext items={figureIds} strategy={verticalListSortingStrategy}>
+                      <div className="space-y-2">
+                        {sectionFigures.map((figure) => (
+                          <SortableFigureItem
+                            key={figure.id}
+                            figure={figure}
+                            onSelect={setSelectedFigure}
+                            canEdit={canEdit}
+                          />
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
                 )}
               </CardContent>
             </Card>
