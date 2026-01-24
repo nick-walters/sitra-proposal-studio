@@ -84,14 +84,16 @@ export function DocumentEditor({
     lockedByName, 
     lockedAt, 
     lockReason, 
-    canManageLock, 
+    canManageLock,
+    canEditWhenLocked,
     isLockedByMe, 
     toggleLock, 
     updating: lockUpdating 
   } = sectionLockingHook;
 
   // Determine if section is effectively read-only (prop or locked)
-  const isEffectivelyReadOnly = readOnly || (isLocked && !isLockedByMe);
+  // Admins/owners can always edit locked sections
+  const isEffectivelyReadOnly = readOnly || (isLocked && !canEditWhenLocked);
 
   const { content, setContent, loading, saving, lastSaved, lastCitationMapping } = sectionContentHook;
 
@@ -366,8 +368,8 @@ export function DocumentEditor({
           </div>
         </div>
 
-        {/* Locked section banner */}
-        {isLocked && !isLockedByMe && (
+        {/* Locked section banner - show to non-admin users */}
+        {isLocked && !canEditWhenLocked && (
           <Alert className="mx-0 rounded-none border-x-0 bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
             <Lock className="h-4 w-4 text-amber-600" />
             <AlertDescription className="text-amber-800 dark:text-amber-200">

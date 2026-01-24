@@ -31,10 +31,14 @@ export function useSectionLocking({ proposalId, sectionId }: UseSectionLockingPr
   const { isAdminOrOwner } = useUserRole();
 
   // Check if current user can lock/unlock sections (admin or owner)
+  // Any admin/owner can lock or unlock any section, regardless of who locked it
   const canManageLock = isAdminOrOwner;
   
-  // Check if current user locked this section
+  // Check if current user locked this section (used for display purposes)
   const isLockedByMe = lockInfo.isLocked && lockInfo.lockedBy === user?.id;
+  
+  // Admins/owners can always edit locked sections
+  const canEditWhenLocked = isAdminOrOwner;
 
   // Fetch lock status
   useEffect(() => {
@@ -165,6 +169,7 @@ export function useSectionLocking({ proposalId, sectionId }: UseSectionLockingPr
     loading,
     updating,
     canManageLock,
+    canEditWhenLocked,
     isLockedByMe,
     toggleLock,
   };
