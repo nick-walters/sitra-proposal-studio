@@ -73,8 +73,10 @@ export function SortableFigureItem({ figure, onSelect, canEdit }: SortableFigure
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-medium text-sm">
-            Figure {figure.figureNumber}: {figure.title}
+          {/* Caption matching Part B format: "Figure X.X.x. Title" */}
+          <p className="text-sm italic truncate">
+            <span className="font-semibold not-italic">Figure {figure.figureNumber}.</span>{' '}
+            {figure.title}
           </p>
           <p className="text-xs text-muted-foreground capitalize">
             {figure.figureType === 'ai' ? 'AI Generated' : figure.figureType === 'image' ? 'Uploaded Image' : `${figure.figureType} chart`}

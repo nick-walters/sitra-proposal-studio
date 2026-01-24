@@ -39,6 +39,7 @@ import {
   AlignHorizontalJustifyStart,
   AlignHorizontalJustifyCenter,
   AlignHorizontalJustifyEnd,
+  RefreshCw,
 } from "lucide-react";
 import {
   Tooltip,
@@ -148,10 +149,12 @@ export function FormattingToolbar({
   editor,
   sectionNumber,
   content,
+  onOpenFigureDialog,
 }: { 
   editor: Editor | null;
   sectionNumber?: string;
   content?: string;
+  onOpenFigureDialog?: () => void;
 }) {
   const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
   const [isCropOpen, setIsCropOpen] = useState(false);
@@ -266,6 +269,61 @@ export function FormattingToolbar({
       editor.commands.updateAttributes('image', { alignment });
     }
   }, [editor]);
+
+  // Delete figure with its caption (paragraph after the image)
+  const deleteFigureWithCaption = useCallback(() => {
+    if (!editor) return;
+    
+    const { state } = editor;
+    const { selection } = state;
+    const { $from } = selection;
+    
+    // Find the image node position
+    let imagePos = $from.before($from.depth);
+    let imageNode = state.doc.nodeAt(imagePos);
+    
+    // If not directly on image, try to find it
+    if (!imageNode || imageNode.type.name !== 'image') {
+      // Check if selection is on the image
+      const node = $from.nodeAfter;
+      if (node && node.type.name === 'image') {
+        imagePos = $from.pos;
+        imageNode = node;
+      }
+    }
+    
+    if (!imageNode || imageNode.type.name !== 'image') return;
+    
+    let deleteEnd = imagePos + imageNode.nodeSize;
+    
+    // Check if next node is a figure caption paragraph
+    const afterPos = imagePos + imageNode.nodeSize;
+    if (afterPos < state.doc.content.size) {
+      const $afterPos = state.doc.resolve(afterPos);
+      const afterNode = $afterPos.nodeAfter;
+      if (afterNode && afterNode.type.name === 'paragraph') {
+        const textContent = afterNode.textContent.toLowerCase();
+        const hasClass = afterNode.attrs?.class || '';
+        if (textContent.startsWith('figure ') || hasClass.includes('figure-caption')) {
+          deleteEnd = afterPos + afterNode.nodeSize;
+        }
+      }
+    }
+    
+    // Delete the figure and its caption
+    editor.chain()
+      .focus()
+      .deleteRange({ from: imagePos, to: deleteEnd })
+      .run();
+  }, [editor]);
+
+  // Replace figure - opens figure dialog
+  const replaceFigure = useCallback(() => {
+    if (onOpenFigureDialog) {
+      onOpenFigureDialog();
+    }
+  }, [onOpenFigureDialog]);
+
   
   const setLink = useCallback(() => {
     if (!editor) return;
@@ -624,6 +682,22 @@ export function FormattingToolbar({
                 tooltip="Align right"
                 onClick={() => setImageAlignment('right')}
                 active={currentImageAlignment === 'right'}
+              />
+              
+              <Separator orientation="vertical" className="h-5 mx-1" />
+              
+              {/* Replace and Delete figure */}
+              {onOpenFigureDialog && (
+                <ToolbarButton
+                  icon={<RefreshCw className="w-4 h-4" />}
+                  tooltip="Replace figure"
+                  onClick={replaceFigure}
+                />
+              )}
+              <ToolbarButton
+                icon={<Trash2 className="w-4 h-4 text-destructive" />}
+                tooltip="Delete figure with caption"
+                onClick={deleteFigureWithCaption}
               />
             </div>
           </>
