@@ -44,6 +44,7 @@ import { useProposalData } from "@/hooks/useProposalData";
 import { useProposalSections } from "@/hooks/useProposalSections";
 import { useBudget } from "@/hooks/useBudget";
 import { useAuth } from "@/hooks/useAuth";
+import { useSectionAssignments } from "@/hooks/useSectionAssignments";
 import {
   Tooltip,
   TooltipContent,
@@ -101,6 +102,9 @@ export function ProposalEditor() {
 
   // Dynamically load sections based on template type (or fallback to hardcoded)
   const { sections: allSections, loading: sectionsLoading } = useProposalSections(proposal?.templateTypeId || null);
+
+  // Section assignments for sidebar indicators
+  const { assignments } = useSectionAssignments(id || null);
 
   // Auto-select Proposal overview on initial load
   useEffect(() => {
@@ -742,6 +746,7 @@ export function ProposalEditor() {
               isAdmin={isAdmin}
               currentUserId={user?.id}
               participantMembers={participantMembers.map(m => ({ participantId: m.participantId, userId: m.userId }))}
+              assignments={assignments}
             />
           </div>
 

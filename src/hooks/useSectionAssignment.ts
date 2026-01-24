@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
+import { createAssignmentNotification } from '@/hooks/useNotifications';
 
 interface AssignmentInfo {
   assignedTo: string | null;
@@ -179,7 +180,7 @@ export function useSectionAssignment({ proposalId, sectionId }: UseSectionAssign
   }, [proposalId]);
 
   // Assign section to a team member
-  const assignSection = useCallback(async (userId: string | null, dueDate: string | null) => {
+  const assignSection = useCallback(async (userId: string | null, dueDate: string | null, sectionTitle?: string) => {
     if (!proposalId || !sectionId || !user) return;
 
     setUpdating(true);
@@ -192,6 +193,11 @@ export function useSectionAssignment({ proposalId, sectionId }: UseSectionAssign
         .single();
 
       if (!templateData) return;
+
+      // Check if this is a new assignment or reassignment
+      const previousAssignee = assignmentInfo.assignedTo;
+      const isNewAssignment = !previousAssignee && userId;
+      const isReassignment = previousAssignee && userId && previousAssignee !== userId;
 
       const { error } = await supabase
         .from('proposal_template_sections')
@@ -209,6 +215,18 @@ export function useSectionAssignment({ proposalId, sectionId }: UseSectionAssign
         return;
       }
 
+      // Create notification for the assigned user
+      if (userId && (isNewAssignment || isReassignment)) {
+        await createAssignmentNotification({
+          proposalId,
+          userId,
+          assignedBy: user.id,
+          sectionId,
+          sectionTitle: sectionTitle || sectionId,
+          dueDate: dueDate || undefined,
+        });
+      }
+
       // Refresh assignment info
       await fetchAssignmentInfo();
     } catch (err) {
@@ -216,7 +234,7 @@ export function useSectionAssignment({ proposalId, sectionId }: UseSectionAssign
     } finally {
       setUpdating(false);
     }
-  }, [proposalId, sectionId, user, fetchAssignmentInfo]);
+  }, [proposalId, sectionId, user, assignmentInfo.assignedTo, fetchAssignmentInfo]);
 
   // Update just the due date
   const updateDueDate = useCallback(async (dueDate: string | null) => {
