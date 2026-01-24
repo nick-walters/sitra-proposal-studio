@@ -19,8 +19,48 @@ interface ExportData {
 const mmToPt = (mm: number) => mm * 2.835;
 
 export function usePdfExport() {
-  const exportProposalToPdf = useCallback(async (data: ExportData) => {
+  // Helper: Add watermark to all pages
+  const addWatermarkToAllPages = (pdf: jsPDF) => {
+    const totalPages = pdf.internal.pages.length - 1;
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    
+    for (let i = 1; i <= totalPages; i++) {
+      pdf.setPage(i);
+      
+      // Save current graphics state
+      pdf.saveGraphicsState();
+      
+      // Set watermark style - semi-transparent red
+      pdf.setTextColor(220, 38, 38); // Red color
+      pdf.setFontSize(60);
+      pdf.setFont('times', 'bold');
+      
+      // Calculate center position
+      const centerX = pageWidth / 2;
+      const centerY = pageHeight / 2;
+      
+      // Create GState for transparency (0.15 = 15% opacity)
+      const gState = pdf.GState({ opacity: 0.15 });
+      pdf.setGState(gState);
+      
+      // Draw rotated text (45 degrees diagonal)
+      const text = 'Confidential draft';
+      
+      // Translate to center, rotate, then draw
+      pdf.text(text, centerX, centerY, {
+        align: 'center',
+        angle: 45,
+      });
+      
+      // Restore graphics state
+      pdf.restoreGraphicsState();
+    }
+  };
+
+  const exportProposalToPdf = useCallback(async (data: ExportData, options?: { includeWatermark?: boolean }) => {
     const { proposal, sectionContents, sections } = data;
+    const includeWatermark = options?.includeWatermark ?? true; // Default to including watermark
 
     try {
       toast.info('Generating PDF...');
@@ -42,7 +82,6 @@ export function usePdfExport() {
 
       // Colors
       const black: [number, number, number] = [0, 0, 0];
-      const white: [number, number, number] = [255, 255, 255];
       const gray: [number, number, number] = [128, 128, 128];
 
       // Font sizes in pt (jsPDF uses pt for setFontSize)
@@ -50,7 +89,6 @@ export function usePdfExport() {
       const FONT_SIZE_H1 = 13;
       const FONT_SIZE_H2 = 12;
       const FONT_SIZE_BODY = 11;
-      const FONT_SIZE_FOOTNOTE = 8;
       const FONT_SIZE_HEADER_FOOTER = 8;
 
       // Line heights in mm (approximation based on font size)
@@ -336,8 +374,14 @@ export function usePdfExport() {
         addFooter(i, totalPages, currentSectionName);
       }
 
-      // Save
-      const filename = `${proposal.acronym}_Part_B_${new Date().toISOString().split('T')[0]}.pdf`;
+      // Add watermark to all pages if enabled
+      if (includeWatermark) {
+        addWatermarkToAllPages(pdf);
+      }
+
+      // Save with appropriate filename
+      const watermarkSuffix = includeWatermark ? '' : '_final';
+      const filename = `${proposal.acronym}_Part_B_${new Date().toISOString().split('T')[0]}${watermarkSuffix}.pdf`;
       pdf.save(filename);
 
       toast.success('PDF exported successfully!');
