@@ -58,14 +58,18 @@ export const DraggableBlock = Extension.create({
             const pluginState = DRAGGABLE_BLOCK_KEY.getState(state);
             if (pluginState?.dropTargetPos !== null && pluginState?.isDragging) {
               const dropPos = pluginState.dropTargetPos;
-              if (dropPos >= 0 && dropPos < doc.content.size) {
-                const $pos = doc.resolve(dropPos);
-                const nodeAfter = $pos.nodeAfter;
-                if (nodeAfter) {
+              const draggedPos = pluginState.draggedNodePos;
+              
+              // Don't show indicator at the dragged element's position
+              if (draggedPos !== null && dropPos !== draggedPos) {
+                if (dropPos >= 0 && dropPos <= doc.content.size) {
+                  // Create a widget decoration as a drop line indicator
                   decorations.push(
-                    Decoration.node(dropPos, dropPos + nodeAfter.nodeSize, {
-                      class: 'drop-target-indicator',
-                    })
+                    Decoration.widget(dropPos, () => {
+                      const indicator = document.createElement('div');
+                      indicator.className = 'drop-position-indicator';
+                      return indicator;
+                    }, { side: -1 })
                   );
                 }
               }

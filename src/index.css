@@ -111,20 +111,58 @@
   height: 14px;
 }
 
-/* Drop target indicator */
-.drop-target-indicator {
+/* Drop position indicator - horizontal line showing where content will land */
+.drop-position-indicator {
   position: relative;
+  height: 4px;
+  margin: 8px 0;
+  background: linear-gradient(90deg, 
+    hsl(var(--primary)) 0%, 
+    hsl(var(--primary)) 100%
+  );
+  border-radius: 2px;
+  box-shadow: 0 0 8px hsl(var(--primary) / 0.4);
+  animation: drop-indicator-pulse 0.8s ease-in-out infinite alternate;
 }
 
-.drop-target-indicator::before {
+.drop-position-indicator::before,
+.drop-position-indicator::after {
   content: '';
   position: absolute;
-  top: -2px;
-  left: 0;
-  right: 0;
-  height: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 10px;
   background: hsl(var(--primary));
-  border-radius: 2px;
+  border-radius: 50%;
+  box-shadow: 0 0 6px hsl(var(--primary) / 0.5);
+}
+
+.drop-position-indicator::before {
+  left: -5px;
+}
+
+.drop-position-indicator::after {
+  right: -5px;
+}
+
+@keyframes drop-indicator-pulse {
+  0% {
+    opacity: 0.7;
+    box-shadow: 0 0 8px hsl(var(--primary) / 0.3);
+  }
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 16px hsl(var(--primary) / 0.6);
+  }
+}
+
+/* Legacy drop target indicator for node highlighting */
+.drop-target-indicator {
+  outline: 2px dashed hsl(var(--primary));
+  outline-offset: 2px;
+  border-radius: 4px;
+  background: hsl(var(--primary) / 0.05);
 }
 
 /* Dragging state */
