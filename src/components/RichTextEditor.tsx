@@ -10,6 +10,7 @@ import { TableHeader } from '@tiptap/extension-table-header';
 import { ResizableImage } from './ResizableImage';
 import { ImageCropDialog } from './ImageCropDialog';
 import { createCitationTooltipPlugin } from './CitationMark';
+import { DraggableBlock } from './DraggableBlock';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
@@ -768,6 +769,8 @@ export function useRichTextEditor({
           ];
         },
       }),
+      // Add draggable block extension for figures and tables
+      DraggableBlock,
     ],
     content,
     onUpdate: ({ editor }) => {
