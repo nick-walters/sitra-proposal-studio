@@ -1,7 +1,7 @@
 import { Section } from "@/types/proposal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, BookOpen, Route, History, Info, Image, Link2, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search, GitCompare, Keyboard } from "lucide-react";
+import { Sparkles, BookOpen, Route, History, Info, Image, Link2, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search, GitCompare, Keyboard, Wand2, FileCode, SplitSquareHorizontal } from "lucide-react";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
 import { EditorContent } from "@tiptap/react";
@@ -32,6 +32,9 @@ import { SearchReplaceDialog } from "./SearchReplaceDialog";
 import { TableFormulaDialog } from "./TableFormulaDialog";
 import { VersionComparisonDialog } from "./VersionComparisonDialog";
 import { KeyboardShortcutsDialog } from "./KeyboardShortcutsDialog";
+import { WritingAssistantDialog } from "./WritingAssistantDialog";
+import { SnippetsDialog } from "./SnippetsDialog";
+import { SplitViewPanel } from "./SplitViewPanel";
 import { TrackChange } from "@/extensions/TrackChanges";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -59,6 +62,7 @@ interface DocumentEditorProps {
   topicId?: string;
   workProgramme?: string;
   destination?: string;
+  allSections?: Section[];
 }
 
 export function DocumentEditor({ 
@@ -70,6 +74,7 @@ export function DocumentEditor({
   topicId,
   workProgramme,
   destination,
+  allSections = [],
 }: DocumentEditorProps) {
   const { user } = useAuth();
   const [isGrammarOpen, setIsGrammarOpen] = useState(false);
@@ -93,6 +98,9 @@ export function DocumentEditor({
   const [isFormulaOpen, setIsFormulaOpen] = useState(false);
   const [isComparisonOpen, setIsComparisonOpen] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+  const [isWritingAssistantOpen, setIsWritingAssistantOpen] = useState(false);
+  const [isSnippetsOpen, setIsSnippetsOpen] = useState(false);
+  const [isSplitViewOpen, setIsSplitViewOpen] = useState(false);
   
   // Editor container ref for cursor overlays
   const editorContainerRef = useRef<HTMLDivElement>(null);
