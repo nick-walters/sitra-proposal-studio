@@ -343,6 +343,7 @@ export function useTemplateSections(templateTypeId: string | null) {
         editor_type: s.editor_type as 'form' | 'rich_text' | 'summary',
         word_limit: s.word_limit,
         page_limit: s.page_limit,
+        placeholder_content: s.placeholder_content,
         order_index: s.order_index,
         parent_section_id: s.parent_section_id,
         is_required: s.is_required,

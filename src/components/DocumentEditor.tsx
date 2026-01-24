@@ -1,7 +1,7 @@
 import { Section } from "@/types/proposal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, BookOpen, Route, History, Info, Image, Link2, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User } from "lucide-react";
+import { Sparkles, BookOpen, Route, History, Info, Image, Link2, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X } from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
 import { EditorContent } from "@tiptap/react";
@@ -80,6 +80,7 @@ export function DocumentEditor({
     proposalId: proposalId || '',
     sectionId: section?.id || '',
     sectionNumber: section?.number,
+    placeholderContent: section?.placeholderContent,
   });
   
   // Use section locking hook
@@ -132,7 +133,7 @@ export function DocumentEditor({
 
   const dueDateInfo = getDueDateInfo();
 
-  const { content, setContent, loading, saving, lastSaved, lastCitationMapping } = sectionContentHook;
+  const { content, setContent, loading, saving, lastSaved, lastCitationMapping, isPlaceholder, clearPlaceholder } = sectionContentHook;
 
   // Sync footnotes when citations are renumbered
   useEffect(() => {
@@ -529,6 +530,27 @@ export function DocumentEditor({
               This section is locked{lockedByName ? ` by ${lockedByName}` : ''} 
               {lockReason ? `: ${lockReason}` : ' for review'}. 
               Editing is disabled.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Placeholder content banner - show when section has template placeholder text */}
+        {isPlaceholder && !isEffectivelyReadOnly && (
+          <Alert className="mx-0 rounded-none border-x-0 bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800">
+            <FileText className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="flex-1 flex items-center justify-between text-blue-800 dark:text-blue-200">
+              <span>
+                <span className="font-medium">Template placeholder text.</span> Edit to replace with your own content, or clear to start fresh.
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="ml-2 h-6 text-blue-600 hover:text-blue-800 hover:bg-blue-100 dark:text-blue-400 dark:hover:text-blue-200 dark:hover:bg-blue-900"
+                onClick={clearPlaceholder}
+              >
+                <X className="h-3 w-3 mr-1" />
+                Clear
+              </Button>
             </AlertDescription>
           </Alert>
         )}

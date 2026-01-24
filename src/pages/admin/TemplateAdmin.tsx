@@ -817,6 +817,7 @@ function SectionsPanel({
     section_number: '',
     title: '',
     description: '',
+    placeholder_content: '', // Pre-filled guidance text for writers
     editor_type: 'rich_text' as 'form' | 'rich_text' | 'summary',
     word_limit: undefined as number | undefined,
     page_limit: undefined as number | undefined,
@@ -864,6 +865,7 @@ function SectionsPanel({
         section_number: section.section_number,
         title: section.title,
         description: section.description || '',
+        placeholder_content: section.placeholder_content || '',
         editor_type: section.editor_type,
         word_limit: section.word_limit || undefined,
         page_limit: section.page_limit || undefined,
@@ -879,6 +881,7 @@ function SectionsPanel({
         section_number: '',
         title: '',
         description: '',
+        placeholder_content: '',
         editor_type: 'rich_text',
         word_limit: undefined,
         page_limit: undefined,
@@ -1129,6 +1132,22 @@ function SectionsPanel({
                 />
               </div>
             </div>
+            {/* Only show placeholder content field for rich_text editor type */}
+            {sectionFormData.editor_type === 'rich_text' && (
+              <div className="space-y-2">
+                <Label htmlFor="placeholder_content">Placeholder Content</Label>
+                <Textarea
+                  id="placeholder_content"
+                  value={sectionFormData.placeholder_content}
+                  onChange={(e) => setSectionFormData({ ...sectionFormData, placeholder_content: e.target.value })}
+                  placeholder="Enter template placeholder text that writers will see when starting this section..."
+                  className="min-h-[100px]"
+                />
+                <p className="text-xs text-muted-foreground">
+                  This text will appear when writers first open an empty section. They can edit or clear it.
+                </p>
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <Label>Required</Label>
               <Switch
