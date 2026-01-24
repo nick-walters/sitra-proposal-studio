@@ -876,17 +876,26 @@ export type Database = {
       }
       proposal_template_sections: {
         Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          assigned_to: string | null
           created_at: string
           description: string | null
+          due_date: string | null
           editor_type: string
           id: string
           is_active: boolean | null
           is_custom: boolean | null
+          is_locked: boolean | null
           is_required: boolean | null
+          lock_reason: string | null
+          locked_at: string | null
+          locked_by: string | null
           order_index: number
           page_limit: number | null
           parent_section_id: string | null
           part: string
+          placeholder_content: string | null
           proposal_template_id: string
           section_number: string
           section_tag: string | null
@@ -896,17 +905,26 @@ export type Database = {
           word_limit: number | null
         }
         Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_to?: string | null
           created_at?: string
           description?: string | null
+          due_date?: string | null
           editor_type?: string
           id?: string
           is_active?: boolean | null
           is_custom?: boolean | null
+          is_locked?: boolean | null
           is_required?: boolean | null
+          lock_reason?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
           order_index?: number
           page_limit?: number | null
           parent_section_id?: string | null
           part: string
+          placeholder_content?: string | null
           proposal_template_id: string
           section_number: string
           section_tag?: string | null
@@ -916,17 +934,26 @@ export type Database = {
           word_limit?: number | null
         }
         Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_to?: string | null
           created_at?: string
           description?: string | null
+          due_date?: string | null
           editor_type?: string
           id?: string
           is_active?: boolean | null
           is_custom?: boolean | null
+          is_locked?: boolean | null
           is_required?: boolean | null
+          lock_reason?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
           order_index?: number
           page_limit?: number | null
           parent_section_id?: string | null
           part?: string
+          placeholder_content?: string | null
           proposal_template_id?: string
           section_number?: string
           section_tag?: string | null
@@ -1167,6 +1194,72 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "references_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      section_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_suggestion: boolean | null
+          parent_comment_id: string | null
+          proposal_id: string
+          section_id: string
+          selected_text: string | null
+          selection_end: number | null
+          selection_start: number | null
+          status: string | null
+          suggested_text: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_suggestion?: boolean | null
+          parent_comment_id?: string | null
+          proposal_id: string
+          section_id: string
+          selected_text?: string | null
+          selection_end?: number | null
+          selection_start?: number | null
+          status?: string | null
+          suggested_text?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_suggestion?: boolean | null
+          parent_comment_id?: string | null
+          proposal_id?: string
+          section_id?: string
+          selected_text?: string | null
+          selection_end?: number | null
+          selection_start?: number | null
+          status?: string | null
+          suggested_text?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "section_comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "section_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "section_comments_proposal_id_fkey"
             columns: ["proposal_id"]
             isOneToOne: false
             referencedRelation: "proposals"
@@ -1452,6 +1545,7 @@ export type Database = {
           page_limit: number | null
           parent_section_id: string | null
           part: string
+          placeholder_content: string | null
           section_number: string
           section_tag: string | null
           template_type_id: string
@@ -1470,6 +1564,7 @@ export type Database = {
           page_limit?: number | null
           parent_section_id?: string | null
           part: string
+          placeholder_content?: string | null
           section_number: string
           section_tag?: string | null
           template_type_id: string
@@ -1488,6 +1583,7 @@ export type Database = {
           page_limit?: number | null
           parent_section_id?: string | null
           part?: string
+          placeholder_content?: string | null
           section_number?: string
           section_tag?: string | null
           template_type_id?: string
