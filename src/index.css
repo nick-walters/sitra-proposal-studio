@@ -71,10 +71,7 @@
 }
 
 /* Draggable Block Styles - Handles in the left margin */
-.draggable-content-block {
-  position: relative;
-}
-
+/* NOTE: draggable-content-block should NOT have position:relative as it breaks layout */
 .draggable-content-block:hover > .block-drag-handle {
   opacity: 1;
 }
@@ -116,48 +113,10 @@
 
 /* Drop position indicator - horizontal line showing where content will land */
 .drop-position-indicator {
-  position: relative;
-  height: 4px;
-  margin: 8px 0;
-  background: linear-gradient(90deg, 
-    hsl(var(--primary)) 0%, 
-    hsl(var(--primary)) 100%
-  );
-  border-radius: 2px;
-  box-shadow: 0 0 8px hsl(var(--primary) / 0.4);
-  animation: drop-indicator-pulse 0.8s ease-in-out infinite alternate;
-}
-
-.drop-position-indicator::before,
-.drop-position-indicator::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 10px;
-  height: 10px;
+  height: 3px;
   background: hsl(var(--primary));
-  border-radius: 50%;
-  box-shadow: 0 0 6px hsl(var(--primary) / 0.5);
-}
-
-.drop-position-indicator::before {
-  left: -5px;
-}
-
-.drop-position-indicator::after {
-  right: -5px;
-}
-
-@keyframes drop-indicator-pulse {
-  0% {
-    opacity: 0.7;
-    box-shadow: 0 0 8px hsl(var(--primary) / 0.3);
-  }
-  100% {
-    opacity: 1;
-    box-shadow: 0 0 16px hsl(var(--primary) / 0.6);
-  }
+  border-radius: 2px;
+  pointer-events: none;
 }
 
 /* Dragging state */
