@@ -393,10 +393,11 @@
     margin: 0 auto;
   }
 
-  /* Document header - centered at top within margin */
+  /* Document header - vertically centered within top margin */
   .document-page-header {
     position: absolute;
-    top: 0.5cm;
+    top: 0;
+    height: 2cm; /* Match the top padding of document-page */
     left: 1.5cm;
     right: 1.5cm;
     font-family: "Times New Roman", Times, serif;
@@ -408,10 +409,11 @@
     text-align: center;
   }
 
-  /* Document footer - centered at bottom within margin */
+  /* Document footer - vertically centered within bottom margin */
   .document-page-footer {
     position: absolute;
-    bottom: 0.5cm;
+    bottom: 0;
+    height: 2cm; /* Match the bottom padding of document-page */
     left: 1.5cm;
     right: 1.5cm;
     font-family: "Times New Roman", Times, serif;
