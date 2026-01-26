@@ -172,7 +172,7 @@ function SectionItem({
         )}
         {/* Only show number if not a top-level bold item and number exists */}
         {showNumber && !isTopLevelBold && (
-          <span className="font-medium text-muted-foreground mr-1">
+          <span className="font-medium text-muted-foreground mr-0.5">
             {formatSectionNumber(section.number, depth)}
           </span>
         )}
