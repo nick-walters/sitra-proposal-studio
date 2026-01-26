@@ -1,14 +1,12 @@
-import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Check, Circle, BarChart3, Users, Package, AlertTriangle, Clock } from 'lucide-react';
+import { Check, Circle, BarChart3, Users, Package, AlertTriangle, ListChecks } from 'lucide-react';
 import { WPColorSwatch } from '@/components/WPColorPicker';
 import { useWPDrafts } from '@/hooks/useWPDrafts';
 import { useWPProgress } from '@/hooks/useWPProgress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
 
 interface WPProgressTrackerProps {
   proposalId: string;
@@ -31,9 +29,9 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
 
   const CompletionIcon = ({ complete }: { complete: boolean }) => (
     complete ? (
-      <Check className="h-4 w-4 text-green-600" />
+      <Check className="h-4 w-4 text-green-600 mx-auto" />
     ) : (
-      <Circle className="h-4 w-4 text-muted-foreground/40" />
+      <Circle className="h-4 w-4 text-muted-foreground/40 mx-auto" />
     )
   );
 
@@ -55,7 +53,7 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
               <h3 className="text-lg font-medium mb-2">No Work Packages Yet</h3>
               <p className="text-sm text-muted-foreground max-w-sm mb-4">
                 Create work packages in the "Proposal overview" page to start tracking progress. 
-                Each WP tracks methodology, objectives, tasks, deliverables, and risks.
+                Each WP tracks methodology, objectives, tasks, deliverables, risks, and interactions.
               </p>
               <div className="flex flex-col gap-2 text-xs text-muted-foreground">
                 <div className="flex items-center gap-2">
@@ -68,7 +66,7 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-3 w-3 text-green-600" />
-                  <span>At least one task, deliverable, and risk</span>
+                  <span>At least one task, deliverable, risk, and interaction</span>
                 </div>
               </div>
             </div>
@@ -98,7 +96,7 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
             <Progress value={totals.overallProgress} className="h-3" />
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">
-                {totals.completedWPs} of {totals.totalWPs} WPs complete
+                {totals.completedWPs} of {totals.totalWPs} WPs on track
               </span>
               <span className="font-medium">{totals.overallProgress}%</span>
             </div>
@@ -112,18 +110,19 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
           <CardTitle className="text-base">Per-WP Completion</CardTitle>
           <CardDescription>Click any WP to navigate directly to its editor</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-3 pb-3">
           <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[180px]">Work Package</TableHead>
-                  <TableHead className="w-[60px] text-center">Method</TableHead>
-                  <TableHead className="w-[60px] text-center">Obj</TableHead>
-                  <TableHead className="w-[60px] text-center">Tasks</TableHead>
-                  <TableHead className="w-[60px] text-center">Deliv</TableHead>
-                  <TableHead className="w-[60px] text-center">Risks</TableHead>
-                  <TableHead className="w-[80px] text-center">Status</TableHead>
+                  <TableHead className="font-bold">Work Package</TableHead>
+                  <TableHead className="text-center font-bold">Methodology</TableHead>
+                  <TableHead className="text-center font-bold">Objectives</TableHead>
+                  <TableHead className="text-center font-bold">Tasks</TableHead>
+                  <TableHead className="text-center font-bold">Deliverables</TableHead>
+                  <TableHead className="text-center font-bold">Risks</TableHead>
+                  <TableHead className="text-center font-bold">Interactions</TableHead>
+                  <TableHead className="text-center font-bold">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -133,35 +132,38 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
                     className="cursor-pointer hover:bg-muted/50"
                     onClick={() => onNavigateToWP?.(wp.wpId)}
                   >
-                    <TableCell>
+                    <TableCell className="py-1.5">
                       <div className="flex items-center gap-2">
                         <WPColorSwatch color={wp.color} size="sm" />
-                        <span className="font-medium">WP{wp.wpNumber}</span>
+                        <span className="font-medium">WP{wp.wpNumber}:</span>
                         {wp.shortName && (
-                          <span className="text-muted-foreground">: {wp.shortName}</span>
+                          <span className="text-muted-foreground">{wp.shortName}</span>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center py-1.5">
                       <CompletionIcon complete={wp.completion.methodology} />
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center py-1.5">
                       <CompletionIcon complete={wp.completion.objectives} />
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center py-1.5">
                       <CompletionIcon complete={wp.completion.tasks} />
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center py-1.5">
                       <CompletionIcon complete={wp.completion.deliverables} />
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center py-1.5">
                       <CompletionIcon complete={wp.completion.risks} />
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center py-1.5">
+                      <CompletionIcon complete={wp.completion.interactions} />
+                    </TableCell>
+                    <TableCell className="text-center py-1.5">
                       {wp.completion.overall ? (
-                        <Badge variant="default" className="bg-green-600">Complete</Badge>
+                        <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border-green-200">On Track</Badge>
                       ) : (
-                        <Badge variant="secondary">In Progress</Badge>
+                        <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 border-amber-200">In Progress</Badge>
                       )}
                     </TableCell>
                   </TableRow>
@@ -188,9 +190,9 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
           <CardTitle className="text-base">Proposal Totals</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard
-              icon={<Clock className="h-4 w-4" />}
+              icon={<ListChecks className="h-4 w-4" />}
               label="Total Tasks"
               value={totals.totalTasks}
               subValue={`${totals.tasksWithTiming} with timing`}
@@ -209,11 +211,6 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
               icon={<Users className="h-4 w-4" />}
               label="Total Person-Months"
               value={totals.totalPersonMonths.toFixed(1)}
-            />
-            <StatCard
-              icon={<Users className="h-4 w-4" />}
-              label="WPs with Lead"
-              value={`${totals.wpsWithLead}/${totals.totalWPs}`}
             />
           </div>
         </CardContent>
