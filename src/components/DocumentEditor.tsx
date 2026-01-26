@@ -751,7 +751,7 @@ export function DocumentEditor({
                   <Skeleton className="h-4 w-2/3" />
                 </div>
               ) : (
-                <div ref={editorContainerRef} className="relative pl-8">
+                <div ref={editorContainerRef} className="relative">
                   <EditorContent 
                     editor={editor} 
                     className={`document-content min-h-[400px] outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''}`}
