@@ -11,7 +11,7 @@ import { TableHeader } from '@tiptap/extension-table-header';
 import { ResizableImage } from './ResizableImage';
 import { ImageCropDialog } from './ImageCropDialog';
 import { createCitationTooltipPlugin } from './CitationMark';
-import { DraggableBlock } from './DraggableBlock';
+// DraggableBlock removed due to performance issues - see alternative approach below
 import { TrackChanges, TrackChangesOptions } from '@/extensions/TrackChanges';
 import { TableFormula } from '@/extensions/TableFormula';
 import { Button } from "@/components/ui/button";
@@ -903,8 +903,6 @@ export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootn
           class: 'he-table-cell',
         },
       }),
-      // Add draggable block extension for figures and tables
-      DraggableBlock,
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -1076,8 +1074,7 @@ export function useRichTextEditor({
           ];
         },
       }),
-      // Add draggable block extension for figures and tables
-      DraggableBlock,
+      // Track changes extension
       // Track changes extension
       TrackChanges.configure({
         enabled: trackChanges?.enabled || false,
