@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { InlineGuideline } from "./GuidelineBox";
+import { SitraTipsBox } from "./SitraTipsBox";
 import { Section } from "@/types/proposal";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SaveIndicator } from "./SaveIndicator";
@@ -364,6 +365,18 @@ export function GeneralInfoForm({
     );
   }
 
+  // Extract Sitra tips from section guidelines
+  const sitraTips = useMemo(() => {
+    return (section.guidelinesArray || [])
+      .filter(g => g.type === 'sitra_tip')
+      .sort((a, b) => a.orderIndex - b.orderIndex)
+      .map(g => ({
+        id: g.id,
+        title: g.title,
+        content: g.content,
+      }));
+  }, [section.guidelinesArray]);
+
   return (
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
       <div className="max-w-3xl mx-auto space-y-6">
@@ -372,6 +385,9 @@ export function GeneralInfoForm({
           <h1 className="text-xl font-semibold">Part A1: General information</h1>
           {canEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
         </div>
+
+        {/* Sitra's Tips */}
+        <SitraTipsBox tips={sitraTips} />
 
         {/* Proposal Summary Card */}
         <Card>

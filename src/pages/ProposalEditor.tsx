@@ -318,6 +318,7 @@ export function ProposalEditor() {
             participants={visibleParticipants}
             proposalId={id || ''}
             proposalAcronym={proposal?.acronym || ''}
+            section={activeSection}
             onSelectParticipant={(p) => setSelectedParticipantId(p.id)}
             onAddParticipant={async (participantData) => {
               // Create new participant with proper data from dialog
