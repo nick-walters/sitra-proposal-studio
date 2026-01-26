@@ -12,6 +12,7 @@ import { ResizableImage } from './ResizableImage';
 import { ImageCropDialog } from './ImageCropDialog';
 import { createCitationTooltipPlugin } from './CitationMark';
 import { BlockReordering } from '@/extensions/BlockReordering';
+import { BlockDragHandle } from '@/extensions/BlockDragHandle';
 import { TrackChanges, TrackChangesOptions } from '@/extensions/TrackChanges';
 import { TableFormula } from '@/extensions/TableFormula';
 import { Button } from "@/components/ui/button";
@@ -1014,7 +1015,11 @@ export function useRichTextEditor({
       }),
       // Block reordering via keyboard shortcuts (Ctrl+Shift+↑/↓)
       BlockReordering,
-      // Add citation tooltip extension
+      // Block drag-and-drop via drag handle
+      BlockDragHandle.configure({
+        getLockedBlocks: () => getLockedBlocksRef.current(),
+        getCurrentUserId: () => getCurrentUserIdRef.current(),
+      }),
       Extension.create({
         name: 'citationTooltip',
         addProseMirrorPlugins() {

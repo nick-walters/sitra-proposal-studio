@@ -1,7 +1,6 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from '@tiptap/react';
 import { useState, useCallback, useRef } from 'react';
-import { GripVertical } from 'lucide-react';
 
 function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewProps) {
   const { src, alt, width, height, widthPercent, alignment } = node.attrs as { 
@@ -105,19 +104,9 @@ function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewP
 
   return (
     <NodeViewWrapper 
-      className="resizable-image-wrapper draggable-block w-full flex group" 
+      className="resizable-image-wrapper w-full flex" 
       style={getAlignmentStyles()}
-      data-drag-handle
     >
-      {/* Drag handle */}
-      <div 
-        className="drag-handle"
-        draggable="true"
-        contentEditable={false}
-        title="Drag to reorder"
-      >
-        <GripVertical />
-      </div>
       
       <div 
         className={`relative inline-block ${selected ? 'ring-2 ring-primary' : ''}`}
