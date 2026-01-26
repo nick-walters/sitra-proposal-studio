@@ -630,6 +630,7 @@ export function ProposalEditor() {
         topicTitle={proposal?.topicTitle}
         readOnly={!canEdit}
         topicId={proposal?.topicId}
+        topicUrl={proposal?.topicUrl}
         workProgramme={proposal?.workProgramme}
         destination={proposal?.destination}
       />

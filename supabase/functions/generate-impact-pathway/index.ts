@@ -12,7 +12,76 @@ serve(async (req) => {
   }
 
   try {
-    const { projectDescription, expectedOutcomes, topicId, workProgramme, destination } = await req.json();
+    const body = await req.json();
+    const { action } = body;
+
+    // Handle topic URL fetching
+    if (action === 'fetch-topic') {
+      const { topicUrl } = body;
+      
+      if (!topicUrl) {
+        return new Response(
+          JSON.stringify({ error: 'No topic URL provided' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log('Fetching topic content from:', topicUrl);
+
+      try {
+        const response = await fetch(topicUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; ProposalStudio/1.0)',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          },
+        });
+
+        if (!response.ok) {
+          console.error('Failed to fetch topic URL:', response.status);
+          return new Response(
+            JSON.stringify({ topicContent: '' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const html = await response.text();
+        
+        // Extract text content from HTML (basic extraction)
+        // Remove scripts, styles, and HTML tags
+        let textContent = html
+          .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+          .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+          .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '')
+          .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '')
+          .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/\s+/g, ' ')
+          .trim();
+
+        // Limit content size
+        textContent = textContent.slice(0, 12000);
+
+        console.log('Topic content extracted, length:', textContent.length);
+
+        return new Response(
+          JSON.stringify({ topicContent: textContent }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch (fetchError) {
+        console.error('Error fetching topic URL:', fetchError);
+        return new Response(
+          JSON.stringify({ topicContent: '' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    // Handle pathway generation
+    const { projectDescription, expectedOutcomes, topicId, topicContent, proposalContent, workProgramme, destination } = body;
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
@@ -33,24 +102,38 @@ Generate impact pathways that:
 2. Include specific, measurable indicators and timelines
 3. Quantify contributions wherever possible (percentages, numbers, monetary values)
 4. Identify realistic barriers and propose concrete mitigation measures
-5. Use active, engaging language that demonstrates the project's unique value`;
+5. Use active, engaging language that demonstrates the project's unique value
+6. Align with the topic's expected outcomes and the work programme's goals`;
 
-    const userPrompt = `Generate impact pathways for a Horizon Europe proposal with the following details:
+    // Build context sections
+    let contextSections = '';
+    
+    if (proposalContent) {
+      contextSections += `\nEXISTING PROPOSAL CONTENT (analyse this to understand the project):\n${proposalContent.slice(0, 6000)}\n`;
+    }
+    
+    if (topicContent) {
+      contextSections += `\nTOPIC DESCRIPTION (from EU Funding Portal - align pathways with these requirements):\n${topicContent.slice(0, 6000)}\n`;
+    }
+    
+    if (projectDescription) {
+      contextSections += `\nADDITIONAL PROJECT CONTEXT:\n${projectDescription}\n`;
+    }
 
-PROJECT DESCRIPTION:
-${projectDescription}
+    const userPrompt = `Generate impact pathways for a Horizon Europe proposal. Analyse the provided content carefully to create tailored, specific pathways.
 
-${expectedOutcomes ? `TOPIC EXPECTED OUTCOMES:\n${expectedOutcomes}\n` : ''}
+${contextSections}
+${expectedOutcomes ? `ADDITIONAL EXPECTED OUTCOMES:\n${expectedOutcomes}\n` : ''}
 ${topicId ? `TOPIC ID: ${topicId}\n` : ''}
 ${workProgramme ? `WORK PROGRAMME: ${workProgramme}\n` : ''}
 ${destination ? `DESTINATION: ${destination}\n` : ''}
 
-Please generate a comprehensive impact pathway analysis in JSON format with the following structure:
+Based on your analysis of the proposal content and topic requirements, generate a comprehensive impact pathway analysis in JSON format with the following structure:
 {
   "outcomes": [
     {
       "title": "Short outcome title",
-      "description": "2-3 sentence description of how the project contributes to this outcome",
+      "description": "2-3 sentence description of how the project contributes to this outcome, referencing specific project activities",
       "indicators": ["KPI 1", "KPI 2", "KPI 3"],
       "timeline": "Months X-Y"
     }
@@ -58,20 +141,20 @@ Please generate a comprehensive impact pathway analysis in JSON format with the 
   "impacts": [
     {
       "title": "Wider impact title",
-      "contribution": "How the project contributes to this impact",
+      "contribution": "How the project contributes to this impact, with specific references to project outputs",
       "quantification": "Specific numbers, percentages, or monetary values"
     }
   ],
   "barriers": [
     {
-      "barrier": "Description of the barrier",
+      "barrier": "Description of the barrier specific to this project context",
       "mitigation": "Concrete mitigation strategy"
     }
   ],
   "pathwayFigure": "ASCII art representation of the impact pathway showing outputs → outcomes → impacts"
 }
 
-Generate 2-3 outcomes, 2-3 impacts, and 2-3 barriers. Make all quantifications specific and realistic.`;
+Generate 2-3 outcomes, 2-3 impacts, and 2-3 barriers. Make all content specific to the project and aligned with the topic requirements.`;
 
     console.log('Calling Lovable AI gateway for impact pathway generation');
 
@@ -92,6 +175,18 @@ Generate 2-3 outcomes, 2-3 impacts, and 2-3 barriers. Make all quantifications s
     });
 
     if (!response.ok) {
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: 'AI credits exhausted. Please add credits to continue.' }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       const errorText = await response.text();
       console.error('AI gateway error:', response.status, errorText);
       throw new Error(`AI gateway error: ${response.status}`);
@@ -105,7 +200,6 @@ Generate 2-3 outcomes, 2-3 impacts, and 2-3 barriers. Make all quantifications s
     }
 
     // Parse the JSON from the response
-    // Try to extract JSON from the response
     let parsedResult;
     try {
       // Try direct parse first

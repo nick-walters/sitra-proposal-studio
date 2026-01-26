@@ -74,6 +74,7 @@ interface DocumentEditorProps {
   topicTitle?: string;
   readOnly?: boolean;
   topicId?: string;
+  topicUrl?: string;
   workProgramme?: string;
   destination?: string;
   allSections?: Section[];
@@ -88,6 +89,7 @@ export function DocumentEditor({
   topicTitle,
   readOnly = false,
   topicId,
+  topicUrl,
   workProgramme,
   destination,
   allSections = [],
@@ -922,6 +924,7 @@ export function DocumentEditor({
         onClose={() => setIsImpactPathwayOpen(false)}
         proposalId={proposalId}
         topicId={topicId}
+        topicUrl={topicUrl}
         workProgramme={workProgramme}
         destination={destination}
         onInsertContent={handleInsertImpactContent}

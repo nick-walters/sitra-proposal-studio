@@ -1,15 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Sparkles, Target, TrendingUp, ArrowRight, AlertCircle, Copy, Check } from "lucide-react";
+import { Loader2, Sparkles, Target, TrendingUp, ArrowRight, AlertCircle, Copy, Check, FileText, Globe } from "lucide-react";
 import { toast } from "sonner";
 
 interface ImpactPathwayGeneratorProps {
@@ -17,6 +17,7 @@ interface ImpactPathwayGeneratorProps {
   onClose: () => void;
   proposalId: string;
   topicId?: string;
+  topicUrl?: string;
   workProgramme?: string;
   destination?: string;
   onInsertContent: (content: string) => void;
@@ -46,22 +47,72 @@ export function ImpactPathwayGenerator({
   onClose,
   proposalId,
   topicId,
+  topicUrl,
   workProgramme,
   destination,
   onInsertContent,
 }: ImpactPathwayGeneratorProps) {
   const [loading, setLoading] = useState(false);
+  const [loadingContext, setLoadingContext] = useState(false);
   const [projectDescription, setProjectDescription] = useState('');
   const [expectedOutcomes, setExpectedOutcomes] = useState('');
   const [result, setResult] = useState<PathwayResult | null>(null);
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
+  const [proposalContent, setProposalContent] = useState('');
+  const [topicContent, setTopicContent] = useState('');
+  const [contextLoaded, setContextLoaded] = useState(false);
+
+  // Fetch proposal content and topic content when dialog opens
+  useEffect(() => {
+    if (isOpen && !contextLoaded) {
+      loadContext();
+    }
+  }, [isOpen, proposalId, topicUrl]);
+
+  const loadContext = async () => {
+    setLoadingContext(true);
+    try {
+      // Fetch existing proposal content from sections
+      const { data: sectionContent } = await supabase
+        .from('section_content')
+        .select('content, section_id')
+        .eq('proposal_id', proposalId);
+
+      if (sectionContent && sectionContent.length > 0) {
+        // Strip HTML tags and combine content
+        const combinedContent = sectionContent
+          .map(s => s.content?.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim())
+          .filter(Boolean)
+          .join('\n\n');
+        setProposalContent(combinedContent.slice(0, 8000)); // Limit to ~8k chars
+      }
+
+      // Fetch topic content from URL if available
+      if (topicUrl) {
+        try {
+          const response = await supabase.functions.invoke('generate-impact-pathway', {
+            body: {
+              action: 'fetch-topic',
+              topicUrl,
+            },
+          });
+          if (response.data?.topicContent) {
+            setTopicContent(response.data.topicContent);
+          }
+        } catch (error) {
+          console.error('Error fetching topic content:', error);
+        }
+      }
+
+      setContextLoaded(true);
+    } catch (error) {
+      console.error('Error loading context:', error);
+    } finally {
+      setLoadingContext(false);
+    }
+  };
 
   const generatePathways = async () => {
-    if (!projectDescription.trim()) {
-      toast.error('Please provide a project description');
-      return;
-    }
-
     setLoading(true);
     setResult(null);
 
@@ -69,9 +120,12 @@ export function ImpactPathwayGenerator({
       // Use Lovable AI gateway for generation
       const response = await supabase.functions.invoke('generate-impact-pathway', {
         body: {
-          projectDescription,
+          action: 'generate',
+          projectDescription: projectDescription || proposalContent,
           expectedOutcomes,
           topicId,
+          topicContent,
+          proposalContent,
           workProgramme,
           destination,
         },
@@ -238,55 +292,90 @@ export function ImpactPathwayGenerator({
           </TabsList>
 
           <TabsContent value="input" className="flex-1 space-y-4 mt-4">
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">Project Description</label>
-                <Textarea
-                  placeholder="Describe your project's main objectives, methodology, and expected results..."
-                  value={projectDescription}
-                  onChange={(e) => setProjectDescription(e.target.value)}
-                  rows={5}
-                  className="resize-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block">Topic Expected Outcomes (optional)</label>
-                <Textarea
-                  placeholder="Paste the expected outcomes from the topic description..."
-                  value={expectedOutcomes}
-                  onChange={(e) => setExpectedOutcomes(e.target.value)}
-                  rows={4}
-                  className="resize-none"
-                />
-              </div>
-
-              {(topicId || workProgramme || destination) && (
-                <div className="flex flex-wrap gap-2">
-                  {topicId && <Badge variant="outline">Topic: {topicId}</Badge>}
-                  {workProgramme && <Badge variant="outline">WP: {workProgramme}</Badge>}
-                  {destination && <Badge variant="outline">Dest: {destination}</Badge>}
-                </div>
-              )}
-
-              <Button
-                onClick={generatePathways}
-                disabled={loading || !projectDescription.trim()}
-                className="w-full"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Generating pathways...
-                  </>
+            <ScrollArea className="h-[400px] pr-2">
+              <div className="space-y-4">
+                {/* Context indicators */}
+                {loadingContext ? (
+                  <Alert>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <AlertDescription>Loading proposal and topic context...</AlertDescription>
+                  </Alert>
                 ) : (
-                  <>
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Generate Impact Pathways
-                  </>
+                  <div className="flex flex-wrap gap-2">
+                    {proposalContent && (
+                      <Badge variant="secondary" className="gap-1">
+                        <FileText className="w-3 h-3" />
+                        Proposal content loaded
+                      </Badge>
+                    )}
+                    {topicContent && (
+                      <Badge variant="secondary" className="gap-1">
+                        <Globe className="w-3 h-3" />
+                        Topic content loaded
+                      </Badge>
+                    )}
+                    {topicId && <Badge variant="outline">Topic: {topicId}</Badge>}
+                    {workProgramme && <Badge variant="outline">WP: {workProgramme}</Badge>}
+                    {destination && <Badge variant="outline">Dest: {destination}</Badge>}
+                  </div>
                 )}
-              </Button>
-            </div>
+
+                {(proposalContent || topicContent) && (
+                  <Alert className="bg-green-50 border-green-200">
+                    <Check className="h-4 w-4 text-green-600" />
+                    <AlertDescription className="text-green-800">
+                      Context loaded! The AI will analyse your existing proposal content
+                      {topicContent ? ' and topic description' : ''} to generate tailored impact pathways.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Additional context (optional)
+                  </label>
+                  <Textarea
+                    placeholder="Add any additional details about your project's objectives, methodology, or expected results that aren't already in your proposal..."
+                    value={projectDescription}
+                    onChange={(e) => setProjectDescription(e.target.value)}
+                    rows={4}
+                    className="resize-none"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Leave empty to use only the existing proposal content
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Additional expected outcomes (optional)</label>
+                  <Textarea
+                    placeholder="Paste any additional expected outcomes from the topic description..."
+                    value={expectedOutcomes}
+                    onChange={(e) => setExpectedOutcomes(e.target.value)}
+                    rows={3}
+                    className="resize-none"
+                  />
+                </div>
+
+                <Button
+                  onClick={generatePathways}
+                  disabled={loading || loadingContext || (!projectDescription.trim() && !proposalContent)}
+                  className="w-full"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Analysing and generating pathways...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Generate Impact Pathways
+                    </>
+                  )}
+                </Button>
+              </div>
+            </ScrollArea>
           </TabsContent>
 
           <TabsContent value="results" className="flex-1 min-h-0">
