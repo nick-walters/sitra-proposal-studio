@@ -13,6 +13,7 @@ import { ParticipantTable, ExtendedParticipant, OrganisationCategory, WPLeadersh
 import { WPManagementCard } from '@/components/WPManagementCard';
 import { WPDependencySelector } from '@/components/WPDependencySelector';
 import { AddParticipantDialog } from '@/components/AddParticipantDialog';
+import { usePageEstimate } from '@/hooks/usePageEstimate';
 
 import { Proposal, Participant, ParticipantMember, WORK_PROGRAMMES, DESTINATIONS, ProposalStatus, getDestinationsForWorkProgramme, ParticipantType } from '@/types/proposal';
 
@@ -149,6 +150,9 @@ export function ProposalSummaryPage({
   const [availableDestinations, setAvailableDestinations] = useState(
     proposal.workProgramme ? getDestinationsForWorkProgramme(proposal.workProgramme) : []
   );
+  
+  // Page estimate for PDF export
+  const { estimatedPages, isLoading: isLoadingPageEstimate } = usePageEstimate(proposal.id);
 
   useEffect(() => {
     if (editedProposal.workProgramme) {
@@ -217,7 +221,16 @@ export function ProposalSummaryPage({
           {/* Page Header */}
           <div className="mb-2 flex items-center justify-between">
             <h1 className="text-lg font-bold text-foreground">Proposal overview</h1>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              {/* Page estimate */}
+              {onExportPdf && estimatedPages !== null && (
+                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <span>{estimatedPages} {estimatedPages === 1 ? 'page' : 'pages'}</span>
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-blue-100 text-blue-700 hover:bg-blue-100">
+                    Est.
+                  </Badge>
+                </div>
+              )}
               {onExportPdf && (
                 <Button variant="outline" size="sm" className="gap-2" onClick={onExportPdf}>
                   <Download className="w-4 h-4" />
