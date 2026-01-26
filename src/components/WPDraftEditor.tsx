@@ -340,15 +340,6 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           readOnly={readOnly}
         />
 
-        {/* Staff Effort Matrix */}
-        <WPEffortMatrix
-          wpNumber={wpDraft.number}
-          tasks={wpDraft.tasks || []}
-          participants={participants}
-          onEffortChange={updateTaskEffort}
-          readOnly={readOnly}
-        />
-
         {/* Task Interactions & Bottlenecks */}
         <WPPlanningQuestions
           inputs={wpDraft.inputs_question}
@@ -357,6 +348,15 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           onInputsChange={(value) => updateField('inputs_question', value)}
           onOutputsChange={(value) => updateField('outputs_question', value)}
           onBottlenecksChange={(value) => updateField('bottlenecks_question', value)}
+          readOnly={readOnly}
+        />
+
+        {/* Staff Effort Matrix */}
+        <WPEffortMatrix
+          wpNumber={wpDraft.number}
+          tasks={wpDraft.tasks || []}
+          participants={participants}
+          onEffortChange={updateTaskEffort}
           readOnly={readOnly}
         />
       </div>
