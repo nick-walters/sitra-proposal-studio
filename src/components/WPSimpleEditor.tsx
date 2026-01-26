@@ -1,7 +1,9 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Bold, Italic, Underline, List } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Bold, Italic, Underline, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, AlignJustify } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface WPSimpleEditorProps {
   value: string;
@@ -75,71 +77,203 @@ export function WPSimpleEditor({
   const handleItalic = () => execCommand('italic');
   const handleUnderline = () => execCommand('underline');
   const handleBulletList = () => execCommand('insertUnorderedList');
+  const handleNumberedList = () => execCommand('insertOrderedList');
   const handleSubheading = () => {
     // Apply both bold and underline as inline character styles
     execCommand('bold');
     execCommand('underline');
   };
+  const handleAlignLeft = () => execCommand('justifyLeft');
+  const handleAlignCenter = () => execCommand('justifyCenter');
+  const handleAlignRight = () => execCommand('justifyRight');
+  const handleAlignJustify = () => execCommand('justifyFull');
 
   const showPlaceholder = !value && !isFocused;
 
   return (
     <div className={cn("border rounded-md overflow-hidden", disabled && "opacity-50", className)}>
-      {/* Toolbar */}
+      {/* Toolbar - matches Part B formatting toolbar order */}
       {!disabled && (
-        <div className="flex items-center gap-1 p-1.5 border-b bg-muted/30">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={handleBold}
-            title="Bold"
-          >
-            <Bold className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={handleItalic}
-            title="Italic"
-          >
-            <Italic className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={handleUnderline}
-            title="Underline"
-          >
-            <Underline className="h-3.5 w-3.5" />
-          </Button>
-          <div className="w-px h-4 bg-border mx-1" />
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2"
-            onClick={handleSubheading}
-            title="Subheading (Bold & Underlined)"
-          >
-            <span className="text-xs font-black underline">Subheading</span>
-          </Button>
-          <div className="w-px h-4 bg-border mx-1" />
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={handleBulletList}
-            title="Bullet list"
-          >
-            <List className="h-3.5 w-3.5" />
-          </Button>
+        <div className="flex items-center gap-0.5 p-1.5 border-b bg-muted/30 flex-wrap">
+          {/* Subheading first */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2"
+                onClick={handleSubheading}
+              >
+                <span className="text-xs font-black underline">Subheading</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              Subheading (Bold & Underlined)
+            </TooltipContent>
+          </Tooltip>
+
+          <Separator orientation="vertical" className="h-5 mx-1" />
+
+          {/* Bold, Italic, Underline */}
+          <div className="flex items-center gap-0.5">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={handleBold}
+                >
+                  <span className="font-black text-sm">B</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                Bold (Ctrl+B)
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={handleItalic}
+                >
+                  <Italic className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                Italic (Ctrl+I)
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={handleUnderline}
+                >
+                  <Underline className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                Underline (Ctrl+U)
+              </TooltipContent>
+            </Tooltip>
+          </div>
+
+          <Separator orientation="vertical" className="h-5 mx-1" />
+
+          {/* Bullet List, Numbered List */}
+          <div className="flex items-center gap-0.5">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={handleBulletList}
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                Bullet List
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={handleNumberedList}
+                >
+                  <ListOrdered className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                Numbered List
+              </TooltipContent>
+            </Tooltip>
+          </div>
+
+          <Separator orientation="vertical" className="h-5 mx-1" />
+
+          {/* Alignment */}
+          <div className="flex items-center gap-0.5">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={handleAlignLeft}
+                >
+                  <AlignLeft className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                Align Left
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={handleAlignCenter}
+                >
+                  <AlignCenter className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                Align Center
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={handleAlignRight}
+                >
+                  <AlignRight className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                Align Right
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={handleAlignJustify}
+                >
+                  <AlignJustify className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                Justify
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
       )}
       
