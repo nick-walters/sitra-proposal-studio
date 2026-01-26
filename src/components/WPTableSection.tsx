@@ -45,6 +45,11 @@ interface WPTableSectionProps {
   onTaskReorder?: (newOrder: string[]) => Promise<boolean>;
   readOnly?: boolean;
   projectDuration?: number;
+  // Dialog handlers for advanced features
+  onOpenCitationDialog?: () => void;
+  onOpenCrossRefDialog?: () => void;
+  onOpenWPRefDialog?: () => void;
+  onOpenFigureDialog?: () => void;
 }
 
 export function WPTableSection({
@@ -60,6 +65,10 @@ export function WPTableSection({
   onTaskReorder,
   readOnly = false,
   projectDuration = 36,
+  onOpenCitationDialog,
+  onOpenCrossRefDialog,
+  onOpenWPRefDialog,
+  onOpenFigureDialog,
 }: WPTableSectionProps) {
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -99,6 +108,10 @@ export function WPTableSection({
             placeholder="State the overall objective of this work package..."
             disabled={readOnly}
             minHeight="80px"
+            onOpenCitationDialog={onOpenCitationDialog}
+            onOpenCrossRefDialog={onOpenCrossRefDialog}
+            onOpenWPRefDialog={onOpenWPRefDialog}
+            onOpenFigureDialog={onOpenFigureDialog}
           />
           <p className="text-xs text-muted-foreground">Describe the main objective of this work package. Use the bullet list button if you need multiple objectives.</p>
         </div>
@@ -126,6 +139,10 @@ export function WPTableSection({
                     readOnly={readOnly}
                     formatTaskNumber={formatTaskNumber}
                     canReorder={!readOnly && !!onTaskReorder}
+                    onOpenCitationDialog={onOpenCitationDialog}
+                    onOpenCrossRefDialog={onOpenCrossRefDialog}
+                    onOpenWPRefDialog={onOpenWPRefDialog}
+                    onOpenFigureDialog={onOpenFigureDialog}
                   />
                 ))}
               </div>
@@ -159,6 +176,10 @@ interface SortableTaskCardProps {
   readOnly: boolean;
   formatTaskNumber: (num: number) => string;
   canReorder: boolean;
+  onOpenCitationDialog?: () => void;
+  onOpenCrossRefDialog?: () => void;
+  onOpenWPRefDialog?: () => void;
+  onOpenFigureDialog?: () => void;
 }
 
 function SortableTaskCard({
@@ -172,6 +193,10 @@ function SortableTaskCard({
   readOnly,
   formatTaskNumber,
   canReorder,
+  onOpenCitationDialog,
+  onOpenCrossRefDialog,
+  onOpenWPRefDialog,
+  onOpenFigureDialog,
 }: SortableTaskCardProps) {
   const {
     attributes,
@@ -332,6 +357,10 @@ function SortableTaskCard({
           placeholder="Task description..."
           disabled={readOnly}
           minHeight="60px"
+          onOpenCitationDialog={onOpenCitationDialog}
+          onOpenCrossRefDialog={onOpenCrossRefDialog}
+          onOpenWPRefDialog={onOpenWPRefDialog}
+          onOpenFigureDialog={onOpenFigureDialog}
         />
       </div>
     </div>
