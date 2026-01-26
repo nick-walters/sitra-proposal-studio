@@ -75,7 +75,7 @@ function SortableWPRow({ wp, participants, onUpdate, canEdit }: SortableWPRowPro
     <div
       ref={setNodeRef}
       style={style}
-      className={`grid grid-cols-[32px_48px_100px_1fr_140px_48px] gap-2 items-center py-2 border-b ${
+      className={`grid grid-cols-[24px_54px_1fr_90px_130px_40px] gap-1 items-center py-1.5 border-b ${
         isDragging ? 'bg-muted shadow-lg' : ''
       }`}
     >
@@ -85,7 +85,7 @@ function SortableWPRow({ wp, participants, onUpdate, canEdit }: SortableWPRowPro
           <button
             {...attributes}
             {...listeners}
-            className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded touch-none"
+            className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted rounded touch-none"
           >
             <GripVertical className="w-4 h-4 text-muted-foreground" />
           </button>
@@ -93,23 +93,23 @@ function SortableWPRow({ wp, participants, onUpdate, canEdit }: SortableWPRowPro
       </div>
 
       {/* WP Number */}
-      <div className="font-semibold text-sm text-center">{wp.number}</div>
-
-      {/* Short Name */}
-      <Input
-        value={wp.short_name || ''}
-        onChange={(e) => onUpdate(wp.id, { short_name: e.target.value })}
-        placeholder=""
-        className="h-8 text-sm"
-        disabled={!canEdit}
-      />
+      <div className="font-semibold text-sm">WP{wp.number}:</div>
 
       {/* Title */}
       <Input
         value={wp.title || ''}
         onChange={(e) => onUpdate(wp.id, { title: e.target.value })}
         placeholder="Work package title"
-        className="h-8 text-sm"
+        className="h-7 text-sm"
+        disabled={!canEdit}
+      />
+
+      {/* Short Name */}
+      <Input
+        value={wp.short_name || ''}
+        onChange={(e) => onUpdate(wp.id, { short_name: e.target.value })}
+        placeholder="Short"
+        className="h-7 text-sm"
         disabled={!canEdit}
       />
 
@@ -119,7 +119,7 @@ function SortableWPRow({ wp, participants, onUpdate, canEdit }: SortableWPRowPro
         onValueChange={(v) => onUpdate(wp.id, { lead_participant_id: v || null })}
         disabled={!canEdit}
       >
-        <SelectTrigger className="h-8 text-sm">
+        <SelectTrigger className="h-7 text-sm">
           <SelectValue placeholder="Lead..." />
         </SelectTrigger>
         <SelectContent>
@@ -367,11 +367,11 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Table Header */}
-        <div className="grid grid-cols-[32px_48px_100px_1fr_140px_48px] gap-2 text-xs font-medium text-muted-foreground border-b pb-2">
+        <div className="grid grid-cols-[24px_54px_1fr_90px_130px_40px] gap-1 text-xs font-medium text-muted-foreground border-b pb-1.5">
           <div />
-          <div className="text-center">WP#</div>
-          <div>Short Name</div>
+          <div />
           <div>Title</div>
+          <div>Short Name</div>
           <div>WP Lead</div>
           <div className="text-center">Color</div>
         </div>
