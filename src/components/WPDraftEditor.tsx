@@ -32,21 +32,44 @@ interface WPDraftEditorProps {
   projectDuration?: number;
 }
 
-const GENERAL_TIPS = [
+const SITRA_TIPS = [
   {
-    id: 'general-1',
+    id: 'sitra-1',
     title: 'Structure your WP clearly',
     content: 'Each WP should have clear objectives, well-defined tasks, and measurable deliverables. Evaluators appreciate logical flow and clear dependencies.',
   },
   {
-    id: 'general-2',
+    id: 'sitra-2',
     title: 'Balance the workload',
     content: 'Ensure effort is distributed appropriately among partners. Check that WP leaders have sufficient resources and expertise for their roles.',
   },
   {
-    id: 'general-3',
+    id: 'sitra-3',
     title: 'Consider timing carefully',
     content: 'Plan task timing to avoid bottlenecks. Allow buffer for unexpected delays, especially for external dependencies and approval processes.',
+  },
+];
+
+const EC_GUIDELINES = [
+  {
+    id: 'ec-objectives',
+    title: 'Objectives',
+    content: 'State the objectives for this work package in a manner that is verifiable and measurable. They should be consistent with the overall project objectives.',
+  },
+  {
+    id: 'ec-tasks',
+    title: 'Tasks',
+    content: 'For each task, provide:\n• A description of the work\n• The partner(s) involved and the task leader\n• Start month and end month\n• Links to other tasks and work packages',
+  },
+  {
+    id: 'ec-deliverables',
+    title: 'Deliverables',
+    content: 'For each deliverable, provide:\n• A short name and description\n• The nature of the deliverable (Report, Demonstrator, Data management, etc.)\n• The dissemination level (Public, Sensitive, or Classified: EU-RES, EU-CON, EU-SEC)\n• The delivery date (project month)\n• The partner responsible',
+  },
+  {
+    id: 'ec-risks',
+    title: 'Critical risks',
+    content: 'Describe any critical risks relating to project implementation that the stated project objectives may not be achieved. Detail:\n• A description of the risk\n• The work package(s) involved\n• Proposed risk-mitigation measures',
   },
 ];
 
@@ -96,6 +119,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
     addDeliverable,
     updateDeliverable,
     deleteDeliverable,
+    reorderDeliverables,
     addRisk,
     updateRisk,
     deleteRisk,
@@ -222,6 +246,17 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
             </DialogHeader>
             <ScrollArea className="max-h-[75vh] pr-4">
               <div className="space-y-4">
+                {/* Official EC Guidelines */}
+                <div className="space-y-3">
+                  <h4 className="font-medium text-sm text-foreground">Official guidelines</h4>
+                  {EC_GUIDELINES.map((guideline) => (
+                    <div key={guideline.id} className="space-y-1">
+                      <h5 className="font-medium text-sm text-muted-foreground">{guideline.title}</h5>
+                      {parseGuidelineContent(guideline.content)}
+                    </div>
+                  ))}
+                </div>
+
                 {/* Sitra's Tips Box - matching Part B style */}
                 <div
                   className={cn(
@@ -240,7 +275,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
                   </div>
                   
                   <div className="space-y-4">
-                    {GENERAL_TIPS.map((tip, index) => (
+                    {SITRA_TIPS.map((tip, index) => (
                       <div key={tip.id}>
                         {tip.title && (
                           <h4 className="font-semibold mb-2 text-gray-900">
@@ -248,7 +283,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
                           </h4>
                         )}
                         {parseGuidelineContent(tip.content)}
-                        {index < GENERAL_TIPS.length - 1 && (
+                        {index < SITRA_TIPS.length - 1 && (
                           <div className="mt-4 border-t border-current/10" />
                         )}
                       </div>
@@ -291,6 +326,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           onDeliverableUpdate={updateDeliverable}
           onDeliverableAdd={addDeliverable}
           onDeliverableDelete={deleteDeliverable}
+          onDeliverableReorder={reorderDeliverables}
           readOnly={readOnly}
           projectDuration={projectDuration}
         />
