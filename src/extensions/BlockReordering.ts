@@ -4,8 +4,9 @@ import { TextSelection } from '@tiptap/pm/state';
 
 /**
  * Finds the range of a block element, including associated captions for figures/tables.
+ * Exported for use by BlockDragHandle extension.
  */
-function findBlockRange(
+export function findBlockRange(
   doc: ProseMirrorNode,
   pos: number
 ): { startPos: number; endPos: number; node: ProseMirrorNode } | null {
@@ -96,8 +97,9 @@ function findBlockRange(
 
 /**
  * Checks if a node can be reordered (all blocks except H1 and H2).
+ * Exported for use by BlockDragHandle extension.
  */
-function isReorderableBlock(node: ProseMirrorNode): boolean {
+export function isReorderableBlock(node: ProseMirrorNode): boolean {
   // H1 and H2 are locked - not reorderable
   if (node.type.name === 'heading') {
     const level = node.attrs?.level;

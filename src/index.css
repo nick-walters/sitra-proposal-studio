@@ -602,6 +602,76 @@
   border: 2px solid hsl(var(--primary));
 }
 
+/* Block Drag Handle Styles */
+.block-drag-handle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  background: hsl(var(--muted));
+  border: 1px solid hsl(var(--border));
+  border-radius: 4px;
+  color: hsl(var(--muted-foreground));
+  z-index: 50;
+  user-select: none;
+}
+
+.block-drag-handle:hover {
+  opacity: 1;
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+.block-drag-handle.dragging {
+  cursor: grabbing;
+  opacity: 1;
+}
+
+/* Show drag handle when hovering near left edge of editor */
+.ProseMirror:hover ~ .block-drag-handle,
+.tiptap-editor-container:hover .block-drag-handle {
+  opacity: 0.6;
+}
+
+/* Block Drop Indicator */
+.block-drop-indicator {
+  position: absolute;
+  height: 2px;
+  background: hsl(var(--primary));
+  pointer-events: none;
+  z-index: 100;
+  animation: dropIndicatorPulse 0.8s ease-in-out infinite;
+}
+
+@keyframes dropIndicatorPulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 4px hsl(var(--primary) / 0.5);
+  }
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 8px hsl(var(--primary) / 0.8);
+  }
+}
+
+/* Dragging block state */
+.dragging-block {
+  opacity: 0.5 !important;
+  background: hsl(var(--muted) / 0.5);
+  box-shadow: 0 4px 12px hsl(var(--foreground) / 0.1);
+  border-radius: 4px;
+}
+
+/* Editor container needs relative positioning for drag handle */
+.tiptap-editor-container {
+  position: relative;
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
