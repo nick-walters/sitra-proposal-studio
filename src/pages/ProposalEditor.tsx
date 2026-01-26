@@ -639,14 +639,14 @@ export function ProposalEditor() {
             
             {/* Work Programme */}
             {workProgramme && (
-              <span className="proposal-badge bg-gray-300 text-gray-700 text-[10px] hidden md:inline-flex" title={workProgramme.fullName}>
+              <span className="proposal-badge bg-gray-300 text-gray-700 text-[10px]" title={workProgramme.fullName}>
                 {workProgramme.abbreviation}
               </span>
             )}
             
             {/* Destination */}
             {destination && (
-              <span className="proposal-badge bg-gray-200 text-gray-600 text-[10px] hidden md:inline-flex" title={destination.fullName}>
+              <span className="proposal-badge bg-gray-200 text-gray-600 text-[10px]" title={destination.fullName}>
                 {destination.abbreviation}
               </span>
             )}
