@@ -228,15 +228,15 @@ interface StatCardProps {
 
 function StatCard({ icon, label, value, subValue }: StatCardProps) {
   return (
-    <div className="rounded-lg border p-3">
+    <div className="rounded-lg border p-3 flex flex-col h-full">
       <div className="flex items-center gap-2 text-muted-foreground mb-1">
         {icon}
         <span className="text-xs">{label}</span>
       </div>
-      <div className="text-2xl font-bold">{value}</div>
-      {subValue && (
-        <div className="text-xs text-muted-foreground">{subValue}</div>
-      )}
+      <div className="text-2xl font-bold mt-auto">{value}</div>
+      <div className="text-xs text-muted-foreground h-4">
+        {subValue || '\u00A0'}
+      </div>
     </div>
   );
 }
