@@ -36,10 +36,12 @@ export function FigureEditor({
   canEdit,
 }: FigureEditorProps) {
   const [title, setTitle] = useState(figure.title);
-  const [caption, setCaption] = useState(figure.caption || '');
+  // Caption is read-only on Figures page - edit it in Part B templates
+  const caption = figure.caption || '';
 
   const handleSave = () => {
-    onUpdate({ title, caption });
+    // Only save title, not caption (caption is edited in Part B templates)
+    onUpdate({ title });
   };
 
   const renderFigureContent = () => {
@@ -142,11 +144,14 @@ export function FigureEditor({
               <Textarea
                 id="caption"
                 value={caption}
-                onChange={(e) => setCaption(e.target.value)}
-                placeholder="Optional caption for the figure (appears below the image)"
+                placeholder="No caption set. Edit the caption in Part B templates."
                 rows={2}
-                disabled={!canEdit}
+                disabled
+                className="bg-muted/50"
               />
+              <p className="text-xs text-muted-foreground">
+                Captions are edited in Part B templates where the figure is inserted.
+              </p>
             </div>
           </CardContent>
         </Card>

@@ -20,6 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { generateProposalFilePath, uploadProposalFile } from '@/lib/proposalStorage';
+import { compressImage, getRecommendedFormat, getFormatExtension } from '@/lib/imageCompression';
 import {
   DndContext,
   closestCenter,
@@ -374,31 +375,38 @@ export function FigureManager({ proposalId, canEdit }: FigureManagerProps) {
 
       setIsUploading(true);
       try {
-        let blob: Blob;
+        let sourceBlob: Blob;
         
         if (newFigureType === 'image' && selectedFile) {
-          blob = selectedFile;
+          sourceBlob = selectedFile;
         } else if (generatedImageUrl) {
           const response = await fetch(generatedImageUrl);
-          blob = await response.blob();
+          sourceBlob = await response.blob();
         } else {
           throw new Error('No image source');
         }
 
-        // Generate file path
+        // Compress image: 300 DPI, max 18cm wide
+        // Use PNG for AI-generated (better for text), JPEG for uploaded photos
+        const format = getRecommendedFormat(newFigureType);
+        const compressedBlob = await compressImage(sourceBlob, { format, quality: 0.92 });
+
+        // Generate file path with correct extension
         const section = SECTION_OPTIONS.find(s => s.id === newFigureSection);
         const sectionNumber = section?.number.replace('B', '') || '1.1';
         const existingInSection = figures.filter(f => f.sectionId === newFigureSection);
         const letter = String.fromCharCode(97 + existingInSection.length);
-        const filename = `figure-${sectionNumber}-${letter}-${newFigureTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.png`;
+        const extension = getFormatExtension(format);
+        const filename = `figure-${sectionNumber}-${letter}-${newFigureTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.${extension}`;
         
         const filePath = generateProposalFilePath(proposalId, 'figures', filename, {
           prefix: newFigureType === 'ai' ? 'ai-generated' : 'uploaded',
           addTimestamp: true,
         });
 
-        const { url, error } = await uploadProposalFile(blob, filePath, {
-          contentType: blob.type || 'image/png',
+        const contentType = format === 'png' ? 'image/png' : 'image/jpeg';
+        const { url, error } = await uploadProposalFile(compressedBlob, filePath, {
+          contentType,
         });
 
         if (error) throw error;
@@ -436,9 +444,9 @@ export function FigureManager({ proposalId, canEdit }: FigureManagerProps) {
     return acc;
   }, {} as Record<string, Figure[]>);
 
-  // Helper to format caption like Part B templates: "Figure X.X.x. Title"
+  // Helper to format caption like Part B templates: "Figure X.X.x. Caption or Title"
   const formatFigureCaption = (figure: Figure) => {
-    return `Figure ${figure.figureNumber}. ${figure.title}`;
+    return `Figure ${figure.figureNumber}. ${figure.caption || figure.title}`;
   };
 
   if (selectedFigure) {
@@ -707,10 +715,10 @@ export function FigureManager({ proposalId, canEdit }: FigureManagerProps) {
                         </Badge>
                       </div>
                       <CardContent className="p-3">
-                        {/* Caption matching Part B format: "Figure X.X.x. Title" */}
+                        {/* Caption matching Part B format: "Figure X.X.x. Caption or Title" */}
                         <p className="text-sm italic truncate" title={formatFigureCaption(figure)}>
                           <span className="font-semibold">Figure {figure.figureNumber}.</span>{' '}
-                          {figure.title}
+                          {figure.caption || figure.title}
                         </p>
                       </CardContent>
                     </Card>
