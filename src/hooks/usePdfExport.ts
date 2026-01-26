@@ -439,7 +439,7 @@ export function usePdfExport() {
         yPosition += imgHeightMm + paragraphSpacing;
       };
 
-      // Helper: Add caption (italic, with bold label followed by italic text)
+      // Helper: Add caption (whole caption italic, label bold-italic)
       const addCaption = (text: string, captionType: 'figure' | 'table') => {
         yPosition += captionType === 'table' ? paragraphSpacingH2 : paragraphSpacing;
         checkPageBreak(lineHeightBody);
@@ -455,8 +455,8 @@ export function usePdfExport() {
           const label = labelMatch[1].endsWith('.') ? labelMatch[1] : labelMatch[1] + '.';
           const rest = text.substring(labelMatch[0].length).trim();
           
-          // Draw label in bold (jsPDF times font supports bold but not bolditalic)
-          pdf.setFont('times', 'bold');
+          // Draw label in bold-italic (jsPDF supports this for Times)
+          pdf.setFont('times', 'bolditalic');
           const labelWithSpace = label + ' ';
           const labelWidth = pdf.getTextWidth(labelWithSpace);
           pdf.text(labelWithSpace, margin, yPosition);
