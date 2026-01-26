@@ -318,7 +318,7 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Layers className="w-5 h-5" />
-            Work Package Drafts
+            Work package manager
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -337,7 +337,7 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2">
           <Layers className="w-5 h-5" />
-          Work package drafts
+          Work package manager
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
