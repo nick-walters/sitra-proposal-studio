@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Participant, ParticipantMember, PARTICIPANT_TYPE_LABELS, ParticipantType } from '@/types/proposal';
+import { Participant, ParticipantMember, PARTICIPANT_TYPE_LABELS, ParticipantType, Section } from '@/types/proposal';
 import { Plus, Building2, ChevronRight, GripVertical, UserPlus } from 'lucide-react';
 import { InlineGuideline } from './GuidelineBox';
+import { SitraTipsBox } from './SitraTipsBox';
 import { Badge } from './ui/badge';
 import { AddParticipantDialog } from './AddParticipantDialog';
 import { InviteToProposalDialog } from './InviteToProposalDialog';
@@ -30,6 +31,7 @@ interface ParticipantListViewProps {
   participants: Participant[];
   proposalId: string;
   proposalAcronym: string;
+  section?: Section;
   onSelectParticipant: (participant: Participant) => void;
   onAddParticipant: (participant: {
     organisationName: string;
@@ -145,6 +147,7 @@ export function ParticipantListView({
   participants,
   proposalId,
   proposalAcronym,
+  section,
   onSelectParticipant,
   onAddParticipant,
   onReorderParticipants,
@@ -155,6 +158,18 @@ export function ParticipantListView({
 }: ParticipantListViewProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+
+  // Extract Sitra tips from section guidelines
+  const sitraTips = useMemo(() => {
+    return (section?.guidelinesArray || [])
+      .filter(g => g.type === 'sitra_tip')
+      .sort((a, b) => a.orderIndex - b.orderIndex)
+      .map(g => ({
+        id: g.id,
+        title: g.title,
+        content: g.content,
+      }));
+  }, [section?.guidelinesArray]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -231,6 +246,9 @@ export function ParticipantListView({
             )}
           </div>
         </div>
+
+        {/* Sitra's Tips */}
+        <SitraTipsBox tips={sitraTips} />
 
         {/* Participants List */}
         {sortedParticipants.length === 0 ? (
