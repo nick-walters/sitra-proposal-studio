@@ -313,6 +313,15 @@ export function usePdfExport() {
           return classAttr.includes(className);
         };
         
+        // Helper to check if text is a caption (starts with Figure/Table X.X.x pattern)
+        const isCaptionText = (text: string): { isCaption: boolean; type: 'figure' | 'table' } => {
+          const figureMatch = text.match(/^Figure\s+[\d.]+[a-z]?\./i);
+          const tableMatch = text.match(/^Table\s+[\d.]+[a-z]?\./i);
+          if (figureMatch) return { isCaption: true, type: 'figure' };
+          if (tableMatch) return { isCaption: true, type: 'table' };
+          return { isCaption: false, type: 'figure' };
+        };
+        
         // Process nodes recursively
         const processNode = (node: Node) => {
           if (node.nodeType === Node.TEXT_NODE) {
@@ -362,34 +371,45 @@ export function usePdfExport() {
             return;
           }
           
-          // Handle figure captions - check for class attribute
-          if (tagName === 'p' && hasClass(element, 'figure-caption')) {
+          // Handle paragraphs - check for captions by class or content
+          if (tagName === 'p') {
             const text = element.textContent?.trim();
-            console.log('PDF Export - Found figure caption element:', text);
-            if (text) {
+            if (!text) return;
+            
+            // Check for caption class first
+            if (hasClass(element, 'figure-caption')) {
               result.push({ type: 'caption', text, captionType: 'figure' });
+              return;
             }
-            return;
-          }
-          
-          // Handle table captions - check for class attribute
-          if (tagName === 'p' && hasClass(element, 'table-caption')) {
-            const text = element.textContent?.trim();
-            console.log('PDF Export - Found table caption element:', text);
-            if (text) {
+            if (hasClass(element, 'table-caption')) {
               result.push({ type: 'caption', text, captionType: 'table' });
+              return;
             }
+            
+            // Check for caption by content pattern (Figure X.X.x. or Table X.X.x.)
+            const captionCheck = isCaptionText(text);
+            if (captionCheck.isCaption) {
+              result.push({ type: 'caption', text, captionType: captionCheck.type });
+              return;
+            }
+            
+            // Regular paragraph
+            result.push({ type: 'paragraph', text });
             return;
           }
           
-          // Handle paragraphs and divs - extract text content or process children
-          if (tagName === 'p' || tagName === 'div') {
-            // Check if this element contains only text (no special children)
-            const hasSpecialChildren = element.querySelector('img, table, h3, p.figure-caption, p.table-caption, [class*="figure-caption"], [class*="table-caption"]');
+          // Handle divs - check for special children and process
+          if (tagName === 'div') {
+            const hasSpecialChildren = element.querySelector('img, table, h3');
             if (!hasSpecialChildren) {
               const text = element.textContent?.trim();
               if (text) {
-                result.push({ type: 'paragraph', text });
+                const captionCheck = isCaptionText(text);
+                if (captionCheck.isCaption) {
+                  result.push({ type: 'caption', text, captionType: captionCheck.type });
+                } else {
+                  result.push({ type: 'paragraph', text });
+                }
               }
               return;
             }
