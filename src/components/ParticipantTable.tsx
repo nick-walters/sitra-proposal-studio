@@ -157,7 +157,9 @@ export function ParticipantTable({
         const response = await fetch(data.logoUrl);
         const blob = await response.blob();
         
-        const filePath = generateParticipantLogoPath(proposalId, participantNumber, 'auto-logo.png');
+        // Use timestamp in filename to ensure fresh URL (prevents browser caching)
+        const timestamp = Date.now();
+        const filePath = generateParticipantLogoPath(proposalId, participantNumber, `logo-${timestamp}.png`);
         const { url, error: uploadError } = await uploadProposalFile(blob, filePath, { upsert: true });
         
         if (uploadError) throw uploadError;
@@ -165,8 +167,9 @@ export function ParticipantTable({
         onUpdateParticipant?.(participantId, { logoUrl: url || undefined });
         toast.success('Logo fetched and saved');
       } else {
-        // It's a direct URL, use it
-        onUpdateParticipant?.(participantId, { logoUrl: data.logoUrl });
+        // It's a direct URL - add cache buster
+        const cacheBustedUrl = `${data.logoUrl}${data.logoUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
+        onUpdateParticipant?.(participantId, { logoUrl: cacheBustedUrl });
         toast.success('Logo found');
       }
     } catch (error) {
