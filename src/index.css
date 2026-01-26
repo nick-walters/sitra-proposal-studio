@@ -602,40 +602,67 @@
   border: 2px solid hsl(var(--primary));
 }
 
+/* Block Drag Handle Container */
+.block-drag-container {
+  position: absolute;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 50;
+  user-select: none;
+}
+
+.block-drag-container:hover,
+.tiptap-editor-container:hover .block-drag-container {
+  opacity: 1;
+}
+
 /* Block Drag Handle Styles */
 .block-drag-handle {
-  position: absolute;
   width: 20px;
   height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: grab;
-  opacity: 0;
-  transition: opacity 0.15s ease;
   background: hsl(var(--muted));
   border: 1px solid hsl(var(--border));
   border-radius: 4px;
   color: hsl(var(--muted-foreground));
-  z-index: 50;
-  user-select: none;
 }
 
 .block-drag-handle:hover {
-  opacity: 1;
   background: hsl(var(--accent));
   color: hsl(var(--accent-foreground));
 }
 
-.block-drag-handle.dragging {
+.block-drag-handle.dragging,
+.block-drag-container.dragging .block-drag-handle {
   cursor: grabbing;
-  opacity: 1;
 }
 
-/* Show drag handle when hovering near left edge of editor */
-.ProseMirror:hover ~ .block-drag-handle,
-.tiptap-editor-container:hover .block-drag-handle {
-  opacity: 0.6;
+/* Block Delete Button */
+.block-delete-btn {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: hsl(var(--muted));
+  border: 1px solid hsl(var(--border));
+  border-radius: 4px;
+  color: hsl(var(--muted-foreground));
+  transition: all 0.15s ease;
+}
+
+.block-delete-btn:hover {
+  background: hsl(var(--destructive));
+  border-color: hsl(var(--destructive));
+  color: hsl(var(--destructive-foreground));
 }
 
 /* Block Drop Indicator */

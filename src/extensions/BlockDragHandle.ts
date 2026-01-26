@@ -15,25 +15,46 @@ export interface BlockLockForDrag {
 export interface BlockDragHandleOptions {
   getLockedBlocks: () => BlockLockForDrag[];
   getCurrentUserId: () => string | null;
+  onDeleteRequest?: (callback: () => void) => void;
 }
 
 const dragHandlePluginKey = new PluginKey('blockDragHandle');
 
 /**
- * Creates a drag handle DOM element
+ * Creates a drag handle container with drag and delete buttons
  */
-function createDragHandleElement(): HTMLElement {
-  const handle = document.createElement('div');
-  handle.className = 'block-drag-handle';
-  handle.setAttribute('draggable', 'true');
-  handle.setAttribute('contenteditable', 'false');
-  handle.innerHTML = `
+function createDragHandleContainer(): HTMLElement {
+  const container = document.createElement('div');
+  container.className = 'block-drag-container';
+  
+  // Drag handle
+  const dragHandle = document.createElement('div');
+  dragHandle.className = 'block-drag-handle';
+  dragHandle.setAttribute('draggable', 'true');
+  dragHandle.setAttribute('contenteditable', 'false');
+  dragHandle.setAttribute('title', 'Drag to reorder');
+  dragHandle.innerHTML = `
     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/>
       <circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/>
     </svg>
   `;
-  return handle;
+  
+  // Delete button
+  const deleteBtn = document.createElement('div');
+  deleteBtn.className = 'block-delete-btn';
+  deleteBtn.setAttribute('contenteditable', 'false');
+  deleteBtn.setAttribute('title', 'Delete block');
+  deleteBtn.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+    </svg>
+  `;
+  
+  container.appendChild(dragHandle);
+  container.appendChild(deleteBtn);
+  
+  return container;
 }
 
 /**
@@ -81,30 +102,66 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
   },
 
   addProseMirrorPlugins() {
-    const { getLockedBlocks, getCurrentUserId } = this.options;
+    const { getLockedBlocks, getCurrentUserId, onDeleteRequest } = this.options;
     
     let draggedBlockRange: { startPos: number; endPos: number } | null = null;
     let dropIndicator: HTMLElement | null = null;
-    let dragHandle: HTMLElement | null = null;
+    let dragContainer: HTMLElement | null = null;
     let currentHoveredBlockPos: number | null = null;
+    let currentHoveredBlockRange: { startPos: number; endPos: number } | null = null;
+    let pendingDeleteCallback: (() => void) | null = null;
 
     return [
       new Plugin({
         key: dragHandlePluginKey,
 
         view(editorView) {
-          // Create the drag handle element
-          dragHandle = createDragHandleElement();
-          dragHandle.style.display = 'none';
-          editorView.dom.parentElement?.appendChild(dragHandle);
+          // Create the drag handle container
+          dragContainer = createDragHandleContainer();
+          dragContainer.style.display = 'none';
+          editorView.dom.parentElement?.appendChild(dragContainer);
+          
+          const dragHandle = dragContainer.querySelector('.block-drag-handle') as HTMLElement;
+          const deleteBtn = dragContainer.querySelector('.block-delete-btn') as HTMLElement;
 
           // Create drop indicator
           dropIndicator = createDropIndicator();
           dropIndicator.style.display = 'none';
           editorView.dom.parentElement?.appendChild(dropIndicator);
 
+          // Handle delete button click
+          deleteBtn?.addEventListener('click', (e: MouseEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (!currentHoveredBlockRange) return;
+            
+            const blockRange = currentHoveredBlockRange;
+            
+            // Create the delete callback
+            const executeDelete = () => {
+              try {
+                const { state } = editorView;
+                const tr = state.tr.delete(blockRange.startPos, blockRange.endPos);
+                editorView.dispatch(tr);
+                editorView.focus();
+              } catch (err) {
+                console.error('Delete error:', err);
+              }
+            };
+            
+            // If we have a delete request handler (for confirmation), use it
+            if (onDeleteRequest) {
+              pendingDeleteCallback = executeDelete;
+              onDeleteRequest(executeDelete);
+            } else {
+              // Otherwise just delete directly
+              executeDelete();
+            }
+          });
+
           // Handle drag start on the drag handle
-          dragHandle.addEventListener('dragstart', (e: DragEvent) => {
+          dragHandle?.addEventListener('dragstart', (e: DragEvent) => {
             if (currentHoveredBlockPos === null) return;
 
             const blockRange = findBlockRange(editorView.state.doc, currentHoveredBlockPos);
@@ -133,7 +190,7 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
             e.dataTransfer!.effectAllowed = 'move';
 
             // Add dragging class
-            dragHandle?.classList.add('dragging');
+            dragContainer?.classList.add('dragging');
             
             // Mark the block being dragged
             requestAnimationFrame(() => {
@@ -144,9 +201,9 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
             });
           });
 
-          dragHandle.addEventListener('dragend', () => {
+          dragHandle?.addEventListener('dragend', () => {
             // Remove all dragging classes
-            dragHandle?.classList.remove('dragging');
+            dragContainer?.classList.remove('dragging');
             dropIndicator!.style.display = 'none';
             document.querySelectorAll('.dragging-block').forEach(el => {
               el.classList.remove('dragging-block');
@@ -159,7 +216,7 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
               // Position is handled by mousemove
             },
             destroy() {
-              dragHandle?.remove();
+              dragContainer?.remove();
               dropIndicator?.remove();
             },
           };
@@ -171,9 +228,10 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
               const { clientX, clientY } = event;
               const pos = view.posAtCoords({ left: clientX, top: clientY });
               
-              if (!pos || !dragHandle) {
-                dragHandle!.style.display = 'none';
+              if (!pos || !dragContainer) {
+                dragContainer!.style.display = 'none';
                 currentHoveredBlockPos = null;
+                currentHoveredBlockRange = null;
                 return false;
               }
 
@@ -184,15 +242,17 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
                 
                 const blockRange = findBlockRange(view.state.doc, blockPos);
                 if (!blockRange) {
-                  dragHandle!.style.display = 'none';
+                  dragContainer!.style.display = 'none';
                   currentHoveredBlockPos = null;
+                  currentHoveredBlockRange = null;
                   return false;
                 }
 
                 // Don't show handle for non-reorderable blocks (H1/H2)
                 if (!isReorderableBlock(blockRange.node)) {
-                  dragHandle!.style.display = 'none';
+                  dragContainer!.style.display = 'none';
                   currentHoveredBlockPos = null;
+                  currentHoveredBlockRange = null;
                   return false;
                 }
 
@@ -205,28 +265,31 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
                 );
 
                 if (isLockedByOther) {
-                  dragHandle!.style.display = 'none';
+                  dragContainer!.style.display = 'none';
                   currentHoveredBlockPos = null;
+                  currentHoveredBlockRange = null;
                   return false;
                 }
 
                 currentHoveredBlockPos = blockRange.startPos;
+                currentHoveredBlockRange = { startPos: blockRange.startPos, endPos: blockRange.endPos };
 
-                // Position the drag handle
+                // Position the drag handle container
                 const blockDom = view.nodeDOM(blockRange.startPos);
                 if (blockDom && blockDom instanceof HTMLElement) {
                   const rect = blockDom.getBoundingClientRect();
                   const editorRect = view.dom.parentElement?.getBoundingClientRect();
                   
                   if (editorRect) {
-                    dragHandle!.style.display = 'flex';
-                    dragHandle!.style.top = `${rect.top - editorRect.top}px`;
-                    dragHandle!.style.left = '-28px';
+                    dragContainer!.style.display = 'flex';
+                    dragContainer!.style.top = `${rect.top - editorRect.top}px`;
+                    dragContainer!.style.left = '-52px';
                   }
                 }
               } catch {
-                dragHandle!.style.display = 'none';
+                dragContainer!.style.display = 'none';
                 currentHoveredBlockPos = null;
+                currentHoveredBlockRange = null;
               }
 
               return false;
