@@ -414,10 +414,47 @@ export function ProposalEditor() {
 
     // Figures section
     if (activeSection.id === 'figures') {
+      // Extract Part B leaf sections for figures (sections with actual content, not container sections)
+      const getPartBLeafSections = (sections: Section[]): { id: string; number: string; label: string }[] => {
+        const result: { id: string; number: string; label: string }[] = [];
+        
+        const traverse = (section: Section) => {
+          // Skip Part A sections, figures section itself, and container sections like "Part B", "B1", "B2"
+          if (section.isPartA || section.id === 'figures') return;
+          
+          // If this section has subsections that are content sections, it's a container - skip it but process children
+          const hasContentSubsections = section.subsections?.some(sub => 
+            sub.number && sub.number.match(/^B?\d+\.\d+/)
+          );
+          
+          if (hasContentSubsections) {
+            section.subsections?.forEach(traverse);
+          } else if (section.number && section.number.match(/^B?\d+\.\d+/)) {
+            // This is a leaf content section (e.g., B1.1, B2.1)
+            // Convert section number like "B1.1" to internal ID like "1.1"
+            const internalId = section.number.replace(/^B/, '');
+            result.push({
+              id: internalId,
+              number: section.number.startsWith('B') ? section.number : `B${section.number}`,
+              label: section.title,
+            });
+          } else if (section.subsections) {
+            // Container without matching number pattern, traverse children
+            section.subsections.forEach(traverse);
+          }
+        };
+        
+        sections.forEach(traverse);
+        return result;
+      };
+      
+      const partBSections = getPartBLeafSections(allSections);
+      
       return (
         <FigureManager
           proposalId={id || ''}
           canEdit={canEdit}
+          availableSections={partBSections}
         />
       );
     }

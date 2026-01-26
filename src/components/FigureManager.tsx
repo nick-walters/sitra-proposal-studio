@@ -50,9 +50,16 @@ interface Figure {
   orderIndex: number;
 }
 
+interface SectionOption {
+  id: string;
+  number: string;
+  label: string;
+}
+
 interface FigureManagerProps {
   proposalId: string;
   canEdit: boolean;
+  availableSections?: SectionOption[];
 }
 
 const FIGURE_TYPES = [
@@ -63,7 +70,8 @@ const FIGURE_TYPES = [
   { id: 'custom', label: 'Custom Figure', icon: FileImage, description: 'Create a custom figure manually' },
 ];
 
-const SECTION_OPTIONS = [
+// Fallback sections for backward compatibility
+const DEFAULT_SECTION_OPTIONS: SectionOption[] = [
   { id: '1.1', number: 'B1.1', label: 'Excellence' },
   { id: '1.2', number: 'B1.2', label: 'Methodology' },
   { id: '2.1', number: 'B2.1', label: "Project's pathways towards impact" },
@@ -72,7 +80,11 @@ const SECTION_OPTIONS = [
   { id: '3.2', number: 'B3.2', label: 'Capacity of participants' },
 ];
 
-export function FigureManager({ proposalId, canEdit }: FigureManagerProps) {
+export function FigureManager({ proposalId, canEdit, availableSections }: FigureManagerProps) {
+  // Use provided sections or fallback to defaults
+  const SECTION_OPTIONS = availableSections && availableSections.length > 0 
+    ? availableSections 
+    : DEFAULT_SECTION_OPTIONS;
   const [selectedFigure, setSelectedFigure] = useState<Figure | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newFigureTitle, setNewFigureTitle] = useState('');
