@@ -202,8 +202,8 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
             />
           </div>
           
-          {/* Short name and Lead partner */}
-          <div className="mt-2 flex items-center gap-4">
+          {/* Short name, Lead partner, and Duration */}
+          <div className="mt-2 flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2">
               <span className="text-sm opacity-80">Short name:</span>
               <Input
@@ -233,6 +233,34 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
                 </SelectContent>
               </Select>
             </div>
+            {/* Auto-calculated duration from tasks */}
+            {(() => {
+              const tasks = wpDraft.tasks || [];
+              const taskStartMonths = tasks.filter(t => t.start_month !== null && t.start_month !== undefined).map(t => t.start_month!);
+              const taskEndMonths = tasks.filter(t => t.end_month !== null && t.end_month !== undefined).map(t => t.end_month!);
+              const hasAllTiming = tasks.length > 0 && taskStartMonths.length === tasks.length && taskEndMonths.length === tasks.length;
+              
+              if (hasAllTiming) {
+                const startMonth = Math.min(...taskStartMonths);
+                const endMonth = Math.max(...taskEndMonths);
+                return (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm opacity-80">Duration:</span>
+                    <span className="text-sm font-medium bg-white/90 text-foreground px-2 py-0.5 rounded">
+                      M{startMonth}–M{endMonth}
+                    </span>
+                  </div>
+                );
+              } else if (taskStartMonths.length > 0 || taskEndMonths.length > 0) {
+                return (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm opacity-80">Duration:</span>
+                    <span className="text-xs opacity-60 italic">Add dates to all tasks</span>
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
         </div>
 
