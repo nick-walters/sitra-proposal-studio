@@ -179,12 +179,36 @@ export function useProposalSections(templateTypeId: string | null) {
       isPartA: false,
     };
 
+    // Define the Figures section (always needed for Part B)
+    const figuresSection: Section = {
+      id: 'figures',
+      number: '',
+      title: 'Figures',
+      guidelines: {
+        text: 'Manage and edit figures referenced in Part B sections. Figures are numbered based on their parent section (e.g., Figure 1.1.a).',
+      },
+    };
+
     if (hasTemplateSections && templateSections.length > 0) {
       // Separate Part A and Part B sections
       const partASections = templateSections.filter(s => s.isPartA);
       const partBSections = templateSections.filter(s => !s.isPartA);
       
-      // Note: Figures section is now included within Part B subsections
+      // Check if Figures section exists in Part B
+      const hasFiguresSection = partBSections.some(s => s.id === 'figures' || s.title === 'Figures');
+      
+      // If Part B sections exist but no Figures, add it
+      if (partBSections.length > 0 && !hasFiguresSection) {
+        // Find Part B root and add Figures as subsection
+        const partBRoot = partBSections.find(s => s.id === 'part-b' || s.number === 'Part B');
+        if (partBRoot && partBRoot.subsections) {
+          partBRoot.subsections.push(figuresSection);
+        } else {
+          // Add Figures as standalone after Part B
+          partBSections.push(figuresSection);
+        }
+      }
+      
       // Add Progress section at the end
       return [...partASections, ...partBSections, progressSection];
     }

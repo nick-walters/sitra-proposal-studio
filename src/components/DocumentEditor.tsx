@@ -477,7 +477,7 @@ export function DocumentEditor({
                 <Sparkles className="w-4 h-4" />
                 Grammar Check
               </Button>
-              {/* Impact Pathway Generator for B2.1 section */}
+              {/* Impact Pathway Mapper for B2.1 section */}
               {isImpactSection && (
                 <Button 
                   variant="outline" 
@@ -487,7 +487,7 @@ export function DocumentEditor({
                   disabled={isEffectivelyReadOnly}
                 >
                   <Route className="w-4 h-4" />
-                  Impact Pathways
+                  Impact Pathways Mapper
                 </Button>
               )}
               {/* AI Writing Assistant */}
