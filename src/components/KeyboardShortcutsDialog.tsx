@@ -44,6 +44,8 @@ const shortcutGroups: ShortcutGroup[] = [
       { keys: ["Ctrl", "Shift", "7"], mac: ["⌘", "Shift", "7"], description: "Ordered list" },
       { keys: ["Ctrl", "Shift", "8"], mac: ["⌘", "Shift", "8"], description: "Bullet list" },
       { keys: ["Ctrl", "Shift", "B"], mac: ["⌘", "Shift", "B"], description: "Blockquote" },
+      { keys: ["Ctrl", "Shift", "↑"], mac: ["⌘", "Shift", "↑"], description: "Move block up" },
+      { keys: ["Ctrl", "Shift", "↓"], mac: ["⌘", "Shift", "↓"], description: "Move block down" },
       { keys: ["Tab"], description: "Indent list item" },
       { keys: ["Shift", "Tab"], description: "Outdent list item" },
     ]
