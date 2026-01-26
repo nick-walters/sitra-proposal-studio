@@ -1,7 +1,6 @@
-import { useState, useCallback, useEffect } from 'react';
-import { Textarea } from '@/components/ui/textarea';
-import { SitraTipsBox } from '@/components/SitraTipsBox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { SitraTipsBox } from '@/components/SitraTipsBox';
+import { WPSimpleEditor } from '@/components/WPSimpleEditor';
 import { BookOpen } from 'lucide-react';
 
 interface WPMethodologySectionProps {
@@ -36,39 +35,6 @@ const METHODOLOGY_TIPS = [
 const METHODOLOGY_QUESTION = `Describe and explain the methodologies used in this WP, including the concepts, models and assumptions that underpin your work. Explain how they will enable you to deliver your project's objectives. Refer to any important challenges you may have identified in the chosen methodologies and how you intend to overcome them.`;
 
 export function WPMethodologySection({ methodology, onChange, readOnly = false }: WPMethodologySectionProps) {
-  const [localValue, setLocalValue] = useState(methodology || '');
-  const [debounceTimeout, setDebounceTimeout] = useState<NodeJS.Timeout | null>(null);
-
-  // Sync with prop changes
-  useEffect(() => {
-    setLocalValue(methodology || '');
-  }, [methodology]);
-
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newValue = e.target.value;
-    setLocalValue(newValue);
-
-    // Debounce the save
-    if (debounceTimeout) {
-      clearTimeout(debounceTimeout);
-    }
-
-    const timeout = setTimeout(() => {
-      onChange(newValue);
-    }, 1000);
-
-    setDebounceTimeout(timeout);
-  }, [onChange, debounceTimeout]);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceTimeout) {
-        clearTimeout(debounceTimeout);
-      }
-    };
-  }, [debounceTimeout]);
-
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -85,16 +51,16 @@ export function WPMethodologySection({ methodology, onChange, readOnly = false }
           </p>
         </div>
 
-        {/* Sitra's Tips */}
+        {/* Sitra's tips */}
         <SitraTipsBox tips={METHODOLOGY_TIPS} />
 
-        {/* Text area for response */}
-        <Textarea
-          value={localValue}
-          onChange={handleChange}
+        {/* Editor */}
+        <WPSimpleEditor
+          value={methodology || ''}
+          onChange={onChange}
           placeholder="Describe your methodology..."
-          className="min-h-[200px] resize-y"
           disabled={readOnly}
+          minHeight="200px"
         />
       </CardContent>
     </Card>
