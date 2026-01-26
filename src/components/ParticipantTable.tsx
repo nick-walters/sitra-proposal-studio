@@ -127,9 +127,12 @@ export function ParticipantTable({
     onUpdateParticipant?.(participantId, { logoUrl: undefined });
   };
 
-  // Auto-fetch logo from the web
+  // Auto-fetch logo from the web - always fetches fresh, never uses cached
   const handleAutoFetchLogo = async (participantId: string, organisationName: string, shortName?: string) => {
     if (!proposalId) return;
+    
+    // Clear existing logo first to ensure fresh fetch
+    onUpdateParticipant?.(participantId, { logoUrl: undefined });
     
     setFetchingLogoId(participantId);
     try {
