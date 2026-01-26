@@ -66,7 +66,7 @@ const getCombinedStatusInfo = (proposal: Proposal) => {
     return {
       label: 'Under evaluation',
       icon: Send,
-      className: 'bg-orange-500/15 text-orange-600 border border-orange-500/30',
+      className: 'bg-yellow-500/15 text-yellow-600 border border-yellow-500/30',
       sortOrder: 5
     };
   } else if (status === 'funded') {
