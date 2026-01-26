@@ -307,6 +307,12 @@ export function usePdfExport() {
         
         if (!container) return [];
         
+        // Helper to check if element has a class
+        const hasClass = (el: HTMLElement, className: string): boolean => {
+          const classAttr = el.getAttribute('class') || el.className || '';
+          return classAttr.includes(className);
+        };
+        
         // Process nodes recursively
         const processNode = (node: Node) => {
           if (node.nodeType === Node.TEXT_NODE) {
@@ -356,18 +362,20 @@ export function usePdfExport() {
             return;
           }
           
-          // Handle figure captions
-          if (tagName === 'p' && element.className.includes('figure-caption')) {
+          // Handle figure captions - check for class attribute
+          if (tagName === 'p' && hasClass(element, 'figure-caption')) {
             const text = element.textContent?.trim();
+            console.log('PDF Export - Found figure caption element:', text);
             if (text) {
               result.push({ type: 'caption', text, captionType: 'figure' });
             }
             return;
           }
           
-          // Handle table captions
-          if (tagName === 'p' && element.className.includes('table-caption')) {
+          // Handle table captions - check for class attribute
+          if (tagName === 'p' && hasClass(element, 'table-caption')) {
             const text = element.textContent?.trim();
+            console.log('PDF Export - Found table caption element:', text);
             if (text) {
               result.push({ type: 'caption', text, captionType: 'table' });
             }
@@ -377,7 +385,7 @@ export function usePdfExport() {
           // Handle paragraphs and divs - extract text content or process children
           if (tagName === 'p' || tagName === 'div') {
             // Check if this element contains only text (no special children)
-            const hasSpecialChildren = element.querySelector('img, table, h3, p.figure-caption, p.table-caption');
+            const hasSpecialChildren = element.querySelector('img, table, h3, p.figure-caption, p.table-caption, [class*="figure-caption"], [class*="table-caption"]');
             if (!hasSpecialChildren) {
               const text = element.textContent?.trim();
               if (text) {
