@@ -75,6 +75,11 @@ export function WPSimpleEditor({
   const handleItalic = () => execCommand('italic');
   const handleUnderline = () => execCommand('underline');
   const handleBulletList = () => execCommand('insertUnorderedList');
+  const handleSubheading = () => {
+    // Apply both bold and underline as inline character styles
+    execCommand('bold');
+    execCommand('underline');
+  };
 
   const showPlaceholder = !value && !isFocused;
 
@@ -112,6 +117,17 @@ export function WPSimpleEditor({
             title="Underline"
           >
             <Underline className="h-3.5 w-3.5" />
+          </Button>
+          <div className="w-px h-4 bg-border mx-1" />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2"
+            onClick={handleSubheading}
+            title="Subheading (Bold & Underlined)"
+          >
+            <span className="text-xs font-black underline">Subheading</span>
           </Button>
           <div className="w-px h-4 bg-border mx-1" />
           <Button
