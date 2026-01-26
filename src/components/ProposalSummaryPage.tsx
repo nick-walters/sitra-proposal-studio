@@ -10,6 +10,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { LogoUpload } from '@/components/LogoUpload';
 // ProposalSchedule removed from overview page
 import { ParticipantTable, ExtendedParticipant } from '@/components/ParticipantTable';
+import { WPManagementCard } from '@/components/WPManagementCard';
+import { WPDependencySelector } from '@/components/WPDependencySelector';
 
 import { Proposal, Participant, ParticipantMember, WORK_PROGRAMMES, DESTINATIONS, ProposalStatus, getDestinationsForWorkProgramme } from '@/types/proposal';
 
@@ -620,6 +622,21 @@ export function ProposalSummaryPage({
             />
           </CardContent>
         </Card>
+
+        {/* Work Package Management Card */}
+        <WPManagementCard
+          proposalId={proposal.id}
+          isAdmin={isAdmin}
+          isFullProposal={proposal.submissionStage !== 'stage_1'}
+        />
+
+        {/* WP Dependencies for PERT Chart (Full Proposals Only) */}
+        {proposal.submissionStage !== 'stage_1' && (
+          <WPDependencySelector
+            proposalId={proposal.id}
+            isAdmin={isAdmin}
+          />
+        )}
 
         </div>
       </div>

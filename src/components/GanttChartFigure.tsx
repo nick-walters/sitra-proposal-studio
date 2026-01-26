@@ -5,6 +5,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Download, BarChart3, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { getContrastingTextColor, lightenColor } from '@/lib/wpColors';
 
 interface Task {
   id: string;
@@ -25,9 +26,11 @@ interface Milestone {
 
 interface WorkPackage {
   number: number;
+  shortName: string;
   title: string;
   startMonth: number;
   endMonth: number;
+  color: string;
   tasks: Task[];
 }
 
@@ -46,18 +49,6 @@ interface GanttChartFigureProps {
   canEdit: boolean;
 }
 
-// Colors for each WP
-const WP_COLORS = [
-  { bg: 'bg-blue-200', border: 'border-blue-400', header: 'bg-blue-100' },
-  { bg: 'bg-emerald-200', border: 'border-emerald-400', header: 'bg-emerald-100' },
-  { bg: 'bg-amber-200', border: 'border-amber-400', header: 'bg-amber-100' },
-  { bg: 'bg-purple-200', border: 'border-purple-400', header: 'bg-purple-100' },
-  { bg: 'bg-rose-200', border: 'border-rose-400', header: 'bg-rose-100' },
-  { bg: 'bg-cyan-200', border: 'border-cyan-400', header: 'bg-cyan-100' },
-  { bg: 'bg-orange-200', border: 'border-orange-400', header: 'bg-orange-100' },
-  { bg: 'bg-indigo-200', border: 'border-indigo-400', header: 'bg-indigo-100' },
-];
-
 export function GanttChartFigure({
   figureNumber,
   proposalId,
@@ -65,41 +56,83 @@ export function GanttChartFigure({
   onContentChange,
   canEdit,
 }: GanttChartFigureProps) {
-  // Fetch work packages from the database
-  const { data: dbWorkPackages } = useQuery({
-    queryKey: ['work-packages', proposalId],
+  // Fetch wp_drafts with their tasks
+  const { data: wpDraftsData } = useQuery({
+    queryKey: ['wp-drafts-gantt', proposalId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('work_packages')
-        .select('*')
+      const { data: wps, error: wpError } = await supabase
+        .from('wp_drafts')
+        .select('id, number, short_name, title, color')
         .eq('proposal_id', proposalId)
-        .order('number');
-      if (error) throw error;
-      return data;
+        .order('order_index');
+      if (wpError) throw wpError;
+
+      // Fetch tasks for each WP
+      const { data: tasks, error: taskError } = await supabase
+        .from('wp_draft_tasks')
+        .select('id, wp_draft_id, number, title, start_month, end_month')
+        .in('wp_draft_id', wps.map(wp => wp.id))
+        .order('order_index');
+      if (taskError) throw taskError;
+
+      // Fetch deliverables
+      const { data: deliverables, error: delError } = await supabase
+        .from('wp_draft_deliverables')
+        .select('id, wp_draft_id, number, due_month')
+        .in('wp_draft_id', wps.map(wp => wp.id));
+      if (delError) throw delError;
+
+      return { wps, tasks, deliverables };
     },
   });
 
-  // Initialize content from DB work packages if not set
+  // Build work packages from wp_drafts data
   useEffect(() => {
-    if (dbWorkPackages && dbWorkPackages.length > 0 && !content?.workPackages) {
-      const workPackages: WorkPackage[] = dbWorkPackages.map((wp) => ({
+    if (!wpDraftsData || content?.workPackages?.length) return;
+
+    const { wps, tasks, deliverables } = wpDraftsData;
+
+    const workPackages: WorkPackage[] = wps.map((wp) => {
+      const wpTasks = tasks.filter(t => t.wp_draft_id === wp.id);
+      const wpDeliverables = deliverables.filter(d => d.wp_draft_id === wp.id);
+
+      // Calculate WP timing from tasks
+      const taskStartMonths = wpTasks.filter(t => t.start_month).map(t => t.start_month!);
+      const taskEndMonths = wpTasks.filter(t => t.end_month).map(t => t.end_month!);
+      const startMonth = taskStartMonths.length > 0 ? Math.min(...taskStartMonths) : 1;
+      const endMonth = taskEndMonths.length > 0 ? Math.max(...taskEndMonths) : 36;
+
+      return {
         number: wp.number,
-        title: wp.title,
-        startMonth: wp.start_month || 1,
-        endMonth: wp.end_month || 36,
-        tasks: [],
-      }));
-      onContentChange({
-        projectDuration: 36,
-        workPackages,
-        milestones: [],
-        reportingPeriods: [
-          { number: 1, startMonth: 1, endMonth: 18 },
-          { number: 2, startMonth: 19, endMonth: 36 },
-        ],
-      });
-    }
-  }, [dbWorkPackages, content, onContentChange]);
+        shortName: wp.short_name || `WP${wp.number}`,
+        title: wp.title || '',
+        startMonth,
+        endMonth,
+        color: wp.color,
+        tasks: wpTasks.map(t => ({
+          id: t.id,
+          wpNumber: wp.number,
+          taskNumber: t.number,
+          name: t.title || '',
+          startMonth: t.start_month || 1,
+          endMonth: t.end_month || 36,
+          deliverables: wpDeliverables
+            .filter(d => d.due_month && d.due_month >= (t.start_month || 1) && d.due_month <= (t.end_month || 36))
+            .map(d => ({ number: `${wp.number}.${d.number}`, month: d.due_month! })),
+        })),
+      };
+    });
+
+    onContentChange({
+      projectDuration: 36,
+      workPackages,
+      milestones: [],
+      reportingPeriods: [
+        { number: 1, startMonth: 1, endMonth: 18 },
+        { number: 2, startMonth: 19, endMonth: 36 },
+      ],
+    });
+  }, [wpDraftsData, content, onContentChange]);
 
   const projectDuration = content?.projectDuration || 36;
   const workPackages = content?.workPackages || [];
@@ -287,17 +320,20 @@ export function GanttChartFigure({
           </div>
 
           {/* Work Packages and Tasks */}
-          {workPackages.map((wp, wpIndex) => {
-            const colors = WP_COLORS[wpIndex % WP_COLORS.length];
+          {workPackages.map((wp) => {
+            // Use the WP's color from the database
+            const bgColor = wp.color || '#2563EB';
+            const lightBg = lightenColor(bgColor, 40);
+            
             return (
               <div key={wp.number}>
                 {/* WP Header Row */}
                 <div className="flex border-l">
                   <div 
-                    className={`shrink-0 border-r border-b ${colors.header} font-bold truncate flex items-center px-1`}
-                    style={{ width: labelWidth, height: 16 }}
+                    className="shrink-0 border-r border-b font-bold truncate flex items-center px-1"
+                    style={{ width: labelWidth, height: 16, backgroundColor: lightBg }}
                   >
-                    WP{wp.number}: {wp.title}
+                    WP{wp.number}: {wp.shortName || wp.title}
                   </div>
                   <div className="flex">
                     {months.map(m => {
@@ -305,8 +341,13 @@ export function GanttChartFigure({
                       return (
                         <div
                           key={m}
-                          className={`border-r border-b ${isInWP ? colors.bg : ''}`}
-                          style={{ width: cellWidth, height: 16 }}
+                          className="border-r border-b"
+                          style={{ 
+                            width: cellWidth, 
+                            height: 16,
+                            backgroundColor: isInWP ? bgColor : undefined,
+                            opacity: isInWP ? 0.3 : 1,
+                          }}
                         />
                       );
                     })}
@@ -321,7 +362,7 @@ export function GanttChartFigure({
                       style={{ width: labelWidth, height: 16 }}
                     >
                       <span className="font-medium text-foreground mr-1">T{task.wpNumber}.{task.taskNumber}:</span>
-                      <span className="truncate">{task.name}</span>
+                      <span className="truncate">{task.name || '(untitled)'}</span>
                     </div>
                     <div className="flex">
                       {months.map(m => {
@@ -331,13 +372,21 @@ export function GanttChartFigure({
                         return (
                           <div
                             key={m}
-                            className={`border-r border-b flex items-center justify-center ${isInTask ? colors.bg : ''}`}
-                            style={{ width: cellWidth, height: 16 }}
+                            className="border-r border-b flex items-center justify-center"
+                            style={{ 
+                              width: cellWidth, 
+                              height: 16,
+                              backgroundColor: isInTask ? bgColor : undefined,
+                              opacity: isInTask ? 0.6 : 1,
+                            }}
                           >
                             {deliverable && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <span className="font-bold text-[7px] text-foreground">
+                                  <span 
+                                    className="font-bold text-[7px]"
+                                    style={{ color: isInTask ? getContrastingTextColor(bgColor) : undefined }}
+                                  >
                                     {deliverable.number}
                                   </span>
                                 </TooltipTrigger>
@@ -371,8 +420,8 @@ export function GanttChartFigure({
           <div className="flex items-center gap-4 mt-3 px-1 text-[8px] text-muted-foreground border-t pt-2">
             <span className="font-semibold">Legend:</span>
             <div className="flex items-center gap-1">
-              <div className="w-3 h-2 bg-blue-200 border border-blue-400" />
-              <span>Task duration</span>
+              <div className="w-3 h-2 bg-primary/30 border border-primary/50" />
+              <span>WP / Task duration</span>
             </div>
             <div className="flex items-center gap-1">
               <span className="font-bold text-primary">1</span>
