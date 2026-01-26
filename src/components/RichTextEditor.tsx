@@ -942,6 +942,7 @@ export function useRichTextEditor({
   getReference,
   trackChanges,
   blockLocking,
+  onBlockDeleteRequest,
 }: { 
   content: string; 
   onChange: (content: string) => void;
@@ -957,6 +958,7 @@ export function useRichTextEditor({
     getLockedBlocks: () => { userId: string; blockId: string; blockType: string }[];
     getCurrentUserId: () => string | null;
   };
+  onBlockDeleteRequest?: (deleteCallback: () => void) => void;
 }) {
   // Track the last content we set to the editor to avoid infinite loops
   const lastSetContentRef = useRef<string>(content);
@@ -968,6 +970,9 @@ export function useRichTextEditor({
   // Store block locking config in refs
   const getLockedBlocksRef = useRef(blockLocking?.getLockedBlocks || (() => []));
   const getCurrentUserIdRef = useRef(blockLocking?.getCurrentUserId || (() => null));
+  // Store delete request handler in ref
+  const onBlockDeleteRequestRef = useRef(onBlockDeleteRequest);
+  onBlockDeleteRequestRef.current = onBlockDeleteRequest;
   
   // Update refs when props change
   useEffect(() => {
@@ -1019,6 +1024,14 @@ export function useRichTextEditor({
       BlockDragHandle.configure({
         getLockedBlocks: () => getLockedBlocksRef.current(),
         getCurrentUserId: () => getCurrentUserIdRef.current(),
+        onDeleteRequest: (callback) => {
+          if (onBlockDeleteRequestRef.current) {
+            onBlockDeleteRequestRef.current(callback);
+          } else {
+            // No confirmation handler, just execute
+            callback();
+          }
+        },
       }),
       Extension.create({
         name: 'citationTooltip',

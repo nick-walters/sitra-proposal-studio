@@ -4,6 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, BookOpen, Route, History, Info, Image, Link2, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search, GitCompare, Keyboard, Wand2, FileCode, SplitSquareHorizontal } from "lucide-react";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { EditorContent } from "@tiptap/react";
 import { GrammarChecker } from "./GrammarChecker";
 import { CitationDialog } from "./CitationDialog";
@@ -114,6 +124,7 @@ export function DocumentEditor({
   const [isWritingAssistantOpen, setIsWritingAssistantOpen] = useState(false);
   const [isSnippetsOpen, setIsSnippetsOpen] = useState(false);
   const [isSplitViewOpen, setIsSplitViewOpen] = useState(false);
+  const [deleteBlockConfirm, setDeleteBlockConfirm] = useState<{ isOpen: boolean; onConfirm: () => void } | null>(null);
   
   // Editor container ref for cursor overlays
   const editorContainerRef = useRef<HTMLDivElement>(null);
@@ -236,6 +247,15 @@ export function DocumentEditor({
     blockLocking: {
       getLockedBlocks: getLockedBlocksForEditor,
       getCurrentUserId: getCurrentUserIdForEditor,
+    },
+    onBlockDeleteRequest: (deleteCallback) => {
+      setDeleteBlockConfirm({
+        isOpen: true,
+        onConfirm: () => {
+          deleteCallback();
+          setDeleteBlockConfirm(null);
+        },
+      });
     },
   });
 
@@ -1010,6 +1030,30 @@ export function DocumentEditor({
           setIsSnippetsOpen(false);
         }}
       />
+
+      {/* Block Delete Confirmation Dialog */}
+      <AlertDialog 
+        open={deleteBlockConfirm?.isOpen || false} 
+        onOpenChange={(open) => !open && setDeleteBlockConfirm(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Block</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this block? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteBlockConfirm(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => deleteBlockConfirm?.onConfirm()}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
