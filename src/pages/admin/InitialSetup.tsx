@@ -69,12 +69,14 @@ export function InitialSetup() {
     setAssigning(true);
     try {
       // Insert owner role for current user
+      // Note: proposal_id uses a null UUID placeholder for global roles that aren't tied to a specific proposal.
+      // This is intentional - owner/admin roles with this UUID apply system-wide rather than to a single proposal.
       const { error } = await supabase
         .from('user_roles')
         .insert({
           user_id: user.id,
           role: 'owner',
-          proposal_id: '00000000-0000-0000-0000-000000000000' // Global role placeholder
+          proposal_id: '00000000-0000-0000-0000-000000000000' // Global role placeholder (not a real proposal)
         });
 
       if (error) throw error;
@@ -97,12 +99,14 @@ export function InitialSetup() {
 
     setAssigning(true);
     try {
+      // Note: proposal_id uses a null UUID placeholder for global roles.
+      // Admin roles with this UUID have system-wide permissions rather than proposal-specific ones.
       const { error } = await supabase
         .from('user_roles')
         .insert({
           user_id: user.id,
           role: 'admin',
-          proposal_id: '00000000-0000-0000-0000-000000000000' // Global role placeholder
+          proposal_id: '00000000-0000-0000-0000-000000000000' // Global role placeholder (not a real proposal)
         });
 
       if (error) throw error;
