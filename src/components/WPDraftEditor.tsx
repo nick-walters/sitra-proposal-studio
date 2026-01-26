@@ -283,17 +283,6 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           projectDuration={projectDuration}
         />
 
-        {/* Planning Questions */}
-        <WPPlanningQuestions
-          inputs={wpDraft.inputs_question}
-          outputs={wpDraft.outputs_question}
-          bottlenecks={wpDraft.bottlenecks_question}
-          onInputsChange={(value) => updateField('inputs_question', value)}
-          onOutputsChange={(value) => updateField('outputs_question', value)}
-          onBottlenecksChange={(value) => updateField('bottlenecks_question', value)}
-          readOnly={readOnly}
-        />
-
         {/* Deliverables */}
         <WPDeliverablesTable
           wpNumber={wpDraft.number}
@@ -304,6 +293,17 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           onDeliverableDelete={deleteDeliverable}
           readOnly={readOnly}
           projectDuration={projectDuration}
+        />
+
+        {/* Task Interactions & Bottlenecks */}
+        <WPPlanningQuestions
+          inputs={wpDraft.inputs_question}
+          outputs={wpDraft.outputs_question}
+          bottlenecks={wpDraft.bottlenecks_question}
+          onInputsChange={(value) => updateField('inputs_question', value)}
+          onOutputsChange={(value) => updateField('outputs_question', value)}
+          onBottlenecksChange={(value) => updateField('bottlenecks_question', value)}
+          readOnly={readOnly}
         />
 
         {/* Staff Effort Matrix */}
