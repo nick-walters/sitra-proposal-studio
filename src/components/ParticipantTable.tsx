@@ -5,13 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Participant } from '@/types/proposal';
+import { Participant, ParticipantMember } from '@/types/proposal';
 import { EU_MEMBER_STATES, ASSOCIATED_COUNTRIES, THIRD_COUNTRIES } from '@/lib/countries';
-import { Upload, X, Loader2, Search, GripVertical, Check, ChevronsUpDown } from 'lucide-react';
+import { Upload, X, Loader2, Search, GripVertical, Check, ChevronsUpDown, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateParticipantLogoPath, uploadProposalFile } from '@/lib/proposalStorage';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { InviteToProposalDialog } from './InviteToProposalDialog';
 import { getContrastingTextColor } from '@/lib/wpColors';
 import {
   DndContext,
@@ -75,9 +76,12 @@ function toNameCase(str: string): string {
 interface ParticipantTableProps {
   participants: ExtendedParticipant[];
   proposalId?: string;
+  proposalAcronym?: string;
   isEditing?: boolean;
+  canInvite?: boolean;
   onUpdateParticipant?: (id: string, updates: Partial<ExtendedParticipant>) => void;
   onReorderParticipants?: (reorderedParticipants: ExtendedParticipant[]) => void;
+  onMemberAdded?: (member: Omit<ParticipantMember, 'id'>) => void;
   wpLeadership?: Record<string, WPLeadershipInfo[]>; // participantId -> WPs they lead
 }
 
@@ -383,13 +387,17 @@ function SortableParticipantRow({
 export function ParticipantTable({ 
   participants, 
   proposalId,
+  proposalAcronym = '',
   isEditing = false,
+  canInvite = false,
   onUpdateParticipant,
   onReorderParticipants,
+  onMemberAdded,
   wpLeadership = {},
 }: ParticipantTableProps) {
   const [uploadingLogoId, setUploadingLogoId] = useState<string | null>(null);
   const [fetchingLogoId, setFetchingLogoId] = useState<string | null>(null);
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   // Sort participants by participantNumber
@@ -574,6 +582,32 @@ export function ParticipantTable({
           </Table>
         </DndContext>
       </div>
+
+      {/* Invite Button */}
+      {canInvite && proposalId && onMemberAdded && (
+        <div className="flex justify-end mt-4">
+          <Button 
+            variant="outline" 
+            onClick={() => setIsInviteDialogOpen(true)} 
+            className="gap-2"
+          >
+            <UserPlus className="w-4 h-4" />
+            Invite Collaborator
+          </Button>
+        </div>
+      )}
+
+      {/* Invite to Proposal Dialog */}
+      {proposalId && onMemberAdded && (
+        <InviteToProposalDialog
+          open={isInviteDialogOpen}
+          onOpenChange={setIsInviteDialogOpen}
+          proposalId={proposalId}
+          proposalAcronym={proposalAcronym}
+          participants={participants}
+          onMemberAdded={onMemberAdded}
+        />
+      )}
     </TooltipProvider>
   );
 }

@@ -651,9 +651,15 @@ export function ProposalSummaryPage({
             <ParticipantTable
               participants={participants as ExtendedParticipant[]}
               proposalId={proposal.id}
+              proposalAcronym={proposal.acronym}
               isEditing={isEditing}
+              canInvite={isAdmin}
               onUpdateParticipant={onUpdateParticipant}
               onReorderParticipants={onReorderParticipants}
+              onMemberAdded={(member) => {
+                // Refresh will happen via realtime subscription
+                console.log('Member added:', member);
+              }}
               wpLeadership={wpLeadership}
             />
           </CardContent>
