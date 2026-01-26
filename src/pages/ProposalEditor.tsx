@@ -402,6 +402,8 @@ export function ProposalEditor() {
           section={activeSection}
           proposalId={id || ''}
           proposalAcronym={proposal?.acronym || ''}
+          proposalType={proposal?.type}
+          topicTitle={proposal?.topicTitle}
           readOnly={!canEdit}
           topicId={proposal?.topicId}
           workProgramme={proposal?.workProgramme}
@@ -466,6 +468,8 @@ export function ProposalEditor() {
         proposalId={id || ''}
         proposalAcronym={proposal?.acronym || ''}
         proposalTitle={proposal?.title}
+        proposalType={proposal?.type}
+        topicTitle={proposal?.topicTitle}
         readOnly={!canEdit}
         topicId={proposal?.topicId}
         workProgramme={proposal?.workProgramme}

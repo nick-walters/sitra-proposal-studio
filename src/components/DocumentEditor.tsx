@@ -59,6 +59,8 @@ interface DocumentEditorProps {
   proposalId: string;
   proposalAcronym: string;
   proposalTitle?: string;
+  proposalType?: string;
+  topicTitle?: string;
   readOnly?: boolean;
   topicId?: string;
   workProgramme?: string;
@@ -71,6 +73,8 @@ export function DocumentEditor({
   proposalId, 
   proposalAcronym, 
   proposalTitle,
+  proposalType,
+  topicTitle,
   readOnly = false,
   topicId,
   workProgramme,
@@ -736,9 +740,11 @@ export function DocumentEditor({
 
             {/* Document Page with Rich Text Editor */}
             <div className="document-page animate-fade-in">
-              {/* Page Header - centered, shows Topic ID and Title */}
+              {/* Page Header - centered, shows Topic ID: Topic title (type of action) */}
               <div className="document-page-header">
-                <span className="w-full text-center">{topicId || ''} {proposalTitle || proposalAcronym}</span>
+                <span className="w-full text-center">
+                  {topicId ? `${topicId}: ` : ''}{topicTitle || ''}{proposalType ? ` (${proposalType})` : ''}
+                </span>
               </div>
 
               <h1 className="document-h1 text-foreground mb-6">{formatSectionHeading(section.number)} {section.title}</h1>
