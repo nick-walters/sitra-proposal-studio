@@ -396,10 +396,10 @@ export function DocumentEditor({
       });
     }
     
-    // Add the figure image
+    // Add the figure image with default 100% width for proper PDF export
     contentToInsert.push({
       type: 'image',
-      attrs: { src: imageUrl, alt: figure.title }
+      attrs: { src: imageUrl, alt: figure.title, widthPercent: 100, alignment: 'center' }
     });
     
     // Add the caption

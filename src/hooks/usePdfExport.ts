@@ -353,13 +353,6 @@ export function usePdfExport() {
               const pxMatch = style.match(/width:\s*([\d.]+)px/);
               const styleWidthPx = pxMatch ? parseFloat(pxMatch[1]) : undefined;
               
-              console.log('[PDF Export] Image parsing:', { 
-                style, 
-                widthPercent, 
-                attrWidth: width, 
-                styleWidthPx 
-              });
-              
               result.push({ 
                 type: 'image', 
                 src,
