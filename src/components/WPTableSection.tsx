@@ -2,10 +2,10 @@ import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Target, Plus, Trash2, GripVertical } from 'lucide-react';
 import { ParticipantMultiSelect } from '@/components/ParticipantMultiSelect';
+import { WPSimpleEditor } from '@/components/WPSimpleEditor';
 import type { WPDraftTask } from '@/hooks/useWPDrafts';
 import {
   DndContext,
@@ -61,40 +61,10 @@ export function WPTableSection({
   readOnly = false,
   projectDuration = 36,
 }: WPTableSectionProps) {
-  const [localObjectives, setLocalObjectives] = useState(objectives || '');
-  const [debounceTimeout, setDebounceTimeout] = useState<NodeJS.Timeout | null>(null);
-
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
-
-  useEffect(() => {
-    setLocalObjectives(objectives || '');
-  }, [objectives]);
-
-  const handleObjectivesChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newValue = e.target.value;
-    setLocalObjectives(newValue);
-
-    if (debounceTimeout) {
-      clearTimeout(debounceTimeout);
-    }
-
-    const timeout = setTimeout(() => {
-      onObjectivesChange(newValue);
-    }, 1000);
-
-    setDebounceTimeout(timeout);
-  }, [onObjectivesChange, debounceTimeout]);
-
-  useEffect(() => {
-    return () => {
-      if (debounceTimeout) {
-        clearTimeout(debounceTimeout);
-      }
-    };
-  }, [debounceTimeout]);
 
   const monthOptions = Array.from({ length: projectDuration }, (_, i) => i + 1);
 
@@ -116,21 +86,21 @@ export function WPTableSection({
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Target className="h-4 w-4" />
-          WP Table (Objectives & Tasks)
+          WP table (objectives & tasks)
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Objectives section */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">Objectives</label>
-          <Textarea
-            value={localObjectives}
-            onChange={handleObjectivesChange}
-            placeholder="• Objective 1&#10;• Objective 2&#10;• Objective 3"
-            className="min-h-[100px] resize-y"
+          <label className="text-sm font-medium">Objective</label>
+          <WPSimpleEditor
+            value={objectives || ''}
+            onChange={onObjectivesChange}
+            placeholder="State the overall objective of this work package..."
             disabled={readOnly}
+            minHeight="80px"
           />
-          <p className="text-xs text-muted-foreground">Use bullet points to list the main objectives of this work package.</p>
+          <p className="text-xs text-muted-foreground">Describe the main objective of this work package. Use the bullet list button if you need multiple objectives.</p>
         </div>
 
         {/* Tasks list */}
