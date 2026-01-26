@@ -486,12 +486,6 @@ export function FormattingToolbar({
           onClick={() => editor.chain().focus().toggleUnderline().run()}
           active={editor.isActive('underline')}
         />
-        <ToolbarButton 
-          icon={<Strikethrough className="w-4 h-4" />} 
-          tooltip="Strikethrough"
-          onClick={() => editor.chain().focus().toggleStrike().run()}
-          active={editor.isActive('strike')}
-        />
       </div>
 
       <Separator orientation="vertical" className="h-5 mx-1.5" />
@@ -542,29 +536,8 @@ export function FormattingToolbar({
 
       <Separator orientation="vertical" className="h-5 mx-1.5" />
 
+      {/* Citation and Cross-ref section */}
       <div className="flex items-center gap-0.5">
-        {/* Link with text label */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={editor.isActive('link') ? "secondary" : "ghost"}
-              size="sm"
-              className="h-7 px-2 gap-1"
-              onClick={setLink}
-            >
-              <LinkIcon className="w-4 h-4" />
-              <span className="text-xs">Link</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-xs">
-            Insert Link
-          </TooltipContent>
-        </Tooltip>
-        
-        <Separator orientation="vertical" className="h-5 mx-1.5" />
-        
-        {/* Citation and Cross-ref section */}
-        <div className="flex items-center gap-0.5">
           {/* Citation button */}
           {onOpenCitationDialog && (
             <Tooltip>
