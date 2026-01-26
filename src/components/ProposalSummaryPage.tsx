@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { LogoUpload } from '@/components/LogoUpload';
 // ProposalSchedule removed from overview page
-import { ParticipantTable, ExtendedParticipant, OrganisationCategory } from '@/components/ParticipantTable';
+import { ParticipantTable, ExtendedParticipant, OrganisationCategory, WPLeadershipInfo } from '@/components/ParticipantTable';
 import { WPManagementCard } from '@/components/WPManagementCard';
 import { WPDependencySelector } from '@/components/WPDependencySelector';
 import { AddParticipantDialog } from '@/components/AddParticipantDialog';
@@ -47,12 +47,14 @@ interface ProposalSummaryPageProps {
     organisationCategory?: OrganisationCategory;
     englishName?: string;
   }) => Promise<void>;
+  onReorderParticipants?: (reorderedParticipants: ExtendedParticipant[]) => void;
   onSubmit?: () => Promise<void>;
   onUpdateStatus?: (status: ProposalStatus) => Promise<void>;
   canEdit?: boolean;
   isAdmin?: boolean;
   onExportPdf?: () => void;
   onExportPdfNoWatermark?: () => void;
+  wpLeadership?: Record<string, WPLeadershipInfo[]>;
 }
 
 
@@ -132,12 +134,14 @@ export function ProposalSummaryPage({
   onUpdateProposal,
   onUpdateParticipant,
   onAddParticipant,
+  onReorderParticipants,
   onSubmit,
   onUpdateStatus,
   canEdit = true,
   isAdmin = false,
   onExportPdf,
   onExportPdfNoWatermark,
+  wpLeadership = {},
 }: ProposalSummaryPageProps) {
   const [isAddParticipantDialogOpen, setIsAddParticipantDialogOpen] = useState(false);
   const [editedProposal, setEditedProposal] = useState(proposal);
@@ -649,6 +653,8 @@ export function ProposalSummaryPage({
               proposalId={proposal.id}
               isEditing={isEditing}
               onUpdateParticipant={onUpdateParticipant}
+              onReorderParticipants={onReorderParticipants}
+              wpLeadership={wpLeadership}
             />
           </CardContent>
         </Card>

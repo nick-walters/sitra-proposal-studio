@@ -20,7 +20,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DuplicateProposalDialog } from "@/components/DuplicateProposalDialog";
 import { Section, BudgetType, ProposalStatus, WORK_PROGRAMMES, DESTINATIONS } from "@/types/proposal";
 import type { WPSection } from "@/hooks/useProposalSections";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { format, differenceInDays } from "date-fns";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -50,6 +50,9 @@ import { useProposalSections } from "@/hooks/useProposalSections";
 import { useBudget } from "@/hooks/useBudget";
 import { useAuth } from "@/hooks/useAuth";
 import { useSectionAssignments } from "@/hooks/useSectionAssignments";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { WPLeadershipInfo } from "@/components/ParticipantTable";
 import {
   Tooltip,
   TooltipContent,
@@ -112,6 +115,39 @@ export function ProposalEditor() {
   // Section assignments for sidebar indicators
   const { assignments } = useSectionAssignments(id || null);
 
+  // Fetch WP leadership data for participant table
+  const { data: wpLeadershipData = [] } = useQuery({
+    queryKey: ['wp-leadership', id],
+    queryFn: async () => {
+      if (!id) return [];
+      const { data, error } = await supabase
+        .from('wp_drafts')
+        .select('id, number, short_name, lead_participant_id, color')
+        .eq('proposal_id', id)
+        .order('number');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!id,
+  });
+
+  // Compute WP leadership mapping: participantId -> WPs they lead
+  const wpLeadership = useMemo(() => {
+    const mapping: Record<string, WPLeadershipInfo[]> = {};
+    for (const wp of wpLeadershipData) {
+      if (wp.lead_participant_id) {
+        if (!mapping[wp.lead_participant_id]) {
+          mapping[wp.lead_participant_id] = [];
+        }
+        mapping[wp.lead_participant_id].push({
+          wpNumber: wp.number,
+          color: wp.color,
+          shortName: wp.short_name || undefined,
+        });
+      }
+    }
+    return mapping;
+  }, [wpLeadershipData]);
   // Auto-select Proposal overview on initial load
   useEffect(() => {
     if (!sectionsLoading && allSections.length > 0 && !activeSection) {
@@ -281,12 +317,14 @@ export function ProposalEditor() {
                 englishName: participantData.englishName,
               });
             }}
+            onReorderParticipants={reorderParticipants}
             onSubmit={handleSubmit}
             onUpdateStatus={handleUpdateStatus}
             canEdit={canEdit}
             isAdmin={isAdmin}
             onExportPdf={handleExportPdfWithWatermark}
             onExportPdfNoWatermark={handleExportPdfNoWatermark}
+            wpLeadership={wpLeadership}
           />
         ) : null;
       }
