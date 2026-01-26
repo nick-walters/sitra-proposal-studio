@@ -261,13 +261,14 @@ export function ProposalEditor() {
       }
 
       // A1 - General Information (form-based) - matches "a1"
+      // Only admins/owners can edit A1, but all users can view it
       if (activeSection.id === 'a1' || activeSection.id === 'general-info') {
         return (
           <GeneralInfoForm
             proposalId={id || ''}
             proposal={proposal}
             section={activeSection}
-            canEdit={canEdit}
+            canEdit={canEdit && isAdmin}
             onUpdateProposal={updateProposal}
           />
         );
@@ -304,13 +305,9 @@ export function ProposalEditor() {
           }
         }
 
-        // Filter participants for non-admin users
-        const visibleParticipants = isAdmin 
-          ? participants 
-          : participants.filter(p => {
-              const userMembers = participantMembers.filter(m => m.userId === user?.id);
-              return userMembers.some(m => m.participantId === p.id);
-            });
+        // All users can see all participants, but only admins can add/reorder
+        // Users can only edit their own linked organisation
+        const visibleParticipants = participants;
 
         return (
           <ParticipantListView
