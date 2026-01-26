@@ -264,11 +264,11 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       },
     };
 
-    // Define the WP Drafts section with WP subsections
+    // Define the WP drafts section with WP subsections
     const wpDraftsSection: Section = {
       id: 'wp-drafts',
       number: '',
-      title: 'WP Drafts',
+      title: 'WP drafts',
       subsections: wpDraftSections,
     };
 

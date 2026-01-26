@@ -568,7 +568,7 @@ export function ProposalEditor() {
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
               <FileText className="w-8 h-8 text-primary" />
             </div>
-            <h3 className="text-lg font-medium">WP Drafts</h3>
+            <h3 className="text-lg font-medium">WP drafts</h3>
             <p className="text-sm text-muted-foreground mt-2">
               Select a work package from the navigation to start drafting its content, tasks, deliverables, and risks.
             </p>
