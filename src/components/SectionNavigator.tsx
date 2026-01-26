@@ -1,11 +1,12 @@
 import { Section, Participant } from "@/types/proposal";
-import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3 } from "lucide-react";
+import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Layers } from "lucide-react";
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SectionAssignment } from "@/hooks/useSectionAssignments";
 import { isPast, isToday, differenceInDays, format } from "date-fns";
+import type { WPSection } from "@/hooks/useProposalSections";
 
 // Collaborator presence info for real-time editing indicators
 interface CollaboratorPresence {
@@ -18,9 +19,9 @@ interface CollaboratorPresence {
 }
 
 interface SectionNavigatorProps {
-  sections: Section[];
+  sections: (Section | WPSection)[];
   activeSectionId: string | null;
-  onSectionClick: (section: Section) => void;
+  onSectionClick: (section: Section | WPSection) => void;
   participants?: Participant[];
   isAdmin?: boolean;
   currentUserId?: string;
@@ -65,10 +66,10 @@ function SectionItem({
   currentUserId,
   collaborators = [],
 }: {
-  section: Section;
+  section: Section | WPSection;
   depth?: number;
   activeSectionId: string | null;
-  onSectionClick: (section: Section) => void;
+  onSectionClick: (section: Section | WPSection) => void;
   assignments?: Map<string, SectionAssignment>;
   currentUserId?: string;
   collaborators?: CollaboratorPresence[];
@@ -76,6 +77,11 @@ function SectionItem({
   const [isExpanded, setIsExpanded] = useState(true);
   const hasSubsections = section.subsections && section.subsections.length > 0;
   const isActive = activeSectionId === section.id;
+  
+  // Check if this is a WP section with color
+  const wpSection = section as WPSection;
+  const isWPSection = wpSection.wpId !== undefined;
+  const wpColor = wpSection.wpColor;
   
   // Get collaborators currently editing this section
   const sectionCollaborators = collaborators.filter(c => c.sectionId === section.id);
@@ -85,16 +91,17 @@ function SectionItem({
   const dueDateInfo = assignment ? getDueDateInfo(assignment.dueDate) : null;
   const isAssignedToMe = assignment?.assignedTo === currentUserId;
   
-  // Check if this is a collapsible heading (Part A, Part B, B1, B2, etc.)
+  // Check if this is a collapsible heading (Part A, Part B, B1, B2, WP Drafts, etc.)
   // Note: A2 is NOT a collapsible heading - it should navigate to ParticipantListView
   const isCollapsibleHeading = hasSubsections && (
     section.id === 'part-a' || 
     section.id === 'part-b' || 
     section.id === 'b1' || 
-    section.id === 'b2'
+    section.id === 'b2' ||
+    section.id === 'wp-drafts'
   );
   
-  // Check if this is a top-level bold item (Proposal overview, Part A, Part B, Figures, Assignments)
+  // Check if this is a top-level bold item (Proposal overview, Part A, Part B, Figures, WP Progress Tracker, WP Drafts)
   // Match both ID-based and number-based checks for database sections
   const isTopLevelBold = 
     section.id === 'proposal-overview' || 
@@ -104,7 +111,8 @@ function SectionItem({
     section.number === 'Part B' ||
     section.id === 'figures' ||
     section.title === 'Figures' ||
-    section.id === 'assignments';
+    section.id === 'wp-progress-tracker' ||
+    section.id === 'wp-drafts';
   
   // Note: Guideline icons removed from navigation hover to reduce visual clutter
 
@@ -146,8 +154,15 @@ function SectionItem({
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             )}
           </button>
-        ) : section.id === 'assignments' ? (
+        ) : section.id === 'wp-progress-tracker' ? (
           <BarChart3 className="w-4 h-4 text-muted-foreground" />
+        ) : section.id === 'wp-drafts' ? (
+          <Layers className="w-4 h-4 text-muted-foreground" />
+        ) : isWPSection && wpColor ? (
+          <div 
+            className="w-3 h-3 rounded-sm border flex-shrink-0"
+            style={{ backgroundColor: wpColor }}
+          />
         ) : (
           <FileText className="w-4 h-4 text-muted-foreground" />
         )}
