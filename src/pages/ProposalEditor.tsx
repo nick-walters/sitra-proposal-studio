@@ -842,17 +842,11 @@ export function ProposalEditor() {
       {/* Status alert - color coded like dashboard */}
       {proposal && (
         <Alert className={cn(
-          "rounded-none border-x-0 border-t-0 border-b-2",
+          "rounded-none border-x-0 border-t-0 border-b-2 py-1.5 [&>svg]:top-2",
           statusInfo.alertBg
         )}>
-          <StatusIcon className={cn("h-4 w-4", statusInfo.iconColor)} />
-          <AlertDescription className={cn(
-            proposal.status === 'draft' ? "text-yellow-800" :
-            proposal.status === 'submitted' ? "text-orange-800" :
-            proposal.status === 'funded' ? "text-green-800" :
-            proposal.status === 'not_funded' ? "text-red-800" :
-            ""
-          )}>
+          <StatusIcon className={cn("h-3.5 w-3.5", statusInfo.iconColor)} />
+          <AlertDescription className={cn("text-sm", statusInfo.iconColor)}>
             {proposal.status === 'draft' && (
               <>
                 <strong>{statusInfo.label}</strong> – this proposal is due by the deadline{' '}
@@ -874,10 +868,10 @@ export function ProposalEditor() {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="gap-1.5 h-7"
+                  className="gap-1.5 h-6 text-xs"
                   onClick={() => setIsDuplicateOpen(true)}
                 >
-                  <Copy className="w-3.5 h-3.5" />
+                  <Copy className="w-3 h-3" />
                   Duplicate for resubmission
                 </Button>
               </span>
@@ -890,10 +884,10 @@ export function ProposalEditor() {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="gap-1.5 h-7"
+                  className="gap-1.5 h-6 text-xs"
                   onClick={() => setIsDuplicateOpen(true)}
                 >
-                  <Copy className="w-3.5 h-3.5" />
+                  <Copy className="w-3 h-3" />
                   Duplicate for resubmission
                 </Button>
               </span>
