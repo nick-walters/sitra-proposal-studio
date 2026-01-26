@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -20,9 +20,6 @@ import {
   Users,
   FileText,
   Target,
-  Pencil,
-  Check,
-  X,
   Download,
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -126,8 +123,8 @@ export function ProposalSummaryPage({
   onExportPdf,
   onExportPdfNoWatermark,
 }: ProposalSummaryPageProps) {
-  const [isEditing, setIsEditing] = useState(false);
   const [editedProposal, setEditedProposal] = useState(proposal);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [availableDestinations, setAvailableDestinations] = useState(
     proposal.workProgramme ? getDestinationsForWorkProgramme(proposal.workProgramme) : []
   );
@@ -157,24 +154,40 @@ export function ProposalSummaryPage({
     ethics: 100,
   };
 
-  const handleSave = async () => {
-    if (onUpdateProposal) {
-      await onUpdateProposal(editedProposal);
-    }
-    setIsEditing(false);
-  };
+  // Check if user can edit (admin or owner) - isAdmin already includes owner check from useProposalData
+  const userCanEdit = canEdit && isAdmin;
+  
+  // For admins/owners, always show editable fields
+  const isEditing = userCanEdit;
 
-  const handleCancel = () => {
-    setEditedProposal(proposal);
-    setIsEditing(false);
-  };
+  // Auto-save with debounce when editedProposal changes (for admins/owners)
+  const debouncedSave = useCallback((proposalData: typeof editedProposal) => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(async () => {
+      if (onUpdateProposal) {
+        await onUpdateProposal(proposalData);
+      }
+    }, 1000); // 1 second debounce
+  }, [onUpdateProposal]);
+
+  // Trigger autosave when editedProposal changes
+  useEffect(() => {
+    // Only autosave if user can edit and there are actual changes
+    if (userCanEdit && JSON.stringify(editedProposal) !== JSON.stringify(proposal)) {
+      debouncedSave(editedProposal);
+    }
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [editedProposal, userCanEdit, proposal, debouncedSave]);
 
   const handleLogoChange = (url: string | null) => {
     setEditedProposal({ ...editedProposal, logoUrl: url || undefined });
   };
-
-  // Check if user can edit (admin or owner) - isAdmin already includes owner check from useProposalData
-  const userCanEdit = canEdit && isAdmin;
 
   return (
     <div className="flex-1 overflow-auto bg-muted/30 relative">
@@ -610,32 +623,6 @@ export function ProposalSummaryPage({
 
         </div>
       </div>
-
-
-      {/* Fixed Bottom Edit Bar for Owners/Admins - Right Positioned */}
-      {userCanEdit && (
-        <div className="fixed bottom-4 right-4 z-50">
-          <div className="flex items-center gap-2 bg-background border rounded-lg shadow-lg p-2">
-            {!isEditing ? (
-              <Button onClick={() => setIsEditing(true)} className="gap-2">
-                <Pencil className="w-4 h-4" />
-                Edit
-              </Button>
-            ) : (
-              <>
-                <Button variant="ghost" size="sm" onClick={handleCancel} className="gap-2">
-                  <X className="w-4 h-4" />
-                  Cancel
-                </Button>
-                <Button size="sm" onClick={handleSave} className="gap-2">
-                  <Check className="w-4 h-4" />
-                  Save
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
