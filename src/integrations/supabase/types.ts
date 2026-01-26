@@ -1111,6 +1111,7 @@ export type Database = {
           total_budget: number | null
           type: Database["public"]["Enums"]["proposal_type"]
           updated_at: string
+          uses_fstp: boolean
           work_programme: string | null
         }
         Insert: {
@@ -1138,6 +1139,7 @@ export type Database = {
           total_budget?: number | null
           type?: Database["public"]["Enums"]["proposal_type"]
           updated_at?: string
+          uses_fstp?: boolean
           work_programme?: string | null
         }
         Update: {
@@ -1165,6 +1167,7 @@ export type Database = {
           total_budget?: number | null
           type?: Database["public"]["Enums"]["proposal_type"]
           updated_at?: string
+          uses_fstp?: boolean
           work_programme?: string | null
         }
         Relationships: [
@@ -2315,6 +2318,22 @@ export type Database = {
       can_edit_proposal: {
         Args: { _proposal_id: string; _user_id: string }
         Returns: boolean
+      }
+      create_proposal_with_role: {
+        Args: {
+          p_acronym: string
+          p_budget_type: Database["public"]["Enums"]["budget_type"]
+          p_deadline?: string
+          p_destination?: string
+          p_submission_stage?: string
+          p_template_type_id?: string
+          p_title: string
+          p_topic_url?: string
+          p_type: Database["public"]["Enums"]["proposal_type"]
+          p_uses_fstp?: boolean
+          p_work_programme?: string
+        }
+        Returns: string
       }
       has_any_proposal_role: {
         Args: { _proposal_id: string; _user_id: string }

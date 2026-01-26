@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -51,6 +52,7 @@ interface CreateProposalDialogProps {
     topicUrl?: string;
     deadline?: Date;
     templateTypeId?: string;
+    usesFstp?: boolean;
   }) => void;
 }
 
@@ -91,6 +93,7 @@ export function CreateProposalDialog({
   const [topicUrl, setTopicUrl] = useState<string>('');
   const [deadline, setDeadline] = useState<Date | undefined>(undefined);
   const [templateTypeId, setTemplateTypeId] = useState<string>('');
+  const [usesFstp, setUsesFstp] = useState<boolean>(false);
 
   // Get destinations filtered by selected work programme
   const availableDestinations = useMemo(() => {
@@ -142,6 +145,7 @@ export function CreateProposalDialog({
         topicUrl: topicUrl || undefined,
         deadline: deadline || undefined,
         templateTypeId: templateTypeId || undefined,
+        usesFstp,
       });
       // Reset form
       setAcronym('');
@@ -154,6 +158,7 @@ export function CreateProposalDialog({
       setTopicUrl('');
       setDeadline(undefined);
       setTemplateTypeId('');
+      setUsesFstp(false);
       onOpenChange(false);
     }
   };
@@ -323,6 +328,18 @@ export function CreateProposalDialog({
                   </Label>
                 </div>
               </RadioGroup>
+              
+              {/* FSTP Checkbox */}
+              <div className="flex items-center space-x-2 mt-1">
+                <Checkbox 
+                  id="uses-fstp" 
+                  checked={usesFstp} 
+                  onCheckedChange={(checked) => setUsesFstp(checked === true)}
+                />
+                <Label htmlFor="uses-fstp" className="text-sm cursor-pointer">
+                  Topic uses Financial Support to Third Parties (FSTP)
+                </Label>
+              </div>
             </div>
 
             {/* Work Programme */}

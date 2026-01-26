@@ -605,6 +605,13 @@ export function ProposalSummaryPage({
 
         {/* Proposal Schedule removed from overview page */}
 
+        {/* Work Package Management Card - moved above participants */}
+        <WPManagementCard
+          proposalId={proposal.id}
+          isAdmin={isAdmin}
+          isFullProposal={proposal.submissionStage !== 'stage_1'}
+        />
+
         {/* List of participants */}
         <Card>
           <CardHeader className="pb-2">
@@ -622,13 +629,6 @@ export function ProposalSummaryPage({
             />
           </CardContent>
         </Card>
-
-        {/* Work Package Management Card */}
-        <WPManagementCard
-          proposalId={proposal.id}
-          isAdmin={isAdmin}
-          isFullProposal={proposal.submissionStage !== 'stage_1'}
-        />
 
         {/* WP Dependencies for PERT Chart (Full Proposals Only) */}
         {proposal.submissionStage !== 'stage_1' && (
