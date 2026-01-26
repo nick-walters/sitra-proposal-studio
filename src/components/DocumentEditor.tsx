@@ -19,6 +19,7 @@ import { GrammarChecker } from "./GrammarChecker";
 import { CitationDialog } from "./CitationDialog";
 import { InsertFigureDialog } from "./InsertFigureDialog";
 import { InsertCrossReferenceDialog } from "./InsertCrossReferenceDialog";
+import { InsertWPReferenceDialog } from "./InsertWPReferenceDialog";
 import { CommentsSidebar } from "./CommentsSidebar";
 import { SectionAssignmentDialog } from "./SectionAssignmentDialog";
 import { ImpactPathwayGenerator } from "./ImpactPathwayGenerator";
@@ -125,6 +126,7 @@ export function DocumentEditor({
   const [isSnippetsOpen, setIsSnippetsOpen] = useState(false);
   const [isSplitViewOpen, setIsSplitViewOpen] = useState(false);
   const [deleteBlockConfirm, setDeleteBlockConfirm] = useState<{ isOpen: boolean; onConfirm: () => void } | null>(null);
+  const [isWPRefOpen, setIsWPRefOpen] = useState(false);
   
   // Editor container ref for cursor overlays
   const editorContainerRef = useRef<HTMLDivElement>(null);
@@ -452,6 +454,18 @@ export function DocumentEditor({
     if (!editor) return;
     editor.chain().focus().insertContent(refText).run();
   }, [editor]);
+  
+  // Handle WP reference insertion
+  const handleInsertWPRef = useCallback((wp: { id: string; number: number; short_name: string | null; color: string }) => {
+    if (!editor) return;
+    // Insert WP badge using the WP reference mark
+    editor.chain().focus().setWPReference({
+      wpNumber: wp.number,
+      wpShortName: wp.short_name || '',
+      wpColor: wp.color,
+      wpId: wp.id,
+    }).insertContent(' ').run();
+  }, [editor]);
 
   // Handle applying a suggestion from comments
   const handleApplySuggestion = useCallback((originalText: string, suggestedText: string) => {
@@ -762,6 +776,7 @@ export function DocumentEditor({
           onOpenFormulaDialog={() => setIsFormulaOpen(true)}
           onOpenCitationDialog={() => setIsCitationOpen(true)}
           onOpenCrossRefDialog={() => setIsCrossRefOpen(true)}
+          onOpenWPRefDialog={() => setIsWPRefOpen(true)}
           isPartB={section && !section.isPartA}
           isReadOnly={isEffectivelyReadOnly}
         />
@@ -931,6 +946,12 @@ export function DocumentEditor({
         content={content}
         sectionNumber={section?.number || ''}
         onInsert={handleInsertCrossRef}
+      />
+      <InsertWPReferenceDialog
+        open={isWPRefOpen}
+        onOpenChange={setIsWPRefOpen}
+        proposalId={proposalId || ''}
+        onSelect={handleInsertWPRef}
       />
       <SectionAssignmentDialog
         open={isAssignmentDialogOpen}

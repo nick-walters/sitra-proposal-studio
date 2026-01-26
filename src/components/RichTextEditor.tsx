@@ -15,6 +15,7 @@ import { BlockReordering } from '@/extensions/BlockReordering';
 import { BlockDragHandle } from '@/extensions/BlockDragHandle';
 import { TrackChanges, TrackChangesOptions } from '@/extensions/TrackChanges';
 import { TableFormula } from '@/extensions/TableFormula';
+import { WPReferenceMark } from '@/extensions/WPReferenceMark';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
@@ -49,6 +50,7 @@ import {
   Calculator,
   FileText,
   Link2,
+  Layers,
 } from "lucide-react";
 import {
   Tooltip,
@@ -172,6 +174,7 @@ export function FormattingToolbar({
   onOpenFormulaDialog,
   onOpenCitationDialog,
   onOpenCrossRefDialog,
+  onOpenWPRefDialog,
   isPartB = false,
   isReadOnly = false,
 }: { 
@@ -182,6 +185,7 @@ export function FormattingToolbar({
   onOpenFormulaDialog?: () => void;
   onOpenCitationDialog?: () => void;
   onOpenCrossRefDialog?: () => void;
+  onOpenWPRefDialog?: () => void;
   isPartB?: boolean;
   isReadOnly?: boolean;
 }) {
@@ -602,6 +606,27 @@ export function FormattingToolbar({
               </TooltipContent>
             </Tooltip>
           )}
+          
+          {/* WP Reference button */}
+          {isPartB && onOpenWPRefDialog && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 gap-1"
+                  onClick={onOpenWPRefDialog}
+                  disabled={isReadOnly}
+                >
+                  <Layers className="w-4 h-4" />
+                  <span className="text-xs">WP</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                Insert WP Reference
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
         
         <Separator orientation="vertical" className="h-5 mx-1.5" />
@@ -905,6 +930,7 @@ export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootn
         },
       }),
       BlockReordering,
+      WPReferenceMark,
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -1020,6 +1046,8 @@ export function useRichTextEditor({
       }),
       // Block reordering via keyboard shortcuts (Ctrl+Shift+↑/↓)
       BlockReordering,
+      // WP reference marks for inline WP badges
+      WPReferenceMark,
       // Block drag-and-drop via drag handle
       BlockDragHandle.configure({
         getLockedBlocks: () => getLockedBlocksRef.current(),
