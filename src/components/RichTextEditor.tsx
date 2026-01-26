@@ -167,12 +167,20 @@ export function FormattingToolbar({
   content,
   onOpenFigureDialog,
   onOpenFormulaDialog,
+  onOpenCitationDialog,
+  onOpenCrossRefDialog,
+  isPartB = false,
+  isReadOnly = false,
 }: { 
   editor: Editor | null;
   sectionNumber?: string;
   content?: string;
   onOpenFigureDialog?: () => void;
   onOpenFormulaDialog?: () => void;
+  onOpenCitationDialog?: () => void;
+  onOpenCrossRefDialog?: () => void;
+  isPartB?: boolean;
+  isReadOnly?: boolean;
 }) {
   const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
   const [isCropOpen, setIsCropOpen] = useState(false);
@@ -524,14 +532,25 @@ export function FormattingToolbar({
       <Separator orientation="vertical" className="h-5 mx-1.5" />
 
       <div className="flex items-center gap-0.5">
-        <ToolbarButton 
-          icon={<LinkIcon className="w-4 h-4" />} 
-          tooltip="Insert Link"
-          onClick={setLink}
-          active={editor.isActive('link')}
-        />
+        {/* Link with text label */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={editor.isActive('link') ? "secondary" : "ghost"}
+              size="sm"
+              className="h-7 px-2 gap-1"
+              onClick={setLink}
+            >
+              <LinkIcon className="w-4 h-4" />
+              <span className="text-xs">Link</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-xs">
+            Insert Link
+          </TooltipContent>
+        </Tooltip>
         
-        {/* Table - with size selector or operations */}
+        {/* Table with text label */}
         {!isInTable ? (
           <Popover open={tablePopoverOpen} onOpenChange={setTablePopoverOpen}>
             <Tooltip>
@@ -539,10 +558,11 @@ export function FormattingToolbar({
                 <PopoverTrigger asChild>
                   <Button
                     variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
+                    size="sm"
+                    className="h-7 px-2 gap-1"
                   >
                     <TableIcon className="w-4 h-4" />
+                    <span className="text-xs">Table</span>
                   </Button>
                 </PopoverTrigger>
               </TooltipTrigger>
@@ -725,7 +745,74 @@ export function FormattingToolbar({
                 tooltip="Delete figure with caption"
                 onClick={() => setShowDeleteConfirm(true)}
               />
-            </div>
+      </div>
+
+      {/* Insert buttons with text labels */}
+      <Separator orientation="vertical" className="h-5 mx-1.5" />
+      
+      <div className="flex items-center gap-0.5">
+        {/* Figure button */}
+        {isPartB && onOpenFigureDialog && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 gap-1"
+                onClick={onOpenFigureDialog}
+                disabled={isReadOnly}
+              >
+                <ImageIcon className="w-4 h-4" />
+                <span className="text-xs">Figure</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              Insert Figure
+            </TooltipContent>
+          </Tooltip>
+        )}
+        
+        {/* Citation button */}
+        {onOpenCitationDialog && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 gap-1"
+                onClick={onOpenCitationDialog}
+                disabled={isReadOnly}
+              >
+                <span className="text-xs font-medium">[1]</span>
+                <span className="text-xs">Citation</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              Add Citation
+            </TooltipContent>
+          </Tooltip>
+        )}
+        
+        {/* Cross-ref button */}
+        {isPartB && onOpenCrossRefDialog && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 gap-1"
+                onClick={onOpenCrossRefDialog}
+                disabled={isReadOnly}
+              >
+                <span className="text-xs">Cross-ref</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              Insert Cross-reference
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </div>
           </>
         )}
       </div>

@@ -36,6 +36,7 @@ interface CommentsSidebarProps {
   selectionRange?: { start: number; end: number };
   onApplySuggestion?: (originalText: string, suggestedText: string) => void;
   onClearSelection?: () => void;
+  compact?: boolean;
 }
 
 interface TeamMember {
@@ -366,6 +367,7 @@ export function CommentsSidebar({
   selectionRange,
   onApplySuggestion,
   onClearSelection,
+  compact = false,
 }: CommentsSidebarProps) {
   const { user } = useAuth();
   const {
@@ -499,20 +501,22 @@ export function CommentsSidebar({
   });
 
   return (
-    <div className="h-full flex flex-col bg-background border-l">
-      {/* Header */}
-      <div className="p-4 border-b">
-        <h3 className="font-semibold flex items-center gap-2">
-          <MessageSquare className="w-4 h-4" />
-          Comments
-        </h3>
-        <div className="flex gap-2 mt-2">
-          <Badge variant="secondary">{openCount} open</Badge>
-          <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
-            {suggestionsCount} suggestions
-          </Badge>
+    <div className={cn("h-full flex flex-col bg-background", !compact && "border-l")}>
+      {/* Header - hidden in compact mode (parent provides header) */}
+      {!compact && (
+        <div className="p-4 border-b">
+          <h3 className="font-semibold flex items-center gap-2">
+            <MessageSquare className="w-4 h-4" />
+            Comments
+          </h3>
+          <div className="flex gap-2 mt-2">
+            <Badge variant="secondary">{openCount} open</Badge>
+            <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+              {suggestionsCount} suggestions
+            </Badge>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">

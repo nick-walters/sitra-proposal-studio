@@ -448,137 +448,109 @@ export function DocumentEditor({
     );
   }
 
+  // State for collaboration panel
+  const [isCollaborationPanelOpen, setIsCollaborationPanelOpen] = useState(true);
+
   return (
     <div className="flex-1 flex flex-col min-h-0 relative">
       {/* Fixed toolbar container */}
       <div className="sticky top-0 z-10 bg-background">
-        {/* Features Toolbar */}
+        {/* Features Toolbar - scrollable */}
         <div className="flex items-center justify-between p-2 border-b border-border bg-card">
-          <div className="flex items-center gap-2">
-            {/* Guidelines button - first, non-AI feature */}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="gap-2"
-              onClick={() => setIsGuidelinesOpen(true)}
-            >
-              <Info className="w-4 h-4" />
-              Guidelines
-            </Button>
-            <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsSearchOpen(true)}>
-              <Search className="w-4 h-4" />
-              Find & Replace
-            </Button>
-            <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsGrammarOpen(true)}>
-              <Sparkles className="w-4 h-4" />
-              Grammar Check
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="gap-2" 
-              onClick={() => setIsCitationOpen(true)}
-              disabled={isEffectivelyReadOnly}
-            >
-              <BookOpen className="w-4 h-4" />
-              Add Citation
-            </Button>
-            {/* Insert Figure button - only show for Part B sections */}
-            {section && !section.isPartA && (
+          <div className="flex-1 overflow-x-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
+            <div className="flex items-center gap-2 min-w-max">
+              {/* Guidelines button - first, non-AI feature */}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-2"
+                onClick={() => setIsGuidelinesOpen(true)}
+              >
+                <Info className="w-4 h-4" />
+                Guidelines
+              </Button>
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsSearchOpen(true)}>
+                <Search className="w-4 h-4" />
+                Find & Replace
+              </Button>
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsGrammarOpen(true)}>
+                <Sparkles className="w-4 h-4" />
+                Grammar Check
+              </Button>
+              {/* Impact Pathway Generator for B2.1 section */}
+              {isImpactSection && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="gap-2 bg-primary/5 border-primary/30 hover:bg-primary/10" 
+                  onClick={() => setIsImpactPathwayOpen(true)}
+                  disabled={isEffectivelyReadOnly}
+                >
+                  <Route className="w-4 h-4" />
+                  Impact Pathways
+                </Button>
+              )}
+              {/* AI Writing Assistant */}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-2"
+                onClick={() => setIsWritingAssistantOpen(true)}
+                disabled={!editor || isEffectivelyReadOnly}
+              >
+                <Wand2 className="w-4 h-4" />
+                AI Assistant
+              </Button>
+              {/* Snippets Library */}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-2"
+                onClick={() => setIsSnippetsOpen(true)}
+                disabled={!editor || isEffectivelyReadOnly}
+              >
+                <FileCode className="w-4 h-4" />
+                Snippets
+              </Button>
+              {/* Split View */}
+              <Button 
+                variant={isSplitViewOpen ? "default" : "outline"}
+                size="sm" 
+                className="gap-2"
+                onClick={() => setIsSplitViewOpen(!isSplitViewOpen)}
+              >
+                <SplitSquareHorizontal className="w-4 h-4" />
+                Split View
+              </Button>
+              {/* Version history */}
               <Button 
                 variant="outline" 
                 size="sm" 
                 className="gap-2" 
-                onClick={() => setIsFigureDialogOpen(true)}
-                disabled={isEffectivelyReadOnly}
+                onClick={() => setIsVersionHistoryOpen(true)}
               >
-                <Image className="w-4 h-4" />
-                Insert Figure
+                <History className="w-4 h-4" />
+                History
               </Button>
-            )}
-            {/* Cross-reference button - only show for Part B sections */}
-            {section && !section.isPartA && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="gap-2" 
-                onClick={() => setIsCrossRefOpen(true)}
-                disabled={isEffectivelyReadOnly}
-                title="Insert a reference to a figure or table"
-              >
-                <Link2 className="w-4 h-4" />
-                Cross-ref
-              </Button>
-            )}
-            {/* Impact Pathway Generator for B2.1 section */}
-            {isImpactSection && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="gap-2 bg-primary/5 border-primary/30 hover:bg-primary/10" 
-                onClick={() => setIsImpactPathwayOpen(true)}
-                disabled={isEffectivelyReadOnly}
-              >
-                <Route className="w-4 h-4" />
-                Impact Pathways
-              </Button>
-            )}
-            {/* AI Writing Assistant */}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="gap-2"
-              onClick={() => setIsWritingAssistantOpen(true)}
-              disabled={!editor || isEffectivelyReadOnly}
-            >
-              <Wand2 className="w-4 h-4" />
-              AI Assistant
-            </Button>
-            {/* Snippets Library */}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="gap-2"
-              onClick={() => setIsSnippetsOpen(true)}
-              disabled={!editor || isEffectivelyReadOnly}
-            >
-              <FileCode className="w-4 h-4" />
-              Snippets
-            </Button>
-            {/* Split View */}
-            <Button 
-              variant={isSplitViewOpen ? "default" : "outline"}
-              size="sm" 
-              className="gap-2"
-              onClick={() => setIsSplitViewOpen(!isSplitViewOpen)}
-            >
-              <SplitSquareHorizontal className="w-4 h-4" />
-              Split View
-            </Button>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Assignment button - only visible to admins/owners */}
-            {canManageAssignment && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button 
-                    variant={assignmentInfo.assignedTo ? "default" : "outline"}
+                    variant="outline" 
                     size="sm" 
-                    className={`gap-2 ${assignmentInfo.assignedTo ? 'bg-blue-500 hover:bg-blue-600 text-white' : ''}`}
-                    onClick={() => setIsAssignmentDialogOpen(true)}
-                    disabled={assignmentUpdating}
+                    className="gap-2" 
+                    onClick={() => setIsComparisonOpen(true)}
                   >
-                    <UserPlus className="w-4 h-4" />
-                    {assignmentInfo.assignedTo ? 'Assigned' : 'Assign'}
+                    <GitCompare className="w-4 h-4" />
+                    Compare
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  {assignmentInfo.assignedTo 
-                    ? `Assigned to ${assignmentInfo.assignedToName}${dueDateInfo ? ` • Due ${format(dueDateInfo.dueDate, 'MMM d')}` : ''}`
-                    : 'Assign this section to a team member'}
+                  Compare two versions side-by-side
                 </TooltipContent>
               </Tooltip>
-            )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 ml-2 shrink-0">
             {/* Lock/Unlock button - only visible to admins/owners */}
             {canManageLock && (
               <Tooltip>
@@ -610,38 +582,6 @@ export function DocumentEditor({
                 </TooltipContent>
               </Tooltip>
             )}
-            {/* Track Changes Toggle */}
-            <TrackChangesToolbar
-              editor={editor}
-              enabled={trackChangesEnabled}
-              onToggle={setTrackChangesEnabled}
-              changes={trackedChanges}
-            />
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="gap-2" 
-              onClick={() => setIsVersionHistoryOpen(true)}
-            >
-              <History className="w-4 h-4" />
-              History
-            </Button>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="gap-2" 
-                  onClick={() => setIsComparisonOpen(true)}
-                >
-                  <GitCompare className="w-4 h-4" />
-                  Compare
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                Compare two versions side-by-side
-              </TooltipContent>
-            </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button 
@@ -660,21 +600,20 @@ export function DocumentEditor({
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button 
-                  variant={isCommentsSidebarOpen ? "default" : "outline"}
+                  variant={isCollaborationPanelOpen ? "default" : "outline"}
                   size="sm" 
                   className="gap-2"
-                  onClick={() => setIsCommentsSidebarOpen(!isCommentsSidebarOpen)}
+                  onClick={() => setIsCollaborationPanelOpen(!isCollaborationPanelOpen)}
                 >
-                  {isCommentsSidebarOpen ? (
+                  {isCollaborationPanelOpen ? (
                     <PanelRightClose className="w-4 h-4" />
                   ) : (
-                    <MessageSquare className="w-4 h-4" />
+                    <PanelRight className="w-4 h-4" />
                   )}
-                  Comments
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                {isCommentsSidebarOpen ? 'Hide comments sidebar' : 'Show comments sidebar'}
+                {isCollaborationPanelOpen ? 'Hide collaboration panel' : 'Show collaboration panel'}
               </TooltipContent>
             </Tooltip>
             {!isEffectivelyReadOnly && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
@@ -759,6 +698,10 @@ export function DocumentEditor({
           content={content}
           onOpenFigureDialog={() => setIsFigureDialogOpen(true)}
           onOpenFormulaDialog={() => setIsFormulaOpen(true)}
+          onOpenCitationDialog={() => setIsCitationOpen(true)}
+          onOpenCrossRefDialog={() => setIsCrossRefOpen(true)}
+          isPartB={section && !section.isPartA}
+          isReadOnly={isEffectivelyReadOnly}
         />
       </div>
 
