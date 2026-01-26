@@ -37,6 +37,47 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
     )
   );
 
+  // Empty state when no WP drafts exist
+  if (wpDrafts.length === 0) {
+    return (
+      <div className="space-y-6 p-6">
+        <div>
+          <h2 className="text-2xl font-bold">WP Progress Tracker</h2>
+          <p className="text-muted-foreground">Track completion status of work package drafts</p>
+        </div>
+
+        <Card className="border-dashed">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="rounded-full bg-muted p-4 mb-4">
+                <Package className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-medium mb-2">No Work Packages Yet</h3>
+              <p className="text-sm text-muted-foreground max-w-sm mb-4">
+                Create work packages in the "Proposal overview" page to start tracking progress. 
+                Each WP tracks methodology, objectives, tasks, deliverables, and risks.
+              </p>
+              <div className="flex flex-col gap-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Check className="h-3 w-3 text-green-600" />
+                  <span>Methodology (50+ words)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-3 w-3 text-green-600" />
+                  <span>Objectives (30+ words)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-3 w-3 text-green-600" />
+                  <span>At least one task, deliverable, and risk</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 p-6">
       <div>
