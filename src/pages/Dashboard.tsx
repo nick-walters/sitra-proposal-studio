@@ -489,6 +489,7 @@ export function Dashboard() {
     topicUrl?: string;
     deadline?: Date;
     templateTypeId?: string;
+    usesFstp?: boolean;
   }) => {
     if (!user) {
       toast.error('You must be logged in to create a proposal');
@@ -496,43 +497,28 @@ export function Dashboard() {
     }
 
     try {
-      // Insert proposal into database
-      const { data: newProposalData, error: proposalError } = await supabase
-        .from('proposals')
-        .insert({
-          acronym: data.acronym,
-          title: data.title || data.acronym, // Use acronym as fallback if title is empty
-          type: data.type,
-          budget_type: data.budgetType,
-          submission_stage: data.submissionStage,
-          work_programme: data.workProgramme || null,
-          destination: data.destination || null,
-          topic_url: data.topicUrl || null,
-          deadline: data.deadline?.toISOString() || null,
-          template_type_id: data.templateTypeId || null,
-          created_by: user.id,
-          status: 'draft',
-        })
-        .select()
-        .single();
+      // Use RPC function to create proposal and assign role atomically
+      const { data: newProposalId, error: proposalError } = await supabase
+        .rpc('create_proposal_with_role', {
+          p_acronym: data.acronym,
+          p_title: data.title || data.acronym,
+          p_type: data.type,
+          p_budget_type: data.budgetType,
+          p_submission_stage: data.submissionStage,
+          p_work_programme: data.workProgramme || null,
+          p_destination: data.destination || null,
+          p_topic_url: data.topicUrl || null,
+          p_deadline: data.deadline?.toISOString() || null,
+          p_template_type_id: data.templateTypeId || null,
+          p_uses_fstp: data.usesFstp || false,
+        });
 
       if (proposalError) throw proposalError;
 
-      // Create user_role entry for the creator as admin
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: user.id,
-          proposal_id: newProposalData.id,
-          role: 'admin',
-        });
-
-      if (roleError) throw roleError;
-
       // If a template was selected, create the proposal template with copied sections
-      if (data.templateTypeId) {
+      if (data.templateTypeId && newProposalId) {
         const templateResult = await createProposalTemplate({
-          proposalId: newProposalData.id,
+          proposalId: newProposalId,
           sourceTemplateTypeId: data.templateTypeId,
           budgetType: data.budgetType,
           actionType: data.type,
@@ -553,7 +539,9 @@ export function Dashboard() {
       await fetchProposals();
       
       // Navigate to the new proposal
-      navigate(`/proposal/${newProposalData.id}`);
+      if (newProposalId) {
+        navigate(`/proposal/${newProposalId}`);
+      }
     } catch (error: any) {
       console.error('Error creating proposal:', error);
       toast.error(error.message || 'Failed to create proposal');
