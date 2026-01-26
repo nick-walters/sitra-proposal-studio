@@ -250,6 +250,14 @@
     font-family: Arial, Helvetica, sans-serif;
   }
 
+  /* Fillable form inputs use Arial */
+  input,
+  textarea,
+  select,
+  [contenteditable="true"] {
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
   /* Page titles use Arial Black */
   .page-title {
     font-family: 'Arial Black', Arial, sans-serif;
@@ -262,11 +270,18 @@
     font-weight: 900;
   }
 
-  /* Document content styling */
+  /* Document content styling (Part B rich text) */
   .document-content {
     font-family: 'Times New Roman', Times, serif;
     font-size: 11pt;
     line-height: 1.0;
+  }
+
+  /* Form elements within document content still use Arial */
+  .document-content input,
+  .document-content textarea,
+  .document-content select {
+    font-family: Arial, Helvetica, sans-serif;
   }
 
   /* Body text left-aligned at 1.5cm margin, no indent */

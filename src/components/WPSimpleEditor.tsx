@@ -140,7 +140,7 @@ export function WPSimpleEditor({
             "[&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4",
             disabled && "cursor-not-allowed"
           )}
-          style={{ minHeight }}
+          style={{ minHeight, fontFamily: 'Arial, Helvetica, sans-serif' }}
           suppressContentEditableWarning
         />
         {showPlaceholder && (
