@@ -135,7 +135,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               <Input
                 value={wpDraft.short_name || ''}
                 onChange={(e) => updateField('short_name', e.target.value)}
-                placeholder="Short name (e.g. C&A)"
+                placeholder="Short name"
                 className="bg-white/90 text-foreground h-8 max-w-[200px]"
                 disabled={readOnly}
               />
