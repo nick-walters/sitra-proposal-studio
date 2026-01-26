@@ -43,11 +43,14 @@ interface WPDeliverablesTableProps {
 }
 
 const DELIVERABLE_TYPES = [
-  { value: 'R', label: 'Report' },
-  { value: 'DEM', label: 'Demonstrator' },
-  { value: 'DEC', label: 'Websites, patents, etc.' },
-  { value: 'DATA', label: 'Data management' },
-  { value: 'OTHER', label: 'Other' },
+  { value: 'R', label: 'Report', description: 'Document, report (excluding the periodic and final reports)' },
+  { value: 'DEM', label: 'Demonstrator', description: 'Demonstrator, pilot, prototype, plan designs' },
+  { value: 'DEC', label: 'Dissemination', description: 'Websites, patents filing, press & media actions, videos, etc.' },
+  { value: 'DATA', label: 'Data', description: 'Data sets, microdata, etc.' },
+  { value: 'DMP', label: 'Data management plan', description: 'Data management plan' },
+  { value: 'ETHICS', label: 'Ethics', description: 'Deliverables related to ethics issues' },
+  { value: 'SECURITY', label: 'Security', description: 'Deliverables related to security issues' },
+  { value: 'OTHER', label: 'Other', description: 'Software, technical diagram, algorithms, models, etc.' },
 ];
 
 const DISSEMINATION_LEVELS = [
@@ -243,13 +246,16 @@ function SortableDeliverableCard({
             onValueChange={(value) => onUpdate(deliverable.id, { type: value })}
             disabled={readOnly}
           >
-            <SelectTrigger className="h-6 w-[65px] text-xs px-1.5">
+            <SelectTrigger className="h-6 w-[75px] text-xs px-1.5">
               <SelectValue placeholder="Type" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-popover">
               {DELIVERABLE_TYPES.map((type) => (
                 <SelectItem key={type.value} value={type.value}>
-                  {type.value}
+                  <div className="flex flex-col">
+                    <span>{type.value}</span>
+                    <span className="text-xs text-muted-foreground">{type.description}</span>
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
