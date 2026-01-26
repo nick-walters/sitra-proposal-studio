@@ -126,10 +126,10 @@ function guessDomainFromName(name: string): string | null {
   return null;
 }
 
-// Convert image to grayscale using canvas
-async function convertToGrayscale(imageUrl: string): Promise<string> {
+// Convert image to pure black and white (no grey) using Lovable AI
+async function convertToBlackAndWhite(imageUrl: string): Promise<string> {
   try {
-    // Fetch the image
+    // Fetch the original image first
     const response = await fetch(imageUrl);
     if (!response.ok) {
       throw new Error('Failed to fetch image');
@@ -138,12 +138,60 @@ async function convertToGrayscale(imageUrl: string): Promise<string> {
     const imageBuffer = await response.arrayBuffer();
     const base64 = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
     const contentType = response.headers.get('content-type') || 'image/png';
+    const imageDataUrl = `data:${contentType};base64,${base64}`;
     
-    // Return as data URL with grayscale CSS filter hint
-    // The actual grayscale will be applied via CSS on the frontend
-    return `data:${contentType};base64,${base64}`;
+    // Use Lovable AI to convert to pure black and white
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      console.log('LOVABLE_API_KEY not available, returning original');
+      return imageDataUrl;
+    }
+    
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-image",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Convert this logo to pure black and white only. No grey tones at all - every pixel should be either pure black (#000000) or pure white (#FFFFFF). Keep the logo sharp and clean. Return only the converted image."
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: imageDataUrl
+                }
+              }
+            ]
+          }
+        ],
+        modalities: ["image", "text"]
+      })
+    });
+    
+    if (!aiResponse.ok) {
+      console.log('AI conversion failed, returning original');
+      return imageDataUrl;
+    }
+    
+    const aiData = await aiResponse.json();
+    const convertedImageUrl = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    
+    if (convertedImageUrl) {
+      console.log('Successfully converted logo to black and white');
+      return convertedImageUrl;
+    }
+    
+    return imageDataUrl;
   } catch (e) {
-    console.error('Grayscale conversion error:', e);
+    console.error('Black and white conversion error:', e);
     throw e;
   }
 }
@@ -181,9 +229,9 @@ serve(async (req: Request) => {
     // If grayscale conversion requested, fetch and convert
     if (convertToGray) {
       try {
-        const grayscaleDataUrl = await convertToGrayscale(logoUrl);
+        const bwDataUrl = await convertToBlackAndWhite(logoUrl);
         return new Response(
-          JSON.stringify({ logoUrl: grayscaleDataUrl, originalUrl: logoUrl, isGrayscale: true }),
+          JSON.stringify({ logoUrl: bwDataUrl, originalUrl: logoUrl, isBlackAndWhite: true }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       } catch (e) {
