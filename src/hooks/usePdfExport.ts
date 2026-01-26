@@ -464,8 +464,8 @@ export function usePdfExport() {
         const xPos = margin + (contentWidth - imgWidthMm) / 2;
         
         pdf.addImage(imageData.data, 'JPEG', xPos, yPosition, imgWidthMm, imgHeightMm);
-        // Small spacing after image before caption (about 3mm to prevent overlap)
-        yPosition += imgHeightMm + 3;
+        // 6pt spacing after image before caption (6pt ≈ 2.1mm)
+        yPosition += imgHeightMm + paragraphSpacingH2;
       };
 
       // Helper: Add caption (whole caption italic, label bold-italic)
