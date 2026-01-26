@@ -257,26 +257,6 @@ function SortableDeliverableCard({
         </div>
 
         <div className="flex items-center gap-1 flex-shrink-0">
-          <span className="text-xs text-muted-foreground">Responsible:</span>
-          <Select
-            value={deliverable.responsible_participant_id || ''}
-            onValueChange={(value) => onUpdate(deliverable.id, { responsible_participant_id: value || null })}
-            disabled={readOnly}
-          >
-            <SelectTrigger className="h-6 w-[90px] text-xs px-1.5">
-              <SelectValue placeholder="Select..." />
-            </SelectTrigger>
-            <SelectContent>
-              {participants.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.organisation_short_name || p.organisation_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex items-center gap-1 flex-shrink-0">
           <span className="text-xs text-muted-foreground">Diss.:</span>
           <Select
             value={deliverable.dissemination_level || 'PU'}
@@ -290,6 +270,26 @@ function SortableDeliverableCard({
               {DISSEMINATION_LEVELS.map((level) => (
                 <SelectItem key={level.value} value={level.value}>
                   {level.value}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <span className="text-xs text-muted-foreground">Responsible:</span>
+          <Select
+            value={deliverable.responsible_participant_id || ''}
+            onValueChange={(value) => onUpdate(deliverable.id, { responsible_participant_id: value || null })}
+            disabled={readOnly}
+          >
+            <SelectTrigger className="h-6 w-[90px] text-xs px-1.5">
+              <SelectValue placeholder="Select..." />
+            </SelectTrigger>
+            <SelectContent>
+              {participants.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.organisation_short_name || p.organisation_name}
                 </SelectItem>
               ))}
             </SelectContent>
