@@ -126,7 +126,7 @@ function guessDomainFromName(name: string): string | null {
   return null;
 }
 
-// Convert image to pure black and white (no grey) using Lovable AI
+// Convert image to pure black and white (crop empty space, light grey → white)
 async function convertToBlackAndWhite(imageUrl: string): Promise<string> {
   try {
     // Fetch the original image first
@@ -140,7 +140,7 @@ async function convertToBlackAndWhite(imageUrl: string): Promise<string> {
     const contentType = response.headers.get('content-type') || 'image/png';
     const imageDataUrl = `data:${contentType};base64,${base64}`;
     
-    // Use Lovable AI to convert to pure black and white
+    // Use Lovable AI to crop and convert to pure black and white
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       console.log('LOVABLE_API_KEY not available, returning original');
@@ -161,7 +161,7 @@ async function convertToBlackAndWhite(imageUrl: string): Promise<string> {
             content: [
               {
                 type: "text",
-                text: "Convert this logo to pure black and white only. No grey tones at all - every pixel should be either pure black (#000000) or pure white (#FFFFFF). Keep the logo sharp and clean. Return only the converted image."
+                text: "Process this logo image: 1) CROP to remove all empty/white space around the logo, keeping only the logo itself with minimal padding. 2) Convert to pure black and white only - no grey tones. IMPORTANT: Mid-grey and light grey pixels should become WHITE (#FFFFFF), only dark colors should become BLACK (#000000). The threshold should be low so only truly dark elements become black. Keep the logo sharp and clean. Return only the processed image."
               },
               {
                 type: "image_url",
@@ -185,7 +185,7 @@ async function convertToBlackAndWhite(imageUrl: string): Promise<string> {
     const convertedImageUrl = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
     
     if (convertedImageUrl) {
-      console.log('Successfully converted logo to black and white');
+      console.log('Successfully cropped and converted logo to black and white');
       return convertedImageUrl;
     }
     
