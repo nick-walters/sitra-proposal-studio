@@ -3,9 +3,25 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Package, Plus, Trash2 } from 'lucide-react';
+import { Package, Plus, Trash2, GripVertical } from 'lucide-react';
 import type { WPDraftDeliverable } from '@/hooks/useWPDrafts';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface Participant {
   id: string;
@@ -21,6 +37,7 @@ interface WPDeliverablesTableProps {
   onDeliverableUpdate: (id: string, updates: Partial<WPDraftDeliverable>) => Promise<boolean>;
   onDeliverableAdd: () => Promise<any>;
   onDeliverableDelete: (id: string) => Promise<boolean>;
+  onDeliverableReorder?: (newOrder: string[]) => Promise<boolean>;
   readOnly?: boolean;
   projectDuration?: number;
 }
@@ -36,7 +53,9 @@ const DELIVERABLE_TYPES = [
 const DISSEMINATION_LEVELS = [
   { value: 'PU', label: 'Public' },
   { value: 'SEN', label: 'Sensitive' },
-  { value: 'CO', label: 'Confidential' },
+  { value: 'EU-RES', label: 'EU Restricted' },
+  { value: 'EU-CON', label: 'EU Confidential' },
+  { value: 'EU-SEC', label: 'EU Secret' },
 ];
 
 export function WPDeliverablesTable({
@@ -46,11 +65,29 @@ export function WPDeliverablesTable({
   onDeliverableUpdate,
   onDeliverableAdd,
   onDeliverableDelete,
+  onDeliverableReorder,
   readOnly = false,
   projectDuration = 36,
 }: WPDeliverablesTableProps) {
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
   const monthOptions = Array.from({ length: projectDuration }, (_, i) => i + 1);
+
   const formatDeliverableNumber = (num: number) => `D${wpNumber}.${num}`;
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !onDeliverableReorder) return;
+
+    const oldIndex = deliverables.findIndex((d) => d.id === active.id);
+    const newIndex = deliverables.findIndex((d) => d.id === over.id);
+    const reordered = arrayMove(deliverables, oldIndex, newIndex);
+    
+    onDeliverableReorder(reordered.map(d => d.id));
+  };
 
   return (
     <Card>
@@ -60,36 +97,31 @@ export function WPDeliverablesTable({
           Deliverables
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[60px]">D#</TableHead>
-                <TableHead>Title</TableHead>
-                <TableHead className="w-[100px]">Type</TableHead>
-                <TableHead className="w-[140px]">Responsible</TableHead>
-                <TableHead className="w-[80px]">Diss.</TableHead>
-                <TableHead className="w-[80px]">Due (M)</TableHead>
-                {!readOnly && <TableHead className="w-[40px]"></TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+      <CardContent className="space-y-2">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext items={deliverables.map(d => d.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-2">
               {deliverables.map((deliverable) => (
-                <DeliverableRow
+                <SortableDeliverableCard
                   key={deliverable.id}
                   deliverable={deliverable}
-                  formatNumber={formatDeliverableNumber}
+                  wpNumber={wpNumber}
                   participants={participants}
                   monthOptions={monthOptions}
                   onUpdate={onDeliverableUpdate}
                   onDelete={onDeliverableDelete}
                   readOnly={readOnly}
+                  formatNumber={formatDeliverableNumber}
+                  canReorder={!readOnly && !!onDeliverableReorder}
                 />
               ))}
-            </TableBody>
-          </Table>
-        </div>
+            </div>
+          </SortableContext>
+        </DndContext>
         {!readOnly && (
           <Button
             variant="outline"
@@ -106,25 +138,44 @@ export function WPDeliverablesTable({
   );
 }
 
-interface DeliverableRowProps {
+interface SortableDeliverableCardProps {
   deliverable: WPDraftDeliverable;
-  formatNumber: (num: number) => string;
+  wpNumber: number;
   participants: Participant[];
   monthOptions: number[];
   onUpdate: (id: string, updates: Partial<WPDraftDeliverable>) => Promise<boolean>;
   onDelete: (id: string) => Promise<boolean>;
   readOnly: boolean;
+  formatNumber: (num: number) => string;
+  canReorder: boolean;
 }
 
-function DeliverableRow({
+function SortableDeliverableCard({
   deliverable,
-  formatNumber,
+  wpNumber,
   participants,
   monthOptions,
   onUpdate,
   onDelete,
   readOnly,
-}: DeliverableRowProps) {
+  formatNumber,
+  canReorder,
+}: SortableDeliverableCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: deliverable.id, disabled: !canReorder });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
   const [localTitle, setLocalTitle] = useState(deliverable.title || '');
   const [titleTimeout, setTitleTimeout] = useState<NodeJS.Timeout | null>(null);
 
@@ -145,101 +196,124 @@ function DeliverableRow({
   };
 
   return (
-    <TableRow>
-      <TableCell className="font-mono text-sm text-muted-foreground">
-        {formatNumber(deliverable.number)}
-      </TableCell>
-      <TableCell>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`rounded-md border bg-card p-3 ${isDragging ? 'shadow-lg' : ''}`}
+    >
+      {/* Row 1: Drag handle, Deliverable number + Title, Delete */}
+      <div className="flex items-center gap-2">
+        {canReorder && (
+          <button
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted rounded touch-none flex-shrink-0"
+          >
+            <GripVertical className="w-4 h-4 text-muted-foreground" />
+          </button>
+        )}
+        <span className="font-mono text-sm text-muted-foreground flex-shrink-0 w-[52px]">
+          {formatNumber(deliverable.number)}:
+        </span>
         <Input
           value={localTitle}
           onChange={handleTitleChange}
           placeholder="Deliverable title..."
-          className="h-8"
+          className="h-7 flex-1"
           disabled={readOnly}
         />
-      </TableCell>
-      <TableCell>
-        <Select
-          value={deliverable.type || ''}
-          onValueChange={(value) => onUpdate(deliverable.id, { type: value })}
-          disabled={readOnly}
-        >
-          <SelectTrigger className="h-8">
-            <SelectValue placeholder="Type" />
-          </SelectTrigger>
-          <SelectContent>
-            {DELIVERABLE_TYPES.map((type) => (
-              <SelectItem key={type.value} value={type.value}>
-                {type.value}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </TableCell>
-      <TableCell>
-        <Select
-          value={deliverable.responsible_participant_id || ''}
-          onValueChange={(value) => onUpdate(deliverable.id, { responsible_participant_id: value || null })}
-          disabled={readOnly}
-        >
-          <SelectTrigger className="h-8">
-            <SelectValue placeholder="Select..." />
-          </SelectTrigger>
-          <SelectContent>
-            {participants.map((p) => (
-              <SelectItem key={p.id} value={p.id}>
-                {p.organisation_short_name || p.organisation_name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </TableCell>
-      <TableCell>
-        <Select
-          value={deliverable.dissemination_level || 'PU'}
-          onValueChange={(value) => onUpdate(deliverable.id, { dissemination_level: value })}
-          disabled={readOnly}
-        >
-          <SelectTrigger className="h-8">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {DISSEMINATION_LEVELS.map((level) => (
-              <SelectItem key={level.value} value={level.value}>
-                {level.value}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </TableCell>
-      <TableCell>
-        <Select
-          value={deliverable.due_month?.toString() || ''}
-          onValueChange={(value) => onUpdate(deliverable.id, { due_month: value ? parseInt(value) : null })}
-          disabled={readOnly}
-        >
-          <SelectTrigger className="h-8">
-            <SelectValue placeholder="M" />
-          </SelectTrigger>
-          <SelectContent>
-            {monthOptions.map((m) => (
-              <SelectItem key={m} value={m.toString()}>{m}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </TableCell>
-      {!readOnly && (
-        <TableCell>
+        {!readOnly && (
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+            className="h-7 w-7 text-muted-foreground hover:text-destructive flex-shrink-0"
             onClick={() => onDelete(deliverable.id)}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
-        </TableCell>
-      )}
-    </TableRow>
+        )}
+      </div>
+
+      {/* Row 2: Type, Responsible, Dissemination, Due month */}
+      <div className="flex items-center gap-2 mt-2 ml-6">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <span className="text-xs text-muted-foreground">Type:</span>
+          <Select
+            value={deliverable.type || ''}
+            onValueChange={(value) => onUpdate(deliverable.id, { type: value })}
+            disabled={readOnly}
+          >
+            <SelectTrigger className="h-7 w-[80px] text-xs">
+              <SelectValue placeholder="Type" />
+            </SelectTrigger>
+            <SelectContent>
+              {DELIVERABLE_TYPES.map((type) => (
+                <SelectItem key={type.value} value={type.value}>
+                  {type.value}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <span className="text-xs text-muted-foreground">Responsible:</span>
+          <Select
+            value={deliverable.responsible_participant_id || ''}
+            onValueChange={(value) => onUpdate(deliverable.id, { responsible_participant_id: value || null })}
+            disabled={readOnly}
+          >
+            <SelectTrigger className="h-7 w-[100px] text-xs">
+              <SelectValue placeholder="Select..." />
+            </SelectTrigger>
+            <SelectContent>
+              {participants.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.organisation_short_name || p.organisation_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <span className="text-xs text-muted-foreground">Diss.:</span>
+          <Select
+            value={deliverable.dissemination_level || 'PU'}
+            onValueChange={(value) => onUpdate(deliverable.id, { dissemination_level: value })}
+            disabled={readOnly}
+          >
+            <SelectTrigger className="h-7 w-[85px] text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {DISSEMINATION_LEVELS.map((level) => (
+                <SelectItem key={level.value} value={level.value}>
+                  {level.value}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-1.5 flex-shrink-0 ml-auto">
+          <span className="text-xs text-muted-foreground">Due:</span>
+          <Select
+            value={deliverable.due_month?.toString() || ''}
+            onValueChange={(value) => onUpdate(deliverable.id, { due_month: value ? parseInt(value) : null })}
+            disabled={readOnly}
+          >
+            <SelectTrigger className="h-7 w-[55px] text-xs">
+              <SelectValue placeholder="M" />
+            </SelectTrigger>
+            <SelectContent>
+              {monthOptions.map((m) => (
+                <SelectItem key={m} value={m.toString()}>M{m}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </div>
   );
 }

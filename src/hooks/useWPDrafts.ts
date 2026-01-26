@@ -571,6 +571,51 @@ export function useWPDraftEditor(wpId: string | null) {
     }
   }, [toast]);
 
+  // Reorder deliverables
+  const reorderDeliverables = useCallback(async (newOrder: string[]) => {
+    if (!wpDraft) return false;
+
+    try {
+      const updates = newOrder.map((id, index) => ({
+        id,
+        order_index: index,
+        number: index + 1,
+      }));
+
+      // Update locally first for optimistic UI
+      setWPDraft(prev => {
+        if (!prev || !prev.deliverables) return prev;
+        const deliverableMap = new Map(prev.deliverables.map(d => [d.id, d]));
+        return {
+          ...prev,
+          deliverables: newOrder.map((id, index) => ({
+            ...deliverableMap.get(id)!,
+            order_index: index,
+            number: index + 1,
+          })),
+        };
+      });
+
+      // Update in database
+      for (const update of updates) {
+        await supabase
+          .from('wp_draft_deliverables')
+          .update({ order_index: update.order_index, number: update.number })
+          .eq('id', update.id);
+      }
+
+      return true;
+    } catch (err) {
+      console.error('Error reordering deliverables:', err);
+      toast({
+        title: 'Error',
+        description: 'Failed to reorder deliverables',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  }, [wpDraft, toast]);
+
   // Risk operations
   const addRisk = useCallback(async () => {
     if (!wpDraft) return null;
@@ -762,6 +807,7 @@ export function useWPDraftEditor(wpId: string | null) {
     addDeliverable,
     updateDeliverable,
     deleteDeliverable,
+    reorderDeliverables,
     // Risks
     addRisk,
     updateRisk,
