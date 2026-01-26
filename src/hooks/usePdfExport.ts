@@ -220,23 +220,165 @@ export function usePdfExport() {
         yPosition += paragraphSpacing; // 3pt after
       };
 
-      // Helper: Parse HTML content and extract text with formatting
-      const parseHtmlContent = (html: string): { type: 'paragraph' | 'h3'; text: string }[] => {
+      // Type for parsed content blocks
+      type ContentBlock = 
+        | { type: 'paragraph'; text: string }
+        | { type: 'h3'; text: string }
+        | { type: 'image'; src: string; width?: number; height?: number }
+        | { type: 'caption'; text: string; captionType: 'figure' | 'table' }
+        | { type: 'table'; rows: string[][]; hasHeader: boolean };
+
+      // Helper: Load image as base64
+      const loadImageAsBase64 = async (src: string): Promise<{ data: string; width: number; height: number } | null> => {
+        try {
+          return new Promise((resolve) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              canvas.width = img.naturalWidth;
+              canvas.height = img.naturalHeight;
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                ctx.drawImage(img, 0, 0);
+                const data = canvas.toDataURL('image/jpeg', 0.85);
+                resolve({ data, width: img.naturalWidth, height: img.naturalHeight });
+              } else {
+                resolve(null);
+              }
+            };
+            img.onerror = () => resolve(null);
+            img.src = src;
+          });
+        } catch {
+          return null;
+        }
+      };
+
+      // Helper: Parse table HTML into rows
+      const parseTableHtml = (tableHtml: string): { rows: string[][]; hasHeader: boolean } => {
+        const rows: string[][] = [];
+        let hasHeader = false;
+        
+        // Check for thead
+        if (/<thead/i.test(tableHtml)) {
+          hasHeader = true;
+        }
+        
+        // Extract all rows
+        const rowMatches = tableHtml.match(/<tr[^>]*>([\s\S]*?)<\/tr>/gi) || [];
+        for (const rowHtml of rowMatches) {
+          const cells: string[] = [];
+          const cellMatches = rowHtml.match(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/gi) || [];
+          for (const cellHtml of cellMatches) {
+            const text = cellHtml
+              .replace(/<[^>]+>/g, '')
+              .replace(/&nbsp;/g, ' ')
+              .replace(/&amp;/g, '&')
+              .replace(/&lt;/g, '<')
+              .replace(/&gt;/g, '>')
+              .replace(/\s+/g, ' ')
+              .trim();
+            cells.push(text);
+          }
+          if (cells.length > 0) {
+            rows.push(cells);
+          }
+        }
+        
+        // If first row contains th elements, it's a header
+        if (!hasHeader && rowMatches[0] && /<th/i.test(rowMatches[0])) {
+          hasHeader = true;
+        }
+        
+        return { rows, hasHeader };
+      };
+
+      // Helper: Parse HTML content and extract text, images, and tables
+      const parseHtmlContent = (html: string): ContentBlock[] => {
         if (!html) return [];
         
-        const result: { type: 'paragraph' | 'h3'; text: string }[] = [];
+        const result: ContentBlock[] = [];
         
-        // Split by block elements
-        const blocks = html
+        // Mark special elements for preservation
+        let processedHtml = html
+          // Mark images
+          .replace(/<img[^>]*src=["']([^"']+)["'][^>]*(?:width=["'](\d+)["'])?[^>]*(?:height=["'](\d+)["'])?[^>]*\/?>/gi, 
+            (match, src, width, height) => `\n[[IMG:${src}:${width || ''}:${height || ''}]]\n`)
+          // Mark tables
+          .replace(/<table[^>]*>([\s\S]*?)<\/table>/gi, (match) => `\n[[TABLE:${btoa(encodeURIComponent(match))}]]\n`)
+          // Mark H3
           .replace(/<h3[^>]*>(.*?)<\/h3>/gi, '\n[[H3]]$1[[/H3]]\n')
+          // Mark figure/table captions
+          .replace(/<p[^>]*class="[^"]*figure-caption[^"]*"[^>]*>(.*?)<\/p>/gi, '\n[[FIGCAPTION]]$1[[/FIGCAPTION]]\n')
+          .replace(/<p[^>]*class="[^"]*table-caption[^"]*"[^>]*>(.*?)<\/p>/gi, '\n[[TABLECAPTION]]$1[[/TABLECAPTION]]\n')
+          // Convert other block elements to newlines
           .replace(/<p[^>]*>/gi, '\n')
           .replace(/<\/p>/gi, '\n')
           .replace(/<br\s*\/?>/gi, '\n')
           .replace(/<div[^>]*>/gi, '\n')
-          .replace(/<\/div>/gi, '\n')
-          .split('\n');
+          .replace(/<\/div>/gi, '\n');
+        
+        const blocks = processedHtml.split('\n');
         
         for (const block of blocks) {
+          // Check for image
+          const imgMatch = block.match(/\[\[IMG:([^:]+):(\d*):(\d*)\]\]/);
+          if (imgMatch) {
+            result.push({ 
+              type: 'image', 
+              src: imgMatch[1],
+              width: imgMatch[2] ? parseInt(imgMatch[2]) : undefined,
+              height: imgMatch[3] ? parseInt(imgMatch[3]) : undefined
+            });
+            continue;
+          }
+          
+          // Check for table
+          const tableMatch = block.match(/\[\[TABLE:([^\]]+)\]\]/);
+          if (tableMatch) {
+            try {
+              const tableHtml = decodeURIComponent(atob(tableMatch[1]));
+              const { rows, hasHeader } = parseTableHtml(tableHtml);
+              if (rows.length > 0) {
+                result.push({ type: 'table', rows, hasHeader });
+              }
+            } catch {
+              // Skip malformed tables
+            }
+            continue;
+          }
+          
+          // Check for figure caption
+          const figCaptionMatch = block.match(/\[\[FIGCAPTION\]\](.*?)\[\[\/FIGCAPTION\]\]/);
+          if (figCaptionMatch) {
+            const text = figCaptionMatch[1]
+              .replace(/<[^>]+>/g, '')
+              .replace(/&nbsp;/g, ' ')
+              .replace(/&amp;/g, '&')
+              .replace(/\s+/g, ' ')
+              .trim();
+            if (text) {
+              result.push({ type: 'caption', text, captionType: 'figure' });
+            }
+            continue;
+          }
+          
+          // Check for table caption
+          const tableCaptionMatch = block.match(/\[\[TABLECAPTION\]\](.*?)\[\[\/TABLECAPTION\]\]/);
+          if (tableCaptionMatch) {
+            const text = tableCaptionMatch[1]
+              .replace(/<[^>]+>/g, '')
+              .replace(/&nbsp;/g, ' ')
+              .replace(/&amp;/g, '&')
+              .replace(/\s+/g, ' ')
+              .trim();
+            if (text) {
+              result.push({ type: 'caption', text, captionType: 'table' });
+            }
+            continue;
+          }
+          
           // Check for H3
           const h3Match = block.match(/\[\[H3\]\](.*?)\[\[\/H3\]\]/);
           if (h3Match) {
@@ -270,6 +412,154 @@ export function usePdfExport() {
         }
         
         return result;
+      };
+
+      // Helper: Add image to PDF
+      const addImage = async (src: string, specifiedWidth?: number, specifiedHeight?: number) => {
+        const imageData = await loadImageAsBase64(src);
+        if (!imageData) {
+          addParagraph('[Image could not be loaded]');
+          return;
+        }
+        
+        // Calculate dimensions to fit within content width (max 180mm width for 18cm)
+        const maxWidth = Math.min(contentWidth, 180);
+        const maxHeight = 120; // Max height in mm
+        
+        // Convert pixels to mm (assuming 96 DPI for screen)
+        let imgWidthMm = (specifiedWidth || imageData.width) * 0.264583;
+        let imgHeightMm = (specifiedHeight || imageData.height) * 0.264583;
+        
+        // Scale to fit within bounds
+        if (imgWidthMm > maxWidth) {
+          const scale = maxWidth / imgWidthMm;
+          imgWidthMm *= scale;
+          imgHeightMm *= scale;
+        }
+        if (imgHeightMm > maxHeight) {
+          const scale = maxHeight / imgHeightMm;
+          imgWidthMm *= scale;
+          imgHeightMm *= scale;
+        }
+        
+        // Check if we need a new page
+        checkPageBreak(imgHeightMm + 5);
+        
+        // Center the image
+        const xPos = margin + (contentWidth - imgWidthMm) / 2;
+        
+        pdf.addImage(imageData.data, 'JPEG', xPos, yPosition, imgWidthMm, imgHeightMm);
+        yPosition += imgHeightMm + paragraphSpacing;
+      };
+
+      // Helper: Add caption (italic, with bold-italic label)
+      const addCaption = (text: string, captionType: 'figure' | 'table') => {
+        yPosition += captionType === 'table' ? paragraphSpacingH2 : paragraphSpacing;
+        checkPageBreak(lineHeightBody);
+        
+        pdf.setFontSize(FONT_SIZE_BODY);
+        pdf.setTextColor(...black);
+        
+        // Find the label part (e.g., "Figure 1.1.a." or "Table 1.1.a.")
+        const labelMatch = text.match(/^((?:Figure|Table)\s+[\d.]+[a-z]?\.?)/i);
+        
+        if (labelMatch) {
+          const label = labelMatch[1];
+          const rest = text.substring(label.length).trim();
+          
+          // Draw label in bold-italic
+          pdf.setFont('times', 'bolditalic');
+          const labelWidth = pdf.getTextWidth(label + ' ');
+          pdf.text(label + ' ', margin, yPosition);
+          
+          // Draw rest in italic
+          pdf.setFont('times', 'italic');
+          const restLines = pdf.splitTextToSize(rest, contentWidth - labelWidth);
+          if (restLines.length === 1) {
+            pdf.text(rest, margin + labelWidth, yPosition);
+          } else {
+            // Multi-line caption
+            pdf.text(restLines[0], margin + labelWidth, yPosition);
+            for (let i = 1; i < restLines.length; i++) {
+              yPosition += lineHeightBody;
+              checkPageBreak(lineHeightBody);
+              pdf.text(restLines[i], margin, yPosition);
+            }
+          }
+        } else {
+          // No label found, just italic
+          pdf.setFont('times', 'italic');
+          const lines = pdf.splitTextToSize(text, contentWidth);
+          for (const line of lines) {
+            checkPageBreak(lineHeightBody);
+            pdf.text(line, margin, yPosition);
+            yPosition += lineHeightBody;
+          }
+        }
+        
+        yPosition += captionType === 'figure' ? paragraphSpacingH2 : paragraphSpacing;
+      };
+
+      // Helper: Add table to PDF
+      const addTable = (rows: string[][], hasHeader: boolean) => {
+        if (rows.length === 0) return;
+        
+        const numCols = Math.max(...rows.map(r => r.length));
+        const colWidth = contentWidth / numCols;
+        const rowHeight = 6;
+        const cellPadding = 1;
+        
+        // Check if table fits on current page (at least header + 2 rows)
+        checkPageBreak(rowHeight * Math.min(3, rows.length));
+        
+        pdf.setFontSize(FONT_SIZE_BODY);
+        pdf.setDrawColor(...black);
+        pdf.setLineWidth(0.25);
+        
+        for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
+          const row = rows[rowIdx];
+          const isHeaderRow = hasHeader && rowIdx === 0;
+          
+          checkPageBreak(rowHeight);
+          
+          // Draw row background for header
+          if (isHeaderRow) {
+            pdf.setFillColor(0, 0, 0);
+            pdf.rect(margin, yPosition - 4, contentWidth, rowHeight, 'F');
+          }
+          
+          // Draw cells
+          for (let colIdx = 0; colIdx < numCols; colIdx++) {
+            const cellX = margin + colIdx * colWidth;
+            const cellText = row[colIdx] || '';
+            
+            // Draw cell border
+            pdf.rect(cellX, yPosition - 4, colWidth, rowHeight);
+            
+            // Draw text
+            if (isHeaderRow) {
+              pdf.setFont('times', 'bold');
+              pdf.setTextColor(255, 255, 255);
+            } else {
+              pdf.setFont('times', 'normal');
+              pdf.setTextColor(...black);
+            }
+            
+            // Truncate text to fit cell
+            const maxTextWidth = colWidth - cellPadding * 2;
+            let displayText = cellText;
+            while (pdf.getTextWidth(displayText) > maxTextWidth && displayText.length > 3) {
+              displayText = displayText.substring(0, displayText.length - 4) + '...';
+            }
+            
+            pdf.text(displayText, cellX + cellPadding, yPosition);
+          }
+          
+          yPosition += rowHeight;
+        }
+        
+        pdf.setTextColor(...black);
+        yPosition += paragraphSpacing;
       };
 
       // Helper: Add H3 (inline, bold and underlined, 11pt)
@@ -452,10 +742,22 @@ export function usePdfExport() {
           const blocks = parseHtmlContent(content);
           
           for (const block of blocks) {
-            if (block.type === 'h3') {
-              addH3(block.text);
-            } else {
-              addParagraph(block.text);
+            switch (block.type) {
+              case 'h3':
+                addH3(block.text);
+                break;
+              case 'paragraph':
+                addParagraph(block.text);
+                break;
+              case 'image':
+                await addImage(block.src, block.width, block.height);
+                break;
+              case 'caption':
+                addCaption(block.text, block.captionType);
+                break;
+              case 'table':
+                addTable(block.rows, block.hasHeader);
+                break;
             }
           }
           
