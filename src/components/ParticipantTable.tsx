@@ -128,13 +128,13 @@ export function ParticipantTable({
   };
 
   // Auto-fetch logo from the web
-  const handleAutoFetchLogo = async (participantId: string, organisationName: string) => {
+  const handleAutoFetchLogo = async (participantId: string, organisationName: string, shortName?: string) => {
     if (!proposalId) return;
     
     setFetchingLogoId(participantId);
     try {
       const { data, error } = await supabase.functions.invoke('fetch-logo', {
-        body: { organisationName, convertToGray: true }
+        body: { organisationName, shortName, convertToGray: true }
       });
 
       if (error) throw error;
@@ -266,7 +266,7 @@ export function ParticipantTable({
                               variant="ghost"
                               size="icon"
                               className="w-7 h-7 p-0"
-                              onClick={() => handleAutoFetchLogo(participant.id, participant.organisationName)}
+                              onClick={() => handleAutoFetchLogo(participant.id, participant.organisationName, participant.organisationShortName || undefined)}
                             >
                               <Search className="w-3.5 h-3.5 text-muted-foreground" />
                             </Button>

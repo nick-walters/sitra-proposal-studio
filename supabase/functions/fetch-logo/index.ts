@@ -6,33 +6,45 @@ const corsHeaders = {
 };
 
 // Try multiple logo sources for an organization
-async function fetchLogoFromSources(organisationName: string): Promise<string | null> {
+async function fetchLogoFromSources(organisationName: string, shortName?: string): Promise<string | null> {
   const cleanName = organisationName.trim();
+  const cleanShortName = shortName?.trim();
   
-  // Try Clearbit Logo API (free, no auth needed)
-  const domain = guessDomainFromName(cleanName);
-  if (domain) {
-    const clearbitUrl = `https://logo.clearbit.com/${domain}`;
-    try {
-      const response = await fetch(clearbitUrl, { method: 'HEAD' });
-      if (response.ok) {
-        return clearbitUrl;
-      }
-    } catch (e) {
-      console.log('Clearbit failed:', e);
-    }
+  // Build list of domains to try
+  const domainsToTry: string[] = [];
+  
+  // If short name provided, try it first (most reliable)
+  if (cleanShortName) {
+    const shortDomain = guessDomainFromName(cleanShortName);
+    if (shortDomain) domainsToTry.push(shortDomain);
+    // Also try .fi for Finnish orgs
+    domainsToTry.push(`${cleanShortName.toLowerCase()}.fi`);
   }
   
-  // Try Google favicon as fallback
-  if (domain) {
+  // Try full name
+  const fullDomain = guessDomainFromName(cleanName);
+  if (fullDomain) domainsToTry.push(fullDomain);
+  
+  // Remove duplicates
+  const uniqueDomains = [...new Set(domainsToTry)];
+  
+  console.log('Trying domains:', uniqueDomains);
+  
+  for (const domain of uniqueDomains) {
+    // Try Google favicon (more reliable than Clearbit)
     const googleFaviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
     try {
-      const response = await fetch(googleFaviconUrl, { method: 'HEAD' });
+      const response = await fetch(googleFaviconUrl);
       if (response.ok) {
-        return googleFaviconUrl;
+        // Check if it's not the default globe icon (very small)
+        const blob = await response.blob();
+        if (blob.size > 500) { // Real logos are usually bigger
+          console.log('Found logo via Google favicon:', domain);
+          return googleFaviconUrl;
+        }
       }
     } catch (e) {
-      console.log('Google favicon failed:', e);
+      console.log('Google favicon failed for', domain, ':', e);
     }
   }
   
@@ -41,7 +53,40 @@ async function fetchLogoFromSources(organisationName: string): Promise<string | 
 
 // Guess domain from organization name
 function guessDomainFromName(name: string): string | null {
-  // Common academic/research domains
+  // Known organization mappings
+  const knownDomains: Record<string, string> = {
+    'sitra': 'sitra.fi',
+    'luke': 'luke.fi',
+    'luonnonvarakeskus': 'luke.fi',
+    'vtt': 'vttresearch.com',
+    'aalto': 'aalto.fi',
+    'helsinki': 'helsinki.fi',
+    'tampere': 'tuni.fi',
+    'oulu': 'oulu.fi',
+    'turku': 'utu.fi',
+    'jyväskylä': 'jyu.fi',
+    'eth': 'ethz.ch',
+    'epfl': 'epfl.ch',
+    'max planck': 'mpg.de',
+    'fraunhofer': 'fraunhofer.de',
+    'cnrs': 'cnrs.fr',
+    'csic': 'csic.es',
+    'tno': 'tno.nl',
+    'sintef': 'sintef.no',
+    'dtu': 'dtu.dk',
+    'kth': 'kth.se',
+  };
+  
+  const lowerName = name.toLowerCase();
+  
+  // Check for known domains first
+  for (const [pattern, domain] of Object.entries(knownDomains)) {
+    if (lowerName.includes(pattern) || lowerName === pattern) {
+      return domain;
+    }
+  }
+  
+  // Common academic/research domain patterns
   const academicPatterns: Record<string, string> = {
     'university': '.edu',
     'università': '.it',
@@ -50,37 +95,18 @@ function guessDomainFromName(name: string): string | null {
     'universidad': '.es',
     'universiteit': '.nl',
     'politecnico': '.it',
-    'eth': 'ethz.ch',
-    'epfl': 'epfl.ch',
-    'max planck': 'mpg.de',
-    'fraunhofer': 'fraunhofer.de',
-    'cnrs': 'cnrs.fr',
-    'csic': 'csic.es',
-    'vtt': 'vtt.fi',
-    'tno': 'tno.nl',
-    'sintef': 'sintef.no',
-    'dtu': 'dtu.dk',
-    'kth': 'kth.se',
-    'aalto': 'aalto.fi',
-    'sitra': 'sitra.fi',
   };
   
-  const lowerName = name.toLowerCase();
-  
-  // Check for known patterns
-  for (const [pattern, domain] of Object.entries(academicPatterns)) {
+  // Check for academic patterns
+  for (const [pattern, tld] of Object.entries(academicPatterns)) {
     if (lowerName.includes(pattern)) {
-      if (domain.startsWith('.')) {
-        // It's a TLD hint, construct domain from name
-        const cleanedName = name
-          .toLowerCase()
-          .replace(/[^a-z0-9\s]/g, '')
-          .split(/\s+/)
-          .slice(0, 2)
-          .join('');
-        return cleanedName + domain;
-      }
-      return domain;
+      const cleanedName = name
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, '')
+        .split(/\s+/)
+        .slice(0, 2)
+        .join('');
+      return cleanedName + tld;
     }
   }
   
@@ -90,7 +116,7 @@ function guessDomainFromName(name: string): string | null {
     .replace(/[^a-z0-9\s]/g, '')
     .split(/\s+/)
     .filter(word => !['the', 'of', 'and', 'for', 'in', 'a', 'an'].includes(word))
-    .slice(0, 2)
+    .slice(0, 1)
     .join('');
   
   if (simpleName.length >= 3) {
@@ -129,7 +155,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { organisationName, convertToGray = true } = await req.json();
+    const { organisationName, shortName, convertToGray = true } = await req.json();
     
     if (!organisationName) {
       return new Response(
@@ -138,10 +164,10 @@ serve(async (req: Request) => {
       );
     }
     
-    console.log('Fetching logo for:', organisationName);
+    console.log('Fetching logo for:', organisationName, 'short:', shortName);
     
     // Try to find a logo
-    const logoUrl = await fetchLogoFromSources(organisationName);
+    const logoUrl = await fetchLogoFromSources(organisationName, shortName);
     
     if (!logoUrl) {
       return new Response(
