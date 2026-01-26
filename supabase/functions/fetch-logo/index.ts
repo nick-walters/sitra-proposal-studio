@@ -5,80 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Try multiple logo sources for an organization - always fresh, no caching
-async function fetchLogoFromSources(organisationName: string, shortName?: string): Promise<string | null> {
-  const cleanName = organisationName.trim();
-  const cleanShortName = shortName?.trim();
-  
-  // Build list of domains to try
-  const domainsToTry: string[] = [];
-  
-  // If short name provided, try it first (most reliable)
-  if (cleanShortName) {
-    const shortDomain = guessDomainFromName(cleanShortName);
-    if (shortDomain) domainsToTry.push(shortDomain);
-    // Also try .fi for Finnish orgs
-    domainsToTry.push(`${cleanShortName.toLowerCase()}.fi`);
-  }
-  
-  // Try full name
-  const fullDomain = guessDomainFromName(cleanName);
-  if (fullDomain) domainsToTry.push(fullDomain);
-  
-  // Remove duplicates
-  const uniqueDomains = [...new Set(domainsToTry)];
-  
-  // Add cache-busting timestamp to prevent any caching
-  const cacheBuster = Date.now();
-  
-  console.log('Trying domains (fresh fetch, no cache):', uniqueDomains, 'timestamp:', cacheBuster);
-  
-  for (const domain of uniqueDomains) {
-    // Try Clearbit Logo API first (higher quality logos)
-    const clearbitUrl = `https://logo.clearbit.com/${domain}`;
-    try {
-      const response = await fetch(clearbitUrl, {
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        }
-      });
-      if (response.ok) {
-        const contentType = response.headers.get('content-type');
-        if (contentType?.startsWith('image/')) {
-          console.log('Found logo via Clearbit:', domain);
-          return clearbitUrl;
-        }
-      }
-    } catch (e) {
-      console.log('Clearbit failed for', domain, ':', e);
-    }
-    
-    // Fallback to Google favicon with larger size
-    const googleFaviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
-    try {
-      const response = await fetch(googleFaviconUrl, {
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        }
-      });
-      if (response.ok) {
-        // Check if it's not the default globe icon (very small)
-        const blob = await response.blob();
-        if (blob.size > 500) { // Real logos are usually bigger
-          console.log('Found logo via Google favicon:', domain);
-          return googleFaviconUrl;
-        }
-      }
-    } catch (e) {
-      console.log('Google favicon failed for', domain, ':', e);
-    }
-  }
-  
-  return null;
-}
-
 // Guess domain from organization name
 function guessDomainFromName(name: string): string | null {
   // Known organization mappings
@@ -154,11 +80,104 @@ function guessDomainFromName(name: string): string | null {
   return null;
 }
 
-// Convert image to grayscale - actual B&W conversion done via CSS on frontend
+// Try multiple logo sources for an organization - always fresh, no caching
+async function fetchLogoFromSources(organisationName: string, shortName?: string): Promise<string | null> {
+  const cleanName = organisationName.trim();
+  const cleanShortName = shortName?.trim();
+  
+  // Build list of domains to try
+  const domainsToTry: string[] = [];
+  
+  // If short name provided, try it first (most reliable)
+  if (cleanShortName) {
+    const shortDomain = guessDomainFromName(cleanShortName);
+    if (shortDomain) domainsToTry.push(shortDomain);
+    // Also try .fi for Finnish orgs
+    domainsToTry.push(`${cleanShortName.toLowerCase()}.fi`);
+  }
+  
+  // Try full name
+  const fullDomain = guessDomainFromName(cleanName);
+  if (fullDomain) domainsToTry.push(fullDomain);
+  
+  // Remove duplicates
+  const uniqueDomains = [...new Set(domainsToTry)];
+  
+  // Add cache-busting timestamp
+  const cacheBuster = Date.now();
+  
+  console.log('Trying domains (fresh fetch):', uniqueDomains, 'timestamp:', cacheBuster);
+  
+  for (const domain of uniqueDomains) {
+    // Try multiple logo APIs in order of quality
+    
+    // 1. Try Logo.dev API (high quality, free tier available)
+    try {
+      const logoDevUrl = `https://img.logo.dev/${domain}?token=pk_X-1ZO13GSgeOoUrIuJ6GMQ&size=200&format=png`;
+      const response = await fetch(logoDevUrl, {
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      if (response.ok) {
+        const contentType = response.headers.get('content-type');
+        if (contentType?.startsWith('image/')) {
+          const blob = await response.blob();
+          if (blob.size > 1000) { // Real logos are usually bigger than 1KB
+            console.log('Found logo via Logo.dev:', domain);
+            return logoDevUrl;
+          }
+        }
+      }
+    } catch (e) {
+      console.log('Logo.dev failed for', domain, ':', e);
+    }
+    
+    // 2. Try Brandfetch (another high-quality source)
+    try {
+      const brandfetchUrl = `https://cdn.brandfetch.io/${domain}/w/400/h/400?c=${cacheBuster}`;
+      const response = await fetch(brandfetchUrl, {
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      if (response.ok) {
+        const contentType = response.headers.get('content-type');
+        if (contentType?.startsWith('image/')) {
+          const blob = await response.blob();
+          if (blob.size > 1000) {
+            console.log('Found logo via Brandfetch:', domain);
+            return brandfetchUrl;
+          }
+        }
+      }
+    } catch (e) {
+      console.log('Brandfetch failed for', domain, ':', e);
+    }
+    
+    // 3. Fallback to Google favicon (last resort, low quality)
+    try {
+      const googleFaviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
+      const response = await fetch(googleFaviconUrl, {
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      if (response.ok) {
+        const blob = await response.blob();
+        if (blob.size > 500) {
+          console.log('Found logo via Google favicon (fallback):', domain);
+          return googleFaviconUrl;
+        }
+      }
+    } catch (e) {
+      console.log('Google favicon failed for', domain, ':', e);
+    }
+  }
+  
+  return null;
+}
+
+// Convert image to grayscale data URL
 async function convertToGrayscale(imageUrl: string): Promise<string> {
   try {
-    // Fetch the image
-    const response = await fetch(imageUrl);
+    const response = await fetch(imageUrl, {
+      headers: { 'Cache-Control': 'no-cache' }
+    });
     if (!response.ok) {
       throw new Error('Failed to fetch image');
     }
@@ -193,7 +212,7 @@ serve(async (req: Request) => {
     
     console.log('Fetching logo for:', organisationName, 'short:', shortName);
     
-    // Try to find a logo
+    // Try to find a logo - always fresh fetch
     const logoUrl = await fetchLogoFromSources(organisationName, shortName);
     
     if (!logoUrl) {
