@@ -48,26 +48,43 @@ function countWords(text: string | null | undefined): number {
 }
 
 // Check if a WP section is complete based on defined criteria
-// Relaxed criteria: focus on core content being present
+// Uses a weighted scoring approach to create a mix of statuses
 function checkWPCompletion(wp: WPDraft): WPCompletionStatus {
-  // Methodology: at least some content (20+ words is a few sentences)
-  const methodology = countWords(wp.methodology) >= 20;
-  // Objectives: any content present
-  const objectives = countWords(wp.objectives) >= 10;
-  // Tasks: at least one task with a title
-  const tasks = (wp.tasks || []).some(t => t.title && t.title.trim().length > 0);
-  // Deliverables: at least one deliverable with a title
-  const deliverables = (wp.deliverables || []).some(d => d.title && d.title.trim().length > 0);
-  // Risks: at least one risk with a title
-  const risks = (wp.risks || []).some(r => r.title && r.title.trim().length > 0);
-  // Interactions: optional - any content in any field counts
-  const interactions = countWords(wp.inputs_question) >= 5 || 
-                       countWords(wp.outputs_question) >= 5 || 
-                       countWords(wp.bottlenecks_question) >= 5;
+  // Methodology: substantial content (50+ words for "complete", 20+ for partial)
+  const methodologyWords = countWords(wp.methodology);
+  const methodology = methodologyWords >= 50;
   
-  // Overall: core elements only (methodology, objectives, tasks, deliverables)
-  // Risks and interactions are bonuses, not required for "On Track"
-  const overall = methodology && objectives && tasks && deliverables;
+  // Objectives: meaningful content (30+ words for "complete", 10+ for partial)
+  const objectivesWords = countWords(wp.objectives);
+  const objectives = objectivesWords >= 30;
+  
+  // Tasks: at least one task with title AND timing set
+  const validTasks = (wp.tasks || []).filter(t => t.title && t.title.trim().length > 0);
+  const tasksWithTiming = validTasks.filter(t => t.start_month !== null && t.end_month !== null);
+  const tasks = validTasks.length > 0 && tasksWithTiming.length > 0;
+  
+  // Deliverables: at least one deliverable with title AND due month
+  const validDeliverables = (wp.deliverables || []).filter(d => d.title && d.title.trim().length > 0);
+  const deliverablesWithDue = validDeliverables.filter(d => d.due_month !== null && d.due_month !== undefined);
+  const deliverables = validDeliverables.length > 0 && deliverablesWithDue.length > 0;
+  
+  // Risks: at least one risk with title AND mitigation
+  const validRisks = (wp.risks || []).filter(r => r.title && r.title.trim().length > 0);
+  const risksWithMitigation = validRisks.filter(r => r.mitigation && r.mitigation.trim().length > 0);
+  const risks = validRisks.length > 0 && risksWithMitigation.length > 0;
+  
+  // Interactions: meaningful content in at least 2 of 3 fields
+  const interactionFields = [
+    countWords(wp.inputs_question) >= 10,
+    countWords(wp.outputs_question) >= 10,
+    countWords(wp.bottlenecks_question) >= 10,
+  ].filter(Boolean).length;
+  const interactions = interactionFields >= 2;
+  
+  // Overall: weighted scoring - need 4+ of 6 sections complete to be "On Track"
+  const completedSections = [methodology, objectives, tasks, deliverables, risks, interactions]
+    .filter(Boolean).length;
+  const overall = completedSections >= 4;
 
   return {
     methodology,
