@@ -218,6 +218,30 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     };
 
     fetchWPDrafts();
+
+    // Subscribe to realtime updates for WP drafts
+    if (proposalId) {
+      const channel = supabase
+        .channel(`wp-drafts-nav-${proposalId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'wp_drafts',
+            filter: `proposal_id=eq.${proposalId}`,
+          },
+          () => {
+            // Refetch WP drafts when any change occurs
+            fetchWPDrafts();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
   }, [proposalId]);
 
   // Return either template sections or fallback to hardcoded sections

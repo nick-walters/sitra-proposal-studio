@@ -99,7 +99,7 @@ function SortableWPRow({ wp, participants, onUpdate, canEdit }: SortableWPRowPro
       <Input
         value={wp.short_name || ''}
         onChange={(e) => onUpdate(wp.id, { short_name: e.target.value })}
-        placeholder="INIT"
+        placeholder="e.g. C&A"
         className="h-8 text-sm"
         disabled={!canEdit}
       />
