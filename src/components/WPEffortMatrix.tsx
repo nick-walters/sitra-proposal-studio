@@ -85,16 +85,16 @@ export function WPEffortMatrix({
 
   return (
     <Card>
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base">
           <Users className="h-4 w-4" />
           Staff effort (person-months)
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-xs">
           Enter person-months per participant per task. This data feeds into the budget spreadsheet.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-0">
         <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
@@ -180,7 +180,7 @@ function EffortCell({ value, onChange, readOnly }: EffortCellProps) {
   }, [localValue]);
 
   return (
-    <TableCell className="p-1">
+    <TableCell className="p-0.5">
       <Input
         type="number"
         step="0.1"
@@ -188,7 +188,7 @@ function EffortCell({ value, onChange, readOnly }: EffortCellProps) {
         value={localValue}
         onChange={handleChange}
         onBlur={handleBlur}
-        className="h-7 text-center text-sm [&::-webkit-inner-spin-button]:appearance-none"
+        className="h-6 text-center text-xs [&::-webkit-inner-spin-button]:appearance-none"
         disabled={readOnly}
       />
     </TableCell>

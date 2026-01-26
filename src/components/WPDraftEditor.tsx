@@ -123,6 +123,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
     addRisk,
     updateRisk,
     deleteRisk,
+    reorderRisks,
   } = useWPDraftEditor(wpId);
 
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -358,6 +359,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           onRiskUpdate={updateRisk}
           onRiskAdd={addRisk}
           onRiskDelete={deleteRisk}
+          onRiskReorder={reorderRisks}
           readOnly={readOnly}
         />
       </div>

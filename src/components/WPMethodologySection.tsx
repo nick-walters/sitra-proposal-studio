@@ -37,15 +37,15 @@ const METHODOLOGY_QUESTION = `Describe and explain the methodologies used in thi
 export function WPMethodologySection({ methodology, onChange, readOnly = false }: WPMethodologySectionProps) {
   return (
     <Card>
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base">
           <BookOpen className="h-4 w-4" />
           Methodology
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3">
         {/* Official question */}
-        <div className="rounded-md border border-border bg-muted/30 p-4">
+        <div className="rounded-md border border-border bg-muted/30 p-3">
           <p className="text-sm text-muted-foreground italic">
             {METHODOLOGY_QUESTION}
           </p>
