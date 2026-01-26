@@ -268,11 +268,12 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               if (hasAllTiming) {
                 const startMonth = Math.min(...taskStartMonths);
                 const endMonth = Math.max(...taskEndMonths);
+                const formatMonth = (m: number) => `M${m.toString().padStart(2, '0')}`;
                 return (
                   <div className="flex items-center gap-2">
                     <span className="text-sm opacity-80">Duration:</span>
-                    <span className="text-sm font-medium bg-white/90 text-foreground px-2 py-0.5 rounded">
-                      M{startMonth}–M{endMonth}
+                    <span className="text-sm font-medium">
+                      {formatMonth(startMonth)}–{formatMonth(endMonth)}
                     </span>
                   </div>
                 );
