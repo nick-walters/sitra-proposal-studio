@@ -94,7 +94,8 @@ export function usePdfExport() {
       // Line heights in mm (approximation based on font size)
       const lineHeightBody = 4.5; // For 11pt with line spacing 1
       const paragraphSpacing = 1.1; // 3pt ≈ 1.1mm
-      const paragraphSpacingH1 = 2.1; // 6pt ≈ 2.1mm
+      const paragraphSpacingH1 = 3.2; // 9pt ≈ 3.2mm before H1
+      const paragraphSpacingH2 = 2.1; // 6pt ≈ 2.1mm before H2
       const titleParagraphSpacing = 4.2; // 12pt ≈ 4.2mm
 
       // Helper: Check if we need a new page
@@ -174,29 +175,29 @@ export function usePdfExport() {
         yPosition += titleParagraphSpacing;
       };
 
-      // Helper: Add H1 heading (13pt bold, 6pt before and after)
+      // Helper: Add H1 heading (13pt bold, 9pt before, 6pt after)
       const addH1 = (text: string) => {
-        yPosition += paragraphSpacingH1; // 6pt before
+        yPosition += paragraphSpacingH1; // 9pt before
         checkPageBreak(12);
         pdf.setFontSize(FONT_SIZE_H1);
         pdf.setFont('times', 'bold');
         pdf.setTextColor(...black);
         
         pdf.text(text, margin, yPosition);
-        yPosition += 5 + paragraphSpacingH1; // Line height + 6pt after
+        yPosition += 5 + paragraphSpacingH2; // Line height + 6pt after
         currentSectionName = text;
       };
 
-      // Helper: Add H2 heading (12pt bold, 6pt before and after)
+      // Helper: Add H2 heading (12pt bold, 6pt before, 6pt after)
       const addH2 = (text: string) => {
-        yPosition += paragraphSpacingH1; // 6pt before
+        yPosition += paragraphSpacingH2; // 6pt before
         checkPageBreak(10);
         pdf.setFontSize(FONT_SIZE_H2);
         pdf.setFont('times', 'bold');
         pdf.setTextColor(...black);
         
         pdf.text(text, margin, yPosition);
-        yPosition += 4.5 + paragraphSpacingH1; // Line height + 6pt after
+        yPosition += 4.5 + paragraphSpacingH2; // Line height + 6pt after
         currentSectionName = text;
       };
 
