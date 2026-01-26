@@ -358,6 +358,20 @@ export function ProposalSummaryPage({
               )}
             </div>
 
+            {/* Pre-proposal & Type of action */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Pre-proposal</label>
+                <p className="font-medium">
+                  {proposal.submissionStage === 'stage_1' ? 'Yes (Stage 1)' : 'No (Full proposal)'}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Type of action</label>
+                <p className="font-medium">{proposal.type || 'Not specified'}</p>
+              </div>
+            </div>
+
             {/* Work Programme & Destination - side by side */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>

@@ -142,7 +142,7 @@ export function ParticipantTable({
             <TableHead className="w-8 py-0.5 px-1 font-bold">№</TableHead>
             <TableHead className="py-0.5 px-1 font-bold">Short name</TableHead>
             <TableHead className="py-0.5 px-1 font-bold" colSpan={2}>Participant</TableHead>
-            <TableHead className="w-20 py-0.5 px-1 font-bold">Country</TableHead>
+            <TableHead className="py-0.5 px-1 font-bold">Country</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -160,11 +160,12 @@ export function ParticipantTable({
                     {toNameCase(participant.organisationName)}
                   </span>
                   {isEditing ? (
-                    <Input
+                    <input
+                      type="text"
                       value={(participant as ExtendedParticipant).englishName || ''}
                       onChange={(e) => handleEnglishNameChange(participant.id, e.target.value)}
                       placeholder="English name (if different)"
-                      className="h-6 text-[10px] px-1 py-0 text-muted-foreground italic"
+                      className="flex h-6 w-full rounded-md border border-input bg-background px-1 py-0 text-[10px] text-muted-foreground italic ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     />
                   ) : (
                     (participant as ExtendedParticipant).englishName && (
@@ -240,26 +241,26 @@ export function ParticipantTable({
                     value={participant.country || ''}
                     onValueChange={(v) => handleCountryChange(participant.id, v)}
                   >
-                    <SelectTrigger className="h-6 text-[10px] px-1 w-16">
+                    <SelectTrigger className="h-6 text-[10px] px-1 w-full min-w-[120px]">
                       <SelectValue placeholder="—" />
                     </SelectTrigger>
                     <SelectContent className="z-50 bg-popover max-h-60">
                       <div className="px-2 py-1 text-[9px] font-semibold text-muted-foreground">EU Member States</div>
                       {EU_MEMBER_STATES.map((country) => (
                         <SelectItem key={country.code} value={country.name} className="text-[10px]">
-                          {country.code}
+                          {country.name}
                         </SelectItem>
                       ))}
                       <div className="px-2 py-1 text-[9px] font-semibold text-muted-foreground mt-1">Associated Countries</div>
                       {ASSOCIATED_COUNTRIES.map((country) => (
                         <SelectItem key={country.code} value={country.name} className="text-[10px]">
-                          {country.code}
+                          {country.name}
                         </SelectItem>
                       ))}
                       <div className="px-2 py-1 text-[9px] font-semibold text-muted-foreground mt-1">Third Countries</div>
                       {THIRD_COUNTRIES.map((country) => (
                         <SelectItem key={country.code} value={country.name} className="text-[10px]">
-                          {country.code}
+                          {country.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
