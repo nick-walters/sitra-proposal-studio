@@ -48,18 +48,26 @@ function countWords(text: string | null | undefined): number {
 }
 
 // Check if a WP section is complete based on defined criteria
+// Relaxed criteria: focus on core content being present
 function checkWPCompletion(wp: WPDraft): WPCompletionStatus {
-  const methodology = countWords(wp.methodology) >= 50;
-  const objectives = countWords(wp.objectives) >= 30;
+  // Methodology: at least some content (20+ words is a few sentences)
+  const methodology = countWords(wp.methodology) >= 20;
+  // Objectives: any content present
+  const objectives = countWords(wp.objectives) >= 10;
+  // Tasks: at least one task with a title
   const tasks = (wp.tasks || []).some(t => t.title && t.title.trim().length > 0);
+  // Deliverables: at least one deliverable with a title
   const deliverables = (wp.deliverables || []).some(d => d.title && d.title.trim().length > 0);
+  // Risks: at least one risk with a title
   const risks = (wp.risks || []).some(r => r.title && r.title.trim().length > 0);
-  // Interactions: at least one of inputs, outputs, or bottlenecks has content
-  const interactions = countWords(wp.inputs_question) >= 10 || 
-                       countWords(wp.outputs_question) >= 10 || 
-                       countWords(wp.bottlenecks_question) >= 10;
+  // Interactions: optional - any content in any field counts
+  const interactions = countWords(wp.inputs_question) >= 5 || 
+                       countWords(wp.outputs_question) >= 5 || 
+                       countWords(wp.bottlenecks_question) >= 5;
   
-  const overall = methodology && objectives && tasks && deliverables && risks && interactions;
+  // Overall: core elements only (methodology, objectives, tasks, deliverables)
+  // Risks and interactions are bonuses, not required for "On Track"
+  const overall = methodology && objectives && tasks && deliverables;
 
   return {
     methodology,
