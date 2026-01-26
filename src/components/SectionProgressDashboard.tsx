@@ -109,7 +109,7 @@ function ProgressRow({ item }: { item: SectionProgressItem }) {
       {/* Section info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="font-mono text-sm font-medium text-muted-foreground">
+          <span className="text-sm font-medium text-muted-foreground" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
             {item.sectionNumber}
           </span>
           <span className="font-medium truncate">{item.sectionTitle}</span>
