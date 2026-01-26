@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Try multiple logo sources for an organization
+// Try multiple logo sources for an organization - always fresh, no caching
 async function fetchLogoFromSources(organisationName: string, shortName?: string): Promise<string | null> {
   const cleanName = organisationName.trim();
   const cleanShortName = shortName?.trim();
@@ -28,13 +28,41 @@ async function fetchLogoFromSources(organisationName: string, shortName?: string
   // Remove duplicates
   const uniqueDomains = [...new Set(domainsToTry)];
   
-  console.log('Trying domains:', uniqueDomains);
+  // Add cache-busting timestamp to prevent any caching
+  const cacheBuster = Date.now();
+  
+  console.log('Trying domains (fresh fetch, no cache):', uniqueDomains, 'timestamp:', cacheBuster);
   
   for (const domain of uniqueDomains) {
-    // Try Google favicon (more reliable than Clearbit)
+    // Try Clearbit Logo API first (higher quality logos)
+    const clearbitUrl = `https://logo.clearbit.com/${domain}`;
+    try {
+      const response = await fetch(clearbitUrl, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      });
+      if (response.ok) {
+        const contentType = response.headers.get('content-type');
+        if (contentType?.startsWith('image/')) {
+          console.log('Found logo via Clearbit:', domain);
+          return clearbitUrl;
+        }
+      }
+    } catch (e) {
+      console.log('Clearbit failed for', domain, ':', e);
+    }
+    
+    // Fallback to Google favicon with larger size
     const googleFaviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
     try {
-      const response = await fetch(googleFaviconUrl);
+      const response = await fetch(googleFaviconUrl, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      });
       if (response.ok) {
         // Check if it's not the default globe icon (very small)
         const blob = await response.blob();
