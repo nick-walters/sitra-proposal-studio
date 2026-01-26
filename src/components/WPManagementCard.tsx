@@ -340,16 +340,16 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
   if (wpsLoading) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Layers className="w-5 h-5" />
+        <CardHeader className="pb-2 pt-4">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Layers className="w-4 h-4" />
             Work package manager
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="animate-pulse space-y-2">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-10 bg-muted rounded" />
+              <div key={i} className="h-8 bg-muted rounded" />
             ))}
           </div>
         </CardContent>
@@ -359,9 +359,9 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
 
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2">
-          <Layers className="w-5 h-5" />
+      <CardHeader className="pb-2 pt-4">
+        <CardTitle className="flex items-center gap-2 text-sm">
+          <Layers className="w-4 h-4" />
           Work package manager
         </CardTitle>
       </CardHeader>

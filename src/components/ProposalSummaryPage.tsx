@@ -216,7 +216,7 @@ export function ProposalSummaryPage({
         <div className="max-w-5xl mx-auto space-y-6">
           {/* Page Header */}
           <div className="mb-2 flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-foreground">Proposal overview</h1>
+            <h1 className="text-lg font-bold text-foreground">Proposal overview</h1>
             <div className="flex items-center gap-2">
               {onExportPdf && (
                 <Button variant="outline" size="sm" className="gap-2" onClick={onExportPdf}>
@@ -235,9 +235,9 @@ export function ProposalSummaryPage({
 
         {/* Header with Project Logo and Basic Info */}
         <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
+          <CardHeader className="pb-3 pt-4">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <FileText className="w-4 h-4" />
               Project identity
             </CardTitle>
           </CardHeader>
@@ -261,46 +261,46 @@ export function ProposalSummaryPage({
                 )}
               </div>
 
-              <div className="flex-1 space-y-4">
+              <div className="flex-1 space-y-3">
                 {/* Acronym */}
                 <div>
-                  <label className="text-sm text-muted-foreground mb-1 block">Acronym</label>
+                  <label className="text-xs text-muted-foreground mb-0.5 block">Acronym</label>
                   {isEditing ? (
                     <Input
                       value={editedProposal.acronym}
                       onChange={(e) => setEditedProposal({ ...editedProposal, acronym: e.target.value })}
-                      className="text-lg font-semibold w-40"
+                      className="text-sm font-semibold w-40 h-8"
                       placeholder="Acronym"
                     />
                   ) : (
-                    <p className="text-lg font-semibold">{proposal.acronym}</p>
+                    <p className="text-sm font-semibold">{proposal.acronym}</p>
                   )}
                 </div>
 
                 {/* Title */}
                 <div>
-                  <label className="text-sm text-muted-foreground mb-1 block">Title</label>
+                  <label className="text-xs text-muted-foreground mb-0.5 block">Title</label>
                   {isEditing ? (
                     <Input
                       value={editedProposal.title}
                       onChange={(e) => setEditedProposal({ ...editedProposal, title: e.target.value })}
-                      className="text-xl font-bold"
+                      className="text-sm font-semibold h-8"
                       placeholder="Full proposal title"
                     />
                   ) : (
-                    <h2 className="text-xl font-bold text-foreground">{proposal.title}</h2>
+                    <h2 className="text-sm font-semibold text-foreground">{proposal.title}</h2>
                   )}
                 </div>
 
                 {/* Project Duration */}
                 <div>
-                  <label className="text-sm text-muted-foreground mb-1 block">Project duration (months)</label>
+                  <label className="text-xs text-muted-foreground mb-0.5 block">Project duration (months)</label>
                   {isEditing ? (
                     <Select
                       value={editedProposal.duration?.toString() || ''}
                       onValueChange={(v) => setEditedProposal({ ...editedProposal, duration: parseInt(v) })}
                     >
-                      <SelectTrigger className="w-32">
+                      <SelectTrigger className="w-32 h-8 text-sm">
                         <SelectValue placeholder="Select" />
                       </SelectTrigger>
                       <SelectContent>
@@ -312,7 +312,7 @@ export function ProposalSummaryPage({
                       </SelectContent>
                     </Select>
                   ) : (
-                    <p className="font-medium">{proposal.duration ? `${proposal.duration}` : '–'}</p>
+                    <p className="text-sm font-medium">{proposal.duration ? `${proposal.duration}` : '–'}</p>
                   )}
                 </div>
               </div>
@@ -322,56 +322,56 @@ export function ProposalSummaryPage({
 
         {/* Topic - consolidated section */}
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-2 pt-4">
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Target className="w-5 h-5" />
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <Target className="w-4 h-4" />
                 Topic
               </CardTitle>
               {proposal.topicUrl && !isEditing && (
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="gap-1.5"
+                  className="gap-1.5 h-7 text-xs"
                   onClick={() => window.open(proposal.topicUrl, '_blank')}
                 >
-                  <ExternalLink className="w-4 h-4" />
+                  <ExternalLink className="w-3 h-3" />
                   View on portal
                 </Button>
               )}
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             {/* Topic ID with URL bubble */}
             <div>
-              <label className="text-sm text-muted-foreground mb-1 block">Topic ID</label>
+              <label className="text-xs text-muted-foreground mb-0.5 block">Topic ID</label>
               {isEditing ? (
                 <div className="space-y-2">
                   <Input
                     value={editedProposal.topicId || ''}
                     onChange={(e) => setEditedProposal({ ...editedProposal, topicId: e.target.value })}
                     placeholder="e.g. HORIZON-CL5-2026-D1-01"
-                    className="max-w-md"
+                    className="max-w-md h-8 text-sm"
                   />
                   <Input
                     value={editedProposal.topicUrl || ''}
                     onChange={(e) => setEditedProposal({ ...editedProposal, topicUrl: e.target.value })}
                     placeholder="Portal URL (https://ec.europa.eu/...)"
                     type="url"
-                    className="max-w-md"
+                    className="max-w-md h-8 text-sm"
                   />
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <p className="font-medium">{proposal.topicId || 'Not specified'}</p>
+                  <p className="text-sm font-medium">{proposal.topicId || 'Not specified'}</p>
                   {proposal.topicUrl && (
                     <a 
                       href={proposal.topicUrl.startsWith('http') ? proposal.topicUrl : `https://${proposal.topicUrl}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
                     >
-                      <ExternalLink className="w-3 h-3" />
+                      <ExternalLink className="w-2.5 h-2.5" />
                       Topic
                     </a>
                   )}
@@ -381,41 +381,42 @@ export function ProposalSummaryPage({
 
             {/* Topic Title */}
             <div>
-              <label className="text-sm text-muted-foreground mb-1 block">Topic title</label>
+              <label className="text-xs text-muted-foreground mb-0.5 block">Topic title</label>
               {isEditing ? (
                 <Input
                   value={editedProposal.topicTitle || ''}
                   onChange={(e) => setEditedProposal({ ...editedProposal, topicTitle: e.target.value })}
+                  className="h-8 text-sm"
                 />
               ) : (
-                <p className="font-medium">{proposal.topicTitle || '–'}</p>
+                <p className="text-sm font-medium">{proposal.topicTitle || '–'}</p>
               )}
             </div>
 
             {/* Proposal stage & Type of action */}
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">Proposal stage</label>
-                <p className="font-medium">
+                <label className="text-xs text-muted-foreground mb-0.5 block">Proposal stage</label>
+                <p className="text-sm font-medium">
                   {proposal.submissionStage === 'stage_1' ? 'Pre-proposal (stage 1)' : 'Full proposal'}
                 </p>
               </div>
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">Type of action</label>
-                <p className="font-medium">{proposal.type || 'Not specified'}</p>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Type of action</label>
+                <p className="text-sm font-medium">{proposal.type || 'Not specified'}</p>
               </div>
             </div>
 
             {/* Work Programme & Destination - side by side */}
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">Work programme</label>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Work programme</label>
                 {isEditing ? (
                   <Select
                     value={editedProposal.workProgramme || ''}
                     onValueChange={(v) => setEditedProposal({ ...editedProposal, workProgramme: v, destination: undefined })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-8 text-sm">
                       <SelectValue placeholder="Select work programme" />
                     </SelectTrigger>
                     <SelectContent>
@@ -427,20 +428,20 @@ export function ProposalSummaryPage({
                     </SelectContent>
                   </Select>
                 ) : (
-                  <p className="font-medium">
+                  <p className="text-sm font-medium">
                     {workProgramme ? `${workProgramme.abbreviation} - ${workProgramme.fullName}` : 'Not specified'}
                   </p>
                 )}
               </div>
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">Destination</label>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Destination</label>
                 {isEditing ? (
                   <Select
                     value={editedProposal.destination || ''}
                     onValueChange={(v) => setEditedProposal({ ...editedProposal, destination: v })}
                     disabled={!editedProposal.workProgramme}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-8 text-sm">
                       <SelectValue placeholder="Select destination" />
                     </SelectTrigger>
                     <SelectContent className="z-50 bg-popover">
@@ -452,7 +453,7 @@ export function ProposalSummaryPage({
                     </SelectContent>
                   </Select>
                 ) : (
-                  <p className="font-medium">
+                  <p className="text-sm font-medium">
                     {destination ? `${destination.abbreviation} - ${destination.fullName}` : 'Not specified'}
                   </p>
                 )}
@@ -462,14 +463,14 @@ export function ProposalSummaryPage({
             <Separator />
 
             {/* Key Dates */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">Deadline</label>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Deadline</label>
                 {isEditing ? (
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !editedProposal.deadline && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-2 h-4 w-4" />
+                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-8 text-sm", !editedProposal.deadline && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
                         {editedProposal.deadline ? format(editedProposal.deadline, 'PPP') : 'Select date'}
                       </Button>
                     </PopoverTrigger>
@@ -493,11 +494,11 @@ export function ProposalSummaryPage({
                   </Popover>
                 ) : (
                   <div>
-                    <p className="font-medium">
+                    <p className="text-sm font-medium">
                       {proposal.deadline ? format(proposal.deadline, 'dd MMM yyyy') : 'Not set'}
                     </p>
                     {daysUntilDeadline !== null && daysUntilDeadline > 0 && (
-                      <p className="text-sm text-warning font-medium">{daysUntilDeadline} days remaining</p>
+                      <p className="text-xs text-warning font-medium">{daysUntilDeadline} days remaining</p>
                     )}
                   </div>
                 )}
@@ -505,14 +506,14 @@ export function ProposalSummaryPage({
               
               {/* Decision date - show for all statuses, with "(estimated)" for drafts */}
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">
+                <label className="text-xs text-muted-foreground mb-0.5 block">
                   Decision{proposal.status === 'draft' && ' (estimated)'}
                 </label>
                 {isEditing ? (
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !editedProposal.decisionDate && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-2 h-4 w-4" />
+                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-8 text-sm", !editedProposal.decisionDate && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
                         {editedProposal.decisionDate ? format(editedProposal.decisionDate, 'PPP') : 'Select date'}
                       </Button>
                     </PopoverTrigger>
@@ -525,7 +526,7 @@ export function ProposalSummaryPage({
                     </PopoverContent>
                   </Popover>
                 ) : (
-                  <p className="font-medium">
+                  <p className="text-sm font-medium">
                     {proposal.decisionDate 
                       ? format(proposal.decisionDate, 'dd MMM yyyy') 
                       : proposal.deadline 
@@ -538,8 +539,8 @@ export function ProposalSummaryPage({
               {/* Submission date only for non-draft proposals */}
               {proposal.status !== 'draft' && (
                 <div>
-                  <label className="text-sm text-muted-foreground mb-1 block">Submission date</label>
-                  <p className="font-medium">
+                  <label className="text-xs text-muted-foreground mb-0.5 block">Submission date</label>
+                  <p className="text-sm font-medium">
                     {proposal.submittedAt ? format(proposal.submittedAt, 'dd MMM yyyy') : 'Not recorded'}
                   </p>
                 </div>
@@ -550,41 +551,42 @@ export function ProposalSummaryPage({
 
         {/* Budget Overview */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Euro className="w-5 h-5" />
+          <CardHeader className="pb-2 pt-4">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Euro className="w-4 h-4" />
               Budget overview
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">Budget available (topic)</label>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Budget available (topic)</label>
                 {isEditing ? (
                   <Input
                     type="number"
                     value={editedProposal.totalBudget || ''}
                     onChange={(e) => setEditedProposal({ ...editedProposal, totalBudget: parseFloat(e.target.value) || undefined })}
                     placeholder="e.g. 5000000"
+                    className="h-8 text-sm"
                   />
                 ) : (
-                  <p className="font-medium text-lg">
+                  <p className="text-sm font-medium">
                     {proposal.totalBudget ? `€${proposal.totalBudget.toLocaleString('en-IE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '–'}
                   </p>
                 )}
               </div>
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">Budget applied for</label>
-                <p className="font-medium text-lg">€{totalBudgetFromItems.toLocaleString('en-IE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Budget applied for</label>
+                <p className="text-sm font-medium">€{totalBudgetFromItems.toLocaleString('en-IE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
               </div>
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">№ projects to be funded</label>
+                <label className="text-xs text-muted-foreground mb-0.5 block">№ projects to be funded</label>
                 {isEditing ? (
                   <Select
                     value={editedProposal.expectedProjects || ''}
                     onValueChange={(v) => setEditedProposal({ ...editedProposal, expectedProjects: v })}
                   >
-                    <SelectTrigger className="w-32">
+                    <SelectTrigger className="w-32 h-8 text-sm">
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
                     <SelectContent>
@@ -596,17 +598,17 @@ export function ProposalSummaryPage({
                     </SelectContent>
                   </Select>
                 ) : (
-                  <p className="font-medium">{proposal.expectedProjects || '–'}</p>
+                  <p className="text-sm font-medium">{proposal.expectedProjects || '–'}</p>
                 )}
               </div>
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">Budget type</label>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Budget type</label>
                 {isEditing ? (
                   <Select
                     value={editedProposal.budgetType}
                     onValueChange={(v: 'traditional' | 'lump_sum') => setEditedProposal({ ...editedProposal, budgetType: v })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-8 text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -615,7 +617,7 @@ export function ProposalSummaryPage({
                     </SelectContent>
                   </Select>
                 ) : (
-                  <p className="font-medium">{proposal.budgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}</p>
+                  <p className="text-sm font-medium">{proposal.budgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}</p>
                 )}
               </div>
             </div>
@@ -633,15 +635,15 @@ export function ProposalSummaryPage({
 
         {/* List of participants */}
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 pt-4">
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <Users className="w-4 h-4" />
                 List of participants
               </CardTitle>
               {isAdmin && onAddParticipant && (
-                <Button onClick={() => setIsAddParticipantDialogOpen(true)} className="gap-2">
-                  <Plus className="w-4 h-4" />
+                <Button onClick={() => setIsAddParticipantDialogOpen(true)} size="sm" className="gap-1.5 h-7 text-xs">
+                  <Plus className="w-3.5 h-3.5" />
                   Add Participant
                 </Button>
               )}
