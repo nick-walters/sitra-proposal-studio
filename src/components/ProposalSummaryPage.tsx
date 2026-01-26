@@ -254,65 +254,68 @@ export function ProposalSummaryPage({
               Project identity
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {/* Acronym */}
-            <div>
-              <label className="text-xs text-muted-foreground mb-0.5 block">Acronym</label>
-              {isEditing ? (
-                <Input
-                  value={editedProposal.acronym}
-                  onChange={(e) => setEditedProposal({ ...editedProposal, acronym: e.target.value })}
-                  className="text-sm font-semibold w-40 h-8"
-                  placeholder="Acronym"
-                />
-              ) : (
-                <p className="text-sm font-semibold">{proposal.acronym}</p>
-              )}
-            </div>
+          <CardContent>
+            <div className="flex gap-6">
+              {/* Left column: Title, Acronym, Duration */}
+              <div className="flex-1 space-y-3">
+                {/* Title */}
+                <div>
+                  <label className="text-xs text-muted-foreground mb-0.5 block">Title</label>
+                  {isEditing ? (
+                    <Input
+                      value={editedProposal.title}
+                      onChange={(e) => setEditedProposal({ ...editedProposal, title: e.target.value })}
+                      className="text-sm font-semibold h-8"
+                      placeholder="Full proposal title"
+                    />
+                  ) : (
+                    <h2 className="text-sm font-semibold text-foreground">{proposal.title}</h2>
+                  )}
+                </div>
 
-            {/* Title */}
-            <div>
-              <label className="text-xs text-muted-foreground mb-0.5 block">Title</label>
-              {isEditing ? (
-                <Input
-                  value={editedProposal.title}
-                  onChange={(e) => setEditedProposal({ ...editedProposal, title: e.target.value })}
-                  className="text-sm font-semibold h-8"
-                  placeholder="Full proposal title"
-                />
-              ) : (
-                <h2 className="text-sm font-semibold text-foreground">{proposal.title}</h2>
-              )}
-            </div>
+                {/* Acronym */}
+                <div>
+                  <label className="text-xs text-muted-foreground mb-0.5 block">Acronym</label>
+                  {isEditing ? (
+                    <Input
+                      value={editedProposal.acronym}
+                      onChange={(e) => setEditedProposal({ ...editedProposal, acronym: e.target.value })}
+                      className="text-sm font-semibold w-40 h-8"
+                      placeholder="Acronym"
+                    />
+                  ) : (
+                    <p className="text-sm font-semibold">{proposal.acronym}</p>
+                  )}
+                </div>
 
-            {/* Project Duration */}
-            <div>
-              <label className="text-xs text-muted-foreground mb-0.5 block">Project duration (months)</label>
-              {isEditing ? (
-                <Select
-                  value={editedProposal.duration?.toString() || ''}
-                  onValueChange={(v) => setEditedProposal({ ...editedProposal, duration: parseInt(v) })}
-                >
-                  <SelectTrigger className="w-32 h-8 text-sm">
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 72 }, (_, i) => i + 1).map((months) => (
-                      <SelectItem key={months} value={months.toString()}>
-                        {months}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <p className="text-sm font-medium">{proposal.duration ? `${proposal.duration}` : '–'}</p>
-              )}
-            </div>
+                {/* Project Duration */}
+                <div>
+                  <label className="text-xs text-muted-foreground mb-0.5 block">Project duration (months)</label>
+                  {isEditing ? (
+                    <Select
+                      value={editedProposal.duration?.toString() || ''}
+                      onValueChange={(v) => setEditedProposal({ ...editedProposal, duration: parseInt(v) })}
+                    >
+                      <SelectTrigger className="w-32 h-8 text-sm">
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 72 }, (_, i) => i + 1).map((months) => (
+                          <SelectItem key={months} value={months.toString()}>
+                            {months}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="text-sm font-medium">{proposal.duration ? `${proposal.duration}` : '–'}</p>
+                  )}
+                </div>
+              </div>
 
-            {/* Project Logo */}
-            <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">Project logo</label>
-              <div className="flex items-start gap-4">
+              {/* Right column: Logo */}
+              <div className="flex-shrink-0">
+                <label className="text-xs text-muted-foreground mb-1.5 block">Project logo</label>
                 {isEditing ? (
                   <LogoUpload
                     currentUrl={editedProposal.logoUrl || null}
