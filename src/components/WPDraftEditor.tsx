@@ -6,7 +6,7 @@ import { WPPlanningQuestions } from '@/components/WPPlanningQuestions';
 import { WPEffortMatrix } from '@/components/WPEffortMatrix';
 import { WPDeliverablesTable } from '@/components/WPDeliverablesTable';
 import { WPRisksTable } from '@/components/WPRisksTable';
-import { WPColorPicker } from '@/components/WPColorPicker';
+
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -166,9 +166,22 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
 
   const readOnly = !canEdit;
 
+  const leadParticipant = participants.find(p => p.id === wpDraft.lead_participant_id);
+
   return (
     <ScrollArea className="h-full">
       <div className="space-y-6 p-6">
+        {/* Guidelines Button - above header */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setGuidelinesDialogOpen(true)}
+          className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1.5 -mb-4"
+        >
+          <BookOpen className="h-4 w-4" />
+          Guidelines
+        </Button>
+
         {/* Header with color */}
         <div 
           className="rounded-lg p-4 -mx-2"
@@ -177,44 +190,39 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
             color: getContrastingTextColor(wpDraft.color),
           }}
         >
-          <div className="flex items-center gap-4">
+          {/* WPX: Title */}
+          <div className="flex items-center gap-2">
+            <span className="text-xl font-bold">WP{wpDraft.number}:</span>
+            <Input
+              value={wpDraft.title || ''}
+              onChange={(e) => updateField('title', e.target.value)}
+              placeholder="Work package title"
+              className="bg-white/90 text-foreground flex-1"
+              disabled={readOnly}
+            />
+          </div>
+          
+          {/* Short name and Lead partner */}
+          <div className="mt-2 flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <span className="text-2xl font-bold">WP{wpDraft.number}</span>
-              {!readOnly && (
-                <WPColorPicker
-                  color={wpDraft.color}
-                  onChange={(color) => updateField('color', color)}
-                />
-              )}
-            </div>
-            <div className="flex-1">
+              <span className="text-sm opacity-80">Short name:</span>
               <Input
                 value={wpDraft.short_name || ''}
                 onChange={(e) => updateField('short_name', e.target.value)}
-                placeholder="Short name"
-                className="bg-white/90 text-foreground h-8 max-w-[200px]"
+                placeholder="e.g. COORD"
+                className="bg-white/90 text-foreground h-7 w-[140px] text-sm"
                 disabled={readOnly}
               />
             </div>
-          </div>
-          <div className="mt-3 flex items-center gap-4">
-            <div className="flex-1">
-              <Input
-                value={wpDraft.title || ''}
-                onChange={(e) => updateField('title', e.target.value)}
-                placeholder="Full work package title"
-                className="bg-white/90 text-foreground"
-                disabled={readOnly}
-              />
-            </div>
-            <div className="w-[200px]">
+            <div className="flex items-center gap-2">
+              <span className="text-sm opacity-80">Lead:</span>
               <Select
                 value={wpDraft.lead_participant_id || ''}
                 onValueChange={(value) => updateField('lead_participant_id', value || null)}
                 disabled={readOnly}
               >
-                <SelectTrigger className="bg-white/90 text-foreground">
-                  <SelectValue placeholder="WP Lead..." />
+                <SelectTrigger className="bg-white/90 text-foreground h-7 w-[160px] text-sm">
+                  <SelectValue placeholder="Select lead..." />
                 </SelectTrigger>
                 <SelectContent>
                   {participants.map((p) => (
@@ -227,17 +235,6 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
             </div>
           </div>
         </div>
-
-        {/* Guidelines Button - matching Part B style */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setGuidelinesDialogOpen(true)}
-          className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1.5"
-        >
-          <BookOpen className="h-4 w-4" />
-          Guidelines
-        </Button>
 
         {/* Guidelines Dialog */}
         <Dialog open={guidelinesDialogOpen} onOpenChange={setGuidelinesDialogOpen}>
