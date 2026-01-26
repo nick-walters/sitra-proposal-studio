@@ -210,8 +210,8 @@ export function ParticipantTable({
                   {isEditing ? (
                     <input
                       type="text"
-                      value={(participant as ExtendedParticipant).englishName || ''}
-                      onChange={(e) => handleEnglishNameChange(participant.id, e.target.value)}
+                      defaultValue={(participant as ExtendedParticipant).englishName || ''}
+                      onBlur={(e) => handleEnglishNameChange(participant.id, e.target.value)}
                       placeholder="English name (if different)"
                       className="flex h-6 w-full rounded-md border border-input bg-background px-1 py-0 text-[10px] text-muted-foreground italic ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     />
