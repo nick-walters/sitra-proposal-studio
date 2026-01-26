@@ -302,6 +302,48 @@ function SortableParticipantRow({
         )}
       </TableCell>
       
+      {/* Leadership */}
+      <TableCell className="py-0.5 px-1 align-top">
+        <div className="flex flex-wrap gap-1">
+          {/* Coordinator badge for first participant */}
+          {participant.participantNumber === 1 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium cursor-default bg-primary text-primary-foreground">
+                  Coord
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Project Coordinator</TooltipContent>
+            </Tooltip>
+          )}
+          {/* WP leadership badges */}
+          {wpLeadership && wpLeadership.length > 0 && (
+            wpLeadership.map((wp) => (
+              <Tooltip key={wp.wpNumber}>
+                <TooltipTrigger asChild>
+                  <span
+                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium cursor-default"
+                    style={{
+                      backgroundColor: wp.color,
+                      color: getContrastingTextColor(wp.color),
+                    }}
+                  >
+                    WP{wp.wpNumber}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {wp.shortName ? `${wp.shortName} (Lead)` : `WP${wp.wpNumber} Lead`}
+                </TooltipContent>
+              </Tooltip>
+            ))
+          )}
+          {/* Show dash only if no leadership roles */}
+          {participant.participantNumber !== 1 && (!wpLeadership || wpLeadership.length === 0) && (
+            <span className="text-muted-foreground text-[10px]">—</span>
+          )}
+        </div>
+      </TableCell>
+      
       {/* Country */}
       <TableCell className="py-0.5 px-1 align-top">
         {isEditing ? (
@@ -351,34 +393,6 @@ function SortableParticipantRow({
             {participant.country || '—'}
           </span>
         )}
-      </TableCell>
-      
-      {/* WP Leadership */}
-      <TableCell className="py-0.5 px-1 align-top">
-        <div className="flex flex-wrap gap-1">
-          {wpLeadership && wpLeadership.length > 0 ? (
-            wpLeadership.map((wp) => (
-              <Tooltip key={wp.wpNumber}>
-                <TooltipTrigger asChild>
-                  <span
-                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium cursor-default"
-                    style={{
-                      backgroundColor: wp.color,
-                      color: getContrastingTextColor(wp.color),
-                    }}
-                  >
-                    WP{wp.wpNumber}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {wp.shortName ? `${wp.shortName} (Lead)` : `WP${wp.wpNumber} Lead`}
-                </TooltipContent>
-              </Tooltip>
-            ))
-          ) : (
-            <span className="text-muted-foreground text-[10px]">—</span>
-          )}
-        </div>
       </TableCell>
     </TableRow>
   );
@@ -545,8 +559,8 @@ export function ParticipantTable({
                 <TableHead className="w-12 py-0.5 px-1 font-bold">№</TableHead>
                 <TableHead className="py-0.5 px-1 font-bold">Short name</TableHead>
                 <TableHead className="py-0.5 px-1 font-bold" colSpan={2}>Participant</TableHead>
+                <TableHead className="py-0.5 px-1 font-bold">Leadership</TableHead>
                 <TableHead className="py-0.5 px-1 font-bold">Country</TableHead>
-                <TableHead className="py-0.5 px-1 font-bold">WP Lead</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
