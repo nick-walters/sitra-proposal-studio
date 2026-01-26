@@ -190,6 +190,7 @@ function SortableTaskCard({
 
   const [localTitle, setLocalTitle] = useState(task.title || '');
   const [titleTimeout, setTitleTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [descriptionTimeout, setDescriptionTimeout] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setLocalTitle(task.title || '');
@@ -205,6 +206,15 @@ function SortableTaskCard({
       onUpdate(task.id, { title: newValue });
     }, 500);
     setTitleTimeout(timeout);
+  };
+
+  const handleDescriptionChange = (value: string) => {
+    if (descriptionTimeout) clearTimeout(descriptionTimeout);
+    
+    const timeout = setTimeout(() => {
+      onUpdate(task.id, { description: value });
+    }, 500);
+    setDescriptionTimeout(timeout);
   };
 
   const selectedParticipantIds = task.participants?.map(p => p.participant_id) || [];
@@ -312,6 +322,17 @@ function SortableTaskCard({
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      {/* Row 3: Description editor */}
+      <div className="mt-2 ml-5">
+        <WPSimpleEditor
+          value={task.description || ''}
+          onChange={handleDescriptionChange}
+          placeholder="Task description..."
+          disabled={readOnly}
+          minHeight="60px"
+        />
       </div>
     </div>
   );
