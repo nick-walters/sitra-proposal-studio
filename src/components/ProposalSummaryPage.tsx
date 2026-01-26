@@ -581,9 +581,7 @@ export function ProposalSummaryPage({
                     </SelectContent>
                   </Select>
                 ) : (
-                  <Badge variant={proposal.budgetType === 'lump_sum' ? 'default' : 'secondary'}>
-                    {proposal.budgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}
-                  </Badge>
+                  <p className="font-medium">{proposal.budgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}</p>
                 )}
               </div>
             </div>
