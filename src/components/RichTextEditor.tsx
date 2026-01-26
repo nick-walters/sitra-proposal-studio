@@ -538,296 +538,295 @@ export function FormattingToolbar({
 
       {/* Citation and Cross-ref section */}
       <div className="flex items-center gap-0.5">
-          {/* Citation button */}
-          {onOpenCitationDialog && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2 gap-1"
-                  onClick={onOpenCitationDialog}
-                  disabled={isReadOnly}
-                >
-                  <FileText className="w-4 h-4" />
-                  <span className="text-xs">Citation</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs">
-                Add Citation
-              </TooltipContent>
-            </Tooltip>
-          )}
-          
-          {/* Cross-ref button */}
-          {isPartB && onOpenCrossRefDialog && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2 gap-1"
-                  onClick={onOpenCrossRefDialog}
-                  disabled={isReadOnly}
-                >
-                  <Link2 className="w-4 h-4" />
-                  <span className="text-xs">Cross-ref</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs">
-                Insert Cross-reference
-              </TooltipContent>
-            </Tooltip>
-          )}
-          
-          {/* WP Reference button */}
-          {isPartB && onOpenWPRefDialog && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2 gap-1"
-                  onClick={onOpenWPRefDialog}
-                  disabled={isReadOnly}
-                >
-                  <Layers className="w-4 h-4" />
-                  <span className="text-xs">WP</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs">
-                Insert WP Reference
-              </TooltipContent>
-            </Tooltip>
-          )}
-        </div>
-        
-        <Separator orientation="vertical" className="h-5 mx-1.5" />
-        
-        {/* Table with text label */}
-        {!isInTable ? (
-          <Popover open={tablePopoverOpen} onOpenChange={setTablePopoverOpen}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2 gap-1"
-                  >
-                    <TableIcon className="w-4 h-4" />
-                    <span className="text-xs">Table</span>
-                  </Button>
-                </PopoverTrigger>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs">
-                Insert Table
-              </TooltipContent>
-            </Tooltip>
-            <PopoverContent align="start" className="w-auto p-0">
-              <TableSizeSelector onSelect={insertTable} />
-            </PopoverContent>
-          </Popover>
-        ) : (
-          <DropdownMenu>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="h-7 w-7"
-                  >
-                    <TableIcon className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs">
-                Table Options
-              </TooltipContent>
-            </Tooltip>
-            <DropdownMenuContent align="start" className="w-48">
-              <DropdownMenuItem onClick={() => editor.chain().focus().addColumnBefore().run()}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add column before
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => editor.chain().focus().addColumnAfter().run()}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add column after
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => editor.chain().focus().deleteColumn().run()}>
-                <Minus className="w-4 h-4 mr-2" />
-                Delete column
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => editor.chain().focus().addRowBefore().run()}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add row before
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => editor.chain().focus().addRowAfter().run()}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add row after
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => editor.chain().focus().deleteRow().run()}>
-                <Minus className="w-4 h-4 mr-2" />
-                Delete row
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => editor.chain().focus().mergeCells().run()}>
-                <Combine className="w-4 h-4 mr-2" />
-                Merge cells
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => editor.chain().focus().splitCell().run()}>
-                <SplitSquareHorizontal className="w-4 h-4 mr-2" />
-                Split cell
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => onOpenFormulaDialog?.()}>
-                <Calculator className="w-4 h-4 mr-2" />
-                Insert Formula
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={() => editor.chain().focus().deleteTable().run()}
-                className="text-destructive focus:text-destructive"
+        {/* Citation button */}
+        {onOpenCitationDialog && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 gap-1"
+                onClick={onOpenCitationDialog}
+                disabled={isReadOnly}
               >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete table
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <FileText className="w-4 h-4" />
+                <span className="text-xs">Citation</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              Add Citation
+            </TooltipContent>
+          </Tooltip>
         )}
-
-        {/* Image controls - show when image is selected */}
-        {isImageSelected && (
-          <>
-            <Separator orientation="vertical" className="h-5 mx-1.5" />
-            <div className="flex items-center gap-1">
-              <ImageIcon className="w-4 h-4 text-muted-foreground" />
-              
-              {/* Mode toggle button */}
-              <ToolbarButton
-                icon={<Percent className="w-3 h-3" />}
-                tooltip={widthMode === 'px' ? "Switch to percentage width" : "Switch to pixel width"}
-                onClick={toggleWidthMode}
-                active={widthMode === '%'}
-              />
-              
-              {widthMode === '%' ? (
-                // Percentage mode - single input
-                <>
-                  <Input
-                    type="number"
-                    value={imageWidthPercent}
-                    onChange={(e) => handleWidthPercentChange(e.target.value)}
-                    className="w-16 h-7 text-xs"
-                    placeholder="%"
-                    title="Width (%)"
-                    min={1}
-                    max={100}
-                  />
-                  <span className="text-xs text-muted-foreground">%</span>
-                </>
-              ) : (
-                // Pixel mode - width × height with aspect lock
-                <>
-                  <Input
-                    type="number"
-                    value={imageWidth}
-                    onChange={(e) => handleWidthChange(e.target.value)}
-                    className="w-16 h-7 text-xs"
-                    placeholder="W"
-                    title="Width (px)"
-                  />
-                  <ToolbarButton
-                    icon={aspectRatioLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
-                    tooltip={aspectRatioLocked ? "Aspect ratio locked" : "Aspect ratio unlocked"}
-                    onClick={() => setAspectRatioLocked(!aspectRatioLocked)}
-                    active={aspectRatioLocked}
-                  />
-                  <Input
-                    type="number"
-                    value={imageHeight}
-                    onChange={(e) => handleHeightChange(e.target.value)}
-                    className="w-16 h-7 text-xs"
-                    placeholder="H"
-                    title="Height (px)"
-                  />
-                </>
-              )}
-              
-              <ToolbarButton
-                icon={<Crop className="w-4 h-4" />}
-                tooltip="Crop image"
-                onClick={handleCropClick}
-              />
-              
-              <Separator orientation="vertical" className="h-5 mx-1" />
-              
-              {/* Image alignment controls */}
-              <ToolbarButton
-                icon={<AlignHorizontalJustifyStart className="w-4 h-4" />}
-                tooltip="Align left"
-                onClick={() => setImageAlignment('left')}
-                active={currentImageAlignment === 'left'}
-              />
-              <ToolbarButton
-                icon={<AlignHorizontalJustifyCenter className="w-4 h-4" />}
-                tooltip="Align center"
-                onClick={() => setImageAlignment('center')}
-                active={currentImageAlignment === 'center'}
-              />
-              <ToolbarButton
-                icon={<AlignHorizontalJustifyEnd className="w-4 h-4" />}
-                tooltip="Align right"
-                onClick={() => setImageAlignment('right')}
-                active={currentImageAlignment === 'right'}
-              />
-              
-              <Separator orientation="vertical" className="h-5 mx-1" />
-              
-              {/* Replace and Delete figure */}
-              {onOpenFigureDialog && (
-                <ToolbarButton
-                  icon={<RefreshCw className="w-4 h-4" />}
-                  tooltip="Replace figure"
-                  onClick={replaceFigure}
-                />
-              )}
-              <ToolbarButton
-                icon={<Trash2 className="w-4 h-4 text-destructive" />}
-                tooltip="Delete figure with caption"
-                onClick={() => setShowDeleteConfirm(true)}
-              />
-            </div>
-          </>
-        )}
-
-        {/* Insert buttons with text labels - always visible */}
-        <Separator orientation="vertical" className="h-5 mx-1.5" />
         
-        <div className="flex items-center gap-0.5">
-          {/* Figure button */}
-          {isPartB && onOpenFigureDialog && (
-            <Tooltip>
-              <TooltipTrigger asChild>
+        {/* Cross-ref button */}
+        {isPartB && onOpenCrossRefDialog && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 gap-1"
+                onClick={onOpenCrossRefDialog}
+                disabled={isReadOnly}
+              >
+                <Link2 className="w-4 h-4" />
+                <span className="text-xs">Cross-ref</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              Insert Cross-reference
+            </TooltipContent>
+          </Tooltip>
+        )}
+        
+        {/* WP Reference button */}
+        {isPartB && onOpenWPRefDialog && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 gap-1"
+                onClick={onOpenWPRefDialog}
+                disabled={isReadOnly}
+              >
+                <Layers className="w-4 h-4" />
+                <span className="text-xs">WP</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              Insert WP Reference
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </div>
+      
+      <Separator orientation="vertical" className="h-5 mx-1.5" />
+      
+      {/* Table with text label */}
+      {!isInTable ? (
+        <Popover open={tablePopoverOpen} onOpenChange={setTablePopoverOpen}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <PopoverTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
                   className="h-7 px-2 gap-1"
-                  onClick={onOpenFigureDialog}
-                  disabled={isReadOnly}
                 >
-                  <ImageIcon className="w-4 h-4" />
-                  <span className="text-xs">Figure</span>
+                  <TableIcon className="w-4 h-4" />
+                  <span className="text-xs">Table</span>
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs">
-                Insert Figure
-              </TooltipContent>
-            </Tooltip>
-          )}
-        </div>
+              </PopoverTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              Insert Table
+            </TooltipContent>
+          </Tooltip>
+          <PopoverContent align="start" className="w-auto p-0">
+            <TableSizeSelector onSelect={insertTable} />
+          </PopoverContent>
+        </Popover>
+      ) : (
+        <DropdownMenu>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="h-7 w-7"
+                >
+                  <TableIcon className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              Table Options
+            </TooltipContent>
+          </Tooltip>
+          <DropdownMenuContent align="start" className="w-48">
+            <DropdownMenuItem onClick={() => editor.chain().focus().addColumnBefore().run()}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add column before
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => editor.chain().focus().addColumnAfter().run()}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add column after
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => editor.chain().focus().deleteColumn().run()}>
+              <Minus className="w-4 h-4 mr-2" />
+              Delete column
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => editor.chain().focus().addRowBefore().run()}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add row before
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => editor.chain().focus().addRowAfter().run()}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add row after
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => editor.chain().focus().deleteRow().run()}>
+              <Minus className="w-4 h-4 mr-2" />
+              Delete row
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => editor.chain().focus().mergeCells().run()}>
+              <Combine className="w-4 h-4 mr-2" />
+              Merge cells
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => editor.chain().focus().splitCell().run()}>
+              <SplitSquareHorizontal className="w-4 h-4 mr-2" />
+              Split cell
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => onOpenFormulaDialog?.()}>
+              <Calculator className="w-4 h-4 mr-2" />
+              Insert Formula
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={() => editor.chain().focus().deleteTable().run()}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete table
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+
+      {/* Image controls - show when image is selected */}
+      {isImageSelected && (
+        <>
+          <Separator orientation="vertical" className="h-5 mx-1.5" />
+          <div className="flex items-center gap-1">
+            <ImageIcon className="w-4 h-4 text-muted-foreground" />
+            
+            {/* Mode toggle button */}
+            <ToolbarButton
+              icon={<Percent className="w-3 h-3" />}
+              tooltip={widthMode === 'px' ? "Switch to percentage width" : "Switch to pixel width"}
+              onClick={toggleWidthMode}
+              active={widthMode === '%'}
+            />
+            
+            {widthMode === '%' ? (
+              // Percentage mode - single input
+              <>
+                <Input
+                  type="number"
+                  value={imageWidthPercent}
+                  onChange={(e) => handleWidthPercentChange(e.target.value)}
+                  className="w-16 h-7 text-xs"
+                  placeholder="%"
+                  title="Width (%)"
+                  min={1}
+                  max={100}
+                />
+                <span className="text-xs text-muted-foreground">%</span>
+              </>
+            ) : (
+              // Pixel mode - width × height with aspect lock
+              <>
+                <Input
+                  type="number"
+                  value={imageWidth}
+                  onChange={(e) => handleWidthChange(e.target.value)}
+                  className="w-16 h-7 text-xs"
+                  placeholder="W"
+                  title="Width (px)"
+                />
+                <ToolbarButton
+                  icon={aspectRatioLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+                  tooltip={aspectRatioLocked ? "Aspect ratio locked" : "Aspect ratio unlocked"}
+                  onClick={() => setAspectRatioLocked(!aspectRatioLocked)}
+                  active={aspectRatioLocked}
+                />
+                <Input
+                  type="number"
+                  value={imageHeight}
+                  onChange={(e) => handleHeightChange(e.target.value)}
+                  className="w-16 h-7 text-xs"
+                  placeholder="H"
+                  title="Height (px)"
+                />
+              </>
+            )}
+            
+            <ToolbarButton
+              icon={<Crop className="w-4 h-4" />}
+              tooltip="Crop image"
+              onClick={handleCropClick}
+            />
+            
+            <Separator orientation="vertical" className="h-5 mx-1" />
+            
+            {/* Image alignment controls */}
+            <ToolbarButton
+              icon={<AlignHorizontalJustifyStart className="w-4 h-4" />}
+              tooltip="Align left"
+              onClick={() => setImageAlignment('left')}
+              active={currentImageAlignment === 'left'}
+            />
+            <ToolbarButton
+              icon={<AlignHorizontalJustifyCenter className="w-4 h-4" />}
+              tooltip="Align center"
+              onClick={() => setImageAlignment('center')}
+              active={currentImageAlignment === 'center'}
+            />
+            <ToolbarButton
+              icon={<AlignHorizontalJustifyEnd className="w-4 h-4" />}
+              tooltip="Align right"
+              onClick={() => setImageAlignment('right')}
+              active={currentImageAlignment === 'right'}
+            />
+            
+            <Separator orientation="vertical" className="h-5 mx-1" />
+            
+            {/* Replace and Delete figure */}
+            {onOpenFigureDialog && (
+              <ToolbarButton
+                icon={<RefreshCw className="w-4 h-4" />}
+                tooltip="Replace figure"
+                onClick={replaceFigure}
+              />
+            )}
+            <ToolbarButton
+              icon={<Trash2 className="w-4 h-4 text-destructive" />}
+              tooltip="Delete figure with caption"
+              onClick={() => setShowDeleteConfirm(true)}
+            />
+          </div>
+        </>
+      )}
+
+      {/* Insert buttons with text labels - always visible */}
+      <Separator orientation="vertical" className="h-5 mx-1.5" />
+      
+      <div className="flex items-center gap-0.5">
+        {/* Figure button */}
+        {isPartB && onOpenFigureDialog && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 gap-1"
+                onClick={onOpenFigureDialog}
+                disabled={isReadOnly}
+              >
+                <ImageIcon className="w-4 h-4" />
+                <span className="text-xs">Figure</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              Insert Figure
+            </TooltipContent>
+          </Tooltip>
+        )}
       </div>
 
       {/* Crop Dialog */}
