@@ -780,11 +780,6 @@ export function usePdfExport() {
           const content = getSectionContent(section.id);
           const blocks = parseHtmlContent(content);
           
-          // Check if section starts with an image - add placeholder paragraph if so
-          if (blocks.length > 0 && blocks[0].type === 'image') {
-            addParagraph('[Introductory text to be added]');
-          }
-          
           for (const block of blocks) {
             switch (block.type) {
               case 'h3':
