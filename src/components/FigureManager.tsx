@@ -64,12 +64,12 @@ const FIGURE_TYPES = [
 ];
 
 const SECTION_OPTIONS = [
-  { id: 'workplan', number: 'B3.1', label: 'Work plan and resources' },
-  { id: 'consortium', number: 'B3.2', label: 'Capacity of participants' },
-  { id: 'methodology', number: 'B1.2', label: 'Methodology' },
-  { id: 'pathways', number: 'B2.1', label: "Project's pathways towards impact" },
-  { id: 'excellence', number: 'B1.1', label: 'Excellence' },
-  { id: 'impact', number: 'B2.2', label: 'Measures to maximise impact' },
+  { id: '1.1', number: 'B1.1', label: 'Excellence' },
+  { id: '1.2', number: 'B1.2', label: 'Methodology' },
+  { id: '2.1', number: 'B2.1', label: "Project's pathways towards impact" },
+  { id: '2.2', number: 'B2.2', label: 'Measures to maximise impact' },
+  { id: '3.1', number: 'B3.1', label: 'Work plan and resources' },
+  { id: '3.2', number: 'B3.2', label: 'Capacity of participants' },
 ];
 
 export function FigureManager({ proposalId, canEdit }: FigureManagerProps) {

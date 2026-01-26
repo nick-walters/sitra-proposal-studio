@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Participant } from '@/types/proposal';
 import { EU_MEMBER_STATES, ASSOCIATED_COUNTRIES, THIRD_COUNTRIES } from '@/lib/countries';
-import { Upload, X, Loader2 } from 'lucide-react';
+import { Upload, X, Loader2, Search, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateParticipantLogoPath, uploadProposalFile } from '@/lib/proposalStorage';
+import { supabase } from '@/integrations/supabase/client';
 
 // Official EC organisation category types for Horizon Europe
 export type OrganisationCategory = 
@@ -58,6 +59,7 @@ export function ParticipantTable({
   onUpdateParticipant 
 }: ParticipantTableProps) {
   const [uploadingLogoId, setUploadingLogoId] = useState<string | null>(null);
+  const [fetchingLogoId, setFetchingLogoId] = useState<string | null>(null);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   // Sort participants: Coordinator (1) first, then by WP lead, then others
@@ -125,6 +127,52 @@ export function ParticipantTable({
     onUpdateParticipant?.(participantId, { logoUrl: undefined });
   };
 
+  // Auto-fetch logo from the web
+  const handleAutoFetchLogo = async (participantId: string, organisationName: string) => {
+    if (!proposalId) return;
+    
+    setFetchingLogoId(participantId);
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-logo', {
+        body: { organisationName, convertToGray: true }
+      });
+
+      if (error) throw error;
+
+      if (!data.logoUrl) {
+        toast.error('No logo found for this organization');
+        return;
+      }
+
+      // If it's a data URL, we need to upload it to storage
+      if (data.logoUrl.startsWith('data:')) {
+        const participant = participants.find(p => p.id === participantId);
+        const participantNumber = participant?.participantNumber || 0;
+        
+        // Convert data URL to blob
+        const response = await fetch(data.logoUrl);
+        const blob = await response.blob();
+        
+        const filePath = generateParticipantLogoPath(proposalId, participantNumber, 'auto-logo.png');
+        const { url, error: uploadError } = await uploadProposalFile(blob, filePath, { upsert: true });
+        
+        if (uploadError) throw uploadError;
+        
+        onUpdateParticipant?.(participantId, { logoUrl: url || undefined });
+        toast.success('Logo fetched and saved');
+      } else {
+        // It's a direct URL, use it
+        onUpdateParticipant?.(participantId, { logoUrl: data.logoUrl });
+        toast.success('Logo found');
+      }
+    } catch (error) {
+      console.error('Error fetching logo:', error);
+      toast.error('Failed to fetch logo');
+    } finally {
+      setFetchingLogoId(null);
+    }
+  };
+
   // Get country code from country name
   const getCountryCode = (countryName?: string): string => {
     if (!countryName) return '';
@@ -176,7 +224,7 @@ export function ParticipantTable({
                   )}
                 </div>
               </TableCell>
-              <TableCell className="py-0.5 px-1 w-12 align-top text-right">
+              <TableCell className="py-0.5 px-1 w-16 align-top text-right">
                 {isEditing ? (
                   <div className="relative group">
                     <input
@@ -194,7 +242,7 @@ export function ParticipantTable({
                         <img 
                           src={participant.logoUrl} 
                           alt="" 
-                          className="w-8 h-8 object-contain cursor-pointer"
+                          className="w-8 h-8 object-contain cursor-pointer grayscale"
                           onClick={() => fileInputRefs.current[participant.id]?.click()}
                         />
                         <Button
@@ -206,19 +254,39 @@ export function ParticipantTable({
                           <X className="w-3 h-3" />
                         </Button>
                       </div>
-                    ) : uploadingLogoId === participant.id ? (
+                    ) : uploadingLogoId === participant.id || fetchingLogoId === participant.id ? (
                       <div className="w-8 h-8 bg-muted rounded flex items-center justify-center">
                         <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                       </div>
                     ) : (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="w-8 h-8 p-0"
-                        onClick={() => fileInputRefs.current[participant.id]?.click()}
-                      >
-                        <Upload className="w-4 h-4 text-muted-foreground" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="w-7 h-7 p-0"
+                              onClick={() => handleAutoFetchLogo(participant.id, participant.organisationName)}
+                            >
+                              <Search className="w-3.5 h-3.5 text-muted-foreground" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Auto-fetch logo from web</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="w-7 h-7 p-0"
+                              onClick={() => fileInputRefs.current[participant.id]?.click()}
+                            >
+                              <Upload className="w-3.5 h-3.5 text-muted-foreground" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Upload logo</TooltipContent>
+                        </Tooltip>
+                      </div>
                     )}
                   </div>
                 ) : (
@@ -226,7 +294,7 @@ export function ParticipantTable({
                     <img 
                       src={participant.logoUrl} 
                       alt="" 
-                      className="w-8 h-8 object-contain"
+                      className="w-8 h-8 object-contain grayscale"
                     />
                   ) : (
                     <div className="w-8 h-8 bg-muted rounded flex items-center justify-center text-[9px] text-muted-foreground">
