@@ -349,10 +349,21 @@ export function usePdfExport() {
               const percentMatch = style.match(/width:\s*([\d.]+)%/);
               const widthPercent = percentMatch ? parseFloat(percentMatch[1]) : undefined;
               
+              // Also check for pixel width in style if no attribute width
+              const pxMatch = style.match(/width:\s*([\d.]+)px/);
+              const styleWidthPx = pxMatch ? parseFloat(pxMatch[1]) : undefined;
+              
+              console.log('[PDF Export] Image parsing:', { 
+                style, 
+                widthPercent, 
+                attrWidth: width, 
+                styleWidthPx 
+              });
+              
               result.push({ 
                 type: 'image', 
                 src,
-                width: width ? parseInt(width) : undefined,
+                width: width ? parseInt(width) : styleWidthPx,
                 height: height ? parseInt(height) : undefined,
                 widthPercent
               });
