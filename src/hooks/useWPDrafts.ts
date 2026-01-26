@@ -164,7 +164,7 @@ export function useWPDrafts(proposalId: string | null) {
 
       if (error) throw error;
 
-      // Create 3 empty tasks and deliverables
+      // Create 3 empty tasks, 3 deliverables, and 2 risks
       const tasksToCreate = [1, 2, 3].map(num => ({
         wp_draft_id: data.id,
         number: num,
@@ -177,9 +177,16 @@ export function useWPDrafts(proposalId: string | null) {
         order_index: num - 1,
       }));
 
+      const risksToCreate = [1, 2].map(num => ({
+        wp_draft_id: data.id,
+        number: num,
+        order_index: num - 1,
+      }));
+
       await Promise.all([
         supabase.from('wp_draft_tasks').insert(tasksToCreate),
         supabase.from('wp_draft_deliverables').insert(deliverablesToCreate),
+        supabase.from('wp_draft_risks').insert(risksToCreate),
       ]);
 
       await fetchWPDrafts();
@@ -701,6 +708,51 @@ export function useWPDraftEditor(wpId: string | null) {
     }
   }, [toast]);
 
+  // Reorder risks
+  const reorderRisks = useCallback(async (newOrder: string[]) => {
+    if (!wpDraft) return false;
+
+    try {
+      const updates = newOrder.map((id, index) => ({
+        id,
+        order_index: index,
+        number: index + 1,
+      }));
+
+      // Update locally first for optimistic UI
+      setWPDraft(prev => {
+        if (!prev || !prev.risks) return prev;
+        const riskMap = new Map(prev.risks.map(r => [r.id, r]));
+        return {
+          ...prev,
+          risks: newOrder.map((id, index) => ({
+            ...riskMap.get(id)!,
+            order_index: index,
+            number: index + 1,
+          })),
+        };
+      });
+
+      // Update in database
+      for (const update of updates) {
+        await supabase
+          .from('wp_draft_risks')
+          .update({ order_index: update.order_index, number: update.number })
+          .eq('id', update.id);
+      }
+
+      return true;
+    } catch (err) {
+      console.error('Error reordering risks:', err);
+      toast({
+        title: 'Error',
+        description: 'Failed to reorder risks',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  }, [wpDraft, toast]);
+
   // Task effort operations
   const updateTaskEffort = useCallback(async (taskId: string, participantId: string, personMonths: number) => {
     try {
@@ -812,5 +864,6 @@ export function useWPDraftEditor(wpId: string | null) {
     addRisk,
     updateRisk,
     deleteRisk,
+    reorderRisks,
   };
 }

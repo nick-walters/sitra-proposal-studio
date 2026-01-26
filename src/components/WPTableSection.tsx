@@ -83,13 +83,13 @@ export function WPTableSection({
 
   return (
     <Card>
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base">
           <Target className="h-4 w-4" />
           WP table (objective & tasks)
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3">
         {/* Objectives section */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Objective</label>
@@ -213,10 +213,10 @@ function SortableTaskCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`rounded-md border bg-card p-3 ${isDragging ? 'shadow-lg' : ''}`}
+      className={`rounded-md border bg-card p-2 ${isDragging ? 'shadow-lg' : ''}`}
     >
       {/* Row 1: Drag handle, Task number, Title, Delete */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         {canReorder && (
           <button
             {...attributes}
@@ -233,31 +233,31 @@ function SortableTaskCard({
           value={localTitle}
           onChange={handleTitleChange}
           placeholder="Task title..."
-          className="h-7 flex-1"
+          className="h-6 text-xs flex-1"
           disabled={readOnly}
         />
         {!readOnly && (
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 text-muted-foreground hover:text-destructive flex-shrink-0"
+            className="h-6 w-6 text-muted-foreground hover:text-destructive flex-shrink-0"
             onClick={() => onDelete(task.id)}
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-3.5 w-3.5" />
           </Button>
         )}
       </div>
 
       {/* Row 2: Leader, Participants, Timing */}
-      <div className="flex items-center gap-2 mt-2 ml-6">
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+      <div className="flex items-center gap-1.5 mt-1.5 ml-5">
+        <div className="flex items-center gap-1 flex-shrink-0">
           <span className="text-xs text-muted-foreground">Leader:</span>
           <Select
             value={task.lead_participant_id || ''}
             onValueChange={(value) => onUpdate(task.id, { lead_participant_id: value || null })}
             disabled={readOnly}
           >
-            <SelectTrigger className="h-7 w-[100px] text-xs">
+            <SelectTrigger className="h-6 w-[90px] text-xs px-1.5">
               <SelectValue placeholder="Select..." />
             </SelectTrigger>
             <SelectContent>
@@ -270,7 +270,7 @@ function SortableTaskCard({
           </Select>
         </div>
 
-        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+        <div className="flex items-center gap-1 flex-1 min-w-0">
           <span className="text-xs text-muted-foreground flex-shrink-0">Participants:</span>
           <ParticipantMultiSelect
             participants={participants}
@@ -280,14 +280,14 @@ function SortableTaskCard({
           />
         </div>
 
-        <div className="flex items-center gap-1.5 flex-shrink-0 ml-auto">
+        <div className="flex items-center gap-1 flex-shrink-0 ml-auto">
           <span className="text-xs text-muted-foreground">Timing:</span>
           <Select
             value={task.start_month?.toString() || ''}
             onValueChange={(value) => onUpdate(task.id, { start_month: value ? parseInt(value) : null })}
             disabled={readOnly}
           >
-            <SelectTrigger className="h-7 w-[50px] text-xs">
+            <SelectTrigger className="h-6 w-[45px] text-xs px-1">
               <SelectValue placeholder="M" />
             </SelectTrigger>
             <SelectContent>
@@ -302,7 +302,7 @@ function SortableTaskCard({
             onValueChange={(value) => onUpdate(task.id, { end_month: value ? parseInt(value) : null })}
             disabled={readOnly}
           >
-            <SelectTrigger className="h-7 w-[50px] text-xs">
+            <SelectTrigger className="h-6 w-[45px] text-xs px-1">
               <SelectValue placeholder="M" />
             </SelectTrigger>
             <SelectContent>

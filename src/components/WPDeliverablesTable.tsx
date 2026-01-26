@@ -91,20 +91,20 @@ export function WPDeliverablesTable({
 
   return (
     <Card>
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base">
           <Package className="h-4 w-4" />
           Deliverables
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-1.5">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
         >
           <SortableContext items={deliverables.map(d => d.id)} strategy={verticalListSortingStrategy}>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {deliverables.map((deliverable) => (
                 <SortableDeliverableCard
                   key={deliverable.id}
@@ -127,7 +127,7 @@ export function WPDeliverablesTable({
             variant="outline"
             size="sm"
             onClick={onDeliverableAdd}
-            className="mt-2"
+            className="mt-1"
           >
             <Plus className="h-4 w-4 mr-1" />
             Add Deliverable
@@ -199,10 +199,10 @@ function SortableDeliverableCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`rounded-md border bg-card p-3 ${isDragging ? 'shadow-lg' : ''}`}
+      className={`rounded-md border bg-card p-2 ${isDragging ? 'shadow-lg' : ''}`}
     >
       {/* Row 1: Drag handle, Deliverable number + Title, Delete */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         {canReorder && (
           <button
             {...attributes}
@@ -219,31 +219,31 @@ function SortableDeliverableCard({
           value={localTitle}
           onChange={handleTitleChange}
           placeholder="Deliverable title..."
-          className="h-7 flex-1"
+          className="h-6 text-xs flex-1"
           disabled={readOnly}
         />
         {!readOnly && (
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 text-muted-foreground hover:text-destructive flex-shrink-0"
+            className="h-6 w-6 text-muted-foreground hover:text-destructive flex-shrink-0"
             onClick={() => onDelete(deliverable.id)}
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-3.5 w-3.5" />
           </Button>
         )}
       </div>
 
       {/* Row 2: Type, Responsible, Dissemination, Due month */}
-      <div className="flex items-center gap-2 mt-2 ml-6">
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+      <div className="flex items-center gap-1.5 mt-1.5 ml-5">
+        <div className="flex items-center gap-1 flex-shrink-0">
           <span className="text-xs text-muted-foreground">Type:</span>
           <Select
             value={deliverable.type || ''}
             onValueChange={(value) => onUpdate(deliverable.id, { type: value })}
             disabled={readOnly}
           >
-            <SelectTrigger className="h-7 w-[80px] text-xs">
+            <SelectTrigger className="h-6 w-[65px] text-xs px-1.5">
               <SelectValue placeholder="Type" />
             </SelectTrigger>
             <SelectContent>
@@ -256,14 +256,14 @@ function SortableDeliverableCard({
           </Select>
         </div>
 
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+        <div className="flex items-center gap-1 flex-shrink-0">
           <span className="text-xs text-muted-foreground">Responsible:</span>
           <Select
             value={deliverable.responsible_participant_id || ''}
             onValueChange={(value) => onUpdate(deliverable.id, { responsible_participant_id: value || null })}
             disabled={readOnly}
           >
-            <SelectTrigger className="h-7 w-[100px] text-xs">
+            <SelectTrigger className="h-6 w-[90px] text-xs px-1.5">
               <SelectValue placeholder="Select..." />
             </SelectTrigger>
             <SelectContent>
@@ -276,14 +276,14 @@ function SortableDeliverableCard({
           </Select>
         </div>
 
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+        <div className="flex items-center gap-1 flex-shrink-0">
           <span className="text-xs text-muted-foreground">Diss.:</span>
           <Select
             value={deliverable.dissemination_level || 'PU'}
             onValueChange={(value) => onUpdate(deliverable.id, { dissemination_level: value })}
             disabled={readOnly}
           >
-            <SelectTrigger className="h-7 w-[85px] text-xs">
+            <SelectTrigger className="h-6 w-[70px] text-xs px-1.5">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -296,14 +296,14 @@ function SortableDeliverableCard({
           </Select>
         </div>
 
-        <div className="flex items-center gap-1.5 flex-shrink-0 ml-auto">
+        <div className="flex items-center gap-1 flex-shrink-0 ml-auto">
           <span className="text-xs text-muted-foreground">Due:</span>
           <Select
             value={deliverable.due_month?.toString() || ''}
             onValueChange={(value) => onUpdate(deliverable.id, { due_month: value ? parseInt(value) : null })}
             disabled={readOnly}
           >
-            <SelectTrigger className="h-7 w-[55px] text-xs">
+            <SelectTrigger className="h-6 w-[50px] text-xs px-1">
               <SelectValue placeholder="M" />
             </SelectTrigger>
             <SelectContent>
