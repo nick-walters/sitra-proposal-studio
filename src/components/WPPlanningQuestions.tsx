@@ -85,7 +85,7 @@ export function WPPlanningQuestions({
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <HelpCircle className="h-4 w-4" />
-          Planning Questions
+          Planning questions
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">

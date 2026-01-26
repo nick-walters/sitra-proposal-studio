@@ -86,7 +86,7 @@ export function WPTableSection({
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Target className="h-4 w-4" />
-          WP table (objectives & tasks)
+          WP table (objective & tasks)
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
