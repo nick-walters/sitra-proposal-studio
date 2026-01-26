@@ -83,13 +83,13 @@ export function WPTableSection({
 
   return (
     <Card>
-      <CardHeader className="pb-2">
+      <CardHeader className="py-2 px-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Target className="h-4 w-4" />
           WP table (objective & tasks)
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-2 px-3 pb-3 pt-0">
         {/* Objectives section */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Objective</label>
@@ -226,7 +226,7 @@ function SortableTaskCard({
             <GripVertical className="w-4 h-4 text-muted-foreground" />
           </button>
         )}
-        <span className="font-mono text-sm text-muted-foreground flex-shrink-0 w-[52px]">
+        <span className="font-mono text-sm text-foreground font-medium flex-shrink-0 w-[52px]">
           {formatTaskNumber(task.number)}:
         </span>
         <Input

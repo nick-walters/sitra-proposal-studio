@@ -73,13 +73,13 @@ export function WPRisksTable({
 
   return (
     <Card>
-      <CardHeader className="pb-2">
+      <CardHeader className="py-2 px-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <AlertTriangle className="h-4 w-4" />
           Risks
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-1 px-3 pb-3 pt-0">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}

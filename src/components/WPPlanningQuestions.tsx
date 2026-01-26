@@ -82,13 +82,13 @@ export function WPPlanningQuestions({
 }: WPPlanningQuestionsProps) {
   return (
     <Card>
-      <CardHeader className="pb-2">
+      <CardHeader className="py-2 px-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <HelpCircle className="h-4 w-4" />
           Task interactions & bottlenecks
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3 px-3 pb-3 pt-0">
         <QuestionField
           id="wp-inputs"
           label="Inputs"
