@@ -171,12 +171,12 @@ export function useProposalSections(templateTypeId: string | null) {
 
   // Return either template sections or fallback to hardcoded sections
   const allSections = useMemo(() => {
-    // Define the Progress section
-    const progressSection: Section = {
-      id: 'progress',
+    // Define the Assignments section (formerly Progress)
+    const assignmentsSection: Section = {
+      id: 'assignments',
       number: '',
-      title: 'Progress',
-      isPartA: false,
+      title: 'Assignments',
+      isPartA: true, // Place in Part A area for ordering
     };
 
     // Define the Figures section (always needed for Part B)
@@ -209,13 +209,28 @@ export function useProposalSections(templateTypeId: string | null) {
         }
       }
       
-      // Add Progress section at the end
-      return [...partASections, ...partBSections, progressSection];
+      // Find proposal overview and insert Assignments after it
+      const overviewIndex = partASections.findIndex(s => s.id === 'proposal-overview');
+      if (overviewIndex !== -1) {
+        partASections.splice(overviewIndex + 1, 0, assignmentsSection);
+      } else {
+        // If no overview, add Assignments at the start
+        partASections.unshift(assignmentsSection);
+      }
+      
+      return [...partASections, ...partBSections];
     }
     
-    // Fallback to hardcoded sections (Figures is now inside Part B subsections)
-    // Add Progress section at the end
-    return [...PART_A_SECTIONS, ...HORIZON_EUROPE_SECTIONS, progressSection];
+    // Fallback to hardcoded sections
+    // Insert Assignments after proposal-overview
+    const fallbackSections = [...PART_A_SECTIONS, ...HORIZON_EUROPE_SECTIONS];
+    const overviewIndex = fallbackSections.findIndex(s => s.id === 'proposal-overview');
+    if (overviewIndex !== -1) {
+      fallbackSections.splice(overviewIndex + 1, 0, assignmentsSection);
+    } else {
+      fallbackSections.unshift(assignmentsSection);
+    }
+    return fallbackSections;
   }, [templateSections, hasTemplateSections]);
 
   // Create a refetch function that can be called externally

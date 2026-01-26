@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 interface SectionProgressDashboardProps {
   proposalId: string;
   proposalAcronym?: string;
+  currentUserId?: string;
 }
 
 function SummaryCard({ 
@@ -251,8 +252,8 @@ function ProgressByAssignee({ progress }: { progress: SectionProgressItem[] }) {
   );
 }
 
-export function SectionProgressDashboard({ proposalId, proposalAcronym }: SectionProgressDashboardProps) {
-  const { progress, summary, loading } = useSectionProgress(proposalId);
+export function SectionProgressDashboard({ proposalId, proposalAcronym, currentUserId }: SectionProgressDashboardProps) {
+  const { progress, summary, loading } = useSectionProgress(proposalId, currentUserId);
 
   if (loading) {
     return (
@@ -277,9 +278,9 @@ export function SectionProgressDashboard({ proposalId, proposalAcronym }: Sectio
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
             <BarChart3 className="w-8 h-8 text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-medium">No Assigned Sections</h3>
+          <h3 className="text-lg font-medium">No Assignments</h3>
           <p className="text-sm text-muted-foreground mt-2">
-            Assign sections to team members to track their progress here. 
+            You have no sections assigned to you and haven't assigned any sections to others yet. 
             Use the "Assign" button in the editor toolbar when viewing a Part B section.
           </p>
         </div>
@@ -295,10 +296,10 @@ export function SectionProgressDashboard({ proposalId, proposalAcronym }: Sectio
           <div>
             <h2 className="text-xl font-semibold flex items-center gap-2">
               <Target className="h-5 w-5 text-primary" />
-              Section Progress
+              My Assignments
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Track completion status for all assigned sections
+              Sections assigned to you or that you've assigned to others
             </p>
           </div>
           {proposalAcronym && (

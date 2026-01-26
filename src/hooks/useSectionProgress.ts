@@ -26,7 +26,7 @@ export interface ProgressSummary {
   completionPercentage: number;
 }
 
-export function useSectionProgress(proposalId: string | null) {
+export function useSectionProgress(proposalId: string | null, currentUserId?: string) {
   const [progress, setProgress] = useState<SectionProgressItem[]>([]);
   const [summary, setSummary] = useState<ProgressSummary>({
     totalAssigned: 0,
@@ -65,6 +65,7 @@ export function useSectionProgress(proposalId: string | null) {
         .select(`
           section_number,
           assigned_to,
+          assigned_by,
           due_date,
           placeholder_content
         `)
@@ -77,8 +78,13 @@ export function useSectionProgress(proposalId: string | null) {
         return;
       }
 
+      // Filter sections to only show those assigned to or by the current user
+      const filteredSectionsData = currentUserId
+        ? sectionsData.filter(s => s.assigned_to === currentUserId || s.assigned_by === currentUserId)
+        : sectionsData;
+
       // Get profile info for all assigned users
-      const userIds = [...new Set(sectionsData.map(s => s.assigned_to).filter(Boolean))];
+      const userIds = [...new Set(filteredSectionsData.map(s => s.assigned_to).filter(Boolean))];
       
       let profilesMap = new Map<string, { full_name: string | null; avatar_url: string | null; email: string | null }>();
       
@@ -96,7 +102,7 @@ export function useSectionProgress(proposalId: string | null) {
       }
 
       // Get section contents
-      const sectionNumbers = sectionsData.map(s => s.section_number);
+      const sectionNumbers = filteredSectionsData.map(s => s.section_number);
       const { data: contentData } = await supabase
         .from('section_content')
         .select('section_id, content, updated_at, last_edited_by')
@@ -150,7 +156,7 @@ export function useSectionProgress(proposalId: string | null) {
       };
 
       // Build progress items
-      const progressItems: SectionProgressItem[] = sectionsData.map(section => {
+      const progressItems: SectionProgressItem[] = filteredSectionsData.map(section => {
         const profile = profilesMap.get(section.assigned_to);
         const content = contentMap.get(section.section_number);
         const wordCount = content ? countWords(content.content) : 0;
@@ -226,7 +232,7 @@ export function useSectionProgress(proposalId: string | null) {
       console.error('Error fetching progress:', error);
       setLoading(false);
     }
-  }, [proposalId]);
+  }, [proposalId, currentUserId]);
 
   useEffect(() => {
     fetchProgress();
