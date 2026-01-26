@@ -40,15 +40,17 @@ interface Snippet {
   content: string;
   category: string;
   tags: string[];
+  sectionIds?: string[]; // e.g., ['b1-1', 'b1-2'] - if empty, available in all sections
 }
 
 const snippets: Snippet[] = [
-  // Impact & Dissemination
+  // Impact & Dissemination - B2.1 section
   {
     id: 'dissemination-plan',
     title: 'Dissemination Strategy Overview',
     category: 'Impact',
     tags: ['dissemination', 'communication'],
+    sectionIds: ['b2-1'],
     content: `The dissemination strategy will ensure maximum visibility and uptake of project results through a multi-channel approach:
 
 **Scientific Dissemination:**
@@ -71,6 +73,7 @@ const snippets: Snippet[] = [
     title: 'Exploitation Plan Template',
     category: 'Impact',
     tags: ['exploitation', 'commercialization'],
+    sectionIds: ['b2-1'],
     content: `**Exploitation Strategy:**
 
 The consortium has developed a comprehensive exploitation plan to maximize the impact of project outcomes:
@@ -90,6 +93,7 @@ The consortium has developed a comprehensive exploitation plan to maximize the i
     title: 'Sustainability Beyond Funding',
     category: 'Impact',
     tags: ['sustainability', 'long-term'],
+    sectionIds: ['b2-1'],
     content: `**Sustainability Strategy:**
 
 The project has developed a clear sustainability roadmap to ensure continuity beyond EC funding:
@@ -109,12 +113,13 @@ The project has developed a clear sustainability roadmap to ensure continuity be
 - Active user community building
 - Training and capacity building`,
   },
-  // Excellence
+  // Excellence - B1.1 section
   {
     id: 'state-of-art',
     title: 'State-of-the-Art Analysis',
     category: 'Excellence',
     tags: ['sota', 'background'],
+    sectionIds: ['b1-1'],
     content: `**Current State-of-the-Art:**
 
 The project builds upon and advances the current state-of-the-art in [field]:
@@ -136,6 +141,7 @@ The proposed approach addresses these limitations through [methodology], resulti
     title: 'Methodology Framework',
     category: 'Excellence',
     tags: ['methodology', 'approach'],
+    sectionIds: ['b1-1', 'b1-2'],
     content: `**Methodological Approach:**
 
 The project employs a rigorous methodological framework structured around three pillars:
@@ -154,12 +160,13 @@ The project employs a rigorous methodological framework structured around three 
 - Milestone-based evaluation
 - External advisory input`,
   },
-  // Implementation
+  // Implementation - B1.2 section
   {
     id: 'risk-management',
     title: 'Risk Management Table',
     category: 'Implementation',
     tags: ['risks', 'mitigation'],
+    sectionIds: ['b1-2'],
     content: `**Risk Management Strategy:**
 
 | Risk | Likelihood | Impact | Mitigation |
@@ -179,6 +186,7 @@ The project employs a rigorous methodological framework structured around three 
     title: 'Consortium Excellence',
     category: 'Implementation',
     tags: ['consortium', 'partners'],
+    sectionIds: ['b1-2'],
     content: `**Consortium Excellence:**
 
 The consortium brings together [X] partners from [Y] countries, combining:
@@ -196,12 +204,13 @@ The consortium brings together [X] partners from [Y] countries, combining:
 **Resource Commitment:**
 The partners commit significant resources to ensure project success, including [specific resources].`,
   },
-  // Cross-cutting
+  // Cross-cutting - available in multiple sections
   {
     id: 'gender-equality',
     title: 'Gender Equality Plan',
     category: 'Cross-cutting',
     tags: ['gender', 'equality', 'diversity'],
+    sectionIds: ['b1-1', 'b1-2', 'b2-1'],
     content: `**Gender Dimension:**
 
 The project is committed to promoting gender equality across all activities:
@@ -226,6 +235,7 @@ The project is committed to promoting gender equality across all activities:
     title: 'Open Science Statement',
     category: 'Cross-cutting',
     tags: ['open science', 'FAIR', 'data'],
+    sectionIds: ['b1-1', 'b2-1'],
     content: `**Open Science Practices:**
 
 The project is committed to Open Science principles in line with Horizon Europe requirements:
@@ -250,6 +260,7 @@ The project is committed to Open Science principles in line with Horizon Europe 
     title: 'Ethics Considerations',
     category: 'Cross-cutting',
     tags: ['ethics', 'responsible research'],
+    sectionIds: ['b1-1', 'b1-2'],
     content: `**Ethical Considerations:**
 
 The project adheres to the highest ethical standards:
@@ -287,9 +298,24 @@ export function SnippetsDialog({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
-  const categories = ['all', ...Array.from(new Set(snippets.map(s => s.category)))];
+  // Normalize section ID for matching (e.g., 'B1.1' -> 'b1-1', 'b1-1' -> 'b1-1')
+  const normalizedSectionId = sectionId
+    ?.toLowerCase()
+    .replace(/^[a-z]/, '') // Remove letter prefix
+    .replace('.', '-'); // Replace dot with dash
 
-  const filteredSnippets = snippets.filter(snippet => {
+  // Filter snippets based on section first
+  const sectionFilteredSnippets = snippets.filter(snippet => {
+    // If no sectionIds specified, show in all sections (backwards compat)
+    if (!snippet.sectionIds || snippet.sectionIds.length === 0) return true;
+    // If we have a sectionId, check if this snippet is available for this section
+    if (!normalizedSectionId) return true;
+    return snippet.sectionIds.some(sid => sid === normalizedSectionId || sid === sectionId);
+  });
+
+  const categories = ['all', ...Array.from(new Set(sectionFilteredSnippets.map(s => s.category)))];
+
+  const filteredSnippets = sectionFilteredSnippets.filter(snippet => {
     const matchesSearch = searchQuery === '' || 
       snippet.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       snippet.content.toLowerCase().includes(searchQuery.toLowerCase()) ||

@@ -459,11 +459,11 @@ export function DocumentEditor({
         <div className="flex items-center justify-between p-2 border-b border-border bg-card">
           <div className="flex-1 overflow-x-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
             <div className="flex items-center gap-2 min-w-max">
-              {/* Guidelines button - first, non-AI feature */}
+            {/* Guidelines button - first, non-AI feature - red styling */}
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="gap-2"
+                className="gap-2 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
                 onClick={() => setIsGuidelinesOpen(true)}
               >
                 <Info className="w-4 h-4" />
@@ -904,18 +904,58 @@ export function DocumentEditor({
         selectedText={selectedText}
         onApply={(newText) => {
           if (editor && selectionRange) {
+            // When AI assistant applies changes, add as tracked change with "AI Assistant" as author
+            const trackChangesStorage = (editor.storage as any)?.trackChanges;
+            if (trackChangesEnabled && trackChangesStorage) {
+              const originalAuthorId = 'ai-assistant';
+              const originalAuthorName = 'AI Assistant';
+              const originalAuthorColor = '#8B5CF6'; // Purple for AI
+              
+              // Add the change tracking manually for AI
+              const changeId = `change-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+              
+              // Store deletion as AI tracked change
+              if (selectedText.trim()) {
+                trackChangesStorage.changes.push({
+                  id: `${changeId}-del`,
+                  type: 'deletion',
+                  authorId: originalAuthorId,
+                  authorName: originalAuthorName,
+                  authorColor: originalAuthorColor,
+                  timestamp: new Date(),
+                  from: selectionRange.start,
+                  to: selectionRange.start,
+                  content: selectedText,
+                });
+              }
+            }
+            
             editor.chain()
               .focus()
               .setTextSelection({ from: selectionRange.start, to: selectionRange.end })
               .deleteSelection()
               .insertContent(newText)
               .run();
+            
+            // If track changes is enabled, the insertion will be automatically tracked
+            // but we need to update the last change to be attributed to AI
+            const postStorage = (editor.storage as any)?.trackChanges;
+            if (trackChangesEnabled && postStorage) {
+              const lastChange = postStorage.changes[postStorage.changes.length - 1];
+              if (lastChange && lastChange.type === 'insertion') {
+                lastChange.authorId = 'ai-assistant';
+                lastChange.authorName = 'AI Assistant';
+                lastChange.authorColor = '#8B5CF6';
+              }
+              setTrackedChanges([...postStorage.changes]);
+            }
           }
         }}
       />
       <SnippetsDialog
         isOpen={isSnippetsOpen}
         onClose={() => setIsSnippetsOpen(false)}
+        sectionId={section?.id || section?.number || ''}
         onInsert={(snippetContent) => {
           if (editor) {
             editor.chain().focus().insertContent(snippetContent).run();
