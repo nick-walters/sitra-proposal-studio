@@ -206,7 +206,7 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
     },
   });
 
-  // Reorder mutation
+  // Reorder mutation with optimistic updates
   const reorderMutation = useMutation({
     mutationFn: async (reorderedWPs: WPDraft[]) => {
       const updates = reorderedWPs.map((wp, index) => ({
@@ -223,7 +223,32 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
         if (error) throw error;
       }
     },
-    onSuccess: () => {
+    onMutate: async (reorderedWPs) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['wp-drafts-management', proposalId] });
+      
+      // Snapshot the previous value
+      const previousWPs = queryClient.getQueryData<WPDraft[]>(['wp-drafts-management', proposalId]);
+      
+      // Optimistically update with new order and numbers
+      const optimisticWPs = reorderedWPs.map((wp, index) => ({
+        ...wp,
+        order_index: index,
+        number: index + 1,
+      }));
+      queryClient.setQueryData(['wp-drafts-management', proposalId], optimisticWPs);
+      
+      // Return context with the snapshotted value
+      return { previousWPs };
+    },
+    onError: (_err, _vars, context) => {
+      // Rollback on error
+      if (context?.previousWPs) {
+        queryClient.setQueryData(['wp-drafts-management', proposalId], context.previousWPs);
+      }
+      toast.error('Failed to reorder work packages');
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
     },
