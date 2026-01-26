@@ -138,7 +138,7 @@ export function ParticipantTable({
     setFetchingLogoId(participantId);
     try {
       const { data, error } = await supabase.functions.invoke('fetch-logo', {
-        body: { organisationName, shortName, convertToGray: true }
+        body: { organisationName, shortName, convertToGray: false }
       });
 
       if (error) throw error;
@@ -249,7 +249,7 @@ export function ParticipantTable({
                         <img 
                           src={participant.logoUrl} 
                           alt="" 
-                          className="w-8 h-8 object-contain cursor-pointer grayscale brightness-0"
+                          className="w-8 h-8 object-contain cursor-pointer"
                           onClick={() => fileInputRefs.current[participant.id]?.click()}
                         />
                         <Button
@@ -301,7 +301,7 @@ export function ParticipantTable({
                     <img 
                       src={participant.logoUrl} 
                       alt="" 
-                      className="w-8 h-8 object-contain grayscale brightness-0"
+                      className="w-8 h-8 object-contain"
                     />
                   ) : (
                     <div className="w-8 h-8 bg-muted rounded flex items-center justify-center text-[9px] text-muted-foreground">
