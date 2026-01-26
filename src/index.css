@@ -269,9 +269,12 @@
     line-height: 1.0;
   }
 
-  /* Body text left-aligned by default with 6pt spacing */
+  /* Body text left-aligned at 1.5cm margin, no indent */
   .document-content p {
-    text-align: left;
+    text-align: left !important;
+    text-indent: 0 !important;
+    margin-left: 0 !important;
+    padding-left: 0 !important;
     margin-top: 6pt;
     margin-bottom: 6pt;
   }
@@ -530,12 +533,32 @@
   margin-top: 0 !important;
 }
 
-/* Paragraph spacing in ProseMirror - left aligned, no indent */
+/* Paragraph spacing in ProseMirror - left aligned at 1.5cm margin, no indent */
 .ProseMirror p {
   margin-top: 6pt;
   margin-bottom: 6pt;
-  text-align: left;
-  text-indent: 0;
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+  text-align: left !important;
+  text-indent: 0 !important;
+}
+
+/* Ensure all ProseMirror content starts at left margin */
+.ProseMirror {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+}
+
+/* Lists also left-aligned without extra indent */
+.ProseMirror ul,
+.ProseMirror ol {
+  margin-left: 0 !important;
+  padding-left: 1.5em !important; /* Standard list indent from text edge */
+}
+
+.ProseMirror li {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
 }
 
 /* Override spacing for caption paragraphs */
