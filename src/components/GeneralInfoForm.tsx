@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { InlineGuideline } from "./GuidelineBox";
-import { SitraTipsBox } from "./SitraTipsBox";
+import { PartAGuidelinesDialog } from "./PartAGuidelinesDialog";
 import { Section } from "@/types/proposal";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -357,7 +357,19 @@ export function GeneralInfoForm({
   const abstractWordCount = formData.abstract.trim() ? formData.abstract.trim().split(/\s+/).length : 0;
   const freeKeywordsCharCount = formData.freeKeywords.length;
 
-  // Extract Sitra tips from section guidelines - must be before early return to maintain hook order
+  // Extract guidelines from section - must be before early return to maintain hook order
+  const officialGuidelines = useMemo(() => {
+    return (section.guidelinesArray || [])
+      .filter(g => g.type === 'official' || g.type === 'evaluation')
+      .sort((a, b) => a.orderIndex - b.orderIndex)
+      .map(g => ({
+        id: g.id,
+        title: g.title,
+        content: g.content,
+        type: g.type,
+      }));
+  }, [section.guidelinesArray]);
+
   const sitraTips = useMemo(() => {
     return (section.guidelinesArray || [])
       .filter(g => g.type === 'sitra_tip')
@@ -380,14 +392,18 @@ export function GeneralInfoForm({
   return (
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
       <div className="max-w-3xl mx-auto space-y-6">
+        {/* Guidelines Button */}
+        <PartAGuidelinesDialog
+          sectionTitle="Part A1: General information"
+          officialGuidelines={officialGuidelines}
+          sitraTips={sitraTips}
+        />
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">Part A1: General information</h1>
           {canEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
         </div>
-
-        {/* Sitra's Tips */}
-        <SitraTipsBox tips={sitraTips} />
 
         {/* Proposal Summary Card */}
         <Card>

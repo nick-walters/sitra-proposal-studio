@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Participant, ParticipantMember, PARTICIPANT_TYPE_LABELS, Section } from '@/types/proposal';
 import { Building2, ChevronRight, GripVertical, UserPlus } from 'lucide-react';
-import { SitraTipsBox } from './SitraTipsBox';
+import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
 import { Badge } from './ui/badge';
 import { InviteToProposalDialog } from './InviteToProposalDialog';
 import {
@@ -141,7 +141,19 @@ export function ParticipantListView({
 }: ParticipantListViewProps) {
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
 
-  // Extract Sitra tips from section guidelines
+  // Extract guidelines from section
+  const officialGuidelines = useMemo(() => {
+    return (section?.guidelinesArray || [])
+      .filter(g => g.type === 'official' || g.type === 'evaluation')
+      .sort((a, b) => a.orderIndex - b.orderIndex)
+      .map(g => ({
+        id: g.id,
+        title: g.title,
+        content: g.content,
+        type: g.type,
+      }));
+  }, [section?.guidelinesArray]);
+
   const sitraTips = useMemo(() => {
     return (section?.guidelinesArray || [])
       .filter(g => g.type === 'sitra_tip')
@@ -189,6 +201,13 @@ export function ParticipantListView({
   return (
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
       <div className="max-w-3xl mx-auto space-y-6">
+        {/* Guidelines Button */}
+        <PartAGuidelinesDialog
+          sectionTitle="Part A2: Participants"
+          officialGuidelines={officialGuidelines}
+          sitraTips={sitraTips}
+        />
+
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-2">
@@ -203,9 +222,6 @@ export function ParticipantListView({
             )}
           </div>
         </div>
-
-        {/* Sitra's Tips */}
-        <SitraTipsBox tips={sitraTips} />
 
         {/* Participants List */}
         {sortedParticipants.length === 0 ? (

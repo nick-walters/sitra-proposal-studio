@@ -3,8 +3,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { AlertTriangle, CheckCircle, Shield } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Shield, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
 
 // Extended ethics assessment interface for full proposals
 export interface EthicsAssessment {
@@ -650,6 +651,16 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
   return (
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
       <div className="max-w-5xl mx-auto space-y-6">
+        {/* Guidelines Button */}
+        <PartAGuidelinesDialog
+          sectionTitle="Part A4: Ethics self-assessment"
+          officialGuidelines={[{
+            id: 'ethics-info',
+            title: 'Ethics Issues Table',
+            content: 'Complete the ethics self-assessment by answering all applicable questions.\n\nFor each "Yes" answer:\n• Provide the page number in Part B where the issue is addressed\n• Sub-questions only appear when the parent question is answered "Yes"\n\nThis assessment covers:\n• Human embryonic stem cells\n• Research involving humans\n• Human cells/tissues\n• Personal data protection\n• Animals in research\n• Third countries research\n• Environment and safety\n• Artificial intelligence\n• Other potential ethics issues'
+          }]}
+        />
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-foreground">Part A4: Ethics self-assessment</h1>
@@ -670,23 +681,6 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
             )}
           </Badge>
         </div>
-
-        {/* Info Card */}
-        <Card className="bg-accent/50 border-primary/20">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-3">
-              <Shield className="w-5 h-5 text-primary mt-0.5" />
-              <div>
-                <h4 className="font-medium text-sm text-primary mb-1">Ethics Issues Table</h4>
-                <p className="text-sm text-muted-foreground">
-                  Complete the ethics self-assessment by answering all applicable questions. 
-                  For each "Yes" answer, provide the page number in Part B where the issue is addressed. 
-                  Sub-questions only appear when the parent question is answered "Yes".
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Ethics Sections */}
         {ETHICS_SECTIONS.map((section) => {
