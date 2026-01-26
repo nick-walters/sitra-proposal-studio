@@ -351,33 +351,58 @@ export function DocumentEditor({
       return;
     }
     
+    // Check if editor is empty or cursor is at the very beginning
+    const editorText = editor.getText().trim();
+    const isEditorEmpty = editorText === '';
+    const cursorPos = editor.state.selection.from;
+    const isAtStart = cursorPos <= 1;
+    
     // Insert image and caption together
     const figureLabel = `Figure ${figure.figureNumber}`;
     
-    editor.chain()
-      .focus()
-      .insertContent([
+    // Build content array - add placeholder paragraph if inserting at start of empty/beginning
+    const contentToInsert: any[] = [];
+    
+    if (isEditorEmpty || isAtStart) {
+      // Add a placeholder paragraph before the figure
+      contentToInsert.push({
+        type: 'paragraph',
+        content: [
+          {
+            type: 'text',
+            text: '[Introductory text to be added]'
+          }
+        ]
+      });
+    }
+    
+    // Add the figure image
+    contentToInsert.push({
+      type: 'image',
+      attrs: { src: imageUrl, alt: figure.title }
+    });
+    
+    // Add the caption
+    contentToInsert.push({
+      type: 'paragraph',
+      attrs: { class: 'figure-caption' },
+      content: [
         {
-          type: 'image',
-          attrs: { src: imageUrl, alt: figure.title }
+          type: 'text',
+          marks: [{ type: 'italic' }, { type: 'bold' }],
+          text: figureLabel + '.'
         },
         {
-          type: 'paragraph',
-          attrs: { class: 'figure-caption' },
-          content: [
-            {
-              type: 'text',
-              marks: [{ type: 'italic' }, { type: 'bold' }],
-              text: figureLabel + '.'
-            },
-            {
-              type: 'text',
-              marks: [{ type: 'italic' }],
-              text: ' ' + (figure.title || '')
-            }
-          ]
+          type: 'text',
+          marks: [{ type: 'italic' }],
+          text: ' ' + (figure.title || '')
         }
-      ])
+      ]
+    });
+    
+    editor.chain()
+      .focus()
+      .insertContent(contentToInsert)
       .run();
   }, [editor]);
 
