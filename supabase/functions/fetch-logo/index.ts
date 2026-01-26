@@ -126,10 +126,10 @@ function guessDomainFromName(name: string): string | null {
   return null;
 }
 
-// Convert image to pure black and white (crop empty space, light grey → white)
-async function convertToBlackAndWhite(imageUrl: string): Promise<string> {
+// Convert image to grayscale - actual B&W conversion done via CSS on frontend
+async function convertToGrayscale(imageUrl: string): Promise<string> {
   try {
-    // Fetch the original image first
+    // Fetch the image
     const response = await fetch(imageUrl);
     if (!response.ok) {
       throw new Error('Failed to fetch image');
@@ -138,60 +138,11 @@ async function convertToBlackAndWhite(imageUrl: string): Promise<string> {
     const imageBuffer = await response.arrayBuffer();
     const base64 = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
     const contentType = response.headers.get('content-type') || 'image/png';
-    const imageDataUrl = `data:${contentType};base64,${base64}`;
     
-    // Use Lovable AI to crop and convert to pure black and white
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      console.log('LOVABLE_API_KEY not available, returning original');
-      return imageDataUrl;
-    }
-    
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image",
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: "Process this logo image: 1) CROP to remove all empty/white space around the logo, keeping only the logo itself with minimal padding. 2) Convert to pure black and white only - no grey tones. IMPORTANT: Mid-grey and light grey pixels should become WHITE (#FFFFFF), only dark colors should become BLACK (#000000). The threshold should be low so only truly dark elements become black. Keep the logo sharp and clean. Return only the processed image."
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: imageDataUrl
-                }
-              }
-            ]
-          }
-        ],
-        modalities: ["image", "text"]
-      })
-    });
-    
-    if (!aiResponse.ok) {
-      console.log('AI conversion failed, returning original');
-      return imageDataUrl;
-    }
-    
-    const aiData = await aiResponse.json();
-    const convertedImageUrl = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    
-    if (convertedImageUrl) {
-      console.log('Successfully cropped and converted logo to black and white');
-      return convertedImageUrl;
-    }
-    
-    return imageDataUrl;
+    // Return as data URL - grayscale will be applied via CSS on the frontend
+    return `data:${contentType};base64,${base64}`;
   } catch (e) {
-    console.error('Black and white conversion error:', e);
+    console.error('Grayscale conversion error:', e);
     throw e;
   }
 }
@@ -229,9 +180,9 @@ serve(async (req: Request) => {
     // If grayscale conversion requested, fetch and convert
     if (convertToGray) {
       try {
-        const bwDataUrl = await convertToBlackAndWhite(logoUrl);
+        const grayscaleDataUrl = await convertToGrayscale(logoUrl);
         return new Response(
-          JSON.stringify({ logoUrl: bwDataUrl, originalUrl: logoUrl, isBlackAndWhite: true }),
+          JSON.stringify({ logoUrl: grayscaleDataUrl, originalUrl: logoUrl, isGrayscale: true }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       } catch (e) {
