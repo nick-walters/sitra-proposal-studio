@@ -48,9 +48,34 @@ const SITRA_TIPS = [
     title: 'Consider timing carefully',
     content: 'Plan task timing to avoid bottlenecks. Allow buffer for unexpected delays, especially for external dependencies and approval processes.',
   },
+  {
+    id: 'sitra-methodology-1',
+    title: 'Be specific about your choices',
+    content: 'Explain WHY you chose these particular methods over alternatives. Evaluators want to see that you\'ve considered options and made informed decisions.',
+  },
+  {
+    id: 'sitra-methodology-2',
+    title: 'Reference state-of-the-art',
+    content: 'Show awareness of current best practices and explain how your approach builds on or improves existing methodologies.',
+  },
+  {
+    id: 'sitra-methodology-3',
+    title: 'Acknowledge limitations',
+    content: 'Being honest about methodological limitations and explaining your mitigation strategies demonstrates maturity and credibility.',
+  },
+  {
+    id: 'sitra-methodology-4',
+    title: 'Link to objectives',
+    content: 'Explicitly connect your methods to the objectives they support. Show evaluators that every methodological choice serves a purpose.',
+  },
 ];
 
 const EC_GUIDELINES = [
+  {
+    id: 'ec-methodology',
+    title: 'Methodology',
+    content: 'Describe and explain the methodologies used in this WP, including the concepts, models and assumptions that underpin your work. Explain how they will enable you to deliver your project\'s objectives. Refer to any important challenges you may have identified in the chosen methodologies and how you intend to overcome them.',
+  },
   {
     id: 'ec-objectives',
     title: 'Objectives',
