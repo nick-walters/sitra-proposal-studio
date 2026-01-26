@@ -368,13 +368,16 @@ export function ProposalSummaryPage({
                     placeholder="e.g. HORIZON-CL5-2026-D1-01"
                     className="max-w-md h-8 text-sm"
                   />
-                  <Input
-                    value={editedProposal.topicUrl || ''}
-                    onChange={(e) => setEditedProposal({ ...editedProposal, topicUrl: e.target.value })}
-                    placeholder="Portal URL (https://ec.europa.eu/...)"
-                    type="url"
-                    className="max-w-md h-8 text-sm"
-                  />
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-0.5 block">Link to topic</label>
+                    <Input
+                      value={editedProposal.topicUrl || ''}
+                      onChange={(e) => setEditedProposal({ ...editedProposal, topicUrl: e.target.value })}
+                      placeholder="Portal URL (https://ec.europa.eu/...)"
+                      type="url"
+                      className="max-w-md h-8 text-sm"
+                    />
+                  </div>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
