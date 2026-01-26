@@ -226,7 +226,7 @@ function SortableTaskCard({
             <GripVertical className="w-4 h-4 text-muted-foreground" />
           </button>
         )}
-        <span className="font-mono text-sm text-foreground font-medium flex-shrink-0 w-[52px]">
+        <span className="text-sm text-foreground font-medium flex-shrink-0 w-[52px]" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
           {formatTaskNumber(task.number)}:
         </span>
         <Input
