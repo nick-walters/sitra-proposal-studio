@@ -390,7 +390,7 @@
     margin: 0 auto;
   }
 
-  /* Document header - positioned at top within margin */
+  /* Document header - centered at top within margin */
   .document-page-header {
     position: absolute;
     top: 0.5cm;
@@ -400,11 +400,12 @@
     font-size: 8pt;
     color: hsl(var(--muted-foreground));
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
+    text-align: center;
   }
 
-  /* Document footer - positioned at bottom within margin */
+  /* Document footer - centered at bottom within margin */
   .document-page-footer {
     position: absolute;
     bottom: 0.5cm;
@@ -414,8 +415,9 @@
     font-size: 8pt;
     color: hsl(var(--muted-foreground));
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
+    text-align: center;
   }
 
   .proposal-badge {
@@ -528,10 +530,12 @@
   margin-top: 0 !important;
 }
 
-/* Paragraph spacing in ProseMirror */
+/* Paragraph spacing in ProseMirror - left aligned, no indent */
 .ProseMirror p {
   margin-top: 6pt;
   margin-bottom: 6pt;
+  text-align: left;
+  text-indent: 0;
 }
 
 /* Override spacing for caption paragraphs */

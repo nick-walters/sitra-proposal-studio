@@ -736,10 +736,9 @@ export function DocumentEditor({
 
             {/* Document Page with Rich Text Editor */}
             <div className="document-page animate-fade-in">
-              {/* Page Header - inside margin at top */}
+              {/* Page Header - centered, shows Topic ID and Title */}
               <div className="document-page-header">
-                <span>{topicId || ''}</span>
-                <span>{proposalTitle || proposalAcronym}</span>
+                <span className="w-full text-center">{topicId || ''} {proposalTitle || proposalAcronym}</span>
               </div>
 
               <h1 className="document-h1 text-foreground mb-6">{formatSectionHeading(section.number)} {section.title}</h1>
@@ -788,11 +787,14 @@ export function DocumentEditor({
                 </div>
               )}
 
-              {/* Page Footer - inside margin at bottom */}
+              {/* Page Footer - centered: "ACRONYM (Stage 1 of 2) | Part BX.X. Subsection title | Page X of X" */}
               <div className="document-page-footer">
-                <span>{proposalAcronym}</span>
-                <span>Section {section.number}: {section.title}</span>
-                <span>Page 1 of 1</span>
+                <span className="w-full text-center">
+                  <strong>{proposalAcronym}</strong>
+                  {' (Stage 1 of 2) | Part '}
+                  {section.number}. {section.title}
+                  {' | Page 1 of 1'}
+                </span>
               </div>
             </div>
           </div>
