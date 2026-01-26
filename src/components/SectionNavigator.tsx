@@ -36,6 +36,10 @@ function formatSectionNumber(number: string, depth: number): string {
   if (number.startsWith('Part')) {
     return number;
   }
+  // WP numbers get a colon (e.g., "WP1" -> "WP1:")
+  if (number.startsWith('WP')) {
+    return number + ':';
+  }
   // Remove dots between letter and first number (e.g., "B.1.1" -> "B1.1")
   // Then add trailing period (e.g., "B1.1" -> "B1.1.")
   const formatted = number.replace(/^([AB])\./, '$1');
