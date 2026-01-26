@@ -1,14 +1,11 @@
 import { useState, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Participant, ParticipantMember, PARTICIPANT_TYPE_LABELS, ParticipantType, Section } from '@/types/proposal';
-import { Plus, Building2, ChevronRight, GripVertical, UserPlus } from 'lucide-react';
-import { InlineGuideline } from './GuidelineBox';
+import { Participant, ParticipantMember, PARTICIPANT_TYPE_LABELS, Section } from '@/types/proposal';
+import { Building2, ChevronRight, GripVertical, UserPlus } from 'lucide-react';
 import { SitraTipsBox } from './SitraTipsBox';
 import { Badge } from './ui/badge';
-import { AddParticipantDialog } from './AddParticipantDialog';
 import { InviteToProposalDialog } from './InviteToProposalDialog';
-import { OrganisationCategory } from './ParticipantTable';
 import {
   DndContext,
   closestCenter,
@@ -33,20 +30,8 @@ interface ParticipantListViewProps {
   proposalAcronym: string;
   section?: Section;
   onSelectParticipant: (participant: Participant) => void;
-  onAddParticipant: (participant: {
-    organisationName: string;
-    organisationShortName?: string;
-    organisationType: ParticipantType;
-    country?: string;
-    picNumber?: string;
-    legalEntityType?: string;
-    isSme: boolean;
-    organisationCategory?: OrganisationCategory;
-    englishName?: string;
-  }) => Promise<void>;
   onReorderParticipants?: (participants: Participant[]) => Promise<void>;
   onMemberAdded: (member: Omit<ParticipantMember, 'id'>) => void;
-  canAddParticipant: boolean;
   canInvite: boolean;
   canReorder?: boolean;
 }
@@ -149,14 +134,11 @@ export function ParticipantListView({
   proposalAcronym,
   section,
   onSelectParticipant,
-  onAddParticipant,
   onReorderParticipants,
   onMemberAdded,
-  canAddParticipant,
   canInvite,
   canReorder = false,
 }: ParticipantListViewProps) {
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
 
   // Extract Sitra tips from section guidelines
@@ -181,20 +163,6 @@ export function ParticipantListView({
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
-
-  const handleAddParticipant = async (participant: {
-    organisationName: string;
-    organisationShortName?: string;
-    organisationType: ParticipantType;
-    country?: string;
-    picNumber?: string;
-    legalEntityType?: string;
-    isSme: boolean;
-    organisationCategory?: OrganisationCategory;
-    englishName?: string;
-  }) => {
-    await onAddParticipant(participant);
-  };
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
@@ -225,23 +193,12 @@ export function ParticipantListView({
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-2">
             <h1 className="text-xl font-semibold">Part A2: Participants</h1>
-            <InlineGuideline>
-              Enter organisation details using PIC (Participant Identification Code) from the EC Participant Register. 
-              {canReorder && ' Drag and drop to reorder participants.'}
-              {' '}Coordinator is always Participant #1.
-            </InlineGuideline>
           </div>
           <div className="flex gap-2">
             {canInvite && (
               <Button variant="outline" onClick={() => setIsInviteDialogOpen(true)} className="gap-2">
                 <UserPlus className="w-4 h-4" />
                 Invite
-              </Button>
-            )}
-            {canAddParticipant && (
-              <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
-                <Plus className="w-4 h-4" />
-                Add Participant
               </Button>
             )}
           </div>
@@ -257,14 +214,8 @@ export function ParticipantListView({
               <Building2 className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
               <h3 className="text-lg font-medium text-muted-foreground">No participants yet</h3>
               <p className="text-sm text-muted-foreground/70 mt-1">
-                Add the first participant organisation to get started
+                Add participants from the Proposal Overview page
               </p>
-              {canAddParticipant && (
-                <Button onClick={() => setIsAddDialogOpen(true)} className="mt-4 gap-2">
-                  <Plus className="w-4 h-4" />
-                  Add Participant
-                </Button>
-              )}
             </CardContent>
           </Card>
         ) : canReorder && onReorderParticipants ? (
@@ -331,14 +282,6 @@ export function ParticipantListView({
           </div>
         )}
       </div>
-
-      {/* Add Participant Dialog */}
-      <AddParticipantDialog
-        open={isAddDialogOpen}
-        onOpenChange={setIsAddDialogOpen}
-        onAddParticipant={handleAddParticipant}
-        participantCount={participants.length}
-      />
 
       {/* Invite to Proposal Dialog */}
       <InviteToProposalDialog

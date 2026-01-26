@@ -9,11 +9,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { LogoUpload } from '@/components/LogoUpload';
 // ProposalSchedule removed from overview page
-import { ParticipantTable, ExtendedParticipant } from '@/components/ParticipantTable';
+import { ParticipantTable, ExtendedParticipant, OrganisationCategory } from '@/components/ParticipantTable';
 import { WPManagementCard } from '@/components/WPManagementCard';
 import { WPDependencySelector } from '@/components/WPDependencySelector';
+import { AddParticipantDialog } from '@/components/AddParticipantDialog';
 
-import { Proposal, Participant, ParticipantMember, WORK_PROGRAMMES, DESTINATIONS, ProposalStatus, getDestinationsForWorkProgramme } from '@/types/proposal';
+import { Proposal, Participant, ParticipantMember, WORK_PROGRAMMES, DESTINATIONS, ProposalStatus, getDestinationsForWorkProgramme, ParticipantType } from '@/types/proposal';
 
 import {
   ExternalLink,
@@ -23,6 +24,7 @@ import {
   FileText,
   Target,
   Download,
+  Plus,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -34,6 +36,17 @@ interface ProposalSummaryPageProps {
   budgetItems: { amount: number; participantId: string }[];
   onUpdateProposal?: (updates: Partial<Proposal>) => Promise<void>;
   onUpdateParticipant?: (id: string, updates: Partial<ExtendedParticipant>) => void;
+  onAddParticipant?: (participant: {
+    organisationName: string;
+    organisationShortName?: string;
+    organisationType: ParticipantType;
+    country?: string;
+    picNumber?: string;
+    legalEntityType?: string;
+    isSme: boolean;
+    organisationCategory?: OrganisationCategory;
+    englishName?: string;
+  }) => Promise<void>;
   onSubmit?: () => Promise<void>;
   onUpdateStatus?: (status: ProposalStatus) => Promise<void>;
   canEdit?: boolean;
@@ -118,6 +131,7 @@ export function ProposalSummaryPage({
   budgetItems,
   onUpdateProposal,
   onUpdateParticipant,
+  onAddParticipant,
   onSubmit,
   onUpdateStatus,
   canEdit = true,
@@ -125,6 +139,7 @@ export function ProposalSummaryPage({
   onExportPdf,
   onExportPdfNoWatermark,
 }: ProposalSummaryPageProps) {
+  const [isAddParticipantDialogOpen, setIsAddParticipantDialogOpen] = useState(false);
   const [editedProposal, setEditedProposal] = useState(proposal);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [availableDestinations, setAvailableDestinations] = useState(
@@ -615,10 +630,18 @@ export function ProposalSummaryPage({
         {/* List of participants */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              List of participants
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                List of participants
+              </CardTitle>
+              {isAdmin && onAddParticipant && (
+                <Button onClick={() => setIsAddParticipantDialogOpen(true)} className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  Add Participant
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="pt-0">
             <ParticipantTable
@@ -629,6 +652,18 @@ export function ProposalSummaryPage({
             />
           </CardContent>
         </Card>
+
+        {/* Add Participant Dialog */}
+        {onAddParticipant && (
+          <AddParticipantDialog
+            open={isAddParticipantDialogOpen}
+            onOpenChange={setIsAddParticipantDialogOpen}
+            onAddParticipant={async (participantData) => {
+              await onAddParticipant(participantData);
+            }}
+            participantCount={participants.length}
+          />
+        )}
 
         {/* WP Dependencies for PERT Chart (Full Proposals Only) */}
         {proposal.submissionStage !== 'stage_1' && (
