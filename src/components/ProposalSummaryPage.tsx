@@ -411,7 +411,7 @@ export function ProposalSummaryPage({
                     </SelectTrigger>
                     <SelectContent className="z-50 bg-popover">
                       {availableDestinations.map(d => (
-                        <SelectItem key={d.id} value={d.id} className="pl-2">
+                        <SelectItem key={d.id} value={d.id} className="!pl-2">
                           {d.abbreviation} - {d.fullName}
                         </SelectItem>
                       ))}
