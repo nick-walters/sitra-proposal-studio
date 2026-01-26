@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useWPDraftEditor } from '@/hooks/useWPDrafts';
 import { WPMethodologySection } from '@/components/WPMethodologySection';
 import { WPTableSection } from '@/components/WPTableSection';
@@ -6,6 +6,11 @@ import { WPPlanningQuestions } from '@/components/WPPlanningQuestions';
 import { WPEffortMatrix } from '@/components/WPEffortMatrix';
 import { WPDeliverablesTable } from '@/components/WPDeliverablesTable';
 import { WPRisksTable } from '@/components/WPRisksTable';
+import { CitationDialog } from '@/components/CitationDialog';
+import { InsertCrossReferenceDialog } from '@/components/InsertCrossReferenceDialog';
+import { InsertWPReferenceDialog } from '@/components/InsertWPReferenceDialog';
+import { InsertFigureDialog } from '@/components/InsertFigureDialog';
+import { useProposalReferences } from '@/hooks/useProposalReferences';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -17,6 +22,7 @@ import { BookOpen, Lightbulb } from 'lucide-react';
 import { getContrastingTextColor } from '@/lib/wpColors';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface Participant {
   id: string;
@@ -153,8 +159,98 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
 
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [guidelinesDialogOpen, setGuidelinesDialogOpen] = useState(false);
+  
+  // Dialog states for editor features
+  const [isCitationOpen, setIsCitationOpen] = useState(false);
+  const [isCrossRefOpen, setIsCrossRefOpen] = useState(false);
+  const [isWPRefOpen, setIsWPRefOpen] = useState(false);
+  const [isFigureDialogOpen, setIsFigureDialogOpen] = useState(false);
+  const [figures, setFigures] = useState<any[]>([]);
+  const [wpDrafts, setWpDrafts] = useState<any[]>([]);
+  
+  // Proposal-wide references hook
+  const { 
+    references: proposalReferences, 
+    addReference,
+    findExistingReference,
+    getNextCitationNumber 
+  } = useProposalReferences(proposalId);
+  
+  // Editor insertion callbacks (these insert HTML into active contentEditable)
+  const insertCitationAtCursor = useCallback((citationNumber: number) => {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const citationSpan = document.createElement('sup');
+      citationSpan.textContent = `[${citationNumber}]`;
+      citationSpan.style.color = 'blue';
+      citationSpan.style.cursor = 'pointer';
+      range.insertNode(citationSpan);
+      range.setStartAfter(citationSpan);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+    toast.success(`Citation [${citationNumber}] inserted`);
+  }, []);
+  
+  const insertCrossRefAtCursor = useCallback((refText: string) => {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const refSpan = document.createElement('span');
+      refSpan.textContent = refText;
+      refSpan.style.color = 'blue';
+      refSpan.style.textDecoration = 'underline';
+      range.insertNode(refSpan);
+      range.setStartAfter(refSpan);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+    toast.success('Cross-reference inserted');
+  }, []);
+  
+  const insertWPRefAtCursor = useCallback((wpNumber: number, wpColor: string) => {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const wpSpan = document.createElement('span');
+      wpSpan.textContent = `@WP${wpNumber}`;
+      wpSpan.style.backgroundColor = wpColor;
+      wpSpan.style.color = getContrastingTextColor(wpColor);
+      wpSpan.style.padding = '0 4px';
+      wpSpan.style.borderRadius = '3px';
+      wpSpan.style.fontWeight = '500';
+      wpSpan.style.fontSize = '0.85em';
+      range.insertNode(wpSpan);
+      range.setStartAfter(wpSpan);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+    toast.success(`WP${wpNumber} reference inserted`);
+  }, []);
+  
+  const insertFigureAtCursor = useCallback((figure: any) => {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      // Insert just a cross-reference text
+      const refSpan = document.createElement('span');
+      refSpan.textContent = `(see ${figure.figure_number})`;
+      refSpan.style.color = 'blue';
+      refSpan.style.textDecoration = 'underline';
+      range.insertNode(refSpan);
+      range.setStartAfter(refSpan);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+    toast.success(`Figure reference inserted`);
+  }, []);
 
-  // Fetch participants for the proposal
+  // Fetch participants, figures, and WP drafts for the proposal
   useEffect(() => {
     const fetchParticipants = async () => {
       const { data } = await supabase
@@ -168,7 +264,33 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
       }
     };
 
+    const fetchFigures = async () => {
+      const { data } = await supabase
+        .from('figures')
+        .select('*')
+        .eq('proposal_id', proposalId)
+        .order('order_index');
+      
+      if (data) {
+        setFigures(data);
+      }
+    };
+
+    const fetchWpDrafts = async () => {
+      const { data } = await supabase
+        .from('wp_drafts')
+        .select('id, number, short_name, title')
+        .eq('proposal_id', proposalId)
+        .order('number');
+      
+      if (data) {
+        setWpDrafts(data);
+      }
+    };
+
     fetchParticipants();
+    fetchFigures();
+    fetchWpDrafts();
   }, [proposalId]);
 
   if (loading) {
@@ -352,6 +474,10 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           methodology={wpDraft.methodology}
           onChange={(value) => updateField('methodology', value)}
           readOnly={readOnly}
+          onOpenCitationDialog={() => setIsCitationOpen(true)}
+          onOpenCrossRefDialog={() => setIsCrossRefOpen(true)}
+          onOpenWPRefDialog={() => setIsWPRefOpen(true)}
+          onOpenFigureDialog={() => setIsFigureDialogOpen(true)}
         />
 
         {/* WP Table (Objectives & Tasks) */}
@@ -368,6 +494,10 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           onTaskReorder={reorderTasks}
           readOnly={readOnly}
           projectDuration={projectDuration}
+          onOpenCitationDialog={() => setIsCitationOpen(true)}
+          onOpenCrossRefDialog={() => setIsCrossRefOpen(true)}
+          onOpenWPRefDialog={() => setIsWPRefOpen(true)}
+          onOpenFigureDialog={() => setIsFigureDialogOpen(true)}
         />
 
         {/* Deliverables */}
@@ -414,6 +544,47 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           readOnly={readOnly}
         />
       </div>
+      
+      {/* Citation Dialog */}
+      <CitationDialog
+        isOpen={isCitationOpen}
+        onClose={() => setIsCitationOpen(false)}
+        onInsertCitation={(reference, formattedCitation, citationNumber) => {
+          insertCitationAtCursor(citationNumber);
+        }}
+        proposalReferences={proposalReferences}
+        isLoadingReferences={false}
+        nextCitationNumber={getNextCitationNumber()}
+      />
+      
+      {/* Cross-reference Dialog */}
+      <InsertCrossReferenceDialog
+        isOpen={isCrossRefOpen}
+        onClose={() => setIsCrossRefOpen(false)}
+        content=""
+        sectionNumber=""
+        onInsert={insertCrossRefAtCursor}
+      />
+      
+      {/* WP Reference Dialog */}
+      <InsertWPReferenceDialog
+        open={isWPRefOpen}
+        onOpenChange={setIsWPRefOpen}
+        proposalId={proposalId}
+        onSelect={(wp) => {
+          insertWPRefAtCursor(wp.number, wp.color || '#3b82f6');
+          setIsWPRefOpen(false);
+        }}
+      />
+      
+      {/* Figure Dialog */}
+      <InsertFigureDialog
+        isOpen={isFigureDialogOpen}
+        onClose={() => setIsFigureDialogOpen(false)}
+        proposalId={proposalId}
+        currentSectionId=""
+        onInsertFigure={insertFigureAtCursor}
+      />
     </ScrollArea>
   );
 }
