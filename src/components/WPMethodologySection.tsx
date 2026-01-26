@@ -74,7 +74,7 @@ export function WPMethodologySection({ methodology, onChange, readOnly = false }
 
   return (
     <Card>
-      <CardHeader className="pb-2">
+      <CardHeader className="py-2 px-3">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
             <BookOpen className="h-4 w-4" />
@@ -91,9 +91,9 @@ export function WPMethodologySection({ methodology, onChange, readOnly = false }
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-2 px-3 pb-3 pt-0">
         {/* Official question */}
-        <div className="rounded-md border border-border bg-muted/30 p-3">
+        <div className="rounded-md border border-border bg-muted/30 p-2">
           <p className="text-sm text-muted-foreground italic">
             {METHODOLOGY_QUESTION}
           </p>
@@ -105,7 +105,7 @@ export function WPMethodologySection({ methodology, onChange, readOnly = false }
           onChange={onChange}
           placeholder="Describe your methodology..."
           disabled={readOnly}
-          minHeight="200px"
+          minHeight="150px"
         />
       </CardContent>
 

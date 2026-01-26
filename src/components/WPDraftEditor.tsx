@@ -170,7 +170,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
 
   return (
     <ScrollArea className="h-full">
-      <div className="space-y-6 p-6">
+      <div className="space-y-3 p-4">
         {/* Guidelines Button - above header */}
         <Button
           variant="ghost"
@@ -329,14 +329,14 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           projectDuration={projectDuration}
         />
 
-        {/* Task Interactions & Bottlenecks */}
-        <WPPlanningQuestions
-          inputs={wpDraft.inputs_question}
-          outputs={wpDraft.outputs_question}
-          bottlenecks={wpDraft.bottlenecks_question}
-          onInputsChange={(value) => updateField('inputs_question', value)}
-          onOutputsChange={(value) => updateField('outputs_question', value)}
-          onBottlenecksChange={(value) => updateField('bottlenecks_question', value)}
+        {/* Risks - moved above Staff Effort */}
+        <WPRisksTable
+          wpNumber={wpDraft.number}
+          risks={wpDraft.risks || []}
+          onRiskUpdate={updateRisk}
+          onRiskAdd={addRisk}
+          onRiskDelete={deleteRisk}
+          onRiskReorder={reorderRisks}
           readOnly={readOnly}
         />
 
@@ -349,14 +349,14 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           readOnly={readOnly}
         />
 
-        {/* Risks */}
-        <WPRisksTable
-          wpNumber={wpDraft.number}
-          risks={wpDraft.risks || []}
-          onRiskUpdate={updateRisk}
-          onRiskAdd={addRisk}
-          onRiskDelete={deleteRisk}
-          onRiskReorder={reorderRisks}
+        {/* Task Interactions & Bottlenecks */}
+        <WPPlanningQuestions
+          inputs={wpDraft.inputs_question}
+          outputs={wpDraft.outputs_question}
+          bottlenecks={wpDraft.bottlenecks_question}
+          onInputsChange={(value) => updateField('inputs_question', value)}
+          onOutputsChange={(value) => updateField('outputs_question', value)}
+          onBottlenecksChange={(value) => updateField('bottlenecks_question', value)}
           readOnly={readOnly}
         />
       </div>

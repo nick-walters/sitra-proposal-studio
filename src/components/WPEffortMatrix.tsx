@@ -85,7 +85,7 @@ export function WPEffortMatrix({
 
   return (
     <Card>
-      <CardHeader className="pb-2">
+      <CardHeader className="py-2 px-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Users className="h-4 w-4" />
           Staff effort (person-months)
@@ -94,7 +94,7 @@ export function WPEffortMatrix({
           Enter person-months per participant per task. This data feeds into the budget spreadsheet.
         </CardDescription>
       </CardHeader>
-      <CardContent className="pt-0">
+      <CardContent className="px-3 pb-3 pt-0">
         <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>

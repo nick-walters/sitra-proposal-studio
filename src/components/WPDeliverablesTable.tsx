@@ -91,13 +91,13 @@ export function WPDeliverablesTable({
 
   return (
     <Card>
-      <CardHeader className="pb-2">
+      <CardHeader className="py-2 px-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Package className="h-4 w-4" />
           Deliverables
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-1.5">
+      <CardContent className="space-y-1 px-3 pb-3 pt-0">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -212,7 +212,7 @@ function SortableDeliverableCard({
             <GripVertical className="w-4 h-4 text-muted-foreground" />
           </button>
         )}
-        <span className="font-mono text-sm text-muted-foreground flex-shrink-0 w-[52px]">
+        <span className="font-mono text-sm text-foreground font-medium flex-shrink-0 w-[52px]">
           {formatNumber(deliverable.number)}:
         </span>
         <Input
