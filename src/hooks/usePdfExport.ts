@@ -224,7 +224,7 @@ export function usePdfExport() {
       type ContentBlock = 
         | { type: 'paragraph'; text: string }
         | { type: 'h3'; text: string }
-        | { type: 'image'; src: string; width?: number; height?: number }
+        | { type: 'image'; src: string; width?: number; height?: number; widthPercent?: number }
         | { type: 'caption'; text: string; captionType: 'figure' | 'table' }
         | { type: 'table'; rows: string[][]; hasHeader: boolean };
 
@@ -343,11 +343,18 @@ export function usePdfExport() {
             if (src) {
               const width = element.getAttribute('width');
               const height = element.getAttribute('height');
+              
+              // Check for percentage width in style attribute
+              const style = element.getAttribute('style') || '';
+              const percentMatch = style.match(/width:\s*([\d.]+)%/);
+              const widthPercent = percentMatch ? parseFloat(percentMatch[1]) : undefined;
+              
               result.push({ 
                 type: 'image', 
                 src,
                 width: width ? parseInt(width) : undefined,
-                height: height ? parseInt(height) : undefined
+                height: height ? parseInt(height) : undefined,
+                widthPercent
               });
             }
             return;
@@ -430,7 +437,7 @@ export function usePdfExport() {
       };
 
       // Helper: Add image to PDF
-      const addImage = async (src: string, specifiedWidth?: number, specifiedHeight?: number) => {
+      const addImage = async (src: string, specifiedWidth?: number, specifiedHeight?: number, widthPercent?: number) => {
         const imageData = await loadImageAsBase64(src);
         if (!imageData) {
           addParagraph('[Image could not be loaded]');
@@ -441,9 +448,20 @@ export function usePdfExport() {
         const maxWidth = Math.min(contentWidth, 180);
         const maxHeight = 120; // Max height in mm
         
-        // Convert pixels to mm (assuming 96 DPI for screen)
-        let imgWidthMm = (specifiedWidth || imageData.width) * 0.264583;
-        let imgHeightMm = (specifiedHeight || imageData.height) * 0.264583;
+        let imgWidthMm: number;
+        let imgHeightMm: number;
+        
+        // If percentage width is specified, use it relative to content width
+        if (widthPercent && widthPercent > 0) {
+          imgWidthMm = (widthPercent / 100) * contentWidth;
+          // Calculate height based on aspect ratio from natural dimensions
+          const aspectRatio = imageData.height / imageData.width;
+          imgHeightMm = imgWidthMm * aspectRatio;
+        } else {
+          // Convert pixels to mm (assuming 96 DPI for screen)
+          imgWidthMm = (specifiedWidth || imageData.width) * 0.264583;
+          imgHeightMm = (specifiedHeight || imageData.height) * 0.264583;
+        }
         
         // Scale to fit within bounds
         if (imgWidthMm > maxWidth) {
@@ -789,7 +807,7 @@ export function usePdfExport() {
                 addParagraph(block.text);
                 break;
               case 'image':
-                await addImage(block.src, block.width, block.height);
+                await addImage(block.src, block.width, block.height, block.widthPercent);
                 break;
               case 'caption':
                 addCaption(block.text, block.captionType);
