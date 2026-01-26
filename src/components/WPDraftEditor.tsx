@@ -8,15 +8,15 @@ import { WPDeliverablesTable } from '@/components/WPDeliverablesTable';
 import { WPRisksTable } from '@/components/WPRisksTable';
 import { WPColorPicker } from '@/components/WPColorPicker';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { SitraTipsBox } from '@/components/SitraTipsBox';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronRight, FileText } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { BookOpen, Lightbulb } from 'lucide-react';
 import { getContrastingTextColor } from '@/lib/wpColors';
 import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
 
 interface Participant {
   id: string;
@@ -50,6 +50,37 @@ const GENERAL_TIPS = [
   },
 ];
 
+// Parse content to handle bullet points
+function parseGuidelineContent(content: string): React.ReactNode {
+  const lines = content.split('\n');
+  
+  return (
+    <div className="space-y-1.5">
+      {lines.map((line, index) => {
+        const cleanLine = line.trim();
+        
+        if (cleanLine.startsWith('•') || cleanLine.startsWith('-') || cleanLine.startsWith('–')) {
+          const bulletContent = cleanLine.replace(/^[•\-–]\s*/, '');
+          return (
+            <div key={index} className="flex items-start gap-1.5">
+              <span className="text-muted-foreground mt-0.5">•</span>
+              <span className="text-sm text-muted-foreground">{bulletContent}</span>
+            </div>
+          );
+        }
+        
+        if (cleanLine) {
+          return (
+            <p key={index} className="text-sm text-muted-foreground">{cleanLine}</p>
+          );
+        }
+        
+        return null;
+      })}
+    </div>
+  );
+}
+
 export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 }: WPDraftEditorProps) {
   const {
     wpDraft,
@@ -71,7 +102,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
   } = useWPDraftEditor(wpId);
 
   const [participants, setParticipants] = useState<Participant[]>([]);
-  const [guidelinesOpen, setGuidelinesOpen] = useState(false);
+  const [guidelinesDialogOpen, setGuidelinesDialogOpen] = useState(false);
 
   // Fetch participants for the proposal
   useEffect(() => {
@@ -172,17 +203,62 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           </div>
         </div>
 
-        {/* Writing Guidelines (collapsible) */}
-        <Collapsible open={guidelinesOpen} onOpenChange={setGuidelinesOpen}>
-          <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-            {guidelinesOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-            <FileText className="h-4 w-4" />
-            Writing Guidelines
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-2">
-            <SitraTipsBox tips={GENERAL_TIPS} />
-          </CollapsibleContent>
-        </Collapsible>
+        {/* Guidelines Button - matching Part B style */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setGuidelinesDialogOpen(true)}
+          className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1.5"
+        >
+          <BookOpen className="h-4 w-4" />
+          Guidelines
+        </Button>
+
+        {/* Guidelines Dialog */}
+        <Dialog open={guidelinesDialogOpen} onOpenChange={setGuidelinesDialogOpen}>
+          <DialogContent className="max-w-3xl max-h-[90vh] w-[90vw]">
+            <DialogHeader>
+              <DialogTitle>Guidelines for WP{wpDraft.number}: {wpDraft.title || wpDraft.short_name || 'Work Package'}</DialogTitle>
+            </DialogHeader>
+            <ScrollArea className="max-h-[75vh] pr-4">
+              <div className="space-y-4">
+                {/* Sitra's Tips Box - matching Part B style */}
+                <div
+                  className={cn(
+                    "rounded-lg border-2 p-4",
+                    "border-gray-800",
+                    "bg-gray-50/50"
+                  )}
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="flex-shrink-0 text-gray-800">
+                      <Lightbulb className="h-5 w-5" />
+                    </div>
+                    <span className="text-sm font-bold text-gray-900">
+                      Sitra's tips
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {GENERAL_TIPS.map((tip, index) => (
+                      <div key={tip.id}>
+                        {tip.title && (
+                          <h4 className="font-semibold mb-2 text-gray-900">
+                            {tip.title}
+                          </h4>
+                        )}
+                        {parseGuidelineContent(tip.content)}
+                        {index < GENERAL_TIPS.length - 1 && (
+                          <div className="mt-4 border-t border-current/10" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </ScrollArea>
+          </DialogContent>
+        </Dialog>
 
         {/* Methodology Section */}
         <WPMethodologySection
