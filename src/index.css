@@ -70,59 +70,7 @@
   font-style: italic !important;
 }
 
-/* Draggable Block Styles - Handles in the left margin */
-/* NOTE: draggable-content-block should NOT have position:relative as it breaks layout */
-.draggable-content-block:hover > .block-drag-handle {
-  opacity: 1;
-}
-
-/* Block drag handle - positioned in the left margin area */
-.block-drag-handle {
-  position: absolute;
-  left: -32px;
-  top: 2px;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: grab;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-  border-radius: 4px;
-  background: hsl(var(--muted));
-  color: hsl(var(--muted-foreground));
-  z-index: 10;
-  user-select: none;
-}
-
-.block-drag-handle:hover {
-  background: hsl(var(--accent));
-  color: hsl(var(--accent-foreground));
-}
-
-.block-drag-handle:active {
-  cursor: grabbing;
-}
-
-.block-drag-handle svg {
-  width: 14px;
-  height: 14px;
-  pointer-events: none;
-}
-
-/* Drop position indicator - horizontal line showing where content will land */
-.drop-position-indicator {
-  height: 3px;
-  background: hsl(var(--primary));
-  border-radius: 2px;
-  pointer-events: none;
-}
-
-/* Dragging state */
-.ProseMirror [draggable="true"] {
-  opacity: 0.5;
-}
+/* Figure container styling */
 
 /* Figure container styling */
 .figure-container {
