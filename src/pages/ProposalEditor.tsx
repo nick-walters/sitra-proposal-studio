@@ -468,6 +468,24 @@ export function ProposalEditor() {
         );
       }
 
+      // WP Progress Tracker (positioned in Part A navigation area)
+      if (activeSection.id === 'wp-progress-tracker') {
+        return (
+          <WPProgressTracker
+            proposalId={id || ''}
+            onNavigateToWP={(wpId) => {
+              // Find the WP section and navigate to it
+              const wpSection = allSections
+                .flatMap(s => s.subsections || [])
+                .find(s => s.id === `wp-${wpId}`) as WPSection | undefined;
+              if (wpSection) {
+                setActiveSection(wpSection);
+              }
+            }}
+          />
+        );
+      }
+
       // Default Part A fallback
       return (
         <DocumentEditor
@@ -527,24 +545,6 @@ export function ProposalEditor() {
           proposalId={id || ''}
           canEdit={canEdit}
           availableSections={partBSections}
-        />
-      );
-    }
-
-    // WP Progress Tracker (replaces Assignments)
-    if (activeSection.id === 'wp-progress-tracker') {
-      return (
-        <WPProgressTracker
-          proposalId={id || ''}
-          onNavigateToWP={(wpId) => {
-            // Find the WP section and navigate to it
-            const wpSection = allSections
-              .flatMap(s => s.subsections || [])
-              .find(s => s.id === `wp-${wpId}`) as WPSection | undefined;
-            if (wpSection) {
-              setActiveSection(wpSection);
-            }
-          }}
         />
       );
     }
