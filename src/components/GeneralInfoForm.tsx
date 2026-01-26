@@ -357,15 +357,7 @@ export function GeneralInfoForm({
   const abstractWordCount = formData.abstract.trim() ? formData.abstract.trim().split(/\s+/).length : 0;
   const freeKeywordsCharCount = formData.freeKeywords.length;
 
-  if (loading) {
-    return (
-      <div className="flex-1 flex items-center justify-center bg-muted/30">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  // Extract Sitra tips from section guidelines
+  // Extract Sitra tips from section guidelines - must be before early return to maintain hook order
   const sitraTips = useMemo(() => {
     return (section.guidelinesArray || [])
       .filter(g => g.type === 'sitra_tip')
@@ -376,6 +368,14 @@ export function GeneralInfoForm({
         content: g.content,
       }));
   }, [section.guidelinesArray]);
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-muted/30">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
