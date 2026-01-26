@@ -3,6 +3,13 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Section } from '@/types/proposal';
 import { PART_A_SECTIONS, HORIZON_EUROPE_SECTIONS } from '@/types/proposal';
 
+// Extended section type with WP-specific fields
+export interface WPSection extends Section {
+  wpId?: string;
+  wpNumber?: number;
+  wpColor?: string;
+}
+
 interface TemplateSectionData {
   id: string;
   template_type_id: string;
@@ -118,10 +125,11 @@ function buildSectionHierarchy(sections: TemplateSectionData[]): Section[] {
   return rootSections;
 }
 
-export function useProposalSections(templateTypeId: string | null) {
+export function useProposalSections(templateTypeId: string | null, proposalId?: string | null) {
   const [loading, setLoading] = useState(true);
   const [templateSections, setTemplateSections] = useState<Section[]>([]);
   const [hasTemplateSections, setHasTemplateSections] = useState(false);
+  const [wpDraftSections, setWPDraftSections] = useState<WPSection[]>([]);
 
   // Use useEffect directly with templateTypeId as dependency for proper reactivity
   useEffect(() => {
@@ -169,13 +177,56 @@ export function useProposalSections(templateTypeId: string | null) {
     fetchSections();
   }, [templateTypeId]);
 
+  // Fetch WP drafts for the proposal and convert to sections
+  useEffect(() => {
+    const fetchWPDrafts = async () => {
+      if (!proposalId) {
+        setWPDraftSections([]);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('wp_drafts')
+          .select('id, number, short_name, title, color, order_index')
+          .eq('proposal_id', proposalId)
+          .order('order_index');
+
+        if (error) {
+          console.error('Error fetching WP drafts:', error);
+          setWPDraftSections([]);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          const wpSections: WPSection[] = data.map(wp => ({
+            id: `wp-${wp.id}`,
+            number: `WP${wp.number}`,
+            title: wp.short_name || wp.title || `Work Package ${wp.number}`,
+            wpId: wp.id,
+            wpNumber: wp.number,
+            wpColor: wp.color,
+          }));
+          setWPDraftSections(wpSections);
+        } else {
+          setWPDraftSections([]);
+        }
+      } catch (error) {
+        console.error('Error fetching WP drafts:', error);
+        setWPDraftSections([]);
+      }
+    };
+
+    fetchWPDrafts();
+  }, [proposalId]);
+
   // Return either template sections or fallback to hardcoded sections
   const allSections = useMemo(() => {
-    // Define the Assignments section (formerly Progress)
-    const assignmentsSection: Section = {
-      id: 'assignments',
+    // Define the WP Progress Tracker section (replaces Assignments position)
+    const wpProgressSection: Section = {
+      id: 'wp-progress-tracker',
       number: '',
-      title: 'Assignments',
+      title: 'WP Progress Tracker',
       isPartA: true, // Place in Part A area for ordering
     };
 
@@ -187,6 +238,14 @@ export function useProposalSections(templateTypeId: string | null) {
       guidelines: {
         text: 'Manage and edit figures referenced in Part B sections. Figures are numbered based on their parent section (e.g., Figure 1.1.a).',
       },
+    };
+
+    // Define the WP Drafts section with WP subsections
+    const wpDraftsSection: Section = {
+      id: 'wp-drafts',
+      number: '',
+      title: 'WP Drafts',
+      subsections: wpDraftSections,
     };
 
     if (hasTemplateSections && templateSections.length > 0) {
@@ -209,29 +268,53 @@ export function useProposalSections(templateTypeId: string | null) {
         }
       }
       
-      // Find proposal overview and insert Assignments after it
+      // Find proposal overview and insert WP Progress Tracker after it
       const overviewIndex = partASections.findIndex(s => s.id === 'proposal-overview');
       if (overviewIndex !== -1) {
-        partASections.splice(overviewIndex + 1, 0, assignmentsSection);
+        partASections.splice(overviewIndex + 1, 0, wpProgressSection);
       } else {
-        // If no overview, add Assignments at the start
-        partASections.unshift(assignmentsSection);
+        // If no overview, add WP Progress Tracker at the start
+        partASections.unshift(wpProgressSection);
       }
       
-      return [...partASections, ...partBSections];
+      // Add WP Drafts after Part B (before Figures if standalone)
+      const result = [...partASections, ...partBSections];
+      
+      // Insert WP Drafts after Part B content sections, before Figures
+      if (wpDraftSections.length > 0) {
+        const figuresIndex = result.findIndex(s => s.id === 'figures');
+        if (figuresIndex !== -1) {
+          result.splice(figuresIndex, 0, wpDraftsSection);
+        } else {
+          result.push(wpDraftsSection);
+        }
+      }
+      
+      return result;
     }
     
     // Fallback to hardcoded sections
-    // Insert Assignments after proposal-overview
+    // Insert WP Progress Tracker after proposal-overview
     const fallbackSections = [...PART_A_SECTIONS, ...HORIZON_EUROPE_SECTIONS];
     const overviewIndex = fallbackSections.findIndex(s => s.id === 'proposal-overview');
     if (overviewIndex !== -1) {
-      fallbackSections.splice(overviewIndex + 1, 0, assignmentsSection);
+      fallbackSections.splice(overviewIndex + 1, 0, wpProgressSection);
     } else {
-      fallbackSections.unshift(assignmentsSection);
+      fallbackSections.unshift(wpProgressSection);
     }
+    
+    // Add WP Drafts at the end (before Figures if present)
+    if (wpDraftSections.length > 0) {
+      const figuresIndex = fallbackSections.findIndex(s => s.id === 'figures');
+      if (figuresIndex !== -1) {
+        fallbackSections.splice(figuresIndex, 0, wpDraftsSection);
+      } else {
+        fallbackSections.push(wpDraftsSection);
+      }
+    }
+    
     return fallbackSections;
-  }, [templateSections, hasTemplateSections]);
+  }, [templateSections, hasTemplateSections, wpDraftSections]);
 
   // Create a refetch function that can be called externally
   const refetch = useCallback(async () => {

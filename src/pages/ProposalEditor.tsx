@@ -11,12 +11,15 @@ import { DeclarationsForm } from "@/components/DeclarationsForm";
 import { WorkPackageManager } from "@/components/WorkPackageManager";
 import { FigureManager } from "@/components/FigureManager";
 import { SectionProgressDashboard } from "@/components/SectionProgressDashboard";
+import { WPDraftEditor } from "@/components/WPDraftEditor";
+import { WPProgressTracker } from "@/components/WPProgressTracker";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DuplicateProposalDialog } from "@/components/DuplicateProposalDialog";
 import { Section, BudgetType, ProposalStatus, WORK_PROGRAMMES, DESTINATIONS } from "@/types/proposal";
+import type { WPSection } from "@/hooks/useProposalSections";
 import { useState, useEffect } from "react";
 import { format, differenceInDays } from "date-fns";
 import { useParams, useNavigate } from "react-router-dom";
@@ -58,7 +61,7 @@ export function ProposalEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [activeSection, setActiveSection] = useState<Section | null>(null);
+  const [activeSection, setActiveSection] = useState<Section | WPSection | null>(null);
   const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isDuplicateOpen, setIsDuplicateOpen] = useState(false);
@@ -103,7 +106,8 @@ export function ProposalEditor() {
   });
 
   // Dynamically load sections based on template type (or fallback to hardcoded)
-  const { sections: allSections, loading: sectionsLoading } = useProposalSections(proposal?.templateTypeId || null);
+  // Also pass proposalId to load WP drafts for navigation
+  const { sections: allSections, loading: sectionsLoading } = useProposalSections(proposal?.templateTypeId || null, id);
 
   // Section assignments for sidebar indicators
   const { assignments } = useSectionAssignments(id || null);
@@ -118,7 +122,7 @@ export function ProposalEditor() {
     }
   }, [allSections, sectionsLoading, activeSection]);
 
-  const handleSectionClick = (section: Section) => {
+  const handleSectionClick = (section: Section | WPSection) => {
     // Clear selected participant when navigating away from A2
     if (section.id !== 'a2' && !section.id.startsWith('a2-')) {
       setSelectedParticipantId(null);
@@ -491,13 +495,61 @@ export function ProposalEditor() {
       );
     }
 
-    // Assignments section (formerly Progress)
+    // WP Progress Tracker (replaces Assignments)
+    if (activeSection.id === 'wp-progress-tracker') {
+      return (
+        <WPProgressTracker
+          proposalId={id || ''}
+          onNavigateToWP={(wpId) => {
+            // Find the WP section and navigate to it
+            const wpSection = allSections
+              .flatMap(s => s.subsections || [])
+              .find(s => s.id === `wp-${wpId}`) as WPSection | undefined;
+            if (wpSection) {
+              setActiveSection(wpSection);
+            }
+          }}
+        />
+      );
+    }
+
+    // Assignments section (legacy fallback)
     if (activeSection.id === 'assignments') {
       return (
         <SectionProgressDashboard
           proposalId={id || ''}
           proposalAcronym={proposal?.acronym}
           currentUserId={user?.id}
+        />
+      );
+    }
+
+    // WP Drafts container section
+    if (activeSection.id === 'wp-drafts') {
+      return (
+        <div className="flex-1 flex items-center justify-center bg-muted/30">
+          <div className="text-center max-w-lg">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+              <FileText className="w-8 h-8 text-primary" />
+            </div>
+            <h3 className="text-lg font-medium">WP Drafts</h3>
+            <p className="text-sm text-muted-foreground mt-2">
+              Select a work package from the navigation to start drafting its content, tasks, deliverables, and risks.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    // Individual WP Draft editor (wp-{uuid})
+    const wpSection = activeSection as WPSection;
+    if (activeSection.id.startsWith('wp-') && wpSection.wpId) {
+      return (
+        <WPDraftEditor
+          wpId={wpSection.wpId}
+          proposalId={id || ''}
+          canEdit={canEdit}
+          projectDuration={proposal?.duration || 36}
         />
       );
     }

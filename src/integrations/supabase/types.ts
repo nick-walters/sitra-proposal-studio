@@ -1879,6 +1879,434 @@ export type Database = {
         }
         Relationships: []
       }
+      wp_color_palette: {
+        Row: {
+          colors: Json
+          created_at: string
+          id: string
+          proposal_id: string
+          updated_at: string
+        }
+        Insert: {
+          colors?: Json
+          created_at?: string
+          id?: string
+          proposal_id: string
+          updated_at?: string
+        }
+        Update: {
+          colors?: Json
+          created_at?: string
+          id?: string
+          proposal_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wp_color_palette_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: true
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wp_dependencies: {
+        Row: {
+          created_at: string
+          from_wp_id: string
+          id: string
+          proposal_id: string
+          to_wp_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_wp_id: string
+          id?: string
+          proposal_id: string
+          to_wp_id: string
+        }
+        Update: {
+          created_at?: string
+          from_wp_id?: string
+          id?: string
+          proposal_id?: string
+          to_wp_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wp_dependencies_from_wp_id_fkey"
+            columns: ["from_wp_id"]
+            isOneToOne: false
+            referencedRelation: "wp_drafts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wp_dependencies_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wp_dependencies_to_wp_id_fkey"
+            columns: ["to_wp_id"]
+            isOneToOne: false
+            referencedRelation: "wp_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wp_draft_deliverables: {
+        Row: {
+          created_at: string
+          description: string | null
+          dissemination_level: string | null
+          due_month: number | null
+          id: string
+          number: number
+          order_index: number
+          responsible_participant_id: string | null
+          title: string | null
+          type: string | null
+          updated_at: string
+          wp_draft_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          dissemination_level?: string | null
+          due_month?: number | null
+          id?: string
+          number: number
+          order_index?: number
+          responsible_participant_id?: string | null
+          title?: string | null
+          type?: string | null
+          updated_at?: string
+          wp_draft_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          dissemination_level?: string | null
+          due_month?: number | null
+          id?: string
+          number?: number
+          order_index?: number
+          responsible_participant_id?: string | null
+          title?: string | null
+          type?: string | null
+          updated_at?: string
+          wp_draft_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wp_draft_deliverables_responsible_participant_id_fkey"
+            columns: ["responsible_participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wp_draft_deliverables_wp_draft_id_fkey"
+            columns: ["wp_draft_id"]
+            isOneToOne: false
+            referencedRelation: "wp_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wp_draft_risks: {
+        Row: {
+          created_at: string
+          id: string
+          likelihood: string | null
+          mitigation: string | null
+          number: number
+          order_index: number
+          severity: string | null
+          title: string | null
+          updated_at: string
+          wp_draft_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          likelihood?: string | null
+          mitigation?: string | null
+          number: number
+          order_index?: number
+          severity?: string | null
+          title?: string | null
+          updated_at?: string
+          wp_draft_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          likelihood?: string | null
+          mitigation?: string | null
+          number?: number
+          order_index?: number
+          severity?: string | null
+          title?: string | null
+          updated_at?: string
+          wp_draft_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wp_draft_risks_wp_draft_id_fkey"
+            columns: ["wp_draft_id"]
+            isOneToOne: false
+            referencedRelation: "wp_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wp_draft_task_effort: {
+        Row: {
+          created_at: string
+          id: string
+          participant_id: string
+          person_months: number
+          task_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          participant_id: string
+          person_months?: number
+          task_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          participant_id?: string
+          person_months?: number
+          task_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wp_draft_task_effort_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wp_draft_task_effort_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "wp_draft_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wp_draft_task_participants: {
+        Row: {
+          created_at: string
+          id: string
+          participant_id: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          participant_id: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          participant_id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wp_draft_task_participants_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wp_draft_task_participants_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "wp_draft_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wp_draft_tasks: {
+        Row: {
+          created_at: string
+          description: string | null
+          end_month: number | null
+          id: string
+          lead_participant_id: string | null
+          number: number
+          order_index: number
+          start_month: number | null
+          title: string | null
+          updated_at: string
+          wp_draft_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          end_month?: number | null
+          id?: string
+          lead_participant_id?: string | null
+          number: number
+          order_index?: number
+          start_month?: number | null
+          title?: string | null
+          updated_at?: string
+          wp_draft_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          end_month?: number | null
+          id?: string
+          lead_participant_id?: string | null
+          number?: number
+          order_index?: number
+          start_month?: number | null
+          title?: string | null
+          updated_at?: string
+          wp_draft_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wp_draft_tasks_lead_participant_id_fkey"
+            columns: ["lead_participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wp_draft_tasks_wp_draft_id_fkey"
+            columns: ["wp_draft_id"]
+            isOneToOne: false
+            referencedRelation: "wp_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wp_draft_templates: {
+        Row: {
+          created_at: string
+          default_deliverables: Json | null
+          default_tasks: Json | null
+          id: string
+          is_system: boolean | null
+          methodology_template: string | null
+          name: string
+          objectives_template: string | null
+          short_name: string | null
+          title: string | null
+        }
+        Insert: {
+          created_at?: string
+          default_deliverables?: Json | null
+          default_tasks?: Json | null
+          id?: string
+          is_system?: boolean | null
+          methodology_template?: string | null
+          name: string
+          objectives_template?: string | null
+          short_name?: string | null
+          title?: string | null
+        }
+        Update: {
+          created_at?: string
+          default_deliverables?: Json | null
+          default_tasks?: Json | null
+          id?: string
+          is_system?: boolean | null
+          methodology_template?: string | null
+          name?: string
+          objectives_template?: string | null
+          short_name?: string | null
+          title?: string | null
+        }
+        Relationships: []
+      }
+      wp_drafts: {
+        Row: {
+          bottlenecks_question: string | null
+          color: string
+          created_at: string
+          id: string
+          inputs_question: string | null
+          lead_participant_id: string | null
+          methodology: string | null
+          number: number
+          objectives: string | null
+          order_index: number
+          outputs_question: string | null
+          proposal_id: string
+          short_name: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          bottlenecks_question?: string | null
+          color?: string
+          created_at?: string
+          id?: string
+          inputs_question?: string | null
+          lead_participant_id?: string | null
+          methodology?: string | null
+          number: number
+          objectives?: string | null
+          order_index?: number
+          outputs_question?: string | null
+          proposal_id: string
+          short_name?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bottlenecks_question?: string | null
+          color?: string
+          created_at?: string
+          id?: string
+          inputs_question?: string | null
+          lead_participant_id?: string | null
+          methodology?: string | null
+          number?: number
+          objectives?: string | null
+          order_index?: number
+          outputs_question?: string | null
+          proposal_id?: string
+          short_name?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wp_drafts_lead_participant_id_fkey"
+            columns: ["lead_participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wp_drafts_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
