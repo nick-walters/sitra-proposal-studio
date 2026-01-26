@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import jsPDF from 'jspdf';
 import { toast } from 'sonner';
-import { Proposal, Section } from '@/types/proposal';
+import { Proposal, Section, Participant } from '@/types/proposal';
 
 interface SectionContent {
   id: string;
@@ -13,6 +13,7 @@ interface ExportData {
   proposal: Proposal;
   sectionContents: SectionContent[];
   sections: Section[];
+  participants?: Participant[];
 }
 
 // Convert mm to pt for jsPDF (1mm = 2.835pt)
@@ -59,7 +60,7 @@ export function usePdfExport() {
   };
 
   const exportProposalToPdf = useCallback(async (data: ExportData, options?: { includeWatermark?: boolean }) => {
-    const { proposal, sectionContents, sections } = data;
+    const { proposal, sectionContents, sections, participants = [] } = data;
     const includeWatermark = options?.includeWatermark ?? true; // Default to including watermark
 
     try {
@@ -129,7 +130,7 @@ export function usePdfExport() {
         
         // Build footer: "ACRONYM (Stage 1 of 2) | Part BX.X. Subsection title | Page X of X"
         const acronymText = proposal.acronym;
-        const stageText = ' (Stage 1 of 2) | ';
+        const stageText = proposal.submissionStage === 'stage_1' ? ' (Stage 1 of 2) | ' : ' | ';
         const sectionText = sectionName ? `Part ${sectionName}` : '';
         const pageText = ` | Page ${pageNum} of ${totalPages}`;
         
@@ -299,23 +300,126 @@ export function usePdfExport() {
         return content?.content || '';
       };
 
-      // Find the relevant sections
-      const findSection = (idPattern: string): Section | undefined => {
-        // First check top-level
-        for (const section of sections) {
-          if (section.id === idPattern || section.number === idPattern) {
-            return section;
+      // Helper: Check if section is a Part B content section (has format like B1.1, B2.1, etc.)
+      const isContentSection = (section: Section): boolean => {
+        // Content sections have numbers like B1.1, B2.1, B3.2
+        return !section.isPartA && !!section.number && /^B?\d+\.\d+/.test(section.number);
+      };
+
+      // Helper: Check if section is an H1 container (B1, B2, B3)
+      const isH1Container = (section: Section): boolean => {
+        // H1 containers have numbers like B1, B2, B3 (single digit after B)
+        return !section.isPartA && !!section.number && /^B?\d+$/.test(section.number.replace(/^B/, ''));
+      };
+
+      // Helper: Get all Part B sections in order (flattened for rendering)
+      const getPartBSections = (allSections: Section[]): Section[] => {
+        const result: Section[] = [];
+        
+        const traverse = (section: Section) => {
+          // Skip Part A sections and special sections
+          if (section.isPartA) return;
+          if (section.id === 'figures' || section.id === 'assignments' || section.id === 'progress') return;
+          
+          // Add this section if it's H1 container or content section
+          if (isH1Container(section) || isContentSection(section)) {
+            result.push(section);
           }
-          // Check subsections
+          
+          // Traverse subsections
           if (section.subsections) {
             for (const sub of section.subsections) {
-              if (sub.id === idPattern || sub.number === idPattern) {
-                return sub;
-              }
+              traverse(sub);
             }
           }
+        };
+        
+        for (const section of allSections) {
+          traverse(section);
         }
-        return undefined;
+        
+        return result;
+      };
+
+      // Helper: Add participant table
+      const addParticipantTable = () => {
+        if (participants.length === 0) return;
+        
+        yPosition += paragraphSpacingH2;
+        checkPageBreak(20);
+        
+        // Table header
+        pdf.setFontSize(FONT_SIZE_H2);
+        pdf.setFont('times', 'bold');
+        pdf.setTextColor(...black);
+        pdf.text('List of Participants', margin, yPosition);
+        yPosition += 6;
+        
+        // Table configuration
+        const colWidths = [12, 35, 80, 25]; // No., Short Name, Organisation Name, Country
+        const rowHeight = 6;
+        const tableWidth = colWidths.reduce((a, b) => a + b, 0);
+        
+        // Draw table header row
+        checkPageBreak(rowHeight * 2);
+        let xPos = margin;
+        
+        // Header background
+        pdf.setFillColor(0, 0, 0);
+        pdf.rect(xPos, yPosition - 4, tableWidth, rowHeight, 'F');
+        
+        // Header text
+        pdf.setFontSize(FONT_SIZE_BODY);
+        pdf.setFont('times', 'bold');
+        pdf.setTextColor(255, 255, 255);
+        
+        const headers = ['No.', 'Short Name', 'Organisation Name', 'Country'];
+        for (let i = 0; i < headers.length; i++) {
+          pdf.text(headers[i], xPos + 1, yPosition);
+          xPos += colWidths[i];
+        }
+        yPosition += rowHeight;
+        
+        // Draw data rows
+        pdf.setFont('times', 'normal');
+        pdf.setTextColor(...black);
+        
+        for (const participant of participants) {
+          checkPageBreak(rowHeight);
+          xPos = margin;
+          
+          // Draw cell borders
+          pdf.setDrawColor(...black);
+          pdf.setLineWidth(0.1);
+          for (let i = 0; i < colWidths.length; i++) {
+            pdf.rect(xPos, yPosition - 4, colWidths[i], rowHeight);
+            xPos += colWidths[i];
+          }
+          
+          // Draw cell content
+          xPos = margin;
+          pdf.text(String(participant.participantNumber), xPos + 1, yPosition);
+          xPos += colWidths[0];
+          
+          const shortName = participant.organisationShortName ? `[${participant.organisationShortName}]` : '';
+          pdf.text(shortName.substring(0, 15), xPos + 1, yPosition);
+          xPos += colWidths[1];
+          
+          // Organisation name: English name with legal name in parentheses if different
+          let orgName = participant.englishName || participant.organisationName;
+          if (participant.englishName && participant.organisationName !== participant.englishName) {
+            orgName = `${participant.englishName} (${participant.organisationName})`;
+          }
+          const truncatedOrg = orgName.length > 45 ? orgName.substring(0, 42) + '...' : orgName;
+          pdf.text(truncatedOrg, xPos + 1, yPosition);
+          xPos += colWidths[2];
+          
+          pdf.text(participant.country || '', xPos + 1, yPosition);
+          
+          yPosition += rowHeight;
+        }
+        
+        yPosition += paragraphSpacing;
       };
 
       // ========== DOCUMENT CONTENT ==========
@@ -326,65 +430,38 @@ export function usePdfExport() {
       // Title: Proposal title followed by acronym in parentheses
       addTitle(`${proposal.title} (${proposal.acronym})`);
 
-      // Part B1 heading as H1
-      const b1Section = findSection('b1') || findSection('B1');
-      addH1(`${b1Section?.number || 'B1'} ${b1Section?.title || 'Excellence'}`);
+      // List of participants
+      addParticipantTable();
 
-      // B1.1 with heading as H2 followed by content
-      const b1_1Section = findSection('b1-1') || findSection('b1.1') || findSection('B1.1');
-      if (b1_1Section) {
-        addH2(`${b1_1Section.number} ${b1_1Section.title}`);
-        const b1_1Content = getSectionContent(b1_1Section.id);
-        const b1_1Blocks = parseHtmlContent(b1_1Content);
-        for (const block of b1_1Blocks) {
-          if (block.type === 'h3') {
-            addH3(block.text);
-          } else {
-            addParagraph(block.text);
+      // Get all Part B sections in order
+      const partBSections = getPartBSections(sections);
+
+      // Render all Part B sections
+      for (const section of partBSections) {
+        if (isH1Container(section)) {
+          // Format section number: remove 'B' prefix and add period for heading
+          const formattedNumber = section.number.replace(/^B/, '');
+          addH1(`${formattedNumber}. ${section.title}`);
+        } else if (isContentSection(section)) {
+          // Format section number for H2
+          const formattedNumber = section.number.replace(/^B/, '');
+          addH2(`${formattedNumber}. ${section.title}`);
+          
+          // Get and render content
+          const content = getSectionContent(section.id);
+          const blocks = parseHtmlContent(content);
+          
+          for (const block of blocks) {
+            if (block.type === 'h3') {
+              addH3(block.text);
+            } else {
+              addParagraph(block.text);
+            }
           }
-        }
-        if (!b1_1Content) {
-          addParagraph('[Section content to be completed]');
-        }
-      }
-
-      // B1.2 with heading as H2 followed by content
-      const b1_2Section = findSection('b1-2') || findSection('b1.2') || findSection('B1.2');
-      if (b1_2Section) {
-        addH2(`${b1_2Section.number} ${b1_2Section.title}`);
-        const b1_2Content = getSectionContent(b1_2Section.id);
-        const b1_2Blocks = parseHtmlContent(b1_2Content);
-        for (const block of b1_2Blocks) {
-          if (block.type === 'h3') {
-            addH3(block.text);
-          } else {
-            addParagraph(block.text);
+          
+          if (!content) {
+            addParagraph('[Section content to be completed]');
           }
-        }
-        if (!b1_2Content) {
-          addParagraph('[Section content to be completed]');
-        }
-      }
-
-      // Part B2 heading as H1
-      const b2Section = findSection('b2') || findSection('B2');
-      addH1(`${b2Section?.number || 'B2'} ${b2Section?.title || 'Impact'}`);
-
-      // B2.1 with heading as H2 followed by content
-      const b2_1Section = findSection('b2-1') || findSection('b2.1') || findSection('B2.1');
-      if (b2_1Section) {
-        addH2(`${b2_1Section.number} ${b2_1Section.title}`);
-        const b2_1Content = getSectionContent(b2_1Section.id);
-        const b2_1Blocks = parseHtmlContent(b2_1Content);
-        for (const block of b2_1Blocks) {
-          if (block.type === 'h3') {
-            addH3(block.text);
-          } else {
-            addParagraph(block.text);
-          }
-        }
-        if (!b2_1Content) {
-          addParagraph('[Section content to be completed]');
         }
       }
 
