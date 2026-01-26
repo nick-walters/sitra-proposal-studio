@@ -11,7 +11,7 @@ import { TableHeader } from '@tiptap/extension-table-header';
 import { ResizableImage } from './ResizableImage';
 import { ImageCropDialog } from './ImageCropDialog';
 import { createCitationTooltipPlugin } from './CitationMark';
-// DraggableBlock removed due to performance issues - see alternative approach below
+import { BlockReordering } from '@/extensions/BlockReordering';
 import { TrackChanges, TrackChangesOptions } from '@/extensions/TrackChanges';
 import { TableFormula } from '@/extensions/TableFormula';
 import { Button } from "@/components/ui/button";
@@ -903,6 +903,7 @@ export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootn
           class: 'he-table-cell',
         },
       }),
+      BlockReordering,
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -1011,6 +1012,8 @@ export function useRichTextEditor({
           class: 'he-table-cell',
         },
       }),
+      // Block reordering via keyboard shortcuts (Ctrl+Shift+↑/↓)
+      BlockReordering,
       // Add citation tooltip extension
       Extension.create({
         name: 'citationTooltip',
