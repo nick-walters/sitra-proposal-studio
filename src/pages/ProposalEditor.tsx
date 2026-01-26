@@ -266,6 +266,21 @@ export function ProposalEditor() {
             }))}
             onUpdateProposal={updateProposal}
             onUpdateParticipant={updateParticipant}
+            onAddParticipant={async (participantData) => {
+              await addParticipant({
+                proposalId: id || '',
+                organisationName: participantData.organisationName,
+                organisationShortName: participantData.organisationShortName,
+                organisationType: participantData.organisationType,
+                country: participantData.country,
+                picNumber: participantData.picNumber,
+                legalEntityType: participantData.legalEntityType,
+                isSme: participantData.isSme,
+                participantNumber: participants.length + 1,
+                organisationCategory: participantData.organisationCategory,
+                englishName: participantData.englishName,
+              });
+            }}
             onSubmit={handleSubmit}
             onUpdateStatus={handleUpdateStatus}
             canEdit={canEdit}
@@ -353,27 +368,10 @@ export function ProposalEditor() {
             proposalAcronym={proposal?.acronym || ''}
             section={activeSection}
             onSelectParticipant={(p) => setSelectedParticipantId(p.id)}
-            onAddParticipant={async (participantData) => {
-              // Create new participant with proper data from dialog
-              await addParticipant({
-                proposalId: id || '',
-                organisationName: participantData.organisationName,
-                organisationShortName: participantData.organisationShortName,
-                organisationType: participantData.organisationType,
-                country: participantData.country,
-                picNumber: participantData.picNumber,
-                legalEntityType: participantData.legalEntityType,
-                isSme: participantData.isSme,
-                participantNumber: participants.length + 1,
-                organisationCategory: participantData.organisationCategory,
-                englishName: participantData.englishName,
-              });
-            }}
             onReorderParticipants={reorderParticipants}
             onMemberAdded={(member) => {
               addParticipantMember(member);
             }}
-            canAddParticipant={isAdmin && canEdit}
             canInvite={isAdmin && canEdit}
             canReorder={isAdmin && canEdit}
           />
