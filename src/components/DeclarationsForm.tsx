@@ -10,7 +10,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Participant } from '@/types/proposal';
-import { FileCheck, Building2, Save, Loader2, AlertCircle } from 'lucide-react';
+import { FileCheck, Building2, Save, Loader2, AlertCircle, BookOpen } from 'lucide-react';
+import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
 
 interface PartAData {
   id: string;
@@ -224,26 +225,20 @@ export function DeclarationsForm({ participants, proposalId, canEdit }: Declarat
   return (
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
       <div className="max-w-4xl mx-auto space-y-6">
+        {/* Guidelines Button */}
+        <PartAGuidelinesDialog
+          sectionTitle="Part A5: Declarations"
+          officialGuidelines={[{
+            id: 'declarations-info',
+            title: 'Declaration requirements',
+            content: 'These declarations are required by the European Commission. Each participating organisation must confirm all declarations before submission.\n\nDeclarations cover:\n• Truthfulness and accuracy of information\n• Compliance with exclusion criteria\n• Financial and operational capacity\n• Absence of conflicts of interest\n• Data protection compliance\n• Ethics compliance\n• No double funding\n• Ownership and control information'
+          }]}
+        />
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-foreground">Part A5: Declarations</h1>
         </div>
-
-        {/* Info Banner */}
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="pt-4">
-            <div className="flex gap-3">
-              <AlertCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-              <div className="text-sm">
-                <p className="font-medium text-foreground">Important</p>
-                <p className="text-muted-foreground">
-                  These declarations are required by the European Commission. Each participating 
-                  organisation must confirm all declarations before submission.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
         {participants.length === 0 ? (
           <Card>
