@@ -13,9 +13,9 @@ interface DraggableBlockState {
 
 /**
  * Creates a TipTap extension that enables drag-and-drop reordering for
- * figures (images with captions) and tables (with their captions).
- * When a block is dropped, captions are automatically moved with their
- * associated content and renumbered based on new positions.
+ * all block-level content (paragraphs, figures, tables, lists, etc.)
+ * EXCEPT H1 and H2 headings which are locked/uneditable.
+ * Drag handles appear in the left margin for proper accessibility.
  */
 export const DraggableBlock = Extension.create({
   name: 'draggableBlock',
@@ -43,12 +43,17 @@ export const DraggableBlock = Extension.create({
             const { doc } = state;
             const decorations: Decoration[] = [];
 
-            // Add drag handles to images and tables
+            // Add draggable class to all blocks except H1 and H2
             doc.descendants((node, pos) => {
-              if (node.type.name === 'table') {
+              // Skip if this is a child node (we only want top-level blocks)
+              const $pos = doc.resolve(pos);
+              if ($pos.depth > 1) return false;
+
+              // Check if this block is draggable
+              if (isDraggableBlock(node)) {
                 decorations.push(
                   Decoration.node(pos, pos + node.nodeSize, {
-                    class: 'draggable-table-node',
+                    class: 'draggable-content-block',
                   })
                 );
               }
@@ -78,40 +83,55 @@ export const DraggableBlock = Extension.create({
             return DecorationSet.create(doc, decorations);
           },
           handleDOMEvents: {
-            dragstart(view, event) {
+            mousedown(view, event) {
               const target = event.target as HTMLElement;
-              const dragHandle = target.closest('.drag-handle');
+              const dragHandle = target.closest('.block-drag-handle');
               if (!dragHandle) return false;
 
-              const block = dragHandle.closest('.draggable-block, .draggable-table-node');
+              // Prevent text selection when clicking drag handle
+              event.preventDefault();
+              
+              const block = dragHandle.closest('.draggable-content-block');
               if (!block) return false;
 
               const pos = view.posAtDOM(block, 0);
               if (pos === undefined || pos < 0) return false;
 
               // Find the block range to move
-              const blockRange = findBlockWithCaption(view.state.doc, pos);
+              const blockRange = findBlockRange(view.state.doc, pos);
               if (!blockRange) return false;
+
+              // Set up drag data on the element
+              (block as HTMLElement).setAttribute('draggable', 'true');
+              (block as any).__dragData = {
+                startPos: blockRange.startPos,
+                endPos: blockRange.endPos,
+              };
+
+              return false;
+            },
+            dragstart(view, event) {
+              const target = event.target as HTMLElement;
+              const block = target.closest('.draggable-content-block') as HTMLElement;
+              if (!block) return false;
+
+              const dragData = (block as any).__dragData;
+              if (!dragData) return false;
 
               // Set dragging state
               view.dispatch(
                 view.state.tr.setMeta(DRAGGABLE_BLOCK_KEY, { 
-                  draggedNodePos: blockRange.startPos, 
+                  draggedNodePos: dragData.startPos, 
                   isDragging: true 
                 })
               );
 
-              // Set drag data with block range info
-              event.dataTransfer?.setData('application/json', JSON.stringify({
-                startPos: blockRange.startPos,
-                endPos: blockRange.endPos,
-              }));
+              // Set drag data
+              event.dataTransfer?.setData('application/json', JSON.stringify(dragData));
               event.dataTransfer!.effectAllowed = 'move';
 
               // Add visual feedback
-              if (block instanceof HTMLElement) {
-                block.style.opacity = '0.5';
-              }
+              block.style.opacity = '0.5';
 
               return false;
             },
@@ -222,11 +242,13 @@ export const DraggableBlock = Extension.create({
               return true;
             },
             dragend(view, event) {
-              // Reset opacity on any elements
-              const dragging = view.dom.querySelectorAll('[style*="opacity"]');
+              // Reset opacity and draggable on any elements
+              const dragging = view.dom.querySelectorAll('[style*="opacity"], [draggable="true"]');
               dragging.forEach((el) => {
                 if (el instanceof HTMLElement) {
                   el.style.opacity = '';
+                  el.removeAttribute('draggable');
+                  delete (el as any).__dragData;
                 }
               });
 
@@ -241,16 +263,71 @@ export const DraggableBlock = Extension.create({
             },
           },
         },
+        view(editorView) {
+          // Add drag handles to the DOM
+          const updateDragHandles = () => {
+            const existingHandles = editorView.dom.querySelectorAll('.block-drag-handle');
+            existingHandles.forEach(el => el.remove());
+
+            editorView.state.doc.descendants((node, pos) => {
+              // Skip child nodes
+              const $pos = editorView.state.doc.resolve(pos);
+              if ($pos.depth > 1) return false;
+
+              if (isDraggableBlock(node)) {
+                try {
+                  const domNode = editorView.nodeDOM(pos);
+                  if (domNode && domNode instanceof HTMLElement) {
+                    // Check if handle already exists
+                    if (!domNode.querySelector('.block-drag-handle')) {
+                      const handle = document.createElement('div');
+                      handle.className = 'block-drag-handle';
+                      handle.innerHTML = `
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                          <circle cx="9" cy="6" r="1.5"/>
+                          <circle cx="15" cy="6" r="1.5"/>
+                          <circle cx="9" cy="12" r="1.5"/>
+                          <circle cx="15" cy="12" r="1.5"/>
+                          <circle cx="9" cy="18" r="1.5"/>
+                          <circle cx="15" cy="18" r="1.5"/>
+                        </svg>
+                      `;
+                      handle.setAttribute('draggable', 'true');
+                      domNode.style.position = 'relative';
+                      domNode.insertBefore(handle, domNode.firstChild);
+                    }
+                  }
+                } catch (e) {
+                  // Node might not be rendered yet
+                }
+              }
+            });
+          };
+
+          // Initial update
+          setTimeout(updateDragHandles, 100);
+
+          return {
+            update(view, prevState) {
+              if (!view.state.doc.eq(prevState.doc)) {
+                setTimeout(updateDragHandles, 50);
+              }
+            },
+            destroy() {
+              const handles = editorView.dom.querySelectorAll('.block-drag-handle');
+              handles.forEach(el => el.remove());
+            },
+          };
+        },
       }),
     ];
   },
 });
 
 /**
- * Finds a block element (figure or table) along with its associated caption.
- * Returns the position range that should be moved together.
+ * Finds the range of a block element, including associated captions for figures/tables.
  */
-function findBlockWithCaption(
+function findBlockRange(
   doc: ProseMirrorNode,
   pos: number
 ): { startPos: number; endPos: number } | null {
@@ -260,12 +337,11 @@ function findBlockWithCaption(
   const node = $pos.nodeAfter;
   if (!node) return null;
 
-  // Check if this is an image (figure)
-  if (node.type.name === 'image') {
-    let startPos = pos;
-    let endPos = pos + node.nodeSize;
+  let startPos = pos;
+  let endPos = pos + node.nodeSize;
 
-    // Look for caption after the image (figure caption)
+  // For images, include caption after
+  if (node.type.name === 'image') {
     const afterPos = pos + node.nodeSize;
     if (afterPos < doc.content.size) {
       const $afterPos = doc.resolve(afterPos);
@@ -277,16 +353,11 @@ function findBlockWithCaption(
         }
       }
     }
-
     return { startPos, endPos };
   }
 
-  // Check if this is a table
+  // For tables, include caption before
   if (node.type.name === 'table') {
-    let startPos = pos;
-    let endPos = pos + node.nodeSize;
-
-    // Look for caption before the table (table caption)
     if (pos > 0) {
       const beforePos = pos - 1;
       const $beforePos = doc.resolve(beforePos);
@@ -299,20 +370,16 @@ function findBlockWithCaption(
         }
       }
     }
-
     return { startPos, endPos };
   }
 
-  // Check if this is a caption paragraph
+  // For caption paragraphs, include associated content
   if (node.type.name === 'paragraph') {
     const textContent = node.textContent.toLowerCase();
     const hasClass = node.attrs?.class || '';
     
     // Figure caption - look for image before it
     if (textContent.startsWith('figure ') || hasClass.includes('figure-caption')) {
-      const captionEnd = pos + node.nodeSize;
-      
-      // Look for image before caption
       if (pos > 0) {
         const beforePos = pos - 1;
         const $beforePos = doc.resolve(beforePos);
@@ -321,19 +388,14 @@ function findBlockWithCaption(
         if (beforeNode && beforeNode.type.name === 'image') {
           return {
             startPos: pos - beforeNode.nodeSize,
-            endPos: captionEnd,
+            endPos: pos + node.nodeSize,
           };
         }
       }
-      
-      return { startPos: pos, endPos: captionEnd };
     }
     
     // Table caption - look for table after it
     if (textContent.startsWith('table ') || hasClass.includes('table-caption')) {
-      const captionStart = pos;
-      
-      // Look for table after caption
       const afterPos = pos + node.nodeSize;
       if (afterPos < doc.content.size) {
         const $afterPos = doc.resolve(afterPos);
@@ -341,33 +403,43 @@ function findBlockWithCaption(
         
         if (afterNode && afterNode.type.name === 'table') {
           return {
-            startPos: captionStart,
+            startPos: pos,
             endPos: afterPos + afterNode.nodeSize,
           };
         }
       }
-      
-      return { startPos: captionStart, endPos: pos + node.nodeSize };
     }
   }
 
-  return null;
+  return { startPos, endPos };
 }
 
 /**
- * Checks if a node is a draggable block (image, table, or their captions)
+ * Checks if a node is a draggable block.
+ * All blocks are draggable EXCEPT H1 and H2 headings.
  */
 export function isDraggableBlock(node: ProseMirrorNode): boolean {
-  if (node.type.name === 'image' || node.type.name === 'table') {
+  // H1 and H2 are locked - not draggable
+  if (node.type.name === 'heading') {
+    const level = node.attrs?.level;
+    if (level === 1 || level === 2) {
+      return false;
+    }
+    // H3+ are draggable
     return true;
   }
   
-  if (node.type.name === 'paragraph') {
-    const text = node.textContent.toLowerCase();
-    const hasClass = node.attrs?.class || '';
-    return text.startsWith('figure ') || text.startsWith('table ') || 
-           hasClass.includes('figure-caption') || hasClass.includes('table-caption');
-  }
+  // These block types are draggable
+  const draggableTypes = [
+    'paragraph',
+    'image',
+    'table',
+    'bulletList',
+    'orderedList',
+    'blockquote',
+    'codeBlock',
+    'horizontalRule',
+  ];
   
-  return false;
+  return draggableTypes.includes(node.type.name);
 }

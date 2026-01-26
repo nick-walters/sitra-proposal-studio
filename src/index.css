@@ -70,45 +70,48 @@
   font-style: italic !important;
 }
 
-/* Draggable Block Styles */
-.draggable-block {
+/* Draggable Block Styles - Handles in the left margin */
+.draggable-content-block {
   position: relative;
 }
 
-.draggable-block:hover .drag-handle {
+.draggable-content-block:hover > .block-drag-handle {
   opacity: 1;
 }
 
-.drag-handle {
+/* Block drag handle - positioned in the left margin area */
+.block-drag-handle {
   position: absolute;
-  left: -24px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 18px;
-  height: 18px;
+  left: -32px;
+  top: 2px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: grab;
   opacity: 0;
   transition: opacity 0.15s ease;
-  border-radius: 3px;
+  border-radius: 4px;
   background: hsl(var(--muted));
   color: hsl(var(--muted-foreground));
+  z-index: 10;
+  user-select: none;
 }
 
-.drag-handle:hover {
+.block-drag-handle:hover {
   background: hsl(var(--accent));
   color: hsl(var(--accent-foreground));
 }
 
-.drag-handle:active {
+.block-drag-handle:active {
   cursor: grabbing;
 }
 
-.drag-handle svg {
+.block-drag-handle svg {
   width: 14px;
   height: 14px;
+  pointer-events: none;
 }
 
 /* Drop position indicator - horizontal line showing where content will land */
@@ -157,64 +160,9 @@
   }
 }
 
-/* Legacy drop target indicator for node highlighting */
-.drop-target-indicator {
-  outline: 2px dashed hsl(var(--primary));
-  outline-offset: 2px;
-  border-radius: 4px;
-  background: hsl(var(--primary) / 0.05);
-}
-
 /* Dragging state */
 .ProseMirror [draggable="true"] {
   opacity: 0.5;
-}
-
-/* Wrapper for draggable figures and tables */
-.draggable-figure-wrapper,
-.draggable-table-wrapper,
-.draggable-table-node {
-  position: relative;
-  padding-left: 28px;
-  margin-left: -28px;
-}
-
-.draggable-figure-wrapper:hover .drag-handle,
-.draggable-table-wrapper:hover .drag-handle,
-.draggable-table-node:hover .drag-handle {
-  opacity: 1;
-}
-
-/* Table drag handle via pseudo-element - using SVG grip icon */
-.draggable-table-node::before {
-  content: '';
-  position: absolute;
-  left: -24px;
-  top: 8px;
-  width: 18px;
-  height: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: grab;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-  border-radius: 3px;
-  background: hsl(var(--muted));
-  /* Using CSS to create grip dots pattern */
-  background-image: radial-gradient(circle, hsl(var(--muted-foreground)) 1.5px, transparent 1.5px);
-  background-size: 5px 5px;
-  background-position: center;
-  background-repeat: repeat-y;
-}
-
-.draggable-table-node:hover::before {
-  opacity: 1;
-  background-color: hsl(var(--accent));
-}
-
-.draggable-table-node:active::before {
-  cursor: grabbing;
 }
 
 /* Figure container styling */
@@ -414,9 +362,9 @@
     line-height: 1.0;
   }
 
-  /* Body text justified by default with 6pt spacing */
+  /* Body text left-aligned by default with 6pt spacing */
   .document-content p {
-    text-align: justify;
+    text-align: left;
     margin-top: 6pt;
     margin-bottom: 6pt;
   }
