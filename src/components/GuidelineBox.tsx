@@ -88,12 +88,12 @@ export function GuidelineBox({ type, title, children, className, compact = false
   );
 }
 
-// Inline guideline for Part A forms - just icon + text
+// Inline guideline for Part A forms - just icon + text (neutral gray styling)
 export function InlineGuideline({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <div className={cn("flex items-start gap-2 text-sm", className)}>
-      <Info className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-500" />
-      <span className="text-blue-700">{children}</span>
+      <Info className="h-4 w-4 mt-0.5 flex-shrink-0 text-muted-foreground" />
+      <span className="text-muted-foreground">{children}</span>
     </div>
   );
 }
