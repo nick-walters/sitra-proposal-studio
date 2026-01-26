@@ -94,7 +94,7 @@ function SectionItem({
     section.id === 'b2'
   );
   
-  // Check if this is a top-level bold item (Proposal overview, Part A, Part B, Figures, Progress)
+  // Check if this is a top-level bold item (Proposal overview, Part A, Part B, Figures, Assignments)
   // Match both ID-based and number-based checks for database sections
   const isTopLevelBold = 
     section.id === 'proposal-overview' || 
@@ -104,7 +104,7 @@ function SectionItem({
     section.number === 'Part B' ||
     section.id === 'figures' ||
     section.title === 'Figures' ||
-    section.id === 'progress';
+    section.id === 'assignments';
   
   // Note: Guideline icons removed from navigation hover to reduce visual clutter
 
@@ -146,7 +146,7 @@ function SectionItem({
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             )}
           </button>
-        ) : section.id === 'progress' ? (
+        ) : section.id === 'assignments' ? (
           <BarChart3 className="w-4 h-4 text-muted-foreground" />
         ) : (
           <FileText className="w-4 h-4 text-muted-foreground" />

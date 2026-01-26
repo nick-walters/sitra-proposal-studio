@@ -422,12 +422,13 @@ export function ProposalEditor() {
       );
     }
 
-    // Progress dashboard section
-    if (activeSection.id === 'progress') {
+    // Assignments section (formerly Progress)
+    if (activeSection.id === 'assignments') {
       return (
         <SectionProgressDashboard
           proposalId={id || ''}
           proposalAcronym={proposal?.acronym}
+          currentUserId={user?.id}
         />
       );
     }
