@@ -303,12 +303,12 @@ function SortableDeliverableCard({
             onValueChange={(value) => onUpdate(deliverable.id, { due_month: value ? parseInt(value) : null })}
             disabled={readOnly}
           >
-            <SelectTrigger className="h-6 w-[50px] text-xs px-1">
+            <SelectTrigger className="h-6 w-[55px] text-xs px-1">
               <SelectValue placeholder="M" />
             </SelectTrigger>
             <SelectContent>
               {monthOptions.map((m) => (
-                <SelectItem key={m} value={m.toString()}>M{m}</SelectItem>
+                <SelectItem key={m} value={m.toString()}>M{m.toString().padStart(2, '0')}</SelectItem>
               ))}
             </SelectContent>
           </Select>
