@@ -464,15 +464,21 @@ export function usePdfExport() {
         const xPos = margin + (contentWidth - imgWidthMm) / 2;
         
         pdf.addImage(imageData.data, 'JPEG', xPos, yPosition, imgWidthMm, imgHeightMm);
-        // Add paragraph spacing after image (6pt ≈ 2.1mm) before the caption
-        yPosition += imgHeightMm + paragraphSpacingH2;
+        // Minimal spacing after image - caption follows immediately below
+        yPosition += imgHeightMm + 1; // Just 1mm gap between figure and caption
       };
 
       // Helper: Add caption (whole caption italic, label bold-italic)
+      // Table captions: 6pt before, 1pt after (appear above table)
+      // Figure captions: 0pt before, 6pt after (appear below figure)
       const addCaption = (text: string, captionType: 'figure' | 'table') => {
         console.log('PDF Export - Caption text:', text, 'Type:', captionType);
         
-        yPosition += captionType === 'table' ? paragraphSpacingH2 : paragraphSpacing;
+        // Table captions need spacing before (6pt), figure captions need 0pt before
+        if (captionType === 'table') {
+          yPosition += paragraphSpacingH2; // 6pt before table caption
+        }
+        // Figure captions: no spacing before (0pt) - the image already has minimal spacing after it
         checkPageBreak(lineHeightBody);
         
         pdf.setFontSize(FONT_SIZE_BODY);
