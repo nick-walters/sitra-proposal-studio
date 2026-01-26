@@ -294,15 +294,6 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           readOnly={readOnly}
         />
 
-        {/* Staff Effort Matrix */}
-        <WPEffortMatrix
-          wpNumber={wpDraft.number}
-          tasks={wpDraft.tasks || []}
-          participants={participants}
-          onEffortChange={updateTaskEffort}
-          readOnly={readOnly}
-        />
-
         {/* Deliverables */}
         <WPDeliverablesTable
           wpNumber={wpDraft.number}
@@ -313,6 +304,15 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           onDeliverableDelete={deleteDeliverable}
           readOnly={readOnly}
           projectDuration={projectDuration}
+        />
+
+        {/* Staff Effort Matrix */}
+        <WPEffortMatrix
+          wpNumber={wpDraft.number}
+          tasks={wpDraft.tasks || []}
+          participants={participants}
+          onEffortChange={updateTaskEffort}
+          readOnly={readOnly}
         />
 
         {/* Risks */}

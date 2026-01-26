@@ -55,9 +55,9 @@ export function WPEffortMatrix({
     return (
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
+        <CardTitle className="flex items-center gap-2 text-base">
             <Users className="h-4 w-4" />
-            Staff Effort (Person-Months)
+            Staff effort (person-months)
           </CardTitle>
           <CardDescription>
             Add tasks with titles to enable effort tracking
@@ -71,9 +71,9 @@ export function WPEffortMatrix({
     return (
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
+        <CardTitle className="flex items-center gap-2 text-base">
             <Users className="h-4 w-4" />
-            Staff Effort (Person-Months)
+            Staff effort (person-months)
           </CardTitle>
           <CardDescription>
             Add participants to the proposal to enable effort tracking
@@ -88,7 +88,7 @@ export function WPEffortMatrix({
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Users className="h-4 w-4" />
-          Staff Effort (Person-Months)
+          Staff effort (person-months)
         </CardTitle>
         <CardDescription>
           Enter person-months per participant per task. This data feeds into the budget spreadsheet.
