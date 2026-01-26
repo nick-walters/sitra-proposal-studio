@@ -305,9 +305,13 @@ export function ProposalEditor() {
           }
         }
 
-        // All users can see all participants, but only admins can add/reorder
-        // Users can only edit their own linked organisation
-        const visibleParticipants = participants;
+        // Admins/owners see all participants, regular users only see their linked organisation(s)
+        const visibleParticipants = isAdmin 
+          ? participants 
+          : participants.filter(p => {
+              const userMembers = participantMembers.filter(m => m.userId === user?.id);
+              return userMembers.some(m => m.participantId === p.id);
+            });
 
         return (
           <ParticipantListView
