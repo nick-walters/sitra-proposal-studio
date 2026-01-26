@@ -162,6 +162,7 @@ export function ProposalEditor() {
         content: sc.content || '',
       })),
       sections: allSections,
+      participants: participants,
     }, { includeWatermark });
   };
 
