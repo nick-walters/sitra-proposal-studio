@@ -7,6 +7,7 @@ export interface WPCompletionStatus {
   tasks: boolean;
   deliverables: boolean;
   risks: boolean;
+  interactions: boolean;
   overall: boolean;
 }
 
@@ -53,8 +54,12 @@ function checkWPCompletion(wp: WPDraft): WPCompletionStatus {
   const tasks = (wp.tasks || []).some(t => t.title && t.title.trim().length > 0);
   const deliverables = (wp.deliverables || []).some(d => d.title && d.title.trim().length > 0);
   const risks = (wp.risks || []).some(r => r.title && r.title.trim().length > 0);
+  // Interactions: at least one of inputs, outputs, or bottlenecks has content
+  const interactions = countWords(wp.inputs_question) >= 10 || 
+                       countWords(wp.outputs_question) >= 10 || 
+                       countWords(wp.bottlenecks_question) >= 10;
   
-  const overall = methodology && objectives && tasks && deliverables && risks;
+  const overall = methodology && objectives && tasks && deliverables && risks && interactions;
 
   return {
     methodology,
@@ -62,6 +67,7 @@ function checkWPCompletion(wp: WPDraft): WPCompletionStatus {
     tasks,
     deliverables,
     risks,
+    interactions,
     overall,
   };
 }
