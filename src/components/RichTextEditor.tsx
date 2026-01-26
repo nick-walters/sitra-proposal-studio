@@ -46,6 +46,8 @@ import {
   Combine,
   SplitSquareHorizontal,
   Calculator,
+  FileText,
+  Link2,
 } from "lucide-react";
 import {
   Tooltip,
@@ -554,6 +556,55 @@ export function FormattingToolbar({
           </TooltipContent>
         </Tooltip>
         
+        <Separator orientation="vertical" className="h-5 mx-1.5" />
+        
+        {/* Citation and Cross-ref section */}
+        <div className="flex items-center gap-0.5">
+          {/* Citation button */}
+          {onOpenCitationDialog && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 gap-1"
+                  onClick={onOpenCitationDialog}
+                  disabled={isReadOnly}
+                >
+                  <FileText className="w-4 h-4" />
+                  <span className="text-xs">Citation</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                Add Citation
+              </TooltipContent>
+            </Tooltip>
+          )}
+          
+          {/* Cross-ref button */}
+          {isPartB && onOpenCrossRefDialog && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 gap-1"
+                  onClick={onOpenCrossRefDialog}
+                  disabled={isReadOnly}
+                >
+                  <Link2 className="w-4 h-4" />
+                  <span className="text-xs">Cross-ref</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                Insert Cross-reference
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+        
+        <Separator orientation="vertical" className="h-5 mx-1.5" />
+        
         {/* Table with text label */}
         {!isInTable ? (
           <Popover open={tablePopoverOpen} onOpenChange={setTablePopoverOpen}>
@@ -774,47 +825,6 @@ export function FormattingToolbar({
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-xs">
                 Insert Figure
-              </TooltipContent>
-            </Tooltip>
-          )}
-          
-          {/* Citation button */}
-          {onOpenCitationDialog && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2 gap-1"
-                  onClick={onOpenCitationDialog}
-                  disabled={isReadOnly}
-                >
-                  <span className="text-xs font-medium">[1]</span>
-                  <span className="text-xs">Citation</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs">
-                Add Citation
-              </TooltipContent>
-            </Tooltip>
-          )}
-          
-          {/* Cross-ref button */}
-          {isPartB && onOpenCrossRefDialog && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2 gap-1"
-                  onClick={onOpenCrossRefDialog}
-                  disabled={isReadOnly}
-                >
-                  <span className="text-xs">Cross-ref</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs">
-                Insert Cross-reference
               </TooltipContent>
             </Tooltip>
           )}
