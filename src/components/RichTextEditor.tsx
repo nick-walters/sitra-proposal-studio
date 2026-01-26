@@ -426,20 +426,24 @@ export function FormattingToolbar({
       <Separator orientation="vertical" className="h-5 mx-1.5" />
 
       <div className="flex items-center gap-0.5">
-        {/* Subheading button with text instead of icon */}
+        {/* Subheading button - applies inline bold+underline character style */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              variant={editor.isActive('heading', { level: 3 }) ? "secondary" : "ghost"}
+              variant={editor.isActive('bold') && editor.isActive('underline') ? "secondary" : "ghost"}
               size="sm"
               className="h-7 px-2 text-xs"
-              onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+              onClick={() => {
+                // Apply both bold and underline as inline/character styles
+                editor.chain().focus().toggleBold().run();
+                editor.chain().focus().toggleUnderline().run();
+              }}
             >
               <span className="font-black underline">Subheading</span>
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom" className="text-xs">
-            Subheading (Bold & Underlined)
+            Subheading (Bold & Underlined inline style)
           </TooltipContent>
         </Tooltip>
       </div>
@@ -745,76 +749,76 @@ export function FormattingToolbar({
                 tooltip="Delete figure with caption"
                 onClick={() => setShowDeleteConfirm(true)}
               />
-      </div>
-
-      {/* Insert buttons with text labels */}
-      <Separator orientation="vertical" className="h-5 mx-1.5" />
-      
-      <div className="flex items-center gap-0.5">
-        {/* Figure button */}
-        {isPartB && onOpenFigureDialog && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 gap-1"
-                onClick={onOpenFigureDialog}
-                disabled={isReadOnly}
-              >
-                <ImageIcon className="w-4 h-4" />
-                <span className="text-xs">Figure</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">
-              Insert Figure
-            </TooltipContent>
-          </Tooltip>
-        )}
-        
-        {/* Citation button */}
-        {onOpenCitationDialog && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 gap-1"
-                onClick={onOpenCitationDialog}
-                disabled={isReadOnly}
-              >
-                <span className="text-xs font-medium">[1]</span>
-                <span className="text-xs">Citation</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">
-              Add Citation
-            </TooltipContent>
-          </Tooltip>
-        )}
-        
-        {/* Cross-ref button */}
-        {isPartB && onOpenCrossRefDialog && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 gap-1"
-                onClick={onOpenCrossRefDialog}
-                disabled={isReadOnly}
-              >
-                <span className="text-xs">Cross-ref</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">
-              Insert Cross-reference
-            </TooltipContent>
-          </Tooltip>
-        )}
-      </div>
+            </div>
           </>
         )}
+
+        {/* Insert buttons with text labels - always visible */}
+        <Separator orientation="vertical" className="h-5 mx-1.5" />
+        
+        <div className="flex items-center gap-0.5">
+          {/* Figure button */}
+          {isPartB && onOpenFigureDialog && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 gap-1"
+                  onClick={onOpenFigureDialog}
+                  disabled={isReadOnly}
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  <span className="text-xs">Figure</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                Insert Figure
+              </TooltipContent>
+            </Tooltip>
+          )}
+          
+          {/* Citation button */}
+          {onOpenCitationDialog && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 gap-1"
+                  onClick={onOpenCitationDialog}
+                  disabled={isReadOnly}
+                >
+                  <span className="text-xs font-medium">[1]</span>
+                  <span className="text-xs">Citation</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                Add Citation
+              </TooltipContent>
+            </Tooltip>
+          )}
+          
+          {/* Cross-ref button */}
+          {isPartB && onOpenCrossRefDialog && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 gap-1"
+                  onClick={onOpenCrossRefDialog}
+                  disabled={isReadOnly}
+                >
+                  <span className="text-xs">Cross-ref</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                Insert Cross-reference
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
       </div>
 
       {/* Crop Dialog */}
