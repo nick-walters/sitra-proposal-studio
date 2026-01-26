@@ -187,7 +187,7 @@ export function CreateProposalDialog({
                 id="acronym"
                 placeholder="e.g. INNOVATE"
                 value={acronym}
-                onChange={(e) => setAcronym(e.target.value.toUpperCase())}
+                onChange={(e) => setAcronym(e.target.value)}
                 className="font-semibold w-48"
               />
             </div>
