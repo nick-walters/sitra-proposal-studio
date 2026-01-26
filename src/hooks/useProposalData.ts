@@ -358,7 +358,8 @@ export function useProposalData(proposalId: string) {
     if (updates.address !== undefined) dbUpdates.address = updates.address;
     if (updates.organisationCategory !== undefined) dbUpdates.organisation_category = updates.organisationCategory;
     if (updates.englishName !== undefined) dbUpdates.english_name = updates.englishName;
-    if (updates.logoUrl !== undefined) dbUpdates.logo_url = updates.logoUrl;
+    // Handle logoUrl - use null check to allow clearing (null means delete, undefined means no change)
+    if ('logoUrl' in updates) dbUpdates.logo_url = updates.logoUrl || null;
 
     const { error } = await supabase.from('participants').update(dbUpdates).eq('id', id);
 

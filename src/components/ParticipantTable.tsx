@@ -124,7 +124,8 @@ export function ParticipantTable({
   };
 
   const handleRemoveLogo = (participantId: string) => {
-    onUpdateParticipant?.(participantId, { logoUrl: undefined });
+    // Use null (not undefined) to ensure the database update includes the deletion
+    onUpdateParticipant?.(participantId, { logoUrl: null as unknown as string });
   };
 
   // Auto-fetch logo from the web - always fetches fresh, never uses cached
