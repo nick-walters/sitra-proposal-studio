@@ -115,26 +115,47 @@ export function usePdfExport() {
         pdf.setTextColor(...gray);
         const headerText = `${proposal.topicId || ''} ${proposal.topicTitle || proposal.title}`;
         const truncatedHeader = headerText.length > 100 ? headerText.substring(0, 97) + '...' : headerText;
-        pdf.text(truncatedHeader, margin, margin);
+        pdf.text(truncatedHeader, pageWidth / 2, margin, { align: 'center' });
       };
 
       // Helper: Add footer to a page
       const addFooter = (pageNum: number, totalPages: number, sectionName: string) => {
         pdf.setFontSize(FONT_SIZE_HEADER_FOOTER);
-        pdf.setFont('times', 'normal');
         pdf.setTextColor(...gray);
         
         const footerY = pageHeight - margin + 5;
+        const centerX = pageWidth / 2;
         
-        // Left: acronym
-        pdf.text(proposal.acronym, margin, footerY);
+        // Build footer: "ACRONYM (Stage 1 of 2) | Part BX.X. Subsection title | Page X of X"
+        const acronymText = proposal.acronym;
+        const stageText = ' (Stage 1 of 2) | ';
+        const sectionText = sectionName ? `Part ${sectionName}` : '';
+        const pageText = ` | Page ${pageNum} of ${totalPages}`;
         
-        // Center: section name
-        const sectionText = sectionName || '';
-        pdf.text(sectionText, pageWidth / 2, footerY, { align: 'center' });
+        // Calculate total width to center properly
+        pdf.setFont('times', 'bold');
+        const acronymWidth = pdf.getTextWidth(acronymText);
+        pdf.setFont('times', 'normal');
+        const stageWidth = pdf.getTextWidth(stageText);
+        const sectionWidth = pdf.getTextWidth(sectionText);
+        const pageWidth2 = pdf.getTextWidth(pageText);
+        const totalWidth = acronymWidth + stageWidth + sectionWidth + pageWidth2;
         
-        // Right: page number
-        pdf.text(`Page ${pageNum} of ${totalPages}`, pageWidth - margin, footerY, { align: 'right' });
+        // Start position for centered text
+        let xPos = centerX - totalWidth / 2;
+        
+        // Draw acronym in bold
+        pdf.setFont('times', 'bold');
+        pdf.text(acronymText, xPos, footerY);
+        xPos += acronymWidth;
+        
+        // Draw rest in normal
+        pdf.setFont('times', 'normal');
+        pdf.text(stageText, xPos, footerY);
+        xPos += stageWidth;
+        pdf.text(sectionText, xPos, footerY);
+        xPos += sectionWidth;
+        pdf.text(pageText, xPos, footerY);
       };
 
       // Helper: Add title (14pt bold, 12pt paragraph spacing after)
