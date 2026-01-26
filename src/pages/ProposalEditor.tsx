@@ -645,7 +645,7 @@ export function ProposalEditor() {
             
             {/* Destination */}
             {destination && (
-              <span className="proposal-badge bg-gray-200 text-gray-600 text-[10px] hidden lg:inline-flex" title={destination.fullName}>
+              <span className="proposal-badge bg-gray-200 text-gray-600 text-[10px] hidden md:inline-flex" title={destination.fullName}>
                 {destination.abbreviation}
               </span>
             )}
