@@ -311,40 +311,9 @@ export function ParticipantTable({
                 )}
               </TableCell>
               <TableCell className="py-0.5 px-1 align-top">
-                {isEditing ? (
-                  <Select
-                    value={participant.country || ''}
-                    onValueChange={(v) => handleCountryChange(participant.id, v)}
-                  >
-                    <SelectTrigger className="h-6 text-[10px] px-1 w-full min-w-[120px]">
-                      <SelectValue placeholder="—" />
-                    </SelectTrigger>
-                    <SelectContent className="z-50 bg-popover max-h-60">
-                      <div className="px-2 py-1 text-[9px] font-semibold text-muted-foreground">EU Member States</div>
-                      {EU_MEMBER_STATES.map((country) => (
-                        <SelectItem key={country.code} value={country.name} className="text-[10px]">
-                          {country.name}
-                        </SelectItem>
-                      ))}
-                      <div className="px-2 py-1 text-[9px] font-semibold text-muted-foreground mt-1">Associated Countries</div>
-                      {ASSOCIATED_COUNTRIES.map((country) => (
-                        <SelectItem key={country.code} value={country.name} className="text-[10px]">
-                          {country.name}
-                        </SelectItem>
-                      ))}
-                      <div className="px-2 py-1 text-[9px] font-semibold text-muted-foreground mt-1">Third Countries</div>
-                      {THIRD_COUNTRIES.map((country) => (
-                        <SelectItem key={country.code} value={country.name} className="text-[10px]">
-                          {country.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <span className="font-medium">
-                    {participant.country || '—'}
-                  </span>
-                )}
+                <span className="font-medium">
+                  {participant.country || '—'}
+                </span>
               </TableCell>
             </TableRow>
           ))}
