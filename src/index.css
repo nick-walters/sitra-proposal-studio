@@ -310,6 +310,8 @@
     font-weight: 700;
     line-height: 1.3;
     text-align: left;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
   }
 
   .document-h2 {
@@ -318,6 +320,8 @@
     font-weight: 700;
     line-height: 1.3;
     text-align: left;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
   }
 
   .document-h3 {
