@@ -21,6 +21,7 @@ import { useSectionAssignment } from "@/hooks/useSectionAssignment";
 import { useCollaborativeCursors } from "@/hooks/useCollaborativeCursors";
 import { useBlockLocking } from "@/hooks/useBlockLocking";
 import { renumberFootnotes } from "@/lib/captionRenumbering";
+import { useProposalReferences } from "@/hooks/useProposalReferences";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -88,8 +89,16 @@ export function DocumentEditor({
   const [isAssignmentDialogOpen, setIsAssignmentDialogOpen] = useState(false);
   const [selectedText, setSelectedText] = useState<string>('');
   const [selectionRange, setSelectionRange] = useState<{ start: number; end: number } | undefined>();
-  const [references, setReferences] = useState<Reference[]>([]);
   const [footnotes, setFootnotes] = useState<Array<{ number: number; citation: string }>>([]);
+  
+  // Proposal-wide references hook
+  const { 
+    references: proposalReferences, 
+    isLoading: isLoadingReferences, 
+    addReference,
+    findExistingReference,
+    getNextCitationNumber 
+  } = useProposalReferences(proposalId);
   
   // Track changes state
   const [trackChangesEnabled, setTrackChangesEnabled] = useState(false);
@@ -285,18 +294,22 @@ export function DocumentEditor({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const handleInsertCitation = useCallback((reference: Reference, formattedCitation: string, citationNumber: number) => {
+  const handleInsertCitation = useCallback(async (reference: Reference, formattedCitation: string, citationNumber: number) => {
     if (!editor) return;
     
     // Insert superscript citation at cursor position
     editor.chain().focus().insertContent(`<sup>[${citationNumber}]</sup>`).run();
     
-    // Add to references if new
-    if (!references.some(r => r.doi === reference.doi)) {
-      setReferences(prev => [...prev, reference]);
+    // Check if this reference already exists in the proposal
+    const existingRef = findExistingReference(reference);
+    
+    if (!existingRef) {
+      // Add to database for proposal-wide tracking
+      await addReference(reference, formattedCitation, citationNumber);
+      // Update local footnotes
       setFootnotes(prev => [...prev, { number: citationNumber, citation: formattedCitation }]);
     }
-  }, [editor, references]);
+  }, [editor, findExistingReference, addReference]);
 
   // Helper to extract section number without "B" prefix (e.g., "1.1" from "B1.1" or just "1.1")
   const getSectionNumberWithoutPrefix = useCallback((sectionNum: string) => {
@@ -824,8 +837,9 @@ export function DocumentEditor({
         isOpen={isCitationOpen}
         onClose={() => setIsCitationOpen(false)}
         onInsertCitation={handleInsertCitation}
-        existingReferences={references}
-        nextCitationNumber={references.length + 1}
+        proposalReferences={proposalReferences}
+        isLoadingReferences={isLoadingReferences}
+        nextCitationNumber={getNextCitationNumber()}
       />
       <InsertFigureDialog
         isOpen={isFigureDialogOpen}
