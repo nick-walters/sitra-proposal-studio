@@ -21,11 +21,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
 import { WPColorPicker } from '@/components/WPColorPicker';
-import { Layers, GripVertical, Plus, AlertTriangle } from 'lucide-react';
+import { WPColorPaletteEditor } from '@/components/WPColorPaletteEditor';
+import { Layers, GripVertical, Plus, AlertTriangle, Palette } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/useAuth';
+import { useWPColorPalette } from '@/hooks/useWPColorPalette';
+import { populateB31 } from '@/lib/b31Population';
 import { toast } from 'sonner';
 
 interface Participant {
@@ -147,8 +150,13 @@ interface WPManagementCardProps {
 
 export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }: WPManagementCardProps) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [selectedWPs, setSelectedWPs] = useState<Set<string>>(new Set());
   const [isPopulating, setIsPopulating] = useState(false);
+  const [paletteEditorOpen, setPaletteEditorOpen] = useState(false);
+  
+  // Color palette for the proposal
+  const { colors: wpColors, updatePalette } = useWPColorPalette(proposalId);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -277,12 +285,27 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
   };
 
   const handlePopulate = async (all: boolean) => {
+    if (!user?.id) {
+      toast.error('You must be logged in to populate content');
+      return;
+    }
+    
     setIsPopulating(true);
     try {
       const wpsToPopulate = all ? wpDrafts : wpDrafts.filter((wp) => selectedWPs.has(wp.id));
-      // TODO: Implement B3.1 population logic
-      toast.success(`Populated ${wpsToPopulate.length} work package(s) to Part B3.1`);
+      const wpIds = wpsToPopulate.map((wp) => wp.id);
+      
+      const result = await populateB31(proposalId, wpIds, user.id);
+      
+      if (result.success) {
+        toast.success(`Populated ${wpsToPopulate.length} work package(s) to Part B3.1`);
+        // Invalidate section content queries to refresh the editor
+        queryClient.invalidateQueries({ queryKey: ['section-content'] });
+      } else {
+        toast.error(result.error || 'Failed to populate work packages');
+      }
     } catch (error) {
+      console.error('Error populating B3.1:', error);
       toast.error('Failed to populate work packages');
     } finally {
       setIsPopulating(false);
@@ -359,8 +382,24 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
               <Plus className="w-4 h-4 mr-1" />
               Add WP
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPaletteEditorOpen(true)}
+            >
+              <Palette className="w-4 h-4 mr-1" />
+              Edit Color Palette
+            </Button>
           </div>
         )}
+        
+        {/* Color Palette Editor */}
+        <WPColorPaletteEditor
+          open={paletteEditorOpen}
+          onOpenChange={setPaletteEditorOpen}
+          colors={wpColors}
+          onSave={updatePalette}
+        />
 
         {/* Populate B3.1 Section (Full Proposals Only) */}
         {isFullProposal && isAdmin && (
