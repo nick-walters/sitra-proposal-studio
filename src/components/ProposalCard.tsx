@@ -1,7 +1,7 @@
 import { Proposal, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS } from "@/types/proposal";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, FileText, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink, AlertTriangle, PartyPopper } from "lucide-react";
+import { Calendar, FileText, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink, AlertTriangle, PartyPopper, HelpCircle } from "lucide-react";
 import { format, differenceInDays, addMonths } from "date-fns";
 
 // Calculate estimated decision date based on submission stage
@@ -164,8 +164,12 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
               const estimatedDate = getEstimatedDecisionDate(proposal);
               return estimatedDate ? (
                 <div className="flex items-center gap-0.5">
-                  <Clock className="w-2.5 h-2.5 text-yellow-600" />
-                  <span className="font-bold">Decision:</span> ~{format(estimatedDate, 'dd/MM/yyyy')}
+                  <Clock className="w-2.5 h-2.5 text-muted-foreground" />
+                  <span className="font-bold">Decision:</span> {format(estimatedDate, 'dd/MM/yyyy')}
+                  <span className="inline-flex items-center gap-0.5 ml-1 px-1 py-0 text-[8px] font-medium bg-white text-blue-600 border border-blue-400 rounded">
+                    <HelpCircle className="w-2 h-2" />
+                    Est.
+                  </span>
                 </div>
               ) : null;
             })()}
@@ -296,8 +300,12 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
                 const estimatedDate = getEstimatedDecisionDate(proposal);
                 return estimatedDate ? (
                   <div className="flex items-center gap-0.5">
-                    <Clock className="w-2.5 h-2.5 text-yellow-600" />
-                    <span className="font-bold">Decision:</span> ~{format(estimatedDate, 'dd/MM/yyyy')}
+                    <Clock className="w-2.5 h-2.5 text-muted-foreground" />
+                    <span className="font-bold">Decision:</span> {format(estimatedDate, 'dd/MM/yyyy')}
+                    <span className="inline-flex items-center gap-0.5 ml-1 px-1 py-0 text-[8px] font-medium bg-white text-blue-600 border border-blue-400 rounded">
+                      <HelpCircle className="w-2 h-2" />
+                      Est.
+                    </span>
                   </div>
                 ) : null;
               })()}
