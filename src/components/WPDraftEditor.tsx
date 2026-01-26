@@ -59,6 +59,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
     addTask,
     updateTask,
     deleteTask,
+    reorderTasks,
     updateTaskEffort,
     setTaskParticipants,
     addDeliverable,
@@ -201,6 +202,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           onTaskAdd={addTask}
           onTaskDelete={deleteTask}
           onTaskParticipantsChange={setTaskParticipants}
+          onTaskReorder={reorderTasks}
           readOnly={readOnly}
           projectDuration={projectDuration}
         />

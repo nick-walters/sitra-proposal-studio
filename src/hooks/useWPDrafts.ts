@@ -441,6 +441,51 @@ export function useWPDraftEditor(wpId: string | null) {
     }
   }, [toast]);
 
+  // Reorder tasks
+  const reorderTasks = useCallback(async (newOrder: string[]) => {
+    if (!wpDraft) return false;
+
+    try {
+      const updates = newOrder.map((id, index) => ({
+        id,
+        order_index: index,
+        number: index + 1,
+      }));
+
+      // Update locally first for optimistic UI
+      setWPDraft(prev => {
+        if (!prev || !prev.tasks) return prev;
+        const taskMap = new Map(prev.tasks.map(t => [t.id, t]));
+        return {
+          ...prev,
+          tasks: newOrder.map((id, index) => ({
+            ...taskMap.get(id)!,
+            order_index: index,
+            number: index + 1,
+          })),
+        };
+      });
+
+      // Update in database
+      for (const update of updates) {
+        await supabase
+          .from('wp_draft_tasks')
+          .update({ order_index: update.order_index, number: update.number })
+          .eq('id', update.id);
+      }
+
+      return true;
+    } catch (err) {
+      console.error('Error reordering tasks:', err);
+      toast({
+        title: 'Error',
+        description: 'Failed to reorder tasks',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  }, [wpDraft, toast]);
+
   // Deliverable operations
   const addDeliverable = useCallback(async () => {
     if (!wpDraft) return null;
@@ -710,6 +755,7 @@ export function useWPDraftEditor(wpId: string | null) {
     addTask,
     updateTask,
     deleteTask,
+    reorderTasks,
     updateTaskEffort,
     setTaskParticipants,
     // Deliverables
