@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { LogoUpload } from '@/components/LogoUpload';
-import { ProposalSchedule } from '@/components/ProposalSchedule';
+// ProposalSchedule removed from overview page
 import { ParticipantTable, ExtendedParticipant } from '@/components/ParticipantTable';
 
 import { Proposal, Participant, ParticipantMember, WORK_PROGRAMMES, DESTINATIONS, ProposalStatus, getDestinationsForWorkProgramme } from '@/types/proposal';
@@ -358,12 +358,12 @@ export function ProposalSummaryPage({
               )}
             </div>
 
-            {/* Pre-proposal & Type of action */}
+            {/* Proposal stage & Type of action */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">Pre-proposal</label>
+                <label className="text-sm text-muted-foreground mb-1 block">Proposal stage</label>
                 <p className="font-medium">
-                  {proposal.submissionStage === 'stage_1' ? 'Yes (Stage 1)' : 'No (Full proposal)'}
+                  {proposal.submissionStage === 'stage_1' ? 'Pre-proposal (stage 1)' : 'Full proposal'}
                 </p>
               </div>
               <div>
@@ -590,18 +590,7 @@ export function ProposalSummaryPage({
           </CardContent>
         </Card>
 
-        {/* Proposal Schedule (Combined Completion + Checklist) */}
-        {onSubmit && onUpdateStatus && (
-          <ProposalSchedule
-            proposal={proposal}
-            participants={participants}
-            budgetItems={budgetItems}
-            onSubmit={onSubmit}
-            onUpdateStatus={onUpdateStatus}
-            canEdit={canEdit}
-            isAdmin={isAdmin}
-          />
-        )}
+        {/* Proposal Schedule removed from overview page */}
 
         {/* List of participants */}
         <Card>
