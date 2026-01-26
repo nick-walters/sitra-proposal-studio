@@ -39,25 +39,9 @@ export const DraggableBlock = Extension.create({
           },
         },
         props: {
-          decorations(state) {
+        decorations(state) {
             const { doc } = state;
             const decorations: Decoration[] = [];
-
-            // Add draggable class to all blocks except H1 and H2
-            doc.descendants((node, pos) => {
-              // Skip if this is a child node (we only want top-level blocks)
-              const $pos = doc.resolve(pos);
-              if ($pos.depth > 1) return false;
-
-              // Check if this block is draggable
-              if (isDraggableBlock(node)) {
-                decorations.push(
-                  Decoration.node(pos, pos + node.nodeSize, {
-                    class: 'draggable-content-block',
-                  })
-                );
-              }
-            });
 
             // Add drop indicator if dragging
             const pluginState = DRAGGABLE_BLOCK_KEY.getState(state);
@@ -91,7 +75,8 @@ export const DraggableBlock = Extension.create({
               // Prevent text selection when clicking drag handle
               event.preventDefault();
               
-              const block = dragHandle.closest('.draggable-content-block');
+              // Find the parent block element (the one with the drag handle)
+              const block = dragHandle.parentElement;
               if (!block) return false;
 
               const pos = view.posAtDOM(block, 0);
@@ -102,7 +87,8 @@ export const DraggableBlock = Extension.create({
               if (!blockRange) return false;
 
               // Set up drag data on the element
-              (block as HTMLElement).setAttribute('draggable', 'true');
+              block.setAttribute('draggable', 'true');
+              block.classList.add('draggable-content-block');
               (block as any).__dragData = {
                 startPos: blockRange.startPos,
                 endPos: blockRange.endPos,
@@ -112,7 +98,11 @@ export const DraggableBlock = Extension.create({
             },
             dragstart(view, event) {
               const target = event.target as HTMLElement;
-              const block = target.closest('.draggable-content-block') as HTMLElement;
+              // Find block that has drag data
+              let block = target;
+              while (block && !(block as any).__dragData) {
+                block = block.parentElement as HTMLElement;
+              }
               if (!block) return false;
 
               const dragData = (block as any).__dragData;
@@ -242,12 +232,13 @@ export const DraggableBlock = Extension.create({
               return true;
             },
             dragend(view, event) {
-              // Reset opacity and draggable on any elements
-              const dragging = view.dom.querySelectorAll('[style*="opacity"], [draggable="true"]');
+              // Reset opacity, draggable, and class on any elements
+              const dragging = view.dom.querySelectorAll('[style*="opacity"], [draggable="true"], .draggable-content-block');
               dragging.forEach((el) => {
                 if (el instanceof HTMLElement) {
                   el.style.opacity = '';
                   el.removeAttribute('draggable');
+                  el.classList.remove('draggable-content-block');
                   delete (el as any).__dragData;
                 }
               });
