@@ -300,115 +300,102 @@ export function usePdfExport() {
         
         const result: ContentBlock[] = [];
         
-        // Mark special elements for preservation
-        let processedHtml = html
-          // Mark images
-          .replace(/<img[^>]*src=["']([^"']+)["'][^>]*(?:width=["'](\d+)["'])?[^>]*(?:height=["'](\d+)["'])?[^>]*\/?>/gi, 
-            (match, src, width, height) => `\n[[IMG:${src}:${width || ''}:${height || ''}]]\n`)
-          // Mark tables
-          .replace(/<table[^>]*>([\s\S]*?)<\/table>/gi, (match) => `\n[[TABLE:${btoa(encodeURIComponent(match))}]]\n`)
-          // Mark H3
-          .replace(/<h3[^>]*>(.*?)<\/h3>/gi, '\n[[H3]]$1[[/H3]]\n')
-          // Mark figure/table captions
-          .replace(/<p[^>]*class="[^"]*figure-caption[^"]*"[^>]*>(.*?)<\/p>/gi, '\n[[FIGCAPTION]]$1[[/FIGCAPTION]]\n')
-          .replace(/<p[^>]*class="[^"]*table-caption[^"]*"[^>]*>(.*?)<\/p>/gi, '\n[[TABLECAPTION]]$1[[/TABLECAPTION]]\n')
-          // Convert other block elements to newlines
-          .replace(/<p[^>]*>/gi, '\n')
-          .replace(/<\/p>/gi, '\n')
-          .replace(/<br\s*\/?>/gi, '\n')
-          .replace(/<div[^>]*>/gi, '\n')
-          .replace(/<\/div>/gi, '\n');
+        // Use DOM parser for more reliable extraction
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(`<div>${html}</div>`, 'text/html');
+        const container = doc.body.firstChild as HTMLElement;
         
-        const blocks = processedHtml.split('\n');
+        if (!container) return [];
         
-        for (const block of blocks) {
-          // Check for image
-          const imgMatch = block.match(/\[\[IMG:([^:]+):(\d*):(\d*)\]\]/);
-          if (imgMatch) {
-            result.push({ 
-              type: 'image', 
-              src: imgMatch[1],
-              width: imgMatch[2] ? parseInt(imgMatch[2]) : undefined,
-              height: imgMatch[3] ? parseInt(imgMatch[3]) : undefined
-            });
-            continue;
-          }
-          
-          // Check for table
-          const tableMatch = block.match(/\[\[TABLE:([^\]]+)\]\]/);
-          if (tableMatch) {
-            try {
-              const tableHtml = decodeURIComponent(atob(tableMatch[1]));
-              const { rows, hasHeader } = parseTableHtml(tableHtml);
-              if (rows.length > 0) {
-                result.push({ type: 'table', rows, hasHeader });
-              }
-            } catch {
-              // Skip malformed tables
-            }
-            continue;
-          }
-          
-          // Check for figure caption
-          const figCaptionMatch = block.match(/\[\[FIGCAPTION\]\](.*?)\[\[\/FIGCAPTION\]\]/);
-          if (figCaptionMatch) {
-            const text = figCaptionMatch[1]
-              .replace(/<[^>]+>/g, '')
-              .replace(/&nbsp;/g, ' ')
-              .replace(/&amp;/g, '&')
-              .replace(/\s+/g, ' ')
-              .trim();
+        // Process nodes recursively
+        const processNode = (node: Node) => {
+          if (node.nodeType === Node.TEXT_NODE) {
+            const text = node.textContent?.trim();
             if (text) {
-              result.push({ type: 'caption', text, captionType: 'figure' });
+              result.push({ type: 'paragraph', text });
             }
-            continue;
+            return;
           }
           
-          // Check for table caption
-          const tableCaptionMatch = block.match(/\[\[TABLECAPTION\]\](.*?)\[\[\/TABLECAPTION\]\]/);
-          if (tableCaptionMatch) {
-            const text = tableCaptionMatch[1]
-              .replace(/<[^>]+>/g, '')
-              .replace(/&nbsp;/g, ' ')
-              .replace(/&amp;/g, '&')
-              .replace(/\s+/g, ' ')
-              .trim();
-            if (text) {
-              result.push({ type: 'caption', text, captionType: 'table' });
+          if (node.nodeType !== Node.ELEMENT_NODE) return;
+          
+          const element = node as HTMLElement;
+          const tagName = element.tagName.toLowerCase();
+          
+          // Handle images
+          if (tagName === 'img') {
+            const src = element.getAttribute('src');
+            if (src) {
+              const width = element.getAttribute('width');
+              const height = element.getAttribute('height');
+              result.push({ 
+                type: 'image', 
+                src,
+                width: width ? parseInt(width) : undefined,
+                height: height ? parseInt(height) : undefined
+              });
             }
-            continue;
+            return;
           }
           
-          // Check for H3
-          const h3Match = block.match(/\[\[H3\]\](.*?)\[\[\/H3\]\]/);
-          if (h3Match) {
-            const text = h3Match[1]
-              .replace(/<[^>]+>/g, '')
-              .replace(/&nbsp;/g, ' ')
-              .replace(/&amp;/g, '&')
-              .replace(/&lt;/g, '<')
-              .replace(/&gt;/g, '>')
-              .replace(/\s+/g, ' ')
-              .trim();
+          // Handle tables
+          if (tagName === 'table') {
+            const { rows, hasHeader } = parseTableHtml(element.outerHTML);
+            if (rows.length > 0) {
+              result.push({ type: 'table', rows, hasHeader });
+            }
+            return;
+          }
+          
+          // Handle H3
+          if (tagName === 'h3') {
+            const text = element.textContent?.trim();
             if (text) {
               result.push({ type: 'h3', text });
             }
-            continue;
+            return;
           }
           
-          // Regular paragraph
-          const plainText = block
-            .replace(/<[^>]+>/g, '')
-            .replace(/&nbsp;/g, ' ')
-            .replace(/&amp;/g, '&')
-            .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>')
-            .replace(/\s+/g, ' ')
-            .trim();
-          
-          if (plainText) {
-            result.push({ type: 'paragraph', text: plainText });
+          // Handle figure captions
+          if (tagName === 'p' && element.className.includes('figure-caption')) {
+            const text = element.textContent?.trim();
+            if (text) {
+              result.push({ type: 'caption', text, captionType: 'figure' });
+            }
+            return;
           }
+          
+          // Handle table captions
+          if (tagName === 'p' && element.className.includes('table-caption')) {
+            const text = element.textContent?.trim();
+            if (text) {
+              result.push({ type: 'caption', text, captionType: 'table' });
+            }
+            return;
+          }
+          
+          // Handle paragraphs and divs - extract text content or process children
+          if (tagName === 'p' || tagName === 'div') {
+            // Check if this element contains only text (no special children)
+            const hasSpecialChildren = element.querySelector('img, table, h3, p.figure-caption, p.table-caption');
+            if (!hasSpecialChildren) {
+              const text = element.textContent?.trim();
+              if (text) {
+                result.push({ type: 'paragraph', text });
+              }
+              return;
+            }
+          }
+          
+          // Process children for other elements
+          for (const child of Array.from(node.childNodes)) {
+            processNode(child);
+          }
+        };
+        
+        // Process all children of the container
+        for (const child of Array.from(container.childNodes)) {
+          processNode(child);
         }
         
         return result;
@@ -452,7 +439,7 @@ export function usePdfExport() {
         yPosition += imgHeightMm + paragraphSpacing;
       };
 
-      // Helper: Add caption (italic, with bold-italic label)
+      // Helper: Add caption (italic, with bold label followed by italic text)
       const addCaption = (text: string, captionType: 'figure' | 'table') => {
         yPosition += captionType === 'table' ? paragraphSpacingH2 : paragraphSpacing;
         checkPageBreak(lineHeightBody);
@@ -461,33 +448,45 @@ export function usePdfExport() {
         pdf.setTextColor(...black);
         
         // Find the label part (e.g., "Figure 1.1.a." or "Table 1.1.a.")
-        const labelMatch = text.match(/^((?:Figure|Table)\s+[\d.]+[a-z]?\.?)/i);
+        // Match patterns like "Figure 1.1.a.", "Table 2.3.b", "Figure 1.1.a" (with or without final period)
+        const labelMatch = text.match(/^((?:Figure|Table)\s+[\d.]+[a-z]?\.?)\s*/i);
         
         if (labelMatch) {
-          const label = labelMatch[1];
-          const rest = text.substring(label.length).trim();
+          const label = labelMatch[1].endsWith('.') ? labelMatch[1] : labelMatch[1] + '.';
+          const rest = text.substring(labelMatch[0].length).trim();
           
-          // Draw label in bold-italic
-          pdf.setFont('times', 'bolditalic');
-          const labelWidth = pdf.getTextWidth(label + ' ');
-          pdf.text(label + ' ', margin, yPosition);
+          // Draw label in bold (jsPDF times font supports bold but not bolditalic)
+          pdf.setFont('times', 'bold');
+          const labelWithSpace = label + ' ';
+          const labelWidth = pdf.getTextWidth(labelWithSpace);
+          pdf.text(labelWithSpace, margin, yPosition);
           
           // Draw rest in italic
-          pdf.setFont('times', 'italic');
-          const restLines = pdf.splitTextToSize(rest, contentWidth - labelWidth);
-          if (restLines.length === 1) {
-            pdf.text(rest, margin + labelWidth, yPosition);
-          } else {
-            // Multi-line caption
-            pdf.text(restLines[0], margin + labelWidth, yPosition);
-            for (let i = 1; i < restLines.length; i++) {
+          if (rest) {
+            pdf.setFont('times', 'italic');
+            const availableWidth = contentWidth - labelWidth;
+            const restLines = pdf.splitTextToSize(rest, availableWidth);
+            
+            if (restLines.length === 1) {
+              pdf.text(rest, margin + labelWidth, yPosition);
               yPosition += lineHeightBody;
-              checkPageBreak(lineHeightBody);
-              pdf.text(restLines[i], margin, yPosition);
+            } else {
+              // First line continues after the label
+              pdf.text(restLines[0], margin + labelWidth, yPosition);
+              yPosition += lineHeightBody;
+              
+              // Subsequent lines start at margin
+              for (let i = 1; i < restLines.length; i++) {
+                checkPageBreak(lineHeightBody);
+                pdf.text(restLines[i], margin, yPosition);
+                yPosition += lineHeightBody;
+              }
             }
+          } else {
+            yPosition += lineHeightBody;
           }
         } else {
-          // No label found, just italic
+          // No label found, just italic text
           pdf.setFont('times', 'italic');
           const lines = pdf.splitTextToSize(text, contentWidth);
           for (const line of lines) {
