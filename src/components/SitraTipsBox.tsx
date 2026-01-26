@@ -27,8 +27,8 @@ function parseContent(content: string): React.ReactNode {
           const bulletContent = cleanLine.replace(/^[•\-–]\s*/, '');
           return (
             <div key={index} className="flex items-start gap-1.5 ml-2">
-              <span className="text-amber-600 mt-0.5">•</span>
-              <span className="text-sm text-muted-foreground">{bulletContent}</span>
+              <span className="text-gray-600 mt-0.5">•</span>
+              <span className="text-sm text-muted-foreground">{cleanLine.startsWith('•') || cleanLine.startsWith('-') || cleanLine.startsWith('–') ? bulletContent : cleanLine}</span>
             </div>
           );
         }
@@ -51,18 +51,18 @@ export function SitraTipsBox({ tips, className }: SitraTipsBoxProps) {
   if (!tips || tips.length === 0) return null;
 
   return (
-    <div className={cn("rounded-lg border border-amber-200 bg-amber-50/50", className)}>
+    <div className={cn("rounded-lg border-2 border-gray-800 bg-gray-50/50", className)}>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger className="w-full">
-          <div className="flex items-center gap-2 p-3 hover:bg-amber-100/50 transition-colors">
-            <Lightbulb className="h-4 w-4 text-amber-600 flex-shrink-0" />
-            <span className="font-medium text-sm text-amber-800">Sitra's Tips</span>
-            <span className="text-xs text-amber-600 ml-1">({tips.length})</span>
+          <div className="flex items-center gap-2 p-3 hover:bg-gray-100/50 transition-colors">
+            <Lightbulb className="h-4 w-4 text-gray-800 flex-shrink-0" />
+            <span className="font-bold text-sm text-gray-900">Sitra's tips</span>
+            <span className="text-xs text-gray-600 ml-1">({tips.length})</span>
             <div className="ml-auto">
               {isOpen ? (
-                <ChevronDown className="h-4 w-4 text-amber-600" />
+                <ChevronDown className="h-4 w-4 text-gray-600" />
               ) : (
-                <ChevronRight className="h-4 w-4 text-amber-600" />
+                <ChevronRight className="h-4 w-4 text-gray-600" />
               )}
             </div>
           </div>
@@ -72,7 +72,7 @@ export function SitraTipsBox({ tips, className }: SitraTipsBoxProps) {
             {tips.map((tip) => (
               <div key={tip.id} className="space-y-1">
                 {tip.title && (
-                  <h4 className="font-medium text-sm text-amber-900">{tip.title}</h4>
+                  <h4 className="font-medium text-sm text-gray-900">{tip.title}</h4>
                 )}
                 {parseContent(tip.content)}
               </div>
