@@ -163,6 +163,13 @@ function SectionItem({
         ) : section.id === 'wp-drafts' ? (
           <Layers className="w-4 h-4 text-muted-foreground" />
         ) : isWPSection && wpColor ? (
+          null
+        ) : (
+          <FileText className="w-4 h-4 text-muted-foreground" />
+        )}
+        
+        {/* WP sections render as colored bubbles */}
+        {isWPSection && wpColor ? (
           <span 
             className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap"
             style={{ backgroundColor: wpColor, color: '#ffffff' }}
@@ -171,7 +178,6 @@ function SectionItem({
           </span>
         ) : (
           <>
-            <FileText className="w-4 h-4 text-muted-foreground" />
             {/* Only show number if not a top-level bold item and number exists */}
             {showNumber && !isTopLevelBold && (
               <span className="font-medium text-muted-foreground mr-0.5">
