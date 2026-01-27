@@ -426,7 +426,7 @@ function ParticipantCard({
           </div>
           
           {/* Country - searchable dropdown */}
-          <div className="shrink-0" style={{ width: '88px' }}>
+          <div className="shrink-0" style={{ width: '108px' }}>
             {canEdit ? (
               <CountrySelect
                 value={country}
