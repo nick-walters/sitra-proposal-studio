@@ -109,7 +109,7 @@ function SectionItem({
   );
   
   // Check if this is a top-level bold item (Proposal overview, Part A, Part B, Figures, WP Progress Tracker, WP Drafts)
-  // Match both ID-based and number-based checks for database sections
+  // These get dark grey bubbles with white bold text
   const isTopLevelBold = 
     section.id === 'proposal-overview' || 
     section.id === 'part-a' || 
@@ -120,6 +120,25 @@ function SectionItem({
     section.title === 'Figures' ||
     section.id === 'wp-progress-tracker' ||
     section.id === 'wp-drafts';
+  
+  // Check if this is a mid-level section (A1, A2, A3, B1, B2)
+  // These get light grey bubbles with dark grey text
+  const isMidLevelSection = 
+    section.id === 'a1' || 
+    section.id === 'a2' || 
+    section.id === 'a3' ||
+    section.id === 'b1' || 
+    section.id === 'b2' ||
+    section.number === 'A1' ||
+    section.number === 'A2' ||
+    section.number === 'A3' ||
+    section.number === 'B1' ||
+    section.number === 'B2';
+  
+  // Check if this is a subsection (B1.1, B1.2, B2.1, etc.)
+  // These get white bubbles with dark grey outline
+  const isSubsection = !isTopLevelBold && !isMidLevelSection && !isWPSection && !isParticipantSection && 
+    section.number && /^[AB]\d+\.\d+/.test(section.number);
   
   // Note: Guideline icons removed from navigation hover to reduce visual clutter
 
@@ -161,13 +180,7 @@ function SectionItem({
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             )}
           </button>
-        ) : section.id === 'wp-progress-tracker' ? (
-          <BarChart3 className="w-4 h-4 text-muted-foreground" />
-        ) : section.id === 'wp-drafts' ? (
-          <Layers className="w-4 h-4 text-muted-foreground" />
-        ) : isWPSection && wpColor ? (
-          null
-        ) : isParticipantSection ? (
+        ) : (isWPSection && wpColor) || isParticipantSection || isTopLevelBold || isMidLevelSection || isSubsection ? (
           null
         ) : (
           <FileText className="w-4 h-4 text-muted-foreground" />
@@ -187,6 +200,30 @@ function SectionItem({
             style={{ backgroundColor: '#000000', color: '#ffffff' }}
           >
             P{section.number}: {section.title}
+          </span>
+        ) : isTopLevelBold ? (
+          /* Dark grey bubble with white bold text */
+          <span 
+            className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap"
+            style={{ backgroundColor: '#4b5563', color: '#ffffff' }}
+          >
+            {section.title}
+          </span>
+        ) : isMidLevelSection ? (
+          /* Light grey bubble with dark grey text, not bold */
+          <span 
+            className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs whitespace-nowrap"
+            style={{ backgroundColor: '#e5e7eb', color: '#4b5563' }}
+          >
+            {formatSectionNumber(section.number, depth)} {formatTitle(section.title)}
+          </span>
+        ) : isSubsection ? (
+          /* White bubble with dark grey outline and text, not bold */
+          <span 
+            className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs whitespace-nowrap border"
+            style={{ backgroundColor: '#ffffff', color: '#4b5563', borderColor: '#9ca3af' }}
+          >
+            {formatSectionNumber(section.number, depth)} {formatTitle(section.title)}
           </span>
         ) : (
           <>
