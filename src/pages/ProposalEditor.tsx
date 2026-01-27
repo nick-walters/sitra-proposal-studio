@@ -54,7 +54,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSectionAssignments } from "@/hooks/useSectionAssignments";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { WPLeadershipInfo } from "@/components/ParticipantTable";
+import { WPLeadershipInfo, CaseLeadershipInfo } from "@/components/ParticipantListView";
 import {
   Tooltip,
   TooltipContent,
@@ -150,6 +150,57 @@ export function ProposalEditor() {
     }
     return mapping;
   }, [wpLeadershipData]);
+
+  // Fetch Case leadership data for participant table
+  const { data: caseLeadershipData = [] } = useQuery({
+    queryKey: ['case-leadership', id],
+    queryFn: async () => {
+      if (!id) return [];
+      const { data, error } = await supabase
+        .from('case_drafts')
+        .select('id, number, short_name, lead_participant_id, color, case_type, custom_type_name')
+        .eq('proposal_id', id)
+        .order('number');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!id && !!proposal?.casesEnabled,
+  });
+
+  // Helper to get case prefix
+  const getCasePrefix = (caseType: string, customTypeName: string | null): string => {
+    if (caseType === 'other' && customTypeName) {
+      return customTypeName.toUpperCase();
+    }
+    switch (caseType) {
+      case 'case_study': return 'CS';
+      case 'use_case': return 'UC';
+      case 'living_lab': return 'LL';
+      case 'pilot': return 'P';
+      case 'demonstration': return 'D';
+      default: return 'C';
+    }
+  };
+
+  // Compute Case leadership mapping: participantId -> Cases they lead
+  const caseLeadership = useMemo(() => {
+    const mapping: Record<string, CaseLeadershipInfo[]> = {};
+    for (const c of caseLeadershipData) {
+      if (c.lead_participant_id) {
+        if (!mapping[c.lead_participant_id]) {
+          mapping[c.lead_participant_id] = [];
+        }
+        mapping[c.lead_participant_id].push({
+          caseNumber: c.number,
+          color: c.color,
+          shortName: c.short_name || undefined,
+          prefix: getCasePrefix(c.case_type, c.custom_type_name),
+        });
+      }
+    }
+    return mapping;
+  }, [caseLeadershipData]);
+
   // Auto-select A1 on initial load (was proposal-overview, now merged into A1)
   useEffect(() => {
     if (!sectionsLoading && allSections.length > 0 && !activeSection) {
@@ -387,6 +438,7 @@ export function ProposalEditor() {
             canAddParticipant={isAdmin && canEdit}
             canEdit={isAdmin && canEdit}
             wpLeadership={wpLeadership}
+            caseLeadership={caseLeadership}
           />
         );
       }

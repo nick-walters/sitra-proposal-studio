@@ -39,6 +39,14 @@ export interface WPLeadershipInfo {
   shortName?: string;
 }
 
+// Case Leadership info type
+export interface CaseLeadershipInfo {
+  caseNumber: number;
+  color: string;
+  shortName?: string;
+  prefix: string; // CS, UC, LL, P, D, C
+}
+
 interface ParticipantListViewProps {
   participants: Participant[];
   proposalId: string;
@@ -64,6 +72,7 @@ interface ParticipantListViewProps {
   canAddParticipant?: boolean;
   canEdit?: boolean;
   wpLeadership?: Record<string, WPLeadershipInfo[]>;
+  caseLeadership?: Record<string, CaseLeadershipInfo[]>;
 }
 
 interface ParticipantCardProps {
@@ -73,6 +82,7 @@ interface ParticipantCardProps {
   canReorder: boolean;
   canEdit: boolean;
   wpLeadership?: WPLeadershipInfo[];
+  caseLeadership?: CaseLeadershipInfo[];
   dragHandleProps?: Record<string, unknown>;
   isDragging?: boolean;
   onFetchLogo?: () => void;
@@ -87,6 +97,7 @@ interface SortableParticipantCardProps {
   canReorder: boolean;
   canEdit: boolean;
   wpLeadership?: WPLeadershipInfo[];
+  caseLeadership?: CaseLeadershipInfo[];
   onFetchLogo?: () => void;
   isFetchingLogo?: boolean;
   onUpdateParticipant?: (id: string, updates: Partial<Participant>) => Promise<void>;
@@ -116,6 +127,7 @@ function ParticipantCard({
   canReorder, 
   canEdit,
   wpLeadership,
+  caseLeadership,
   dragHandleProps,
   isDragging,
   onFetchLogo,
@@ -297,7 +309,7 @@ function ParticipantCard({
             )}
             {wpLeadership && wpLeadership.length > 0 && (
               wpLeadership.map((wp) => (
-                <Tooltip key={wp.wpNumber}>
+                <Tooltip key={`wp-${wp.wpNumber}`}>
                   <TooltipTrigger asChild>
                     <span
                       className="inline-flex items-center px-1.5 py-0 rounded-full text-xs font-bold cursor-default w-fit text-white"
@@ -310,6 +322,25 @@ function ParticipantCard({
                   </TooltipTrigger>
                   <TooltipContent>
                     {wp.shortName ? `${wp.shortName} (Lead)` : `WP${wp.wpNumber} Lead`}
+                  </TooltipContent>
+                </Tooltip>
+              ))
+            )}
+            {caseLeadership && caseLeadership.length > 0 && (
+              caseLeadership.map((c) => (
+                <Tooltip key={`case-${c.caseNumber}`}>
+                  <TooltipTrigger asChild>
+                    <span
+                      className="inline-flex items-center px-1.5 py-0 rounded-full text-xs font-bold cursor-default w-fit text-white"
+                      style={{
+                        backgroundColor: c.color,
+                      }}
+                    >
+                      {c.prefix}{c.caseNumber}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {c.shortName ? `${c.shortName} (Lead)` : `${c.prefix}${c.caseNumber} Lead`}
                   </TooltipContent>
                 </Tooltip>
               ))
@@ -477,7 +508,7 @@ function ParticipantCard({
   );
 }
 
-function SortableParticipantCard({ participant, proposalId, onSelect, canReorder, canEdit, wpLeadership, onFetchLogo, isFetchingLogo, onUpdateParticipant }: SortableParticipantCardProps) {
+function SortableParticipantCard({ participant, proposalId, onSelect, canReorder, canEdit, wpLeadership, caseLeadership, onFetchLogo, isFetchingLogo, onUpdateParticipant }: SortableParticipantCardProps) {
   const {
     attributes,
     listeners,
@@ -503,6 +534,7 @@ function SortableParticipantCard({ participant, proposalId, onSelect, canReorder
         canReorder={canReorder}
         canEdit={canEdit}
         wpLeadership={wpLeadership}
+        caseLeadership={caseLeadership}
         dragHandleProps={{ ...attributes, ...listeners }}
         isDragging={isDragging}
         onFetchLogo={onFetchLogo}
@@ -528,6 +560,7 @@ export function ParticipantListView({
   canAddParticipant = false,
   canEdit = false,
   wpLeadership = {},
+  caseLeadership = {},
 }: ParticipantListViewProps) {
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [isAddParticipantDialogOpen, setIsAddParticipantDialogOpen] = useState(false);
@@ -697,6 +730,7 @@ export function ParticipantListView({
                       canReorder={canReorder}
                       canEdit={canEdit}
                       wpLeadership={wpLeadership[participant.id]}
+                      caseLeadership={caseLeadership[participant.id]}
                       onFetchLogo={() => handleFetchLogo(participant)}
                       isFetchingLogo={fetchingLogoFor === participant.id}
                       onUpdateParticipant={onUpdateParticipant}
@@ -716,6 +750,7 @@ export function ParticipantListView({
                   canReorder={false}
                   canEdit={canEdit}
                   wpLeadership={wpLeadership[participant.id]}
+                  caseLeadership={caseLeadership[participant.id]}
                   onFetchLogo={onUpdateParticipant ? () => handleFetchLogo(participant) : undefined}
                   isFetchingLogo={fetchingLogoFor === participant.id}
                   onUpdateParticipant={onUpdateParticipant}
