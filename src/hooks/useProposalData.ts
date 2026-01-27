@@ -49,6 +49,7 @@ interface ProposalData {
   decisionDate?: Date;
   templateTypeId?: string;
   expectedProjects?: string;
+  usesFstp?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -100,6 +101,7 @@ export function useProposalData(proposalId: string) {
         decisionDate: data.decision_date ? new Date(data.decision_date) : undefined,
         templateTypeId: data.template_type_id || undefined,
         expectedProjects: (data as any).expected_projects || undefined,
+        usesFstp: data.uses_fstp || false,
         createdAt: new Date(data.created_at),
         updatedAt: new Date(data.updated_at),
       });
@@ -264,6 +266,7 @@ export function useProposalData(proposalId: string) {
     if (updates.budgetType !== undefined) dbUpdates.budget_type = updates.budgetType;
     if (updates.status !== undefined) dbUpdates.status = updates.status;
     if (updates.expectedProjects !== undefined) dbUpdates.expected_projects = updates.expectedProjects;
+    if (updates.usesFstp !== undefined) dbUpdates.uses_fstp = updates.usesFstp;
 
     const { error } = await supabase
       .from('proposals')
