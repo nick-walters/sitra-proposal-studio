@@ -318,21 +318,7 @@ export function ProposalEditor() {
       }
 
       // Part A heading (collapsible only, shows info) - matches "part-a"
-      if (activeSection.id === 'part-a') {
-        return (
-          <div className="flex-1 flex items-center justify-center bg-muted/30">
-            <div className="text-center max-w-lg">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <FileText className="w-8 h-8 text-primary" />
-              </div>
-              <h3 className="text-lg font-medium">Part A: Administrative forms</h3>
-              <p className="text-sm text-muted-foreground mt-2">
-                Select a subsection from the navigation to edit participant information, budget details, or other administrative forms.
-              </p>
-            </div>
-          </div>
-        );
-      }
+      // Part A is a collapsible heading - navigation redirects to A1
 
       // A1 - General Information (form-based) - matches "a1"
       // Only admins/owners can edit A1, but all users can view it
@@ -592,33 +578,7 @@ export function ProposalEditor() {
       );
     }
 
-    // Part B heading sections (collapsible only, show info)
-    // Matches: "part-b", "b1", "b2"
-    if (activeSection.id === 'part-b' || activeSection.id === 'b1' || activeSection.id === 'b2') {
-      const titles: Record<string, string> = {
-        'part-b': 'Part B: Technical description',
-        'b1': 'B1: Excellence',
-        'b2': 'B2: Impact',
-      };
-      const descriptions: Record<string, string> = {
-        'part-b': 'The technical description of your proposal. Select a subsection to start writing.',
-        'b1': 'Describe the excellence of your proposal. Select a subsection to add content.',
-        'b2': 'Describe the impact of your project. Select a subsection to add content.',
-      };
-      return (
-        <div className="flex-1 flex items-center justify-center bg-muted/30">
-          <div className="text-center max-w-lg">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-              <FileText className="w-8 h-8 text-primary" />
-            </div>
-            <h3 className="text-lg font-medium">{titles[activeSection.id]}</h3>
-            <p className="text-sm text-muted-foreground mt-2">
-              {descriptions[activeSection.id]}
-            </p>
-          </div>
-        </div>
-      );
-    }
+    // Part B, B1, B2 are collapsible headings - navigation redirects to first child
 
     // Part B document sections - use rich text editor
     // Matches: "b1-1", "b1-2", "b2-1", etc.
