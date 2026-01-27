@@ -245,10 +245,9 @@ function SortableParticipantRow({
               <Tooltip key={wp.wpNumber}>
                 <TooltipTrigger asChild>
                   <span
-                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium cursor-default"
+                    className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold cursor-default text-white"
                     style={{
                       backgroundColor: wp.color,
-                      color: getContrastingTextColor(wp.color),
                     }}
                   >
                     WP{wp.wpNumber}

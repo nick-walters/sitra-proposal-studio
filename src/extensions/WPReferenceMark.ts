@@ -124,11 +124,11 @@ export const WPReferenceMark = Mark.create<WPReferenceOptions>({
           display: inline-flex;
           align-items: center;
           background-color: ${color};
-          color: ${textColor};
+          color: white;
           padding: 0.125rem 0.5rem;
           border-radius: 9999px;
           font-size: 0.75rem;
-          font-weight: 600;
+          font-weight: 700;
           line-height: 1;
           white-space: nowrap;
           vertical-align: baseline;

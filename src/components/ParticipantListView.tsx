@@ -300,10 +300,9 @@ function ParticipantCard({
                 <Tooltip key={wp.wpNumber}>
                   <TooltipTrigger asChild>
                     <span
-                      className="inline-flex items-center px-1.5 py-0 rounded text-xs font-medium cursor-default w-fit"
+                      className="inline-flex items-center px-1.5 py-0 rounded-full text-xs font-bold cursor-default w-fit text-white"
                       style={{
                         backgroundColor: wp.color,
-                        color: getContrastingTextColor(wp.color),
                       }}
                     >
                       WP{wp.wpNumber}
