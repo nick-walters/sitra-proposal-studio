@@ -39,8 +39,9 @@ import {
 import { Participant, BudgetType } from '@/types/proposal';
 import { BudgetItem, BudgetChange } from '@/hooks/useBudget';
 import { BudgetChangeHistory } from './BudgetChangeHistory';
-import { Plus, Trash2, Download, Euro, Calculator, History, Info, FileSpreadsheet, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Download, Euro, Calculator, History, Info, FileSpreadsheet, AlertCircle, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
+import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
 
 // Detailed EU cost categories for standard budget
 const STANDARD_CATEGORIES = [
@@ -225,20 +226,35 @@ export function BudgetSpreadsheetEnhanced({
   };
 
   return (
-    <div className="flex-1 overflow-auto p-6 bg-muted/30">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="flex-1 overflow-auto p-4 bg-muted/30">
+      <div className="max-w-7xl mx-auto space-y-4">
+        {/* Guidelines Button */}
+        <PartAGuidelinesDialog
+          sectionTitle="Part A3: Budget"
+          officialGuidelines={[{
+            id: 'budget-info',
+            title: 'Budget Guidelines',
+            content: 'The estimated budget should include all eligible costs for the action.\n\nKey budget categories:\n• A. Personnel costs - Employees, direct contracts, seconded persons, SME owners\n• B. Subcontracting - Tasks performed by third parties\n• C. Purchase costs - Travel, equipment, other goods/services\n• D. Other cost categories - Financial support to third parties (if applicable)\n• E. Indirect costs - Calculated automatically as 25% of eligible direct costs\n\nImportant notes:\n• All costs must be directly linked to the project activities\n• Subcontracting should be limited and justified\n• Indirect costs (overheads) are calculated as a flat rate\n• Budget must be realistic and consistent with the work plan'
+          }]}
+          sitraTips={[{
+            id: 'budget-tip',
+            title: 'Budget planning tips',
+            content: 'Start by estimating person-months per work package, then convert to costs.\n\nCommon pitfalls to avoid:\n• Underestimating travel and meeting costs\n• Forgetting equipment depreciation rules\n• Not accounting for inflation over multi-year projects\n• Overloading budget on one partner\n\nRecommendations:\n• Distribute effort proportionally across partners\n• Include buffer for unexpected costs where rules allow\n• Ensure consistency between budget and work package descriptions'
+          }]}
+        />
+        
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-foreground">Budget</h1>
+              <h1 className="text-lg font-semibold text-foreground">Part A3: Budget</h1>
               {saving && (
                 <Badge variant="secondary" className="animate-pulse">
                   Saving...
                 </Badge>
               )}
             </div>
-            <p className="text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {budgetType === 'traditional' 
                 ? 'Detailed budget breakdown by EU cost categories' 
                 : 'Lump sum budget allocation by work package'}

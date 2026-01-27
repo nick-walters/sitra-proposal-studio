@@ -68,9 +68,9 @@ export function PartAGuidelinesDialog({
         variant="outline"
         size="sm"
         onClick={() => setDialogOpen(true)}
-        className={cn("text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30 gap-1.5", className)}
+        className={cn("h-7 px-2 text-xs gap-1 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive", className)}
       >
-        <BookOpen className="h-4 w-4" />
+        <BookOpen className="h-3.5 w-3.5" />
         Guidelines
       </Button>
 
