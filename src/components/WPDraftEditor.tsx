@@ -9,6 +9,7 @@ import { WPRisksTable } from '@/components/WPRisksTable';
 import { CitationDialog } from '@/components/CitationDialog';
 import { InsertCrossReferenceDialog } from '@/components/InsertCrossReferenceDialog';
 import { InsertWPReferenceDialog } from '@/components/InsertWPReferenceDialog';
+import { InsertParticipantReferenceDialog } from '@/components/InsertParticipantReferenceDialog';
 import { InsertFigureDialog } from '@/components/InsertFigureDialog';
 import { useProposalReferences } from '@/hooks/useProposalReferences';
 
@@ -164,6 +165,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
   const [isCitationOpen, setIsCitationOpen] = useState(false);
   const [isCrossRefOpen, setIsCrossRefOpen] = useState(false);
   const [isWPRefOpen, setIsWPRefOpen] = useState(false);
+  const [isParticipantRefOpen, setIsParticipantRefOpen] = useState(false);
   const [isFigureDialogOpen, setIsFigureDialogOpen] = useState(false);
   const [figures, setFigures] = useState<any[]>([]);
   const [wpDrafts, setWpDrafts] = useState<any[]>([]);
@@ -211,25 +213,73 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
     toast.success('Cross-reference inserted');
   }, []);
   
-  const insertWPRefAtCursor = useCallback((wpNumber: number, wpColor: string) => {
+  const insertWPRefAtCursor = useCallback((wpNumber: number, wpShortName: string, wpColor: string, wpId: string) => {
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
       const wpSpan = document.createElement('span');
-      wpSpan.textContent = `@WP${wpNumber}`;
+      wpSpan.textContent = `WP${wpNumber}${wpShortName ? `: ${wpShortName}` : ''}`;
+      wpSpan.setAttribute('data-wp-reference', '');
+      wpSpan.setAttribute('data-wp-number', String(wpNumber));
+      wpSpan.setAttribute('data-wp-id', wpId);
+      wpSpan.setAttribute('data-wp-color', wpColor);
+      wpSpan.setAttribute('data-wp-short-name', wpShortName || '');
+      wpSpan.setAttribute('contenteditable', 'false');
       wpSpan.style.backgroundColor = wpColor;
-      wpSpan.style.color = 'white';
-      wpSpan.style.padding = '0 6px';
+      wpSpan.style.color = '#ffffff';
+      wpSpan.style.padding = '2px 8px';
       wpSpan.style.borderRadius = '9999px';
       wpSpan.style.fontWeight = '700';
-      wpSpan.style.fontSize = '0.85em';
+      wpSpan.style.fontSize = '11pt';
+      wpSpan.style.display = 'inline-flex';
+      wpSpan.style.alignItems = 'center';
+      wpSpan.style.whiteSpace = 'nowrap';
+      wpSpan.style.userSelect = 'none';
       range.insertNode(wpSpan);
+      // Insert trailing space and move cursor after it
+      const space = document.createTextNode(' ');
       range.setStartAfter(wpSpan);
+      range.insertNode(space);
+      range.setStartAfter(space);
       range.collapse(true);
       selection.removeAllRanges();
       selection.addRange(range);
     }
     toast.success(`WP${wpNumber} reference inserted`);
+  }, []);
+
+  const insertParticipantRefAtCursor = useCallback((participantNumber: number, shortName: string, participantId: string) => {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const partSpan = document.createElement('span');
+      partSpan.textContent = shortName || 'Partner';
+      partSpan.setAttribute('data-participant-reference', '');
+      partSpan.setAttribute('data-participant-number', String(participantNumber));
+      partSpan.setAttribute('data-participant-id', participantId);
+      partSpan.setAttribute('data-participant-short-name', shortName || '');
+      partSpan.setAttribute('contenteditable', 'false');
+      partSpan.style.backgroundColor = '#000000';
+      partSpan.style.color = '#ffffff';
+      partSpan.style.padding = '2px 8px';
+      partSpan.style.borderRadius = '9999px';
+      partSpan.style.fontWeight = '700';
+      partSpan.style.fontSize = '11pt';
+      partSpan.style.display = 'inline-flex';
+      partSpan.style.alignItems = 'center';
+      partSpan.style.whiteSpace = 'nowrap';
+      partSpan.style.userSelect = 'none';
+      range.insertNode(partSpan);
+      // Insert trailing space and move cursor after it
+      const space = document.createTextNode(' ');
+      range.setStartAfter(partSpan);
+      range.insertNode(space);
+      range.setStartAfter(space);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+    toast.success(`${shortName} reference inserted`);
   }, []);
   
   const insertFigureAtCursor = useCallback((figure: any) => {
@@ -477,6 +527,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           onOpenCitationDialog={() => setIsCitationOpen(true)}
           onOpenCrossRefDialog={() => setIsCrossRefOpen(true)}
           onOpenWPRefDialog={() => setIsWPRefOpen(true)}
+          onOpenParticipantRefDialog={() => setIsParticipantRefOpen(true)}
           onOpenFigureDialog={() => setIsFigureDialogOpen(true)}
         />
 
@@ -572,8 +623,19 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
         onOpenChange={setIsWPRefOpen}
         proposalId={proposalId}
         onSelect={(wp) => {
-          insertWPRefAtCursor(wp.number, wp.color || '#3b82f6');
+          insertWPRefAtCursor(wp.number, wp.short_name || '', wp.color || '#3b82f6', wp.id);
           setIsWPRefOpen(false);
+        }}
+      />
+      
+      {/* Participant Reference Dialog */}
+      <InsertParticipantReferenceDialog
+        open={isParticipantRefOpen}
+        onOpenChange={setIsParticipantRefOpen}
+        proposalId={proposalId}
+        onSelect={(participant) => {
+          insertParticipantRefAtCursor(participant.participantNumber, participant.shortName, participant.id);
+          setIsParticipantRefOpen(false);
         }}
       />
       

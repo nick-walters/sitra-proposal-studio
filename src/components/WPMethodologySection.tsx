@@ -10,6 +10,7 @@ interface WPMethodologySectionProps {
   onOpenCitationDialog?: () => void;
   onOpenCrossRefDialog?: () => void;
   onOpenWPRefDialog?: () => void;
+  onOpenParticipantRefDialog?: () => void;
   onOpenFigureDialog?: () => void;
 }
 
@@ -22,6 +23,7 @@ export function WPMethodologySection({
   onOpenCitationDialog,
   onOpenCrossRefDialog,
   onOpenWPRefDialog,
+  onOpenParticipantRefDialog,
   onOpenFigureDialog,
 }: WPMethodologySectionProps) {
   return (
@@ -50,6 +52,7 @@ export function WPMethodologySection({
           onOpenCitationDialog={onOpenCitationDialog}
           onOpenCrossRefDialog={onOpenCrossRefDialog}
           onOpenWPRefDialog={onOpenWPRefDialog}
+          onOpenParticipantRefDialog={onOpenParticipantRefDialog}
           onOpenFigureDialog={onOpenFigureDialog}
         />
       </CardContent>
