@@ -572,39 +572,41 @@ export function GeneralInfoForm({
                   </InlineGuideline>
                 </div>
 
-                <div>
-                  <label className="text-xs text-muted-foreground mb-0.5 block">Acronym</label>
-                  {isEditing && editedProposal ? (
-                    <Input
-                      value={editedProposal.acronym}
-                      onChange={(e) => setEditedProposal({ ...editedProposal, acronym: e.target.value })}
-                      className="text-sm font-semibold w-40 h-8"
-                      placeholder="Acronym"
-                    />
-                  ) : (
-                    <p className="text-sm font-semibold">{proposal?.acronym}</p>
-                  )}
-                </div>
+                <div className="flex gap-4">
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-0.5 block">Acronym</label>
+                    {isEditing && editedProposal ? (
+                      <Input
+                        value={editedProposal.acronym}
+                        onChange={(e) => setEditedProposal({ ...editedProposal, acronym: e.target.value })}
+                        className="text-sm font-semibold w-40 h-8"
+                        placeholder="Acronym"
+                      />
+                    ) : (
+                      <p className="text-sm font-semibold">{proposal?.acronym}</p>
+                    )}
+                  </div>
 
-                <div>
-                  <label className="text-xs text-muted-foreground mb-0.5 block">Project duration (months)</label>
-                  {isEditing && editedProposal ? (
-                    <Select
-                      value={editedProposal.duration?.toString() || ''}
-                      onValueChange={(v) => setEditedProposal({ ...editedProposal, duration: parseInt(v) })}
-                    >
-                      <SelectTrigger className="w-32 h-8 text-sm">
-                        <SelectValue placeholder="Select" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Array.from({ length: 72 }, (_, i) => i + 1).map((months) => (
-                          <SelectItem key={months} value={months.toString()}>{months}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <p className="text-sm font-medium">{proposal?.duration ? `${proposal.duration}` : '–'}</p>
-                  )}
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-0.5 block">Duration (months)</label>
+                    {isEditing && editedProposal ? (
+                      <Select
+                        value={editedProposal.duration?.toString() || ''}
+                        onValueChange={(v) => setEditedProposal({ ...editedProposal, duration: parseInt(v) })}
+                      >
+                        <SelectTrigger className="w-24 h-8 text-sm">
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 72 }, (_, i) => i + 1).map((months) => (
+                            <SelectItem key={months} value={months.toString()}>{months}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <p className="text-sm font-medium">{proposal?.duration ? `${proposal.duration}` : '–'}</p>
+                    )}
+                  </div>
                 </div>
               </div>
 
