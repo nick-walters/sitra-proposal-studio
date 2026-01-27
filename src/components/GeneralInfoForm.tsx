@@ -512,9 +512,13 @@ export function GeneralInfoForm({
   return (
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
       <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header with export buttons */}
+        {/* Header row with Guidelines button on left, export buttons on right */}
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">Part A1: General information</h1>
+          <PartAGuidelinesDialog
+            sectionTitle="Part A1: General information"
+            officialGuidelines={officialGuidelines}
+            sitraTips={sitraTips}
+          />
           <div className="flex items-center gap-3">
             {onExportPdf && estimatedPages !== null && (
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -539,13 +543,6 @@ export function GeneralInfoForm({
             {canEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
           </div>
         </div>
-
-        {/* Guidelines Button */}
-        <PartAGuidelinesDialog
-          sectionTitle="Part A1: General information"
-          officialGuidelines={officialGuidelines}
-          sitraTips={sitraTips}
-        />
 
         {/* Project Identity Card */}
         <Card>
