@@ -198,17 +198,17 @@ function SectionItem({
           )
         )}
         
-        {/* WP sections render as colored bubbles */}
+        {/* WP sections render as colored bubbles - with left margin to align with text */}
         {isWPSection && wpColor ? (
           <span 
-            className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap"
+            className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap ml-5"
             style={{ backgroundColor: wpColor, color: '#ffffff' }}
           >
             WP{wpSection.wpNumber}: {wpSection.title}
           </span>
         ) : isParticipantSection ? (
           <span 
-            className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap"
+            className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap ml-5"
             style={{ backgroundColor: '#000000', color: '#ffffff' }}
           >
             P{section.number}: {section.title}
