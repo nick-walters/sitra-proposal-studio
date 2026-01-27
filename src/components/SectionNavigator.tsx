@@ -1,5 +1,5 @@
 import { Section, Participant } from "@/types/proposal";
-import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Layers, Building2 } from "lucide-react";
+import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Layers, Building2, Info, Euro } from "lucide-react";
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
@@ -178,6 +178,10 @@ function SectionItem({
         {/* Left-side icons */}
         {section.id === 'a2' ? (
           <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
+        ) : section.id === 'a1' ? (
+          <Info className="w-4 h-4 text-muted-foreground shrink-0" />
+        ) : section.id === 'a3' ? (
+          <Euro className="w-4 h-4 text-muted-foreground shrink-0" />
         ) : !hasSubsections && (
           section.id === 'wp-progress-tracker' ? (
             <BarChart3 className="w-4 h-4 text-muted-foreground shrink-0" />
