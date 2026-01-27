@@ -463,7 +463,7 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
           <div className="text-center">№</div>
           <div>Short Name</div>
           <div>Title</div>
-          <div>WP Lead</div>
+          <div>WP Leader</div>
           <div />
         </div>
 
