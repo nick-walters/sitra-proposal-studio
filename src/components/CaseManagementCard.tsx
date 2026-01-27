@@ -76,7 +76,10 @@ const CASE_COLORS = [
   '#C53030', '#E53E3E', '#FC8181', '#9B2C2C', '#F56565',
 ];
 
-function getCasePrefix(caseType: string): string {
+function getCasePrefix(caseType: string, customTypeName: string | null): string {
+  if (caseType === 'other' && customTypeName) {
+    return customTypeName.toUpperCase();
+  }
   const type = CASE_TYPES.find(t => t.value === caseType);
   return type?.prefix || 'C';
 }
@@ -107,13 +110,14 @@ function SortableCaseRow({ caseItem, participants, onUpdate, onDelete, canEdit }
   };
 
   const selectedLead = participants.find((p) => p.id === caseItem.lead_participant_id);
-  const prefix = getCasePrefix(caseItem.case_type);
+  const prefix = getCasePrefix(caseItem.case_type, caseItem.custom_type_name);
+  const isOtherType = caseItem.case_type === 'other';
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`grid grid-cols-[24px_50px_70px_90px_1fr_80px_20px] gap-1.5 items-center py-1 border-b ${
+      className={`grid grid-cols-[24px_50px_70px_50px_90px_1fr_80px_20px] gap-1.5 items-center py-1 border-b ${
         isDragging ? 'bg-muted shadow-lg' : ''
       }`}
     >
@@ -155,6 +159,20 @@ function SortableCaseRow({ caseItem, participants, onUpdate, onDelete, canEdit }
           ))}
         </SelectContent>
       </Select>
+
+      {/* Custom Abbreviation (only for "other" type) */}
+      {isOtherType ? (
+        <Input
+          value={caseItem.custom_type_name || ''}
+          onChange={(e) => onUpdate(caseItem.id, { custom_type_name: e.target.value.slice(0, 4) })}
+          placeholder="Abbr"
+          className="h-7 text-xs uppercase"
+          maxLength={4}
+          disabled={!canEdit}
+        />
+      ) : (
+        <div />
+      )}
 
       {/* Short Name */}
       <Input
@@ -455,10 +473,11 @@ export function CaseManagementCard({
             ) : (
               <>
                 {/* Table Header */}
-                <div className="grid grid-cols-[24px_50px_70px_90px_1fr_80px_20px] gap-1.5 text-xs font-medium text-muted-foreground border-b pb-1">
+                <div className="grid grid-cols-[24px_50px_70px_50px_90px_1fr_80px_20px] gap-1.5 text-xs font-medium text-muted-foreground border-b pb-1">
                   <div />
                   <div className="text-center">№</div>
                   <div>Type</div>
+                  <div>Abbr</div>
                   <div>Short Name</div>
                   <div>Title</div>
                   <div>Lead</div>
