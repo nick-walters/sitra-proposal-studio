@@ -4,7 +4,6 @@ export const DEFAULT_WP_COLORS = [
   '#2563EB', // Royal Blue
   '#059669', // Emerald
   '#D97706', // Amber
-  '#E11D48', // Rose
   '#7C3AED', // Violet
   '#0891B2', // Cyan
   '#EA580C', // Orange
@@ -13,13 +12,13 @@ export const DEFAULT_WP_COLORS = [
   '#65A30D', // Lime
   '#4F46E5', // Indigo
   '#0D9488', // Teal
+  '#8B5CF6', // Purple
 ];
 
 export const WP_COLOR_NAMES = [
   'Royal Blue',
   'Emerald',
   'Amber',
-  'Rose',
   'Violet',
   'Cyan',
   'Orange',
@@ -28,6 +27,7 @@ export const WP_COLOR_NAMES = [
   'Lime',
   'Indigo',
   'Teal',
+  'Purple',
 ];
 
 /**

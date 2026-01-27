@@ -72,8 +72,8 @@ const CASE_TYPES = [
 ];
 
 const CASE_COLORS = [
-  '#7C3AED', '#0891B2', '#059669', '#D97706', '#E11D48', 
-  '#2563EB', '#EA580C', '#DB2777', '#475569', '#65A30D',
+  '#DC2626', '#B91C1C', '#EF4444', '#F87171', '#991B1B', 
+  '#C53030', '#E53E3E', '#FC8181', '#9B2C2C', '#F56565',
 ];
 
 function getCasePrefix(caseType: string): string {
