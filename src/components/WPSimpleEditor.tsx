@@ -13,6 +13,7 @@ interface WPSimpleEditorProps {
   className?: string;
   disabled?: boolean;
   minHeight?: string;
+  hideToolbar?: boolean;
   // Dialog handlers for advanced features
   onOpenCitationDialog?: () => void;
   onOpenCrossRefDialog?: () => void;
@@ -28,6 +29,7 @@ export function WPSimpleEditor({
   className,
   disabled = false,
   minHeight = '100px',
+  hideToolbar = false,
   onOpenCitationDialog,
   onOpenCrossRefDialog,
   onOpenWPRefDialog,
@@ -129,7 +131,7 @@ export function WPSimpleEditor({
   return (
     <div className={cn("border rounded-md overflow-hidden", disabled && "opacity-50", className)}>
       {/* Toolbar - matches Part B formatting toolbar order */}
-      {!disabled && (
+      {!disabled && !hideToolbar && (
         <div className="flex items-center gap-0.5 p-1.5 border-b bg-muted/30 flex-wrap">
           {/* Subheading first */}
           <Tooltip>

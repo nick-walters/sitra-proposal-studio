@@ -6,12 +6,7 @@ interface WPMethodologySectionProps {
   methodology: string | null;
   onChange: (value: string) => void;
   readOnly?: boolean;
-  // Dialog handlers for advanced features
-  onOpenCitationDialog?: () => void;
-  onOpenCrossRefDialog?: () => void;
-  onOpenWPRefDialog?: () => void;
-  onOpenParticipantRefDialog?: () => void;
-  onOpenFigureDialog?: () => void;
+  hideToolbar?: boolean;
 }
 
 const METHODOLOGY_QUESTION = `Describe and explain the methodologies used in this WP, including the concepts, models and assumptions that underpin your work. Explain how they will enable you to deliver your project's objectives. Refer to any important challenges you may have identified in the chosen methodologies and how you intend to overcome them.`;
@@ -20,11 +15,7 @@ export function WPMethodologySection({
   methodology, 
   onChange, 
   readOnly = false,
-  onOpenCitationDialog,
-  onOpenCrossRefDialog,
-  onOpenWPRefDialog,
-  onOpenParticipantRefDialog,
-  onOpenFigureDialog,
+  hideToolbar = false,
 }: WPMethodologySectionProps) {
   return (
     <Card>
@@ -49,11 +40,7 @@ export function WPMethodologySection({
           placeholder="Describe your methodology..."
           disabled={readOnly}
           minHeight="150px"
-          onOpenCitationDialog={onOpenCitationDialog}
-          onOpenCrossRefDialog={onOpenCrossRefDialog}
-          onOpenWPRefDialog={onOpenWPRefDialog}
-          onOpenParticipantRefDialog={onOpenParticipantRefDialog}
-          onOpenFigureDialog={onOpenFigureDialog}
+          hideToolbar={hideToolbar}
         />
       </CardContent>
     </Card>
