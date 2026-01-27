@@ -502,9 +502,11 @@ export function ParticipantListView({
     
     setFetchingLogoFor(participant.id);
     try {
-      const searchName = participant.organisationShortName || participant.organisationName;
       const { data, error } = await supabase.functions.invoke('fetch-logo', {
-        body: { name: searchName },
+        body: { 
+          organisationName: participant.organisationName,
+          shortName: participant.organisationShortName 
+        },
       });
 
       if (error) throw error;
