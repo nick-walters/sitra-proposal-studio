@@ -78,7 +78,7 @@ function SectionItem({
   currentUserId?: string;
   collaborators?: CollaboratorPresence[];
 }) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
   const hasSubsections = section.subsections && section.subsections.length > 0;
   const isActive = activeSectionId === section.id;
   
