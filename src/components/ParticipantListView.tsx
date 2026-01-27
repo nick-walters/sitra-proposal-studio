@@ -443,7 +443,7 @@ function ParticipantCard({
           </div>
           
           {/* Save indicator / Edit button */}
-          <div className="w-16 shrink-0 flex items-center justify-end">
+          <div className="w-10 shrink-0 flex items-center justify-end">
             {canEdit && (isSaving || hasChanges) && (
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 {isSaving ? (
@@ -461,13 +461,14 @@ function ParticipantCard({
             {canEdit && (
               <Button
                 size="sm"
-                className="h-auto py-1 px-2 text-xs text-left leading-tight bg-muted text-muted-foreground hover:bg-muted/80 border-0"
+                className="h-auto py-1 px-1.5 text-[9px] leading-tight bg-muted text-muted-foreground hover:bg-muted/80 border-0 flex flex-col items-center"
                 onClick={(e) => {
                   e.stopPropagation();
                   onSelect();
                 }}
               >
-                Edit info
+                <span>Edit</span>
+                <span>info</span>
               </Button>
             )}
           </div>
@@ -662,7 +663,7 @@ export function ParticipantListView({
               <div className="w-20 text-left">Roles</div>
               <div className="w-10 text-left">Logo</div>
               <div className="text-left" style={{ width: '140px' }}>Country</div>
-              <div className="w-16" />
+              <div className="w-10" />
             </div>
           )}
 
