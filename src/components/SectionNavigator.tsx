@@ -175,30 +175,19 @@ function SectionItem({
           }
         }}
       >
-        {hasSubsections ? (
-          <button
-            className="p-0.5 rounded hover:bg-accent"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsExpanded(!isExpanded);
-            }}
-          >
-            {isExpanded ? (
-              <ChevronDown className="w-4 h-4 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            )}
-          </button>
-        ) : section.id === 'wp-progress-tracker' ? (
-          <BarChart3 className="w-4 h-4 text-muted-foreground" />
-        ) : section.id === 'wp-drafts' ? (
-          <Layers className="w-4 h-4 text-muted-foreground" />
-        ) : isWPSection && wpColor ? (
-          null
-        ) : isParticipantSection ? (
-          null
-        ) : (
-          <FileText className="w-4 h-4 text-muted-foreground" />
+        {/* Left-side icons for non-expandable items */}
+        {!hasSubsections && (
+          section.id === 'wp-progress-tracker' ? (
+            <BarChart3 className="w-4 h-4 text-muted-foreground shrink-0" />
+          ) : section.id === 'wp-drafts' ? (
+            <Layers className="w-4 h-4 text-muted-foreground shrink-0" />
+          ) : isWPSection && wpColor ? (
+            null
+          ) : isParticipantSection ? (
+            null
+          ) : (
+            <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+          )
         )}
         
         {/* WP sections render as colored bubbles */}
@@ -228,6 +217,23 @@ function SectionItem({
               {formatTitle(section.title)}
             </span>
           </>
+        )}
+        
+        {/* Right-aligned expand/collapse arrow for items with subsections */}
+        {hasSubsections && (
+          <button
+            className="p-0.5 rounded hover:bg-accent ml-auto shrink-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsExpanded(!isExpanded);
+            }}
+          >
+            {isExpanded ? (
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            )}
+          </button>
         )}
         
         {/* Real-time collaborator presence indicators */}
