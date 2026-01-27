@@ -133,13 +133,12 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
                     onClick={() => onNavigateToWP?.(wp.wpId)}
                   >
                     <TableCell className="py-1.5">
-                      <div className="flex items-center gap-2">
-                        <WPColorSwatch color={wp.color} size="sm" />
-                        <span className="font-medium">WP{wp.wpNumber}:</span>
-                        {wp.shortName && (
-                          <span className="text-muted-foreground">{wp.shortName}</span>
-                        )}
-                      </div>
+                      <span 
+                        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap"
+                        style={{ backgroundColor: wp.color, color: '#ffffff' }}
+                      >
+                        WP{wp.wpNumber}{wp.shortName ? `: ${wp.shortName}` : ''}
+                      </span>
                     </TableCell>
                     <TableCell className="text-center py-1.5">
                       <CompletionIcon complete={wp.completion.methodology} />
