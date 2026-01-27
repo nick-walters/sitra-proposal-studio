@@ -271,14 +271,8 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         partBRoot.subsections = partBRoot.subsections.filter(s => s.id !== 'figures' && s.title !== 'Figures');
       }
       
-      // Find proposal overview and insert WP Progress Tracker after it
-      const overviewIndex = partASections.findIndex(s => s.id === 'proposal-overview');
-      if (overviewIndex !== -1) {
-        partASections.splice(overviewIndex + 1, 0, wpProgressSection);
-      } else {
-        // If no overview, add WP Progress Tracker at the start
-        partASections.unshift(wpProgressSection);
-      }
+      // Insert WP Progress Tracker at the start of Part A sections
+      partASections.unshift(wpProgressSection);
       
       // Build result: Part A, Part B, then WP Drafts, then Figures (all at top level)
       const result = [...partASections, ...partBSections];
@@ -295,14 +289,9 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     }
     
     // Fallback to hardcoded sections
-    // Insert WP Progress Tracker after proposal-overview
+    // Insert WP Progress Tracker at the start
     const fallbackSections = [...PART_A_SECTIONS, ...HORIZON_EUROPE_SECTIONS];
-    const overviewIndex = fallbackSections.findIndex(s => s.id === 'proposal-overview');
-    if (overviewIndex !== -1) {
-      fallbackSections.splice(overviewIndex + 1, 0, wpProgressSection);
-    } else {
-      fallbackSections.unshift(wpProgressSection);
-    }
+    fallbackSections.unshift(wpProgressSection);
     
     // Add WP Drafts as standalone top-level section
     if (wpDraftSections.length > 0) {

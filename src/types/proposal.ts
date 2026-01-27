@@ -309,20 +309,8 @@ export interface EthicsAssessment {
   otherEthicsDetails?: string;
 }
 // Proposal overview (before Part A) - form-based metadata page
-export const PROPOSAL_OVERVIEW_SECTION: Section = {
-  id: 'proposal-overview',
-  number: '',
-  title: 'Proposal overview',
-  isPartA: true,
-  guidelines: {
-    text: 'Overview of the proposal including acronym, title, topic details, funding information, deadlines, collaborators, and partner organisations.',
-  },
-};
-
 // Part A sections structure based on official HE-RIA-IA Standard Application Form
 export const PART_A_SECTIONS: Section[] = [
-  // Proposal overview (form-based metadata page)
-  PROPOSAL_OVERVIEW_SECTION,
   // Part A: Administrative forms (collapsible heading only)
   {
     id: 'part-a',
@@ -330,7 +318,7 @@ export const PART_A_SECTIONS: Section[] = [
     title: 'Part A: Administrative forms',
     isPartA: true,
     subsections: [
-      // A1: General information (form format)
+      // A1: General information (form format) - now includes proposal overview content
       {
         id: 'a1',
         number: 'A1',

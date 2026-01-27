@@ -1,7 +1,7 @@
 import { Header } from "@/components/Header";
 import { SectionNavigator } from "@/components/SectionNavigator";
 import { DocumentEditor } from "@/components/DocumentEditor";
-import { ProposalSummaryPage } from "@/components/ProposalSummaryPage";
+// ProposalSummaryPage removed - content merged into GeneralInfoForm
 import { ParticipantListView } from "@/components/ParticipantListView";
 import { ParticipantDetailForm } from "@/components/ParticipantDetailForm";
 import { GeneralInfoForm } from "@/components/GeneralInfoForm";
@@ -149,12 +149,23 @@ export function ProposalEditor() {
     }
     return mapping;
   }, [wpLeadershipData]);
-  // Auto-select Proposal overview on initial load
+  // Auto-select A1 on initial load (was proposal-overview, now merged into A1)
   useEffect(() => {
     if (!sectionsLoading && allSections.length > 0 && !activeSection) {
-      const overviewSection = allSections.find(s => s.id === 'proposal-overview');
-      if (overviewSection) {
-        setActiveSection(overviewSection);
+      // Find A1 section (might be nested under Part A)
+      const findA1Section = (sections: Section[]): Section | undefined => {
+        for (const section of sections) {
+          if (section.id === 'a1') return section;
+          if (section.subsections) {
+            const found = findA1Section(section.subsections);
+            if (found) return found;
+          }
+        }
+        return undefined;
+      };
+      const a1Section = findA1Section(allSections);
+      if (a1Section) {
+        setActiveSection(a1Section);
       }
     }
   }, [allSections, sectionsLoading, activeSection]);
@@ -286,30 +297,24 @@ export function ProposalEditor() {
 
     // Part A sections
     if (activeSection.isPartA) {
-      // Proposal overview page (before Part A) - matches "proposal-overview"
+      // Legacy proposal-overview redirect to a1
       if (activeSection.id === 'proposal-overview') {
-        return proposal ? (
-          <ProposalSummaryPage
-            proposal={{
-              ...proposal,
-              members: [],
-              sections: allSections,
-            }}
-            participants={participants}
-            participantMembers={participantMembers}
-            budgetItems={budgetItems.map((b) => ({
-              amount: b.amount,
-              participantId: b.participantId,
-            }))}
-            onUpdateProposal={updateProposal}
-            onSubmit={handleSubmit}
-            onUpdateStatus={handleUpdateStatus}
-            canEdit={canEdit}
-            isAdmin={isAdmin}
-            onExportPdf={handleExportPdfWithWatermark}
-            onExportPdfNoWatermark={handleExportPdfNoWatermark}
-          />
-        ) : null;
+        // Find and navigate to A1 instead
+        const findA1 = (sections: Section[]): Section | undefined => {
+          for (const s of sections) {
+            if (s.id === 'a1') return s;
+            if (s.subsections) {
+              const found = findA1(s.subsections);
+              if (found) return found;
+            }
+          }
+          return undefined;
+        };
+        const a1 = findA1(allSections);
+        if (a1) {
+          setActiveSection(a1);
+          return null;
+        }
       }
 
       // Part A heading (collapsible only, shows info) - matches "part-a"
@@ -335,10 +340,22 @@ export function ProposalEditor() {
         return (
           <GeneralInfoForm
             proposalId={id || ''}
-            proposal={proposal}
+            proposal={proposal ? {
+              ...proposal,
+              members: [],
+              sections: allSections,
+            } : null}
             section={activeSection}
             canEdit={canEdit && isAdmin}
+            isAdmin={isAdmin}
             onUpdateProposal={updateProposal}
+            participants={participants}
+            budgetItems={budgetItems.map((b) => ({
+              amount: b.amount,
+              participantId: b.participantId,
+            }))}
+            onExportPdf={handleExportPdfWithWatermark}
+            onExportPdfNoWatermark={handleExportPdfNoWatermark}
           />
         );
       }
