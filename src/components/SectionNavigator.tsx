@@ -78,7 +78,7 @@ function SectionItem({
   currentUserId?: string;
   collaborators?: CollaboratorPresence[];
 }) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const hasSubsections = section.subsections && section.subsections.length > 0;
   const isActive = activeSectionId === section.id;
   
@@ -141,10 +141,39 @@ function SectionItem({
         )}
         style={{ paddingLeft: `${depth * 12 + 12}px` }}
         onClick={() => {
-          if (hasSubsections) {
+          if (isCollapsibleHeading) {
+            // For collapsible headings, expand/collapse and navigate to first child
             setIsExpanded(!isExpanded);
+            // Find the first navigable child section
+            const findFirstChild = (subs: (Section | WPSection)[]): Section | WPSection | undefined => {
+              for (const sub of subs) {
+                // Skip collapsible headings, find actual content sections
+                const subHasSubs = sub.subsections && sub.subsections.length > 0;
+                const isSubCollapsible = subHasSubs && (
+                  sub.id === 'part-a' || sub.id === 'part-b' || 
+                  sub.id === 'b1' || sub.id === 'b2' || sub.id === 'wp-drafts'
+                );
+                if (!isSubCollapsible) {
+                  return sub;
+                }
+                // Recursively check subsections
+                if (sub.subsections) {
+                  const found = findFirstChild(sub.subsections);
+                  if (found) return found;
+                }
+              }
+              return undefined;
+            };
+            const firstChild = section.subsections ? findFirstChild(section.subsections) : undefined;
+            if (firstChild) {
+              onSectionClick(firstChild);
+            }
+          } else if (hasSubsections) {
+            setIsExpanded(!isExpanded);
+            onSectionClick(section);
+          } else {
+            onSectionClick(section);
           }
-          onSectionClick(section);
         }}
       >
         {hasSubsections ? (
