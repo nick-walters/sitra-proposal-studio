@@ -128,7 +128,7 @@ function SortableWPRow({ wp, participants, onUpdate, canEdit }: SortableWPRowPro
       <Popover open={leadOpen} onOpenChange={setLeadOpen}>
         <PopoverTrigger asChild>
           <button
-            className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold hover:ring-2 hover:ring-primary/30 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap hover:ring-2 hover:ring-primary/30 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
               backgroundColor: selectedLead ? '#000000' : 'transparent',
               color: selectedLead ? '#ffffff' : undefined,
