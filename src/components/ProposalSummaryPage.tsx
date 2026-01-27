@@ -8,24 +8,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { LogoUpload } from '@/components/LogoUpload';
-// ProposalSchedule removed from overview page
-import { ParticipantTable, ExtendedParticipant, OrganisationCategory, WPLeadershipInfo } from '@/components/ParticipantTable';
+// ProposalSchedule and ParticipantTable moved to A2 page
 import { WPManagementCard } from '@/components/WPManagementCard';
 import { WPDependencySelector } from '@/components/WPDependencySelector';
-import { AddParticipantDialog } from '@/components/AddParticipantDialog';
 import { usePageEstimate } from '@/hooks/usePageEstimate';
 
-import { Proposal, Participant, ParticipantMember, WORK_PROGRAMMES, DESTINATIONS, ProposalStatus, getDestinationsForWorkProgramme, ParticipantType } from '@/types/proposal';
+import { Proposal, Participant, ParticipantMember, WORK_PROGRAMMES, DESTINATIONS, ProposalStatus, getDestinationsForWorkProgramme } from '@/types/proposal';
 
 import {
   ExternalLink,
   Calendar as CalendarIcon,
   Euro,
-  Users,
   FileText,
   Target,
   Download,
-  Plus,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -36,26 +32,12 @@ interface ProposalSummaryPageProps {
   participantMembers: ParticipantMember[];
   budgetItems: { amount: number; participantId: string }[];
   onUpdateProposal?: (updates: Partial<Proposal>) => Promise<void>;
-  onUpdateParticipant?: (id: string, updates: Partial<ExtendedParticipant>) => void;
-  onAddParticipant?: (participant: {
-    organisationName: string;
-    organisationShortName?: string;
-    organisationType: ParticipantType;
-    country?: string;
-    picNumber?: string;
-    legalEntityType?: string;
-    isSme: boolean;
-    organisationCategory?: OrganisationCategory;
-    englishName?: string;
-  }) => Promise<void>;
-  onReorderParticipants?: (reorderedParticipants: ExtendedParticipant[]) => void;
   onSubmit?: () => Promise<void>;
   onUpdateStatus?: (status: ProposalStatus) => Promise<void>;
   canEdit?: boolean;
   isAdmin?: boolean;
   onExportPdf?: () => void;
   onExportPdfNoWatermark?: () => void;
-  wpLeadership?: Record<string, WPLeadershipInfo[]>;
 }
 
 
@@ -133,18 +115,13 @@ export function ProposalSummaryPage({
   participantMembers: realMembers,
   budgetItems,
   onUpdateProposal,
-  onUpdateParticipant,
-  onAddParticipant,
-  onReorderParticipants,
   onSubmit,
   onUpdateStatus,
   canEdit = true,
   isAdmin = false,
   onExportPdf,
   onExportPdfNoWatermark,
-  wpLeadership = {},
 }: ProposalSummaryPageProps) {
-  const [isAddParticipantDialogOpen, setIsAddParticipantDialogOpen] = useState(false);
   const [editedProposal, setEditedProposal] = useState(proposal);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [availableDestinations, setAvailableDestinations] = useState(
@@ -651,51 +628,7 @@ export function ProposalSummaryPage({
           isFullProposal={proposal.submissionStage !== 'stage_1'}
         />
 
-        {/* List of participants */}
-        <Card>
-          <CardHeader className="pb-2 pt-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <Users className="w-4 h-4" />
-                List of participants
-              </CardTitle>
-              {isAdmin && onAddParticipant && (
-                <Button onClick={() => setIsAddParticipantDialogOpen(true)} size="sm" className="gap-1.5 h-7 text-xs">
-                  <Plus className="w-3.5 h-3.5" />
-                  Add Participant
-                </Button>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <ParticipantTable
-              participants={participants as ExtendedParticipant[]}
-              proposalId={proposal.id}
-              proposalAcronym={proposal.acronym}
-              isEditing={isEditing}
-              canInvite={isAdmin}
-              onUpdateParticipant={onUpdateParticipant}
-              onReorderParticipants={onReorderParticipants}
-              onMemberAdded={(member) => {
-                // Refresh will happen via realtime subscription
-                console.log('Member added:', member);
-              }}
-              wpLeadership={wpLeadership}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Add Participant Dialog */}
-        {onAddParticipant && (
-          <AddParticipantDialog
-            open={isAddParticipantDialogOpen}
-            onOpenChange={setIsAddParticipantDialogOpen}
-            onAddParticipant={async (participantData) => {
-              await onAddParticipant(participantData);
-            }}
-            participantCount={participants.length}
-          />
-        )}
+        {/* Participants list moved to A2 page */}
 
         {/* WP Dependencies for PERT Chart (Full Proposals Only) */}
         {proposal.submissionStage !== 'stage_1' && (

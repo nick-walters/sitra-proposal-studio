@@ -301,30 +301,12 @@ export function ProposalEditor() {
               participantId: b.participantId,
             }))}
             onUpdateProposal={updateProposal}
-            onUpdateParticipant={updateParticipant}
-            onAddParticipant={async (participantData) => {
-              await addParticipant({
-                proposalId: id || '',
-                organisationName: participantData.organisationName,
-                organisationShortName: participantData.organisationShortName,
-                organisationType: participantData.organisationType,
-                country: participantData.country,
-                picNumber: participantData.picNumber,
-                legalEntityType: participantData.legalEntityType,
-                isSme: participantData.isSme,
-                participantNumber: participants.length + 1,
-                organisationCategory: participantData.organisationCategory,
-                englishName: participantData.englishName,
-              });
-            }}
-            onReorderParticipants={reorderParticipants}
             onSubmit={handleSubmit}
             onUpdateStatus={handleUpdateStatus}
             canEdit={canEdit}
             isAdmin={isAdmin}
             onExportPdf={handleExportPdfWithWatermark}
             onExportPdfNoWatermark={handleExportPdfNoWatermark}
-            wpLeadership={wpLeadership}
           />
         ) : null;
       }
@@ -410,8 +392,18 @@ export function ProposalEditor() {
             onMemberAdded={(member) => {
               addParticipantMember(member);
             }}
+            onAddParticipant={async (participantData) => {
+              // Add required properties for the full Participant type
+              await addParticipant({
+                ...participantData,
+                proposalId: id || '',
+                participantNumber: participants.length + 1,
+              });
+            }}
             canInvite={isAdmin && canEdit}
             canReorder={isAdmin && canEdit}
+            canAddParticipant={isAdmin && canEdit}
+            wpLeadership={wpLeadership}
           />
         );
       }
