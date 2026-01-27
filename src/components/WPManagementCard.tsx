@@ -81,7 +81,7 @@ function SortableWPRow({ wp, participants, onUpdate, canEdit }: SortableWPRowPro
     <div
       ref={setNodeRef}
       style={style}
-      className={`grid grid-cols-[24px_50px_90px_1fr_1fr] gap-1.5 items-center py-1.5 border-b ${
+      className={`grid grid-cols-[24px_50px_90px_1fr_100px] gap-1.5 items-center py-1.5 border-b ${
         isDragging ? 'bg-muted shadow-lg' : ''
       }`}
     >
@@ -128,22 +128,17 @@ function SortableWPRow({ wp, participants, onUpdate, canEdit }: SortableWPRowPro
       <Popover open={leadOpen} onOpenChange={setLeadOpen}>
         <PopoverTrigger asChild>
           <button
-            className="flex items-center justify-start h-7 px-2 rounded-md border border-input bg-background hover:bg-muted/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold hover:ring-2 hover:ring-primary/30 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              backgroundColor: selectedLead ? '#000000' : 'transparent',
+              color: selectedLead ? '#ffffff' : undefined,
+              border: selectedLead ? 'none' : '1px dashed hsl(var(--muted-foreground))',
+            }}
             disabled={!canEdit}
           >
-            {selectedLead ? (
-              <span
-                className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold"
-                style={{
-                  backgroundColor: '#000000',
-                  color: '#ffffff',
-                }}
-              >
-                {selectedLead.organisation_short_name || `P${selectedLead.participant_number}`}
-              </span>
-            ) : (
-              <span className="text-sm text-muted-foreground">Select lead...</span>
-            )}
+            {selectedLead
+              ? selectedLead.organisation_short_name || `P${selectedLead.participant_number}`
+              : '+ Lead'}
           </button>
         </PopoverTrigger>
         <PopoverContent className="w-[400px] p-0" align="start">
@@ -412,7 +407,7 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Table Header */}
-        <div className="grid grid-cols-[24px_50px_90px_1fr_1fr] gap-1.5 text-xs font-medium text-muted-foreground border-b pb-1.5">
+        <div className="grid grid-cols-[24px_50px_90px_1fr_100px] gap-1.5 text-xs font-medium text-muted-foreground border-b pb-1.5">
           <div />
           <div className="text-center">№</div>
           <div>Short Name</div>
