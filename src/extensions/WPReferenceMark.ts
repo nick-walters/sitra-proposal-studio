@@ -142,7 +142,7 @@ export const WPReferenceMark = Mark.create<WPReferenceOptions>({
           user-select: none;
         `,
       }),
-      `WP${wpNumber}${wpShortName ? `: ${wpShortName}` : ''}`,
+      `WP${wpNumber}`,
     ];
   },
 
@@ -166,7 +166,7 @@ export const WPReferenceMark = Mark.create<WPReferenceOptions>({
       insertWPReference:
         (attributes) =>
         ({ chain }) => {
-          const label = `WP${attributes.wpNumber}${attributes.wpShortName ? `: ${attributes.wpShortName}` : ''}`;
+          const label = `WP${attributes.wpNumber}`;
           return chain()
             .insertContent({
               type: 'text',

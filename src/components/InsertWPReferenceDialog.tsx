@@ -96,27 +96,23 @@ export function InsertWPReferenceDialog({
                   key={wp.id}
                   onClick={() => handleSelect(wp)}
                   className={cn(
-                    "w-full flex items-center gap-3 p-3 rounded-md text-left",
+                    "w-full flex items-center p-3 rounded-md text-left",
                     "hover:bg-muted/80 transition-colors"
                   )}
                 >
                   <Badge
-                    className="shrink-0 rounded-full font-bold text-white"
+                    className="shrink-0 rounded-full font-bold text-white w-12 justify-center"
                     style={{
                       backgroundColor: wp.color,
                     }}
                   >
                     WP{wp.number}
                   </Badge>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm truncate">
-                      {wp.short_name || `Work Package ${wp.number}`}
-                    </div>
-                    {wp.title && (
-                      <div className="text-xs text-muted-foreground truncate">
-                        {wp.title}
-                      </div>
-                    )}
+                  <div className="w-24 shrink-0 ml-3 font-medium text-sm truncate">
+                    {wp.short_name || '—'}
+                  </div>
+                  <div className="flex-1 min-w-0 ml-3 text-xs text-muted-foreground truncate">
+                    {wp.title || '—'}
                   </div>
                 </button>
               ))}
