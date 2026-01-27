@@ -142,7 +142,7 @@ function SortableWPRow({ wp, participants, onUpdate, canEdit }: SortableWPRowPro
           </button>
         </PopoverTrigger>
         <PopoverContent className="w-[400px] p-0" align="start">
-          <ScrollArea className="max-h-[300px]">
+          <div className="max-h-[300px] overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
             <div className="p-1">
               {participants.map((p) => (
                 <button
@@ -175,7 +175,7 @@ function SortableWPRow({ wp, participants, onUpdate, canEdit }: SortableWPRowPro
                 </button>
               ))}
             </div>
-          </ScrollArea>
+          </div>
         </PopoverContent>
       </Popover>
     </div>
