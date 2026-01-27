@@ -460,13 +460,14 @@ function ParticipantCard({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 px-2 gap-1 text-xs whitespace-nowrap"
+                className="h-auto py-1 px-2 text-xs text-center leading-tight"
+                style={{ width: '70px' }}
                 onClick={(e) => {
                   e.stopPropagation();
                   onSelect();
                 }}
               >
-                Edit
+                Edit participant info
               </Button>
             )}
           </div>
