@@ -111,7 +111,7 @@ export function InsertWPReferenceDialog({
                   <div className="w-24 shrink-0 ml-3 font-medium text-sm truncate">
                     {wp.short_name || '—'}
                   </div>
-                  <div className="flex-1 min-w-0 ml-3 text-xs text-muted-foreground truncate">
+                  <div className="flex-1 min-w-0 ml-1.5 text-xs text-muted-foreground truncate">
                     {wp.title || '—'}
                   </div>
                 </button>
