@@ -461,14 +461,13 @@ function ParticipantCard({
             {canEdit && (
               <Button
                 size="sm"
-                className="h-auto py-1 px-2 text-xs text-left leading-tight bg-black text-white hover:bg-black/90 border-0"
-                style={{ width: '70px' }}
+                className="h-auto py-1 px-2 text-xs text-left leading-tight bg-muted text-muted-foreground hover:bg-muted/80 border-0"
                 onClick={(e) => {
                   e.stopPropagation();
                   onSelect();
                 }}
               >
-                Edit<br />participant<br />info
+                Edit info
               </Button>
             )}
           </div>
