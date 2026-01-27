@@ -471,7 +471,7 @@ function ParticipantCard({
                   onSelect();
                 }}
               >
-                Edit participant info
+                Edit<br />participant<br />info
               </Button>
             )}
           </div>
