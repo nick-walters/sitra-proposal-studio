@@ -184,6 +184,53 @@ const knownDomains: Record<string, string> = {
   'weizmann': 'weizmann.ac.il',
   'hebrew': 'huji.ac.il',
   'tel aviv': 'tau.ac.il',
+  
+  // Major companies and corporations
+  'siemens': 'siemens.com',
+  'philips': 'philips.com',
+  'thales': 'thalesgroup.com',
+  'bosch': 'bosch.com',
+  'ericsson': 'ericsson.com',
+  'nokia': 'nokia.com',
+  'sap': 'sap.com',
+  'basf': 'basf.com',
+  'bayer': 'bayer.com',
+  'airbus': 'airbus.com',
+  'atos': 'atos.net',
+  'orange': 'orange.com',
+  'vodafone': 'vodafone.com',
+  'telefonica': 'telefonica.com',
+  'bmw': 'bmw.com',
+  'volkswagen': 'volkswagen.com',
+  'daimler': 'daimler.com',
+  'mercedes': 'mercedes-benz.com',
+  'infineon': 'infineon.com',
+  'st microelectronics': 'st.com',
+  'stm': 'st.com',
+  'nxp': 'nxp.com',
+  'asml': 'asml.com',
+  'shell': 'shell.com',
+  'total': 'totalenergies.com',
+  'enel': 'enel.com',
+  'iberdrola': 'iberdrola.com',
+  'edf': 'edf.fr',
+  'engie': 'engie.com',
+  'vattenfall': 'vattenfall.com',
+  'equinor': 'equinor.com',
+  'repsol': 'repsol.com',
+  
+  // Spanish research organizations
+  'tecnalia': 'tecnalia.com',
+  
+  // Irish research organizations  
+  'tyndall': 'tyndall.ie',
+  'tyndall national institute': 'tyndall.ie',
+  
+  // NGOs and associations
+  'eeb': 'eeb.org',
+  'european environmental bureau': 'eeb.org',
+  'wwf': 'wwf.org',
+  'greenpeace': 'greenpeace.org',
 };
 
 // Guess domain from organization name
