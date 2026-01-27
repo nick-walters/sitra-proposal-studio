@@ -23,12 +23,12 @@ export function SaveIndicator({ saving, lastSaved, className }: SaveIndicatorPro
         <>
           <Cloud className="w-3 h-3" />
           <Check className="w-3 h-3 text-success" />
-          <span>Saved at {formatTime(lastSaved)}</span>
+          <span>Autosaved at {formatTime(lastSaved)}</span>
         </>
       ) : (
         <>
           <Cloud className="w-3 h-3" />
-          <span>Autosaved</span>
+          <span>Autosave</span>
         </>
       )}
     </div>
