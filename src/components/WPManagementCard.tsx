@@ -20,7 +20,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { WPColorPicker } from '@/components/WPColorPicker';
@@ -124,26 +130,31 @@ function SortableWPRow({ wp, participants, onUpdate, canEdit }: SortableWPRowPro
         disabled={!canEdit}
       />
 
-      {/* WP Lead - Popover styled like partner reference dialog */}
-      <Popover open={leadOpen} onOpenChange={setLeadOpen}>
-        <PopoverTrigger asChild>
-          <button
-            className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap hover:ring-2 hover:ring-primary/30 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{
-              backgroundColor: selectedLead ? '#000000' : 'transparent',
-              color: selectedLead ? '#ffffff' : undefined,
-              border: selectedLead ? 'none' : '1px dashed hsl(var(--muted-foreground))',
-            }}
-            disabled={!canEdit}
-          >
-            {selectedLead
-              ? selectedLead.organisation_short_name || `P${selectedLead.participant_number}`
-              : '+ Lead'}
-          </button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[400px] p-0" align="start">
-          <div className="max-h-[300px] overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-            <div className="p-1">
+      {/* WP Lead - Dialog styled like partner reference dialog */}
+      <button
+        className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap hover:ring-2 hover:ring-primary/30 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        style={{
+          backgroundColor: selectedLead ? '#000000' : 'transparent',
+          color: selectedLead ? '#ffffff' : undefined,
+          border: selectedLead ? 'none' : '1px dashed hsl(var(--muted-foreground))',
+        }}
+        disabled={!canEdit}
+        onClick={() => setLeadOpen(true)}
+      >
+        {selectedLead
+          ? selectedLead.organisation_short_name || `P${selectedLead.participant_number}`
+          : '+ Lead'}
+      </button>
+      <Dialog open={leadOpen} onOpenChange={setLeadOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Select WP Lead</DialogTitle>
+            <DialogDescription>
+              Choose a partner organisation to lead this work package.
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[400px]">
+            <div className="space-y-1 p-1">
               {participants.map((p) => (
                 <button
                   key={p.id}
@@ -151,7 +162,7 @@ function SortableWPRow({ wp, participants, onUpdate, canEdit }: SortableWPRowPro
                     onUpdate(wp.id, { lead_participant_id: p.id });
                     setLeadOpen(false);
                   }}
-                  className="w-full flex items-center p-2.5 rounded-md text-left hover:bg-muted/80 transition-colors"
+                  className="w-full flex items-center p-3 rounded-md text-left hover:bg-muted/80 transition-colors"
                 >
                   <div className="w-24 shrink-0">
                     <span
@@ -177,9 +188,9 @@ function SortableWPRow({ wp, participants, onUpdate, canEdit }: SortableWPRowPro
                 </button>
               ))}
             </div>
-          </div>
-        </PopoverContent>
-      </Popover>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
