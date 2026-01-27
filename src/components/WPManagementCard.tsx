@@ -88,7 +88,7 @@ function SortableWPRow({ wp, participants, onUpdate, onDelete, canEdit }: Sortab
     <div
       ref={setNodeRef}
       style={style}
-      className={`grid grid-cols-[24px_50px_90px_1fr_100px_24px] gap-1.5 items-center py-1.5 border-b ${
+      className={`grid grid-cols-[24px_50px_90px_1fr_80px_20px] gap-1.5 items-center py-1.5 border-b ${
         isDragging ? 'bg-muted shadow-lg' : ''
       }`}
     >
@@ -458,7 +458,7 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Table Header */}
-        <div className="grid grid-cols-[24px_50px_90px_1fr_100px_24px] gap-1.5 text-xs font-medium text-muted-foreground border-b pb-1.5">
+        <div className="grid grid-cols-[24px_50px_90px_1fr_80px_20px] gap-1.5 text-xs font-medium text-muted-foreground border-b pb-1.5">
           <div />
           <div className="text-center">№</div>
           <div>Short Name</div>
