@@ -31,7 +31,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { WPColorPicker } from '@/components/WPColorPicker';
 import { WPColorPaletteEditor } from '@/components/WPColorPaletteEditor';
-import { Layers, GripVertical, Plus, AlertTriangle, Palette } from 'lucide-react';
+import { Layers, GripVertical, Plus, AlertTriangle, Palette, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
@@ -61,10 +61,11 @@ interface SortableWPRowProps {
   wp: WPDraft;
   participants: Participant[];
   onUpdate: (id: string, updates: Partial<WPDraft>) => void;
+  onDelete: (id: string) => void;
   canEdit: boolean;
 }
 
-function SortableWPRow({ wp, participants, onUpdate, canEdit }: SortableWPRowProps) {
+function SortableWPRow({ wp, participants, onUpdate, onDelete, canEdit }: SortableWPRowProps) {
   const [leadOpen, setLeadOpen] = useState(false);
   const {
     attributes,
@@ -87,7 +88,7 @@ function SortableWPRow({ wp, participants, onUpdate, canEdit }: SortableWPRowPro
     <div
       ref={setNodeRef}
       style={style}
-      className={`grid grid-cols-[24px_50px_90px_1fr_100px] gap-1.5 items-center py-1.5 border-b ${
+      className={`grid grid-cols-[24px_50px_90px_1fr_100px_24px] gap-1.5 items-center py-1.5 border-b ${
         isDragging ? 'bg-muted shadow-lg' : ''
       }`}
     >
@@ -191,6 +192,18 @@ function SortableWPRow({ wp, participants, onUpdate, canEdit }: SortableWPRowPro
           </ScrollArea>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Button */}
+      {canEdit && (
+        <button
+          onClick={() => onDelete(wp.id)}
+          className="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors"
+          title="Delete work package"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      )}
+      {!canEdit && <div />}
     </div>
   );
 }
@@ -329,6 +342,25 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
     },
   });
 
+  // Delete WP mutation
+  const deleteWPMutation = useMutation({
+    mutationFn: async (wpId: string) => {
+      const { error } = await supabase
+        .from('wp_drafts')
+        .delete()
+        .eq('id', wpId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
+      queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
+      toast.success('Work package deleted');
+    },
+    onError: () => {
+      toast.error('Failed to delete work package');
+    },
+  });
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -343,6 +375,12 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
   const handleUpdateWP = useCallback((id: string, updates: Partial<WPDraft>) => {
     updateWPMutation.mutate({ id, updates });
   }, [updateWPMutation]);
+
+  const handleDeleteWP = useCallback((id: string) => {
+    if (confirm('Are you sure you want to delete this work package?')) {
+      deleteWPMutation.mutate(id);
+    }
+  }, [deleteWPMutation]);
 
   const handleToggleWP = (wpId: string) => {
     const newSelection = new Set(selectedWPs);
@@ -420,12 +458,13 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Table Header */}
-        <div className="grid grid-cols-[24px_50px_90px_1fr_100px] gap-1.5 text-xs font-medium text-muted-foreground border-b pb-1.5">
+        <div className="grid grid-cols-[24px_50px_90px_1fr_100px_24px] gap-1.5 text-xs font-medium text-muted-foreground border-b pb-1.5">
           <div />
           <div className="text-center">№</div>
           <div>Short Name</div>
           <div>Title</div>
           <div>WP Lead</div>
+          <div />
         </div>
 
         {/* Sortable WP List */}
@@ -441,6 +480,7 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
                 wp={wp}
                 participants={participants}
                 onUpdate={handleUpdateWP}
+                onDelete={handleDeleteWP}
                 canEdit={isAdmin}
               />
             ))}
