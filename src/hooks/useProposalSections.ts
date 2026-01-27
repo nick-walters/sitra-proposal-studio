@@ -234,14 +234,6 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
 
   // Return either template sections or fallback to hardcoded sections
   const allSections = useMemo(() => {
-    // Define the WP Progress Tracker section (replaces Assignments position)
-    const wpProgressSection: Section = {
-      id: 'wp-progress-tracker',
-      number: '',
-      title: 'WP Progress Tracker',
-      isPartA: true, // Place in Part A area for ordering
-    };
-
     // Define the Figures section (always needed for Part B)
     const figuresSection: Section = {
       id: 'figures',
@@ -271,9 +263,6 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         partBRoot.subsections = partBRoot.subsections.filter(s => s.id !== 'figures' && s.title !== 'Figures');
       }
       
-      // Insert WP Progress Tracker at the start of Part A sections
-      partASections.unshift(wpProgressSection);
-      
       // Build result: Part A, Part B, then WP Drafts, then Figures (all at top level)
       const result = [...partASections, ...partBSections];
       
@@ -289,9 +278,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     }
     
     // Fallback to hardcoded sections
-    // Insert WP Progress Tracker at the start
     const fallbackSections = [...PART_A_SECTIONS, ...HORIZON_EUROPE_SECTIONS];
-    fallbackSections.unshift(wpProgressSection);
     
     // Add WP Drafts as standalone top-level section
     if (wpDraftSections.length > 0) {
