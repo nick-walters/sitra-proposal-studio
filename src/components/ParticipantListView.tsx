@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Participant, ParticipantMember, Section, ParticipantType } from '@/types/proposal';
 import { Building2, GripVertical, UserPlus, Plus, Search, Check, Upload, X, Loader2 } from 'lucide-react';
 import { generateParticipantLogoPath, uploadProposalFile } from '@/lib/proposalStorage';
+import { CountrySelect } from './CountrySelect';
 import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
 import { Badge } from './ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
@@ -424,14 +425,17 @@ function ParticipantCard({
             )}
           </div>
           
-          {/* Country - editable */}
-          <div className="shrink-0" style={{ width: '85px' }}>
+          {/* Country - searchable dropdown */}
+          <div className="shrink-0" style={{ width: '88px' }}>
             {canEdit ? (
-              <Input
+              <CountrySelect
                 value={country}
-                onChange={handleChange(setCountry)}
+                onValueChange={(val) => {
+                  setCountry(val);
+                  setHasChanges(true);
+                }}
+                className="h-7 text-xs px-1.5"
                 placeholder="Country"
-                className="h-7 text-sm px-1.5 text-muted-foreground"
               />
             ) : (
               <span className="text-sm text-muted-foreground block leading-tight">
