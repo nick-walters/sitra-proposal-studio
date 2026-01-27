@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { LogoUpload } from '@/components/LogoUpload';
 // ProposalSchedule and ParticipantTable moved to A2 page
-import { WPManagementCard } from '@/components/WPManagementCard';
+// WPManagementCard moved to WP drafts page
 import { WPDependencySelector } from '@/components/WPDependencySelector';
 import { usePageEstimate } from '@/hooks/usePageEstimate';
 
@@ -621,12 +621,7 @@ export function ProposalSummaryPage({
 
         {/* Proposal Schedule removed from overview page */}
 
-        {/* Work Package Management Card - moved above participants */}
-        <WPManagementCard
-          proposalId={proposal.id}
-          isAdmin={isAdmin}
-          isFullProposal={proposal.submissionStage !== 'stage_1'}
-        />
+        {/* Work Package Management Card moved to WP drafts page */}
 
         {/* Participants list moved to A2 page */}
 

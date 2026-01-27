@@ -12,6 +12,7 @@ import { WorkPackageManager } from "@/components/WorkPackageManager";
 import { FigureManager } from "@/components/FigureManager";
 import { SectionProgressDashboard } from "@/components/SectionProgressDashboard";
 import { WPDraftEditor } from "@/components/WPDraftEditor";
+import { WPManagementCard } from "@/components/WPManagementCard";
 import { WPProgressTracker } from "@/components/WPProgressTracker";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -557,16 +558,12 @@ export function ProposalEditor() {
     // WP Drafts container section
     if (activeSection.id === 'wp-drafts') {
       return (
-        <div className="flex-1 flex items-center justify-center bg-muted/30">
-          <div className="text-center max-w-lg">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-              <FileText className="w-8 h-8 text-primary" />
-            </div>
-            <h3 className="text-lg font-medium">WP drafts</h3>
-            <p className="text-sm text-muted-foreground mt-2">
-              Select a work package from the navigation to start drafting its content, tasks, deliverables, and risks.
-            </p>
-          </div>
+        <div className="flex-1 overflow-y-auto p-6">
+          <WPManagementCard
+            proposalId={id || ''}
+            isAdmin={canEdit}
+            isFullProposal={proposal?.submissionStage !== 'stage_1'}
+          />
         </div>
       );
     }
