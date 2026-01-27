@@ -175,14 +175,14 @@ function SectionItem({
           }
         }}
       >
-        {/* Left-side icons for non-expandable items */}
-        {!hasSubsections && (
+        {/* Left-side icons */}
+        {section.id === 'a2' ? (
+          <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
+        ) : !hasSubsections && (
           section.id === 'wp-progress-tracker' ? (
             <BarChart3 className="w-4 h-4 text-muted-foreground shrink-0" />
           ) : section.id === 'wp-drafts' ? (
             <Layers className="w-4 h-4 text-muted-foreground shrink-0" />
-          ) : section.id === 'a2' ? (
-            <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
           ) : section.id === 'figures' || section.title === 'Figures' ? (
             null
           ) : isWPSection && wpColor ? (
