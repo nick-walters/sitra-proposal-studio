@@ -386,10 +386,6 @@ export function ProposalEditor() {
             canAddParticipant={isAdmin && canEdit}
             canEdit={isAdmin && canEdit}
             wpLeadership={wpLeadership}
-            usesFstp={proposal?.usesFstp || false}
-            onUpdateUsesFstp={async (usesFstp) => {
-              await updateProposal({ usesFstp });
-            }}
           />
         );
       }

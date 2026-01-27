@@ -210,6 +210,7 @@ export interface Proposal {
   submittedAt?: Date;
   decisionDate?: Date;
   expectedProjects?: string;
+  usesFstp?: boolean;
 }
 
 export interface Participant {
