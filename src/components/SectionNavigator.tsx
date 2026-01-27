@@ -98,6 +98,12 @@ function SectionItem({
   const dueDateInfo = assignment ? getDueDateInfo(assignment.dueDate) : null;
   const isAssignedToMe = assignment?.assignedTo === currentUserId;
   
+  // Check if this is a Part B subsection (B1.1, B2.1, etc.) - these should align with B1/B2/B3
+  const isPartBSubsection = section.number && /^B\d+\.\d+/.test(section.number);
+  
+  // Calculate effective depth - Part B subsections use same depth as their parent for icon alignment
+  const effectiveDepth = isPartBSubsection ? depth - 1 : depth;
+  
   // Check if this is a collapsible heading (Part A, Part B, B1, B2)
   // Note: A2 is NOT a collapsible heading - it should navigate to ParticipantListView
   // Note: WP Drafts is NOT a collapsible heading - it should navigate to WP Manager/Tracker
@@ -107,7 +113,7 @@ function SectionItem({
     section.id === 'b1' || 
     section.id === 'b2'
   );
-  
+
   // Check if this is a top-level bold item (Part A, Part B, Figures, WP Progress Tracker, WP Drafts)
   // Match both ID-based and number-based checks for database sections
   const isTopLevelBold = 
@@ -138,7 +144,7 @@ function SectionItem({
           dueDateInfo?.isDueSoon && !dueDateInfo?.isOverdue && "border-l-2 border-amber-500",
           isAssignedToMe && !dueDateInfo?.isOverdue && !dueDateInfo?.isDueSoon && "border-l-2 border-blue-500"
         )}
-        style={{ paddingLeft: `${depth * 12 + 12}px` }}
+        style={{ paddingLeft: `${effectiveDepth * 12 + 12}px` }}
         onClick={() => {
           if (isCollapsibleHeading) {
             // For collapsible headings, expand/collapse and navigate to first child
