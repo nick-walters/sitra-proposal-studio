@@ -1,4 +1,4 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -6,26 +6,36 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Separator } from "@/components/ui/separator";
 import { InlineGuideline } from "./GuidelineBox";
 import { PartAGuidelinesDialog } from "./PartAGuidelinesDialog";
-import { Section } from "@/types/proposal";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { LogoUpload } from "./LogoUpload";
+import { WPDependencySelector } from "./WPDependencySelector";
+import { Section, Proposal, Participant, ParticipantMember, WORK_PROGRAMMES, DESTINATIONS, getDestinationsForWorkProgramme } from "@/types/proposal";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SaveIndicator } from "./SaveIndicator";
-import { Loader2 } from "lucide-react";
+import { usePageEstimate } from "@/hooks/usePageEstimate";
+import { Loader2, FileText, Target, Euro, Calendar as CalendarIcon, ExternalLink, Download } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface GeneralInfoFormProps {
   proposalId: string;
-  proposal: {
-    acronym: string;
-    title: string;
-    topicId?: string;
-    description?: string;
-  } | null;
+  proposal: Proposal | null;
   section: Section;
   canEdit: boolean;
+  isAdmin?: boolean;
   onUpdateProposal: (updates: Record<string, any>) => Promise<void>;
+  // Additional props for overview content
+  participants?: Participant[];
+  budgetItems?: { amount: number; participantId: string }[];
+  onExportPdf?: () => void;
+  onExportPdfNoWatermark?: () => void;
 }
 
 interface DeclarationLink {
@@ -155,7 +165,6 @@ const renderTextWithLinks = (text: string, links?: DeclarationLink[]) => {
   let match;
   
   while ((match = regex.exec(text)) !== null) {
-    // Add text before the match
     if (match.index > lastIndex) {
       parts.push(text.slice(lastIndex, match.index));
     }
@@ -183,7 +192,6 @@ const renderTextWithLinks = (text: string, links?: DeclarationLink[]) => {
     lastIndex = match.index + match[0].length;
   }
   
-  // Add remaining text
   if (lastIndex < text.length) {
     parts.push(text.slice(lastIndex));
   }
@@ -191,13 +199,78 @@ const renderTextWithLinks = (text: string, links?: DeclarationLink[]) => {
   return <>{parts}</>;
 };
 
+// Generate a consistent color from acronym
+function getAcronymColor(acronym: string): string {
+  const colors = [
+    'hsl(221, 83%, 53%)',
+    'hsl(142, 76%, 36%)',
+    'hsl(262, 83%, 58%)',
+    'hsl(24, 95%, 53%)',
+    'hsl(346, 77%, 50%)',
+    'hsl(199, 89%, 48%)',
+  ];
+  let hash = 0;
+  for (let i = 0; i < acronym.length; i++) {
+    hash = acronym.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+}
+
+function AcronymLogo({ logoUrl, acronym }: { logoUrl?: string; acronym: string }) {
+  const acronymColor = getAcronymColor(acronym);
+  
+  const formatAcronymForDisplay = (acr: string) => {
+    if (acr.length <= 6) return [acr];
+    const midPoint = Math.ceil(acr.length / 2);
+    let splitIndex = midPoint;
+    for (let i = midPoint - 2; i < Math.min(midPoint + 3, acr.length); i++) {
+      if (i > 0 && /[A-Za-z]/.test(acr[i-1]) && /[0-9]/.test(acr[i])) {
+        splitIndex = i;
+        break;
+      }
+    }
+    return [acr.substring(0, splitIndex), acr.substring(splitIndex)].filter(Boolean);
+  };
+
+  const acronymLines = formatAcronymForDisplay(acronym.toUpperCase());
+  
+  return (
+    <div className="w-24 h-24 rounded-xl bg-muted border flex items-center justify-center overflow-hidden">
+      {logoUrl ? (
+        <img src={logoUrl} alt={acronym} className="w-full h-full object-cover" />
+      ) : (
+        <div 
+          className="w-full h-full flex flex-col items-center justify-center gap-0.5 p-1"
+          style={{ backgroundColor: acronymColor }}
+        >
+          {acronymLines.map((line, idx) => (
+            <span 
+              key={idx} 
+              className="font-bold text-white tracking-tight text-center leading-tight"
+              style={{ fontSize: acronymLines.length > 1 ? '0.9rem' : '1.5rem' }}
+            >
+              {line}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function GeneralInfoForm({
   proposalId,
   proposal,
   section,
   canEdit,
+  isAdmin = false,
   onUpdateProposal,
+  participants = [],
+  budgetItems = [],
+  onExportPdf,
+  onExportPdfNoWatermark,
 }: GeneralInfoFormProps) {
+  // A1 form data state
   const [formData, setFormData] = useState<FormData>({
     abstract: '',
     fixedKeywords: [],
@@ -221,7 +294,70 @@ export function GeneralInfoForm({
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-  // Load existing content from section_content
+  // Overview editing state (for admin/owner)
+  const [editedProposal, setEditedProposal] = useState(proposal);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [availableDestinations, setAvailableDestinations] = useState(
+    proposal?.workProgramme ? getDestinationsForWorkProgramme(proposal.workProgramme) : []
+  );
+
+  // Page estimate for PDF export
+  const { estimatedPages } = usePageEstimate(proposalId);
+
+  // Sync editedProposal when proposal changes
+  useEffect(() => {
+    if (proposal) {
+      setEditedProposal(proposal);
+    }
+  }, [proposal]);
+
+  useEffect(() => {
+    if (editedProposal?.workProgramme) {
+      setAvailableDestinations(getDestinationsForWorkProgramme(editedProposal.workProgramme));
+    }
+  }, [editedProposal?.workProgramme]);
+
+  const workProgramme = WORK_PROGRAMMES.find(wp => wp.id === proposal?.workProgramme);
+  const destination = DESTINATIONS.find(d => d.id === proposal?.destination);
+  const totalBudgetFromItems = budgetItems.reduce((sum, item) => sum + item.amount, 0);
+  const daysUntilDeadline = proposal?.deadline
+    ? Math.ceil((new Date(proposal.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+    : null;
+
+  // User can edit overview fields if admin/owner
+  const userCanEditOverview = canEdit && isAdmin;
+  const isEditing = userCanEditOverview;
+
+  // Auto-save overview changes with debounce
+  const debouncedSaveOverview = useCallback((proposalData: typeof editedProposal) => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(async () => {
+      if (onUpdateProposal && proposalData) {
+        await onUpdateProposal(proposalData);
+      }
+    }, 1000);
+  }, [onUpdateProposal]);
+
+  useEffect(() => {
+    if (userCanEditOverview && editedProposal && proposal && JSON.stringify(editedProposal) !== JSON.stringify(proposal)) {
+      debouncedSaveOverview(editedProposal);
+    }
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [editedProposal, userCanEditOverview, proposal, debouncedSaveOverview]);
+
+  const handleLogoChange = (url: string | null) => {
+    if (editedProposal) {
+      setEditedProposal({ ...editedProposal, logoUrl: url || undefined });
+    }
+  };
+
+  // Load A1 form content
   useEffect(() => {
     const loadContent = async () => {
       if (!proposalId) return;
@@ -258,11 +394,7 @@ export function GeneralInfoForm({
               },
             });
           } catch {
-            // If content is plain text, treat as abstract
-            setFormData(prev => ({
-              ...prev,
-              abstract: data.content,
-            }));
+            setFormData(prev => ({ ...prev, abstract: data.content }));
           }
         }
       } catch (error) {
@@ -274,7 +406,7 @@ export function GeneralInfoForm({
     loadContent();
   }, [proposalId]);
 
-  // Auto-save with debounce
+  // Auto-save A1 form content
   const saveContent = useCallback(async (data: FormData) => {
     if (!canEdit) return;
     
@@ -302,7 +434,6 @@ export function GeneralInfoForm({
     setSaving(false);
   }, [proposalId, canEdit]);
 
-  // Debounced save
   useEffect(() => {
     if (loading) return;
     
@@ -352,33 +483,22 @@ export function GeneralInfoForm({
     }));
   };
 
-  // Word count for abstract (limit 2000 characters as per HE standard)
   const abstractCharCount = formData.abstract.length;
   const abstractWordCount = formData.abstract.trim() ? formData.abstract.trim().split(/\s+/).length : 0;
   const freeKeywordsCharCount = formData.freeKeywords.length;
 
-  // Extract guidelines from section - must be before early return to maintain hook order
   const officialGuidelines = useMemo(() => {
     return (section.guidelinesArray || [])
       .filter(g => g.type === 'official' || g.type === 'evaluation')
       .sort((a, b) => a.orderIndex - b.orderIndex)
-      .map(g => ({
-        id: g.id,
-        title: g.title,
-        content: g.content,
-        type: g.type,
-      }));
+      .map(g => ({ id: g.id, title: g.title, content: g.content, type: g.type }));
   }, [section.guidelinesArray]);
 
   const sitraTips = useMemo(() => {
     return (section.guidelinesArray || [])
       .filter(g => g.type === 'sitra_tip')
       .sort((a, b) => a.orderIndex - b.orderIndex)
-      .map(g => ({
-        id: g.id,
-        title: g.title,
-        content: g.content,
-      }));
+      .map(g => ({ id: g.id, title: g.title, content: g.content }));
   }, [section.guidelinesArray]);
 
   if (loading) {
@@ -391,7 +511,35 @@ export function GeneralInfoForm({
 
   return (
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Header with export buttons */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-semibold">Part A1: General information</h1>
+          <div className="flex items-center gap-3">
+            {onExportPdf && estimatedPages !== null && (
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <span>{estimatedPages} {estimatedPages === 1 ? 'page' : 'pages'}</span>
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-blue-100 text-blue-700 hover:bg-blue-100">
+                  Est.
+                </Badge>
+              </div>
+            )}
+            {onExportPdf && (
+              <Button variant="outline" size="sm" className="gap-2" onClick={onExportPdf}>
+                <Download className="w-4 h-4" />
+                Export PDF
+              </Button>
+            )}
+            {isAdmin && onExportPdfNoWatermark && (
+              <Button variant="outline" size="sm" className="gap-2" onClick={onExportPdfNoWatermark}>
+                <Download className="w-4 h-4" />
+                Export watermark-free
+              </Button>
+            )}
+            {canEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
+          </div>
+        </div>
+
         {/* Guidelines Button */}
         <PartAGuidelinesDialog
           sectionTitle="Part A1: General information"
@@ -399,37 +547,382 @@ export function GeneralInfoForm({
           sitraTips={sitraTips}
         />
 
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">Part A1: General information</h1>
-          {canEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
-        </div>
-
-        {/* Proposal Summary Card */}
+        {/* Project Identity Card */}
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Proposal summary</CardTitle>
-            <CardDescription>
-              Basic information about your proposal (editable in Proposal overview)
-            </CardDescription>
+          <CardHeader className="pb-3 pt-4">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <FileText className="w-4 h-4" />
+              Project identity
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <Label className="text-muted-foreground text-sm">Acronym</Label>
-                <p className="font-medium">{proposal?.acronym || '-'}</p>
+          <CardContent>
+            <div className="flex gap-6">
+              <div className="flex-1 space-y-3">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-0.5 block">Title</label>
+                  {isEditing && editedProposal ? (
+                    <Input
+                      value={editedProposal.title}
+                      onChange={(e) => setEditedProposal({ ...editedProposal, title: e.target.value })}
+                      className="text-sm font-semibold h-8"
+                      placeholder="Full proposal title"
+                    />
+                  ) : (
+                    <h2 className="text-sm font-semibold text-foreground">{proposal?.title}</h2>
+                  )}
+                  <InlineGuideline className="mt-1">
+                    Max 200 characters (with spaces). Must be understandable for non-specialists.
+                  </InlineGuideline>
+                </div>
+
+                <div>
+                  <label className="text-xs text-muted-foreground mb-0.5 block">Acronym</label>
+                  {isEditing && editedProposal ? (
+                    <Input
+                      value={editedProposal.acronym}
+                      onChange={(e) => setEditedProposal({ ...editedProposal, acronym: e.target.value })}
+                      className="text-sm font-semibold w-40 h-8"
+                      placeholder="Acronym"
+                    />
+                  ) : (
+                    <p className="text-sm font-semibold">{proposal?.acronym}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-xs text-muted-foreground mb-0.5 block">Project duration (months)</label>
+                  {isEditing && editedProposal ? (
+                    <Select
+                      value={editedProposal.duration?.toString() || ''}
+                      onValueChange={(v) => setEditedProposal({ ...editedProposal, duration: parseInt(v) })}
+                    >
+                      <SelectTrigger className="w-32 h-8 text-sm">
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 72 }, (_, i) => i + 1).map((months) => (
+                          <SelectItem key={months} value={months.toString()}>{months}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="text-sm font-medium">{proposal?.duration ? `${proposal.duration}` : '–'}</p>
+                  )}
+                </div>
               </div>
-              <div className="space-y-1">
-                <Label className="text-muted-foreground text-sm">Topic ID</Label>
-                <p className="font-medium">{proposal?.topicId || '-'}</p>
+
+              <div className="flex-shrink-0">
+                <label className="text-xs text-muted-foreground mb-1.5 block">Project logo</label>
+                {isEditing && editedProposal ? (
+                  <LogoUpload
+                    currentUrl={editedProposal.logoUrl || null}
+                    proposalId={proposalId}
+                    proposalAcronym={editedProposal.acronym}
+                    proposalTitle={editedProposal.title}
+                    onUpload={handleLogoChange}
+                  />
+                ) : (
+                  <AcronymLogo logoUrl={proposal?.logoUrl} acronym={proposal?.acronym || 'P'} />
+                )}
               </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-muted-foreground text-sm">Title</Label>
-              <p className="font-medium">{proposal?.title || '-'}</p>
-              <InlineGuideline className="mt-1">
-                Max 200 characters (with spaces). Must be understandable for non-specialists. The following characters are not accepted: {'< > " &'}
-              </InlineGuideline>
+          </CardContent>
+        </Card>
+
+        {/* Topic Card */}
+        <Card>
+          <CardHeader className="pb-2 pt-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <Target className="w-4 h-4" />
+                Topic
+              </CardTitle>
+              {proposal?.topicUrl && !isEditing && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="gap-1.5 h-7 text-xs"
+                  onClick={() => window.open(proposal.topicUrl, '_blank')}
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  View on portal
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <label className="text-xs text-muted-foreground mb-0.5 block">Topic ID</label>
+              {isEditing && editedProposal ? (
+                <div className="space-y-2">
+                  <Input
+                    value={editedProposal.topicId || ''}
+                    onChange={(e) => setEditedProposal({ ...editedProposal, topicId: e.target.value })}
+                    placeholder="e.g. HORIZON-CL5-2026-D1-01"
+                    className="max-w-md h-8 text-sm"
+                  />
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-0.5 block">Link to topic</label>
+                    <Input
+                      value={editedProposal.topicUrl || ''}
+                      onChange={(e) => setEditedProposal({ ...editedProposal, topicUrl: e.target.value })}
+                      placeholder="Portal URL (https://ec.europa.eu/...)"
+                      type="url"
+                      className="max-w-md h-8 text-sm"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium">{proposal?.topicId || 'Not specified'}</p>
+                  {proposal?.topicUrl && (
+                    <a 
+                      href={proposal.topicUrl.startsWith('http') ? proposal.topicUrl : `https://${proposal.topicUrl}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                    >
+                      <ExternalLink className="w-2.5 h-2.5" />
+                      Topic
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="text-xs text-muted-foreground mb-0.5 block">Topic title</label>
+              {isEditing && editedProposal ? (
+                <Input
+                  value={editedProposal.topicTitle || ''}
+                  onChange={(e) => setEditedProposal({ ...editedProposal, topicTitle: e.target.value })}
+                  className="h-8 text-sm"
+                />
+              ) : (
+                <p className="text-sm font-medium">{proposal?.topicTitle || '–'}</p>
+              )}
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Proposal stage</label>
+                <p className="text-sm font-medium">
+                  {proposal?.submissionStage === 'stage_1' ? 'Pre-proposal (stage 1)' : 'Full proposal'}
+                </p>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Type of action</label>
+                <p className="text-sm font-medium">{proposal?.type || 'Not specified'}</p>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Work programme</label>
+                {isEditing && editedProposal ? (
+                  <Select
+                    value={editedProposal.workProgramme || ''}
+                    onValueChange={(v) => setEditedProposal({ ...editedProposal, workProgramme: v, destination: undefined })}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Select work programme" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {WORK_PROGRAMMES.map(wp => (
+                        <SelectItem key={wp.id} value={wp.id}>
+                          {wp.abbreviation} - {wp.fullName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm font-medium">
+                    {workProgramme ? `${workProgramme.abbreviation} - ${workProgramme.fullName}` : 'Not specified'}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Destination</label>
+                {isEditing && editedProposal ? (
+                  <Select
+                    value={editedProposal.destination || ''}
+                    onValueChange={(v) => setEditedProposal({ ...editedProposal, destination: v })}
+                    disabled={!editedProposal.workProgramme}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Select destination" />
+                    </SelectTrigger>
+                    <SelectContent className="z-50 bg-popover">
+                      {availableDestinations.map(d => (
+                        <SelectItem key={d.id} value={d.id} className="!pl-2">
+                          {d.abbreviation} - {d.fullName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm font-medium">
+                    {destination ? `${destination.abbreviation} - ${destination.fullName}` : 'Not specified'}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Key Dates */}
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Deadline</label>
+                {isEditing && editedProposal ? (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-8 text-sm", !editedProposal.deadline && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                        {editedProposal.deadline ? format(editedProposal.deadline, 'PPP') : 'Select date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 z-50 bg-popover" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={editedProposal.deadline}
+                        onSelect={(date) => {
+                          setEditedProposal({ 
+                            ...editedProposal, 
+                            deadline: date,
+                            decisionDate: !editedProposal.decisionDate && date 
+                              ? new Date(date.getFullYear(), date.getMonth() + 3, date.getDate()) 
+                              : editedProposal.decisionDate
+                          });
+                        }}
+                        disabled={(date) => date < new Date()}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                ) : (
+                  <div>
+                    <p className="text-sm font-medium">
+                      {proposal?.deadline ? format(proposal.deadline, 'dd MMM yyyy') : 'Not set'}
+                    </p>
+                    {daysUntilDeadline !== null && daysUntilDeadline > 0 && (
+                      <p className="text-xs text-warning font-medium">{daysUntilDeadline} days remaining</p>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              <div>
+                <label className="text-xs text-muted-foreground mb-0.5 block">
+                  Decision{proposal?.status === 'draft' && ' (estimated)'}
+                </label>
+                {isEditing && editedProposal ? (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-8 text-sm", !editedProposal.decisionDate && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                        {editedProposal.decisionDate ? format(editedProposal.decisionDate, 'PPP') : 'Select date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 z-50 bg-popover" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={editedProposal.decisionDate}
+                        onSelect={(date) => setEditedProposal({ ...editedProposal, decisionDate: date })}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                ) : (
+                  <p className="text-sm font-medium">
+                    {proposal?.decisionDate 
+                      ? format(proposal.decisionDate, 'dd MMM yyyy') 
+                      : proposal?.deadline 
+                        ? format(new Date(proposal.deadline.getFullYear(), proposal.deadline.getMonth() + 3, proposal.deadline.getDate()), 'dd MMM yyyy')
+                        : 'Not set'}
+                  </p>
+                )}
+              </div>
+
+              {proposal?.status !== 'draft' && (
+                <div>
+                  <label className="text-xs text-muted-foreground mb-0.5 block">Submission date</label>
+                  <p className="text-sm font-medium">
+                    {proposal?.submittedAt ? format(proposal.submittedAt, 'dd MMM yyyy') : 'Not recorded'}
+                  </p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Budget Overview Card */}
+        <Card>
+          <CardHeader className="pb-2 pt-4">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Euro className="w-4 h-4" />
+              Budget overview
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Budget available (topic)</label>
+                {isEditing && editedProposal ? (
+                  <Input
+                    type="number"
+                    value={editedProposal.totalBudget || ''}
+                    onChange={(e) => setEditedProposal({ ...editedProposal, totalBudget: parseFloat(e.target.value) || undefined })}
+                    placeholder="e.g. 5000000"
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm font-medium">
+                    {proposal?.totalBudget ? `€${proposal.totalBudget.toLocaleString('en-IE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '–'}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Budget applied for</label>
+                <p className="text-sm font-medium">€{totalBudgetFromItems.toLocaleString('en-IE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-0.5 block">№ projects to be funded</label>
+                {isEditing && editedProposal ? (
+                  <Select
+                    value={editedProposal.expectedProjects || ''}
+                    onValueChange={(v) => setEditedProposal({ ...editedProposal, expectedProjects: v })}
+                  >
+                    <SelectTrigger className="w-32 h-8 text-sm">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
+                        <SelectItem key={num} value={num.toString()}>{num}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm font-medium">{proposal?.expectedProjects || '–'}</p>
+                )}
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Budget type</label>
+                {isEditing && editedProposal ? (
+                  <Select
+                    value={editedProposal.budgetType}
+                    onValueChange={(v: 'traditional' | 'lump_sum') => setEditedProposal({ ...editedProposal, budgetType: v })}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="traditional">Actual costs</SelectItem>
+                      <SelectItem value="lump_sum">Lump sum</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm font-medium">{proposal?.budgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}</p>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -488,11 +981,7 @@ export function GeneralInfoForm({
             
             <div className="flex flex-wrap gap-2">
               {formData.fixedKeywords.map((keyword, index) => (
-                <Badge 
-                  key={index} 
-                  variant="secondary" 
-                  className="px-3 py-1.5 text-sm"
-                >
+                <Badge key={index} variant="secondary" className="px-3 py-1.5 text-sm">
                   {keyword}
                   {canEdit && (
                     <button
@@ -602,10 +1091,7 @@ export function GeneralInfoForm({
                   className="mt-0.5"
                 />
                 <div className="font-normal text-sm leading-relaxed">
-                  <Label 
-                    htmlFor={declaration.id} 
-                    className="font-normal cursor-pointer"
-                  >
+                  <Label htmlFor={declaration.id} className="font-normal cursor-pointer">
                     <span className="font-medium">{declaration.number}.</span>{' '}
                     {renderTextWithLinks(declaration.text, declaration.links)}
                   </Label>
@@ -641,6 +1127,14 @@ export function GeneralInfoForm({
             ))}
           </CardContent>
         </Card>
+
+        {/* WP Dependencies for PERT Chart (Full Proposals Only) */}
+        {proposal?.submissionStage !== 'stage_1' && (
+          <WPDependencySelector
+            proposalId={proposalId}
+            isAdmin={isAdmin}
+          />
+        )}
       </div>
     </div>
   );
