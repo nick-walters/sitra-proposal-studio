@@ -132,11 +132,11 @@ export const WPReferenceMark = Mark.create<WPReferenceOptions>({
           align-items: center;
           background-color: ${color};
           color: #ffffff;
-          padding: 0.125rem 0.5rem;
+          padding: 0 0.4rem;
           border-radius: 9999px;
-          font-size: 11pt;
+          font-size: 9pt;
           font-weight: 700;
-          line-height: 1;
+          line-height: 1.1;
           white-space: nowrap;
           vertical-align: baseline;
           user-select: none;
