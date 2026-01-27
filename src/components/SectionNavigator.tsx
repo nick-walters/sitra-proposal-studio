@@ -330,18 +330,64 @@ function SectionItem({
 
       {hasSubsections && isExpanded && (
         <div className="animate-slide-in-left">
-          {section.subsections!.map((subsection) => (
-            <SectionItem
-              key={subsection.id}
-              section={subsection}
-              depth={depth + 1}
-              activeSectionId={activeSectionId}
-              onSectionClick={onSectionClick}
-              assignments={assignments}
-              currentUserId={currentUserId}
-              collaborators={collaborators}
-            />
-          ))}
+          {/* Render WP Drafts and A2 Participants as 2-column grid of bubbles */}
+          {(section.id === 'wp-drafts' || section.id === 'a2') ? (
+            <div 
+              className="grid grid-cols-2 gap-1 px-2 py-1"
+              style={{ paddingLeft: `${depth * 12 + 12}px` }}
+            >
+              {section.subsections!.map((subsection) => {
+                const wpSub = subsection as WPSection;
+                const isWP = wpSub.wpId !== undefined;
+                const isSubActive = activeSectionId === subsection.id;
+                
+                return (
+                  <TooltipProvider key={subsection.id}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          className={cn(
+                            "inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold truncate cursor-pointer transition-all max-w-full",
+                            isSubActive && "ring-2 ring-primary ring-offset-1"
+                          )}
+                          style={{ 
+                            backgroundColor: isWP ? wpSub.wpColor : '#000000',
+                            color: '#ffffff' 
+                          }}
+                          onClick={() => onSectionClick(subsection)}
+                        >
+                          {isWP 
+                            ? `WP${wpSub.wpNumber}: ${wpSub.title}`
+                            : `P${subsection.number}: ${subsection.title}`
+                          }
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="text-xs">
+                        {isWP 
+                          ? `WP${wpSub.wpNumber}: ${wpSub.title}`
+                          : `Participant ${subsection.number}: ${subsection.title}`
+                        }
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                );
+              })}
+            </div>
+          ) : (
+            /* Regular vertical list for other subsections */
+            section.subsections!.map((subsection) => (
+              <SectionItem
+                key={subsection.id}
+                section={subsection}
+                depth={depth + 1}
+                activeSectionId={activeSectionId}
+                onSectionClick={onSectionClick}
+                assignments={assignments}
+                currentUserId={currentUserId}
+                collaborators={collaborators}
+              />
+            ))
+          )}
         </div>
       )}
     </div>
