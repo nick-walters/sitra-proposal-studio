@@ -214,7 +214,7 @@ function ParticipantCard({
   return (
     <Card className={`${isDragging ? 'shadow-lg ring-2 ring-primary' : ''}`}>
       <CardContent className="py-2 px-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {/* Drag handle */}
           {canReorder && dragHandleProps && (
             <button
@@ -227,7 +227,7 @@ function ParticipantCard({
           )}
           
           {/* Participant number and short name */}
-          <div className="w-28 shrink-0 flex flex-col gap-0.5">
+          <div className="w-24 shrink-0 flex flex-col gap-0.5">
             <div className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center">
               <span className="font-bold text-primary text-xs">{participant.participantNumber}</span>
             </div>
@@ -424,7 +424,7 @@ function ParticipantCard({
           </div>
           
           {/* Country - searchable dropdown */}
-          <div className="shrink-0" style={{ width: '155px' }}>
+          <div className="shrink-0" style={{ width: '140px' }}>
             {canEdit ? (
               <CountrySelect
                 value={country}
@@ -443,7 +443,7 @@ function ParticipantCard({
           </div>
           
           {/* Save indicator / Edit button */}
-          <div className="w-24 shrink-0 flex items-center gap-2 justify-end">
+          <div className="w-16 shrink-0 flex items-center justify-end">
             {canEdit && (isSaving || hasChanges) && (
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 {isSaving ? (
@@ -655,14 +655,14 @@ export function ParticipantListView({
 
           {/* Column Headers */}
           {sortedParticipants.length > 0 && (
-            <div className="flex items-end gap-2 px-2 pb-1 text-xs text-muted-foreground font-medium">
+            <div className="flex items-end gap-1.5 px-2 pb-1 text-xs text-muted-foreground font-medium">
               {canReorder && <div className="w-4" />}
-              <div className="w-28 text-left"># / Short</div>
+              <div className="w-24 text-left"># / Short</div>
               <div className="flex-1 min-w-0 text-left">Organisation</div>
               <div className="w-20 text-left">Roles</div>
               <div className="w-10 text-left">Logo</div>
-              <div className="text-left" style={{ width: '155px' }}>Country</div>
-              <div className="w-24" />
+              <div className="text-left" style={{ width: '140px' }}>Country</div>
+              <div className="w-16" />
             </div>
           )}
 
