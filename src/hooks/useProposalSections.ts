@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Section } from '@/types/proposal';
 import { PART_A_SECTIONS, HORIZON_EUROPE_SECTIONS } from '@/types/proposal';
 
@@ -129,7 +130,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
   const [loading, setLoading] = useState(true);
   const [templateSections, setTemplateSections] = useState<Section[]>([]);
   const [hasTemplateSections, setHasTemplateSections] = useState(false);
-  const [wpDraftSections, setWPDraftSections] = useState<WPSection[]>([]);
+  const queryClient = useQueryClient();
 
   // Use useEffect directly with templateTypeId as dependency for proper reactivity
   useEffect(() => {
@@ -177,72 +178,59 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     fetchSections();
   }, [templateTypeId]);
 
-  // Fetch WP drafts for the proposal and convert to sections
+  // Fetch WP drafts using react-query to share cache with WPManagementCard
+  const { data: wpDraftsData = [] } = useQuery({
+    queryKey: ['wp-drafts', proposalId],
+    queryFn: async () => {
+      if (!proposalId) return [];
+      const { data, error } = await supabase
+        .from('wp_drafts')
+        .select('id, number, short_name, title, color, order_index')
+        .eq('proposal_id', proposalId)
+        .order('order_index');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!proposalId,
+  });
+
+  // Convert WP drafts to sections
+  const wpDraftSections: WPSection[] = useMemo(() => {
+    return wpDraftsData.map(wp => ({
+      id: `wp-${wp.id}`,
+      number: `WP${wp.number}`,
+      title: wp.short_name || wp.title || `Work Package ${wp.number}`,
+      wpId: wp.id,
+      wpNumber: wp.number,
+      wpColor: wp.color,
+    }));
+  }, [wpDraftsData]);
+
+  // Subscribe to realtime updates for WP drafts and invalidate react-query cache
   useEffect(() => {
-    const fetchWPDrafts = async () => {
-      if (!proposalId) {
-        setWPDraftSections([]);
-        return;
-      }
+    if (!proposalId) return;
 
-      try {
-        const { data, error } = await supabase
-          .from('wp_drafts')
-          .select('id, number, short_name, title, color, order_index')
-          .eq('proposal_id', proposalId)
-          .order('order_index');
-
-        if (error) {
-          console.error('Error fetching WP drafts:', error);
-          setWPDraftSections([]);
-          return;
+    const channel = supabase
+      .channel(`wp-drafts-nav-${proposalId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'wp_drafts',
+          filter: `proposal_id=eq.${proposalId}`,
+        },
+        () => {
+          // Invalidate react-query cache to trigger refetch
+          queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
         }
+      )
+      .subscribe();
 
-        if (data && data.length > 0) {
-          const wpSections: WPSection[] = data.map(wp => ({
-            id: `wp-${wp.id}`,
-            number: `WP${wp.number}`,
-            title: wp.short_name || wp.title || `Work Package ${wp.number}`,
-            wpId: wp.id,
-            wpNumber: wp.number,
-            wpColor: wp.color,
-          }));
-          setWPDraftSections(wpSections);
-        } else {
-          setWPDraftSections([]);
-        }
-      } catch (error) {
-        console.error('Error fetching WP drafts:', error);
-        setWPDraftSections([]);
-      }
+    return () => {
+      supabase.removeChannel(channel);
     };
-
-    fetchWPDrafts();
-
-    // Subscribe to realtime updates for WP drafts
-    if (proposalId) {
-      const channel = supabase
-        .channel(`wp-drafts-nav-${proposalId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'wp_drafts',
-            filter: `proposal_id=eq.${proposalId}`,
-          },
-          () => {
-            // Refetch WP drafts when any change occurs
-            fetchWPDrafts();
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [proposalId]);
+  }, [proposalId, queryClient]);
 
   // Return either template sections or fallback to hardcoded sections
   const allSections = useMemo(() => {
