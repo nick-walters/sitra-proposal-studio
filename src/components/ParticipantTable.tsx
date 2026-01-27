@@ -188,41 +188,87 @@ function SortableParticipantRow({
         )}
       </TableCell>
       
-      {/* Participant name */}
+      {/* Legal name */}
       <TableCell className="py-0.5 px-1 align-top text-left">
-        <div className="flex flex-col gap-0.5">
-          {isEditing ? (
-            <Input
-              defaultValue={participant.organisationName}
-              onBlur={(e) => handleNameChange(e.target.value)}
-              className="h-6 text-[11px] px-1 py-0 font-medium"
-              placeholder="Organisation name"
-            />
-          ) : (
-            <span className="font-medium">
-              {toNameCase(participant.organisationName)}
+        {isEditing ? (
+          <Input
+            defaultValue={participant.organisationName}
+            onBlur={(e) => handleNameChange(e.target.value)}
+            className="h-6 text-[11px] px-1 py-0 font-medium"
+            placeholder="Organisation name"
+          />
+        ) : (
+          <span className="font-medium">
+            {toNameCase(participant.organisationName)}
+          </span>
+        )}
+      </TableCell>
+      
+      {/* English name */}
+      <TableCell className="py-0.5 px-1 align-top text-left">
+        {isEditing ? (
+          <input
+            type="text"
+            defaultValue={(participant as ExtendedParticipant).englishName || ''}
+            onBlur={(e) => handleEnglishNameChange(e.target.value)}
+            placeholder="English name"
+            className="flex h-6 w-full rounded-md border border-input bg-background px-1 py-0 text-[10px] text-muted-foreground italic ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          />
+        ) : (
+          (participant as ExtendedParticipant).englishName ? (
+            <span className="text-muted-foreground italic text-[10px]">
+              {toNameCase((participant as ExtendedParticipant).englishName || '')}
             </span>
-          )}
-          {isEditing ? (
-            <input
-              type="text"
-              defaultValue={(participant as ExtendedParticipant).englishName || ''}
-              onBlur={(e) => handleEnglishNameChange(e.target.value)}
-              placeholder="English name (if different)"
-              className="flex h-6 w-full rounded-md border border-input bg-background px-1 py-0 text-[10px] text-muted-foreground italic ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            />
           ) : (
-            (participant as ExtendedParticipant).englishName && (
-              <span className="text-muted-foreground italic text-[10px]">
-                {toNameCase((participant as ExtendedParticipant).englishName || '')}
-              </span>
-            )
+            <span className="text-muted-foreground text-[10px]">—</span>
+          )
+        )}
+      </TableCell>
+      
+      {/* Leadership/Roles */}
+      <TableCell className="py-0.5 px-1 align-top">
+        <div className="flex flex-wrap gap-1">
+          {/* Coordinator badge for first participant */}
+          {participant.participantNumber === 1 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium cursor-default bg-primary text-primary-foreground">
+                  Coord
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Project Coordinator</TooltipContent>
+            </Tooltip>
+          )}
+          {/* WP leadership badges */}
+          {wpLeadership && wpLeadership.length > 0 && (
+            wpLeadership.map((wp) => (
+              <Tooltip key={wp.wpNumber}>
+                <TooltipTrigger asChild>
+                  <span
+                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium cursor-default"
+                    style={{
+                      backgroundColor: wp.color,
+                      color: getContrastingTextColor(wp.color),
+                    }}
+                  >
+                    WP{wp.wpNumber}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {wp.shortName ? `${wp.shortName} (Lead)` : `WP${wp.wpNumber} Lead`}
+                </TooltipContent>
+              </Tooltip>
+            ))
+          )}
+          {/* Show dash only if no leadership roles */}
+          {participant.participantNumber !== 1 && (!wpLeadership || wpLeadership.length === 0) && (
+            <span className="text-muted-foreground text-[10px]">—</span>
           )}
         </div>
       </TableCell>
       
       {/* Logo */}
-      <TableCell className="py-0.5 px-1 w-16 align-top text-right">
+      <TableCell className="py-0.5 px-1 w-16 align-top text-center">
         {isEditing ? (
           <div className="relative group">
             <input
@@ -300,48 +346,6 @@ function SortableParticipantRow({
             </div>
           )
         )}
-      </TableCell>
-      
-      {/* Leadership */}
-      <TableCell className="py-0.5 px-1 align-top">
-        <div className="flex flex-wrap gap-1">
-          {/* Coordinator badge for first participant */}
-          {participant.participantNumber === 1 && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium cursor-default bg-primary text-primary-foreground">
-                  Coord
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>Project Coordinator</TooltipContent>
-            </Tooltip>
-          )}
-          {/* WP leadership badges */}
-          {wpLeadership && wpLeadership.length > 0 && (
-            wpLeadership.map((wp) => (
-              <Tooltip key={wp.wpNumber}>
-                <TooltipTrigger asChild>
-                  <span
-                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium cursor-default"
-                    style={{
-                      backgroundColor: wp.color,
-                      color: getContrastingTextColor(wp.color),
-                    }}
-                  >
-                    WP{wp.wpNumber}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {wp.shortName ? `${wp.shortName} (Lead)` : `WP${wp.wpNumber} Lead`}
-                </TooltipContent>
-              </Tooltip>
-            ))
-          )}
-          {/* Show dash only if no leadership roles */}
-          {participant.participantNumber !== 1 && (!wpLeadership || wpLeadership.length === 0) && (
-            <span className="text-muted-foreground text-[10px]">—</span>
-          )}
-        </div>
       </TableCell>
       
       {/* Country */}
@@ -558,8 +562,10 @@ export function ParticipantTable({
               <TableRow className="hover:bg-transparent">
                 <TableHead className="w-12 py-0.5 px-1 font-bold">№</TableHead>
                 <TableHead className="py-0.5 px-1 font-bold">Short name</TableHead>
-                <TableHead className="py-0.5 px-1 font-bold" colSpan={2}>Participant</TableHead>
-                <TableHead className="py-0.5 px-1 font-bold">Leadership</TableHead>
+                <TableHead className="py-0.5 px-1 font-bold">Legal name</TableHead>
+                <TableHead className="py-0.5 px-1 font-bold">English name</TableHead>
+                <TableHead className="py-0.5 px-1 font-bold">Roles</TableHead>
+                <TableHead className="py-0.5 px-1 font-bold">Logo</TableHead>
                 <TableHead className="py-0.5 px-1 font-bold">Country</TableHead>
               </TableRow>
             </TableHeader>
@@ -587,7 +593,7 @@ export function ParticipantTable({
               </SortableContext>
               {sortedParticipants.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-4 text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="py-4 text-center text-muted-foreground">
                     No participants added yet. Add participants using the button above.
                   </TableCell>
                 </TableRow>
