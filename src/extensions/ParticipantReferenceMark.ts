@@ -27,6 +27,14 @@ declare module '@tiptap/core' {
        * Unset a participant reference mark
        */
       unsetParticipantReference: () => ReturnType;
+      /**
+       * Insert a participant reference with content
+       */
+      insertParticipantReference: (attributes: {
+        participantNumber: number;
+        shortName: string;
+        participantId: string;
+      }) => ReturnType;
     };
   }
 }
@@ -35,6 +43,11 @@ export const ParticipantReferenceMark = Mark.create<ParticipantReferenceOptions>
   name: 'participantReference',
 
   priority: 1000,
+
+  // Make it atomic - content can't be edited inside the mark
+  inclusive: false,
+  excludes: '_',
+  exitable: true,
 
   addOptions() {
     return {
@@ -99,6 +112,7 @@ export const ParticipantReferenceMark = Mark.create<ParticipantReferenceOptions>
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
         'data-participant-reference': '',
         'class': 'participant-reference-badge',
+        'contenteditable': 'false',
         'style': `
           display: inline-flex;
           align-items: center;
@@ -106,11 +120,12 @@ export const ParticipantReferenceMark = Mark.create<ParticipantReferenceOptions>
           color: #ffffff;
           padding: 0.125rem 0.5rem;
           border-radius: 9999px;
-          font-size: 0.75rem;
+          font-size: 11pt;
           font-weight: 700;
           line-height: 1;
           white-space: nowrap;
           vertical-align: baseline;
+          user-select: none;
         `,
       }),
       shortName || 'Partner',
@@ -133,6 +148,23 @@ export const ParticipantReferenceMark = Mark.create<ParticipantReferenceOptions>
         () =>
         ({ commands }) => {
           return commands.unsetMark(this.name);
+        },
+      insertParticipantReference:
+        (attributes) =>
+        ({ chain }) => {
+          const label = attributes.shortName || 'Partner';
+          return chain()
+            .insertContent({
+              type: 'text',
+              text: label,
+              marks: [
+                {
+                  type: 'participantReference',
+                  attrs: attributes,
+                },
+              ],
+            })
+            .run();
         },
     };
   },

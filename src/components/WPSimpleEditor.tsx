@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Bold, Italic, Underline, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, AlignJustify, FileText, Link2, Layers, Table2, ImageIcon } from 'lucide-react';
+import { Bold, Italic, Underline, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, AlignJustify, FileText, Link2, Layers, Building2, Table2, ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -17,6 +17,7 @@ interface WPSimpleEditorProps {
   onOpenCitationDialog?: () => void;
   onOpenCrossRefDialog?: () => void;
   onOpenWPRefDialog?: () => void;
+  onOpenParticipantRefDialog?: () => void;
   onOpenFigureDialog?: () => void;
 }
 
@@ -30,6 +31,7 @@ export function WPSimpleEditor({
   onOpenCitationDialog,
   onOpenCrossRefDialog,
   onOpenWPRefDialog,
+  onOpenParticipantRefDialog,
   onOpenFigureDialog,
 }: WPSimpleEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
@@ -372,6 +374,27 @@ export function WPSimpleEditor({
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="text-xs">
                   Insert WP Reference
+                </TooltipContent>
+              </Tooltip>
+            )}
+
+            {/* Partner Reference */}
+            {onOpenParticipantRefDialog && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 gap-1"
+                    onClick={onOpenParticipantRefDialog}
+                  >
+                    <Building2 className="h-4 w-4" />
+                    <span className="text-xs">Partner</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">
+                  Insert Partner Reference
                 </TooltipContent>
               </Tooltip>
             )}

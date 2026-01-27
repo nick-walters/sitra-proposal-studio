@@ -462,8 +462,8 @@ export function DocumentEditor({
   // Handle WP reference insertion
   const handleInsertWPRef = useCallback((wp: { id: string; number: number; short_name: string | null; color: string }) => {
     if (!editor) return;
-    // Insert WP badge using the WP reference mark
-    editor.chain().focus().setWPReference({
+    // Insert WP badge using the insertWPReference command (inserts content with mark)
+    editor.chain().focus().insertWPReference({
       wpNumber: wp.number,
       wpShortName: wp.short_name || '',
       wpColor: wp.color,
@@ -474,8 +474,8 @@ export function DocumentEditor({
   // Handle Participant reference insertion
   const handleInsertParticipantRef = useCallback((participant: { id: string; participantNumber: number; shortName: string }) => {
     if (!editor) return;
-    // Insert participant badge using the participant reference mark
-    editor.chain().focus().setParticipantReference({
+    // Insert participant badge using the insertParticipantReference command (inserts content with mark)
+    editor.chain().focus().insertParticipantReference({
       participantNumber: participant.participantNumber,
       shortName: participant.shortName,
       participantId: participant.id,

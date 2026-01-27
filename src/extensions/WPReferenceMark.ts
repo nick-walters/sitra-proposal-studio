@@ -29,6 +29,15 @@ declare module '@tiptap/core' {
        * Unset a WP reference mark
        */
       unsetWPReference: () => ReturnType;
+      /**
+       * Insert a WP reference with content
+       */
+      insertWPReference: (attributes: {
+        wpNumber: number;
+        wpShortName: string;
+        wpColor: string;
+        wpId: string;
+      }) => ReturnType;
     };
   }
 }
@@ -37,6 +46,11 @@ export const WPReferenceMark = Mark.create<WPReferenceOptions>({
   name: 'wpReference',
 
   priority: 1000,
+
+  // Make it atomic - content can't be edited inside the mark
+  inclusive: false,
+  excludes: '_',
+  exitable: true,
 
   addOptions() {
     return {
@@ -106,32 +120,26 @@ export const WPReferenceMark = Mark.create<WPReferenceOptions>({
     const color = HTMLAttributes['data-wp-color'] || '#2563EB';
     const wpNumber = HTMLAttributes['data-wp-number'];
     const wpShortName = HTMLAttributes['data-wp-short-name'];
-    
-    // Calculate contrasting text color
-    const hex = color.replace('#', '');
-    const r = parseInt(hex.substr(0, 2), 16);
-    const g = parseInt(hex.substr(2, 2), 16);
-    const b = parseInt(hex.substr(4, 2), 16);
-    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-    const textColor = brightness > 128 ? '#000000' : '#ffffff';
 
     return [
       'span',
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
         'data-wp-reference': '',
         'class': 'wp-reference-badge',
+        'contenteditable': 'false',
         'style': `
           display: inline-flex;
           align-items: center;
           background-color: ${color};
-          color: white;
+          color: #ffffff;
           padding: 0.125rem 0.5rem;
           border-radius: 9999px;
-          font-size: 0.75rem;
+          font-size: 11pt;
           font-weight: 700;
           line-height: 1;
           white-space: nowrap;
           vertical-align: baseline;
+          user-select: none;
         `,
       }),
       `WP${wpNumber}${wpShortName ? `: ${wpShortName}` : ''}`,
@@ -154,6 +162,23 @@ export const WPReferenceMark = Mark.create<WPReferenceOptions>({
         () =>
         ({ commands }) => {
           return commands.unsetMark(this.name);
+        },
+      insertWPReference:
+        (attributes) =>
+        ({ chain }) => {
+          const label = `WP${attributes.wpNumber}${attributes.wpShortName ? `: ${attributes.wpShortName}` : ''}`;
+          return chain()
+            .insertContent({
+              type: 'text',
+              text: label,
+              marks: [
+                {
+                  type: 'wpReference',
+                  attrs: attributes,
+                },
+              ],
+            })
+            .run();
         },
     };
   },
