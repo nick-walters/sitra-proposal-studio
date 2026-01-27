@@ -425,7 +425,7 @@ function ParticipantCard({
           </div>
           
           {/* Country - editable */}
-          <div className="w-28 shrink-0">
+          <div className="shrink-0" style={{ width: '85px' }}>
             {canEdit ? (
               <Input
                 value={country}
@@ -434,7 +434,7 @@ function ParticipantCard({
                 className="h-7 text-sm px-1.5 text-muted-foreground"
               />
             ) : (
-              <span className="text-sm text-muted-foreground truncate block">
+              <span className="text-sm text-muted-foreground block leading-tight">
                 {country || '—'}
               </span>
             )}
