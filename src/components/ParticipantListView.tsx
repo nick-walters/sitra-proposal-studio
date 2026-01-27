@@ -212,8 +212,8 @@ function ParticipantCard({
 
   return (
     <Card className={`${isDragging ? 'shadow-lg ring-2 ring-primary' : ''}`}>
-      <CardContent className="py-2 px-3">
-        <div className="flex items-center gap-3">
+      <CardContent className="py-2 px-2">
+        <div className="flex items-center gap-2">
           {/* Drag handle */}
           {canReorder && dragHandleProps && (
             <button
@@ -226,8 +226,8 @@ function ParticipantCard({
           )}
           
           {/* Participant number */}
-          <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center shrink-0">
-            <span className="font-bold text-primary text-sm">{participant.participantNumber}</span>
+          <div className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center shrink-0">
+            <span className="font-bold text-primary text-xs">{participant.participantNumber}</span>
           </div>
           
           {/* Short name - editable */}
