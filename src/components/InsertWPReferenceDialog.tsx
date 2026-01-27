@@ -101,10 +101,9 @@ export function InsertWPReferenceDialog({
                   )}
                 >
                   <Badge
-                    className="shrink-0"
+                    className="shrink-0 rounded-full font-bold text-white"
                     style={{
                       backgroundColor: wp.color,
-                      color: getContrastingTextColor(wp.color),
                     }}
                   >
                     WP{wp.number}

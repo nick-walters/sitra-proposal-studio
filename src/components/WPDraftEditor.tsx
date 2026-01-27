@@ -218,10 +218,10 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
       const wpSpan = document.createElement('span');
       wpSpan.textContent = `@WP${wpNumber}`;
       wpSpan.style.backgroundColor = wpColor;
-      wpSpan.style.color = getContrastingTextColor(wpColor);
-      wpSpan.style.padding = '0 4px';
-      wpSpan.style.borderRadius = '3px';
-      wpSpan.style.fontWeight = '500';
+      wpSpan.style.color = 'white';
+      wpSpan.style.padding = '0 6px';
+      wpSpan.style.borderRadius = '9999px';
+      wpSpan.style.fontWeight = '700';
       wpSpan.style.fontSize = '0.85em';
       range.insertNode(wpSpan);
       range.setStartAfter(wpSpan);
