@@ -1,5 +1,5 @@
 import { Section, Participant } from "@/types/proposal";
-import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Layers } from "lucide-react";
+import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Layers, Building2 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
@@ -181,6 +181,8 @@ function SectionItem({
             <BarChart3 className="w-4 h-4 text-muted-foreground shrink-0" />
           ) : section.id === 'wp-drafts' ? (
             <Layers className="w-4 h-4 text-muted-foreground shrink-0" />
+          ) : section.id === 'a2' ? (
+            <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
           ) : isWPSection && wpColor ? (
             null
           ) : isParticipantSection ? (
