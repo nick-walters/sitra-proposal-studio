@@ -226,13 +226,11 @@ function ParticipantCard({
             </button>
           )}
           
-          {/* Participant number */}
-          <div className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center shrink-0">
-            <span className="font-bold text-primary text-xs">{participant.participantNumber}</span>
-          </div>
-          
-          {/* Short name - editable */}
-          <div className="w-24 shrink-0">
+          {/* Participant number and short name */}
+          <div className="w-28 shrink-0 flex flex-col gap-0.5">
+            <div className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center">
+              <span className="font-bold text-primary text-xs">{participant.participantNumber}</span>
+            </div>
             {canEdit ? (
               <Input
                 value={shortName}
@@ -243,7 +241,7 @@ function ParticipantCard({
             ) : (
               shortName ? (
                 <span 
-                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold"
+                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold w-fit"
                   style={{ backgroundColor: '#000000', color: '#ffffff' }}
                 >
                   {shortName}
@@ -254,8 +252,8 @@ function ParticipantCard({
             )}
           </div>
           
-          {/* Names - editable */}
-          <div className="w-64 shrink-0 min-w-0 space-y-1">
+          {/* Names - editable - now flex-1 for more space */}
+          <div className="flex-1 min-w-0 space-y-1">
             {canEdit ? (
               <>
                 <Input
@@ -658,15 +656,14 @@ export function ParticipantListView({
 
           {/* Column Headers */}
           {sortedParticipants.length > 0 && (
-            <div className="flex items-center gap-3 px-3 text-xs font-medium text-muted-foreground">
+            <div className="flex items-end gap-2 px-2 pb-1 text-xs text-muted-foreground font-medium">
               {canReorder && <div className="w-4" />}
-              <div className="w-8 text-center">No.</div>
-              <div className="w-24">Short</div>
-              <div className="w-64">Organisation</div>
-              <div className="w-28">Roles</div>
-              <div className="w-10 text-center">Logo</div>
-              <div className="w-28">Country</div>
-              <div className="flex-1" />
+              <div className="w-28 text-left"># / Short</div>
+              <div className="flex-1 min-w-0 text-left">Organisation</div>
+              <div className="w-20 text-left">Roles</div>
+              <div className="w-10 text-left">Logo</div>
+              <div className="text-left" style={{ width: '155px' }}>Country</div>
+              <div className="w-24" />
             </div>
           )}
 
