@@ -509,8 +509,8 @@ export function GeneralInfoForm({
   }
 
   return (
-    <div className="flex-1 overflow-auto p-6 bg-muted/30">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="flex-1 overflow-auto p-4 bg-muted/30">
+      <div className="max-w-4xl mx-auto space-y-4">
         {/* Header row with Guidelines button on left, export buttons on right */}
         <div className="flex items-center justify-between">
           <PartAGuidelinesDialog
