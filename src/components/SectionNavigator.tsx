@@ -98,14 +98,14 @@ function SectionItem({
   const dueDateInfo = assignment ? getDueDateInfo(assignment.dueDate) : null;
   const isAssignedToMe = assignment?.assignedTo === currentUserId;
   
-  // Check if this is a collapsible heading (Part A, Part B, B1, B2, WP Drafts, etc.)
+  // Check if this is a collapsible heading (Part A, Part B, B1, B2)
   // Note: A2 is NOT a collapsible heading - it should navigate to ParticipantListView
+  // Note: WP Drafts is NOT a collapsible heading - it should navigate to WP Manager/Tracker
   const isCollapsibleHeading = hasSubsections && (
     section.id === 'part-a' || 
     section.id === 'part-b' || 
     section.id === 'b1' || 
-    section.id === 'b2' ||
-    section.id === 'wp-drafts'
+    section.id === 'b2'
   );
   
   // Check if this is a top-level bold item (Part A, Part B, Figures, WP Progress Tracker, WP Drafts)
@@ -150,7 +150,7 @@ function SectionItem({
                 const subHasSubs = sub.subsections && sub.subsections.length > 0;
                 const isSubCollapsible = subHasSubs && (
                   sub.id === 'part-a' || sub.id === 'part-b' || 
-                  sub.id === 'b1' || sub.id === 'b2' || sub.id === 'wp-drafts'
+                  sub.id === 'b1' || sub.id === 'b2'
                 );
                 if (!isSubCollapsible) {
                   return sub;
@@ -168,6 +168,7 @@ function SectionItem({
               onSectionClick(firstChild);
             }
           } else if (hasSubsections) {
+            // WP drafts expands AND navigates to show manager/tracker
             setIsExpanded(!isExpanded);
             onSectionClick(section);
           } else {
