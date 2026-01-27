@@ -1,7 +1,7 @@
 import { Section } from "@/types/proposal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, BookOpen, Route, History, Info, Image, Link2, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search, GitCompare, Keyboard, Wand2, FileCode, SplitSquareHorizontal, Layers, Building2 } from "lucide-react";
+import { Sparkles, BookOpen, Route, History, Info, Image, Link2, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search, GitCompare, Keyboard, Wand2, FileCode, SplitSquareHorizontal, Layers, Building2, FlaskConical } from "lucide-react";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
 import {
@@ -20,6 +20,7 @@ import { CitationDialog } from "./CitationDialog";
 import { InsertFigureDialog } from "./InsertFigureDialog";
 import { InsertCrossReferenceDialog } from "./InsertCrossReferenceDialog";
 import { InsertWPReferenceDialog } from "./InsertWPReferenceDialog";
+import { InsertCaseReferenceDialog } from "./InsertCaseReferenceDialog";
 import { InsertParticipantReferenceDialog } from "./InsertParticipantReferenceDialog";
 import { CommentsSidebar } from "./CommentsSidebar";
 import { SectionAssignmentDialog } from "./SectionAssignmentDialog";
@@ -132,6 +133,7 @@ export function DocumentEditor({
   const [deleteBlockConfirm, setDeleteBlockConfirm] = useState<{ isOpen: boolean; onConfirm: () => void } | null>(null);
   const [isWPRefOpen, setIsWPRefOpen] = useState(false);
   const [isParticipantRefOpen, setIsParticipantRefOpen] = useState(false);
+  const [isCaseRefOpen, setIsCaseRefOpen] = useState(false);
   
   // Editor container ref for cursor overlays
   const editorContainerRef = useRef<HTMLDivElement>(null);
@@ -482,6 +484,19 @@ export function DocumentEditor({
       participantId: participant.id,
     }).insertContent(' ').run();
   }, [editor]);
+  
+  // Handle Case reference insertion
+  const handleInsertCaseRef = useCallback((caseItem: { id: string; number: number; short_name: string | null; color: string; case_type: string }) => {
+    if (!editor) return;
+    // Insert case badge using the insertCaseReference command (inserts content with mark)
+    editor.chain().focus().insertCaseReference({
+      caseNumber: caseItem.number,
+      caseShortName: caseItem.short_name || '',
+      caseColor: caseItem.color,
+      caseId: caseItem.id,
+      caseType: caseItem.case_type,
+    }).insertContent(' ').run();
+  }, [editor]);
 
   // Handle applying a suggestion from comments
   const handleApplySuggestion = useCallback((originalText: string, suggestedText: string) => {
@@ -740,6 +755,21 @@ export function DocumentEditor({
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Insert WP Reference</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 px-2 text-xs gap-1"
+                      onClick={() => setIsCaseRefOpen(true)}
+                      disabled={isEffectivelyReadOnly}
+                    >
+                      <FlaskConical className="w-3 h-3" />
+                      Case
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Insert Case Reference</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -1025,6 +1055,12 @@ export function DocumentEditor({
         onOpenChange={setIsParticipantRefOpen}
         proposalId={proposalId || ''}
         onSelect={handleInsertParticipantRef}
+      />
+      <InsertCaseReferenceDialog
+        open={isCaseRefOpen}
+        onOpenChange={setIsCaseRefOpen}
+        proposalId={proposalId || ''}
+        onSelect={handleInsertCaseRef}
       />
       <SectionAssignmentDialog
         open={isAssignmentDialogOpen}

@@ -16,6 +16,7 @@ import { BlockDragHandle } from '@/extensions/BlockDragHandle';
 import { TrackChanges, TrackChangesOptions } from '@/extensions/TrackChanges';
 import { TableFormula } from '@/extensions/TableFormula';
 import { WPReferenceMark } from '@/extensions/WPReferenceMark';
+import { CaseReferenceMark } from '@/extensions/CaseReferenceMark';
 import { ParticipantReferenceMark } from '@/extensions/ParticipantReferenceMark';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -822,6 +823,7 @@ export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootn
       }),
       BlockReordering,
       WPReferenceMark,
+      CaseReferenceMark,
     ],
     content,
     onUpdate: ({ editor }) => {

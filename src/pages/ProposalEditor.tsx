@@ -13,6 +13,7 @@ import { FigureManager } from "@/components/FigureManager";
 import { SectionProgressDashboard } from "@/components/SectionProgressDashboard";
 import { WPDraftEditor } from "@/components/WPDraftEditor";
 import { WPManagementCard } from "@/components/WPManagementCard";
+import { CaseManagementCard } from "@/components/CaseManagementCard";
 import { WPProgressTracker } from "@/components/WPProgressTracker";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +21,7 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DuplicateProposalDialog } from "@/components/DuplicateProposalDialog";
 import { Section, BudgetType, ProposalStatus, WORK_PROGRAMMES, DESTINATIONS } from "@/types/proposal";
-import type { WPSection } from "@/hooks/useProposalSections";
+import type { WPSection, CaseSection } from "@/hooks/useProposalSections";
 import { useState, useEffect, useMemo } from "react";
 import { format, differenceInDays } from "date-fns";
 import { useParams, useNavigate } from "react-router-dom";
@@ -65,7 +66,7 @@ export function ProposalEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [activeSection, setActiveSection] = useState<Section | WPSection | null>(null);
+  const [activeSection, setActiveSection] = useState<Section | WPSection | CaseSection | null>(null);
   const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isDuplicateOpen, setIsDuplicateOpen] = useState(false);
@@ -519,12 +520,28 @@ export function ProposalEditor() {
 
     // WP Drafts container section
     if (activeSection.id === 'wp-drafts') {
+      const handleToggleCases = async (enabled: boolean, caseType?: string) => {
+        await supabase
+          .from('proposals')
+          .update({ cases_enabled: enabled, cases_type: caseType || null })
+          .eq('id', id);
+        // Refetch proposal data
+        window.location.reload();
+      };
+      
       return (
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           <WPManagementCard
             proposalId={id || ''}
             isAdmin={canEdit}
             isFullProposal={proposal?.submissionStage !== 'stage_1'}
+          />
+          <CaseManagementCard
+            proposalId={id || ''}
+            isAdmin={canEdit && isAdmin}
+            casesEnabled={proposal?.casesEnabled || false}
+            casesType={proposal?.casesType || null}
+            onToggleCases={handleToggleCases}
           />
           <WPProgressTracker
             proposalId={id || ''}
@@ -537,6 +554,31 @@ export function ProposalEditor() {
               }
             }}
           />
+        </div>
+      );
+    }
+
+    // Case Drafts container section - shows placeholder for now
+    if (activeSection.id === 'case-drafts') {
+      return (
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="text-center py-12 text-muted-foreground">
+            <h3 className="text-lg font-medium mb-2">Case Drafts</h3>
+            <p className="text-sm">Select a case from the left panel to view its details.</p>
+          </div>
+        </div>
+      );
+    }
+
+    // Individual Case Draft (case-{uuid}) - placeholder for now
+    const caseSection = activeSection as CaseSection;
+    if (activeSection.id.startsWith('case-') && caseSection.caseId) {
+      return (
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="text-center py-12 text-muted-foreground">
+            <h3 className="text-lg font-medium mb-2">Case: {caseSection.title}</h3>
+            <p className="text-sm">Case draft editor coming soon.</p>
+          </div>
         </div>
       );
     }

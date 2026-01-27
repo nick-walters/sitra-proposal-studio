@@ -11,6 +11,14 @@ export interface WPSection extends Section {
   wpColor?: string;
 }
 
+// Extended section type with Case-specific fields
+export interface CaseSection extends Section {
+  caseId?: string;
+  caseNumber?: number;
+  caseColor?: string;
+  caseType?: string;
+}
+
 interface TemplateSectionData {
   id: string;
   template_type_id: string;
@@ -206,6 +214,47 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     }));
   }, [wpDraftsData]);
 
+  // Fetch Case drafts using react-query
+  const { data: caseDraftsData = [] } = useQuery({
+    queryKey: ['case-drafts', proposalId],
+    queryFn: async () => {
+      if (!proposalId) return [];
+      const { data, error } = await supabase
+        .from('case_drafts')
+        .select('id, number, short_name, title, color, order_index, case_type')
+        .eq('proposal_id', proposalId)
+        .order('order_index');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!proposalId,
+  });
+
+  // Get case prefix based on type
+  const getCasePrefix = (caseType: string): string => {
+    switch (caseType) {
+      case 'case_study': return 'CS';
+      case 'use_case': return 'UC';
+      case 'living_lab': return 'LL';
+      case 'pilot': return 'P';
+      case 'demonstration': return 'D';
+      default: return 'C';
+    }
+  };
+
+  // Convert Case drafts to sections
+  const caseDraftSections: CaseSection[] = useMemo(() => {
+    return caseDraftsData.map(c => ({
+      id: `case-${c.id}`,
+      number: `${getCasePrefix(c.case_type)}${c.number}`,
+      title: c.short_name || c.title || `Case ${c.number}`,
+      caseId: c.id,
+      caseNumber: c.number,
+      caseColor: c.color,
+      caseType: c.case_type,
+    }));
+  }, [caseDraftsData]);
+
   // Subscribe to realtime updates for WP drafts and invalidate react-query cache
   useEffect(() => {
     if (!proposalId) return;
@@ -223,6 +272,32 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         () => {
           // Invalidate react-query cache to trigger refetch
           queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [proposalId, queryClient]);
+
+  // Subscribe to realtime updates for Case drafts
+  useEffect(() => {
+    if (!proposalId) return;
+
+    const channel = supabase
+      .channel(`case-drafts-nav-${proposalId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'case_drafts',
+          filter: `proposal_id=eq.${proposalId}`,
+        },
+        () => {
+          // Invalidate react-query cache to trigger refetch
+          queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
         }
       )
       .subscribe();
@@ -252,6 +327,14 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       subsections: wpDraftSections,
     };
 
+    // Define the Case drafts section with Case subsections (only if there are cases)
+    const caseDraftsSection: Section = {
+      id: 'case-drafts',
+      number: '',
+      title: 'Case drafts',
+      subsections: caseDraftSections,
+    };
+
     if (hasTemplateSections && templateSections.length > 0) {
       // Separate Part A and Part B sections
       const partASections = templateSections.filter(s => s.isPartA);
@@ -263,7 +346,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         partBRoot.subsections = partBRoot.subsections.filter(s => s.id !== 'figures' && s.title !== 'Figures');
       }
       
-      // Build result: Part A, Part B, then WP Drafts, then Figures (all at top level)
+      // Build result: Part A, Part B, then WP Drafts, then Case Drafts, then Figures (all at top level)
       const result = [...partASections, ...partBSections];
       
       // Add WP Drafts as standalone top-level section
@@ -271,7 +354,12 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         result.push(wpDraftsSection);
       }
       
-      // Add Figures as standalone top-level section (after WP Drafts)
+      // Add Case Drafts as standalone top-level section (after WP Drafts)
+      if (caseDraftSections.length > 0) {
+        result.push(caseDraftsSection);
+      }
+      
+      // Add Figures as standalone top-level section (after Case Drafts)
       result.push(figuresSection);
       
       return result;
@@ -285,11 +373,16 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       fallbackSections.push(wpDraftsSection);
     }
     
-    // Add Figures as standalone top-level section (after WP Drafts)
+    // Add Case Drafts as standalone top-level section (after WP Drafts)
+    if (caseDraftSections.length > 0) {
+      fallbackSections.push(caseDraftsSection);
+    }
+    
+    // Add Figures as standalone top-level section (after Case Drafts)
     fallbackSections.push(figuresSection);
     
     return fallbackSections;
-  }, [templateSections, hasTemplateSections, wpDraftSections]);
+  }, [templateSections, hasTemplateSections, wpDraftSections, caseDraftSections]);
 
   // Create a refetch function that can be called externally
   const refetch = useCallback(async () => {
