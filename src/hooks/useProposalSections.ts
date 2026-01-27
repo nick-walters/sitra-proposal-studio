@@ -96,16 +96,18 @@ function convertToSection(dbSection: TemplateSectionData): Section {
 // Build hierarchical section structure
 function buildSectionHierarchy(sections: TemplateSectionData[]): Section[] {
   const sectionMap = new Map<string, Section>();
+  const dbSectionMap = new Map<string, TemplateSectionData>();
   const rootSections: Section[] = [];
 
-  // First pass: convert all sections
+  // First pass: convert all sections and keep track of db sections
   sections.forEach(dbSection => {
     const section = convertToSection(dbSection);
     // Use the DB id as key for parent lookup
     sectionMap.set(dbSection.id, section);
+    dbSectionMap.set(dbSection.id, dbSection);
   });
 
-  // Second pass: build hierarchy
+  // Second pass: build hierarchy and inherit parent evaluation guidelines
   sections.forEach(dbSection => {
     const section = sectionMap.get(dbSection.id);
     if (!section) return;
@@ -115,6 +117,24 @@ function buildSectionHierarchy(sections: TemplateSectionData[]): Section[] {
       if (parent) {
         if (!parent.subsections) parent.subsections = [];
         parent.subsections.push(section);
+        
+        // Inherit evaluation guidelines from parent to child
+        // This ensures scoring info on B1/B2 appears on B1.1, B1.2, B2.1 etc.
+        if (parent.guidelinesArray && parent.guidelinesArray.length > 0) {
+          const parentEvalGuidelines = parent.guidelinesArray.filter(g => g.type === 'evaluation');
+          if (parentEvalGuidelines.length > 0) {
+            // Add parent evaluation guidelines at the end of child's guidelines
+            const childGuidelines = section.guidelinesArray || [];
+            section.guidelinesArray = [
+              ...childGuidelines,
+              ...parentEvalGuidelines.map(g => ({
+                ...g,
+                id: `${g.id}-inherited`, // Make ID unique
+                orderIndex: g.orderIndex + 1000, // Ensure they appear after section-specific guidelines
+              })),
+            ];
+          }
+        }
       } else {
         rootSections.push(section);
       }
