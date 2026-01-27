@@ -20,6 +20,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { WPColorPicker } from '@/components/WPColorPicker';
 import { WPColorPaletteEditor } from '@/components/WPColorPaletteEditor';
@@ -35,6 +37,7 @@ interface Participant {
   id: string;
   organisation_short_name: string | null;
   organisation_name: string;
+  english_name: string | null;
   participant_number: number | null;
 }
 
@@ -56,6 +59,7 @@ interface SortableWPRowProps {
 }
 
 function SortableWPRow({ wp, participants, onUpdate, canEdit }: SortableWPRowProps) {
+  const [leadOpen, setLeadOpen] = useState(false);
   const {
     attributes,
     listeners,
@@ -70,6 +74,8 @@ function SortableWPRow({ wp, participants, onUpdate, canEdit }: SortableWPRowPro
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
+
+  const selectedLead = participants.find((p) => p.id === wp.lead_participant_id);
 
   return (
     <div
@@ -118,36 +124,65 @@ function SortableWPRow({ wp, participants, onUpdate, canEdit }: SortableWPRowPro
         disabled={!canEdit}
       />
 
-      {/* WP Lead - styled like partner reference dialog */}
-      <Select
-        value={wp.lead_participant_id || ''}
-        onValueChange={(v) => onUpdate(wp.id, { lead_participant_id: v || null })}
-        disabled={!canEdit}
-      >
-        <SelectTrigger className="h-7 text-sm">
-          <SelectValue placeholder="Select lead..." />
-        </SelectTrigger>
-        <SelectContent className="max-h-[300px]">
-          {participants.map((p) => (
-            <SelectItem key={p.id} value={p.id} className="py-2">
-              <div className="flex items-center gap-2">
-                <span
-                  className="shrink-0 inline-flex items-center justify-center min-w-[60px] px-2 py-0.5 rounded-full text-xs font-bold"
-                  style={{
-                    backgroundColor: '#000000',
-                    color: '#ffffff',
+      {/* WP Lead - Popover styled like partner reference dialog */}
+      <Popover open={leadOpen} onOpenChange={setLeadOpen}>
+        <PopoverTrigger asChild>
+          <button
+            className="flex items-center justify-start h-7 px-2 rounded-md border border-input bg-background hover:bg-muted/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!canEdit}
+          >
+            {selectedLead ? (
+              <span
+                className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold"
+                style={{
+                  backgroundColor: '#000000',
+                  color: '#ffffff',
+                }}
+              >
+                {selectedLead.organisation_short_name || `P${selectedLead.participant_number}`}
+              </span>
+            ) : (
+              <span className="text-sm text-muted-foreground">Select lead...</span>
+            )}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[400px] p-0" align="start">
+          <ScrollArea className="max-h-[300px]">
+            <div className="p-1">
+              {participants.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => {
+                    onUpdate(wp.id, { lead_participant_id: p.id });
+                    setLeadOpen(false);
                   }}
+                  className="w-full flex items-center p-2.5 rounded-md text-left hover:bg-muted/80 transition-colors"
                 >
-                  {p.organisation_short_name || `P${p.participant_number}`}
-                </span>
-                <span className="truncate text-sm">
-                  {p.organisation_name}
-                </span>
-              </div>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+                  <span
+                    className="shrink-0 inline-flex items-center justify-center w-20 px-2 py-0.5 rounded-full text-xs font-bold"
+                    style={{
+                      backgroundColor: '#000000',
+                      color: '#ffffff',
+                    }}
+                  >
+                    {p.organisation_short_name || `P${p.participant_number}`}
+                  </span>
+                  <div className="flex-1 min-w-0 ml-3">
+                    <div className="text-sm truncate">
+                      {p.organisation_name}
+                    </div>
+                    {p.english_name && p.english_name !== p.organisation_name && (
+                      <div className="text-xs text-muted-foreground truncate">
+                        {p.english_name}
+                      </div>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </ScrollArea>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
@@ -193,7 +228,7 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
     queryFn: async () => {
       const { data, error } = await supabase
         .from('participants')
-        .select('id, organisation_short_name, organisation_name, participant_number')
+        .select('id, organisation_short_name, organisation_name, english_name, participant_number')
         .eq('proposal_id', proposalId)
         .order('participant_number');
       if (error) throw error;
