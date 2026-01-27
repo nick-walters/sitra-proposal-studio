@@ -573,7 +573,7 @@ export function GeneralInfoForm({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-6">
+            <div className="flex gap-6 items-start">
               <div className="flex-1 space-y-3">
                 <div>
                   <label className="text-xs text-muted-foreground mb-0.5 block">Title</label>
@@ -631,7 +631,7 @@ export function GeneralInfoForm({
               </div>
 
               <div className="flex-shrink-0">
-                <label className="text-xs text-muted-foreground mb-1.5 block">Project logo</label>
+                <label className="text-xs text-muted-foreground mb-1 block">Project logo</label>
                 {isEditing && editedProposal ? (
                   <LogoUpload
                     currentUrl={editedProposal.logoUrl || null}
