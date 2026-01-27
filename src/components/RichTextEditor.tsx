@@ -16,6 +16,7 @@ import { BlockDragHandle } from '@/extensions/BlockDragHandle';
 import { TrackChanges, TrackChangesOptions } from '@/extensions/TrackChanges';
 import { TableFormula } from '@/extensions/TableFormula';
 import { WPReferenceMark } from '@/extensions/WPReferenceMark';
+import { ParticipantReferenceMark } from '@/extensions/ParticipantReferenceMark';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
@@ -51,6 +52,7 @@ import {
   FileText,
   Link2,
   Layers,
+  Building2,
 } from "lucide-react";
 import {
   Tooltip,
@@ -175,6 +177,7 @@ export function FormattingToolbar({
   onOpenCitationDialog,
   onOpenCrossRefDialog,
   onOpenWPRefDialog,
+  onOpenParticipantRefDialog,
   isPartB = false,
   isReadOnly = false,
 }: { 
@@ -186,6 +189,7 @@ export function FormattingToolbar({
   onOpenCitationDialog?: () => void;
   onOpenCrossRefDialog?: () => void;
   onOpenWPRefDialog?: () => void;
+  onOpenParticipantRefDialog?: () => void;
   isPartB?: boolean;
   isReadOnly?: boolean;
 }) {
@@ -597,6 +601,27 @@ export function FormattingToolbar({
             </TooltipTrigger>
             <TooltipContent side="bottom" className="text-xs">
               Insert WP Reference
+            </TooltipContent>
+          </Tooltip>
+        )}
+        
+        {/* Participant Reference button */}
+        {isPartB && onOpenParticipantRefDialog && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 gap-1"
+                onClick={onOpenParticipantRefDialog}
+                disabled={isReadOnly}
+              >
+                <Building2 className="w-4 h-4" />
+                <span className="text-xs">Partner</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              Insert Partner Reference
             </TooltipContent>
           </Tooltip>
         )}
@@ -1020,6 +1045,8 @@ export function useRichTextEditor({
       BlockReordering,
       // WP reference marks for inline WP badges
       WPReferenceMark,
+      // Participant reference marks for inline partner badges
+      ParticipantReferenceMark,
       // Block drag-and-drop via drag handle
       BlockDragHandle.configure({
         getLockedBlocks: () => getLockedBlocksRef.current(),

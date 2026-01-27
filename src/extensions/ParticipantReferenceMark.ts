@@ -1,0 +1,141 @@
+import { Mark, mergeAttributes } from '@tiptap/core';
+
+export interface ParticipantReferenceOptions {
+  HTMLAttributes: Record<string, any>;
+}
+
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    participantReference: {
+      /**
+       * Set a participant reference mark
+       */
+      setParticipantReference: (attributes: {
+        participantNumber: number;
+        shortName: string;
+        participantId: string;
+      }) => ReturnType;
+      /**
+       * Toggle a participant reference mark
+       */
+      toggleParticipantReference: (attributes: {
+        participantNumber: number;
+        shortName: string;
+        participantId: string;
+      }) => ReturnType;
+      /**
+       * Unset a participant reference mark
+       */
+      unsetParticipantReference: () => ReturnType;
+    };
+  }
+}
+
+export const ParticipantReferenceMark = Mark.create<ParticipantReferenceOptions>({
+  name: 'participantReference',
+
+  priority: 1000,
+
+  addOptions() {
+    return {
+      HTMLAttributes: {},
+    };
+  },
+
+  addAttributes() {
+    return {
+      participantNumber: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('data-participant-number'),
+        renderHTML: (attributes) => {
+          if (!attributes.participantNumber) {
+            return {};
+          }
+          return {
+            'data-participant-number': attributes.participantNumber,
+          };
+        },
+      },
+      shortName: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('data-participant-short-name'),
+        renderHTML: (attributes) => {
+          if (!attributes.shortName) {
+            return {};
+          }
+          return {
+            'data-participant-short-name': attributes.shortName,
+          };
+        },
+      },
+      participantId: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('data-participant-id'),
+        renderHTML: (attributes) => {
+          if (!attributes.participantId) {
+            return {};
+          }
+          return {
+            'data-participant-id': attributes.participantId,
+          };
+        },
+      },
+    };
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: 'span[data-participant-reference]',
+      },
+    ];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    const shortName = HTMLAttributes['data-participant-short-name'];
+
+    return [
+      'span',
+      mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
+        'data-participant-reference': '',
+        'class': 'participant-reference-badge',
+        'style': `
+          display: inline-flex;
+          align-items: center;
+          background-color: #000000;
+          color: #ffffff;
+          padding: 0.125rem 0.5rem;
+          border-radius: 9999px;
+          font-size: 0.75rem;
+          font-weight: 700;
+          line-height: 1;
+          white-space: nowrap;
+          vertical-align: baseline;
+        `,
+      }),
+      shortName || 'Partner',
+    ];
+  },
+
+  addCommands() {
+    return {
+      setParticipantReference:
+        (attributes) =>
+        ({ commands }) => {
+          return commands.setMark(this.name, attributes);
+        },
+      toggleParticipantReference:
+        (attributes) =>
+        ({ commands }) => {
+          return commands.toggleMark(this.name, attributes);
+        },
+      unsetParticipantReference:
+        () =>
+        ({ commands }) => {
+          return commands.unsetMark(this.name);
+        },
+    };
+  },
+});
+
+export default ParticipantReferenceMark;

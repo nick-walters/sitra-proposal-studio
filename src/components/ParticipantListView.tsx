@@ -225,17 +225,22 @@ function ParticipantCard({
           </div>
           
           {/* Short name - editable */}
-          <div className="w-20 shrink-0">
+          <div className="w-24 shrink-0">
             {canEdit ? (
               <Input
                 value={shortName}
                 onChange={handleChange(setShortName)}
                 placeholder="Short"
-                className="h-7 text-sm font-semibold italic px-1.5"
+                className="h-7 text-sm font-bold px-1.5"
               />
             ) : (
               shortName ? (
-                <span className="font-semibold italic text-sm">{shortName}</span>
+                <span 
+                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold"
+                  style={{ backgroundColor: '#000000', color: '#ffffff' }}
+                >
+                  {shortName}
+                </span>
               ) : (
                 <span className="text-muted-foreground text-sm">—</span>
               )
@@ -243,7 +248,7 @@ function ParticipantCard({
           </div>
           
           {/* Names - editable */}
-          <div className="flex-1 min-w-0 space-y-1">
+          <div className="w-64 shrink-0 min-w-0 space-y-1">
             {canEdit ? (
               <>
                 <Input
@@ -352,17 +357,13 @@ function ParticipantCard({
           </div>
           
           {/* Save indicator / Edit button */}
-          <div className="w-16 shrink-0 flex justify-end">
-            {canEdit && (isSaving || hasChanges) ? (
+          <div className="shrink-0 flex items-center gap-2 justify-end">
+            {canEdit && (isSaving || hasChanges) && (
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 {isSaving ? (
-                  <>
-                    <span className="animate-pulse">Saving...</span>
-                  </>
+                  <span className="animate-pulse">Saving...</span>
                 ) : hasChanges ? (
-                  <>
-                    <span className="animate-pulse">...</span>
-                  </>
+                  <span className="animate-pulse">...</span>
                 ) : (
                   <>
                     <Check className="w-3 h-3 text-green-600" />
@@ -370,19 +371,20 @@ function ParticipantCard({
                   </>
                 )}
               </span>
-            ) : canEdit ? (
+            )}
+            {canEdit && (
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                className="h-7 px-2 gap-1"
+                className="h-7 px-2 gap-1 text-xs"
                 onClick={(e) => {
                   e.stopPropagation();
                   onSelect();
                 }}
               >
-                <span className="text-xs">More</span>
+                Edit participant info
               </Button>
-            ) : null}
+            )}
           </div>
         </div>
       </CardContent>
@@ -570,12 +572,12 @@ export function ParticipantListView({
             <div className="flex items-center gap-3 px-3 text-xs font-medium text-muted-foreground">
               {canReorder && <div className="w-4" />}
               <div className="w-8 text-center">No.</div>
-              <div className="w-20">Short</div>
-              <div className="flex-1">Organisation</div>
-              <div className="w-20 text-center">Roles</div>
+              <div className="w-24">Short</div>
+              <div className="w-64">Organisation</div>
+              <div className="flex-1 text-center">Roles</div>
               <div className="w-10 text-center">Logo</div>
               <div className="w-28">Country</div>
-              <div className="w-16" />
+              <div />
             </div>
           )}
 

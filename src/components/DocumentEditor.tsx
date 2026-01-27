@@ -20,6 +20,7 @@ import { CitationDialog } from "./CitationDialog";
 import { InsertFigureDialog } from "./InsertFigureDialog";
 import { InsertCrossReferenceDialog } from "./InsertCrossReferenceDialog";
 import { InsertWPReferenceDialog } from "./InsertWPReferenceDialog";
+import { InsertParticipantReferenceDialog } from "./InsertParticipantReferenceDialog";
 import { CommentsSidebar } from "./CommentsSidebar";
 import { SectionAssignmentDialog } from "./SectionAssignmentDialog";
 import { ImpactPathwayGenerator } from "./ImpactPathwayGenerator";
@@ -129,6 +130,7 @@ export function DocumentEditor({
   const [isSplitViewOpen, setIsSplitViewOpen] = useState(false);
   const [deleteBlockConfirm, setDeleteBlockConfirm] = useState<{ isOpen: boolean; onConfirm: () => void } | null>(null);
   const [isWPRefOpen, setIsWPRefOpen] = useState(false);
+  const [isParticipantRefOpen, setIsParticipantRefOpen] = useState(false);
   
   // Editor container ref for cursor overlays
   const editorContainerRef = useRef<HTMLDivElement>(null);
@@ -468,6 +470,17 @@ export function DocumentEditor({
       wpId: wp.id,
     }).insertContent(' ').run();
   }, [editor]);
+  
+  // Handle Participant reference insertion
+  const handleInsertParticipantRef = useCallback((participant: { id: string; participantNumber: number; shortName: string }) => {
+    if (!editor) return;
+    // Insert participant badge using the participant reference mark
+    editor.chain().focus().setParticipantReference({
+      participantNumber: participant.participantNumber,
+      shortName: participant.shortName,
+      participantId: participant.id,
+    }).insertContent(' ').run();
+  }, [editor]);
 
   // Handle applying a suggestion from comments
   const handleApplySuggestion = useCallback((originalText: string, suggestedText: string) => {
@@ -779,6 +792,7 @@ export function DocumentEditor({
           onOpenCitationDialog={() => setIsCitationOpen(true)}
           onOpenCrossRefDialog={() => setIsCrossRefOpen(true)}
           onOpenWPRefDialog={() => setIsWPRefOpen(true)}
+          onOpenParticipantRefDialog={() => setIsParticipantRefOpen(true)}
           isPartB={section && !section.isPartA}
           isReadOnly={isEffectivelyReadOnly}
         />
@@ -955,6 +969,12 @@ export function DocumentEditor({
         onOpenChange={setIsWPRefOpen}
         proposalId={proposalId || ''}
         onSelect={handleInsertWPRef}
+      />
+      <InsertParticipantReferenceDialog
+        open={isParticipantRefOpen}
+        onOpenChange={setIsParticipantRefOpen}
+        proposalId={proposalId || ''}
+        onSelect={handleInsertParticipantRef}
       />
       <SectionAssignmentDialog
         open={isAssignmentDialogOpen}
