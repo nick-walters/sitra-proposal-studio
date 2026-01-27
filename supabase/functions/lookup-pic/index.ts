@@ -15,6 +15,8 @@ interface OrganisationInfo {
   legalEntityType?: string;
   isSme: boolean;
   organisationCategory?: 'HES' | 'RES' | 'PRC' | 'PUB' | 'INT' | 'OTH';
+  englishName?: string;
+  logoUrl?: string;
 }
 
 // Map legal entity type to official EC organisation categories
@@ -75,6 +77,8 @@ async function searchDatabase(supabase: any, searchTerm: string): Promise<Organi
           legalEntityType: org.legal_entity_type,
           isSme: org.is_sme || false,
           organisationCategory: mapLegalEntityToCategory(org.legal_entity_type, org.is_sme),
+          englishName: org.english_name,
+          logoUrl: org.logo_url,
         });
       }
     }
@@ -101,6 +105,8 @@ async function searchDatabase(supabase: any, searchTerm: string): Promise<Organi
           legalEntityType: p.legal_entity_type,
           isSme: p.is_sme || false,
           organisationCategory: p.organisation_category || mapLegalEntityToCategory(p.legal_entity_type, p.is_sme),
+          englishName: p.english_name,
+          logoUrl: p.logo_url,
         });
       }
     }

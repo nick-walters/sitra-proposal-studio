@@ -588,6 +588,7 @@ export type Database = {
           country: string | null
           created_at: string
           created_by: string | null
+          english_name: string | null
           id: string
           is_sme: boolean | null
           legal_entity_type: string | null
@@ -601,6 +602,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           created_by?: string | null
+          english_name?: string | null
           id?: string
           is_sme?: boolean | null
           legal_entity_type?: string | null
@@ -614,6 +616,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           created_by?: string | null
+          english_name?: string | null
           id?: string
           is_sme?: boolean | null
           legal_entity_type?: string | null
