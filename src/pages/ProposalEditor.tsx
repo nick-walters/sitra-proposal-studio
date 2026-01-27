@@ -400,9 +400,11 @@ export function ProposalEditor() {
                 participantNumber: participants.length + 1,
               });
             }}
+            onUpdateParticipant={updateParticipant}
             canInvite={isAdmin && canEdit}
             canReorder={isAdmin && canEdit}
             canAddParticipant={isAdmin && canEdit}
+            canEdit={isAdmin && canEdit}
             wpLeadership={wpLeadership}
           />
         );
