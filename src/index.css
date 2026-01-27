@@ -387,7 +387,7 @@
   }
 
   .section-nav-item {
-    @apply px-4 py-1 rounded-md text-sm font-medium transition-all duration-200 cursor-pointer;
+    @apply px-3 py-0.5 rounded-md text-sm font-medium transition-all duration-200 cursor-pointer;
   }
 
   .section-nav-item-active {
