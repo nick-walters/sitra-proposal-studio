@@ -1,7 +1,7 @@
 import { Section } from "@/types/proposal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, BookOpen, Route, History, Info, Image, Link2, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search, GitCompare, Keyboard, Wand2, FileCode, SplitSquareHorizontal } from "lucide-react";
+import { Sparkles, BookOpen, Route, History, Info, Image, Link2, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search, GitCompare, Keyboard, Wand2, FileCode, SplitSquareHorizontal, Layers, Building2 } from "lucide-react";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
 import {
@@ -35,6 +35,7 @@ import { useBlockLocking } from "@/hooks/useBlockLocking";
 import { renumberFootnotes } from "@/lib/captionRenumbering";
 import { useProposalReferences } from "@/hooks/useProposalReferences";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format, isPast, isToday, differenceInDays } from "date-fns";
@@ -547,10 +548,11 @@ export function DocumentEditor({
       {/* Fixed toolbar container */}
       <div className="sticky top-0 z-10 bg-background">
         {/* Features Toolbar - two-row stacked layout */}
-        <div className="px-2 py-1 border-b border-border bg-card space-y-1">
-          {/* Row 1: Guidelines, Find, Split, History, Compare */}
+        <div className="px-2 py-1 border-b border-border bg-card">
+          {/* Features Toolbar - single row with 3 groups */}
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1 flex-wrap">
+            {/* Left group: Guidelines, Find, Split, History, Lock, Compare */}
+            <div className="flex items-center gap-1">
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -601,7 +603,126 @@ export function DocumentEditor({
                   </TooltipContent>
                 </Tooltip>
               )}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-6 px-2 text-xs gap-1" 
+                onClick={() => setIsComparisonOpen(true)}
+              >
+                <GitCompare className="w-3 h-3" />
+                Compare
+              </Button>
+              
+              <Separator orientation="vertical" className="h-4 mx-1" />
+              
+              {/* Middle group: Grammar, AI, Snippets */}
+              <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={() => setIsGrammarOpen(true)}>
+                <Sparkles className="w-3 h-3" />
+                Grammar
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-6 px-2 text-xs gap-1"
+                onClick={() => setIsWritingAssistantOpen(true)}
+                disabled={!editor || isEffectivelyReadOnly}
+              >
+                <Wand2 className="w-3 h-3" />
+                AI
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-6 px-2 text-xs gap-1"
+                onClick={() => setIsSnippetsOpen(true)}
+                disabled={!editor || isEffectivelyReadOnly}
+              >
+                <FileCode className="w-3 h-3" />
+                Snippets
+              </Button>
+              {isImpactSection && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-6 px-2 text-xs gap-1 bg-primary/5 border-primary/30 hover:bg-primary/10" 
+                  onClick={() => setIsImpactPathwayOpen(true)}
+                  disabled={isEffectivelyReadOnly}
+                >
+                  <Route className="w-3 h-3" />
+                  Impact Mapper
+                </Button>
+              )}
+              
+              <Separator orientation="vertical" className="h-4 mx-1" />
+              
+              {/* Right group: Citation, Cross-ref, WP, Partner */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-6 px-2 text-xs gap-1"
+                    onClick={() => setIsCitationOpen(true)}
+                    disabled={isEffectivelyReadOnly}
+                  >
+                    <FileText className="w-3 h-3" />
+                    Citation
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Add Citation</TooltipContent>
+              </Tooltip>
+              {section && !section.isPartA && (
+                <>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 px-2 text-xs gap-1"
+                        onClick={() => setIsCrossRefOpen(true)}
+                        disabled={isEffectivelyReadOnly}
+                      >
+                        <Link2 className="w-3 h-3" />
+                        Cross-ref
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Insert Cross-reference</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 px-2 text-xs gap-1"
+                        onClick={() => setIsWPRefOpen(true)}
+                        disabled={isEffectivelyReadOnly}
+                      >
+                        <Layers className="w-3 h-3" />
+                        WP
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Insert WP Reference</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 px-2 text-xs gap-1"
+                        onClick={() => setIsParticipantRefOpen(true)}
+                        disabled={isEffectivelyReadOnly}
+                      >
+                        <Building2 className="w-3 h-3" />
+                        Partner
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Insert Partner Reference</TooltipContent>
+                  </Tooltip>
+                </>
+              )}
             </div>
+            
+            {/* Right side: shortcuts, panel toggle, save indicator */}
             <div className="flex items-center gap-1 shrink-0">
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -626,54 +747,6 @@ export function DocumentEditor({
               </Tooltip>
               {!isEffectivelyReadOnly && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
             </div>
-          </div>
-          {/* Row 2: Grammar, AI, Snippets, Impact Mapper, Compare */}
-          <div className="flex items-center gap-1 flex-wrap">
-            <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={() => setIsGrammarOpen(true)}>
-              <Sparkles className="w-3 h-3" />
-              Grammar
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="h-6 px-2 text-xs gap-1"
-              onClick={() => setIsWritingAssistantOpen(true)}
-              disabled={!editor || isEffectivelyReadOnly}
-            >
-              <Wand2 className="w-3 h-3" />
-              AI
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="h-6 px-2 text-xs gap-1"
-              onClick={() => setIsSnippetsOpen(true)}
-              disabled={!editor || isEffectivelyReadOnly}
-            >
-              <FileCode className="w-3 h-3" />
-              Snippets
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="h-6 px-2 text-xs gap-1" 
-              onClick={() => setIsComparisonOpen(true)}
-            >
-              <GitCompare className="w-3 h-3" />
-              Compare
-            </Button>
-            {isImpactSection && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-6 px-2 text-xs gap-1 bg-primary/5 border-primary/30 hover:bg-primary/10" 
-                onClick={() => setIsImpactPathwayOpen(true)}
-                disabled={isEffectivelyReadOnly}
-              >
-                <Route className="w-3 h-3" />
-                Impact Mapper
-              </Button>
-            )}
           </div>
         </div>
 
