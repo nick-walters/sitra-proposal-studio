@@ -288,11 +288,11 @@ function ParticipantCard({
           </div>
           
           {/* Roles/Leadership badges */}
-          <div className="w-28 shrink-0 flex flex-wrap gap-1">
+          <div className="w-20 shrink-0 flex flex-col gap-0.5">
             {participant.participantNumber === 1 && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Badge className="text-xs py-0 px-1.5">Coord</Badge>
+                  <Badge className="text-xs py-0 px-1.5 w-fit">Coord</Badge>
                 </TooltipTrigger>
                 <TooltipContent>Project Coordinator</TooltipContent>
               </Tooltip>
@@ -302,7 +302,7 @@ function ParticipantCard({
                 <Tooltip key={wp.wpNumber}>
                   <TooltipTrigger asChild>
                     <span
-                      className="inline-flex items-center px-1.5 py-0 rounded text-xs font-medium cursor-default"
+                      className="inline-flex items-center px-1.5 py-0 rounded text-xs font-medium cursor-default w-fit"
                       style={{
                         backgroundColor: wp.color,
                         color: getContrastingTextColor(wp.color),
