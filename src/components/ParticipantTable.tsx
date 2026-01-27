@@ -63,6 +63,14 @@ export interface WPLeadershipInfo {
   shortName?: string;
 }
 
+// Case Leadership info
+export interface CaseLeadershipInfo {
+  caseNumber: number;
+  color: string;
+  shortName?: string;
+  prefix: string;
+}
+
 // Convert name to name case (capitalize first letter of each word)
 function toNameCase(str: string): string {
   if (!str) return '';
@@ -83,6 +91,7 @@ interface ParticipantTableProps {
   onReorderParticipants?: (reorderedParticipants: ExtendedParticipant[]) => void;
   onMemberAdded?: (member: Omit<ParticipantMember, 'id'>) => void;
   wpLeadership?: Record<string, WPLeadershipInfo[]>; // participantId -> WPs they lead
+  caseLeadership?: Record<string, CaseLeadershipInfo[]>; // participantId -> Cases they lead
 }
 
 // All countries combined for the dropdown
@@ -105,6 +114,7 @@ function SortableParticipantRow({
   handleRemoveLogo,
   handleAutoFetchLogo,
   wpLeadership,
+  caseLeadership,
 }: {
   participant: ExtendedParticipant;
   isEditing: boolean;
@@ -117,6 +127,7 @@ function SortableParticipantRow({
   handleRemoveLogo: (id: string) => void;
   handleAutoFetchLogo: (id: string, name: string, shortName?: string) => void;
   wpLeadership?: WPLeadershipInfo[];
+  caseLeadership?: CaseLeadershipInfo[];
 }) {
   const [countryOpen, setCountryOpen] = useState(false);
   
@@ -242,7 +253,7 @@ function SortableParticipantRow({
           {/* WP leadership badges */}
           {wpLeadership && wpLeadership.length > 0 && (
             wpLeadership.map((wp) => (
-              <Tooltip key={wp.wpNumber}>
+              <Tooltip key={`wp-${wp.wpNumber}`}>
                 <TooltipTrigger asChild>
                   <span
                     className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold cursor-default text-white"
@@ -259,8 +270,28 @@ function SortableParticipantRow({
               </Tooltip>
             ))
           )}
+          {/* Case leadership badges */}
+          {caseLeadership && caseLeadership.length > 0 && (
+            caseLeadership.map((c) => (
+              <Tooltip key={`case-${c.caseNumber}`}>
+                <TooltipTrigger asChild>
+                  <span
+                    className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold cursor-default text-white"
+                    style={{
+                      backgroundColor: c.color,
+                    }}
+                  >
+                    {c.prefix}{c.caseNumber}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {c.shortName ? `${c.shortName} (Lead)` : `${c.prefix}${c.caseNumber} Lead`}
+                </TooltipContent>
+              </Tooltip>
+            ))
+          )}
           {/* Show dash only if no leadership roles */}
-          {participant.participantNumber !== 1 && (!wpLeadership || wpLeadership.length === 0) && (
+          {participant.participantNumber !== 1 && (!wpLeadership || wpLeadership.length === 0) && (!caseLeadership || caseLeadership.length === 0) && (
             <span className="text-muted-foreground text-[10px]">—</span>
           )}
         </div>
@@ -411,6 +442,7 @@ export function ParticipantTable({
   onReorderParticipants,
   onMemberAdded,
   wpLeadership = {},
+  caseLeadership = {},
 }: ParticipantTableProps) {
   const [uploadingLogoId, setUploadingLogoId] = useState<string | null>(null);
   const [fetchingLogoId, setFetchingLogoId] = useState<string | null>(null);
@@ -587,6 +619,7 @@ export function ParticipantTable({
                     handleRemoveLogo={handleRemoveLogo}
                     handleAutoFetchLogo={handleAutoFetchLogo}
                     wpLeadership={wpLeadership[participant.id]}
+                    caseLeadership={caseLeadership[participant.id]}
                   />
                 ))}
               </SortableContext>
