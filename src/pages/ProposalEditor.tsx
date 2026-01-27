@@ -520,10 +520,10 @@ export function ProposalEditor() {
 
     // WP Drafts container section
     if (activeSection.id === 'wp-drafts') {
-      const handleToggleCases = async (enabled: boolean, caseType?: string) => {
+      const handleToggleCases = async (enabled: boolean) => {
         await supabase
           .from('proposals')
-          .update({ cases_enabled: enabled, cases_type: caseType || null })
+          .update({ cases_enabled: enabled })
           .eq('id', id);
         // Refetch proposal data
         window.location.reload();
@@ -540,7 +540,6 @@ export function ProposalEditor() {
             proposalId={id || ''}
             isAdmin={canEdit && isAdmin}
             casesEnabled={proposal?.casesEnabled || false}
-            casesType={proposal?.casesType || null}
             onToggleCases={handleToggleCases}
           />
           <WPProgressTracker

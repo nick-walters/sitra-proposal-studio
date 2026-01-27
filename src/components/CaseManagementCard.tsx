@@ -113,7 +113,7 @@ function SortableCaseRow({ caseItem, participants, onUpdate, onDelete, canEdit }
     <div
       ref={setNodeRef}
       style={style}
-      className={`grid grid-cols-[24px_50px_90px_1fr_80px_20px] gap-1.5 items-center py-1 border-b ${
+      className={`grid grid-cols-[24px_50px_70px_90px_1fr_80px_20px] gap-1.5 items-center py-1 border-b ${
         isDragging ? 'bg-muted shadow-lg' : ''
       }`}
     >
@@ -137,6 +137,24 @@ function SortableCaseRow({ caseItem, participants, onUpdate, onDelete, canEdit }
       >
         {prefix}{caseItem.number}
       </Badge>
+
+      {/* Type Selector */}
+      <Select 
+        value={caseItem.case_type} 
+        onValueChange={(value) => onUpdate(caseItem.id, { case_type: value })}
+        disabled={!canEdit}
+      >
+        <SelectTrigger className="h-7 text-xs px-2">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {CASE_TYPES.map((type) => (
+            <SelectItem key={type.value} value={type.value} className="text-xs">
+              {type.prefix} - {type.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
       {/* Short Name */}
       <Input
@@ -237,21 +255,16 @@ interface CaseManagementCardProps {
   proposalId: string;
   isAdmin: boolean;
   casesEnabled: boolean;
-  casesType: string | null;
-  onToggleCases: (enabled: boolean, caseType?: string, customTypeName?: string) => void;
+  onToggleCases: (enabled: boolean) => void;
 }
 
 export function CaseManagementCard({ 
   proposalId, 
   isAdmin, 
   casesEnabled, 
-  casesType,
   onToggleCases 
 }: CaseManagementCardProps) {
   const queryClient = useQueryClient();
-  const [selectedCaseType, setSelectedCaseType] = useState(casesType || 'case_study');
-  const [customTypeName, setCustomTypeName] = useState('');
-  const [showTypeSelector, setShowTypeSelector] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -343,14 +356,14 @@ export function CaseManagementCard({
 
   // Add case mutation
   const addCaseMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (caseType: string = 'case_study') => {
       const newNumber = caseDrafts.length + 1;
       const color = CASE_COLORS[(newNumber - 1) % CASE_COLORS.length];
       
       const { error } = await supabase.from('case_drafts').insert({
         proposal_id: proposalId,
         number: newNumber,
-        case_type: casesType || 'case_study',
+        case_type: caseType,
         color,
         order_index: newNumber - 1,
       });
@@ -401,24 +414,9 @@ export function CaseManagementCard({
     }
   }, [deleteCaseMutation]);
 
-  const handleEnableCases = () => {
-    if (selectedCaseType === 'other' && !customTypeName.trim()) {
-      toast.error('Please enter a custom type name');
-      return;
-    }
-    onToggleCases(true, selectedCaseType, selectedCaseType === 'other' ? customTypeName : undefined);
-    setShowTypeSelector(false);
-  };
-
   const handleCheckboxChange = (checked: boolean) => {
-    if (checked) {
-      setShowTypeSelector(true);
-    } else {
-      onToggleCases(false);
-    }
+    onToggleCases(checked);
   };
-
-  const caseTypeLabel = CASE_TYPES.find(t => t.value === casesType)?.label || casesType;
 
   return (
     <Card className="mt-4">
@@ -441,52 +439,9 @@ export function CaseManagementCard({
               <Label htmlFor="cases-enabled" className="text-sm cursor-pointer">
                 Does this proposal include case studies, use cases, living labs, pilots, demonstrations, or similar?
               </Label>
-              {casesEnabled && casesType && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Type: {caseTypeLabel}
-                </p>
-              )}
             </div>
           </div>
         )}
-
-        {/* Case type selector dialog */}
-        <Dialog open={showTypeSelector} onOpenChange={setShowTypeSelector}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Select Case Type</DialogTitle>
-              <DialogDescription>
-                Choose what type of cases this proposal includes.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <Select value={selectedCaseType} onValueChange={setSelectedCaseType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select case type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CASE_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {selectedCaseType === 'other' && (
-                <Input
-                  placeholder="Enter custom type name"
-                  value={customTypeName}
-                  onChange={(e) => setCustomTypeName(e.target.value)}
-                />
-              )}
-
-              <Button onClick={handleEnableCases} className="w-full">
-                Enable Cases
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
 
         {/* Cases table (when enabled) */}
         {casesEnabled && (
@@ -500,9 +455,10 @@ export function CaseManagementCard({
             ) : (
               <>
                 {/* Table Header */}
-                <div className="grid grid-cols-[24px_50px_90px_1fr_80px_20px] gap-1.5 text-xs font-medium text-muted-foreground border-b pb-1">
+                <div className="grid grid-cols-[24px_50px_70px_90px_1fr_80px_20px] gap-1.5 text-xs font-medium text-muted-foreground border-b pb-1">
                   <div />
                   <div className="text-center">№</div>
+                  <div>Type</div>
                   <div>Short Name</div>
                   <div>Title</div>
                   <div>Lead</div>
@@ -535,7 +491,7 @@ export function CaseManagementCard({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => addCaseMutation.mutate()}
+                      onClick={() => addCaseMutation.mutate('case_study')}
                       disabled={addCaseMutation.isPending}
                     >
                       <Plus className="w-4 h-4 mr-1" />
