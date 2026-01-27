@@ -388,7 +388,10 @@ function SectionItem({
           {(section.id === 'wp-drafts' || section.id === 'a2') ? (
             <div 
               className="grid grid-cols-2 gap-x-2 gap-y-1 py-1"
-              style={{ paddingLeft: `${(depth + 1) * 12 + 28}px`, paddingRight: '8px' }}
+              style={{ 
+                paddingLeft: `${(depth + 1) * 12 + (section.id === 'a2' ? 20 : 28)}px`, 
+                paddingRight: '8px' 
+              }}
             >
               {section.subsections!.map((subsection) => {
                 const wpSub = subsection as WPSection;
