@@ -101,7 +101,7 @@ function SectionItem({
   const isPartBSubsection = section.number && /^B\d+\.\d+/.test(section.number);
   
   // Part B subsections need extra indentation to align under parent B1/B2/B3 text (past the icon)
-  const extraIndent = isPartBSubsection ? 20 : 0;
+  const extraIndent = isPartBSubsection ? 12 : 0;
   
   // Check if this is a collapsible heading (Part A, Part B, B1, B2)
   // Note: A2 is NOT a collapsible heading - it should navigate to ParticipantListView
