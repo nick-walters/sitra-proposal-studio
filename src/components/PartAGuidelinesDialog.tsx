@@ -65,10 +65,10 @@ export function PartAGuidelinesDialog({
   return (
     <>
       <Button
-        variant="ghost"
+        variant="outline"
         size="sm"
         onClick={() => setDialogOpen(true)}
-        className={cn("text-destructive hover:text-destructive hover:bg-destructive/10 gap-1.5", className)}
+        className={cn("text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30 gap-1.5", className)}
       >
         <BookOpen className="h-4 w-4" />
         Guidelines
@@ -81,18 +81,39 @@ export function PartAGuidelinesDialog({
           </DialogHeader>
           <ScrollArea className="max-h-[75vh] pr-4">
             <div className="space-y-4">
-              {/* Official Guidelines */}
+              {/* Official Guidelines - Blue styled box */}
               {officialGuidelines.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="font-medium text-sm text-foreground">Official guidelines</h4>
-                  {officialGuidelines.map((guideline) => (
-                    <div key={guideline.id} className="space-y-1">
-                      {guideline.title && (
-                        <h5 className="font-medium text-sm text-muted-foreground">{guideline.title}</h5>
-                      )}
-                      {parseGuidelineContent(guideline.content)}
+                <div
+                  className={cn(
+                    "rounded-lg border-2 p-4",
+                    "border-blue-500",
+                    "bg-blue-50/50"
+                  )}
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="flex-shrink-0 text-blue-500">
+                      <BookOpen className="h-5 w-5" />
                     </div>
-                  ))}
+                    <span className="text-sm font-bold text-blue-600">
+                      Official guidelines from European Commission
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {officialGuidelines.map((guideline, index) => (
+                      <div key={guideline.id}>
+                        {guideline.title && (
+                          <h4 className="font-semibold mb-2 text-blue-600">
+                            {guideline.title}
+                          </h4>
+                        )}
+                        {parseGuidelineContent(guideline.content)}
+                        {index < officialGuidelines.length - 1 && (
+                          <div className="mt-4 border-t border-current/10" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
