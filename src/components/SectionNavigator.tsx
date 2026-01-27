@@ -183,6 +183,8 @@ function SectionItem({
             <Layers className="w-4 h-4 text-muted-foreground shrink-0" />
           ) : section.id === 'a2' ? (
             <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
+          ) : section.id === 'figures' || section.title === 'Figures' ? (
+            null
           ) : isWPSection && wpColor ? (
             null
           ) : isParticipantSection ? (
