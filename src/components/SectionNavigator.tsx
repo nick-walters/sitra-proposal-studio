@@ -333,7 +333,7 @@ function SectionItem({
           {/* Render WP Drafts and A2 Participants as 2-column grid of bubbles */}
           {(section.id === 'wp-drafts' || section.id === 'a2') ? (
             <div 
-              className="grid grid-cols-2 gap-1 px-2 py-1"
+              className="grid grid-cols-2 gap-x-2 gap-y-1 px-2 py-1"
               style={{ paddingLeft: `${depth * 12 + 12}px` }}
             >
               {section.subsections!.map((subsection) => {
@@ -347,7 +347,7 @@ function SectionItem({
                       <TooltipTrigger asChild>
                         <button
                           className={cn(
-                            "inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold truncate cursor-pointer transition-all max-w-full",
+                            "inline-flex items-center justify-start w-fit px-2 py-0.5 rounded-full text-xs font-bold truncate cursor-pointer transition-all max-w-full",
                             isSubActive && "ring-2 ring-primary ring-offset-1"
                           )}
                           style={{ 
