@@ -375,13 +375,19 @@ export function useProposalData(proposalId: string) {
 
   // Reorder participants (batch update participant numbers)
   const reorderParticipants = async (reorderedParticipants: Participant[]) => {
-    // Optimistic update
-    setParticipants(reorderedParticipants);
+    // Update participant numbers in the reordered array
+    const updatedParticipants = reorderedParticipants.map((p, index) => ({
+      ...p,
+      participantNumber: index + 1,
+    }));
+    
+    // Optimistic update with correct participant numbers
+    setParticipants(updatedParticipants);
 
     // Batch update all participant numbers in the database
-    const updates = reorderedParticipants.map((p, index) => ({
+    const updates = updatedParticipants.map((p) => ({
       id: p.id,
-      participant_number: index + 1,
+      participant_number: p.participantNumber,
     }));
 
     // Update each participant's number
@@ -395,8 +401,10 @@ export function useProposalData(proposalId: string) {
     if (errors.length > 0) {
       toast.error('Failed to save participant order');
       console.error('Reorder errors:', errors);
-      // Refresh to get correct state
+      // Refresh to get correct state from database
       await fetchParticipants();
+    } else {
+      toast.success('Participant order saved');
     }
   };
 
