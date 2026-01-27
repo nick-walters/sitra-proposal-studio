@@ -105,16 +105,18 @@ export function InsertParticipantReferenceDialog({
                     "hover:bg-muted/80 transition-colors"
                   )}
                 >
-                  <span
-                    className="shrink-0 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap"
-                    style={{
-                      backgroundColor: '#000000',
-                      color: '#ffffff',
-                    }}
-                  >
-                    {participant.organisation_short_name || `P${participant.participant_number}`}
-                  </span>
-                  <div className="flex-1 min-w-0 ml-3">
+                  <div className="w-24 shrink-0">
+                    <span
+                      className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap"
+                      style={{
+                        backgroundColor: '#000000',
+                        color: '#ffffff',
+                      }}
+                    >
+                      {participant.organisation_short_name || `P${participant.participant_number}`}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
                     <div className="text-sm truncate">
                       {participant.organisation_name}
                     </div>
