@@ -234,6 +234,7 @@ export interface ParticipantMember {
   id: string;
   participantId: string;
   userId?: string;
+  personId?: string; // Link to centralized people table
   fullName: string;
   email?: string;
   roleInProject?: string;

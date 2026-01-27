@@ -16,8 +16,17 @@ import {
 import { Participant, ParticipantMember, ParticipantType, PARTICIPANT_TYPE_LABELS } from '@/types/proposal';
 import { SaveIndicator } from './SaveIndicator';
 import { CountrySelect } from './CountrySelect';
+import { PersonAutocomplete } from './PersonAutocomplete';
 import { User, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+
+interface SelectedPerson {
+  id: string;
+  full_name: string;
+  email: string | null;
+  default_role: string | null;
+}
 
 interface ParticipantDetailFormProps {
   participant: Participant;
@@ -65,6 +74,7 @@ export function ParticipantDetailForm({
     personMonths: 0,
     isPrimaryContact: false,
   });
+  const [selectedPerson, setSelectedPerson] = useState<SelectedPerson | null>(null);
   const [showAddMember, setShowAddMember] = useState(false);
 
   const members = participantMembers.filter(m => m.participantId === participant.id);
@@ -87,14 +97,48 @@ export function ParticipantDetailForm({
     }, 500);
   };
 
-  const handleAddMember = () => {
+  const handleAddMember = async () => {
     if (!newMember.fullName.trim()) {
       toast.error('Please enter the member name');
       return;
     }
+
+    let personId = selectedPerson?.id || null;
+
+    // If no existing person was selected, create a new one in the people table
+    if (!personId) {
+      const { data: newPerson, error } = await supabase
+        .from('people')
+        .insert({
+          full_name: newMember.fullName.trim(),
+          email: newMember.email?.trim() || null,
+          default_role: newMember.roleInProject?.trim() || null,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating person:', error);
+        // Continue anyway - the member will be added without a person_id link
+      } else {
+        personId = newPerson.id;
+      }
+    } else {
+      // Update the existing person's details in the central database
+      await supabase
+        .from('people')
+        .update({
+          full_name: newMember.fullName.trim(),
+          email: newMember.email?.trim() || null,
+          default_role: newMember.roleInProject?.trim() || null,
+        })
+        .eq('id', personId);
+    }
+
     onAddMember({
       ...newMember,
       participantId: participant.id,
+      personId: personId,
     });
     setNewMember({
       fullName: '',
@@ -103,8 +147,22 @@ export function ParticipantDetailForm({
       personMonths: 0,
       isPrimaryContact: false,
     });
+    setSelectedPerson(null);
     setShowAddMember(false);
-    toast.success('Team member added');
+    // Note: toast is shown by useProposalData hook
+  };
+
+  // Handle person selection from autocomplete
+  const handlePersonSelect = (person: SelectedPerson | null) => {
+    setSelectedPerson(person);
+    if (person) {
+      setNewMember({
+        ...newMember,
+        fullName: person.full_name,
+        email: person.email || '',
+        roleInProject: person.default_role || '',
+      });
+    }
   };
 
   return (
@@ -269,13 +327,19 @@ export function ParticipantDetailForm({
               <Card className="border-dashed">
                 <CardContent className="pt-4 space-y-4">
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
+                    <div className="space-y-2 sm:col-span-2">
                       <Label>Full name *</Label>
-                      <Input
+                      <PersonAutocomplete
                         value={newMember.fullName}
-                        onChange={(e) => setNewMember({ ...newMember, fullName: e.target.value })}
-                        placeholder="Dr. Jane Smith"
+                        onChange={(value) => setNewMember({ ...newMember, fullName: value })}
+                        onPersonSelect={handlePersonSelect}
+                        placeholder="Start typing a name..."
                       />
+                      {selectedPerson && (
+                        <p className="text-xs text-green-600">
+                          ✓ Selected from database - other fields auto-filled
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label>Email</Label>

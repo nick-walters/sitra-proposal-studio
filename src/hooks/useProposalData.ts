@@ -425,6 +425,7 @@ export function useProposalData(proposalId: string) {
         person_months: member.personMonths,
         is_primary_contact: member.isPrimaryContact,
         user_id: member.userId,
+        person_id: member.personId,
       })
       .select()
       .single();

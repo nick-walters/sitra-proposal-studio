@@ -23,6 +23,15 @@ import { Participant, ParticipantMember, ParticipantType, PARTICIPANT_TYPE_LABEL
 import { Plus, Trash2, Building2, User, Save, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { InlineGuideline } from './GuidelineBox';
+import { PersonAutocomplete } from './PersonAutocomplete';
+import { supabase } from '@/integrations/supabase/client';
+
+interface SelectedPerson {
+  id: string;
+  full_name: string;
+  email: string | null;
+  default_role: string | null;
+}
 
 interface ParticipantFormProps {
   participants: Participant[];
@@ -72,6 +81,7 @@ export function ParticipantForm({
     personMonths: 0,
     isPrimaryContact: false,
   });
+  const [selectedPerson, setSelectedPerson] = useState<SelectedPerson | null>(null);
 
   const handleAddParticipant = () => {
     if (!newParticipant.organisationName) {
@@ -100,15 +110,45 @@ export function ParticipantForm({
     toast.success('Participant added');
   };
 
-  const handleAddMember = () => {
+  const handleAddMember = async () => {
     if (!newMember.fullName || !selectedParticipantId) {
       toast.error('Member name is required');
       return;
     }
 
+    let personId = selectedPerson?.id || null;
+
+    // If no existing person was selected, create a new one in the people table
+    if (!personId) {
+      const { data: newPerson, error } = await supabase
+        .from('people')
+        .insert({
+          full_name: newMember.fullName.trim(),
+          email: newMember.email?.trim() || null,
+          default_role: newMember.roleInProject?.trim() || null,
+        })
+        .select()
+        .single();
+
+      if (!error && newPerson) {
+        personId = newPerson.id;
+      }
+    } else {
+      // Update the existing person's details in the central database
+      await supabase
+        .from('people')
+        .update({
+          full_name: newMember.fullName.trim(),
+          email: newMember.email?.trim() || null,
+          default_role: newMember.roleInProject?.trim() || null,
+        })
+        .eq('id', personId);
+    }
+
     onAddMember({
       ...newMember,
       participantId: selectedParticipantId,
+      personId: personId,
     });
 
     setNewMember({
@@ -118,8 +158,22 @@ export function ParticipantForm({
       personMonths: 0,
       isPrimaryContact: false,
     });
+    setSelectedPerson(null);
     setIsAddMemberDialogOpen(false);
-    toast.success('Team member added');
+    // Note: toast is shown by useProposalData hook
+  };
+
+  // Handle person selection from autocomplete
+  const handlePersonSelect = (person: SelectedPerson | null) => {
+    setSelectedPerson(person);
+    if (person) {
+      setNewMember({
+        ...newMember,
+        fullName: person.full_name,
+        email: person.email || '',
+        roleInProject: person.default_role || '',
+      });
+    }
   };
 
   const canEditParticipant = (participant: Participant) => {
@@ -472,12 +526,17 @@ export function ParticipantForm({
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="memberName">Full Name *</Label>
-                <Input
-                  id="memberName"
+                <PersonAutocomplete
                   value={newMember.fullName}
-                  onChange={(e) => setNewMember({ ...newMember, fullName: e.target.value })}
-                  placeholder="e.g. Jane Doe"
+                  onChange={(value) => setNewMember({ ...newMember, fullName: value })}
+                  onPersonSelect={handlePersonSelect}
+                  placeholder="Start typing a name..."
                 />
+                {selectedPerson && (
+                  <p className="text-xs text-green-600">
+                    ✓ Selected from database - other fields auto-filled
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="memberEmail">Email</Label>
