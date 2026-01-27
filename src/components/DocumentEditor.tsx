@@ -546,102 +546,95 @@ export function DocumentEditor({
     <div className="flex-1 flex flex-col min-h-0 relative">
       {/* Fixed toolbar container */}
       <div className="sticky top-0 z-10 bg-background">
-        {/* Features Toolbar - scrollable */}
-        <div className="flex items-center justify-between p-2 border-b border-border bg-card">
-          <div className="flex-1 overflow-x-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
-            <div className="flex items-center gap-2 min-w-max">
-            {/* Guidelines button - first, non-AI feature - red styling */}
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="gap-2 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
-                onClick={() => setIsGuidelinesOpen(true)}
-              >
-                <Info className="w-4 h-4" />
-                Guidelines
-              </Button>
-              <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsSearchOpen(true)}>
-                <Search className="w-4 h-4" />
-                Find & Replace
-              </Button>
-              <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsGrammarOpen(true)}>
-                <Sparkles className="w-4 h-4" />
-                Grammar Check
-              </Button>
-              {/* Impact Pathway Mapper for B2.1 section */}
-              {isImpactSection && (
+        {/* Features Toolbar - two-row compact layout */}
+        <div className="flex items-start justify-between px-2 py-1.5 border-b border-border bg-card">
+          <div className="flex-1">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+              {/* Row 1 */}
+              <div className="flex items-center gap-1 flex-wrap">
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="gap-2 bg-primary/5 border-primary/30 hover:bg-primary/10" 
-                  onClick={() => setIsImpactPathwayOpen(true)}
-                  disabled={isEffectivelyReadOnly}
+                  className="h-7 px-2 text-xs gap-1 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => setIsGuidelinesOpen(true)}
                 >
-                  <Route className="w-4 h-4" />
-                  Impact Pathways Mapper
+                  <Info className="w-3.5 h-3.5" />
+                  Guidelines
                 </Button>
-              )}
-              {/* AI Writing Assistant */}
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="gap-2"
-                onClick={() => setIsWritingAssistantOpen(true)}
-                disabled={!editor || isEffectivelyReadOnly}
-              >
-                <Wand2 className="w-4 h-4" />
-                AI Assistant
-              </Button>
-              {/* Snippets Library */}
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="gap-2"
-                onClick={() => setIsSnippetsOpen(true)}
-                disabled={!editor || isEffectivelyReadOnly}
-              >
-                <FileCode className="w-4 h-4" />
-                Snippets
-              </Button>
-              {/* Split View */}
-              <Button 
-                variant={isSplitViewOpen ? "default" : "outline"}
-                size="sm" 
-                className="gap-2"
-                onClick={() => setIsSplitViewOpen(!isSplitViewOpen)}
-              >
-                <SplitSquareHorizontal className="w-4 h-4" />
-                Split View
-              </Button>
-              {/* Version history */}
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="gap-2" 
-                onClick={() => setIsVersionHistoryOpen(true)}
-              >
-                <History className="w-4 h-4" />
-                History
-              </Button>
-              <Tooltip>
-                <TooltipTrigger asChild>
+                <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1" onClick={() => setIsSearchOpen(true)}>
+                  <Search className="w-3.5 h-3.5" />
+                  Find
+                </Button>
+                <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1" onClick={() => setIsGrammarOpen(true)}>
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Grammar
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-7 px-2 text-xs gap-1"
+                  onClick={() => setIsWritingAssistantOpen(true)}
+                  disabled={!editor || isEffectivelyReadOnly}
+                >
+                  <Wand2 className="w-3.5 h-3.5" />
+                  AI
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-7 px-2 text-xs gap-1"
+                  onClick={() => setIsSnippetsOpen(true)}
+                  disabled={!editor || isEffectivelyReadOnly}
+                >
+                  <FileCode className="w-3.5 h-3.5" />
+                  Snippets
+                </Button>
+              </div>
+              {/* Row 2 */}
+              <div className="flex items-center gap-1 flex-wrap">
+                {isImpactSection && (
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="gap-2" 
-                    onClick={() => setIsComparisonOpen(true)}
+                    className="h-7 px-2 text-xs gap-1 bg-primary/5 border-primary/30 hover:bg-primary/10" 
+                    onClick={() => setIsImpactPathwayOpen(true)}
+                    disabled={isEffectivelyReadOnly}
                   >
-                    <GitCompare className="w-4 h-4" />
-                    Compare
+                    <Route className="w-3.5 h-3.5" />
+                    Impact Mapper
                   </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Compare two versions side-by-side
-                </TooltipContent>
-              </Tooltip>
+                )}
+                <Button 
+                  variant={isSplitViewOpen ? "default" : "outline"}
+                  size="sm" 
+                  className="h-7 px-2 text-xs gap-1"
+                  onClick={() => setIsSplitViewOpen(!isSplitViewOpen)}
+                >
+                  <SplitSquareHorizontal className="w-3.5 h-3.5" />
+                  Split
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-7 px-2 text-xs gap-1" 
+                  onClick={() => setIsVersionHistoryOpen(true)}
+                >
+                  <History className="w-3.5 h-3.5" />
+                  History
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-7 px-2 text-xs gap-1" 
+                  onClick={() => setIsComparisonOpen(true)}
+                >
+                  <GitCompare className="w-3.5 h-3.5" />
+                  Compare
+                </Button>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-2 ml-2 shrink-0">
+          <div className="flex items-center gap-1 ml-2 shrink-0">
             {/* Lock/Unlock button - only visible to admins/owners */}
             {canManageLock && (
               <Tooltip>
@@ -649,18 +642,18 @@ export function DocumentEditor({
                   <Button 
                     variant={isLocked ? "default" : "outline"}
                     size="sm" 
-                    className={`gap-2 ${isLocked ? 'bg-amber-500 hover:bg-amber-600 text-white' : ''}`}
+                    className={`h-7 px-2 text-xs gap-1 ${isLocked ? 'bg-amber-500 hover:bg-amber-600 text-white' : ''}`}
                     onClick={() => toggleLock()}
                     disabled={lockUpdating}
                   >
                     {isLocked ? (
                       <>
-                        <Lock className="w-4 h-4" />
+                        <Lock className="w-3.5 h-3.5" />
                         Unlock
                       </>
                     ) : (
                       <>
-                        <Unlock className="w-4 h-4" />
+                        <Unlock className="w-3.5 h-3.5" />
                         Lock
                       </>
                     )}
@@ -678,10 +671,10 @@ export function DocumentEditor({
                 <Button 
                   variant="ghost" 
                   size="icon"
-                  className="h-8 w-8" 
+                  className="h-7 w-7" 
                   onClick={() => setIsShortcutsOpen(true)}
                 >
-                  <Keyboard className="w-4 h-4" />
+                  <Keyboard className="w-3.5 h-3.5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -693,13 +686,13 @@ export function DocumentEditor({
                 <Button 
                   variant={isCollaborationPanelOpen ? "default" : "outline"}
                   size="sm" 
-                  className="gap-2"
+                  className="h-7 px-2 gap-1"
                   onClick={() => setIsCollaborationPanelOpen(!isCollaborationPanelOpen)}
                 >
                   {isCollaborationPanelOpen ? (
-                    <PanelRightClose className="w-4 h-4" />
+                    <PanelRightClose className="w-3.5 h-3.5" />
                   ) : (
-                    <PanelRight className="w-4 h-4" />
+                    <PanelRight className="w-3.5 h-3.5" />
                   )}
                 </Button>
               </TooltipTrigger>
