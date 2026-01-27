@@ -333,8 +333,8 @@ function SectionItem({
           {/* Render WP Drafts and A2 Participants as 2-column grid of bubbles */}
           {(section.id === 'wp-drafts' || section.id === 'a2') ? (
             <div 
-              className="grid grid-cols-2 gap-x-2 gap-y-1 px-2 py-1"
-              style={{ paddingLeft: `${depth * 12 + 12}px` }}
+              className="grid grid-cols-2 gap-x-2 gap-y-1 py-1"
+              style={{ paddingLeft: `${(depth + 1) * 12 + 8}px`, paddingRight: '8px' }}
             >
               {section.subsections!.map((subsection) => {
                 const wpSub = subsection as WPSection;
