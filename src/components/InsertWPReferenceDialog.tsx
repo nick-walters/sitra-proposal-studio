@@ -108,7 +108,7 @@ export function InsertWPReferenceDialog({
                   >
                     WP{wp.number}
                   </Badge>
-                  <div className="shrink-0 ml-2 font-medium text-sm">
+                  <div className="w-20 shrink-0 ml-2 font-medium text-sm truncate">
                     {wp.short_name || '—'}
                   </div>
                   <div className="flex-1 min-w-0 ml-1 text-xs text-muted-foreground truncate">
