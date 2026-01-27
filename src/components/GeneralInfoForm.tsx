@@ -661,7 +661,7 @@ export function GeneralInfoForm({
                     className="max-w-md h-8 text-sm"
                   />
                   <div>
-                    <label className="text-xs text-muted-foreground mb-0.5 block">Link to topic</label>
+                    <label className="text-xs text-muted-foreground mb-0.5 block">Link to topic description</label>
                     <Input
                       value={editedProposal.topicUrl || ''}
                       onChange={(e) => setEditedProposal({ ...editedProposal, topicUrl: e.target.value })}
