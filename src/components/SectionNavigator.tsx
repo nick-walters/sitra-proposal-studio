@@ -163,22 +163,26 @@ function SectionItem({
         ) : section.id === 'wp-drafts' ? (
           <Layers className="w-4 h-4 text-muted-foreground" />
         ) : isWPSection && wpColor ? (
-          <div 
-            className="w-3 h-3 rounded-sm border flex-shrink-0"
-            style={{ backgroundColor: wpColor }}
-          />
-        ) : (
-          <FileText className="w-4 h-4 text-muted-foreground" />
-        )}
-        {/* Only show number if not a top-level bold item and number exists */}
-        {showNumber && !isTopLevelBold && (
-          <span className="font-medium text-muted-foreground mr-0.5">
-            {formatSectionNumber(section.number, depth)}
+          <span 
+            className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap"
+            style={{ backgroundColor: wpColor, color: '#ffffff' }}
+          >
+            WP{wpSection.wpNumber}: {wpSection.title}
           </span>
+        ) : (
+          <>
+            <FileText className="w-4 h-4 text-muted-foreground" />
+            {/* Only show number if not a top-level bold item and number exists */}
+            {showNumber && !isTopLevelBold && (
+              <span className="font-medium text-muted-foreground mr-0.5">
+                {formatSectionNumber(section.number, depth)}
+              </span>
+            )}
+            <span className={cn("flex-1 truncate", isActive && "font-medium")}>
+              {formatTitle(section.title)}
+            </span>
+          </>
         )}
-        <span className={cn("flex-1 truncate", isActive && "font-medium")}>
-          {formatTitle(section.title)}
-        </span>
         
         {/* Real-time collaborator presence indicators */}
         {sectionCollaborators.length > 0 && (
