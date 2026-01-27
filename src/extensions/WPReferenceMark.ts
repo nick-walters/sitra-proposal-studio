@@ -142,7 +142,7 @@ export const WPReferenceMark = Mark.create<WPReferenceOptions>({
           user-select: none;
         `,
       }),
-      `WP${wpNumber}`,
+      0, // Use 0 to render the actual text content, not duplicate it
     ];
   },
 

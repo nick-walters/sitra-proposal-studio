@@ -128,7 +128,7 @@ export const ParticipantReferenceMark = Mark.create<ParticipantReferenceOptions>
           user-select: none;
         `,
       }),
-      shortName || 'Partner',
+      0, // Use 0 to render the actual text content, not duplicate it
     ];
   },
 
