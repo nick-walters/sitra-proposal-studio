@@ -124,17 +124,17 @@ function ParticipantCard({
             )}
           </div>
           
-          {/* Names - Legal first, English in italics after */}
+          {/* Names - Legal first, English below in italics */}
           <div className="flex-1 min-w-0">
-            <span className="text-sm truncate">
+            <div className="text-sm truncate">
               {participant.organisationName || 'Unnamed Organisation'}
-            </span>
+            </div>
             {participant.englishName && 
              participant.englishName.trim() && 
              participant.englishName.trim().toLowerCase() !== (participant.organisationName || '').trim().toLowerCase() && (
-              <span className="text-sm text-muted-foreground italic ml-2 truncate">
-                ({participant.englishName})
-              </span>
+              <div className="text-sm text-muted-foreground italic truncate">
+                {participant.englishName}
+              </div>
             )}
           </div>
           
