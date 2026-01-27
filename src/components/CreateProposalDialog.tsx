@@ -337,7 +337,7 @@ export function CreateProposalDialog({
                   onCheckedChange={(checked) => setUsesFstp(checked === true)}
                 />
                 <Label htmlFor="uses-fstp" className="text-sm cursor-pointer">
-                  Topic uses Financial Support to Third Parties (FSTP)
+                  Financial support to third parties (FSTP) is possible under this topic
                 </Label>
               </div>
             </div>
