@@ -1,10 +1,14 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { Image } from 'https://deno.land/x/imagescript@1.3.0/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 // Extensive known organization domain mappings
 const knownDomains: Record<string, string> = {
@@ -369,8 +373,8 @@ async function cropEmptySpace(imageBuffer: ArrayBuffer): Promise<Uint8Array> {
   }
 }
 
-// Fetch and process logo (crop empty space)
-async function fetchAndProcessLogo(imageUrl: string): Promise<string> {
+// Fetch, process, and upload logo to storage
+async function fetchProcessAndUploadLogo(imageUrl: string, organisationName: string): Promise<string> {
   const response = await fetch(imageUrl, {
     headers: { 'Cache-Control': 'no-cache' }
   });
@@ -384,10 +388,34 @@ async function fetchAndProcessLogo(imageUrl: string): Promise<string> {
   // Crop empty space
   const croppedImage = await cropEmptySpace(imageBuffer);
   
-  // Convert to base64 data URL
-  const base64 = btoa(String.fromCharCode(...croppedImage));
+  // Create Supabase client with service role key
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
   
-  return `data:image/png;base64,${base64}`;
+  // Generate unique filename
+  const timestamp = Date.now();
+  const cleanName = organisationName.toLowerCase().replace(/[^a-z0-9]/g, '-').substring(0, 30);
+  const fileName = `logos/${cleanName}-${timestamp}.png`;
+  
+  // Upload to storage
+  const { data, error } = await supabase.storage
+    .from('participant-logos')
+    .upload(fileName, croppedImage, {
+      contentType: 'image/png',
+      upsert: true
+    });
+  
+  if (error) {
+    console.error('Storage upload error:', error);
+    throw new Error('Failed to upload logo to storage');
+  }
+  
+  // Get public URL
+  const { data: urlData } = supabase.storage
+    .from('participant-logos')
+    .getPublicUrl(fileName);
+  
+  console.log('Logo uploaded to storage:', urlData.publicUrl);
+  return urlData.publicUrl;
 }
 
 serve(async (req: Request) => {
@@ -420,12 +448,12 @@ serve(async (req: Request) => {
     
     console.log('Found logo:', logoUrl);
     
-    // Fetch, crop, and return as data URL
+    // Fetch, crop, upload to storage, and return public URL
     try {
-      const processedDataUrl = await fetchAndProcessLogo(logoUrl);
-      console.log('Logo processed and cropped successfully');
+      const storageUrl = await fetchProcessAndUploadLogo(logoUrl, organisationName);
+      console.log('Logo processed and uploaded successfully');
       return new Response(
-        JSON.stringify({ logoUrl: processedDataUrl, originalUrl: logoUrl, cropped: true }),
+        JSON.stringify({ logoUrl: storageUrl, originalUrl: logoUrl, cropped: true }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     } catch (e) {
