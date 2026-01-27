@@ -3,7 +3,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Participant, ParticipantMember, Section, ParticipantType } from '@/types/proposal';
-import { Building2, GripVertical, UserPlus, Plus, Search, Check } from 'lucide-react';
+import { Building2, GripVertical, UserPlus, Plus, Search, Check, Upload, X, Loader2 } from 'lucide-react';
+import { generateParticipantLogoPath, uploadProposalFile } from '@/lib/proposalStorage';
 import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
 import { Badge } from './ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
@@ -66,6 +67,7 @@ interface ParticipantListViewProps {
 
 interface ParticipantCardProps {
   participant: Participant;
+  proposalId: string;
   onSelect: () => void;
   canReorder: boolean;
   canEdit: boolean;
@@ -79,6 +81,7 @@ interface ParticipantCardProps {
 
 interface SortableParticipantCardProps {
   participant: Participant;
+  proposalId: string;
   onSelect: () => void;
   canReorder: boolean;
   canEdit: boolean;
@@ -107,6 +110,7 @@ function useDebounce<T>(value: T, delay: number): T {
 
 function ParticipantCard({ 
   participant, 
+  proposalId,
   onSelect, 
   canReorder, 
   canEdit,
@@ -124,6 +128,8 @@ function ParticipantCard({
   const [country, setCountry] = useState(participant.country || '');
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
   
   // Track if values have changed from original
   const originalRef = useRef({
@@ -312,8 +318,49 @@ function ParticipantCard({
             )}
           </div>
           
-          {/* Logo with fetch button */}
+          {/* Logo with fetch/upload/delete buttons */}
           <div className="w-10 h-10 shrink-0 flex items-center justify-center relative group">
+            {/* Hidden file input for logo upload */}
+            <input
+              ref={logoInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file || !onUpdateParticipant || !proposalId) return;
+                
+                if (!file.type.startsWith('image/')) {
+                  toast.error('Please upload an image file');
+                  return;
+                }
+                if (file.size > 2 * 1024 * 1024) {
+                  toast.error('Image must be less than 2MB');
+                  return;
+                }
+                
+                setIsUploadingLogo(true);
+                try {
+                  const filePath = generateParticipantLogoPath(proposalId, participant.participantNumber || 0, file.name);
+                  const { url, error } = await uploadProposalFile(file, filePath, { upsert: true });
+                  
+                  if (error) {
+                    toast.error('Failed to upload logo');
+                    return;
+                  }
+                  
+                  await onUpdateParticipant(participant.id, { logoUrl: url || undefined });
+                  toast.success('Logo uploaded');
+                } catch (err) {
+                  console.error('Upload error:', err);
+                  toast.error('Failed to upload logo');
+                } finally {
+                  setIsUploadingLogo(false);
+                  if (logoInputRef.current) logoInputRef.current.value = '';
+                }
+              }}
+            />
+            
             {participant.logoUrl ? (
               <img 
                 src={participant.logoUrl} 
@@ -325,18 +372,55 @@ function ParticipantCard({
                 <Building2 className="w-4 h-4 text-muted-foreground" />
               </div>
             )}
-            {canEdit && onFetchLogo && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onFetchLogo();
-                }}
-                disabled={isFetchingLogo}
-                className="absolute inset-0 bg-background/80 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
-                title="Fetch logo"
-              >
-                <Search className={`w-4 h-4 ${isFetchingLogo ? 'animate-spin' : ''}`} />
-              </button>
+            
+            {/* Hover overlay with action buttons */}
+            {canEdit && onUpdateParticipant && (
+              <div className="absolute inset-0 bg-background/90 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-0.5 transition-opacity">
+                {isUploadingLogo || isFetchingLogo ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    {/* Fetch logo from web */}
+                    {onFetchLogo && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onFetchLogo();
+                        }}
+                        className="p-1 hover:bg-muted rounded"
+                        title="Fetch logo from web"
+                      >
+                        <Search className="w-3 h-3" />
+                      </button>
+                    )}
+                    {/* Upload logo from file */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        logoInputRef.current?.click();
+                      }}
+                      className="p-1 hover:bg-muted rounded"
+                      title="Upload logo"
+                    >
+                      <Upload className="w-3 h-3" />
+                    </button>
+                    {/* Delete logo - only show if there's a logo */}
+                    {participant.logoUrl && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onUpdateParticipant(participant.id, { logoUrl: null as unknown as string });
+                          toast.success('Logo removed');
+                        }}
+                        className="p-1 hover:bg-destructive/20 rounded text-destructive"
+                        title="Remove logo"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
             )}
           </div>
           
@@ -392,7 +476,7 @@ function ParticipantCard({
   );
 }
 
-function SortableParticipantCard({ participant, onSelect, canReorder, canEdit, wpLeadership, onFetchLogo, isFetchingLogo, onUpdateParticipant }: SortableParticipantCardProps) {
+function SortableParticipantCard({ participant, proposalId, onSelect, canReorder, canEdit, wpLeadership, onFetchLogo, isFetchingLogo, onUpdateParticipant }: SortableParticipantCardProps) {
   const {
     attributes,
     listeners,
@@ -413,6 +497,7 @@ function SortableParticipantCard({ participant, onSelect, canReorder, canEdit, w
     <div ref={setNodeRef} style={style}>
       <ParticipantCard
         participant={participant}
+        proposalId={proposalId}
         onSelect={onSelect}
         canReorder={canReorder}
         canEdit={canEdit}
@@ -607,6 +692,7 @@ export function ParticipantListView({
                     <SortableParticipantCard
                       key={participant.id}
                       participant={participant}
+                      proposalId={proposalId}
                       onSelect={() => onSelectParticipant(participant)}
                       canReorder={canReorder}
                       canEdit={canEdit}
@@ -625,6 +711,7 @@ export function ParticipantListView({
                 <ParticipantCard
                   key={participant.id}
                   participant={participant}
+                  proposalId={proposalId}
                   onSelect={() => onSelectParticipant(participant)}
                   canReorder={false}
                   canEdit={canEdit}
