@@ -370,8 +370,8 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
   return (
     <Card>
       <CardHeader className="pb-2 pt-4">
-        <CardTitle className="flex items-center gap-2 text-sm">
-          <Layers className="w-4 h-4" />
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Layers className="w-5 h-5" />
           Work package manager
         </CardTitle>
       </CardHeader>
