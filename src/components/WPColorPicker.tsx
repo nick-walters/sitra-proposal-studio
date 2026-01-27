@@ -44,19 +44,17 @@ export function WPColorPicker({
     }
   };
 
-  const textColor = getContrastingTextColor(color);
-
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         {wpNumber !== undefined ? (
           <button
             className={cn(
-              "inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold transition-all",
+              "inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold transition-all text-white",
               "hover:ring-2 hover:ring-primary/30 hover:scale-105",
               disabled && "opacity-50 cursor-not-allowed"
             )}
-            style={{ backgroundColor: color, color: textColor }}
+            style={{ backgroundColor: color }}
             disabled={disabled}
           >
             WP{wpNumber}
