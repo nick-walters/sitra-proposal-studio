@@ -841,7 +841,7 @@ export function ProposalEditor() {
         <aside
           className={cn(
             "border-r border-border bg-card flex flex-col transition-all duration-300 flex-shrink-0",
-            isSidebarCollapsed ? "w-0 overflow-hidden" : "w-72"
+            isSidebarCollapsed ? "w-0 overflow-hidden" : "w-60"
           )}
         >
           <div className="flex-1 overflow-y-auto overflow-x-hidden">
