@@ -547,11 +547,9 @@ export function DocumentEditor({
     <div className="flex-1 flex flex-col min-h-0 relative">
       {/* Fixed toolbar container */}
       <div className="sticky top-0 z-10 bg-background">
-        {/* Features Toolbar - two-row stacked layout */}
+        {/* Row 1: Guidelines | Autosaved | Find | Split Compare | Lock History | Shortcuts Comments/Panel */}
         <div className="px-2 py-1 border-b border-border bg-card">
-          {/* Features Toolbar - single row with 3 groups */}
           <div className="flex items-center justify-between gap-2">
-            {/* Left group: Guidelines, Find, Split, History, Lock, Compare */}
             <div className="flex items-center gap-1">
               <Button 
                 variant="outline" 
@@ -562,10 +560,20 @@ export function DocumentEditor({
                 <Info className="w-3 h-3" />
                 Guidelines
               </Button>
+              
+              <Separator orientation="vertical" className="h-4 mx-1" />
+              
+              {!isEffectivelyReadOnly && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
+              
+              <Separator orientation="vertical" className="h-4 mx-1" />
+              
               <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={() => setIsSearchOpen(true)}>
                 <Search className="w-3 h-3" />
                 Find
               </Button>
+              
+              <Separator orientation="vertical" className="h-4 mx-1" />
+              
               <Button 
                 variant={isSplitViewOpen ? "default" : "outline"}
                 size="sm" 
@@ -579,11 +587,14 @@ export function DocumentEditor({
                 variant="outline" 
                 size="sm" 
                 className="h-6 px-2 text-xs gap-1" 
-                onClick={() => setIsVersionHistoryOpen(true)}
+                onClick={() => setIsComparisonOpen(true)}
               >
-                <History className="w-3 h-3" />
-                History
+                <GitCompare className="w-3 h-3" />
+                Compare
               </Button>
+              
+              <Separator orientation="vertical" className="h-4 mx-1" />
+              
               {canManageLock && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -607,122 +618,14 @@ export function DocumentEditor({
                 variant="outline" 
                 size="sm" 
                 className="h-6 px-2 text-xs gap-1" 
-                onClick={() => setIsComparisonOpen(true)}
+                onClick={() => setIsVersionHistoryOpen(true)}
               >
-                <GitCompare className="w-3 h-3" />
-                Compare
+                <History className="w-3 h-3" />
+                History
               </Button>
-              
-              <Separator orientation="vertical" className="h-4 mx-1" />
-              
-              {/* Middle group: Grammar, AI, Snippets */}
-              <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={() => setIsGrammarOpen(true)}>
-                <Sparkles className="w-3 h-3" />
-                Grammar
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-6 px-2 text-xs gap-1"
-                onClick={() => setIsWritingAssistantOpen(true)}
-                disabled={!editor || isEffectivelyReadOnly}
-              >
-                <Wand2 className="w-3 h-3" />
-                AI
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-6 px-2 text-xs gap-1"
-                onClick={() => setIsSnippetsOpen(true)}
-                disabled={!editor || isEffectivelyReadOnly}
-              >
-                <FileCode className="w-3 h-3" />
-                Snippets
-              </Button>
-              {isImpactSection && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-6 px-2 text-xs gap-1 bg-primary/5 border-primary/30 hover:bg-primary/10" 
-                  onClick={() => setIsImpactPathwayOpen(true)}
-                  disabled={isEffectivelyReadOnly}
-                >
-                  <Route className="w-3 h-3" />
-                  Impact Mapper
-                </Button>
-              )}
-              
-              <Separator orientation="vertical" className="h-4 mx-1" />
-              
-              {/* Right group: Citation, Cross-ref, WP, Partner */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-6 px-2 text-xs gap-1"
-                    onClick={() => setIsCitationOpen(true)}
-                    disabled={isEffectivelyReadOnly}
-                  >
-                    <FileText className="w-3 h-3" />
-                    Citation
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Add Citation</TooltipContent>
-              </Tooltip>
-              {section && !section.isPartA && (
-                <>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-6 px-2 text-xs gap-1"
-                        onClick={() => setIsCrossRefOpen(true)}
-                        disabled={isEffectivelyReadOnly}
-                      >
-                        <Link2 className="w-3 h-3" />
-                        Cross-ref
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Insert Cross-reference</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-6 px-2 text-xs gap-1"
-                        onClick={() => setIsWPRefOpen(true)}
-                        disabled={isEffectivelyReadOnly}
-                      >
-                        <Layers className="w-3 h-3" />
-                        WP
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Insert WP Reference</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-6 px-2 text-xs gap-1"
-                        onClick={() => setIsParticipantRefOpen(true)}
-                        disabled={isEffectivelyReadOnly}
-                      >
-                        <Building2 className="w-3 h-3" />
-                        Partner
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Insert Partner Reference</TooltipContent>
-                  </Tooltip>
-                </>
-              )}
             </div>
             
-            {/* Right side: shortcuts, panel toggle, save indicator */}
+            {/* Right side: shortcuts, panel toggle */}
             <div className="flex items-center gap-1 shrink-0">
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -745,8 +648,116 @@ export function DocumentEditor({
                 </TooltipTrigger>
                 <TooltipContent>{isCollaborationPanelOpen ? 'Hide panel' : 'Show panel'}</TooltipContent>
               </Tooltip>
-              {!isEffectivelyReadOnly && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
             </div>
+          </div>
+        </div>
+
+        {/* Row 2: Grammar AI Snippets | Citation Cross-ref WP Partner */}
+        <div className="px-2 py-1 border-b border-border bg-card">
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={() => setIsGrammarOpen(true)}>
+              <Sparkles className="w-3 h-3" />
+              Grammar
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-6 px-2 text-xs gap-1"
+              onClick={() => setIsWritingAssistantOpen(true)}
+              disabled={!editor || isEffectivelyReadOnly}
+            >
+              <Wand2 className="w-3 h-3" />
+              AI
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-6 px-2 text-xs gap-1"
+              onClick={() => setIsSnippetsOpen(true)}
+              disabled={!editor || isEffectivelyReadOnly}
+            >
+              <FileCode className="w-3 h-3" />
+              Snippets
+            </Button>
+            {isImpactSection && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-6 px-2 text-xs gap-1 bg-primary/5 border-primary/30 hover:bg-primary/10" 
+                onClick={() => setIsImpactPathwayOpen(true)}
+                disabled={isEffectivelyReadOnly}
+              >
+                <Route className="w-3 h-3" />
+                Impact Mapper
+              </Button>
+            )}
+            
+            <Separator orientation="vertical" className="h-4 mx-1" />
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-6 px-2 text-xs gap-1"
+                  onClick={() => setIsCitationOpen(true)}
+                  disabled={isEffectivelyReadOnly}
+                >
+                  <FileText className="w-3 h-3" />
+                  Citation
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Add Citation</TooltipContent>
+            </Tooltip>
+            {section && !section.isPartA && (
+              <>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 px-2 text-xs gap-1"
+                      onClick={() => setIsCrossRefOpen(true)}
+                      disabled={isEffectivelyReadOnly}
+                    >
+                      <Link2 className="w-3 h-3" />
+                      Cross-ref
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Insert Cross-reference</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 px-2 text-xs gap-1"
+                      onClick={() => setIsWPRefOpen(true)}
+                      disabled={isEffectivelyReadOnly}
+                    >
+                      <Layers className="w-3 h-3" />
+                      WP
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Insert WP Reference</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 px-2 text-xs gap-1"
+                      onClick={() => setIsParticipantRefOpen(true)}
+                      disabled={isEffectivelyReadOnly}
+                    >
+                      <Building2 className="w-3 h-3" />
+                      Partner
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Insert Partner Reference</TooltipContent>
+                </Tooltip>
+              </>
+            )}
           </div>
         </div>
 
