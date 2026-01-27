@@ -953,14 +953,14 @@ export function GeneralInfoForm({
                   onCheckedChange={(checked) => onUpdateProposal({ usesFstp: checked === true })}
                 />
                 <Label htmlFor="uses-fstp" className="text-sm cursor-pointer">
-                  Topic uses Financial Support to Third Parties (FSTP)
+                  Financial support to third parties (FSTP) is possible under this topic
                 </Label>
               </div>
             ) : proposal?.usesFstp ? (
               <div className="flex items-center space-x-2 mt-3 pt-3 border-t">
                 <Checkbox id="uses-fstp-readonly" checked disabled />
                 <Label htmlFor="uses-fstp-readonly" className="text-sm text-muted-foreground">
-                  Topic uses Financial Support to Third Parties (FSTP)
+                  Financial support to third parties (FSTP) is possible under this topic
                 </Label>
               </div>
             ) : null}
