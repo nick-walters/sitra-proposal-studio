@@ -34,6 +34,7 @@ interface AddParticipantDialogProps {
     isSme: boolean;
     organisationCategory?: OrganisationCategory;
     englishName?: string;
+    logoUrl?: string;
   }) => Promise<void>;
   participantCount: number;
 }
@@ -56,6 +57,7 @@ export function AddParticipantDialog({
     organisationType: 'beneficiary' as ParticipantType,
     country: '',
     organisationCategory: '' as OrganisationCategory | '',
+    logoUrl: '',
   });
   
   // Form validation errors
@@ -103,6 +105,7 @@ export function AddParticipantDialog({
         country: form.country || undefined,
         isSme: false,
         organisationCategory: form.organisationCategory || undefined,
+        logoUrl: form.logoUrl || undefined,
       });
       handleClose();
       toast.success('Participant added successfully');
@@ -124,6 +127,7 @@ export function AddParticipantDialog({
       organisationType: 'beneficiary',
       country: '',
       organisationCategory: '',
+      logoUrl: '',
     });
     onOpenChange(false);
   };

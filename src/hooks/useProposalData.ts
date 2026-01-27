@@ -279,7 +279,7 @@ export function useProposalData(proposalId: string) {
   };
 
   // Add participant
-  const addParticipant = async (participant: Omit<Participant, 'id'> & { organisationCategory?: string; englishName?: string }) => {
+  const addParticipant = async (participant: Omit<Participant, 'id'> & { organisationCategory?: string; englishName?: string; logoUrl?: string }) => {
     // Check for duplicate PIC before adding
     // Note: Same organisation name is allowed as orgs can have multiple PICs (e.g., different departments/offices)
     const picNumber = participant.picNumber?.trim();
@@ -311,6 +311,8 @@ export function useProposalData(proposalId: string) {
           country: participant.country,
           legal_entity_type: participant.legalEntityType,
           is_sme: participant.isSme,
+          english_name: participant.englishName,
+          logo_url: participant.logoUrl,
         });
       }
     }
@@ -331,6 +333,7 @@ export function useProposalData(proposalId: string) {
         address: participant.address,
         organisation_category: participant.organisationCategory,
         english_name: participant.englishName,
+        logo_url: participant.logoUrl,
       })
       .select()
       .single();
@@ -367,9 +370,57 @@ export function useProposalData(proposalId: string) {
       toast.error('Failed to update participant');
       console.error(error);
     } else {
+      // Update local state
       setParticipants((prev) =>
         prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
       );
+
+      // Sync to centralized organisations registry (by PIC number)
+      // Find the participant to get its PIC
+      const participant = participants.find(p => p.id === id);
+      const picNumber = updates.picNumber?.trim() || participant?.picNumber?.trim();
+      
+      if (picNumber) {
+        // Build registry updates - only sync org-level fields, not proposal-specific ones
+        const registryUpdates: any = {};
+        if (updates.organisationName !== undefined) registryUpdates.name = updates.organisationName;
+        if (updates.organisationShortName !== undefined) registryUpdates.short_name = updates.organisationShortName;
+        if (updates.country !== undefined) registryUpdates.country = updates.country;
+        if (updates.legalEntityType !== undefined) registryUpdates.legal_entity_type = updates.legalEntityType;
+        if (updates.isSme !== undefined) registryUpdates.is_sme = updates.isSme;
+        if (updates.englishName !== undefined) registryUpdates.english_name = updates.englishName;
+        if ('logoUrl' in updates) registryUpdates.logo_url = updates.logoUrl || null;
+        
+        if (Object.keys(registryUpdates).length > 0) {
+          // Upsert to registry - update if exists, insert if not
+          const { data: existingOrg } = await supabase
+            .from('organisations')
+            .select('id')
+            .eq('pic_number', picNumber)
+            .maybeSingle();
+          
+          if (existingOrg) {
+            // Update existing registry entry
+            await supabase
+              .from('organisations')
+              .update(registryUpdates)
+              .eq('pic_number', picNumber);
+          } else {
+            // Create new registry entry with full participant data
+            const fullParticipant = { ...participant, ...updates };
+            await supabase.from('organisations').insert({
+              name: fullParticipant.organisationName || '',
+              short_name: fullParticipant.organisationShortName,
+              pic_number: picNumber,
+              country: fullParticipant.country,
+              legal_entity_type: fullParticipant.legalEntityType,
+              is_sme: fullParticipant.isSme,
+              english_name: fullParticipant.englishName,
+              logo_url: fullParticipant.logoUrl,
+            });
+          }
+        }
+      }
     }
   };
 
