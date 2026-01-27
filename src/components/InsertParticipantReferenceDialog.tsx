@@ -16,6 +16,7 @@ interface Participant {
   participant_number: number;
   organisation_short_name: string | null;
   organisation_name: string;
+  english_name: string | null;
 }
 
 interface InsertParticipantReferenceDialogProps {
@@ -48,7 +49,7 @@ export function InsertParticipantReferenceDialog({
     setLoading(true);
     const { data, error } = await supabase
       .from('participants')
-      .select('id, participant_number, organisation_short_name, organisation_name')
+      .select('id, participant_number, organisation_short_name, organisation_name, english_name')
       .eq('proposal_id', proposalId)
       .order('participant_number');
 
@@ -71,7 +72,7 @@ export function InsertParticipantReferenceDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Building2 className="w-5 h-5" />
@@ -105,7 +106,7 @@ export function InsertParticipantReferenceDialog({
                   )}
                 >
                   <span
-                    className="shrink-0 inline-flex items-center justify-center w-16 px-2 py-0.5 rounded-full text-xs font-bold"
+                    className="shrink-0 inline-flex items-center justify-center w-20 px-2 py-0.5 rounded-full text-xs font-bold"
                     style={{
                       backgroundColor: '#000000',
                       color: '#ffffff',
@@ -113,8 +114,15 @@ export function InsertParticipantReferenceDialog({
                   >
                     {participant.organisation_short_name || `P${participant.participant_number}`}
                   </span>
-                  <div className="flex-1 min-w-0 ml-3 text-sm truncate">
-                    {participant.organisation_name}
+                  <div className="flex-1 min-w-0 ml-3">
+                    <div className="text-sm truncate">
+                      {participant.organisation_name}
+                    </div>
+                    {participant.english_name && participant.english_name !== participant.organisation_name && (
+                      <div className="text-xs text-muted-foreground truncate">
+                        {participant.english_name}
+                      </div>
+                    )}
                   </div>
                 </button>
               ))}
