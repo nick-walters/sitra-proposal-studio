@@ -1,15 +1,15 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Participant, ParticipantMember, Section, ParticipantType } from '@/types/proposal';
-import { Building2, GripVertical, UserPlus, Plus, Pencil, Search } from 'lucide-react';
+import { Building2, GripVertical, UserPlus, Plus, Search, Check } from 'lucide-react';
 import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
 import { Badge } from './ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { InviteToProposalDialog } from './InviteToProposalDialog';
 import { AddParticipantDialog } from './AddParticipantDialog';
 import { getContrastingTextColor } from '@/lib/wpColors';
-import { OrganisationCategory } from './ParticipantTable';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
@@ -64,6 +64,19 @@ interface ParticipantListViewProps {
   wpLeadership?: Record<string, WPLeadershipInfo[]>;
 }
 
+interface ParticipantCardProps {
+  participant: Participant;
+  onSelect: () => void;
+  canReorder: boolean;
+  canEdit: boolean;
+  wpLeadership?: WPLeadershipInfo[];
+  dragHandleProps?: Record<string, unknown>;
+  isDragging?: boolean;
+  onFetchLogo?: () => void;
+  isFetchingLogo?: boolean;
+  onUpdateParticipant?: (id: string, updates: Partial<Participant>) => Promise<void>;
+}
+
 interface SortableParticipantCardProps {
   participant: Participant;
   onSelect: () => void;
@@ -72,6 +85,24 @@ interface SortableParticipantCardProps {
   wpLeadership?: WPLeadershipInfo[];
   onFetchLogo?: () => void;
   isFetchingLogo?: boolean;
+  onUpdateParticipant?: (id: string, updates: Partial<Participant>) => Promise<void>;
+}
+
+// Debounce hook for autosave
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
 }
 
 function ParticipantCard({ 
@@ -84,17 +115,95 @@ function ParticipantCard({
   isDragging,
   onFetchLogo,
   isFetchingLogo,
-}: { 
-  participant: Participant; 
-  onSelect: () => void; 
-  canReorder: boolean;
-  canEdit: boolean;
-  wpLeadership?: WPLeadershipInfo[];
-  dragHandleProps?: Record<string, unknown>;
-  isDragging?: boolean;
-  onFetchLogo?: () => void;
-  isFetchingLogo?: boolean;
-}) {
+  onUpdateParticipant,
+}: ParticipantCardProps) {
+  // Local state for editable fields
+  const [shortName, setShortName] = useState(participant.organisationShortName || '');
+  const [legalName, setLegalName] = useState(participant.organisationName || '');
+  const [englishName, setEnglishName] = useState(participant.englishName || '');
+  const [country, setCountry] = useState(participant.country || '');
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+  
+  // Track if values have changed from original
+  const originalRef = useRef({
+    shortName: participant.organisationShortName || '',
+    legalName: participant.organisationName || '',
+    englishName: participant.englishName || '',
+    country: participant.country || '',
+  });
+
+  // Update local state when participant prop changes
+  useEffect(() => {
+    setShortName(participant.organisationShortName || '');
+    setLegalName(participant.organisationName || '');
+    setEnglishName(participant.englishName || '');
+    setCountry(participant.country || '');
+    originalRef.current = {
+      shortName: participant.organisationShortName || '',
+      legalName: participant.organisationName || '',
+      englishName: participant.englishName || '',
+      country: participant.country || '',
+    };
+    setHasChanges(false);
+  }, [participant.id, participant.organisationShortName, participant.organisationName, participant.englishName, participant.country]);
+
+  // Debounced values for autosave
+  const debouncedShortName = useDebounce(shortName, 1000);
+  const debouncedLegalName = useDebounce(legalName, 1000);
+  const debouncedEnglishName = useDebounce(englishName, 1000);
+  const debouncedCountry = useDebounce(country, 1000);
+
+  // Autosave effect
+  useEffect(() => {
+    if (!canEdit || !onUpdateParticipant) return;
+
+    const updates: Partial<Participant> = {};
+    let hasUpdates = false;
+
+    if (debouncedShortName !== originalRef.current.shortName) {
+      updates.organisationShortName = debouncedShortName || undefined;
+      hasUpdates = true;
+    }
+    if (debouncedLegalName !== originalRef.current.legalName) {
+      updates.organisationName = debouncedLegalName;
+      hasUpdates = true;
+    }
+    if (debouncedEnglishName !== originalRef.current.englishName) {
+      updates.englishName = debouncedEnglishName || undefined;
+      hasUpdates = true;
+    }
+    if (debouncedCountry !== originalRef.current.country) {
+      updates.country = debouncedCountry || undefined;
+      hasUpdates = true;
+    }
+
+    if (hasUpdates) {
+      setIsSaving(true);
+      onUpdateParticipant(participant.id, updates)
+        .then(() => {
+          originalRef.current = {
+            shortName: debouncedShortName,
+            legalName: debouncedLegalName,
+            englishName: debouncedEnglishName,
+            country: debouncedCountry,
+          };
+          setHasChanges(false);
+        })
+        .finally(() => {
+          setIsSaving(false);
+        });
+    }
+  }, [debouncedShortName, debouncedLegalName, debouncedEnglishName, debouncedCountry, canEdit, onUpdateParticipant, participant.id]);
+
+  // Track changes
+  const handleChange = useCallback((setter: React.Dispatch<React.SetStateAction<string>>) => {
+    return (e: React.ChangeEvent<HTMLInputElement>) => {
+      setter(e.target.value);
+      setHasChanges(true);
+    };
+  }, []);
+
   return (
     <Card className={`${isDragging ? 'shadow-lg ring-2 ring-primary' : ''}`}>
       <CardContent className="py-2 px-3">
@@ -115,26 +224,54 @@ function ParticipantCard({
             <span className="font-bold text-primary text-sm">{participant.participantNumber}</span>
           </div>
           
-          {/* Short name - bold italic, no brackets */}
-          <div className="w-16 shrink-0">
-            {participant.organisationShortName ? (
-              <span className="font-semibold italic text-sm">{participant.organisationShortName}</span>
+          {/* Short name - editable */}
+          <div className="w-20 shrink-0">
+            {canEdit ? (
+              <Input
+                value={shortName}
+                onChange={handleChange(setShortName)}
+                placeholder="Short"
+                className="h-7 text-sm font-semibold italic px-1.5"
+              />
             ) : (
-              <span className="text-muted-foreground text-sm">—</span>
+              shortName ? (
+                <span className="font-semibold italic text-sm">{shortName}</span>
+              ) : (
+                <span className="text-muted-foreground text-sm">—</span>
+              )
             )}
           </div>
           
-          {/* Names - Legal first, English below in italics */}
-          <div className="flex-1 min-w-0">
-            <div className="text-sm truncate">
-              {participant.organisationName || 'Unnamed Organisation'}
-            </div>
-            {participant.englishName && 
-             participant.englishName.trim() && 
-             participant.englishName.trim().toLowerCase() !== (participant.organisationName || '').trim().toLowerCase() && (
-              <div className="text-sm text-muted-foreground italic truncate">
-                {participant.englishName}
-              </div>
+          {/* Names - editable */}
+          <div className="flex-1 min-w-0 space-y-1">
+            {canEdit ? (
+              <>
+                <Input
+                  value={legalName}
+                  onChange={handleChange(setLegalName)}
+                  placeholder="Legal name"
+                  className="h-7 text-sm px-1.5"
+                />
+                <Input
+                  value={englishName}
+                  onChange={handleChange(setEnglishName)}
+                  placeholder="English name (if different)"
+                  className="h-7 text-sm px-1.5 italic text-muted-foreground"
+                />
+              </>
+            ) : (
+              <>
+                <div className="text-sm truncate">
+                  {legalName || 'Unnamed Organisation'}
+                </div>
+                {englishName && 
+                 englishName.trim() && 
+                 englishName.trim().toLowerCase() !== legalName.trim().toLowerCase() && (
+                  <div className="text-sm text-muted-foreground italic truncate">
+                    {englishName}
+                  </div>
+                )}
+              </>
             )}
           </div>
           
@@ -198,33 +335,62 @@ function ParticipantCard({
             )}
           </div>
           
-          {/* Country */}
-          <div className="w-24 shrink-0 text-sm text-muted-foreground truncate">
-            {participant.country || '—'}
+          {/* Country - editable */}
+          <div className="w-28 shrink-0">
+            {canEdit ? (
+              <Input
+                value={country}
+                onChange={handleChange(setCountry)}
+                placeholder="Country"
+                className="h-7 text-sm px-1.5 text-muted-foreground"
+              />
+            ) : (
+              <span className="text-sm text-muted-foreground truncate block">
+                {country || '—'}
+              </span>
+            )}
           </div>
           
-          {/* Edit button */}
-          {canEdit && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="shrink-0 h-7 px-2 gap-1"
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelect();
-              }}
-            >
-              <Pencil className="w-3.5 h-3.5" />
-              <span className="text-xs">Edit</span>
-            </Button>
-          )}
+          {/* Save indicator / Edit button */}
+          <div className="w-16 shrink-0 flex justify-end">
+            {canEdit && (isSaving || hasChanges) ? (
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                {isSaving ? (
+                  <>
+                    <span className="animate-pulse">Saving...</span>
+                  </>
+                ) : hasChanges ? (
+                  <>
+                    <span className="animate-pulse">...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-3 h-3 text-green-600" />
+                    <span>Saved</span>
+                  </>
+                )}
+              </span>
+            ) : canEdit ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 gap-1"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelect();
+                }}
+              >
+                <span className="text-xs">More</span>
+              </Button>
+            ) : null}
+          </div>
         </div>
       </CardContent>
     </Card>
   );
 }
 
-function SortableParticipantCard({ participant, onSelect, canReorder, canEdit, wpLeadership, onFetchLogo, isFetchingLogo }: SortableParticipantCardProps) {
+function SortableParticipantCard({ participant, onSelect, canReorder, canEdit, wpLeadership, onFetchLogo, isFetchingLogo, onUpdateParticipant }: SortableParticipantCardProps) {
   const {
     attributes,
     listeners,
@@ -253,6 +419,7 @@ function SortableParticipantCard({ participant, onSelect, canReorder, canEdit, w
         isDragging={isDragging}
         onFetchLogo={onFetchLogo}
         isFetchingLogo={isFetchingLogo}
+        onUpdateParticipant={onUpdateParticipant}
       />
     </div>
   );
@@ -401,12 +568,12 @@ export function ParticipantListView({
             <div className="flex items-center gap-3 px-3 text-xs font-medium text-muted-foreground">
               {canReorder && <div className="w-4" />}
               <div className="w-8 text-center">No.</div>
-              <div className="w-16">Short</div>
+              <div className="w-20">Short</div>
               <div className="flex-1">Organisation</div>
               <div className="w-20 text-center">Roles</div>
               <div className="w-10 text-center">Logo</div>
-              <div className="w-24">Country</div>
-              {canEdit && <div className="w-16" />}
+              <div className="w-28">Country</div>
+              <div className="w-16" />
             </div>
           )}
 
@@ -442,6 +609,7 @@ export function ParticipantListView({
                       wpLeadership={wpLeadership[participant.id]}
                       onFetchLogo={() => handleFetchLogo(participant)}
                       isFetchingLogo={fetchingLogoFor === participant.id}
+                      onUpdateParticipant={onUpdateParticipant}
                     />
                   ))}
                 </div>
@@ -459,6 +627,7 @@ export function ParticipantListView({
                   wpLeadership={wpLeadership[participant.id]}
                   onFetchLogo={onUpdateParticipant ? () => handleFetchLogo(participant) : undefined}
                   isFetchingLogo={fetchingLogoFor === participant.id}
+                  onUpdateParticipant={onUpdateParticipant}
                 />
               ))}
             </div>
