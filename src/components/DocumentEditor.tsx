@@ -653,6 +653,15 @@ export function DocumentEditor({
               <FileCode className="w-3 h-3" />
               Snippets
             </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-6 px-2 text-xs gap-1" 
+              onClick={() => setIsComparisonOpen(true)}
+            >
+              <GitCompare className="w-3 h-3" />
+              Compare
+            </Button>
             {isImpactSection && (
               <Button 
                 variant="outline" 
@@ -665,15 +674,6 @@ export function DocumentEditor({
                 Impact Mapper
               </Button>
             )}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="h-6 px-2 text-xs gap-1" 
-              onClick={() => setIsComparisonOpen(true)}
-            >
-              <GitCompare className="w-3 h-3" />
-              Compare
-            </Button>
           </div>
         </div>
 
