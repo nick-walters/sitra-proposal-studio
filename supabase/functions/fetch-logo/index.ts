@@ -300,123 +300,40 @@ async function fetchLogoFromSources(organisationName: string, shortName?: string
   return null;
 }
 
-// Detect background color by sampling corners
-function detectBackgroundColor(image: Image): { r: number; g: number; b: number } {
-  const width = image.width;
-  const height = image.height;
-  const sampleSize = 5;
-  const colorCounts = new Map<string, { r: number; g: number; b: number; count: number }>();
-  
-  // Sample 4 corners
-  const corners = [
-    { x: 1, y: 1 }, // top-left
-    { x: width - sampleSize, y: 1 }, // top-right
-    { x: 1, y: height - sampleSize }, // bottom-left
-    { x: width - sampleSize, y: height - sampleSize }, // bottom-right
-  ];
-  
-  for (const corner of corners) {
-    for (let dy = 0; dy < sampleSize; dy++) {
-      for (let dx = 0; dx < sampleSize; dx++) {
-        const x = Math.max(1, Math.min(width, corner.x + dx));
-        const y = Math.max(1, Math.min(height, corner.y + dy));
-        const pixel = image.getPixelAt(x, y);
-        
-        const r = (pixel >> 24) & 0xFF;
-        const g = (pixel >> 16) & 0xFF;
-        const b = (pixel >> 8) & 0xFF;
-        const a = pixel & 0xFF;
-        
-        // Skip transparent pixels
-        if (a < 128) continue;
-        
-        // Quantize to reduce unique colors (group similar colors)
-        const qr = Math.round(r / 10) * 10;
-        const qg = Math.round(g / 10) * 10;
-        const qb = Math.round(b / 10) * 10;
-        const key = `${qr},${qg},${qb}`;
-        
-        const existing = colorCounts.get(key);
-        if (existing) {
-          existing.count++;
-        } else {
-          colorCounts.set(key, { r: qr, g: qg, b: qb, count: 1 });
-        }
-      }
-    }
-  }
-  
-  // Find most common color
-  let maxCount = 0;
-  let bgColor = { r: 255, g: 255, b: 255 }; // Default to white
-  
-  for (const [_, color] of colorCounts) {
-    if (color.count > maxCount) {
-      maxCount = color.count;
-      bgColor = { r: color.r, g: color.g, b: color.b };
-    }
-  }
-  
-  console.log(`Detected background color: RGB(${bgColor.r}, ${bgColor.g}, ${bgColor.b}) from ${maxCount} samples`);
-  return bgColor;
-}
-
-// Calculate color distance between two colors
-function colorDistance(r1: number, g1: number, b1: number, r2: number, g2: number, b2: number): number {
-  return Math.sqrt(
-    Math.pow(r1 - r2, 2) + 
-    Math.pow(g1 - g2, 2) + 
-    Math.pow(b1 - b2, 2)
-  );
-}
-
-// Check if a pixel should be considered background
-function isBackgroundPixel(r: number, g: number, b: number, a: number, bgColor: { r: number; g: number; b: number }): boolean {
-  // Already transparent
-  if (a < 10) return true;
-  
-  // Calculate distance from detected background color
-  const distance = colorDistance(r, g, b, bgColor.r, bgColor.g, bgColor.b);
-  
-  // If very close to background color, treat as background
-  if (distance < 35) return true;
-  
-  // Also catch near-white and light gray regardless of detected bg
-  const isNearWhite = r > 240 && g > 240 && b > 240;
-  const isLightGray = r > 230 && g > 230 && b > 230 && 
-                      (Math.max(r, g, b) - Math.min(r, g, b) < 15);
-  
-  return isNearWhite || isLightGray;
-}
-
-// Crop empty space and make background transparent
-async function cropAndMakeTransparent(imageBuffer: ArrayBuffer): Promise<Uint8Array> {
+// Simple crop: find content bounds and crop to tight bounding box (preserve full color)
+async function cropEmptySpace(imageBuffer: ArrayBuffer): Promise<Uint8Array> {
   try {
     const image = await Image.decode(new Uint8Array(imageBuffer));
     
     const width = image.width;
     const height = image.height;
     
-    // Detect background color from corners
-    const bgColor = detectBackgroundColor(image);
-    
-    // Find bounds of non-background pixels
+    // Find bounds of non-empty pixels
     let minX = width;
     let minY = height;
     let maxX = 0;
     let maxY = 0;
     
-    // First pass: find content bounds
+    // Threshold for considering a pixel as "empty" (white or transparent)
+    const isEmptyPixel = (pixel: number): boolean => {
+      const r = (pixel >> 24) & 0xFF;
+      const g = (pixel >> 16) & 0xFF;
+      const b = (pixel >> 8) & 0xFF;
+      const a = pixel & 0xFF;
+      
+      // Consider transparent pixels as empty
+      if (a < 10) return true;
+      // Consider near-white pixels as empty (for white backgrounds)
+      if (r > 245 && g > 245 && b > 245) return true;
+      return false;
+    };
+    
+    // Scan all pixels to find content bounds
     for (let y = 1; y <= height; y++) {
       for (let x = 1; x <= width; x++) {
         const pixel = image.getPixelAt(x, y);
         
-        const r = (pixel >> 24) & 0xFF;
-        const g = (pixel >> 16) & 0xFF;
-        const b = (pixel >> 8) & 0xFF;
-        const a = pixel & 0xFF;
-        
-        if (!isBackgroundPixel(r, g, b, a, bgColor)) {
+        if (!isEmptyPixel(pixel)) {
           minX = Math.min(minX, x);
           minY = Math.min(minY, y);
           maxX = Math.max(maxX, x);
@@ -443,35 +360,13 @@ async function cropAndMakeTransparent(imageBuffer: ArrayBuffer): Promise<Uint8Ar
     
     console.log(`Cropping from ${width}x${height} to ${cropWidth}x${cropHeight} (bounds: ${minX},${minY} to ${maxX},${maxY})`);
     
-    // Crop the image
+    // Crop the image (preserving full color)
     const cropped = image.crop(minX, minY, cropWidth, cropHeight);
-    
-    // Second pass: make background pixels transparent in cropped image
-    let transparentCount = 0;
-    for (let y = 1; y <= cropped.height; y++) {
-      for (let x = 1; x <= cropped.width; x++) {
-        const pixel = cropped.getPixelAt(x, y);
-        
-        const r = (pixel >> 24) & 0xFF;
-        const g = (pixel >> 16) & 0xFF;
-        const b = (pixel >> 8) & 0xFF;
-        const a = pixel & 0xFF;
-        
-        if (isBackgroundPixel(r, g, b, a, bgColor)) {
-          // Set to fully transparent (RGBA with alpha = 0)
-          // imagescript uses RRGGBBAA format
-          cropped.setPixelAt(x, y, 0x00000000);
-          transparentCount++;
-        }
-      }
-    }
-    
-    console.log(`Made ${transparentCount} pixels transparent`);
     
     return await cropped.encode();
   } catch (e) {
-    console.error('Crop/transparency error:', e);
-    // Return original if processing fails
+    console.error('Crop error:', e);
+    // Return original if cropping fails
     return new Uint8Array(imageBuffer);
   }
 }
@@ -488,8 +383,8 @@ async function fetchProcessAndUploadLogo(imageUrl: string, organisationName: str
   
   const imageBuffer = await response.arrayBuffer();
   
-  // Crop empty space and make background transparent
-  const croppedImage = await cropAndMakeTransparent(imageBuffer);
+  // Crop empty space (preserve full color)
+  const croppedImage = await cropEmptySpace(imageBuffer);
   
   // Create Supabase client with service role key
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
