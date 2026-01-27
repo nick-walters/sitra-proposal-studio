@@ -462,9 +462,8 @@ function ParticipantCard({
             )}
             {canEdit && (
               <Button
-                variant="outline"
                 size="sm"
-                className="h-auto py-1 px-2 text-xs text-center leading-tight"
+                className="h-auto py-1 px-2 text-xs text-left leading-tight bg-black text-white hover:bg-black/90 border-0"
                 style={{ width: '70px' }}
                 onClick={(e) => {
                   e.stopPropagation();
