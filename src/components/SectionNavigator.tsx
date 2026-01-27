@@ -98,11 +98,8 @@ function SectionItem({
   const dueDateInfo = assignment ? getDueDateInfo(assignment.dueDate) : null;
   const isAssignedToMe = assignment?.assignedTo === currentUserId;
   
-  // Check if this is a Part B subsection (B1.1, B2.1, etc.) - these should align with B1/B2/B3
-  const isPartBSubsection = section.number && /^B\d+\.\d+/.test(section.number);
-  
-  // Calculate effective depth - Part B subsections use same depth as their parent for icon alignment
-  const effectiveDepth = isPartBSubsection ? depth - 1 : depth;
+  // Use standard depth for all items - subsections indent under parent text
+  const effectiveDepth = depth;
   
   // Check if this is a collapsible heading (Part A, Part B, B1, B2)
   // Note: A2 is NOT a collapsible heading - it should navigate to ParticipantListView
