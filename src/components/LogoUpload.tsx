@@ -199,12 +199,12 @@ export function LogoUpload({
             size="sm"
             onClick={handleGenerateLogo}
             disabled={isGenerating}
-            className="gap-1.5 w-full justify-center"
+            className="gap-1 w-full justify-center h-7 text-xs px-2"
           >
             {isGenerating ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <Loader2 className="w-3 h-3 animate-spin" />
             ) : (
-              <Sparkles className="w-3.5 h-3.5" />
+              <Sparkles className="w-3 h-3" />
             )}
             Generate
           </Button>
@@ -215,12 +215,12 @@ export function LogoUpload({
             size="sm"
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
-            className="gap-1.5 w-full justify-center"
+            className="gap-1 w-full justify-center h-7 text-xs px-2"
           >
             {isUploading ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <Loader2 className="w-3 h-3 animate-spin" />
             ) : (
-              <Upload className="w-3.5 h-3.5" />
+              <Upload className="w-3 h-3" />
             )}
             Upload
           </Button>
@@ -231,9 +231,9 @@ export function LogoUpload({
               variant="outline"
               size="sm"
               onClick={handleDownloadLogo}
-              className="gap-1.5 w-full justify-center"
+              className="gap-1 w-full justify-center h-7 text-xs px-2"
             >
-              <Download className="w-3.5 h-3.5" />
+              <Download className="w-3 h-3" />
               Download
             </Button>
           )}
