@@ -281,7 +281,7 @@ function ParticipantCard({
           </div>
           
           {/* Roles/Leadership badges */}
-          <div className="flex flex-wrap gap-1 shrink-0">
+          <div className="w-28 shrink-0 flex flex-wrap gap-1">
             {participant.participantNumber === 1 && (
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -574,10 +574,10 @@ export function ParticipantListView({
               <div className="w-8 text-center">No.</div>
               <div className="w-24">Short</div>
               <div className="w-64">Organisation</div>
-              <div className="flex-1 text-center">Roles</div>
+              <div className="w-28">Roles</div>
               <div className="w-10 text-center">Logo</div>
               <div className="w-28">Country</div>
-              <div />
+              <div className="flex-1" />
             </div>
           )}
 
