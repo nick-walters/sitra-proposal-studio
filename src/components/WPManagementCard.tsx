@@ -154,7 +154,7 @@ function SortableWPRow({ wp, participants, onUpdate, canEdit }: SortableWPRowPro
                   className="w-full flex items-center p-2.5 rounded-md text-left hover:bg-muted/80 transition-colors"
                 >
                   <span
-                    className="shrink-0 inline-flex items-center justify-center w-20 px-2 py-0.5 rounded-full text-xs font-bold"
+                    className="shrink-0 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap"
                     style={{
                       backgroundColor: '#000000',
                       color: '#ffffff',
