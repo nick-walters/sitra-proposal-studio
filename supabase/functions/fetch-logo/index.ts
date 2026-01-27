@@ -188,24 +188,27 @@ async function cropEmptySpace(imageBuffer: ArrayBuffer): Promise<Uint8Array> {
     let maxY = 0;
     
     // Threshold for considering a pixel as "empty" (white or transparent)
-    const isEmptyPixel = (r: number, g: number, b: number, a: number): boolean => {
+    // imagescript uses RGBA format where getPixelAt returns a 32-bit integer
+    // The format is: RRGGBBAA
+    const isEmptyPixel = (pixel: number): boolean => {
+      const r = (pixel >> 24) & 0xFF;
+      const g = (pixel >> 16) & 0xFF;
+      const b = (pixel >> 8) & 0xFF;
+      const a = pixel & 0xFF;
+      
       // Consider transparent pixels as empty
       if (a < 10) return true;
       // Consider near-white pixels as empty (for white backgrounds)
-      if (r > 250 && g > 250 && b > 250) return true;
+      if (r > 245 && g > 245 && b > 245) return true;
       return false;
     };
     
     // Scan all pixels to find content bounds
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const pixel = image.getPixelAt(x + 1, y + 1); // 1-indexed
-        const r = (pixel >> 24) & 0xFF;
-        const g = (pixel >> 16) & 0xFF;
-        const b = (pixel >> 8) & 0xFF;
-        const a = pixel & 0xFF;
+    for (let y = 1; y <= height; y++) {
+      for (let x = 1; x <= width; x++) {
+        const pixel = image.getPixelAt(x, y); // 1-indexed in imagescript
         
-        if (!isEmptyPixel(r, g, b, a)) {
+        if (!isEmptyPixel(pixel)) {
           minX = Math.min(minX, x);
           minY = Math.min(minY, y);
           maxX = Math.max(maxX, x);
@@ -215,25 +218,25 @@ async function cropEmptySpace(imageBuffer: ArrayBuffer): Promise<Uint8Array> {
     }
     
     // If no content found, return original
-    if (minX >= maxX || minY >= maxY) {
+    if (minX > maxX || minY > maxY) {
       console.log('No content bounds found, returning original');
       return await image.encode();
     }
     
     // Add small padding (2px)
     const padding = 2;
-    minX = Math.max(0, minX - padding);
-    minY = Math.max(0, minY - padding);
-    maxX = Math.min(width - 1, maxX + padding);
-    maxY = Math.min(height - 1, maxY + padding);
+    minX = Math.max(1, minX - padding);
+    minY = Math.max(1, minY - padding);
+    maxX = Math.min(width, maxX + padding);
+    maxY = Math.min(height, maxY + padding);
     
     const cropWidth = maxX - minX + 1;
     const cropHeight = maxY - minY + 1;
     
     console.log(`Cropping from ${width}x${height} to ${cropWidth}x${cropHeight} (bounds: ${minX},${minY} to ${maxX},${maxY})`);
     
-    // Crop the image
-    const cropped = image.crop(minX + 1, minY + 1, cropWidth, cropHeight); // 1-indexed
+    // Crop the image (1-indexed)
+    const cropped = image.crop(minX, minY, cropWidth, cropHeight);
     
     return await cropped.encode();
   } catch (e) {
