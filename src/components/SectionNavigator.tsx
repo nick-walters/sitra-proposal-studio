@@ -358,7 +358,7 @@ function SectionItem({
                         >
                           {isWP 
                             ? `WP${wpSub.wpNumber}: ${wpSub.title}`
-                            : `P${subsection.number}: ${subsection.title}`
+                            : `${subsection.number}: ${subsection.title}`
                           }
                         </button>
                       </TooltipTrigger>
