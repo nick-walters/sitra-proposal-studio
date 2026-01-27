@@ -180,10 +180,10 @@ export function LogoUpload({
         )}
       </div>
 
-      {/* Upload Controls */}
+      {/* Upload Controls - stacked vertically: Generate, then Upload */}
       {!disabled && (
-        <div className="flex flex-wrap gap-2">
-          {/* File Upload */}
+        <div className="flex flex-col gap-1.5">
+          {/* Hidden file input */}
           <input
             ref={fileInputRef}
             type="file"
@@ -192,28 +192,14 @@ export function LogoUpload({
             onChange={handleFileUpload}
             disabled={isUploading}
           />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-            className="gap-1.5"
-          >
-            {isUploading ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Upload className="w-3.5 h-3.5" />
-            )}
-            Upload
-          </Button>
 
-          {/* AI Generation */}
+          {/* AI Generation - first */}
           <Button
             variant="outline"
             size="sm"
             onClick={handleGenerateLogo}
             disabled={isGenerating}
-            className="gap-1.5"
+            className="gap-1.5 w-full justify-center"
           >
             {isGenerating ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -223,13 +209,29 @@ export function LogoUpload({
             Generate
           </Button>
 
+          {/* File Upload - second */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            className="gap-1.5 w-full justify-center"
+          >
+            {isUploading ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Upload className="w-3.5 h-3.5" />
+            )}
+            Upload
+          </Button>
+
           {/* Download button - only show if there's a logo */}
           {currentUrl && (
             <Button
               variant="outline"
               size="sm"
               onClick={handleDownloadLogo}
-              className="gap-1.5"
+              className="gap-1.5 w-full justify-center"
             >
               <Download className="w-3.5 h-3.5" />
               Download
