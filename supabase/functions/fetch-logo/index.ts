@@ -6,76 +6,199 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Extensive known organization domain mappings
+const knownDomains: Record<string, string> = {
+  // Finnish organizations
+  'sitra': 'sitra.fi',
+  'luke': 'luke.fi',
+  'luonnonvarakeskus': 'luke.fi',
+  'vtt': 'vttresearch.com',
+  'aalto': 'aalto.fi',
+  'helsingin yliopisto': 'helsinki.fi',
+  'helsinki': 'helsinki.fi',
+  'uhel': 'helsinki.fi',
+  'tampere': 'tuni.fi',
+  'oulu': 'oulu.fi',
+  'turku': 'utu.fi',
+  'jyväskylä': 'jyu.fi',
+  'itä-suomen': 'uef.fi',
+  'uef': 'uef.fi',
+  'lappeenranta': 'lut.fi',
+  'lut': 'lut.fi',
+  'åbo akademi': 'abo.fi',
+  'syke': 'syke.fi',
+  'ilmatieteen laitos': 'fmi.fi',
+  'fmi': 'fmi.fi',
+  'gtk': 'gtk.fi',
+  'ttl': 'ttl.fi',
+  'thl': 'thl.fi',
+  
+  // Swedish organizations
+  'kth': 'kth.se',
+  'kungliga tekniska': 'kth.se',
+  'chalmers': 'chalmers.se',
+  'lund': 'lu.se',
+  'uppsala': 'uu.se',
+  'stockholm': 'su.se',
+  'göteborgs': 'gu.se',
+  'karolinska': 'ki.se',
+  'linköping': 'liu.se',
+  'rise': 'ri.se',
+  
+  // German organizations
+  'fraunhofer': 'fraunhofer.de',
+  'max planck': 'mpg.de',
+  'mpg': 'mpg.de',
+  'helmholtz': 'helmholtz.de',
+  'leibniz': 'leibniz-gemeinschaft.de',
+  'dlr': 'dlr.de',
+  'tu münchen': 'tum.de',
+  'tum': 'tum.de',
+  'rwth': 'rwth-aachen.de',
+  'tu berlin': 'tu-berlin.de',
+  'tu dresden': 'tu-dresden.de',
+  'karlsruhe': 'kit.edu',
+  'kit': 'kit.edu',
+  
+  // Swiss organizations
+  'eth': 'ethz.ch',
+  'ethz': 'ethz.ch',
+  'epfl': 'epfl.ch',
+  'empa': 'empa.ch',
+  'psi': 'psi.ch',
+  
+  // French organizations
+  'cnrs': 'cnrs.fr',
+  'inria': 'inria.fr',
+  'cea': 'cea.fr',
+  'inserm': 'inserm.fr',
+  'inrae': 'inrae.fr',
+  'ifremer': 'ifremer.fr',
+  'cnes': 'cnes.fr',
+  'onera': 'onera.fr',
+  'sorbonne': 'sorbonne-universite.fr',
+  'polytechnique': 'polytechnique.edu',
+  
+  // Spanish organizations
+  'csic': 'csic.es',
+  'upc': 'upc.edu',
+  'politècnica de catalunya': 'upc.edu',
+  'upm': 'upm.es',
+  'politécnica de madrid': 'upm.es',
+  'barcelona': 'ub.edu',
+  
+  // Dutch organizations
+  'tno': 'tno.nl',
+  'tu delft': 'tudelft.nl',
+  'delft': 'tudelft.nl',
+  'eindhoven': 'tue.nl',
+  'tue': 'tue.nl',
+  'twente': 'utwente.nl',
+  'wageningen': 'wur.nl',
+  'wur': 'wur.nl',
+  'leiden': 'universiteitleiden.nl',
+  'utrecht': 'uu.nl',
+  'amsterdam': 'uva.nl',
+  
+  // Italian organizations
+  'cnr': 'cnr.it',
+  'consiglio nazionale': 'cnr.it',
+  'polimi': 'polimi.it',
+  'politecnico di milano': 'polimi.it',
+  'politecnico di torino': 'polito.it',
+  'polito': 'polito.it',
+  'bologna': 'unibo.it',
+  'sapienza': 'uniroma1.it',
+  'infn': 'infn.it',
+  'enea': 'enea.it',
+  
+  // UK organizations
+  'oxford': 'ox.ac.uk',
+  'cambridge': 'cam.ac.uk',
+  'imperial': 'imperial.ac.uk',
+  'ucl': 'ucl.ac.uk',
+  'edinburgh': 'ed.ac.uk',
+  'manchester': 'manchester.ac.uk',
+  'bristol': 'bristol.ac.uk',
+  'southampton': 'soton.ac.uk',
+  'warwick': 'warwick.ac.uk',
+  'nottingham': 'nottingham.ac.uk',
+  
+  // Danish organizations
+  'dtu': 'dtu.dk',
+  'copenhagen': 'ku.dk',
+  'aarhus': 'au.dk',
+  
+  // Norwegian organizations
+  'sintef': 'sintef.no',
+  'ntnu': 'ntnu.no',
+  'uio': 'uio.no',
+  'oslo': 'uio.no',
+  
+  // Belgian organizations
+  'imec': 'imec.be',
+  'ku leuven': 'kuleuven.be',
+  'leuven': 'kuleuven.be',
+  'vub': 'vub.be',
+  'ulb': 'ulb.be',
+  'ugent': 'ugent.be',
+  'ghent': 'ugent.be',
+  
+  // Austrian organizations
+  'tu wien': 'tuwien.ac.at',
+  'wien': 'univie.ac.at',
+  'graz': 'tugraz.at',
+  
+  // Portuguese organizations
+  'ist': 'tecnico.ulisboa.pt',
+  'técnico': 'tecnico.ulisboa.pt',
+  'inesc': 'inesc-id.pt',
+  
+  // Greek organizations
+  'forth': 'forth.gr',
+  'ntua': 'ntua.gr',
+  'athens': 'ntua.gr',
+  
+  // Irish organizations
+  'trinity': 'tcd.ie',
+  'ucd': 'ucd.ie',
+  'dublin': 'ucd.ie',
+  
+  // Polish organizations
+  'polish academy': 'pan.pl',
+  'pan': 'pan.pl',
+  'warsaw': 'pw.edu.pl',
+  
+  // Czech organizations
+  'czech academy': 'cas.cz',
+  'cas': 'cas.cz',
+  'cvut': 'cvut.cz',
+  'prague': 'cvut.cz',
+  
+  // Israeli organizations
+  'technion': 'technion.ac.il',
+  'weizmann': 'weizmann.ac.il',
+  'hebrew': 'huji.ac.il',
+  'tel aviv': 'tau.ac.il',
+};
+
 // Guess domain from organization name
-function guessDomainFromName(name: string): string | null {
-  // Known organization mappings
-  const knownDomains: Record<string, string> = {
-    'sitra': 'sitra.fi',
-    'luke': 'luke.fi',
-    'luonnonvarakeskus': 'luke.fi',
-    'vtt': 'vttresearch.com',
-    'aalto': 'aalto.fi',
-    'helsinki': 'helsinki.fi',
-    'tampere': 'tuni.fi',
-    'oulu': 'oulu.fi',
-    'turku': 'utu.fi',
-    'jyväskylä': 'jyu.fi',
-    'eth': 'ethz.ch',
-    'epfl': 'epfl.ch',
-    'max planck': 'mpg.de',
-    'fraunhofer': 'fraunhofer.de',
-    'cnrs': 'cnrs.fr',
-    'csic': 'csic.es',
-    'tno': 'tno.nl',
-    'sintef': 'sintef.no',
-    'dtu': 'dtu.dk',
-    'kth': 'kth.se',
-  };
-  
+function guessDomainFromName(name: string, shortName?: string): string | null {
   const lowerName = name.toLowerCase();
+  const lowerShort = shortName?.toLowerCase() || '';
   
-  // Check for known domains first
+  // Check for known domains first - try short name, then full name
   for (const [pattern, domain] of Object.entries(knownDomains)) {
-    if (lowerName.includes(pattern) || lowerName === pattern) {
+    if (lowerShort === pattern || lowerName.includes(pattern)) {
       return domain;
     }
   }
   
-  // Common academic/research domain patterns
-  const academicPatterns: Record<string, string> = {
-    'university': '.edu',
-    'università': '.it',
-    'universität': '.de',
-    'université': '.fr',
-    'universidad': '.es',
-    'universiteit': '.nl',
-    'politecnico': '.it',
-  };
-  
-  // Check for academic patterns
-  for (const [pattern, tld] of Object.entries(academicPatterns)) {
-    if (lowerName.includes(pattern)) {
-      const cleanedName = name
-        .toLowerCase()
-        .replace(/[^a-z0-9\s]/g, '')
-        .split(/\s+/)
-        .slice(0, 2)
-        .join('');
-      return cleanedName + tld;
-    }
-  }
-  
-  // Try constructing a simple domain
-  const simpleName = name
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '')
-    .split(/\s+/)
-    .filter(word => !['the', 'of', 'and', 'for', 'in', 'a', 'an'].includes(word))
-    .slice(0, 1)
-    .join('');
-  
-  if (simpleName.length >= 3) {
-    return `${simpleName}.com`;
+  // Try short name as domain directly with common TLDs
+  if (shortName && shortName.length >= 2) {
+    const cleanShort = shortName.toLowerCase().replace(/[^a-z0-9]/g, '');
+    // Don't return generic .com domains - they're usually wrong
+    // Return null to try other approaches
   }
   
   return null;
@@ -89,20 +212,20 @@ async function fetchLogoFromSources(organisationName: string, shortName?: string
   // Build list of domains to try
   const domainsToTry: string[] = [];
   
-  // If short name provided, try it first (most reliable)
-  if (cleanShortName) {
-    const shortDomain = guessDomainFromName(cleanShortName);
-    if (shortDomain) domainsToTry.push(shortDomain);
-    // Also try .fi for Finnish orgs
-    domainsToTry.push(`${cleanShortName.toLowerCase()}.fi`);
+  // Try known domain mapping first (most reliable)
+  const knownDomain = guessDomainFromName(cleanName, cleanShortName);
+  if (knownDomain) {
+    domainsToTry.push(knownDomain);
   }
-  
-  // Try full name
-  const fullDomain = guessDomainFromName(cleanName);
-  if (fullDomain) domainsToTry.push(fullDomain);
   
   // Remove duplicates
   const uniqueDomains = [...new Set(domainsToTry)];
+  
+  // If no known domain found, don't try random .com domains - they're usually wrong
+  if (uniqueDomains.length === 0) {
+    console.log('No known domain mapping for:', cleanName, cleanShortName);
+    return null;
+  }
   
   // Add cache-busting timestamp
   const cacheBuster = Date.now();
