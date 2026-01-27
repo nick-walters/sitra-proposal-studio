@@ -546,161 +546,134 @@ export function DocumentEditor({
     <div className="flex-1 flex flex-col min-h-0 relative">
       {/* Fixed toolbar container */}
       <div className="sticky top-0 z-10 bg-background">
-        {/* Features Toolbar - two-row compact layout */}
-        <div className="flex items-start justify-between px-2 py-1.5 border-b border-border bg-card">
-          <div className="flex-1">
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-              {/* Row 1 */}
-              <div className="flex items-center gap-1 flex-wrap">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-7 px-2 text-xs gap-1 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
-                  onClick={() => setIsGuidelinesOpen(true)}
-                >
-                  <Info className="w-3.5 h-3.5" />
-                  Guidelines
-                </Button>
-                <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1" onClick={() => setIsSearchOpen(true)}>
-                  <Search className="w-3.5 h-3.5" />
-                  Find
-                </Button>
-                <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1" onClick={() => setIsGrammarOpen(true)}>
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Grammar
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-7 px-2 text-xs gap-1"
-                  onClick={() => setIsWritingAssistantOpen(true)}
-                  disabled={!editor || isEffectivelyReadOnly}
-                >
-                  <Wand2 className="w-3.5 h-3.5" />
-                  AI
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-7 px-2 text-xs gap-1"
-                  onClick={() => setIsSnippetsOpen(true)}
-                  disabled={!editor || isEffectivelyReadOnly}
-                >
-                  <FileCode className="w-3.5 h-3.5" />
-                  Snippets
-                </Button>
-              </div>
-              {/* Row 2 */}
-              <div className="flex items-center gap-1 flex-wrap">
-                {isImpactSection && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="h-7 px-2 text-xs gap-1 bg-primary/5 border-primary/30 hover:bg-primary/10" 
-                    onClick={() => setIsImpactPathwayOpen(true)}
-                    disabled={isEffectivelyReadOnly}
-                  >
-                    <Route className="w-3.5 h-3.5" />
-                    Impact Mapper
-                  </Button>
-                )}
-                <Button 
-                  variant={isSplitViewOpen ? "default" : "outline"}
-                  size="sm" 
-                  className="h-7 px-2 text-xs gap-1"
-                  onClick={() => setIsSplitViewOpen(!isSplitViewOpen)}
-                >
-                  <SplitSquareHorizontal className="w-3.5 h-3.5" />
-                  Split
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-7 px-2 text-xs gap-1" 
-                  onClick={() => setIsVersionHistoryOpen(true)}
-                >
-                  <History className="w-3.5 h-3.5" />
-                  History
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-7 px-2 text-xs gap-1" 
-                  onClick={() => setIsComparisonOpen(true)}
-                >
-                  <GitCompare className="w-3.5 h-3.5" />
-                  Compare
-                </Button>
-              </div>
+        {/* Features Toolbar - two-row stacked layout */}
+        <div className="px-2 py-1 border-b border-border bg-card space-y-1">
+          {/* Row 1: Guidelines, Find, Split, History, Compare */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1 flex-wrap">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-6 px-2 text-xs gap-1 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => setIsGuidelinesOpen(true)}
+              >
+                <Info className="w-3 h-3" />
+                Guidelines
+              </Button>
+              <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={() => setIsSearchOpen(true)}>
+                <Search className="w-3 h-3" />
+                Find
+              </Button>
+              <Button 
+                variant={isSplitViewOpen ? "default" : "outline"}
+                size="sm" 
+                className="h-6 px-2 text-xs gap-1"
+                onClick={() => setIsSplitViewOpen(!isSplitViewOpen)}
+              >
+                <SplitSquareHorizontal className="w-3 h-3" />
+                Split
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-6 px-2 text-xs gap-1" 
+                onClick={() => setIsVersionHistoryOpen(true)}
+              >
+                <History className="w-3 h-3" />
+                History
+              </Button>
+              {canManageLock && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant={isLocked ? "default" : "outline"}
+                      size="sm" 
+                      className={`h-6 px-2 text-xs gap-1 ${isLocked ? 'bg-amber-500 hover:bg-amber-600 text-white' : ''}`}
+                      onClick={() => toggleLock()}
+                      disabled={lockUpdating}
+                    >
+                      {isLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+                      {isLocked ? 'Unlock' : 'Lock'}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {isLocked ? 'Unlock this section' : 'Lock this section'}
+                  </TooltipContent>
+                </Tooltip>
+              )}
             </div>
-          </div>
-          <div className="flex items-center gap-1 ml-2 shrink-0">
-            {/* Lock/Unlock button - only visible to admins/owners */}
-            {canManageLock && (
+            <div className="flex items-center gap-1 shrink-0">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsShortcutsOpen(true)}>
+                    <Keyboard className="w-3 h-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Keyboard shortcuts</TooltipContent>
+              </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button 
-                    variant={isLocked ? "default" : "outline"}
+                    variant={isCollaborationPanelOpen ? "default" : "outline"}
                     size="sm" 
-                    className={`h-7 px-2 text-xs gap-1 ${isLocked ? 'bg-amber-500 hover:bg-amber-600 text-white' : ''}`}
-                    onClick={() => toggleLock()}
-                    disabled={lockUpdating}
+                    className="h-6 px-1.5"
+                    onClick={() => setIsCollaborationPanelOpen(!isCollaborationPanelOpen)}
                   >
-                    {isLocked ? (
-                      <>
-                        <Lock className="w-3.5 h-3.5" />
-                        Unlock
-                      </>
-                    ) : (
-                      <>
-                        <Unlock className="w-3.5 h-3.5" />
-                        Lock
-                      </>
-                    )}
+                    {isCollaborationPanelOpen ? <PanelRightClose className="w-3 h-3" /> : <PanelRight className="w-3 h-3" />}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>
-                  {isLocked 
-                    ? 'Unlock this section to allow editing' 
-                    : 'Lock this section to prevent editing during review'}
-                </TooltipContent>
+                <TooltipContent>{isCollaborationPanelOpen ? 'Hide panel' : 'Show panel'}</TooltipContent>
               </Tooltip>
+              {!isEffectivelyReadOnly && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
+            </div>
+          </div>
+          {/* Row 2: Grammar, AI, Snippets, Impact Mapper, Compare */}
+          <div className="flex items-center gap-1 flex-wrap">
+            <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={() => setIsGrammarOpen(true)}>
+              <Sparkles className="w-3 h-3" />
+              Grammar
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-6 px-2 text-xs gap-1"
+              onClick={() => setIsWritingAssistantOpen(true)}
+              disabled={!editor || isEffectivelyReadOnly}
+            >
+              <Wand2 className="w-3 h-3" />
+              AI
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-6 px-2 text-xs gap-1"
+              onClick={() => setIsSnippetsOpen(true)}
+              disabled={!editor || isEffectivelyReadOnly}
+            >
+              <FileCode className="w-3 h-3" />
+              Snippets
+            </Button>
+            {isImpactSection && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-6 px-2 text-xs gap-1 bg-primary/5 border-primary/30 hover:bg-primary/10" 
+                onClick={() => setIsImpactPathwayOpen(true)}
+                disabled={isEffectivelyReadOnly}
+              >
+                <Route className="w-3 h-3" />
+                Impact Mapper
+              </Button>
             )}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  className="h-7 w-7" 
-                  onClick={() => setIsShortcutsOpen(true)}
-                >
-                  <Keyboard className="w-3.5 h-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                Keyboard shortcuts (Ctrl+/)
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant={isCollaborationPanelOpen ? "default" : "outline"}
-                  size="sm" 
-                  className="h-7 px-2 gap-1"
-                  onClick={() => setIsCollaborationPanelOpen(!isCollaborationPanelOpen)}
-                >
-                  {isCollaborationPanelOpen ? (
-                    <PanelRightClose className="w-3.5 h-3.5" />
-                  ) : (
-                    <PanelRight className="w-3.5 h-3.5" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {isCollaborationPanelOpen ? 'Hide collaboration panel' : 'Show collaboration panel'}
-              </TooltipContent>
-            </Tooltip>
-            {!isEffectivelyReadOnly && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-6 px-2 text-xs gap-1" 
+              onClick={() => setIsComparisonOpen(true)}
+            >
+              <GitCompare className="w-3 h-3" />
+              Compare
+            </Button>
           </div>
         </div>
 
