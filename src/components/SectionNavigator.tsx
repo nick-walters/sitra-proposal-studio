@@ -97,9 +97,11 @@ function SectionItem({
   const assignment = assignments?.get(section.number);
   const dueDateInfo = assignment ? getDueDateInfo(assignment.dueDate) : null;
   const isAssignedToMe = assignment?.assignedTo === currentUserId;
+  // Check if this is a Part B subsection (B1.1, B2.1, etc.) - these need extra indent to align under parent text
+  const isPartBSubsection = section.number && /^B\d+\.\d+/.test(section.number);
   
-  // Use standard depth for all items - subsections indent under parent text
-  const effectiveDepth = depth;
+  // Part B subsections need extra indentation to align under parent B1/B2/B3 text (past the icon)
+  const extraIndent = isPartBSubsection ? 20 : 0;
   
   // Check if this is a collapsible heading (Part A, Part B, B1, B2)
   // Note: A2 is NOT a collapsible heading - it should navigate to ParticipantListView
@@ -141,7 +143,7 @@ function SectionItem({
           dueDateInfo?.isDueSoon && !dueDateInfo?.isOverdue && "border-l-2 border-amber-500",
           isAssignedToMe && !dueDateInfo?.isOverdue && !dueDateInfo?.isDueSoon && "border-l-2 border-blue-500"
         )}
-        style={{ paddingLeft: `${effectiveDepth * 12 + 12}px` }}
+        style={{ paddingLeft: `${depth * 12 + 12 + extraIndent}px` }}
         onClick={() => {
           if (isCollapsibleHeading) {
             // For collapsible headings, expand/collapse and navigate to first child
