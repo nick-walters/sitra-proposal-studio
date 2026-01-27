@@ -376,13 +376,13 @@ function ParticipantCard({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 px-2 gap-1 text-xs"
+                className="h-7 px-2 gap-1 text-xs whitespace-nowrap"
                 onClick={(e) => {
                   e.stopPropagation();
                   onSelect();
                 }}
               >
-                Edit participant info
+                Edit details
               </Button>
             )}
           </div>
