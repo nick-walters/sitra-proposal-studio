@@ -177,6 +177,10 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
   const [figures, setFigures] = useState<any[]>([]);
   const [wpDrafts, setWpDrafts] = useState<any[]>([]);
   
+  // Table insertion for toolbar (moved to top with other hooks)
+  const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
+  const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number } | null>(null);
+  
   // Proposal-wide references hook
   const { 
     references: proposalReferences, 
@@ -372,10 +376,6 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
 
   const leadParticipant = participants.find(p => p.id === wpDraft.lead_participant_id);
 
-  // Table insertion for toolbar
-  const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
-  const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number } | null>(null);
-  
   const execCommand = (command: string, cmdValue?: string) => {
     document.execCommand(command, false, cmdValue);
   };
