@@ -277,19 +277,10 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       const partASections = templateSections.filter(s => s.isPartA);
       const partBSections = templateSections.filter(s => !s.isPartA);
       
-      // Check if Figures section exists in Part B
-      const hasFiguresSection = partBSections.some(s => s.id === 'figures' || s.title === 'Figures');
-      
-      // If Part B sections exist but no Figures, add it
-      if (partBSections.length > 0 && !hasFiguresSection) {
-        // Find Part B root and add Figures as subsection
-        const partBRoot = partBSections.find(s => s.id === 'part-b' || s.number === 'Part B');
-        if (partBRoot && partBRoot.subsections) {
-          partBRoot.subsections.push(figuresSection);
-        } else {
-          // Add Figures as standalone after Part B
-          partBSections.push(figuresSection);
-        }
+      // Remove any Figures section that may be nested in Part B - we'll add it as standalone
+      const partBRoot = partBSections.find(s => s.id === 'part-b' || s.number === 'Part B');
+      if (partBRoot && partBRoot.subsections) {
+        partBRoot.subsections = partBRoot.subsections.filter(s => s.id !== 'figures' && s.title !== 'Figures');
       }
       
       // Find proposal overview and insert WP Progress Tracker after it
@@ -301,18 +292,16 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         partASections.unshift(wpProgressSection);
       }
       
-      // Add WP Drafts after Part B (before Figures if standalone)
+      // Build result: Part A, Part B, then WP Drafts, then Figures (all at top level)
       const result = [...partASections, ...partBSections];
       
-      // Insert WP Drafts after Part B content sections, before Figures
+      // Add WP Drafts as standalone top-level section
       if (wpDraftSections.length > 0) {
-        const figuresIndex = result.findIndex(s => s.id === 'figures');
-        if (figuresIndex !== -1) {
-          result.splice(figuresIndex, 0, wpDraftsSection);
-        } else {
-          result.push(wpDraftsSection);
-        }
+        result.push(wpDraftsSection);
       }
+      
+      // Add Figures as standalone top-level section (after WP Drafts)
+      result.push(figuresSection);
       
       return result;
     }
@@ -327,15 +316,13 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       fallbackSections.unshift(wpProgressSection);
     }
     
-    // Add WP Drafts at the end (before Figures if present)
+    // Add WP Drafts as standalone top-level section
     if (wpDraftSections.length > 0) {
-      const figuresIndex = fallbackSections.findIndex(s => s.id === 'figures');
-      if (figuresIndex !== -1) {
-        fallbackSections.splice(figuresIndex, 0, wpDraftsSection);
-      } else {
-        fallbackSections.push(wpDraftsSection);
-      }
+      fallbackSections.push(wpDraftsSection);
     }
+    
+    // Add Figures as standalone top-level section (after WP Drafts)
+    fallbackSections.push(figuresSection);
     
     return fallbackSections;
   }, [templateSections, hasTemplateSections, wpDraftSections]);
