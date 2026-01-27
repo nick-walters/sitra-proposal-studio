@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
 import { InlineGuideline } from "./GuidelineBox";
@@ -34,8 +35,7 @@ interface GeneralInfoFormProps {
   // Additional props for overview content
   participants?: Participant[];
   budgetItems?: { amount: number; participantId: string }[];
-  onExportPdf?: () => void;
-  onExportPdfNoWatermark?: () => void;
+  onExportPdf?: (includeWatermark: boolean) => void;
 }
 
 interface DeclarationLink {
@@ -268,7 +268,6 @@ export function GeneralInfoForm({
   participants = [],
   budgetItems = [],
   onExportPdf,
-  onExportPdfNoWatermark,
 }: GeneralInfoFormProps) {
   // A1 form data state
   const [formData, setFormData] = useState<FormData>({
@@ -528,17 +527,38 @@ export function GeneralInfoForm({
                 </Badge>
               </div>
             )}
-            {onExportPdf && (
-              <Button variant="outline" size="sm" className="gap-2" onClick={onExportPdf}>
+            {onExportPdf && !isAdmin && (
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => onExportPdf(true)}>
                 <Download className="w-4 h-4" />
                 Export PDF
               </Button>
             )}
-            {isAdmin && onExportPdfNoWatermark && (
-              <Button variant="outline" size="sm" className="gap-2" onClick={onExportPdfNoWatermark}>
-                <Download className="w-4 h-4" />
-                Export watermark-free
-              </Button>
+            {onExportPdf && isAdmin && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Download className="w-4 h-4" />
+                    Export PDF
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Export PDF</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Choose whether to include the "Confidential draft" watermark in the exported PDF.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => onExportPdf(true)}>
+                      With watermark
+                    </AlertDialogAction>
+                    <AlertDialogAction onClick={() => onExportPdf(false)} className="bg-primary">
+                      Without watermark
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
             {canEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
           </div>
