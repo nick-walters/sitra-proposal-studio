@@ -340,8 +340,7 @@ export function ProposalEditor() {
               amount: b.amount,
               participantId: b.participantId,
             }))}
-            onExportPdf={handleExportPdfWithWatermark}
-            onExportPdfNoWatermark={handleExportPdfNoWatermark}
+            onExportPdf={handleExportPdf}
           />
         );
       }
