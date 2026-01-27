@@ -558,11 +558,22 @@ export function ProposalEditor() {
     // WP Drafts container section
     if (activeSection.id === 'wp-drafts') {
       return (
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
           <WPManagementCard
             proposalId={id || ''}
             isAdmin={canEdit}
             isFullProposal={proposal?.submissionStage !== 'stage_1'}
+          />
+          <WPProgressTracker
+            proposalId={id || ''}
+            onNavigateToWP={(wpId) => {
+              const wpSection = allSections
+                .flatMap(s => s.subsections || [])
+                .find(s => s.id === `wp-${wpId}`) as WPSection | undefined;
+              if (wpSection) {
+                setActiveSection(wpSection);
+              }
+            }}
           />
         </div>
       );
