@@ -379,7 +379,7 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
         {/* Table Header */}
         <div className="grid grid-cols-[24px_50px_90px_1fr_1fr] gap-1.5 text-xs font-medium text-muted-foreground border-b pb-1.5">
           <div />
-          <div />
+          <div className="text-center">№</div>
           <div>Short Name</div>
           <div>Title</div>
           <div>WP Lead</div>
