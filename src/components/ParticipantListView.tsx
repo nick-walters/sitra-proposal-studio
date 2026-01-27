@@ -1,9 +1,11 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { Participant, ParticipantMember, Section, ParticipantType } from '@/types/proposal';
-import { Building2, GripVertical, UserPlus, Plus, Search, Check, Upload, X, Loader2 } from 'lucide-react';
+import { Building2, GripVertical, UserPlus, Plus, Search, Check, Upload, X, Loader2, Euro } from 'lucide-react';
 import { generateParticipantLogoPath, uploadProposalFile } from '@/lib/proposalStorage';
 import { CountrySelect } from './CountrySelect';
 import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
@@ -64,6 +66,9 @@ interface ParticipantListViewProps {
   canAddParticipant?: boolean;
   canEdit?: boolean;
   wpLeadership?: Record<string, WPLeadershipInfo[]>;
+  // FSTP (Financial Support to Third Parties) props
+  usesFstp?: boolean;
+  onUpdateUsesFstp?: (usesFstp: boolean) => Promise<void>;
 }
 
 interface ParticipantCardProps {
@@ -528,6 +533,8 @@ export function ParticipantListView({
   canAddParticipant = false,
   canEdit = false,
   wpLeadership = {},
+  usesFstp = false,
+  onUpdateUsesFstp,
 }: ParticipantListViewProps) {
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [isAddParticipantDialogOpen, setIsAddParticipantDialogOpen] = useState(false);
@@ -722,6 +729,30 @@ export function ParticipantListView({
                 />
               ))}
             </div>
+          )}
+
+          {/* Budget Settings Card with FSTP checkbox */}
+          {canEdit && onUpdateUsesFstp && (
+            <Card className="mt-6">
+              <CardHeader className="pb-2 pt-3">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <Euro className="w-4 h-4" />
+                  Budget settings
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="uses-fstp" 
+                    checked={usesFstp} 
+                    onCheckedChange={(checked) => onUpdateUsesFstp(checked === true)}
+                  />
+                  <Label htmlFor="uses-fstp" className="text-sm cursor-pointer">
+                    Topic uses Financial Support to Third Parties (FSTP)
+                  </Label>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </div>
 
