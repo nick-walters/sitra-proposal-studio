@@ -75,7 +75,7 @@ function SortableWPRow({ wp, participants, onUpdate, canEdit }: SortableWPRowPro
     <div
       ref={setNodeRef}
       style={style}
-      className={`grid grid-cols-[24px_54px_1fr_90px_130px_40px] gap-1 items-center py-1.5 border-b ${
+      className={`grid grid-cols-[24px_50px_90px_1fr_1fr] gap-1.5 items-center py-1.5 border-b ${
         isDragging ? 'bg-muted shadow-lg' : ''
       }`}
     >
@@ -92,15 +92,11 @@ function SortableWPRow({ wp, participants, onUpdate, canEdit }: SortableWPRowPro
         )}
       </div>
 
-      {/* WP Number */}
-      <div className="font-semibold text-sm">WP{wp.number}:</div>
-
-      {/* Title */}
-      <Input
-        value={wp.title || ''}
-        onChange={(e) => onUpdate(wp.id, { title: e.target.value })}
-        placeholder="Work package title"
-        className="h-7 text-sm"
+      {/* WP Number Badge with Color Picker */}
+      <WPColorPicker
+        color={wp.color}
+        onChange={(color) => onUpdate(wp.id, { color })}
+        wpNumber={wp.number}
         disabled={!canEdit}
       />
 
@@ -113,31 +109,45 @@ function SortableWPRow({ wp, participants, onUpdate, canEdit }: SortableWPRowPro
         disabled={!canEdit}
       />
 
-      {/* WP Lead */}
+      {/* Title */}
+      <Input
+        value={wp.title || ''}
+        onChange={(e) => onUpdate(wp.id, { title: e.target.value })}
+        placeholder="Work package title"
+        className="h-7 text-sm"
+        disabled={!canEdit}
+      />
+
+      {/* WP Lead - styled like partner reference dialog */}
       <Select
         value={wp.lead_participant_id || ''}
         onValueChange={(v) => onUpdate(wp.id, { lead_participant_id: v || null })}
         disabled={!canEdit}
       >
         <SelectTrigger className="h-7 text-sm">
-          <SelectValue placeholder="Lead..." />
+          <SelectValue placeholder="Select lead..." />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="max-h-[300px]">
           {participants.map((p) => (
-            <SelectItem key={p.id} value={p.id}>
-              {p.organisation_short_name || p.organisation_name}
+            <SelectItem key={p.id} value={p.id} className="py-2">
+              <div className="flex items-center gap-2">
+                <span
+                  className="shrink-0 inline-flex items-center justify-center min-w-[60px] px-2 py-0.5 rounded-full text-xs font-bold"
+                  style={{
+                    backgroundColor: '#000000',
+                    color: '#ffffff',
+                  }}
+                >
+                  {p.organisation_short_name || `P${p.participant_number}`}
+                </span>
+                <span className="truncate text-sm">
+                  {p.organisation_name}
+                </span>
+              </div>
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
-
-      {/* Color Picker */}
-      <div className="flex justify-center">
-        <WPColorPicker
-          color={wp.color}
-          onChange={(color) => onUpdate(wp.id, { color })}
-        />
-      </div>
     </div>
   );
 }
@@ -367,13 +377,12 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Table Header */}
-        <div className="grid grid-cols-[24px_54px_1fr_90px_130px_40px] gap-1 text-xs font-medium text-muted-foreground border-b pb-1.5">
+        <div className="grid grid-cols-[24px_50px_90px_1fr_1fr] gap-1.5 text-xs font-medium text-muted-foreground border-b pb-1.5">
           <div />
           <div />
-          <div>Title</div>
           <div>Short Name</div>
+          <div>Title</div>
           <div>WP Lead</div>
-          <div className="text-center">Color</div>
         </div>
 
         {/* Sortable WP List */}

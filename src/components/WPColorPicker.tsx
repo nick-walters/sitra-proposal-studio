@@ -11,6 +11,7 @@ interface WPColorPickerProps {
   onChange: (color: string) => void;
   disabled?: boolean;
   palette?: string[];
+  wpNumber?: number;
 }
 
 export function WPColorPicker({
@@ -18,6 +19,7 @@ export function WPColorPicker({
   onChange,
   disabled = false,
   palette = DEFAULT_WP_COLORS,
+  wpNumber,
 }: WPColorPickerProps) {
   const [open, setOpen] = useState(false);
   const [customColor, setCustomColor] = useState(color);
@@ -42,20 +44,36 @@ export function WPColorPicker({
     }
   };
 
+  const textColor = getContrastingTextColor(color);
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-8 w-8 p-0"
-          disabled={disabled}
-        >
-          <div
-            className="h-5 w-5 rounded-sm border"
-            style={{ backgroundColor: color }}
-          />
-        </Button>
+        {wpNumber !== undefined ? (
+          <button
+            className={cn(
+              "inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold transition-all",
+              "hover:ring-2 hover:ring-primary/30 hover:scale-105",
+              disabled && "opacity-50 cursor-not-allowed"
+            )}
+            style={{ backgroundColor: color, color: textColor }}
+            disabled={disabled}
+          >
+            WP{wpNumber}
+          </button>
+        ) : (
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 p-0"
+            disabled={disabled}
+          >
+            <div
+              className="h-5 w-5 rounded-sm border"
+              style={{ backgroundColor: color }}
+            />
+          </Button>
+        )}
       </PopoverTrigger>
       <PopoverContent className="w-[220px] p-3" align="end">
         <div className="space-y-3">
