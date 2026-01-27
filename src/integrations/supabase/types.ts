@@ -677,6 +677,7 @@ export type Database = {
           id: string
           is_primary_contact: boolean | null
           participant_id: string
+          person_id: string | null
           person_months: number | null
           role_in_project: string | null
           updated_at: string
@@ -689,6 +690,7 @@ export type Database = {
           id?: string
           is_primary_contact?: boolean | null
           participant_id: string
+          person_id?: string | null
           person_months?: number | null
           role_in_project?: string | null
           updated_at?: string
@@ -701,6 +703,7 @@ export type Database = {
           id?: string
           is_primary_contact?: boolean | null
           participant_id?: string
+          person_id?: string | null
           person_months?: number | null
           role_in_project?: string | null
           updated_at?: string
@@ -712,6 +715,13 @@ export type Database = {
             columns: ["participant_id"]
             isOneToOne: false
             referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "participant_members_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
             referencedColumns: ["id"]
           },
         ]
@@ -783,6 +793,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      people: {
+        Row: {
+          created_at: string
+          default_role: string | null
+          email: string | null
+          full_name: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_role?: string | null
+          email?: string | null
+          full_name: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_role?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
