@@ -297,29 +297,6 @@ export function ProposalEditor() {
 
     // Part A sections
     if (activeSection.isPartA) {
-      // Legacy proposal-overview redirect to a1
-      if (activeSection.id === 'proposal-overview') {
-        // Find and navigate to A1 instead
-        const findA1 = (sections: Section[]): Section | undefined => {
-          for (const s of sections) {
-            if (s.id === 'a1') return s;
-            if (s.subsections) {
-              const found = findA1(s.subsections);
-              if (found) return found;
-            }
-          }
-          return undefined;
-        };
-        const a1 = findA1(allSections);
-        if (a1) {
-          setActiveSection(a1);
-          return null;
-        }
-      }
-
-      // Part A heading (collapsible only, shows info) - matches "part-a"
-      // Part A is a collapsible heading - navigation redirects to A1
-
       // A1 - General Information (form-based) - matches "a1"
       // Only admins/owners can edit A1, but all users can view it
       if (activeSection.id === 'a1' || activeSection.id === 'general-info') {
