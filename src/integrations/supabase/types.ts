@@ -178,6 +178,69 @@ export type Database = {
           },
         ]
       }
+      case_drafts: {
+        Row: {
+          case_type: string
+          color: string
+          created_at: string
+          custom_type_name: string | null
+          description: string | null
+          id: string
+          lead_participant_id: string | null
+          number: number
+          order_index: number
+          proposal_id: string
+          short_name: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          case_type?: string
+          color?: string
+          created_at?: string
+          custom_type_name?: string | null
+          description?: string | null
+          id?: string
+          lead_participant_id?: string | null
+          number: number
+          order_index?: number
+          proposal_id: string
+          short_name?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          case_type?: string
+          color?: string
+          created_at?: string
+          custom_type_name?: string | null
+          description?: string | null
+          id?: string
+          lead_participant_id?: string | null
+          number?: number
+          order_index?: number
+          proposal_id?: string
+          short_name?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_drafts_lead_participant_id_fkey"
+            columns: ["lead_participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_drafts_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           content: string
@@ -1130,6 +1193,8 @@ export type Database = {
           acronym: string
           budget_template_id: string | null
           budget_type: Database["public"]["Enums"]["budget_type"]
+          cases_enabled: boolean
+          cases_type: string | null
           created_at: string
           created_by: string | null
           deadline: string | null
@@ -1158,6 +1223,8 @@ export type Database = {
           acronym: string
           budget_template_id?: string | null
           budget_type?: Database["public"]["Enums"]["budget_type"]
+          cases_enabled?: boolean
+          cases_type?: string | null
           created_at?: string
           created_by?: string | null
           deadline?: string | null
@@ -1186,6 +1253,8 @@ export type Database = {
           acronym?: string
           budget_template_id?: string | null
           budget_type?: Database["public"]["Enums"]["budget_type"]
+          cases_enabled?: boolean
+          cases_type?: string | null
           created_at?: string
           created_by?: string | null
           deadline?: string | null

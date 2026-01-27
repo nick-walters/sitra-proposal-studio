@@ -50,6 +50,8 @@ interface ProposalData {
   templateTypeId?: string;
   expectedProjects?: string;
   usesFstp?: boolean;
+  casesEnabled?: boolean;
+  casesType?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -102,6 +104,8 @@ export function useProposalData(proposalId: string) {
         templateTypeId: data.template_type_id || undefined,
         expectedProjects: (data as any).expected_projects || undefined,
         usesFstp: data.uses_fstp || false,
+        casesEnabled: (data as any).cases_enabled || false,
+        casesType: (data as any).cases_type || undefined,
         createdAt: new Date(data.created_at),
         updatedAt: new Date(data.updated_at),
       });

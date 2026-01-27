@@ -1,12 +1,12 @@
 import { Section, Participant } from "@/types/proposal";
-import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Layers, Building2, Info, Euro, Lightbulb, Target, Settings } from "lucide-react";
+import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Layers, Building2, Info, Euro, Lightbulb, Target, Settings, FlaskConical } from "lucide-react";
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SectionAssignment } from "@/hooks/useSectionAssignments";
 import { isPast, isToday, differenceInDays, format } from "date-fns";
-import type { WPSection } from "@/hooks/useProposalSections";
+import type { WPSection, CaseSection } from "@/hooks/useProposalSections";
 
 // Collaborator presence info for real-time editing indicators
 interface CollaboratorPresence {
@@ -19,9 +19,9 @@ interface CollaboratorPresence {
 }
 
 interface SectionNavigatorProps {
-  sections: (Section | WPSection)[];
+  sections: (Section | WPSection | CaseSection)[];
   activeSectionId: string | null;
-  onSectionClick: (section: Section | WPSection) => void;
+  onSectionClick: (section: Section | WPSection | CaseSection) => void;
   participants?: Participant[];
   isAdmin?: boolean;
   currentUserId?: string;
@@ -70,10 +70,10 @@ function SectionItem({
   currentUserId,
   collaborators = [],
 }: {
-  section: Section | WPSection;
+  section: Section | WPSection | CaseSection;
   depth?: number;
   activeSectionId: string | null;
-  onSectionClick: (section: Section | WPSection) => void;
+  onSectionClick: (section: Section | WPSection | CaseSection) => void;
   assignments?: Map<string, SectionAssignment>;
   currentUserId?: string;
   collaborators?: CollaboratorPresence[];
@@ -86,6 +86,11 @@ function SectionItem({
   const wpSection = section as WPSection;
   const isWPSection = wpSection.wpId !== undefined;
   const wpColor = wpSection.wpColor;
+  
+  // Check if this is a Case section with color
+  const caseSection = section as CaseSection;
+  const isCaseSection = caseSection.caseId !== undefined;
+  const caseColor = caseSection.caseColor;
   
   // Check if this is a participant section (a2-{participantId})
   const isParticipantSection = section.id.startsWith('a2-') && section.id !== 'a2';
@@ -113,7 +118,7 @@ function SectionItem({
     section.id === 'b2'
   );
 
-  // Check if this is a top-level bold item (Part A, Part B, Figures, WP Progress Tracker, WP Drafts)
+  // Check if this is a top-level bold item (Part A, Part B, Figures, WP Progress Tracker, WP Drafts, Case Drafts)
   // Match both ID-based and number-based checks for database sections
   const isTopLevelBold = 
     section.id === 'part-a' || 
@@ -123,7 +128,8 @@ function SectionItem({
     section.id === 'figures' ||
     section.title === 'Figures' ||
     section.id === 'wp-progress-tracker' ||
-    section.id === 'wp-drafts';
+    section.id === 'wp-drafts' ||
+    section.id === 'case-drafts';
   
   // Note: Guideline icons removed from navigation hover to reduce visual clutter
 
@@ -199,9 +205,13 @@ function SectionItem({
             <BarChart3 className="w-4 h-4 text-muted-foreground shrink-0" />
           ) : section.id === 'wp-drafts' ? (
             <Layers className="w-4 h-4 text-muted-foreground shrink-0" />
+          ) : section.id === 'case-drafts' ? (
+            <FlaskConical className="w-4 h-4 text-muted-foreground shrink-0" />
           ) : section.id === 'figures' || section.title === 'Figures' ? (
             null
           ) : isWPSection && wpColor ? (
+            null
+          ) : isCaseSection && caseColor ? (
             null
           ) : isParticipantSection ? (
             null
@@ -217,6 +227,13 @@ function SectionItem({
             style={{ backgroundColor: wpColor, color: '#ffffff' }}
           >
             WP{wpSection.wpNumber}: {wpSection.title}
+          </span>
+        ) : isCaseSection && caseColor ? (
+          <span 
+            className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap ml-5"
+            style={{ backgroundColor: caseColor, color: '#ffffff' }}
+          >
+            {caseSection.number}: {caseSection.title}
           </span>
         ) : isParticipantSection ? (
           <span 
@@ -384,8 +401,8 @@ function SectionItem({
 
       {hasSubsections && isExpanded && (
         <div className="animate-slide-in-left">
-          {/* Render WP Drafts and A2 Participants as 2-column grid of bubbles */}
-          {(section.id === 'wp-drafts' || section.id === 'a2') ? (
+          {/* Render WP Drafts, Case Drafts, and A2 Participants as 2-column grid of bubbles */}
+          {(section.id === 'wp-drafts' || section.id === 'case-drafts' || section.id === 'a2') ? (
             <div 
               className="grid grid-cols-2 gap-x-2 gap-y-1 py-1"
               style={{ 
@@ -395,7 +412,9 @@ function SectionItem({
             >
               {section.subsections!.map((subsection) => {
                 const wpSub = subsection as WPSection;
+                const caseSub = subsection as CaseSection;
                 const isWP = wpSub.wpId !== undefined;
+                const isCase = caseSub.caseId !== undefined;
                 const isSubActive = activeSectionId === subsection.id;
                 
                 return (
@@ -408,21 +427,25 @@ function SectionItem({
                             isSubActive && "ring-2 ring-primary ring-offset-1"
                           )}
                           style={{ 
-                            backgroundColor: isWP ? wpSub.wpColor : '#000000',
+                            backgroundColor: isWP ? wpSub.wpColor : isCase ? caseSub.caseColor : '#000000',
                             color: '#ffffff' 
                           }}
                           onClick={() => onSectionClick(subsection)}
                         >
                           {isWP 
                             ? `WP${wpSub.wpNumber}: ${wpSub.title}`
-                            : `${subsection.number}: ${subsection.title}`
+                            : isCase
+                              ? `${caseSub.number}: ${caseSub.title}`
+                              : `${subsection.number}: ${subsection.title}`
                           }
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="right" className="text-xs">
                         {isWP 
                           ? `WP${wpSub.wpNumber}: ${wpSub.title}`
-                          : `Participant ${subsection.number}: ${subsection.title}`
+                          : isCase
+                            ? `Case ${caseSub.number}: ${caseSub.title}`
+                            : `Participant ${subsection.number}: ${subsection.title}`
                         }
                       </TooltipContent>
                     </Tooltip>
