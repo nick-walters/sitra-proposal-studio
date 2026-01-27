@@ -87,6 +87,9 @@ function SectionItem({
   const isWPSection = wpSection.wpId !== undefined;
   const wpColor = wpSection.wpColor;
   
+  // Check if this is a participant section (a2-{participantId})
+  const isParticipantSection = section.id.startsWith('a2-') && section.id !== 'a2';
+  
   // Get collaborators currently editing this section
   const sectionCollaborators = collaborators.filter(c => c.sectionId === section.id);
   
@@ -164,6 +167,8 @@ function SectionItem({
           <Layers className="w-4 h-4 text-muted-foreground" />
         ) : isWPSection && wpColor ? (
           null
+        ) : isParticipantSection ? (
+          null
         ) : (
           <FileText className="w-4 h-4 text-muted-foreground" />
         )}
@@ -175,6 +180,13 @@ function SectionItem({
             style={{ backgroundColor: wpColor, color: '#ffffff' }}
           >
             WP{wpSection.wpNumber}: {wpSection.title}
+          </span>
+        ) : isParticipantSection ? (
+          <span 
+            className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap"
+            style={{ backgroundColor: '#000000', color: '#ffffff' }}
+          >
+            P{section.number}: {section.title}
           </span>
         ) : (
           <>
