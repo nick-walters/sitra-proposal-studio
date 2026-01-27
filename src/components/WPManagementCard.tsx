@@ -197,7 +197,7 @@ function SortableWPRow({ wp, participants, onUpdate, onDelete, canEdit }: Sortab
       {canEdit && (
         <button
           onClick={() => onDelete(wp.id)}
-          className="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors"
+          className="p-1 text-destructive hover:bg-destructive/10 rounded transition-colors"
           title="Delete work package"
         >
           <Trash2 className="w-4 h-4" />
