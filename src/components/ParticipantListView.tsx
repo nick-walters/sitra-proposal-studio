@@ -357,7 +357,7 @@ function ParticipantCard({
           </div>
           
           {/* Save indicator / Edit button */}
-          <div className="shrink-0 flex items-center gap-2 justify-end">
+          <div className="w-24 shrink-0 flex items-center gap-2 justify-end">
             {canEdit && (isSaving || hasChanges) && (
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 {isSaving ? (
@@ -382,7 +382,7 @@ function ParticipantCard({
                   onSelect();
                 }}
               >
-                Edit details
+                Edit
               </Button>
             )}
           </div>
