@@ -229,6 +229,7 @@ export interface Participant {
   address?: string;
   organisationCategory?: string;
   englishName?: string;
+  personnelCostRate?: number; // Monthly cost rate in EUR for personnel calculations
 }
 
 /**
