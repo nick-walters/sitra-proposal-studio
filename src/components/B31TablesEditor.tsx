@@ -982,7 +982,7 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <p className={`${tableStyles} italic mt-4 mb-1`}>
-          <span className="font-bold italic">Table 3.1e.</span> Critical risks (i. likelihood; ii. severity; L = low, M = medium, H = high)
+          <span className="font-bold italic">Table 3.1e.</span> Critical risks (<span className="font-bold">i.</span> likelihood; <span className="font-bold">ii.</span> severity; <span className="font-bold text-green-600">L</span> = low, <span className="font-bold text-amber-500">M</span> = medium, <span className="font-bold text-red-500">H</span> = high)
         </p>
         {isAdminOrOwner && (
           <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs">
