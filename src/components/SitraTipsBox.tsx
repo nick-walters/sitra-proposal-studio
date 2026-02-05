@@ -3,6 +3,15 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
+/**
+ * SitraTipsBox - Displays MULTIPLE Sitra tips in a collapsible container
+ * 
+ * Use for: Grouping multiple Sitra tips together with expand/collapse functionality.
+ * Parses bullet points and handles multi-line content formatting.
+ * 
+ * For displaying a single guideline with styled box formatting, use GuidelineBox instead.
+ */
+
 interface SitraTip {
   id: string;
   title: string;

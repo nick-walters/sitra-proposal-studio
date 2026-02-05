@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { ParticipantSummary } from '@/types/proposal';
 
 interface WPDraftFull {
   id: string;
@@ -39,19 +40,12 @@ interface WPDraftFull {
   }[];
 }
 
-interface Participant {
-  id: string;
-  organisation_short_name: string | null;
-  organisation_name: string;
-  participant_number: number | null;
-}
-
 /**
  * Generate HTML content for a single WP to populate in Part B3.1
  */
 function generateWPContent(
   wp: WPDraftFull,
-  participants: Map<string, Participant>
+  participants: Map<string, ParticipantSummary>
 ): string {
   const getParticipantName = (id: string | null): string => {
     if (!id) return '—';
@@ -139,7 +133,7 @@ function generateWPContent(
  */
 function generateDeliverablesTable(
   wps: WPDraftFull[],
-  participants: Map<string, Participant>
+  participants: Map<string, ParticipantSummary>
 ): string {
   const getParticipantName = (id: string | null): string => {
     if (!id) return '—';
@@ -292,7 +286,7 @@ export async function populateB31(
 
     if (partError) throw partError;
 
-    const participantsMap = new Map<string, Participant>();
+    const participantsMap = new Map<string, ParticipantSummary>();
     for (const p of participantsData || []) {
       participantsMap.set(p.id, p);
     }

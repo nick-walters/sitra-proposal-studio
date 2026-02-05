@@ -4,6 +4,15 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
 import { createAssignmentNotification } from '@/hooks/useNotifications';
 
+/**
+ * useSectionAssignment - Manages assignment for a SINGLE section
+ * 
+ * Use case: Section editor assignment panel where you need full CRUD operations
+ * for managing who is assigned to a specific section, due dates, etc.
+ * 
+ * For batch assignment data (e.g., section navigator overview), use useSectionAssignments instead.
+ */
+
 interface AssignmentInfo {
   assignedTo: string | null;
   assignedToName: string | null;

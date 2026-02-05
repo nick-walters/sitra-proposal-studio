@@ -8,16 +8,10 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-
-interface Participant {
-  id: string;
-  organisation_short_name: string | null;
-  organisation_name: string;
-  participant_number: number | null;
-}
+import type { ParticipantSummary } from '@/types/proposal';
 
 interface ParticipantMultiSelectProps {
-  participants: Participant[];
+  participants: ParticipantSummary[];
   selectedIds: string[];
   onChange: (ids: string[]) => void;
   disabled?: boolean;

@@ -10,14 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Building2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
-
-interface Participant {
-  id: string;
-  participant_number: number;
-  organisation_short_name: string | null;
-  organisation_name: string;
-  english_name: string | null;
-}
+import type { ParticipantSummary } from '@/types/proposal';
 
 interface InsertParticipantReferenceDialogProps {
   open: boolean;
@@ -36,7 +29,7 @@ export function InsertParticipantReferenceDialog({
   proposalId,
   onSelect,
 }: InsertParticipantReferenceDialogProps) {
-  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [participants, setParticipants] = useState<(ParticipantSummary & { participant_number: number })[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -61,7 +54,7 @@ export function InsertParticipantReferenceDialog({
     setLoading(false);
   };
 
-  const handleSelect = (participant: Participant) => {
+  const handleSelect = (participant: ParticipantSummary & { participant_number: number }) => {
     onSelect({
       id: participant.id,
       participantNumber: participant.participant_number,

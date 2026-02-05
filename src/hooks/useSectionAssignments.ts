@@ -1,6 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+/**
+ * useSectionAssignments - Fetches assignment data for ALL sections in a proposal
+ * 
+ * Use case: Section navigator and overview panels where you need a read-only
+ * snapshot of all section assignments to display badges/indicators.
+ * 
+ * For managing a single section's assignment (CRUD operations), use useSectionAssignment instead.
+ */
+
 export interface SectionAssignment {
   sectionNumber: string;
   assignedTo: string | null;

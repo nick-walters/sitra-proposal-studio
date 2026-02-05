@@ -7,6 +7,7 @@ import { Target, Plus, Trash2, GripVertical } from 'lucide-react';
 import { ParticipantMultiSelect } from '@/components/ParticipantMultiSelect';
 import { WPSimpleEditor } from '@/components/WPSimpleEditor';
 import type { WPDraftTask } from '@/hooks/useWPDrafts';
+import type { ParticipantSummary } from '@/types/proposal';
 import {
   DndContext,
   closestCenter,
@@ -25,18 +26,11 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-interface Participant {
-  id: string;
-  organisation_short_name: string | null;
-  organisation_name: string;
-  participant_number: number | null;
-}
-
 interface WPTableSectionProps {
   wpNumber: number;
   objectives: string | null;
   tasks: WPDraftTask[];
-  participants: Participant[];
+  participants: ParticipantSummary[];
   onObjectivesChange: (value: string) => void;
   onTaskUpdate: (taskId: string, updates: Partial<WPDraftTask>) => Promise<boolean>;
   onTaskAdd: () => Promise<any>;
@@ -155,7 +149,7 @@ export function WPTableSection({
 interface SortableTaskCardProps {
   task: WPDraftTask;
   wpNumber: number;
-  participants: Participant[];
+  participants: ParticipantSummary[];
   monthOptions: number[];
   onUpdate: (taskId: string, updates: Partial<WPDraftTask>) => Promise<boolean>;
   onDelete: (taskId: string) => Promise<boolean>;

@@ -41,14 +41,7 @@ import { FlaskConical, GripVertical, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-
-interface Participant {
-  id: string;
-  organisation_short_name: string | null;
-  organisation_name: string;
-  english_name: string | null;
-  participant_number: number | null;
-}
+import type { ParticipantSummary } from '@/types/proposal';
 
 interface CaseDraft {
   id: string;
@@ -86,7 +79,7 @@ function getCasePrefix(caseType: string, customTypeName: string | null): string 
 
 interface SortableCaseRowProps {
   caseItem: CaseDraft;
-  participants: Participant[];
+  participants: ParticipantSummary[];
   onUpdate: (id: string, updates: Partial<CaseDraft>) => void;
   onDelete: (id: string) => void;
   canEdit: boolean;
@@ -314,7 +307,7 @@ export function CaseManagementCard({
         .eq('proposal_id', proposalId)
         .order('participant_number');
       if (error) throw error;
-      return data as Participant[];
+      return data as ParticipantSummary[];
     },
     enabled: casesEnabled,
   });

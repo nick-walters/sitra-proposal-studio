@@ -231,6 +231,18 @@ export interface Participant {
   englishName?: string;
 }
 
+/**
+ * Lightweight participant type for dropdowns, selectors, and references.
+ * Use this when you only need basic participant info (not full Participant details).
+ */
+export interface ParticipantSummary {
+  id: string;
+  participant_number: number | null;
+  organisation_short_name: string | null;
+  organisation_name: string;
+  english_name?: string | null;
+}
+
 export interface ParticipantMember {
   id: string;
   participantId: string;
