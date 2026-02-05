@@ -133,7 +133,7 @@ const disseminationLevels = [
 ];
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
-const cellStyles = "border border-black p-0 align-top font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
+const cellStyles = "border border-black p-0 align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
 
 // Inline editable text that expands to multiple lines
 function EditableText({ 
@@ -559,7 +559,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
               {deliverables.map((del) => (
                 <SortableTableRow key={del.id} id={del.id} canDrag={isAdminOrOwner}>
                   <TableCell className={cellStyles}>
-                    <div className="flex items-start gap-1">
+                    <div className="flex items-baseline gap-1">
                       <span className="font-medium shrink-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">{del.number}:</span>
                       <EditableText
                         value={del.name}
@@ -811,7 +811,7 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
               {milestones.map((ms) => (
                 <SortableTableRow key={ms.id} id={ms.id} canDrag={isAdminOrOwner}>
                   <TableCell className={cellStyles}>
-                    <div className="flex items-start gap-1">
+                    <div className="flex items-baseline gap-1">
                       <span className="font-medium shrink-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">MS{ms.number}:</span>
                       <EditableText
                         value={ms.name}
