@@ -1,278 +1,186 @@
 
-# Comprehensive Code Cleanup and Feature Completion Plan
-
-**Status: Phase 4 Complete ✅ - All Major Tasks Done**
+# Plan: Enhanced B3.1 Population with Official Table Formats
 
 ## Overview
-This plan addresses code redundancies, inconsistencies, and incomplete features identified across the Sitra Proposal Studio codebase. The cleanup will improve maintainability, reduce duplication, and complete partially implemented functionality.
+
+This plan enhances the "Populate Part B3.1" functionality to transfer WP draft content into the official Horizon Europe table formats, with proper captioning and an option to include budget cost justifications. Milestones (Table 3.1d) remain empty for manual design by proposal writers.
+
+## Data Mapping Summary
+
+| EC Table | Source | Auto-populated? |
+|----------|--------|-----------------|
+| Table 3.1b: WP descriptions | wp_drafts, wp_draft_tasks | Yes |
+| Table 3.1c: Deliverables | wp_draft_deliverables | Yes |
+| Table 3.1d: Milestones | Manual entry | No (empty template) |
+| Table 3.1e: Critical risks | wp_draft_risks | Yes |
+| Table 3.1f: Staff effort | wp_draft_task_effort | Yes |
+| Table 3.1g: Subcontracting | budget_items | Optional (user choice) |
+| Table 3.1h: Equipment costs | budget_items | Optional (user choice) |
+
+Note: "Task interactions and bottlenecks" from WP drafts remain visible in the WP editor for reference but are not copied to B3.1.
 
 ---
 
-## Part 1: Code Cleanup and Consolidation
+## Implementation Steps
 
-### 1.1 Toast Notification Consolidation
+### Step 1: Update B3.1 Population Logic
 
-**Status: ✅ COMPLETE**
+Restructure `src/lib/b31Population.ts` to generate all official tables:
 
-Migrated all hooks to `sonner` and deleted redundant toast files.
+#### Table 3.1b: Work package description (Single Caption, Multiple Tables)
 
----
+One caption followed by multiple WP tables (one per WP):
 
-### 1.2 Centralize Participant Interface
+```text
+Table 3.1b: Work package description
 
-**Status: ✅ COMPLETE**
+┌────────────────────────┬──────────────────────────┐
+│ Work package number    │ WP1                      │
+│ Work package title     │ Project Management       │
+│ Participant number     │ 1, 2, 3                  │
+│ Person-months          │ 12.0                     │
+│ Start month            │ 1                        │
+│ End month              │ 36                       │
+│ Objectives             │ [objectives text]        │
+│ Description of work    │ [tasks with details]     │
+└────────────────────────┴──────────────────────────┘
 
-**Completed**:
-- ✅ Added `ParticipantSummary` type to `src/types/proposal.ts`
-- ✅ Updated 9 components to import from central location:
-  - `WPManagementCard.tsx`
-  - `CaseManagementCard.tsx`
-  - `WPEffortMatrix.tsx`
-  - `WPDraftEditor.tsx`
-  - `WPDeliverablesTable.tsx`
-  - `WPTableSection.tsx`
-  - `ParticipantMultiSelect.tsx`
-  - `InsertParticipantReferenceDialog.tsx`
-  - `src/lib/b31Population.ts`
+┌────────────────────────┬──────────────────────────┐
+│ Work package number    │ WP2                      │
+│ ...                    │ ...                      │
+└────────────────────────┴──────────────────────────┘
+(No additional captions between WPs)
+```
 
----
+#### Table 3.1c: List of deliverables
+Auto-populated from `wp_draft_deliverables`:
+| Number | Deliverable name | Short description | WP | Lead | Type | Diss. | Due |
 
-### 1.3 Centralize WPDraft Interface
+#### Table 3.1d: List of milestones
+Empty template for manual entry:
+| MS | Milestone name | Related WP(s) | Due month | Means of verification |
 
-**Status: ✅ COMPLETE**
+#### Table 3.1e: Critical risks
+Auto-populated from `wp_draft_risks`:
+| Description of risk | WP(s) involved | Proposed mitigation measures |
 
-- ✅ `WPDraft` is exported from `src/hooks/useWPDrafts.ts`
-- ✅ `InsertWPReferenceDialog.tsx` uses local lightweight `WPRefData` type (appropriate for its limited needs)
-- ✅ Components that need full WPDraft import from the hook
+#### Table 3.1f: Summary of staff effort
+Auto-populated from `wp_draft_task_effort`:
+| Partner | WP1 | WP2 | WP3 | ... | Total |
 
----
-
-### 1.4 Merge Template Type Files
-
-**Status: ✅ COMPLETE**
-
-Merged `templateSystem.ts` into `templates.ts` and deleted the redundant file.
-
----
-
-### 1.5 Guideline Component Clarification
-
-**Status: ✅ COMPLETE**
-
-**Completed**:
-- ✅ Added JSDoc comments to `GuidelineBox.tsx` clarifying single guideline display
-- ✅ Added JSDoc comments to `SitraTipsBox.tsx` clarifying multiple tips in collapsible container
-- ✅ Added JSDoc comments to `useSectionAssignment.ts` (single section CRUD)
-- ✅ Added JSDoc comments to `useSectionAssignments.ts` (batch read-only for navigator)
+#### Tables 3.1g & 3.1h: Cost justifications (Optional)
+Only generated when user opts in:
+- 3.1g: Subcontracting costs from `budget_items` where category='subcontracting'
+- 3.1h: Equipment costs from `budget_items` where category='purchase' and item is major equipment
 
 ---
 
-### 1.6 Console.log Cleanup
+### Step 2: Update WPManagementCard
 
-**Status: ✅ COMPLETE**
-
-Removed debug logs from frontend hooks and Dashboard.
-
----
-
-## Part 2: Incomplete Features
-
-### 2.1 Track Changes - Not Persisted to Database
-
-**Status: ✅ COMPLETE**
-
-**Completed**:
-- ✅ Created `section_tracked_changes` database table with RLS policies
-- ✅ Created `useTrackedChanges` hook for loading/saving changes
-- ✅ Integrated hook into `DocumentEditor.tsx`
-- ✅ Changes now persist across page refreshes and sessions
-
-**Database Table**: `section_tracked_changes` stores change_id, change_type, author info, positions, and content.
+Modify the "Populate Part B3.1" dialog:
+- Current WP selection checkboxes
+- New toggle: "Include cost justifications from budget"
+- Pass option to `populateB31()` function
 
 ---
 
-### 2.2 WorkPackageManager vs WPManagementCard Duplication
+### Step 3: Table Caption Strategy
 
-**Status: ✅ COMPLETE**
-
-**Analysis Result**: `WorkPackageManager.tsx` was dead code - imported but never rendered.
-- The modern `WPManagementCard.tsx` using `wp_drafts` table has fully replaced it.
-- Legacy `work_packages` and `member_wp_allocations` tables exist but are unused.
-
-**Completed**:
-- ✅ Removed dead import from `ProposalEditor.tsx`
-- ✅ Deleted `src/components/WorkPackageManager.tsx`
-
-**Note**: Legacy tables (`work_packages`, `member_wp_allocations`) remain in DB but are no longer used.
+To avoid renumbering issues with subsequent tables:
+- All WP description tables share a single "Table 3.1b" caption
+- Each subsequent table (3.1c, 3.1d, etc.) has its own caption
+- This ensures the caption auto-numbering system works correctly
 
 ---
 
-### 2.3 Section Version Comparison - Enhanced
+## File Changes
 
-**Status: ✅ COMPLETE**
+### Modified Files
 
-**Completed**:
-- ✅ Added tabbed interface with "Text Diff" and "Side-by-Side Preview" modes
-- ✅ Text diff shows line-by-line changes with add/remove indicators
-- ✅ Side-by-side preview shows rendered HTML content from both versions
-- ✅ Version labels displayed in preview headers
+1. **`src/lib/b31Population.ts`**
+   - Restructure `generateWPContent()` to use Table 3.1b row format (Work package number, title, participants, etc.)
+   - Create single caption for all WP description tables
+   - Update `generateDeliverablesTable()` to match exact EC columns (add Short description column)
+   - Update `generateRisksTable()` to use EC format (description text, not risk ID)
+   - Add `generateMilestonesTable()` - empty template with correct headers
+   - Add `generateStaffEffortTable()` - matrix from wp_draft_task_effort
+   - Add `generateSubcontractingTable()` - from budget_items
+   - Add `generatePurchaseCostsTable()` - from budget_items
+   - Update `populateB31()` signature to accept `includeCostJustifications: boolean`
 
----
-
-### 2.4 WP Effort Matrix - Connected to Budget
-
-**Status: ✅ COMPLETE**
-
-**Completed**:
-- ✅ Added `personnel_cost_rate` field to participants table
-- ✅ Updated `Participant` interface in `src/types/proposal.ts`
-- ✅ Added cost rate input to `ParticipantDetailForm.tsx`
-- ✅ Created `useEffortToBudget` hook for calculations
-- ✅ Created `EffortToBudgetSummary` component for display
-
-Personnel costs are now calculated from: person-months × cost rate (default €5000/PM).
+2. **`src/components/WPManagementCard.tsx`**
+   - Add checkbox/toggle for "Include cost justifications"
+   - Update populate button handler to pass new option
 
 ---
 
-### 2.5 Template Modifiers and Work Programme Extensions
+## Data Flow
 
-**Status: ✅ COMPLETE**
-
-**Completed**:
-- ✅ Created `useTemplateModifiers` hook for CRUD operations
-- ✅ Created `TemplateModifiersAdmin` component with full management UI
-- ✅ Created `WorkProgrammeExtensionsAdmin` component with full management UI
-- ✅ Added "Modifiers" and "WP Extensions" tabs to Template Admin page
-
-Modifiers support JSON conditions/effects for template behavior rules.
-Extensions support work programme-specific sections, fields, and funding overrides.
-
----
-
-### 2.6 Block Locking - Functional via Presence
-
-**Status: ✅ COMPLETE**
-
-**Analysis**: Block locking correctly uses Supabase Presence (ephemeral).
-- Locks should be released when users disconnect
-- Database persistence would be inappropriate for this use case
-- `useBlockLocking` hook + `BlockLocking` extension work correctly
-
----
-
-### 2.7 Collaborative Cursors - Functional
-
-**Status: ✅ COMPLETE**
-
-- `useCollaborativeCursors` tracks presence
-- `CollaborativeCursors` component renders cursor indicators
-- `PresenceAvatars` shows active users
-
----
-
-## Part 3: Implementation Priority
-
-| Priority | Task | Status |
-|----------|------|--------|
-| **High** | Toast consolidation | ✅ Done |
-| **High** | Centralize Participant interface | ✅ Done |
-| **High** | Centralize WPDraft interface | ✅ Done |
-| **Medium** | Merge template type files | ✅ Done |
-| **Medium** | Add JSDoc documentation | ✅ Done |
-| **Medium** | Track changes persistence | ✅ Done |
-| **Medium** | Clarify WP manager components | ✅ Done |
-| **Low** | Block locking (uses Presence) | ✅ Done |
-| **Low** | Effort to budget connection | ✅ Done |
-
----
-
-## Files Summary
-
-### Files Deleted ✅
-- `src/hooks/use-toast.ts`
-- `src/components/ui/use-toast.ts`
-- `src/components/ui/toaster.tsx`
-- `src/types/templateSystem.ts`
-- `src/components/WorkPackageManager.tsx`
-
-### Files Created ✅
-- `src/hooks/useTrackedChanges.ts` - Track changes persistence
-- `src/hooks/useEffortToBudget.ts` - Effort to budget calculations
-- `src/components/EffortToBudgetSummary.tsx` - Display component
-
-### Files Modified ✅
-**Phase 1:**
-- `src/hooks/useWPColorPalette.ts`
-- `src/hooks/useTemplates.ts`
-- `src/hooks/useWPDrafts.ts`
-- `src/hooks/useSectionComments.ts`
-- `src/hooks/useWPDependencies.ts`
-- `src/hooks/useCollaborativeCursors.ts`
-- `src/hooks/useTemplateSystem.ts`
-- `src/pages/Dashboard.tsx`
-- `src/types/templates.ts`
-- `src/App.tsx`
-
-**Phase 2:**
-- `src/types/proposal.ts` (added ParticipantSummary)
-- `src/components/WPManagementCard.tsx`
-- `src/components/CaseManagementCard.tsx`
-- `src/components/WPEffortMatrix.tsx`
-- `src/components/WPDraftEditor.tsx`
-- `src/components/WPDeliverablesTable.tsx`
-- `src/components/WPTableSection.tsx`
-- `src/components/ParticipantMultiSelect.tsx`
-- `src/components/InsertParticipantReferenceDialog.tsx`
-- `src/components/InsertWPReferenceDialog.tsx`
-- `src/lib/b31Population.ts`
-- `src/hooks/useSectionAssignment.ts` (JSDoc)
-- `src/hooks/useSectionAssignments.ts` (JSDoc)
-- `src/components/GuidelineBox.tsx` (JSDoc)
-- `src/components/SitraTipsBox.tsx` (JSDoc)
-
-**Phase 3-4:**
-- `src/pages/ProposalEditor.tsx` (removed dead import)
-- `src/components/DocumentEditor.tsx` (track changes integration)
-- `src/types/proposal.ts` (added personnelCostRate to Participant)
-- `src/components/ParticipantDetailForm.tsx` (cost rate field)
-- `src/hooks/useEffortToBudget.ts` (new)
-- `src/components/EffortToBudgetSummary.tsx` (new)
-- `src/hooks/useTemplateModifiers.ts` (new)
-- `src/components/admin/TemplateModifiersAdmin.tsx` (new)
-- `src/components/admin/WorkProgrammeExtensionsAdmin.tsx` (new)
-- `src/pages/admin/TemplateAdmin.tsx` (added modifiers/extensions tabs)
-- `src/components/VersionComparisonDialog.tsx` (enhanced with side-by-side view)
+```text
+WP Management Card
+┌─────────────────────────────────────────────────┐
+│ Select WPs to populate:                         │
+│ [x] WP1  [x] WP2  [x] WP3  [ ] WP4 ...         │
+│                                                 │
+│ ☐ Include cost justifications from budget      │
+│                                                 │
+│              [Populate Part B3.1]               │
+└─────────────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────┐
+│ populateB31(proposalId, wpIds, userId, options) │
+│                                                 │
+│ Fetches:                                        │
+│ • wp_drafts (info, objectives, methodology)     │
+│ • wp_draft_tasks (descriptions)                 │
+│ • wp_draft_task_effort (person-months)          │
+│ • wp_draft_deliverables                         │
+│ • wp_draft_risks                                │
+│ • participants (names)                          │
+│ • budget_items (if includeCosts = true)         │
+└─────────────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────┐
+│ Generated HTML for Section 3.1:                 │
+│                                                 │
+│ Table 3.1b: Work package description            │
+│   [WP1 table] [WP2 table] [WP3 table]...       │
+│                                                 │
+│ Table 3.1c: List of deliverables               │
+│   [auto-populated rows]                         │
+│                                                 │
+│ Table 3.1d: List of milestones                 │
+│   [empty template for manual entry]             │
+│                                                 │
+│ Table 3.1e: Critical risks                     │
+│   [auto-populated rows]                         │
+│                                                 │
+│ Table 3.1f: Summary of staff effort            │
+│   [auto-populated matrix]                       │
+│                                                 │
+│ (If opted in:)                                  │
+│ Table 3.1g: Subcontracting costs               │
+│ Table 3.1h: Purchase costs                     │
+└─────────────────────────────────────────────────┘
+```
 
 ---
 
-## Recommended Execution Order
+## Reference Data (Stays in WP Editor)
 
-1. **Phase 1 - Quick Wins** ✅ COMPLETE
-   - ✅ Toast notification consolidation
-   - ✅ Console.log cleanup
-   - ✅ Type file merge
-
-2. **Phase 2 - Interface Centralization** ✅ COMPLETE
-   - ✅ Created ParticipantSummary type
-   - ✅ Updated all component imports
-   - ✅ Added JSDoc documentation
-
-3. **Phase 3 - Feature Evaluation** ✅ COMPLETE
-   - ✅ Evaluated WorkPackageManager (was dead code)
-   - ✅ Deleted legacy component
-   - ✅ Documented component purposes
-
-4. **Phase 4 - Feature Completion** ✅ COMPLETE
-   - ✅ Track changes database persistence
-   - ✅ Block locking verified (uses Presence correctly)
-   - ✅ Effort matrix to budget connection
-   - ✅ Collaborative cursors verified
-   - ✅ Template modifiers admin UI
-   - ✅ Work programme extensions admin UI
-   - ✅ Rich text version comparison (side-by-side preview)
+The following WP draft content remains visible in the WP editor for reference when designing milestones, but is NOT copied to B3.1:
+- Task interactions and bottlenecks section
 
 ---
 
-## 🎉 ALL TASKS COMPLETE
+## Summary
 
-The comprehensive code cleanup and feature completion plan has been fully implemented.
+| Change | Details |
+|--------|---------|
+| No database changes | Milestones are manual, no new table needed |
+| b31Population.ts | Generate Tables 3.1b-h with proper formatting |
+| WPManagementCard | Add cost justification toggle |
+| Milestones | Empty template inserted, writers fill manually |
+| Caption strategy | Single caption for all WP description tables |
