@@ -79,11 +79,15 @@ Removed debug logs from frontend hooks and Dashboard.
 
 ### 2.1 Track Changes - Not Persisted to Database
 
-**Status: 🔴 NOT STARTED**
+**Status: ✅ COMPLETE**
 
-Track changes UI exists but changes are stored only in memory.
+**Completed**:
+- ✅ Created `section_tracked_changes` database table with RLS policies
+- ✅ Created `useTrackedChanges` hook for loading/saving changes
+- ✅ Integrated hook into `DocumentEditor.tsx`
+- ✅ Changes now persist across page refreshes and sessions
 
-**Required**: Database table `section_tracked_changes` and persistence logic.
+**Database Table**: `section_tracked_changes` stores change_id, change_type, author info, positions, and content.
 
 ---
 

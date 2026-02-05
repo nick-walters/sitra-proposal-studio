@@ -52,6 +52,7 @@ import { SnippetsDialog } from "./SnippetsDialog";
 import { SplitViewPanel } from "./SplitViewPanel";
 import { TrackChange } from "@/extensions/TrackChanges";
 import { useAuth } from "@/hooks/useAuth";
+import { useTrackedChanges } from "@/hooks/useTrackedChanges";
 import {
   Tooltip,
   TooltipContent,
@@ -120,9 +121,17 @@ export function DocumentEditor({
     getNextCitationNumber 
   } = useProposalReferences(proposalId);
   
-  // Track changes state
+  // Track changes persistence hook
   const [trackChangesEnabled, setTrackChangesEnabled] = useState(false);
-  const [trackedChanges, setTrackedChanges] = useState<TrackChange[]>([]);
+  const {
+    changes: trackedChanges,
+    loading: trackChangesLoading,
+    handleChangesUpdate: setTrackedChanges,
+  } = useTrackedChanges({
+    proposalId: proposalId || '',
+    sectionId: section?.id || '',
+    enabled: trackChangesEnabled,
+  });
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isFormulaOpen, setIsFormulaOpen] = useState(false);
   const [isComparisonOpen, setIsComparisonOpen] = useState(false);
