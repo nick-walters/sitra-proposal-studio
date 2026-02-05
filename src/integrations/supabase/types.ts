@@ -14,6 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      b31_deliverables: {
+        Row: {
+          created_at: string
+          description: string
+          dissemination_level: string | null
+          due_month: number | null
+          id: string
+          lead_participant_id: string | null
+          name: string
+          number: string
+          order_index: number
+          proposal_id: string
+          type: string | null
+          updated_at: string
+          wp_number: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          dissemination_level?: string | null
+          due_month?: number | null
+          id?: string
+          lead_participant_id?: string | null
+          name?: string
+          number: string
+          order_index?: number
+          proposal_id: string
+          type?: string | null
+          updated_at?: string
+          wp_number?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          dissemination_level?: string | null
+          due_month?: number | null
+          id?: string
+          lead_participant_id?: string | null
+          name?: string
+          number?: string
+          order_index?: number
+          proposal_id?: string
+          type?: string | null
+          updated_at?: string
+          wp_number?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "b31_deliverables_lead_participant_id_fkey"
+            columns: ["lead_participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "b31_deliverables_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       b31_milestones: {
         Row: {
           created_at: string
