@@ -20,7 +20,6 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SaveIndicator } from "./SaveIndicator";
-import { usePageEstimate } from "@/hooks/usePageEstimate";
 import { Loader2, FileText, Target, Euro, Calendar as CalendarIcon, ExternalLink, Download } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -301,9 +300,6 @@ export function GeneralInfoForm({
     proposal?.workProgramme ? getDestinationsForWorkProgramme(proposal.workProgramme) : []
   );
 
-  // Page estimate for PDF export
-  const { estimatedPages } = usePageEstimate(proposalId);
-
   // Sync editedProposal when proposal changes
   useEffect(() => {
     if (proposal) {
@@ -520,14 +516,6 @@ export function GeneralInfoForm({
             sitraTips={sitraTips}
           />
           <div className="flex items-center gap-3">
-            {onExportPdf && estimatedPages !== null && (
-              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <span>{estimatedPages} {estimatedPages === 1 ? 'page' : 'pages'}</span>
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-blue-100 text-blue-700 hover:bg-blue-100">
-                  Est.
-                </Badge>
-              </div>
-            )}
             {onExportPdf && !isAdmin && (
               <Button variant="outline" size="sm" className="gap-2" onClick={() => onExportPdf(true)}>
                 <Download className="w-4 h-4" />
