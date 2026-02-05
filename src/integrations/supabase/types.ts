@@ -808,6 +808,7 @@ export type Database = {
           organisation_short_name: string | null
           organisation_type: Database["public"]["Enums"]["participant_type"]
           participant_number: number | null
+          personnel_cost_rate: number | null
           pic_number: string | null
           proposal_id: string
           updated_at: string
@@ -827,6 +828,7 @@ export type Database = {
           organisation_short_name?: string | null
           organisation_type?: Database["public"]["Enums"]["participant_type"]
           participant_number?: number | null
+          personnel_cost_rate?: number | null
           pic_number?: string | null
           proposal_id: string
           updated_at?: string
@@ -846,6 +848,7 @@ export type Database = {
           organisation_short_name?: string | null
           organisation_type?: Database["public"]["Enums"]["participant_type"]
           participant_number?: number | null
+          personnel_cost_rate?: number | null
           pic_number?: string | null
           proposal_id?: string
           updated_at?: string
