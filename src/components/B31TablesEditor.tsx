@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -135,7 +135,7 @@ const disseminationLevels = [
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles = "border border-black p-0 align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
 
-// Inline editable text that expands to multiple lines
+// Inline editable text that expands to multiple lines - with debounced save
 function EditableText({ 
   value, 
   onChange, 
@@ -147,10 +147,36 @@ function EditableText({
   placeholder?: string;
   className?: string;
 }) {
+  const [localValue, setLocalValue] = useState(value);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Sync local value when prop changes (e.g., from another user)
+  useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+  
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    setLocalValue(newValue);
+    
+    // Debounce the save
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      onChange(newValue);
+    }, 500);
+  };
+  
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+  
   return (
     <textarea
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
+      value={localValue}
+      onChange={handleChange}
       placeholder={placeholder}
       rows={1}
       className={`w-full bg-transparent border-0 p-0 m-0 resize-none focus:outline-none focus:ring-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight ${className}`}
@@ -566,7 +592,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <p className={`${tableStyles} italic mt-4 mb-1`}>
+        <p className={`${tableStyles} italic mb-1`}>
           <span className="font-bold italic">Table 3.1c.</span> List of deliverables
         </p>
         {isAdminOrOwner && (
@@ -581,13 +607,12 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
             <TableHeader>
               <TableRow className="bg-black text-white hover:bg-black">
                 <TableHead className="w-0 p-0 border-0"></TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[30%]`}>Deliverable</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[8%]`}>WP</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[14%]`}>Lead</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[8%]`}>Type</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[50%]`}>Deliverable</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[10%]`}>WP</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[15%]`}>Lead</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[10%]`}>Type</TableHead>
                 <TableHead className={`${cellStyles} text-white font-bold w-[8%]`}>Diss.</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[8%]`}>Due</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[24%]`}>Description</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[7%]`}>Due</TableHead>
                 <TableHead className="w-0 p-0 border-0"></TableHead>
               </TableRow>
             </TableHeader>
@@ -605,85 +630,78 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                         />
                       </div>
                     </TableCell>
-                  <TableCell className={cellStyles}>
-                    <SingleWPSelector
-                      value={del.wp_number}
-                      onChange={(val) => updateDeliverable.mutate({ id: del.id, wp_number: val })}
-                      workPackages={workPackages}
-                    />
-                  </TableCell>
-                  <TableCell className={cellStyles}>
-                    <Select 
-                      value={del.lead_participant_id || ''} 
-                      onValueChange={(v) => updateDeliverable.mutate({ id: del.id, lead_participant_id: v || null })}
-                    >
-                      <SelectTrigger className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto font-['Times_New_Roman',Times,serif] text-[11pt]">
-                        <SelectValue placeholder="-">
-                          <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">
-                            {del.lead_participant_id 
-                              ? participants.find(p => p.id === del.lead_participant_id)?.organisation_short_name || '-'
-                              : '-'}
-                          </span>
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent className="bg-background z-50">
-                        {participants.map(p => (
-                          <SelectItem key={p.id} value={p.id}>
-                            {p.organisation_short_name || p.organisation_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell className={cellStyles}>
-                    <Select 
-                      value={del.type || ''} 
-                      onValueChange={(v) => updateDeliverable.mutate({ id: del.id, type: v || null })}
-                    >
-                      <SelectTrigger className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto font-['Times_New_Roman',Times,serif] text-[11pt]">
-                        <SelectValue placeholder="-">
-                          <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">{del.type || '-'}</span>
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent className="bg-background z-50">
-                        {deliverableTypes.map(t => (
-                          <SelectItem key={t.value} value={t.value}>
-                            {t.value} - {t.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell className={cellStyles}>
-                    <Select 
-                      value={del.dissemination_level || ''} 
-                      onValueChange={(v) => updateDeliverable.mutate({ id: del.id, dissemination_level: v || null })}
-                    >
-                      <SelectTrigger className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto font-['Times_New_Roman',Times,serif] text-[11pt]">
-                        <SelectValue placeholder="-">
-                          <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">{del.dissemination_level || '-'}</span>
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent className="bg-background z-50">
-                        {disseminationLevels.map(l => (
-                          <SelectItem key={l.value} value={l.value}>
-                            {l.value} - {l.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell className={cellStyles}>
-                    <MonthSelect
-                      value={del.due_month}
-                      onChange={(val) => updateDeliverable.mutate({ id: del.id, due_month: val })}
-                    />
-                  </TableCell>
                     <TableCell className={cellStyles}>
-                      <EditableText
-                        value={del.description}
-                        onChange={(val) => updateDeliverable.mutate({ id: del.id, description: val })}
-                        placeholder="Brief description"
+                      <SingleWPSelector
+                        value={del.wp_number}
+                        onChange={(val) => updateDeliverable.mutate({ id: del.id, wp_number: val })}
+                        workPackages={workPackages}
+                      />
+                    </TableCell>
+                    <TableCell className={cellStyles}>
+                      <Select 
+                        value={del.lead_participant_id || ''} 
+                        onValueChange={(v) => updateDeliverable.mutate({ id: del.id, lead_participant_id: v || null })}
+                      >
+                        <SelectTrigger className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto font-['Times_New_Roman',Times,serif] text-[11pt]">
+                          <SelectValue placeholder="-">
+                            <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">
+                              {del.lead_participant_id 
+                                ? participants.find(p => p.id === del.lead_participant_id)?.organisation_short_name || '-'
+                                : '-'}
+                            </span>
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent className="bg-background z-50">
+                          {participants.map(p => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.organisation_short_name || p.organisation_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell className={cellStyles}>
+                      <Select 
+                        value={del.type || ''} 
+                        onValueChange={(v) => updateDeliverable.mutate({ id: del.id, type: v || null })}
+                      >
+                        <SelectTrigger className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto font-['Times_New_Roman',Times,serif] text-[11pt]">
+                          <SelectValue placeholder="-">
+                            <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">{del.type || '-'}</span>
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent className="bg-background z-50">
+                          {deliverableTypes.map(t => (
+                            <SelectItem key={t.value} value={t.value}>
+                              {t.value} - {t.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell className={cellStyles}>
+                      <Select 
+                        value={del.dissemination_level || ''} 
+                        onValueChange={(v) => updateDeliverable.mutate({ id: del.id, dissemination_level: v || null })}
+                      >
+                        <SelectTrigger className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto font-['Times_New_Roman',Times,serif] text-[11pt]">
+                          <SelectValue placeholder="-">
+                            <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">{del.dissemination_level || '-'}</span>
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent className="bg-background z-50">
+                          {disseminationLevels.map(l => (
+                            <SelectItem key={l.value} value={l.value}>
+                              {l.value} - {l.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell className={cellStyles}>
+                      <MonthSelect
+                        value={del.due_month}
+                        onChange={(val) => updateDeliverable.mutate({ id: del.id, due_month: val })}
                       />
                     </TableCell>
                   </SortableTableRow>
@@ -813,7 +831,7 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <p className={`${tableStyles} italic mt-4 mb-1`}>
+        <p className={`${tableStyles} italic mb-1`}>
           <span className="font-bold italic">Table 3.1d.</span> List of milestones
         </p>
         {isAdminOrOwner && (
@@ -1001,7 +1019,7 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <p className={`${tableStyles} italic mt-4 mb-1`}>
+        <p className={`${tableStyles} italic mb-1`}>
           <span className="font-bold italic">Table 3.1e.</span> Critical risks (<span className="font-bold">i.</span> likelihood; <span className="font-bold">ii.</span> severity; <span className="font-bold text-green-600">L</span> = low, <span className="font-bold text-amber-500">M</span> = medium, <span className="font-bold text-red-500">H</span> = high)
         </p>
         {isAdminOrOwner && (
