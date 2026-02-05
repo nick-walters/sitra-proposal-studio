@@ -23,9 +23,27 @@ import {
 } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, GripVertical, ArrowUpDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
+import { useUserRole } from '@/hooks/useUserRole';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface B31TablesEditorProps {
   proposalId: string;
@@ -66,6 +84,7 @@ interface Milestone {
   wps: string;
   due_month: number | null;
   means_of_verification: string;
+  order_index: number;
 }
 
 interface Risk {
@@ -76,6 +95,7 @@ interface Risk {
   likelihood: 'L' | 'M' | 'H' | null;
   severity: 'L' | 'M' | 'H' | null;
   mitigation: string;
+  order_index: number;
 }
 
 // Generate month options M01 to M72
@@ -84,11 +104,11 @@ const monthOptions = Array.from({ length: 72 }, (_, i) => ({
   label: `M${String(i + 1).padStart(2, '0')}`,
 }));
 
-// Risk level options with colors
+// Risk level options with colors and sort order
 const riskLevelOptions = [
-  { value: 'L', label: 'Low', color: 'bg-green-500' },
-  { value: 'M', label: 'Medium', color: 'bg-amber-500' },
-  { value: 'H', label: 'High', color: 'bg-red-500' },
+  { value: 'H', label: 'High', color: 'bg-red-500', order: 0 },
+  { value: 'M', label: 'Medium', color: 'bg-amber-500', order: 1 },
+  { value: 'L', label: 'Low', color: 'bg-green-500', order: 2 },
 ];
 
 // Deliverable types
@@ -113,7 +133,7 @@ const disseminationLevels = [
 ];
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
-const cellStyles = "border border-black p-[0.03pt] align-top";
+const cellStyles = "border border-black p-[0.03pt] align-top font-['Times_New_Roman',Times,serif] text-[11pt]";
 
 // Inline editable text that expands to multiple lines
 function EditableText({ 
@@ -133,7 +153,7 @@ function EditableText({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       rows={1}
-      className={`w-full bg-transparent border-0 p-0 resize-none focus:outline-none focus:ring-0 ${className}`}
+      className={`w-full bg-transparent border-0 p-0 resize-none focus:outline-none focus:ring-0 font-['Times_New_Roman',Times,serif] text-[11pt] ${className}`}
       style={{ 
         minHeight: '1.2em',
         lineHeight: '1.2',
@@ -161,9 +181,9 @@ function MonthSelect({
       value={value?.toString() || ''} 
       onValueChange={(v) => onChange(v ? parseInt(v) : null)}
     >
-      <SelectTrigger className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex">
+      <SelectTrigger className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex font-['Times_New_Roman',Times,serif] text-[11pt]">
         <SelectValue placeholder="-">
-          <span className="text-[11pt]">{value ? `M${String(value).padStart(2, '0')}` : '-'}</span>
+          <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">{value ? `M${String(value).padStart(2, '0')}` : '-'}</span>
         </SelectValue>
       </SelectTrigger>
       <SelectContent className="bg-background z-50 max-h-60">
@@ -216,18 +236,22 @@ function SingleWPSelector({
     >
       <SelectTrigger className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex">
         <SelectValue placeholder="-">
-          {selectedWP ? <WPBubble wp={selectedWP} /> : <span className="text-[11pt]">-</span>}
+          {selectedWP ? <WPBubble wp={selectedWP} /> : <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">-</span>}
         </SelectValue>
       </SelectTrigger>
       <SelectContent className="bg-background z-50">
-        {workPackages.map(wp => (
-          <SelectItem key={wp.id} value={wp.number.toString()}>
-            <div className="flex items-center gap-2">
-              <WPBubble wp={wp} />
-              <span className="text-sm">{wp.short_name || wp.title}</span>
-            </div>
-          </SelectItem>
-        ))}
+        {workPackages.length === 0 ? (
+          <div className="p-2 text-sm text-muted-foreground">No WPs defined yet</div>
+        ) : (
+          workPackages.map(wp => (
+            <SelectItem key={wp.id} value={wp.number.toString()}>
+              <div className="flex items-center gap-2">
+                <WPBubble wp={wp} />
+                <span className="text-sm">{wp.short_name || wp.title}</span>
+              </div>
+            </SelectItem>
+          ))
+        )}
       </SelectContent>
     </Select>
   );
@@ -264,24 +288,28 @@ function MultiWPSelector({
               <WPBubble key={wp.id} wp={wp} />
             ))
           ) : (
-            <span className="text-[11pt] text-muted-foreground">-</span>
+            <span className="font-['Times_New_Roman',Times,serif] text-[11pt] text-muted-foreground">-</span>
           )}
           <ChevronDown className="h-3 w-3 opacity-50 ml-0.5" />
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-56 p-2 bg-background z-50" align="start">
-        <div className="space-y-1">
-          {workPackages.map(wp => (
-            <label key={wp.id} className="flex items-center gap-2 cursor-pointer p-1 hover:bg-muted rounded">
-              <Checkbox 
-                checked={selectedNumbers.includes(wp.number)}
-                onCheckedChange={() => toggleWP(wp.number)}
-              />
-              <WPBubble wp={wp} />
-              <span className="text-sm truncate">{wp.short_name || wp.title}</span>
-            </label>
-          ))}
-        </div>
+        {workPackages.length === 0 ? (
+          <div className="p-2 text-sm text-muted-foreground">No WPs defined yet</div>
+        ) : (
+          <div className="space-y-1">
+            {workPackages.map(wp => (
+              <label key={wp.id} className="flex items-center gap-2 cursor-pointer p-1 hover:bg-muted rounded">
+                <Checkbox 
+                  checked={selectedNumbers.includes(wp.number)}
+                  onCheckedChange={() => toggleWP(wp.number)}
+                />
+                <WPBubble wp={wp} />
+                <span className="text-sm truncate">{wp.short_name || wp.title}</span>
+              </label>
+            ))}
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );
@@ -310,7 +338,7 @@ function InlineRiskLevelSelect({
   label: string;
 }) {
   return (
-    <span className="inline-flex items-center gap-0.5 text-[11pt]">
+    <span className="inline-flex items-center gap-0.5 font-['Times_New_Roman',Times,serif] text-[11pt]">
       {label}.{' '}
       <Select value={value || ''} onValueChange={(v) => onChange(v as 'L' | 'M' | 'H' || null)}>
         <SelectTrigger className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex">
@@ -333,14 +361,14 @@ function InlineRiskLevelSelect({
   );
 }
 
-// Hook to fetch work packages with colors
+// Hook to fetch work packages with colors - uses wp_drafts table
 function useWorkPackages(proposalId: string) {
   return useQuery({
-    queryKey: ['work-packages-with-colors', proposalId],
+    queryKey: ['wp-drafts-for-b31', proposalId],
     queryFn: async () => {
-      // Fetch work packages
+      // Fetch from wp_drafts table (not work_packages)
       const { data: wps, error: wpError } = await supabase
-        .from('work_packages')
+        .from('wp_drafts')
         .select('id, number, title')
         .eq('proposal_id', proposalId)
         .order('number');
@@ -359,7 +387,7 @@ function useWorkPackages(proposalId: string) {
       return (wps || []).map(wp => ({
         id: wp.id,
         number: wp.number,
-        title: wp.title,
+        title: wp.title || `WP${wp.number}`,
         short_name: wp.title?.split(':')[0]?.trim() || wp.title || `WP${wp.number}`,
         color: colors[(wp.number - 1) % colors.length] || DEFAULT_WP_COLORS[0]
       })) as WorkPackage[];
@@ -383,12 +411,55 @@ function useParticipants(proposalId: string) {
   });
 }
 
+// ========== SORTABLE ROW WRAPPER ==========
+function SortableTableRow({ 
+  id, 
+  children, 
+  canDrag 
+}: { 
+  id: string; 
+  children: React.ReactNode; 
+  canDrag: boolean;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id, disabled: !canDrag });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <TableRow ref={setNodeRef} style={style} className="hover:bg-muted/50">
+      {canDrag && (
+        <TableCell className={`${cellStyles} w-6 cursor-grab active:cursor-grabbing`} {...attributes} {...listeners}>
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </TableCell>
+      )}
+      {children}
+    </TableRow>
+  );
+}
+
 // ========== DELIVERABLES TABLE (3.1c) ==========
 export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
   const queryClient = useQueryClient();
   const { data: workPackages = [] } = useWorkPackages(proposalId);
   const { data: participants = [] } = useParticipants(proposalId);
+  const { isAdminOrOwner, loading: roleLoading } = useUserRole();
   
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
   const { data: deliverables = [], isLoading } = useQuery({
     queryKey: ['b31-deliverables', proposalId],
     queryFn: async () => {
@@ -441,132 +512,190 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['b31-deliverables', proposalId] }),
   });
 
+  const reorderDeliverables = useMutation({
+    mutationFn: async (newOrder: Deliverable[]) => {
+      const updates = newOrder.map((del, index) => ({
+        id: del.id,
+        order_index: index,
+        number: `D${del.wp_number || 1}.${index + 1}`
+      }));
+      
+      for (const update of updates) {
+        const { error } = await supabase
+          .from('b31_deliverables')
+          .update({ order_index: update.order_index, number: update.number })
+          .eq('id', update.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['b31-deliverables', proposalId] });
+      toast.success('Deliverables reordered');
+    },
+  });
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = deliverables.findIndex((d) => d.id === active.id);
+    const newIndex = deliverables.findIndex((d) => d.id === over.id);
+    const reordered = arrayMove(deliverables, oldIndex, newIndex);
+    reorderDeliverables.mutate(reordered);
+  };
+
+  const autoReorder = () => {
+    const sorted = [...deliverables].sort((a, b) => {
+      // First by due month
+      const monthA = a.due_month ?? 999;
+      const monthB = b.due_month ?? 999;
+      if (monthA !== monthB) return monthA - monthB;
+      // Then by WP number
+      const wpA = a.wp_number ?? 999;
+      const wpB = b.wp_number ?? 999;
+      return wpA - wpB;
+    });
+    reorderDeliverables.mutate(sorted);
+  };
+
   return (
     <div className="space-y-2">
-      <p className={`${tableStyles} italic mt-4 mb-1`}>
-        <span className="font-bold italic">Table 3.1c.</span> List of deliverables
-      </p>
-      <Table className={tableStyles}>
-        <TableHeader>
-          <TableRow className="bg-black text-white hover:bg-black">
-            <TableHead className={`${cellStyles} text-white font-bold w-[30%]`}>Deliverable</TableHead>
-            <TableHead className={`${cellStyles} text-white font-bold w-[8%]`}>WP</TableHead>
-            <TableHead className={`${cellStyles} text-white font-bold w-[12%]`}>Lead</TableHead>
-            <TableHead className={`${cellStyles} text-white font-bold w-[8%]`}>Type</TableHead>
-            <TableHead className={`${cellStyles} text-white font-bold w-[8%]`}>Diss.</TableHead>
-            <TableHead className={`${cellStyles} text-white font-bold w-[8%]`}>Due</TableHead>
-            <TableHead className={`${cellStyles} text-white font-bold w-[22%]`}>Description</TableHead>
-            <TableHead className={`${cellStyles} text-white font-bold w-[4%]`}></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {deliverables.map((del) => (
-            <TableRow key={del.id} className="hover:bg-muted/50">
-              <TableCell className={cellStyles}>
-                <div className="flex gap-1">
-                  <span className="font-medium shrink-0">{del.number}:</span>
-                  <EditableText
-                    value={del.name}
-                    onChange={(val) => updateDeliverable.mutate({ id: del.id, name: val })}
-                    placeholder="Deliverable name"
-                  />
-                </div>
-              </TableCell>
-              <TableCell className={cellStyles}>
-                <SingleWPSelector
-                  value={del.wp_number}
-                  onChange={(val) => updateDeliverable.mutate({ id: del.id, wp_number: val })}
-                  workPackages={workPackages}
-                />
-              </TableCell>
-              <TableCell className={cellStyles}>
-                <Select 
-                  value={del.lead_participant_id || ''} 
-                  onValueChange={(v) => updateDeliverable.mutate({ id: del.id, lead_participant_id: v || null })}
-                >
-                  <SelectTrigger className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto">
-                    <SelectValue placeholder="-">
-                      <span className="text-[11pt]">
-                        {del.lead_participant_id 
-                          ? participants.find(p => p.id === del.lead_participant_id)?.organisation_short_name || '-'
-                          : '-'}
-                      </span>
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="bg-background z-50">
-                    {participants.map(p => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.organisation_short_name || p.organisation_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </TableCell>
-              <TableCell className={cellStyles}>
-                <Select 
-                  value={del.type || ''} 
-                  onValueChange={(v) => updateDeliverable.mutate({ id: del.id, type: v || null })}
-                >
-                  <SelectTrigger className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto">
-                    <SelectValue placeholder="-">
-                      <span className="text-[11pt]">{del.type || '-'}</span>
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="bg-background z-50">
-                    {deliverableTypes.map(t => (
-                      <SelectItem key={t.value} value={t.value}>
-                        {t.value} - {t.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </TableCell>
-              <TableCell className={cellStyles}>
-                <Select 
-                  value={del.dissemination_level || ''} 
-                  onValueChange={(v) => updateDeliverable.mutate({ id: del.id, dissemination_level: v || null })}
-                >
-                  <SelectTrigger className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto">
-                    <SelectValue placeholder="-">
-                      <span className="text-[11pt]">{del.dissemination_level || '-'}</span>
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="bg-background z-50">
-                    {disseminationLevels.map(l => (
-                      <SelectItem key={l.value} value={l.value}>
-                        {l.value} - {l.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </TableCell>
-              <TableCell className={cellStyles}>
-                <MonthSelect
-                  value={del.due_month}
-                  onChange={(val) => updateDeliverable.mutate({ id: del.id, due_month: val })}
-                />
-              </TableCell>
-              <TableCell className={cellStyles}>
-                <EditableText
-                  value={del.description}
-                  onChange={(val) => updateDeliverable.mutate({ id: del.id, description: val })}
-                  placeholder="Brief description"
-                />
-              </TableCell>
-              <TableCell className={cellStyles}>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-4 w-4 text-destructive hover:text-destructive"
-                  onClick={() => deleteDeliverable.mutate(del.id)}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </TableCell>
+      <div className="flex items-center justify-between">
+        <p className={`${tableStyles} italic mt-4 mb-1`}>
+          <span className="font-bold italic">Table 3.1c.</span> List of deliverables
+        </p>
+        {isAdminOrOwner && (
+          <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs">
+            <ArrowUpDown className="h-3 w-3 mr-1" /> Auto-reorder
+          </Button>
+        )}
+      </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <Table className={tableStyles}>
+          <TableHeader>
+            <TableRow className="bg-black text-white hover:bg-black">
+              {isAdminOrOwner && <TableHead className={`${cellStyles} text-white font-bold w-6`}></TableHead>}
+              <TableHead className={`${cellStyles} text-white font-bold w-[30%]`}>Deliverable</TableHead>
+              <TableHead className={`${cellStyles} text-white font-bold w-[8%]`}>WP</TableHead>
+              <TableHead className={`${cellStyles} text-white font-bold w-[12%]`}>Lead</TableHead>
+              <TableHead className={`${cellStyles} text-white font-bold w-[8%]`}>Type</TableHead>
+              <TableHead className={`${cellStyles} text-white font-bold w-[8%]`}>Diss.</TableHead>
+              <TableHead className={`${cellStyles} text-white font-bold w-[8%]`}>Due</TableHead>
+              <TableHead className={`${cellStyles} text-white font-bold w-[22%]`}>Description</TableHead>
+              <TableHead className={`${cellStyles} text-white font-bold w-[4%]`}></TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <SortableContext items={deliverables.map(d => d.id)} strategy={verticalListSortingStrategy}>
+            <TableBody>
+              {deliverables.map((del) => (
+                <SortableTableRow key={del.id} id={del.id} canDrag={isAdminOrOwner}>
+                  <TableCell className={cellStyles}>
+                    <div className="flex gap-1">
+                      <span className="font-medium shrink-0 font-['Times_New_Roman',Times,serif] text-[11pt]">{del.number}:</span>
+                      <EditableText
+                        value={del.name}
+                        onChange={(val) => updateDeliverable.mutate({ id: del.id, name: val })}
+                        placeholder="Deliverable name"
+                      />
+                    </div>
+                  </TableCell>
+                  <TableCell className={cellStyles}>
+                    <SingleWPSelector
+                      value={del.wp_number}
+                      onChange={(val) => updateDeliverable.mutate({ id: del.id, wp_number: val })}
+                      workPackages={workPackages}
+                    />
+                  </TableCell>
+                  <TableCell className={cellStyles}>
+                    <Select 
+                      value={del.lead_participant_id || ''} 
+                      onValueChange={(v) => updateDeliverable.mutate({ id: del.id, lead_participant_id: v || null })}
+                    >
+                      <SelectTrigger className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto font-['Times_New_Roman',Times,serif] text-[11pt]">
+                        <SelectValue placeholder="-">
+                          <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">
+                            {del.lead_participant_id 
+                              ? participants.find(p => p.id === del.lead_participant_id)?.organisation_short_name || '-'
+                              : '-'}
+                          </span>
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="bg-background z-50">
+                        {participants.map(p => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.organisation_short_name || p.organisation_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell className={cellStyles}>
+                    <Select 
+                      value={del.type || ''} 
+                      onValueChange={(v) => updateDeliverable.mutate({ id: del.id, type: v || null })}
+                    >
+                      <SelectTrigger className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto font-['Times_New_Roman',Times,serif] text-[11pt]">
+                        <SelectValue placeholder="-">
+                          <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">{del.type || '-'}</span>
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="bg-background z-50">
+                        {deliverableTypes.map(t => (
+                          <SelectItem key={t.value} value={t.value}>
+                            {t.value} - {t.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell className={cellStyles}>
+                    <Select 
+                      value={del.dissemination_level || ''} 
+                      onValueChange={(v) => updateDeliverable.mutate({ id: del.id, dissemination_level: v || null })}
+                    >
+                      <SelectTrigger className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto font-['Times_New_Roman',Times,serif] text-[11pt]">
+                        <SelectValue placeholder="-">
+                          <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">{del.dissemination_level || '-'}</span>
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="bg-background z-50">
+                        {disseminationLevels.map(l => (
+                          <SelectItem key={l.value} value={l.value}>
+                            {l.value} - {l.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell className={cellStyles}>
+                    <MonthSelect
+                      value={del.due_month}
+                      onChange={(val) => updateDeliverable.mutate({ id: del.id, due_month: val })}
+                    />
+                  </TableCell>
+                  <TableCell className={cellStyles}>
+                    <EditableText
+                      value={del.description}
+                      onChange={(val) => updateDeliverable.mutate({ id: del.id, description: val })}
+                      placeholder="Brief description"
+                    />
+                  </TableCell>
+                  <TableCell className={cellStyles}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-4 w-4 text-destructive hover:text-destructive"
+                      onClick={() => deleteDeliverable.mutate(del.id)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </TableCell>
+                </SortableTableRow>
+              ))}
+            </TableBody>
+          </SortableContext>
+        </Table>
+      </DndContext>
       <Button variant="outline" size="sm" onClick={() => addDeliverable.mutate()} className="mt-2">
         <Plus className="h-4 w-4 mr-1" /> Add deliverable
       </Button>
@@ -578,7 +707,13 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
 export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
   const queryClient = useQueryClient();
   const { data: workPackages = [] } = useWorkPackages(proposalId);
+  const { isAdminOrOwner } = useUserRole();
   
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
   const { data: milestones = [], isLoading } = useQuery({
     queryKey: ['b31-milestones', proposalId],
     queryFn: async () => {
@@ -586,7 +721,7 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
         .from('b31_milestones')
         .select('*')
         .eq('proposal_id', proposalId)
-        .order('number');
+        .order('order_index');
       if (error) throw error;
       return data as Milestone[];
     },
@@ -608,7 +743,14 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
       const nextNumber = milestones.length + 1;
       const { error } = await supabase
         .from('b31_milestones')
-        .insert({ proposal_id: proposalId, number: nextNumber, name: '', wps: '', means_of_verification: '' });
+        .insert({ 
+          proposal_id: proposalId, 
+          number: nextNumber, 
+          name: '', 
+          wps: '', 
+          means_of_verification: '',
+          order_index: milestones.length
+        });
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['b31-milestones', proposalId] }),
@@ -625,68 +767,126 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['b31-milestones', proposalId] }),
   });
 
+  const reorderMilestones = useMutation({
+    mutationFn: async (newOrder: Milestone[]) => {
+      const updates = newOrder.map((ms, index) => ({
+        id: ms.id,
+        order_index: index,
+        number: index + 1
+      }));
+      
+      for (const update of updates) {
+        const { error } = await supabase
+          .from('b31_milestones')
+          .update({ order_index: update.order_index, number: update.number })
+          .eq('id', update.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['b31-milestones', proposalId] });
+      toast.success('Milestones reordered');
+    },
+  });
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = milestones.findIndex((m) => m.id === active.id);
+    const newIndex = milestones.findIndex((m) => m.id === over.id);
+    const reordered = arrayMove(milestones, oldIndex, newIndex);
+    reorderMilestones.mutate(reordered);
+  };
+
+  const autoReorder = () => {
+    const sorted = [...milestones].sort((a, b) => {
+      // First by due month
+      const monthA = a.due_month ?? 999;
+      const monthB = b.due_month ?? 999;
+      if (monthA !== monthB) return monthA - monthB;
+      // Then by first WP number in the list
+      const wpA = a.wps ? parseInt(a.wps.split(',')[0].trim()) || 999 : 999;
+      const wpB = b.wps ? parseInt(b.wps.split(',')[0].trim()) || 999 : 999;
+      return wpA - wpB;
+    });
+    reorderMilestones.mutate(sorted);
+  };
+
   return (
     <div className="space-y-2">
-      <p className={`${tableStyles} italic mt-4 mb-1`}>
-        <span className="font-bold italic">Table 3.1d.</span> List of milestones
-      </p>
-      <Table className={tableStyles}>
-        <TableHeader>
-          <TableRow className="bg-black text-white hover:bg-black">
-            <TableHead className={`${cellStyles} text-white font-bold w-[35%]`}>Milestone</TableHead>
-            <TableHead className={`${cellStyles} text-white font-bold w-[15%]`}>WPs</TableHead>
-            <TableHead className={`${cellStyles} text-white font-bold w-[10%]`}>Due</TableHead>
-            <TableHead className={`${cellStyles} text-white font-bold w-[35%]`}>Means of verification</TableHead>
-            <TableHead className={`${cellStyles} text-white font-bold w-[5%]`}></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {milestones.map((ms) => (
-            <TableRow key={ms.id} className="hover:bg-muted/50">
-              <TableCell className={cellStyles}>
-                <div className="flex gap-1">
-                  <span className="font-medium shrink-0">MS{ms.number}:</span>
-                  <EditableText
-                    value={ms.name}
-                    onChange={(val) => updateMilestone.mutate({ id: ms.id, name: val })}
-                    placeholder="Milestone name"
-                  />
-                </div>
-              </TableCell>
-              <TableCell className={cellStyles}>
-                <MultiWPSelector
-                  value={ms.wps}
-                  onChange={(val) => updateMilestone.mutate({ id: ms.id, wps: val })}
-                  workPackages={workPackages}
-                />
-              </TableCell>
-              <TableCell className={cellStyles}>
-                <MonthSelect
-                  value={ms.due_month}
-                  onChange={(val) => updateMilestone.mutate({ id: ms.id, due_month: val })}
-                />
-              </TableCell>
-              <TableCell className={cellStyles}>
-                <EditableText
-                  value={ms.means_of_verification}
-                  onChange={(val) => updateMilestone.mutate({ id: ms.id, means_of_verification: val })}
-                  placeholder="How will this be verified?"
-                />
-              </TableCell>
-              <TableCell className={cellStyles}>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-4 w-4 text-destructive hover:text-destructive"
-                  onClick={() => deleteMilestone.mutate(ms.id)}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </TableCell>
+      <div className="flex items-center justify-between">
+        <p className={`${tableStyles} italic mt-4 mb-1`}>
+          <span className="font-bold italic">Table 3.1d.</span> List of milestones
+        </p>
+        {isAdminOrOwner && (
+          <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs">
+            <ArrowUpDown className="h-3 w-3 mr-1" /> Auto-reorder
+          </Button>
+        )}
+      </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <Table className={tableStyles}>
+          <TableHeader>
+            <TableRow className="bg-black text-white hover:bg-black">
+              {isAdminOrOwner && <TableHead className={`${cellStyles} text-white font-bold w-6`}></TableHead>}
+              <TableHead className={`${cellStyles} text-white font-bold w-[35%]`}>Milestone</TableHead>
+              <TableHead className={`${cellStyles} text-white font-bold w-[15%]`}>WPs</TableHead>
+              <TableHead className={`${cellStyles} text-white font-bold w-[10%]`}>Due</TableHead>
+              <TableHead className={`${cellStyles} text-white font-bold w-[35%]`}>Means of verification</TableHead>
+              <TableHead className={`${cellStyles} text-white font-bold w-[5%]`}></TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <SortableContext items={milestones.map(m => m.id)} strategy={verticalListSortingStrategy}>
+            <TableBody>
+              {milestones.map((ms) => (
+                <SortableTableRow key={ms.id} id={ms.id} canDrag={isAdminOrOwner}>
+                  <TableCell className={cellStyles}>
+                    <div className="flex gap-1">
+                      <span className="font-medium shrink-0 font-['Times_New_Roman',Times,serif] text-[11pt]">MS{ms.number}:</span>
+                      <EditableText
+                        value={ms.name}
+                        onChange={(val) => updateMilestone.mutate({ id: ms.id, name: val })}
+                        placeholder="Milestone name"
+                      />
+                    </div>
+                  </TableCell>
+                  <TableCell className={cellStyles}>
+                    <MultiWPSelector
+                      value={ms.wps}
+                      onChange={(val) => updateMilestone.mutate({ id: ms.id, wps: val })}
+                      workPackages={workPackages}
+                    />
+                  </TableCell>
+                  <TableCell className={cellStyles}>
+                    <MonthSelect
+                      value={ms.due_month}
+                      onChange={(val) => updateMilestone.mutate({ id: ms.id, due_month: val })}
+                    />
+                  </TableCell>
+                  <TableCell className={cellStyles}>
+                    <EditableText
+                      value={ms.means_of_verification}
+                      onChange={(val) => updateMilestone.mutate({ id: ms.id, means_of_verification: val })}
+                      placeholder="How will this be verified?"
+                    />
+                  </TableCell>
+                  <TableCell className={cellStyles}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-4 w-4 text-destructive hover:text-destructive"
+                      onClick={() => deleteMilestone.mutate(ms.id)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </TableCell>
+                </SortableTableRow>
+              ))}
+            </TableBody>
+          </SortableContext>
+        </Table>
+      </DndContext>
       <Button variant="outline" size="sm" onClick={() => addMilestone.mutate()} className="mt-2">
         <Plus className="h-4 w-4 mr-1" /> Add milestone
       </Button>
@@ -698,7 +898,13 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
 export function B31RisksTable({ proposalId }: { proposalId: string }) {
   const queryClient = useQueryClient();
   const { data: workPackages = [] } = useWorkPackages(proposalId);
+  const { isAdminOrOwner } = useUserRole();
   
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
   const { data: risks = [], isLoading } = useQuery({
     queryKey: ['b31-risks', proposalId],
     queryFn: async () => {
@@ -706,7 +912,7 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
         .from('b31_risks')
         .select('*')
         .eq('proposal_id', proposalId)
-        .order('number');
+        .order('order_index');
       if (error) throw error;
       return data as Risk[];
     },
@@ -728,7 +934,14 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
       const nextNumber = risks.length + 1;
       const { error } = await supabase
         .from('b31_risks')
-        .insert({ proposal_id: proposalId, number: nextNumber, description: '', wps: '', mitigation: '' });
+        .insert({ 
+          proposal_id: proposalId, 
+          number: nextNumber, 
+          description: '', 
+          wps: '', 
+          mitigation: '',
+          order_index: risks.length
+        });
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['b31-risks', proposalId] }),
@@ -745,72 +958,135 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['b31-risks', proposalId] }),
   });
 
+  const reorderRisks = useMutation({
+    mutationFn: async (newOrder: Risk[]) => {
+      const updates = newOrder.map((risk, index) => ({
+        id: risk.id,
+        order_index: index,
+        number: index + 1
+      }));
+      
+      for (const update of updates) {
+        const { error } = await supabase
+          .from('b31_risks')
+          .update({ order_index: update.order_index, number: update.number })
+          .eq('id', update.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['b31-risks', proposalId] });
+      toast.success('Risks reordered');
+    },
+  });
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = risks.findIndex((r) => r.id === active.id);
+    const newIndex = risks.findIndex((r) => r.id === over.id);
+    const reordered = arrayMove(risks, oldIndex, newIndex);
+    reorderRisks.mutate(reordered);
+  };
+
+  const getRiskOrder = (level: string | null): number => {
+    const opt = riskLevelOptions.find(o => o.value === level);
+    return opt?.order ?? 3; // null/undefined comes last
+  };
+
+  const autoReorder = () => {
+    const sorted = [...risks].sort((a, b) => {
+      // First by likelihood (H=0, M=1, L=2, null=3)
+      const likelihoodA = getRiskOrder(a.likelihood);
+      const likelihoodB = getRiskOrder(b.likelihood);
+      if (likelihoodA !== likelihoodB) return likelihoodA - likelihoodB;
+      // Then by severity
+      const severityA = getRiskOrder(a.severity);
+      const severityB = getRiskOrder(b.severity);
+      return severityA - severityB;
+    });
+    reorderRisks.mutate(sorted);
+  };
+
   return (
     <div className="space-y-2">
-      <p className={`${tableStyles} italic mt-4 mb-1`}>
-        <span className="font-bold italic">Table 3.1e.</span> Critical risks (i. likelihood; ii. severity; L = low, M = medium, H = high)
-      </p>
-      <Table className={tableStyles}>
-        <TableHeader>
-          <TableRow className="bg-black text-white hover:bg-black">
-            <TableHead className={`${cellStyles} text-white font-bold w-[40%]`}>Risk</TableHead>
-            <TableHead className={`${cellStyles} text-white font-bold w-[15%]`}>WPs</TableHead>
-            <TableHead className={`${cellStyles} text-white font-bold w-[40%]`}>Mitigation & adaptation measures</TableHead>
-            <TableHead className={`${cellStyles} text-white font-bold w-[5%]`}></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {risks.map((risk) => (
-            <TableRow key={risk.id} className="hover:bg-muted/50">
-              <TableCell className={cellStyles}>
-                <div className="space-y-1">
-                  <EditableText
-                    value={risk.description}
-                    onChange={(val) => updateRisk.mutate({ id: risk.id, description: val })}
-                    placeholder="Description of risk"
-                  />
-                  <div className="flex items-center gap-3 text-[11pt]">
-                    <InlineRiskLevelSelect
-                      value={risk.likelihood}
-                      onChange={(val) => updateRisk.mutate({ id: risk.id, likelihood: val })}
-                      label="i"
-                    />
-                    <InlineRiskLevelSelect
-                      value={risk.severity}
-                      onChange={(val) => updateRisk.mutate({ id: risk.id, severity: val })}
-                      label="ii"
-                    />
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell className={cellStyles}>
-                <MultiWPSelector
-                  value={risk.wps}
-                  onChange={(val) => updateRisk.mutate({ id: risk.id, wps: val })}
-                  workPackages={workPackages}
-                />
-              </TableCell>
-              <TableCell className={cellStyles}>
-                <EditableText
-                  value={risk.mitigation}
-                  onChange={(val) => updateRisk.mutate({ id: risk.id, mitigation: val })}
-                  placeholder="Proposed mitigation measures"
-                />
-              </TableCell>
-              <TableCell className={cellStyles}>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-4 w-4 text-destructive hover:text-destructive"
-                  onClick={() => deleteRisk.mutate(risk.id)}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </TableCell>
+      <div className="flex items-center justify-between">
+        <p className={`${tableStyles} italic mt-4 mb-1`}>
+          <span className="font-bold italic">Table 3.1e.</span> Critical risks (i. likelihood; ii. severity; L = low, M = medium, H = high)
+        </p>
+        {isAdminOrOwner && (
+          <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs">
+            <ArrowUpDown className="h-3 w-3 mr-1" /> Auto-reorder
+          </Button>
+        )}
+      </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <Table className={tableStyles}>
+          <TableHeader>
+            <TableRow className="bg-black text-white hover:bg-black">
+              {isAdminOrOwner && <TableHead className={`${cellStyles} text-white font-bold w-6`}></TableHead>}
+              <TableHead className={`${cellStyles} text-white font-bold w-[40%]`}>Risk</TableHead>
+              <TableHead className={`${cellStyles} text-white font-bold w-[15%]`}>WPs</TableHead>
+              <TableHead className={`${cellStyles} text-white font-bold w-[40%]`}>Mitigation & adaptation measures</TableHead>
+              <TableHead className={`${cellStyles} text-white font-bold w-[5%]`}></TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <SortableContext items={risks.map(r => r.id)} strategy={verticalListSortingStrategy}>
+            <TableBody>
+              {risks.map((risk) => (
+                <SortableTableRow key={risk.id} id={risk.id} canDrag={isAdminOrOwner}>
+                  <TableCell className={cellStyles}>
+                    <div className="space-y-1">
+                      <EditableText
+                        value={risk.description}
+                        onChange={(val) => updateRisk.mutate({ id: risk.id, description: val })}
+                        placeholder="Description of risk"
+                      />
+                      <div className="flex items-center gap-3">
+                        <InlineRiskLevelSelect
+                          value={risk.likelihood}
+                          onChange={(val) => updateRisk.mutate({ id: risk.id, likelihood: val })}
+                          label="i"
+                        />
+                        <InlineRiskLevelSelect
+                          value={risk.severity}
+                          onChange={(val) => updateRisk.mutate({ id: risk.id, severity: val })}
+                          label="ii"
+                        />
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className={cellStyles}>
+                    <MultiWPSelector
+                      value={risk.wps}
+                      onChange={(val) => updateRisk.mutate({ id: risk.id, wps: val })}
+                      workPackages={workPackages}
+                    />
+                  </TableCell>
+                  <TableCell className={cellStyles}>
+                    <EditableText
+                      value={risk.mitigation}
+                      onChange={(val) => updateRisk.mutate({ id: risk.id, mitigation: val })}
+                      placeholder="Proposed mitigation measures"
+                    />
+                  </TableCell>
+                  <TableCell className={cellStyles}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-4 w-4 text-destructive hover:text-destructive"
+                      onClick={() => deleteRisk.mutate(risk.id)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </TableCell>
+                </SortableTableRow>
+              ))}
+            </TableBody>
+          </SortableContext>
+        </Table>
+      </DndContext>
       <Button variant="outline" size="sm" onClick={() => addRisk.mutate()} className="mt-2">
         <Plus className="h-4 w-4 mr-1" /> Add risk
       </Button>
