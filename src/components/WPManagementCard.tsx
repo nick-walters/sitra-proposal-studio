@@ -632,18 +632,27 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
               </div>
             ))}
 
-            {/* Add Theme Button */}
+            {/* Theme Actions */}
             {isAdmin && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => addTheme()}
-                disabled={isAddingTheme}
-                className="mt-2"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Add Theme
-              </Button>
+              <div className="flex items-center gap-2 mt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addTheme()}
+                  disabled={isAddingTheme}
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Theme
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPaletteEditorOpen(true)}
+                >
+                  <Palette className="w-4 h-4 mr-1" />
+                  Edit Color Palette
+                </Button>
+              </div>
             )}
           </div>
         )}
@@ -692,14 +701,17 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
               <Plus className="w-4 h-4 mr-1" />
               Add WP
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPaletteEditorOpen(true)}
-            >
-              <Palette className="w-4 h-4 mr-1" />
-              Edit Color Palette
-            </Button>
+            {/* Only show color palette button when themes NOT enabled */}
+            {!useWpThemes && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPaletteEditorOpen(true)}
+              >
+                <Palette className="w-4 h-4 mr-1" />
+                Edit Color Palette
+              </Button>
+            )}
           </div>
         )}
         
