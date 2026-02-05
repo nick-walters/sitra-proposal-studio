@@ -8,7 +8,6 @@ import { GeneralInfoForm } from "@/components/GeneralInfoForm";
 import { BudgetSpreadsheetEnhanced } from "@/components/BudgetSpreadsheetEnhanced";
 import { EthicsForm } from "@/components/EthicsForm";
 import { DeclarationsForm } from "@/components/DeclarationsForm";
-import { WorkPackageManager } from "@/components/WorkPackageManager";
 import { FigureManager } from "@/components/FigureManager";
 import { SectionProgressDashboard } from "@/components/SectionProgressDashboard";
 import { WPDraftEditor } from "@/components/WPDraftEditor";
