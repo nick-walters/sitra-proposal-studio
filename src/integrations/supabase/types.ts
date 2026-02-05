@@ -1545,6 +1545,69 @@ export type Database = {
           },
         ]
       }
+      section_tracked_changes: {
+        Row: {
+          author_color: string
+          author_id: string | null
+          author_name: string
+          change_id: string
+          change_type: string
+          content: string | null
+          created_at: string
+          from_pos: number
+          id: string
+          proposal_id: string
+          section_id: string
+          to_pos: number
+          updated_at: string
+        }
+        Insert: {
+          author_color?: string
+          author_id?: string | null
+          author_name: string
+          change_id: string
+          change_type: string
+          content?: string | null
+          created_at?: string
+          from_pos: number
+          id?: string
+          proposal_id: string
+          section_id: string
+          to_pos: number
+          updated_at?: string
+        }
+        Update: {
+          author_color?: string
+          author_id?: string | null
+          author_name?: string
+          change_id?: string
+          change_type?: string
+          content?: string | null
+          created_at?: string
+          from_pos?: number
+          id?: string
+          proposal_id?: string
+          section_id?: string
+          to_pos?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "section_tracked_changes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "section_tracked_changes_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       section_versions: {
         Row: {
           content: string | null
