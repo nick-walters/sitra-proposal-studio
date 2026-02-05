@@ -958,10 +958,13 @@ export function DocumentEditor({
 
               {/* Interactive B3.1 Tables - Deliverables, Milestones and Risks */}
               {(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') && (
-                <div className="space-y-4">
+                <div className="b31-tables-container space-y-4 mt-4">
                   <B31DeliverablesTable proposalId={proposalId} />
                   <B31MilestonesTable proposalId={proposalId} />
                   <B31RisksTable proposalId={proposalId} />
+                  <p className="text-muted-foreground text-sm italic mt-6">
+                    Additional content for this section can be added in the editor above.
+                  </p>
                 </div>
               )}
 
