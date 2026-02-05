@@ -659,7 +659,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           className="rounded-lg p-4 -mx-2"
           style={{ 
             backgroundColor: effectiveColor,
-            color: getContrastingTextColor(effectiveColor),
+            color: '#FFFFFF',
           }}
         >
           {/* WPX: Title */}
