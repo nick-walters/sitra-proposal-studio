@@ -292,6 +292,7 @@ export function GeneralInfoForm({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [pendingBudgetType, setPendingBudgetType] = useState<'traditional' | 'lump_sum' | null>(null);
 
   // Overview editing state (for admin/owner)
   const [editedProposal, setEditedProposal] = useState(proposal);
@@ -926,18 +927,53 @@ export function GeneralInfoForm({
               <div>
                 <label className="text-xs text-muted-foreground mb-0.5 block">Budget type</label>
                 {isEditing && editedProposal ? (
-                  <Select
-                    value={editedProposal.budgetType}
-                    onValueChange={(v: 'traditional' | 'lump_sum') => setEditedProposal({ ...editedProposal, budgetType: v })}
-                  >
-                    <SelectTrigger className="h-8 text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="traditional">Actual costs</SelectItem>
-                      <SelectItem value="lump_sum">Lump sum</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <>
+                    <Select
+                      value={editedProposal.budgetType}
+                      onValueChange={(v: 'traditional' | 'lump_sum') => {
+                        if (v !== editedProposal.budgetType) {
+                          setPendingBudgetType(v);
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="h-8 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="traditional">Actual costs</SelectItem>
+                        <SelectItem value="lump_sum">Lump sum</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    {/* Budget Type Change Confirmation Dialog */}
+                    <AlertDialog open={!!pendingBudgetType} onOpenChange={(open) => !open && setPendingBudgetType(null)}>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Change budget type?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            You are about to change the budget type from{' '}
+                            <strong>{editedProposal.budgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}</strong> to{' '}
+                            <strong>{pendingBudgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}</strong>.
+                            <br /><br />
+                            This change should only be necessary if the topic requirements have changed. Are you sure you want to proceed?
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => {
+                              if (pendingBudgetType) {
+                                setEditedProposal({ ...editedProposal, budgetType: pendingBudgetType });
+                              }
+                              setPendingBudgetType(null);
+                            }}
+                          >
+                            Change budget type
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </>
                 ) : (
                   <p className="text-sm font-medium">{proposal?.budgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}</p>
                 )}
