@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useWPDraftEditor } from '@/hooks/useWPDrafts';
 import { WPMethodologySection } from '@/components/WPMethodologySection';
 import { WPTableSection } from '@/components/WPTableSection';
@@ -12,6 +12,7 @@ import { InsertWPReferenceDialog } from '@/components/InsertWPReferenceDialog';
 import { InsertParticipantReferenceDialog } from '@/components/InsertParticipantReferenceDialog';
 import { InsertFigureDialog } from '@/components/InsertFigureDialog';
 import { useProposalReferences } from '@/hooks/useProposalReferences';
+import { useQuery } from '@tanstack/react-query';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -158,6 +159,45 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
     deleteRisk,
     reorderRisks,
   } = useWPDraftEditor(wpId);
+
+  // Fetch proposal's use_wp_themes flag
+  const { data: proposalData } = useQuery({
+    queryKey: ['proposal-themes-flag', proposalId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('proposals')
+        .select('use_wp_themes')
+        .eq('id', proposalId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!proposalId,
+  });
+
+  // Fetch theme if WP has a theme_id
+  const { data: themeData } = useQuery({
+    queryKey: ['wp-theme', wpDraft?.theme_id],
+    queryFn: async () => {
+      if (!wpDraft?.theme_id) return null;
+      const { data, error } = await supabase
+        .from('wp_themes')
+        .select('*')
+        .eq('id', wpDraft.theme_id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!wpDraft?.theme_id,
+  });
+
+  // Compute effective color: use theme color if themes enabled and WP has a theme
+  const effectiveColor = useMemo(() => {
+    if (proposalData?.use_wp_themes && themeData) {
+      return themeData.color;
+    }
+    return wpDraft?.color || '#2563EB';
+  }, [proposalData?.use_wp_themes, themeData, wpDraft?.color]);
 
   const [participants, setParticipants] = useState<ParticipantSummary[]>([]);
   const [guidelinesDialogOpen, setGuidelinesDialogOpen] = useState(false);
@@ -618,8 +658,8 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
         <div 
           className="rounded-lg p-4 -mx-2"
           style={{ 
-            backgroundColor: wpDraft.color,
-            color: getContrastingTextColor(wpDraft.color),
+            backgroundColor: effectiveColor,
+            color: getContrastingTextColor(effectiveColor),
           }}
         >
           {/* WPX: Title */}
