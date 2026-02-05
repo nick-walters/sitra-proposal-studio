@@ -1,6 +1,8 @@
 
 # Comprehensive Code Cleanup and Feature Completion Plan
 
+**Status: Phase 1 Complete ✅**
+
 ## Overview
 This plan addresses code redundancies, inconsistencies, and incomplete features identified across the Sitra Proposal Studio codebase. The cleanup will improve maintainability, reduce duplication, and complete partially implemented functionality.
 
@@ -10,34 +12,20 @@ This plan addresses code redundancies, inconsistencies, and incomplete features 
 
 ### 1.1 Toast Notification Consolidation
 
+**Status: ✅ COMPLETE**
+
 **Current State**: Two toast systems in use:
 - `sonner` (dominant - ~46 files)
 - Custom `useToast` hook (~7 files)
 
 Plus a redundant re-export file at `src/components/ui/use-toast.ts`.
 
-**Action Required**:
-1. Migrate remaining files using `useToast` to `sonner`
-2. Delete `src/hooks/use-toast.ts`
-3. Delete `src/components/ui/use-toast.ts`
-
-**Files to update**:
-- `src/hooks/useWPColorPalette.ts`
-- `src/hooks/useTemplates.ts`
-- `src/hooks/useWPDrafts.ts`
-- `src/hooks/useSectionComments.ts`
-- `src/hooks/useWPDependencies.ts`
-
-**Migration pattern**:
-```text
-// Before (useToast)
-const { toast } = useToast();
-toast({ title: 'Success', description: 'Done' });
-
-// After (sonner)
-import { toast } from 'sonner';
-toast.success('Done');
-```
+**Completed**:
+- ✅ Migrated 5 hooks to sonner (useWPColorPalette, useTemplates, useWPDrafts, useSectionComments, useWPDependencies)
+- ✅ Deleted `src/hooks/use-toast.ts`
+- ✅ Deleted `src/components/ui/use-toast.ts`
+- ✅ Deleted `src/components/ui/toaster.tsx`
+- ✅ Updated `src/App.tsx` to use only Sonner
 
 ---
 
@@ -87,14 +75,16 @@ Export canonical `WPDraft` from `src/hooks/useWPDrafts.ts` and import everywhere
 
 ### 1.4 Merge Template Type Files
 
+**Status: ✅ COMPLETE**
+
 **Current State**: Two overlapping type files:
 - `src/types/templates.ts` - Funding programmes, template types, roles
 - `src/types/templateSystem.ts` - Base templates, modifiers, proposal templates
 
-**Action Required**:
-1. Merge `templateSystem.ts` content into `templates.ts` with clear section comments
-2. Delete `src/types/templateSystem.ts`
-3. Update all imports
+**Completed**:
+- ✅ Merged all types from `templateSystem.ts` into `templates.ts`
+- ✅ Deleted `src/types/templateSystem.ts`
+- ✅ Updated `src/hooks/useTemplateSystem.ts` import
 
 ---
 
@@ -114,12 +104,14 @@ Export canonical `WPDraft` from `src/hooks/useWPDrafts.ts` and import everywhere
 
 ### 1.6 Console.log Cleanup
 
+**Status: ✅ COMPLETE**
+
 **Current State**: ~216 console.log statements across 9 files, mostly in edge functions.
 
-**Action Required**:
-1. Keep logging in edge functions (useful for debugging)
-2. Remove debug logs from frontend hooks (`useCollaborativeCursors.ts`)
-3. Remove debug logs from `Dashboard.tsx`
+**Completed**:
+- ✅ Removed debug logs from `useCollaborativeCursors.ts`
+- ✅ Removed debug logs from `Dashboard.tsx`
+- Kept logging in edge functions (useful for debugging)
 
 ---
 
@@ -255,31 +247,44 @@ Types defined in `src/types/templateSystem.ts` but no UI or logic to apply them.
 
 | Priority | Task | Impact | Effort |
 |----------|------|--------|--------|
-| **High** | Toast consolidation | Consistency | Low |
+| **High** | Toast consolidation | Consistency | Low | ✅ Done |
 | **High** | Centralize Participant interface | Code reduction | Medium |
 | **High** | Centralize WPDraft interface | Code reduction | Low |
 | **Medium** | Track changes persistence | Feature completion | High |
-| **Medium** | Merge template type files | Organization | Low |
+| **Medium** | Merge template type files | Organization | Low | ✅ Done |
 | **Medium** | Clarify WP manager components | Tech debt | Medium |
-| **Low** | Console.log cleanup | Code hygiene | Low |
+| **Low** | Console.log cleanup | Code hygiene | Low | ✅ Done |
 | **Low** | Block locking persistence | Feature completion | High |
 | **Low** | Effort to budget connection | Feature completion | High |
 
 ---
 
-## Files Summary
+## Files Summary (Updated)
 
-### Files to Delete
-- `src/hooks/use-toast.ts`
-- `src/components/ui/use-toast.ts`
-- `src/types/templateSystem.ts` (after merge)
+### Files Deleted ✅
+- `src/hooks/use-toast.ts` ✅
+- `src/components/ui/use-toast.ts` ✅
+- `src/components/ui/toaster.tsx` ✅
+- `src/types/templateSystem.ts` ✅
+
+### Files to Delete (Pending)
 - Potentially `src/components/WorkPackageManager.tsx` (after evaluation)
 
-### Files to Modify
-- 5 hooks files (toast migration)
-- 9+ component files (interface imports)
+### Files Modified ✅
+- `src/hooks/useWPColorPalette.ts` ✅
+- `src/hooks/useTemplates.ts` ✅
+- `src/hooks/useWPDrafts.ts` ✅
+- `src/hooks/useSectionComments.ts` ✅
+- `src/hooks/useWPDependencies.ts` ✅
+- `src/hooks/useCollaborativeCursors.ts` ✅
+- `src/hooks/useTemplateSystem.ts` ✅
+- `src/pages/Dashboard.tsx` ✅
+- `src/types/templates.ts` ✅
+- `src/App.tsx` ✅
+
+### Files to Modify (Phase 2+)
+- 9+ component files (interface centralization)
 - `src/types/proposal.ts` (add ParticipantSummary)
-- `src/types/templates.ts` (merge in templateSystem types)
 - `src/extensions/TrackChanges.ts` (add persistence)
 - `src/components/DocumentEditor.tsx` (track changes persistence)
 
@@ -295,10 +300,10 @@ Types defined in `src/types/templateSystem.ts` but no UI or logic to apply them.
 
 ## Recommended Execution Order
 
-1. **Phase 1 - Quick Wins** (Day 1)
-   - Toast notification consolidation
-   - Console.log cleanup
-   - Type file merge
+1. **Phase 1 - Quick Wins** ✅ COMPLETE
+   - ✅ Toast notification consolidation
+   - ✅ Console.log cleanup
+   - ✅ Type file merge
 
 2. **Phase 2 - Interface Centralization** (Day 2)
    - Create ParticipantSummary type

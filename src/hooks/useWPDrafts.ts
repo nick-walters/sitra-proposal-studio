@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export interface WPDraftTask {
   id: string;
@@ -66,7 +66,6 @@ export function useWPDrafts(proposalId: string | null) {
   const [wpDrafts, setWPDrafts] = useState<WPDraft[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
 
   const fetchWPDrafts = useCallback(async () => {
     if (!proposalId) {
@@ -135,14 +134,10 @@ export function useWPDrafts(proposalId: string | null) {
       return true;
     } catch (err) {
       console.error('Error updating WP draft:', err);
-      toast({
-        title: 'Error',
-        description: 'Failed to update work package',
-        variant: 'destructive',
-      });
+      toast.error('Failed to update work package');
       return false;
     }
-  }, [toast]);
+  }, []);
 
   // Add a new WP
   const addWPDraft = useCallback(async () => {
@@ -194,14 +189,10 @@ export function useWPDrafts(proposalId: string | null) {
       return data;
     } catch (err) {
       console.error('Error adding WP draft:', err);
-      toast({
-        title: 'Error',
-        description: 'Failed to add work package',
-        variant: 'destructive',
-      });
+      toast.error('Failed to add work package');
       return null;
     }
-  }, [proposalId, wpDrafts, fetchWPDrafts, toast]);
+  }, [proposalId, wpDrafts, fetchWPDrafts]);
 
   // Delete a WP
   const deleteWPDraft = useCallback(async (wpId: string) => {
@@ -217,14 +208,10 @@ export function useWPDrafts(proposalId: string | null) {
       return true;
     } catch (err) {
       console.error('Error deleting WP draft:', err);
-      toast({
-        title: 'Error',
-        description: 'Failed to delete work package',
-        variant: 'destructive',
-      });
+      toast.error('Failed to delete work package');
       return false;
     }
-  }, [toast]);
+  }, []);
 
   // Reorder WPs
   const reorderWPDrafts = useCallback(async (newOrder: string[]) => {
@@ -256,15 +243,11 @@ export function useWPDrafts(proposalId: string | null) {
       return true;
     } catch (err) {
       console.error('Error reordering WP drafts:', err);
-      toast({
-        title: 'Error',
-        description: 'Failed to reorder work packages',
-        variant: 'destructive',
-      });
+      toast.error('Failed to reorder work packages');
       await fetchWPDrafts(); // Revert on error
       return false;
     }
-  }, [fetchWPDrafts, toast]);
+  }, [fetchWPDrafts]);
 
   return {
     wpDrafts,
@@ -283,7 +266,6 @@ export function useWPDraftEditor(wpId: string | null) {
   const [wpDraft, setWPDraft] = useState<WPDraft | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const { toast } = useToast();
 
   const fetchWPDraft = useCallback(async () => {
     if (!wpId) {
@@ -322,15 +304,11 @@ export function useWPDraftEditor(wpId: string | null) {
       setWPDraft(sortedData);
     } catch (err) {
       console.error('Error fetching WP draft:', err);
-      toast({
-        title: 'Error',
-        description: 'Failed to load work package',
-        variant: 'destructive',
-      });
+      toast.error('Failed to load work package');
     } finally {
       setLoading(false);
     }
-  }, [wpId, toast]);
+  }, [wpId]);
 
   useEffect(() => {
     fetchWPDraft();
@@ -353,16 +331,12 @@ export function useWPDraftEditor(wpId: string | null) {
       return true;
     } catch (err) {
       console.error('Error updating WP field:', err);
-      toast({
-        title: 'Error',
-        description: 'Failed to save changes',
-        variant: 'destructive',
-      });
+      toast.error('Failed to save changes');
       return false;
     } finally {
       setSaving(false);
     }
-  }, [wpId, toast]);
+  }, [wpId]);
 
   // Task operations
   const addTask = useCallback(async () => {
@@ -393,14 +367,10 @@ export function useWPDraftEditor(wpId: string | null) {
       return data;
     } catch (err) {
       console.error('Error adding task:', err);
-      toast({
-        title: 'Error',
-        description: 'Failed to add task',
-        variant: 'destructive',
-      });
+      toast.error('Failed to add task');
       return null;
     }
-  }, [wpDraft, toast]);
+  }, [wpDraft]);
 
   const updateTask = useCallback(async (taskId: string, updates: Partial<WPDraftTask>) => {
     try {
@@ -440,14 +410,10 @@ export function useWPDraftEditor(wpId: string | null) {
       return true;
     } catch (err) {
       console.error('Error deleting task:', err);
-      toast({
-        title: 'Error',
-        description: 'Failed to delete task',
-        variant: 'destructive',
-      });
+      toast.error('Failed to delete task');
       return false;
     }
-  }, [toast]);
+  }, []);
 
   // Reorder tasks
   const reorderTasks = useCallback(async (newOrder: string[]) => {
@@ -485,14 +451,10 @@ export function useWPDraftEditor(wpId: string | null) {
       return true;
     } catch (err) {
       console.error('Error reordering tasks:', err);
-      toast({
-        title: 'Error',
-        description: 'Failed to reorder tasks',
-        variant: 'destructive',
-      });
+      toast.error('Failed to reorder tasks');
       return false;
     }
-  }, [wpDraft, toast]);
+  }, [wpDraft]);
 
   // Deliverable operations
   const addDeliverable = useCallback(async () => {
@@ -523,14 +485,10 @@ export function useWPDraftEditor(wpId: string | null) {
       return data;
     } catch (err) {
       console.error('Error adding deliverable:', err);
-      toast({
-        title: 'Error',
-        description: 'Failed to add deliverable',
-        variant: 'destructive',
-      });
+      toast.error('Failed to add deliverable');
       return null;
     }
-  }, [wpDraft, toast]);
+  }, [wpDraft]);
 
   const updateDeliverable = useCallback(async (deliverableId: string, updates: Partial<WPDraftDeliverable>) => {
     try {
@@ -570,14 +528,10 @@ export function useWPDraftEditor(wpId: string | null) {
       return true;
     } catch (err) {
       console.error('Error deleting deliverable:', err);
-      toast({
-        title: 'Error',
-        description: 'Failed to delete deliverable',
-        variant: 'destructive',
-      });
+      toast.error('Failed to delete deliverable');
       return false;
     }
-  }, [toast]);
+  }, []);
 
   // Reorder deliverables
   const reorderDeliverables = useCallback(async (newOrder: string[]) => {
@@ -615,14 +569,10 @@ export function useWPDraftEditor(wpId: string | null) {
       return true;
     } catch (err) {
       console.error('Error reordering deliverables:', err);
-      toast({
-        title: 'Error',
-        description: 'Failed to reorder deliverables',
-        variant: 'destructive',
-      });
+      toast.error('Failed to reorder deliverables');
       return false;
     }
-  }, [wpDraft, toast]);
+  }, [wpDraft]);
 
   // Risk operations
   const addRisk = useCallback(async () => {
@@ -653,14 +603,10 @@ export function useWPDraftEditor(wpId: string | null) {
       return data;
     } catch (err) {
       console.error('Error adding risk:', err);
-      toast({
-        title: 'Error',
-        description: 'Failed to add risk',
-        variant: 'destructive',
-      });
+      toast.error('Failed to add risk');
       return null;
     }
-  }, [wpDraft, toast]);
+  }, [wpDraft]);
 
   const updateRisk = useCallback(async (riskId: string, updates: Partial<WPDraftRisk>) => {
     try {
@@ -700,14 +646,10 @@ export function useWPDraftEditor(wpId: string | null) {
       return true;
     } catch (err) {
       console.error('Error deleting risk:', err);
-      toast({
-        title: 'Error',
-        description: 'Failed to delete risk',
-        variant: 'destructive',
-      });
+      toast.error('Failed to delete risk');
       return false;
     }
-  }, [toast]);
+  }, []);
 
   // Reorder risks
   const reorderRisks = useCallback(async (newOrder: string[]) => {
@@ -745,14 +687,10 @@ export function useWPDraftEditor(wpId: string | null) {
       return true;
     } catch (err) {
       console.error('Error reordering risks:', err);
-      toast({
-        title: 'Error',
-        description: 'Failed to reorder risks',
-        variant: 'destructive',
-      });
+      toast.error('Failed to reorder risks');
       return false;
     }
-  }, [wpDraft, toast]);
+  }, [wpDraft]);
 
   // Task effort operations
   const updateTaskEffort = useCallback(async (taskId: string, participantId: string, personMonths: number) => {

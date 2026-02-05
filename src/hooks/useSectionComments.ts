@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import { useToast } from './use-toast';
+import { toast } from 'sonner';
 
 export interface Comment {
   id: string;
@@ -33,7 +33,6 @@ export function useSectionComments({ proposalId, sectionId }: UseSectionComments
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  const { toast } = useToast();
 
   // Fetch comments for this section
   const fetchComments = useCallback(async () => {
@@ -152,14 +151,10 @@ export function useSectionComments({ proposalId, sectionId }: UseSectionComments
       return data;
     } catch (error) {
       console.error('Error adding comment:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to add comment',
-        variant: 'destructive',
-      });
+      toast.error('Failed to add comment');
       return null;
     }
-  }, [user, proposalId, sectionId, toast]);
+  }, [user, proposalId, sectionId]);
 
   // Update comment status (resolve/reject suggestion)
   const updateCommentStatus = useCallback(async (
@@ -175,13 +170,9 @@ export function useSectionComments({ proposalId, sectionId }: UseSectionComments
       if (error) throw error;
     } catch (error) {
       console.error('Error updating comment:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update comment',
-        variant: 'destructive',
-      });
+      toast.error('Failed to update comment');
     }
-  }, [toast]);
+  }, []);
 
   // Delete a comment
   const deleteComment = useCallback(async (commentId: string) => {
@@ -194,13 +185,9 @@ export function useSectionComments({ proposalId, sectionId }: UseSectionComments
       if (error) throw error;
     } catch (error) {
       console.error('Error deleting comment:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to delete comment',
-        variant: 'destructive',
-      });
+      toast.error('Failed to delete comment');
     }
-  }, [toast]);
+  }, []);
 
   // Get comment counts
   const openCount = comments.filter(c => c.status === 'open').length;

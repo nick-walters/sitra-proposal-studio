@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export interface WPDependency {
   id: string;
@@ -13,7 +13,6 @@ export interface WPDependency {
 export function useWPDependencies(proposalId: string | null) {
   const [dependencies, setDependencies] = useState<WPDependency[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
 
   const fetchDependencies = useCallback(async () => {
     if (!proposalId) {
@@ -47,21 +46,13 @@ export function useWPDependencies(proposalId: string | null) {
 
     // Check if dependency already exists
     if (dependencies.some(d => d.from_wp_id === fromWpId && d.to_wp_id === toWpId)) {
-      toast({
-        title: 'Dependency exists',
-        description: 'This dependency already exists',
-        variant: 'destructive',
-      });
+      toast.error('This dependency already exists');
       return false;
     }
 
     // Check for self-reference
     if (fromWpId === toWpId) {
-      toast({
-        title: 'Invalid dependency',
-        description: 'A work package cannot depend on itself',
-        variant: 'destructive',
-      });
+      toast.error('A work package cannot depend on itself');
       return false;
     }
 
@@ -82,14 +73,10 @@ export function useWPDependencies(proposalId: string | null) {
       return true;
     } catch (err) {
       console.error('Error adding dependency:', err);
-      toast({
-        title: 'Error',
-        description: 'Failed to add dependency',
-        variant: 'destructive',
-      });
+      toast.error('Failed to add dependency');
       return false;
     }
-  }, [proposalId, dependencies, toast]);
+  }, [proposalId, dependencies]);
 
   const removeDependency = useCallback(async (dependencyId: string) => {
     try {
@@ -104,14 +91,10 @@ export function useWPDependencies(proposalId: string | null) {
       return true;
     } catch (err) {
       console.error('Error removing dependency:', err);
-      toast({
-        title: 'Error',
-        description: 'Failed to remove dependency',
-        variant: 'destructive',
-      });
+      toast.error('Failed to remove dependency');
       return false;
     }
-  }, [toast]);
+  }, []);
 
   // Get all WPs that depend on a given WP (incoming dependencies)
   const getIncomingDependencies = useCallback((wpId: string) => {
