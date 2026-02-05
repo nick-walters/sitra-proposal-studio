@@ -85,6 +85,7 @@ export type Database = {
           means_of_verification: string
           name: string
           number: number
+          order_index: number | null
           proposal_id: string
           updated_at: string
           wps: string
@@ -96,6 +97,7 @@ export type Database = {
           means_of_verification?: string
           name?: string
           number: number
+          order_index?: number | null
           proposal_id: string
           updated_at?: string
           wps?: string
@@ -107,6 +109,7 @@ export type Database = {
           means_of_verification?: string
           name?: string
           number?: number
+          order_index?: number | null
           proposal_id?: string
           updated_at?: string
           wps?: string
@@ -129,6 +132,7 @@ export type Database = {
           likelihood: string | null
           mitigation: string
           number: number
+          order_index: number | null
           proposal_id: string
           severity: string | null
           updated_at: string
@@ -141,6 +145,7 @@ export type Database = {
           likelihood?: string | null
           mitigation?: string
           number: number
+          order_index?: number | null
           proposal_id: string
           severity?: string | null
           updated_at?: string
@@ -153,6 +158,7 @@ export type Database = {
           likelihood?: string | null
           mitigation?: string
           number?: number
+          order_index?: number | null
           proposal_id?: string
           severity?: string | null
           updated_at?: string
