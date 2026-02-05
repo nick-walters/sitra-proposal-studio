@@ -10,6 +10,7 @@ interface WPDraftFull {
   methodology: string | null;
   objectives: string | null;
   color: string;
+  theme_id: string | null;
   tasks: {
     id: string;
     number: number;
@@ -40,12 +41,20 @@ interface WPDraftFull {
   }[];
 }
 
+interface WPTheme {
+  id: string;
+  color: string;
+}
+
 /**
  * Generate HTML content for a single WP to populate in Part B3.1
+ * Uses Horizon Europe table formatting with WP color in header
  */
 function generateWPContent(
   wp: WPDraftFull,
-  participants: Map<string, ParticipantSummary>
+  participants: Map<string, ParticipantSummary>,
+  themes: Map<string, WPTheme>,
+  useWpThemes: boolean
 ): string {
   const getParticipantName = (id: string | null): string => {
     if (!id) return '—';
@@ -57,33 +66,57 @@ function generateWPContent(
     return ids.map((id) => getParticipantName(id)).join(', ') || '—';
   };
 
+  // Determine effective color (theme color if themes enabled, otherwise WP color)
+  const effectiveColor = useWpThemes && wp.theme_id && themes.get(wp.theme_id)
+    ? themes.get(wp.theme_id)!.color
+    : wp.color;
+
+  // Calculate WP duration from tasks
+  let wpStartMonth: number | null = null;
+  let wpEndMonth: number | null = null;
+  for (const task of wp.tasks) {
+    if (task.start_month !== null) {
+      wpStartMonth = wpStartMonth === null ? task.start_month : Math.min(wpStartMonth, task.start_month);
+    }
+    if (task.end_month !== null) {
+      wpEndMonth = wpEndMonth === null ? task.end_month : Math.max(wpEndMonth, task.end_month);
+    }
+  }
+  const wpDuration = wpStartMonth !== null && wpEndMonth !== null 
+    ? `M${String(wpStartMonth).padStart(2, '0')}–M${String(wpEndMonth).padStart(2, '0')}`
+    : '—';
+
   let html = '';
 
-  // WP Header
-  html += `<h3 style="margin-top: 1.5em; margin-bottom: 0.5em; font-weight: bold;">
-    WP${wp.number}: ${wp.title || wp.short_name || 'Untitled Work Package'}
-  </h3>`;
+  // WP Table with colored header
+  html += `<table class="he-table" style="width: 100%; border-collapse: collapse; margin: 1rem 0; font-family: 'Times New Roman', Times, serif; font-size: 11pt;">
+    <thead>
+      <tr>
+        <th colspan="4" style="background-color: ${effectiveColor}; color: white; font-weight: bold; border: 0.25pt solid black; padding: 4px 6px;">
+          WP${wp.number}: ${wp.title || wp.short_name || 'Untitled Work Package'} — ${getParticipantName(wp.lead_participant_id)} — ${wpDuration}
+        </th>
+      </tr>
+    </thead>
+    <tbody>`;
 
-  // Lead Partner
-  html += `<p><strong>Lead beneficiary:</strong> ${getParticipantName(wp.lead_participant_id)}</p>`;
+  // Objectives row
+  html += `<tr>
+    <td style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold; width: 20%; vertical-align: top;">Objectives</td>
+    <td colspan="3" style="border: 0.25pt solid black; padding: 4px 6px; vertical-align: top;">${wp.objectives || '—'}</td>
+  </tr>`;
 
-  // Objectives
-  if (wp.objectives) {
-    html += `<p><strong>Objectives:</strong></p>`;
-    html += wp.objectives;
-  }
+  html += `</tbody></table>`;
 
   // Tasks Table
   if (wp.tasks.length > 0) {
-    html += `<p style="margin-top: 1em;"><strong>Tasks:</strong></p>`;
-    html += `<table style="width: 100%; border-collapse: collapse; margin-bottom: 1em;">
+    html += `<table class="he-table" style="width: 100%; border-collapse: collapse; margin: 0.5rem 0 1rem 0; font-family: 'Times New Roman', Times, serif; font-size: 11pt;">
       <thead>
-        <tr style="background-color: #f3f4f6;">
-          <th style="border: 1px solid #d1d5db; padding: 0.5em; text-align: left;">Task</th>
-          <th style="border: 1px solid #d1d5db; padding: 0.5em; text-align: left;">Title</th>
-          <th style="border: 1px solid #d1d5db; padding: 0.5em; text-align: left;">Lead</th>
-          <th style="border: 1px solid #d1d5db; padding: 0.5em; text-align: left;">Participants</th>
-          <th style="border: 1px solid #d1d5db; padding: 0.5em; text-align: left;">Duration</th>
+        <tr style="background-color: black; color: white;">
+          <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold; width: 10%;">Task</th>
+          <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold; width: 30%;">Title</th>
+          <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold; width: 15%;">Lead</th>
+          <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold; width: 30%;">Participants</th>
+          <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold; width: 15%;">Duration</th>
         </tr>
       </thead>
       <tbody>`;
@@ -91,37 +124,35 @@ function generateWPContent(
     for (const task of wp.tasks) {
       const duration =
         task.start_month && task.end_month
-          ? `M${task.start_month}–M${task.end_month}`
+          ? `M${String(task.start_month).padStart(2, '0')}–M${String(task.end_month).padStart(2, '0')}`
           : '—';
       const participantIds = task.participants?.map((p) => p.participant_id) || [];
 
       html += `<tr>
-        <td style="border: 1px solid #d1d5db; padding: 0.5em;">T${wp.number}.${task.number}</td>
-        <td style="border: 1px solid #d1d5db; padding: 0.5em;">${task.title || '—'}</td>
-        <td style="border: 1px solid #d1d5db; padding: 0.5em;">${getParticipantName(task.lead_participant_id)}</td>
-        <td style="border: 1px solid #d1d5db; padding: 0.5em;">${getParticipantNames(participantIds)}</td>
-        <td style="border: 1px solid #d1d5db; padding: 0.5em;">${duration}</td>
+        <td style="border: 0.25pt solid black; padding: 4px 6px;">T${wp.number}.${task.number}</td>
+        <td style="border: 0.25pt solid black; padding: 4px 6px;">${task.title || '—'}</td>
+        <td style="border: 0.25pt solid black; padding: 4px 6px;">${getParticipantName(task.lead_participant_id)}</td>
+        <td style="border: 0.25pt solid black; padding: 4px 6px;">${getParticipantNames(participantIds)}</td>
+        <td style="border: 0.25pt solid black; padding: 4px 6px;">${duration}</td>
       </tr>`;
     }
 
     html += `</tbody></table>`;
 
     // Task Descriptions
-    html += `<div style="margin-bottom: 1em;">`;
     for (const task of wp.tasks) {
       if (task.title || task.description) {
-        html += `<p><strong>T${wp.number}.${task.number} ${task.title || ''}</strong></p>`;
+        html += `<p style="margin: 6pt 0;"><strong>T${wp.number}.${task.number} ${task.title || ''}</strong></p>`;
         if (task.description) {
-          html += `<p>${task.description}</p>`;
+          html += task.description;
         }
       }
     }
-    html += `</div>`;
   }
 
   // Methodology
   if (wp.methodology) {
-    html += `<p style="margin-top: 1em;"><strong>Methodology:</strong></p>`;
+    html += `<p style="margin: 6pt 0;"><strong>Methodology:</strong></p>`;
     html += wp.methodology;
   }
 
@@ -130,6 +161,7 @@ function generateWPContent(
 
 /**
  * Generate consolidated deliverables table from all WPs
+ * Uses Horizon Europe table formatting
  */
 function generateDeliverablesTable(
   wps: WPDraftFull[],
@@ -157,28 +189,28 @@ function generateDeliverablesTable(
     return a.number - b.number;
   });
 
-  let html = `<h3 style="margin-top: 2em; margin-bottom: 0.5em; font-weight: bold;">Deliverables</h3>`;
-  html += `<table style="width: 100%; border-collapse: collapse; margin-bottom: 1em;">
+  let html = `<p class="table-caption" style="font-style: italic; font-family: 'Times New Roman', Times, serif; font-size: 11pt; margin-top: 12pt; margin-bottom: 1pt;"><span class="caption-label" style="font-weight: bold; font-style: italic;">Table 3.1.a:</span> Deliverables</p>`;
+  html += `<table class="he-table" style="width: 100%; border-collapse: collapse; margin: 0; font-family: 'Times New Roman', Times, serif; font-size: 11pt;">
     <thead>
-      <tr style="background-color: #f3f4f6;">
-        <th style="border: 1px solid #d1d5db; padding: 0.5em; text-align: left;">No.</th>
-        <th style="border: 1px solid #d1d5db; padding: 0.5em; text-align: left;">Title</th>
-        <th style="border: 1px solid #d1d5db; padding: 0.5em; text-align: left;">Type</th>
-        <th style="border: 1px solid #d1d5db; padding: 0.5em; text-align: left;">Diss.</th>
-        <th style="border: 1px solid #d1d5db; padding: 0.5em; text-align: left;">Lead</th>
-        <th style="border: 1px solid #d1d5db; padding: 0.5em; text-align: left;">Due</th>
+      <tr style="background-color: black; color: white;">
+        <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold;">No.</th>
+        <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold;">Title</th>
+        <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold;">Type</th>
+        <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold;">Diss.</th>
+        <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold;">Lead</th>
+        <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold;">Due</th>
       </tr>
     </thead>
     <tbody>`;
 
   for (const d of allDeliverables) {
     html += `<tr>
-      <td style="border: 1px solid #d1d5db; padding: 0.5em;">${d.fullNumber}</td>
-      <td style="border: 1px solid #d1d5db; padding: 0.5em;">${d.title || '—'}</td>
-      <td style="border: 1px solid #d1d5db; padding: 0.5em;">${d.type || '—'}</td>
-      <td style="border: 1px solid #d1d5db; padding: 0.5em;">${d.dissemination_level || '—'}</td>
-      <td style="border: 1px solid #d1d5db; padding: 0.5em;">${getParticipantName(d.responsible_participant_id)}</td>
-      <td style="border: 1px solid #d1d5db; padding: 0.5em;">${d.due_month ? `M${d.due_month}` : '—'}</td>
+      <td style="border: 0.25pt solid black; padding: 4px 6px;">${d.fullNumber}</td>
+      <td style="border: 0.25pt solid black; padding: 4px 6px;">${d.title || '—'}</td>
+      <td style="border: 0.25pt solid black; padding: 4px 6px;">${d.type || '—'}</td>
+      <td style="border: 0.25pt solid black; padding: 4px 6px;">${d.dissemination_level || '—'}</td>
+      <td style="border: 0.25pt solid black; padding: 4px 6px;">${getParticipantName(d.responsible_participant_id)}</td>
+      <td style="border: 0.25pt solid black; padding: 4px 6px;">${d.due_month ? `M${String(d.due_month).padStart(2, '0')}` : '—'}</td>
     </tr>`;
   }
 
@@ -189,6 +221,7 @@ function generateDeliverablesTable(
 
 /**
  * Generate consolidated risks table from all WPs
+ * Uses Horizon Europe table formatting
  */
 function generateRisksTable(wps: WPDraftFull[]): string {
   const allRisks = wps.flatMap((wp) =>
@@ -207,38 +240,26 @@ function generateRisksTable(wps: WPDraftFull[]): string {
     return a.number - b.number;
   });
 
-  const getLikelihoodColor = (l: string | null): string => {
-    if (l === 'H') return '#fee2e2';
-    if (l === 'M') return '#fef3c7';
-    return '#d1fae5';
-  };
-
-  const getSeverityColor = (s: string | null): string => {
-    if (s === 'H') return '#fee2e2';
-    if (s === 'M') return '#fef3c7';
-    return '#d1fae5';
-  };
-
-  let html = `<h3 style="margin-top: 2em; margin-bottom: 0.5em; font-weight: bold;">Risks & Mitigation</h3>`;
-  html += `<table style="width: 100%; border-collapse: collapse; margin-bottom: 1em;">
+  let html = `<p class="table-caption" style="font-style: italic; font-family: 'Times New Roman', Times, serif; font-size: 11pt; margin-top: 12pt; margin-bottom: 1pt;"><span class="caption-label" style="font-weight: bold; font-style: italic;">Table 3.1.b:</span> Risks & Mitigation</p>`;
+  html += `<table class="he-table" style="width: 100%; border-collapse: collapse; margin: 0; font-family: 'Times New Roman', Times, serif; font-size: 11pt;">
     <thead>
-      <tr style="background-color: #f3f4f6;">
-        <th style="border: 1px solid #d1d5db; padding: 0.5em; text-align: left;">Risk</th>
-        <th style="border: 1px solid #d1d5db; padding: 0.5em; text-align: left;">Description</th>
-        <th style="border: 1px solid #d1d5db; padding: 0.5em; text-align: center;">L</th>
-        <th style="border: 1px solid #d1d5db; padding: 0.5em; text-align: center;">S</th>
-        <th style="border: 1px solid #d1d5db; padding: 0.5em; text-align: left;">Mitigation</th>
+      <tr style="background-color: black; color: white;">
+        <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold;">Risk</th>
+        <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold;">Description</th>
+        <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold; text-align: center;">L</th>
+        <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold; text-align: center;">S</th>
+        <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold;">Mitigation</th>
       </tr>
     </thead>
     <tbody>`;
 
   for (const r of allRisks) {
     html += `<tr>
-      <td style="border: 1px solid #d1d5db; padding: 0.5em;">${r.fullNumber}</td>
-      <td style="border: 1px solid #d1d5db; padding: 0.5em;">${r.title || '—'}</td>
-      <td style="border: 1px solid #d1d5db; padding: 0.5em; text-align: center; background-color: ${getLikelihoodColor(r.likelihood)};">${r.likelihood || '—'}</td>
-      <td style="border: 1px solid #d1d5db; padding: 0.5em; text-align: center; background-color: ${getSeverityColor(r.severity)};">${r.severity || '—'}</td>
-      <td style="border: 1px solid #d1d5db; padding: 0.5em;">${r.mitigation || '—'}</td>
+      <td style="border: 0.25pt solid black; padding: 4px 6px;">${r.fullNumber}</td>
+      <td style="border: 0.25pt solid black; padding: 4px 6px;">${r.title || '—'}</td>
+      <td style="border: 0.25pt solid black; padding: 4px 6px; text-align: center;">${r.likelihood || '—'}</td>
+      <td style="border: 0.25pt solid black; padding: 4px 6px; text-align: center;">${r.severity || '—'}</td>
+      <td style="border: 0.25pt solid black; padding: 4px 6px;">${r.mitigation || '—'}</td>
     </tr>`;
   }
 
@@ -256,6 +277,31 @@ export async function populateB31(
   userId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    // Fetch proposal to check use_wp_themes setting
+    const { data: proposal, error: proposalError } = await supabase
+      .from('proposals')
+      .select('use_wp_themes')
+      .eq('id', proposalId)
+      .single();
+
+    if (proposalError) throw proposalError;
+    const useWpThemes = proposal?.use_wp_themes ?? false;
+
+    // Fetch themes if themes are enabled
+    let themesMap = new Map<string, WPTheme>();
+    if (useWpThemes) {
+      const { data: themesData, error: themesError } = await supabase
+        .from('wp_themes')
+        .select('id, color')
+        .eq('proposal_id', proposalId);
+      
+      if (!themesError && themesData) {
+        for (const theme of themesData) {
+          themesMap.set(theme.id, theme);
+        }
+      }
+    }
+
     // Fetch WP drafts with full data
     const { data: wpDrafts, error: wpError } = await supabase
       .from('wp_drafts')
@@ -304,7 +350,7 @@ export async function populateB31(
 
     // Individual WP content
     for (const wp of sortedWPs) {
-      fullContent += generateWPContent(wp, participantsMap);
+      fullContent += generateWPContent(wp, participantsMap, themesMap, useWpThemes);
     }
 
     // Consolidated deliverables table
