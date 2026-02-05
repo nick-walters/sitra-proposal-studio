@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Package, Plus, Trash2, GripVertical } from 'lucide-react';
 import type { WPDraftDeliverable } from '@/hooks/useWPDrafts';
+import type { ParticipantSummary } from '@/types/proposal';
 import {
   DndContext,
   closestCenter,
@@ -23,17 +24,10 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-interface Participant {
-  id: string;
-  organisation_short_name: string | null;
-  organisation_name: string;
-  participant_number: number | null;
-}
-
 interface WPDeliverablesTableProps {
   wpNumber: number;
   deliverables: WPDraftDeliverable[];
-  participants: Participant[];
+  participants: ParticipantSummary[];
   onDeliverableUpdate: (id: string, updates: Partial<WPDraftDeliverable>) => Promise<boolean>;
   onDeliverableAdd: () => Promise<any>;
   onDeliverableDelete: (id: string) => Promise<boolean>;
@@ -144,7 +138,7 @@ export function WPDeliverablesTable({
 interface SortableDeliverableCardProps {
   deliverable: WPDraftDeliverable;
   wpNumber: number;
-  participants: Participant[];
+  participants: ParticipantSummary[];
   monthOptions: number[];
   onUpdate: (id: string, updates: Partial<WPDraftDeliverable>) => Promise<boolean>;
   onDelete: (id: string) => Promise<boolean>;

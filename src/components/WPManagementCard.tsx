@@ -41,14 +41,7 @@ import { useWPColorPalette } from '@/hooks/useWPColorPalette';
 import { useWPThemes, WPTheme } from '@/hooks/useWPThemes';
 import { populateB31 } from '@/lib/b31Population';
 import { toast } from 'sonner';
-
-interface Participant {
-  id: string;
-  organisation_short_name: string | null;
-  organisation_name: string;
-  english_name: string | null;
-  participant_number: number | null;
-}
+import type { ParticipantSummary } from '@/types/proposal';
 
 interface WPDraft {
   id: string;
@@ -63,7 +56,7 @@ interface WPDraft {
 
 interface SortableWPRowProps {
   wp: WPDraft;
-  participants: Participant[];
+  participants: ParticipantSummary[];
   themes: WPTheme[];
   useThemes: boolean;
   onUpdate: (id: string, updates: Partial<WPDraft>) => void;
@@ -345,7 +338,7 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
         .eq('proposal_id', proposalId)
         .order('participant_number');
       if (error) throw error;
-      return data as Participant[];
+      return data as ParticipantSummary[];
     },
   });
 

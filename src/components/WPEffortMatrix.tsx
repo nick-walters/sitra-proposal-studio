@@ -4,18 +4,12 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Users } from 'lucide-react';
 import type { WPDraftTask } from '@/hooks/useWPDrafts';
-
-interface Participant {
-  id: string;
-  organisation_short_name: string | null;
-  organisation_name: string;
-  participant_number: number | null;
-}
+import type { ParticipantSummary } from '@/types/proposal';
 
 interface WPEffortMatrixProps {
   wpNumber: number;
   tasks: WPDraftTask[];
-  participants: Participant[];
+  participants: ParticipantSummary[];
   onEffortChange: (taskId: string, participantId: string, personMonths: number) => Promise<boolean>;
   readOnly?: boolean;
 }

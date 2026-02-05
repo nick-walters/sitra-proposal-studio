@@ -15,7 +15,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { getContrastingTextColor } from '@/lib/wpColors';
 import { cn } from '@/lib/utils';
 
-interface WPDraft {
+// Lightweight WP type for this dialog only
+interface WPRefData {
   id: string;
   number: number;
   short_name: string | null;
@@ -33,7 +34,7 @@ interface InsertWPReferenceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   proposalId: string;
-  onSelect: (wp: WPDraft) => void;
+  onSelect: (wp: WPRefData) => void;
 }
 
 export function InsertWPReferenceDialog({
@@ -42,7 +43,7 @@ export function InsertWPReferenceDialog({
   proposalId,
   onSelect,
 }: InsertWPReferenceDialogProps) {
-  const [wpDrafts, setWPDrafts] = useState<WPDraft[]>([]);
+  const [wpDrafts, setWPDrafts] = useState<WPRefData[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch proposal's use_wp_themes flag
@@ -100,7 +101,7 @@ export function InsertWPReferenceDialog({
   };
 
   // Get effective color for a WP (theme color if themes enabled, otherwise WP color)
-  const getEffectiveColor = (wp: WPDraft): string => {
+  const getEffectiveColor = (wp: WPRefData): string => {
     if (useWpThemes && wp.theme_id) {
       const theme = themesMap.get(wp.theme_id);
       if (theme) {
@@ -110,7 +111,7 @@ export function InsertWPReferenceDialog({
     return wp.color;
   };
 
-  const handleSelect = (wp: WPDraft) => {
+  const handleSelect = (wp: WPRefData) => {
     // Pass the effective color to the callback
     const effectiveColor = getEffectiveColor(wp);
     onSelect({ ...wp, color: effectiveColor });

@@ -31,13 +31,7 @@ import { getContrastingTextColor } from '@/lib/wpColors';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-
-interface Participant {
-  id: string;
-  organisation_short_name: string | null;
-  organisation_name: string;
-  participant_number: number | null;
-}
+import type { ParticipantSummary } from '@/types/proposal';
 
 interface WPDraftEditorProps {
   wpId: string;
@@ -165,7 +159,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
     reorderRisks,
   } = useWPDraftEditor(wpId);
 
-  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [participants, setParticipants] = useState<ParticipantSummary[]>([]);
   const [guidelinesDialogOpen, setGuidelinesDialogOpen] = useState(false);
   
   // Dialog states for editor features

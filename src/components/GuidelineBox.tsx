@@ -1,6 +1,15 @@
 import { Info, Lightbulb, ClipboardCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+/**
+ * GuidelineBox - Displays a SINGLE guideline with styled box formatting
+ * 
+ * Use for: Displaying individual guidelines (official, sitra_tip, or evaluation)
+ * with consistent styling including icon, title, and content.
+ * 
+ * For displaying multiple Sitra tips in a collapsible container, use SitraTipsBox instead.
+ */
+
 export type GuidelineType = 'official' | 'sitra_tip' | 'evaluation';
 
 interface GuidelineBoxProps {
