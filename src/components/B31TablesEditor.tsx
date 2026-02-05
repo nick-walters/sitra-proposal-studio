@@ -384,11 +384,13 @@ function useParticipants(proposalId: string) {
 function SortableTableRow({ 
   id, 
   children, 
-  canDrag 
+  canDrag,
+  onDelete
 }: { 
   id: string; 
   children: React.ReactNode; 
   canDrag: boolean;
+  onDelete?: () => void;
 }) {
   const {
     attributes,
@@ -406,13 +408,31 @@ function SortableTableRow({
   };
 
   return (
-    <TableRow ref={setNodeRef} style={style} className="hover:bg-muted/50">
-      {canDrag && (
-        <TableCell className={`${cellStyles} w-6 cursor-grab active:cursor-grabbing`} {...attributes} {...listeners}>
-          <GripVertical className="h-4 w-4 text-muted-foreground" />
-        </TableCell>
-      )}
+    <TableRow ref={setNodeRef} style={style} className="hover:bg-muted/50 relative group">
       {children}
+      {/* Drag handle positioned outside table on left */}
+      {canDrag && (
+        <div 
+          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pr-1 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+          {...attributes} 
+          {...listeners}
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </div>
+      )}
+      {/* Delete button positioned outside table on right */}
+      {onDelete && (
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full pl-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-5 w-5 text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={onDelete}
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
     </TableRow>
   );
 }
@@ -540,34 +560,33 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
         )}
       </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <Table className={tableStyles}>
-          <TableHeader>
-            <TableRow className="bg-black text-white hover:bg-black">
-              {isAdminOrOwner && <TableHead className={`${cellStyles} text-white font-bold w-6`}></TableHead>}
-              <TableHead className={`${cellStyles} text-white font-bold w-[30%]`}>Deliverable</TableHead>
-              <TableHead className={`${cellStyles} text-white font-bold w-[8%]`}>WP</TableHead>
-              <TableHead className={`${cellStyles} text-white font-bold w-[12%]`}>Lead</TableHead>
-              <TableHead className={`${cellStyles} text-white font-bold w-[8%]`}>Type</TableHead>
-              <TableHead className={`${cellStyles} text-white font-bold w-[8%]`}>Diss.</TableHead>
-              <TableHead className={`${cellStyles} text-white font-bold w-[8%]`}>Due</TableHead>
-              <TableHead className={`${cellStyles} text-white font-bold w-[22%]`}>Description</TableHead>
-              <TableHead className={`${cellStyles} text-white font-bold w-[4%]`}></TableHead>
-            </TableRow>
-          </TableHeader>
-          <SortableContext items={deliverables.map(d => d.id)} strategy={verticalListSortingStrategy}>
-            <TableBody>
-              {deliverables.map((del) => (
-                <SortableTableRow key={del.id} id={del.id} canDrag={isAdminOrOwner}>
-                  <TableCell className={cellStyles}>
-                    <div className="flex items-baseline gap-1">
-                      <span className="font-medium shrink-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">{del.number}:</span>
-                      <EditableText
-                        value={del.name}
-                        onChange={(val) => updateDeliverable.mutate({ id: del.id, name: val })}
-                        placeholder="Deliverable name"
-                      />
-                    </div>
-                  </TableCell>
+        <div className="relative mx-8">
+          <Table className={tableStyles}>
+            <TableHeader>
+              <TableRow className="bg-black text-white hover:bg-black">
+                <TableHead className={`${cellStyles} text-white font-bold w-[30%]`}>Deliverable</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[8%]`}>WP</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[14%]`}>Lead</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[8%]`}>Type</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[8%]`}>Diss.</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[8%]`}>Due</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[24%]`}>Description</TableHead>
+              </TableRow>
+            </TableHeader>
+            <SortableContext items={deliverables.map(d => d.id)} strategy={verticalListSortingStrategy}>
+              <TableBody>
+                {deliverables.map((del) => (
+                  <SortableTableRow key={del.id} id={del.id} canDrag={isAdminOrOwner} onDelete={() => deleteDeliverable.mutate(del.id)}>
+                    <TableCell className={cellStyles}>
+                      <div className="flex items-baseline gap-1">
+                        <span className="font-medium shrink-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">{del.number}:</span>
+                        <EditableText
+                          value={del.name}
+                          onChange={(val) => updateDeliverable.mutate({ id: del.id, name: val })}
+                          placeholder="Deliverable name"
+                        />
+                      </div>
+                    </TableCell>
                   <TableCell className={cellStyles}>
                     <SingleWPSelector
                       value={del.wp_number}
@@ -642,28 +661,19 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                       onChange={(val) => updateDeliverable.mutate({ id: del.id, due_month: val })}
                     />
                   </TableCell>
-                  <TableCell className={cellStyles}>
-                    <EditableText
-                      value={del.description}
-                      onChange={(val) => updateDeliverable.mutate({ id: del.id, description: val })}
-                      placeholder="Brief description"
-                    />
-                  </TableCell>
-                  <TableCell className={cellStyles}>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-4 w-4 text-destructive hover:text-destructive"
-                      onClick={() => deleteDeliverable.mutate(del.id)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </TableCell>
-                </SortableTableRow>
-              ))}
-            </TableBody>
-          </SortableContext>
-        </Table>
+                    <TableCell className={cellStyles}>
+                      <EditableText
+                        value={del.description}
+                        onChange={(val) => updateDeliverable.mutate({ id: del.id, description: val })}
+                        placeholder="Brief description"
+                      />
+                    </TableCell>
+                  </SortableTableRow>
+                ))}
+              </TableBody>
+            </SortableContext>
+          </Table>
+        </div>
       </DndContext>
       <Button variant="outline" size="sm" onClick={() => addDeliverable.mutate()} className="mt-2">
         <Plus className="h-4 w-4 mr-1" /> Add deliverable
@@ -795,66 +805,56 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
         )}
       </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <Table className={tableStyles}>
-          <TableHeader>
-            <TableRow className="bg-black text-white hover:bg-black">
-              {isAdminOrOwner && <TableHead className={`${cellStyles} text-white font-bold w-6`}></TableHead>}
-              <TableHead className={`${cellStyles} text-white font-bold w-[35%]`}>Milestone</TableHead>
-              <TableHead className={`${cellStyles} text-white font-bold w-[15%]`}>WPs</TableHead>
-              <TableHead className={`${cellStyles} text-white font-bold w-[10%]`}>Due</TableHead>
-              <TableHead className={`${cellStyles} text-white font-bold w-[35%]`}>Means of verification</TableHead>
-              <TableHead className={`${cellStyles} text-white font-bold w-[5%]`}></TableHead>
-            </TableRow>
-          </TableHeader>
-          <SortableContext items={milestones.map(m => m.id)} strategy={verticalListSortingStrategy}>
-            <TableBody>
-              {milestones.map((ms) => (
-                <SortableTableRow key={ms.id} id={ms.id} canDrag={isAdminOrOwner}>
-                  <TableCell className={cellStyles}>
-                    <div className="flex items-baseline gap-1">
-                      <span className="font-medium shrink-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">MS{ms.number}:</span>
-                      <EditableText
-                        value={ms.name}
-                        onChange={(val) => updateMilestone.mutate({ id: ms.id, name: val })}
-                        placeholder="Milestone name"
+        <div className="relative mx-8">
+          <Table className={tableStyles}>
+            <TableHeader>
+              <TableRow className="bg-black text-white hover:bg-black">
+                <TableHead className={`${cellStyles} text-white font-bold w-[40%]`}>Milestone</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[15%]`}>WPs</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[10%]`}>Due</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[35%]`}>Means of verification</TableHead>
+              </TableRow>
+            </TableHeader>
+            <SortableContext items={milestones.map(m => m.id)} strategy={verticalListSortingStrategy}>
+              <TableBody>
+                {milestones.map((ms) => (
+                  <SortableTableRow key={ms.id} id={ms.id} canDrag={isAdminOrOwner} onDelete={() => deleteMilestone.mutate(ms.id)}>
+                    <TableCell className={cellStyles}>
+                      <div className="flex items-baseline gap-1">
+                        <span className="font-medium shrink-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">MS{ms.number}:</span>
+                        <EditableText
+                          value={ms.name}
+                          onChange={(val) => updateMilestone.mutate({ id: ms.id, name: val })}
+                          placeholder="Milestone name"
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell className={cellStyles}>
+                      <MultiWPSelector
+                        value={ms.wps}
+                        onChange={(val) => updateMilestone.mutate({ id: ms.id, wps: val })}
+                        workPackages={workPackages}
                       />
-                    </div>
-                  </TableCell>
-                  <TableCell className={cellStyles}>
-                    <MultiWPSelector
-                      value={ms.wps}
-                      onChange={(val) => updateMilestone.mutate({ id: ms.id, wps: val })}
-                      workPackages={workPackages}
-                    />
-                  </TableCell>
-                  <TableCell className={cellStyles}>
-                    <MonthSelect
-                      value={ms.due_month}
-                      onChange={(val) => updateMilestone.mutate({ id: ms.id, due_month: val })}
-                    />
-                  </TableCell>
-                  <TableCell className={cellStyles}>
-                    <EditableText
-                      value={ms.means_of_verification}
-                      onChange={(val) => updateMilestone.mutate({ id: ms.id, means_of_verification: val })}
-                      placeholder="How will this be verified?"
-                    />
-                  </TableCell>
-                  <TableCell className={cellStyles}>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-4 w-4 text-destructive hover:text-destructive"
-                      onClick={() => deleteMilestone.mutate(ms.id)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </TableCell>
-                </SortableTableRow>
-              ))}
-            </TableBody>
-          </SortableContext>
-        </Table>
+                    </TableCell>
+                    <TableCell className={cellStyles}>
+                      <MonthSelect
+                        value={ms.due_month}
+                        onChange={(val) => updateMilestone.mutate({ id: ms.id, due_month: val })}
+                      />
+                    </TableCell>
+                    <TableCell className={cellStyles}>
+                      <EditableText
+                        value={ms.means_of_verification}
+                        onChange={(val) => updateMilestone.mutate({ id: ms.id, means_of_verification: val })}
+                        placeholder="How will this be verified?"
+                      />
+                    </TableCell>
+                  </SortableTableRow>
+                ))}
+              </TableBody>
+            </SortableContext>
+          </Table>
+        </div>
       </DndContext>
       <Button variant="outline" size="sm" onClick={() => addMilestone.mutate()} className="mt-2">
         <Plus className="h-4 w-4 mr-1" /> Add milestone
@@ -991,101 +991,91 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
         )}
       </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <Table className={tableStyles}>
-          <TableHeader>
-            <TableRow className="bg-black text-white hover:bg-black">
-              {isAdminOrOwner && <TableHead className={`${cellStyles} text-white font-bold w-6`}></TableHead>}
-              <TableHead className={`${cellStyles} text-white font-bold`} colSpan={2}>Risk</TableHead>
-              <TableHead className={`${cellStyles} text-white font-bold w-[12%]`}>WPs</TableHead>
-              <TableHead className={`${cellStyles} text-white font-bold w-[40%]`}>Mitigation & adaptation measures</TableHead>
-              <TableHead className={`${cellStyles} text-white font-bold w-[4%]`}></TableHead>
-            </TableRow>
-          </TableHeader>
-          <SortableContext items={risks.map(r => r.id)} strategy={verticalListSortingStrategy}>
-            <TableBody>
-              {risks.map((risk) => (
-                <SortableTableRow key={risk.id} id={risk.id} canDrag={isAdminOrOwner}>
-                  <TableCell className={`${cellStyles} border-r-0`}>
-                    <EditableText
-                      value={risk.description}
-                      onChange={(val) => updateRisk.mutate({ id: risk.id, description: val })}
-                      placeholder="Description of risk"
-                    />
-                  </TableCell>
-                  {/* Likelihood/Severity column - visually part of Risk but separate cell */}
-                  <TableCell className={`${cellStyles} border-l-0 w-[60px] align-middle`}>
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-0.5 font-['Times_New_Roman',Times,serif] text-[11pt]">
-                        <span className="font-bold">i.</span>
-                        <Select value={risk.likelihood || ''} onValueChange={(v) => updateRisk.mutate({ id: risk.id, likelihood: v as 'L' | 'M' | 'H' || null })}>
-                          <SelectTrigger className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex">
-                            <SelectValue>
-                              {risk.likelihood ? <RiskBadge level={risk.likelihood} /> : <span className="text-muted-foreground">-</span>}
-                            </SelectValue>
-                          </SelectTrigger>
-                          <SelectContent className="bg-background z-50">
-                            {riskLevelOptions.map(opt => (
-                              <SelectItem key={opt.value} value={opt.value}>
-                                <div className="flex items-center gap-2">
-                                  <RiskBadge level={opt.value as 'L' | 'M' | 'H'} />
-                                  <span>{opt.label}</span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+        <div className="relative mx-8">
+          <Table className={tableStyles}>
+            <TableHeader>
+              <TableRow className="bg-black text-white hover:bg-black">
+                <TableHead className={`${cellStyles} text-white font-bold`} colSpan={2}>Risk</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[12%]`}>WPs</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[44%]`}>Mitigation & adaptation measures</TableHead>
+              </TableRow>
+            </TableHeader>
+            <SortableContext items={risks.map(r => r.id)} strategy={verticalListSortingStrategy}>
+              <TableBody>
+                {risks.map((risk) => (
+                  <SortableTableRow key={risk.id} id={risk.id} canDrag={isAdminOrOwner} onDelete={() => deleteRisk.mutate(risk.id)}>
+                    <TableCell className={`${cellStyles} border-r-0`}>
+                      <EditableText
+                        value={risk.description}
+                        onChange={(val) => updateRisk.mutate({ id: risk.id, description: val })}
+                        placeholder="Description of risk"
+                      />
+                    </TableCell>
+                    {/* Likelihood/Severity column - visually part of Risk but separate cell */}
+                    <TableCell className={`${cellStyles} border-l-0 w-[60px] align-middle`}>
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-0.5 font-['Times_New_Roman',Times,serif] text-[11pt]">
+                          <span className="font-bold">i.</span>
+                          <Select value={risk.likelihood || ''} onValueChange={(v) => updateRisk.mutate({ id: risk.id, likelihood: v as 'L' | 'M' | 'H' || null })}>
+                            <SelectTrigger className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex">
+                              <SelectValue>
+                                {risk.likelihood ? <RiskBadge level={risk.likelihood} /> : <span className="text-muted-foreground">-</span>}
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent className="bg-background z-50">
+                              {riskLevelOptions.map(opt => (
+                                <SelectItem key={opt.value} value={opt.value}>
+                                  <div className="flex items-center gap-2">
+                                    <RiskBadge level={opt.value as 'L' | 'M' | 'H'} />
+                                    <span>{opt.label}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex items-center gap-0.5 font-['Times_New_Roman',Times,serif] text-[11pt]">
+                          <span className="font-bold">ii.</span>
+                          <Select value={risk.severity || ''} onValueChange={(v) => updateRisk.mutate({ id: risk.id, severity: v as 'L' | 'M' | 'H' || null })}>
+                            <SelectTrigger className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex">
+                              <SelectValue>
+                                {risk.severity ? <RiskBadge level={risk.severity} /> : <span className="text-muted-foreground">-</span>}
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent className="bg-background z-50">
+                              {riskLevelOptions.map(opt => (
+                                <SelectItem key={opt.value} value={opt.value}>
+                                  <div className="flex items-center gap-2">
+                                    <RiskBadge level={opt.value as 'L' | 'M' | 'H'} />
+                                    <span>{opt.label}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-0.5 font-['Times_New_Roman',Times,serif] text-[11pt]">
-                        <span className="font-bold">ii.</span>
-                        <Select value={risk.severity || ''} onValueChange={(v) => updateRisk.mutate({ id: risk.id, severity: v as 'L' | 'M' | 'H' || null })}>
-                          <SelectTrigger className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex">
-                            <SelectValue>
-                              {risk.severity ? <RiskBadge level={risk.severity} /> : <span className="text-muted-foreground">-</span>}
-                            </SelectValue>
-                          </SelectTrigger>
-                          <SelectContent className="bg-background z-50">
-                            {riskLevelOptions.map(opt => (
-                              <SelectItem key={opt.value} value={opt.value}>
-                                <div className="flex items-center gap-2">
-                                  <RiskBadge level={opt.value as 'L' | 'M' | 'H'} />
-                                  <span>{opt.label}</span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className={cellStyles}>
-                    <MultiWPSelector
-                      value={risk.wps}
-                      onChange={(val) => updateRisk.mutate({ id: risk.id, wps: val })}
-                      workPackages={workPackages}
-                    />
-                  </TableCell>
-                  <TableCell className={cellStyles}>
-                    <EditableText
-                      value={risk.mitigation}
-                      onChange={(val) => updateRisk.mutate({ id: risk.id, mitigation: val })}
-                      placeholder="Proposed mitigation measures"
-                    />
-                  </TableCell>
-                  <TableCell className={cellStyles}>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-4 w-4 text-destructive hover:text-destructive"
-                      onClick={() => deleteRisk.mutate(risk.id)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </TableCell>
-                </SortableTableRow>
-              ))}
-            </TableBody>
-          </SortableContext>
-        </Table>
+                    </TableCell>
+                    <TableCell className={cellStyles}>
+                      <MultiWPSelector
+                        value={risk.wps}
+                        onChange={(val) => updateRisk.mutate({ id: risk.id, wps: val })}
+                        workPackages={workPackages}
+                      />
+                    </TableCell>
+                    <TableCell className={cellStyles}>
+                      <EditableText
+                        value={risk.mitigation}
+                        onChange={(val) => updateRisk.mutate({ id: risk.id, mitigation: val })}
+                        placeholder="Proposed mitigation measures"
+                      />
+                    </TableCell>
+                  </SortableTableRow>
+                ))}
+              </TableBody>
+            </SortableContext>
+          </Table>
+        </div>
       </DndContext>
       <Button variant="outline" size="sm" onClick={() => addRisk.mutate()} className="mt-2">
         <Plus className="h-4 w-4 mr-1" /> Add risk
