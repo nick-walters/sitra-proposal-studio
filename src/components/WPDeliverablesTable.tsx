@@ -33,7 +33,7 @@ interface WPDeliverablesTableProps {
   onDeliverableDelete: (id: string) => Promise<boolean>;
   onDeliverableReorder?: (newOrder: string[]) => Promise<boolean>;
   readOnly?: boolean;
-  projectDuration?: number;
+  projectDuration?: number; // Default 72 months
 }
 
 const DELIVERABLE_TYPES = [
@@ -71,7 +71,7 @@ export function WPDeliverablesTable({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const monthOptions = Array.from({ length: projectDuration }, (_, i) => i + 1);
+  const monthOptions = Array.from({ length: projectDuration || 72 }, (_, i) => i + 1);
 
   const formatDeliverableNumber = (num: number) => `D${wpNumber}.${num}`;
 

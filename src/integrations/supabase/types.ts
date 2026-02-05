@@ -14,6 +14,97 @@ export type Database = {
   }
   public: {
     Tables: {
+      b31_milestones: {
+        Row: {
+          created_at: string
+          due_month: number | null
+          id: string
+          means_of_verification: string
+          name: string
+          number: number
+          proposal_id: string
+          updated_at: string
+          wps: string
+        }
+        Insert: {
+          created_at?: string
+          due_month?: number | null
+          id?: string
+          means_of_verification?: string
+          name?: string
+          number: number
+          proposal_id: string
+          updated_at?: string
+          wps?: string
+        }
+        Update: {
+          created_at?: string
+          due_month?: number | null
+          id?: string
+          means_of_verification?: string
+          name?: string
+          number?: number
+          proposal_id?: string
+          updated_at?: string
+          wps?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "b31_milestones_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      b31_risks: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          likelihood: string | null
+          mitigation: string
+          number: number
+          proposal_id: string
+          severity: string | null
+          updated_at: string
+          wps: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          likelihood?: string | null
+          mitigation?: string
+          number: number
+          proposal_id: string
+          severity?: string | null
+          updated_at?: string
+          wps?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          likelihood?: string | null
+          mitigation?: string
+          number?: number
+          proposal_id?: string
+          severity?: string | null
+          updated_at?: string
+          wps?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "b31_risks_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budget_changes: {
         Row: {
           budget_item_id: string | null

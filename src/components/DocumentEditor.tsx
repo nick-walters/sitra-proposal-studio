@@ -50,6 +50,7 @@ import { KeyboardShortcutsDialog } from "./KeyboardShortcutsDialog";
 import { WritingAssistantDialog } from "./WritingAssistantDialog";
 import { SnippetsDialog } from "./SnippetsDialog";
 import { SplitViewPanel } from "./SplitViewPanel";
+import { B31MilestonesTable, B31RisksTable } from "./B31TablesEditor";
 import { TrackChange } from "@/extensions/TrackChanges";
 import { usePageEstimate } from "@/hooks/usePageEstimate";
 import { useAuth } from "@/hooks/useAuth";
@@ -952,6 +953,14 @@ export function DocumentEditor({
                     collaborators={collaboratorsInSection}
                     containerRef={editorContainerRef}
                   />
+                </div>
+              )}
+
+              {/* Interactive B3.1 Tables - Milestones and Risks */}
+              {(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') && (
+                <div className="mt-8 space-y-6">
+                  <B31MilestonesTable proposalId={proposalId} />
+                  <B31RisksTable proposalId={proposalId} />
                 </div>
               )}
 
