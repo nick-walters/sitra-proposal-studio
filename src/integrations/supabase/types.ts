@@ -1216,6 +1216,7 @@ export type Database = {
           total_budget: number | null
           type: Database["public"]["Enums"]["proposal_type"]
           updated_at: string
+          use_wp_themes: boolean
           uses_fstp: boolean
           work_programme: string | null
         }
@@ -1246,6 +1247,7 @@ export type Database = {
           total_budget?: number | null
           type?: Database["public"]["Enums"]["proposal_type"]
           updated_at?: string
+          use_wp_themes?: boolean
           uses_fstp?: boolean
           work_programme?: string | null
         }
@@ -1276,6 +1278,7 @@ export type Database = {
           total_budget?: number | null
           type?: Database["public"]["Enums"]["proposal_type"]
           updated_at?: string
+          use_wp_themes?: boolean
           uses_fstp?: boolean
           work_programme?: string | null
         }
@@ -2365,6 +2368,7 @@ export type Database = {
           outputs_question: string | null
           proposal_id: string
           short_name: string | null
+          theme_id: string | null
           title: string | null
           updated_at: string
         }
@@ -2382,6 +2386,7 @@ export type Database = {
           outputs_question?: string | null
           proposal_id: string
           short_name?: string | null
+          theme_id?: string | null
           title?: string | null
           updated_at?: string
         }
@@ -2399,6 +2404,7 @@ export type Database = {
           outputs_question?: string | null
           proposal_id?: string
           short_name?: string | null
+          theme_id?: string | null
           title?: string | null
           updated_at?: string
         }
@@ -2412,6 +2418,57 @@ export type Database = {
           },
           {
             foreignKeyName: "wp_drafts_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wp_drafts_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "wp_themes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wp_themes: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string | null
+          number: number
+          order_index: number
+          proposal_id: string
+          short_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string | null
+          number: number
+          order_index?: number
+          proposal_id: string
+          short_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string | null
+          number?: number
+          order_index?: number
+          proposal_id?: string
+          short_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wp_themes_proposal_id_fkey"
             columns: ["proposal_id"]
             isOneToOne: false
             referencedRelation: "proposals"

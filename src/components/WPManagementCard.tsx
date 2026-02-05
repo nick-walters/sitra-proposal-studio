@@ -29,13 +29,16 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { WPColorPicker } from '@/components/WPColorPicker';
 import { WPColorPaletteEditor } from '@/components/WPColorPaletteEditor';
-import { Layers, GripVertical, Plus, AlertTriangle, Palette, Trash2 } from 'lucide-react';
+import { Layers, GripVertical, Plus, AlertTriangle, Palette, Trash2, Paintbrush } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useWPColorPalette } from '@/hooks/useWPColorPalette';
+import { useWPThemes, WPTheme } from '@/hooks/useWPThemes';
 import { populateB31 } from '@/lib/b31Population';
 import { toast } from 'sonner';
 
@@ -55,17 +58,20 @@ interface WPDraft {
   lead_participant_id: string | null;
   color: string;
   order_index: number;
+  theme_id: string | null;
 }
 
 interface SortableWPRowProps {
   wp: WPDraft;
   participants: Participant[];
+  themes: WPTheme[];
+  useThemes: boolean;
   onUpdate: (id: string, updates: Partial<WPDraft>) => void;
   onDelete: (id: string) => void;
   canEdit: boolean;
 }
 
-function SortableWPRow({ wp, participants, onUpdate, onDelete, canEdit }: SortableWPRowProps) {
+function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete, canEdit }: SortableWPRowProps) {
   const [leadOpen, setLeadOpen] = useState(false);
   const {
     attributes,
@@ -83,6 +89,8 @@ function SortableWPRow({ wp, participants, onUpdate, onDelete, canEdit }: Sortab
   };
 
   const selectedLead = participants.find((p) => p.id === wp.lead_participant_id);
+  const selectedTheme = themes.find((t) => t.id === wp.theme_id);
+  const effectiveColor = useThemes && selectedTheme ? selectedTheme.color : wp.color;
 
   return (
     <div
@@ -105,13 +113,24 @@ function SortableWPRow({ wp, participants, onUpdate, onDelete, canEdit }: Sortab
         )}
       </div>
 
-      {/* WP Number Badge with Color Picker */}
-      <WPColorPicker
-        color={wp.color}
-        onChange={(color) => onUpdate(wp.id, { color })}
-        wpNumber={wp.number}
-        disabled={!canEdit}
-      />
+      {/* WP Number Badge - with Color Picker or Theme Color */}
+      {useThemes ? (
+        <div className="flex justify-center">
+          <span
+            className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold text-white"
+            style={{ backgroundColor: effectiveColor }}
+          >
+            WP{wp.number}
+          </span>
+        </div>
+      ) : (
+        <WPColorPicker
+          color={wp.color}
+          onChange={(color) => onUpdate(wp.id, { color })}
+          wpNumber={wp.number}
+          disabled={!canEdit}
+        />
+      )}
 
       {/* Short Name */}
       <Input
@@ -122,14 +141,53 @@ function SortableWPRow({ wp, participants, onUpdate, onDelete, canEdit }: Sortab
         disabled={!canEdit}
       />
 
-      {/* Title */}
-      <Input
-        value={wp.title || ''}
-        onChange={(e) => onUpdate(wp.id, { title: e.target.value })}
-        placeholder="Work package title"
-        className="h-7 text-sm"
-        disabled={!canEdit}
-      />
+      {/* Title with Theme selector if themes enabled */}
+      {useThemes ? (
+        <div className="flex gap-1.5 items-center">
+          <Select
+            value={wp.theme_id || 'none'}
+            onValueChange={(value) => onUpdate(wp.id, { theme_id: value === 'none' ? null : value })}
+            disabled={!canEdit}
+          >
+            <SelectTrigger className="h-7 w-28 text-xs">
+              <SelectValue placeholder="Theme" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">
+                <span className="text-muted-foreground">No theme</span>
+              </SelectItem>
+              {themes.map((theme) => (
+                <SelectItem key={theme.id} value={theme.id}>
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className="w-3 h-3 rounded shrink-0"
+                      style={{ backgroundColor: theme.color }}
+                    />
+                    <span className="truncate">
+                      {theme.short_name || `Theme ${theme.number}`}
+                    </span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input
+            value={wp.title || ''}
+            onChange={(e) => onUpdate(wp.id, { title: e.target.value })}
+            placeholder="Work package title"
+            className="h-7 text-sm flex-1"
+            disabled={!canEdit}
+          />
+        </div>
+      ) : (
+        <Input
+          value={wp.title || ''}
+          onChange={(e) => onUpdate(wp.id, { title: e.target.value })}
+          placeholder="Work package title"
+          className="h-7 text-sm"
+          disabled={!canEdit}
+        />
+      )}
 
       {/* WP Lead - Dialog styled like partner reference dialog */}
       <button
@@ -229,13 +287,47 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
+  // WP Themes
+  const { themes, addTheme, updateTheme, deleteTheme, reorderThemes, isAdding: isAddingTheme } = useWPThemes(proposalId);
+
+  // Fetch proposal to check budget_type and use_wp_themes
+  const { data: proposal } = useQuery({
+    queryKey: ['proposal-for-themes', proposalId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('proposals')
+        .select('budget_type, use_wp_themes')
+        .eq('id', proposalId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const isLumpSum = proposal?.budget_type === 'lump_sum';
+  const useWpThemes = proposal?.use_wp_themes ?? false;
+
+  // Toggle use_wp_themes
+  const toggleWpThemesMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const { error } = await supabase
+        .from('proposals')
+        .update({ use_wp_themes: enabled })
+        .eq('id', proposalId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['proposal-for-themes', proposalId] });
+    },
+  });
+
   // Fetch WP drafts
   const { data: wpDrafts = [], isLoading: wpsLoading } = useQuery({
     queryKey: ['wp-drafts-management', proposalId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('wp_drafts')
-        .select('id, number, short_name, title, lead_participant_id, color, order_index')
+        .select('id, number, short_name, title, lead_participant_id, color, order_index, theme_id')
         .eq('proposal_id', proposalId)
         .order('order_index');
       if (error) throw error;
@@ -457,12 +549,118 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
+        {/* WP Themes Toggle (only for lump sum proposals) */}
+        {isLumpSum && isAdmin && (
+          <div className="flex items-center space-x-2 pb-3 border-b mb-3">
+            <Switch
+              id="use-wp-themes"
+              checked={useWpThemes}
+              onCheckedChange={(checked) => toggleWpThemesMutation.mutate(checked)}
+            />
+            <Label htmlFor="use-wp-themes" className="text-sm cursor-pointer">
+              Use WP themes (group work packages by colour)
+            </Label>
+          </div>
+        )}
+
+        {/* Theme Management Table (when themes enabled) */}
+        {useWpThemes && (
+          <div className="mb-4 pb-4 border-b">
+            <h4 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+              <Paintbrush className="w-4 h-4" />
+              Themes
+            </h4>
+            
+            {/* Theme Table Header */}
+            <div className="grid grid-cols-[24px_50px_100px_1fr_20px] gap-1.5 text-xs font-medium text-muted-foreground border-b pb-1">
+              <div />
+              <div className="text-center">Theme</div>
+              <div>Short Name</div>
+              <div>Theme Name</div>
+              <div />
+            </div>
+
+            {/* Theme List */}
+            {themes.map((theme) => (
+              <div
+                key={theme.id}
+                className="grid grid-cols-[24px_50px_100px_1fr_20px] gap-1.5 items-center py-1 border-b"
+              >
+                <div />
+                {/* Theme Badge with Color */}
+                <div className="flex justify-center">
+                  <button
+                    className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold text-white cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all"
+                    style={{ backgroundColor: theme.color }}
+                    onClick={() => {
+                      const input = document.createElement('input');
+                      input.type = 'color';
+                      input.value = theme.color;
+                      input.onchange = (e) => updateTheme(theme.id, { color: (e.target as HTMLInputElement).value });
+                      input.click();
+                    }}
+                    disabled={!isAdmin}
+                    title="Click to change colour"
+                  >
+                    T{theme.number}
+                  </button>
+                </div>
+                {/* Short Name */}
+                <Input
+                  value={theme.short_name || ''}
+                  onChange={(e) => updateTheme(theme.id, { short_name: e.target.value })}
+                  placeholder="Short"
+                  className="h-7 text-sm"
+                  disabled={!isAdmin}
+                />
+                {/* Theme Name */}
+                <Input
+                  value={theme.name || ''}
+                  onChange={(e) => updateTheme(theme.id, { name: e.target.value })}
+                  placeholder="Theme name"
+                  className="h-7 text-sm"
+                  disabled={!isAdmin}
+                />
+                {/* Delete Button */}
+                {isAdmin && (
+                  <button
+                    onClick={() => {
+                      if (confirm('Delete this theme? WPs using it will have no theme assigned.')) {
+                        deleteTheme(theme.id);
+                      }
+                    }}
+                    className="p-1 text-destructive hover:bg-destructive/10 rounded transition-colors"
+                    title="Delete theme"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+                {!isAdmin && <div />}
+              </div>
+            ))}
+
+            {/* Add Theme Button */}
+            {isAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => addTheme()}
+                disabled={isAddingTheme}
+                className="mt-2"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Add Theme
+              </Button>
+            )}
+          </div>
+        )}
+
         {/* Table Header */}
         <div className="grid grid-cols-[24px_50px_90px_1fr_80px_20px] gap-1.5 text-xs font-medium text-muted-foreground border-b pb-1">
           <div />
           <div className="text-center">WP</div>
-          <div>Short Name</div>
-          <div>Title</div>
+          <div>{useWpThemes ? 'Short' : 'Short Name'}</div>
+          <div>{useWpThemes ? 'Theme / Title' : 'Title'}</div>
           <div>WP Leader</div>
           <div />
         </div>
@@ -479,6 +677,8 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
                 key={wp.id}
                 wp={wp}
                 participants={participants}
+                themes={themes}
+                useThemes={useWpThemes}
                 onUpdate={handleUpdateWP}
                 onDelete={handleDeleteWP}
                 canEdit={isAdmin}
