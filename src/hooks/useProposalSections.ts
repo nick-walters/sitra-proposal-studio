@@ -425,39 +425,13 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       },
     };
 
-    // Build WP drafts section structure based on whether themes are enabled
-    let wpDraftsSection: Section;
-    
-    if (useWpThemes && themesData.length > 0) {
-      // When themes enabled: create Themes and Work packages subsections
-      const themesSubsection: Section = {
-        id: 'wp-themes',
-        number: '',
-        title: 'Themes',
-      };
-      
-      const workPackagesSubsection: Section = {
-        id: 'wp-list',
-        number: '',
-        title: 'Work packages',
-        subsections: wpDraftSections,
-      };
-      
-      wpDraftsSection = {
-        id: 'wp-drafts',
-        number: '',
-        title: 'WP drafts',
-        subsections: [themesSubsection, workPackagesSubsection],
-      };
-    } else {
-      // Standard structure: WP items directly under WP drafts
-      wpDraftsSection = {
-        id: 'wp-drafts',
-        number: '',
-        title: 'WP drafts',
-        subsections: wpDraftSections,
-      };
-    }
+    // WP drafts section: WP items directly listed (themes only affect colors, not navigation structure)
+    const wpDraftsSection: Section = {
+      id: 'wp-drafts',
+      number: '',
+      title: 'WP drafts',
+      subsections: wpDraftSections,
+    };
 
     // Define the Case drafts section with Case subsections (only if there are cases)
     const caseDraftsSection: Section = {
