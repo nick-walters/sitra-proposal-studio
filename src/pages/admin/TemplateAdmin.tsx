@@ -29,10 +29,14 @@ import {
   AlertCircle,
   Info,
   Lightbulb,
-  ClipboardCheck
+  ClipboardCheck,
+  Settings2,
+  Globe
 } from "lucide-react";
 import { toast } from "sonner";
 import { GuidelineEditorDialog } from "@/components/admin/GuidelineEditorDialog";
+import { TemplateModifiersAdmin } from "@/components/admin/TemplateModifiersAdmin";
+import { WorkProgrammeExtensionsAdmin } from "@/components/admin/WorkProgrammeExtensionsAdmin";
 import type { FundingProgramme, TemplateType, TemplateSection, SectionGuideline, TemplateFormField } from "@/types/templates";
 
 export function TemplateAdmin() {
@@ -93,7 +97,7 @@ export function TemplateAdmin() {
         </div>
 
         <Tabs defaultValue="programmes" className="space-y-6">
-          <TabsList>
+          <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="programmes" className="gap-2">
               <Layers className="w-4 h-4" />
               Funding Programmes
@@ -105,6 +109,14 @@ export function TemplateAdmin() {
             <TabsTrigger value="sections" className="gap-2">
               <BookOpen className="w-4 h-4" />
               Sections & Guidelines
+            </TabsTrigger>
+            <TabsTrigger value="modifiers" className="gap-2">
+              <Settings2 className="w-4 h-4" />
+              Modifiers
+            </TabsTrigger>
+            <TabsTrigger value="extensions" className="gap-2">
+              <Globe className="w-4 h-4" />
+              WP Extensions
             </TabsTrigger>
           </TabsList>
 
@@ -138,6 +150,16 @@ export function TemplateAdmin() {
               selectedTemplateTypeId={selectedTemplateType}
               onSelectTemplateType={setSelectedTemplateType}
             />
+          </TabsContent>
+
+          {/* Modifiers Tab */}
+          <TabsContent value="modifiers">
+            <TemplateModifiersAdmin />
+          </TabsContent>
+
+          {/* Work Programme Extensions Tab */}
+          <TabsContent value="extensions">
+            <WorkProgrammeExtensionsAdmin />
           </TabsContent>
         </Tabs>
       </div>

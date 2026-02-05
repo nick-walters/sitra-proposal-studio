@@ -107,13 +107,15 @@ Removed debug logs from frontend hooks and Dashboard.
 
 ---
 
-### 2.3 Section Version Comparison - Limited Functionality
+### 2.3 Section Version Comparison - Enhanced
 
-**Status: 🟡 FUNCTIONAL (Enhancement Possible)**
+**Status: ✅ COMPLETE**
 
-`VersionComparisonDialog.tsx` compares plain text with line-by-line diff.
-
-**Note**: Works for most use cases. Rich text diff enhancement is optional.
+**Completed**:
+- ✅ Added tabbed interface with "Text Diff" and "Side-by-Side Preview" modes
+- ✅ Text diff shows line-by-line changes with add/remove indicators
+- ✅ Side-by-side preview shows rendered HTML content from both versions
+- ✅ Version labels displayed in preview headers
 
 ---
 
@@ -132,11 +134,18 @@ Personnel costs are now calculated from: person-months × cost rate (default €
 
 ---
 
-### 2.5 Template Modifiers and Work Programme Extensions - Unused
+### 2.5 Template Modifiers and Work Programme Extensions
 
-**Status: 🟡 LOW PRIORITY**
+**Status: ✅ COMPLETE**
 
-Database tables exist but no UI. May be removed or implemented later.
+**Completed**:
+- ✅ Created `useTemplateModifiers` hook for CRUD operations
+- ✅ Created `TemplateModifiersAdmin` component with full management UI
+- ✅ Created `WorkProgrammeExtensionsAdmin` component with full management UI
+- ✅ Added "Modifiers" and "WP Extensions" tabs to Template Admin page
+
+Modifiers support JSON conditions/effects for template behavior rules.
+Extensions support work programme-specific sections, fields, and funding overrides.
 
 ---
 
@@ -226,6 +235,13 @@ Database tables exist but no UI. May be removed or implemented later.
 - `src/components/DocumentEditor.tsx` (track changes integration)
 - `src/types/proposal.ts` (added personnelCostRate to Participant)
 - `src/components/ParticipantDetailForm.tsx` (cost rate field)
+- `src/hooks/useEffortToBudget.ts` (new)
+- `src/components/EffortToBudgetSummary.tsx` (new)
+- `src/hooks/useTemplateModifiers.ts` (new)
+- `src/components/admin/TemplateModifiersAdmin.tsx` (new)
+- `src/components/admin/WorkProgrammeExtensionsAdmin.tsx` (new)
+- `src/pages/admin/TemplateAdmin.tsx` (added modifiers/extensions tabs)
+- `src/components/VersionComparisonDialog.tsx` (enhanced with side-by-side view)
 
 ---
 
@@ -251,12 +267,12 @@ Database tables exist but no UI. May be removed or implemented later.
    - ✅ Block locking verified (uses Presence correctly)
    - ✅ Effort matrix to budget connection
    - ✅ Collaborative cursors verified
+   - ✅ Template modifiers admin UI
+   - ✅ Work programme extensions admin UI
+   - ✅ Rich text version comparison (side-by-side preview)
 
 ---
 
-## Remaining Low-Priority Items
+## 🎉 ALL TASKS COMPLETE
 
-These are optional enhancements, not blocking issues:
-
-- **Template Modifiers UI**: DB tables exist but no admin UI (can be added if needed)
-- **Rich Text Version Comparison**: Current plain-text diff works but could be enhanced
+The comprehensive code cleanup and feature completion plan has been fully implemented.
