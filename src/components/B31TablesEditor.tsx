@@ -436,19 +436,23 @@ function SortableTableRow({
   return (
     <TableRow ref={setNodeRef} style={style} className="hover:bg-muted/50 group relative">
       {children}
-      {/* Drag handle - positioned in left margin */}
+      {/* Drag handle - positioned in left page margin */}
       {canDrag && (
         <div 
-          className="absolute -left-7 top-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity z-10"
+          className="absolute top-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity z-10"
+          style={{ left: '-1.5cm' }}
           {...attributes} 
           {...listeners}
         >
           <GripVertical className="h-4 w-4 text-muted-foreground" />
         </div>
       )}
-      {/* Delete button - positioned in right margin */}
+      {/* Delete button - positioned in right page margin */}
       {onDelete && (
-        <div className="absolute -right-7 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+        <div 
+          className="absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+          style={{ right: '-1.5cm' }}
+        >
           <Button
             variant="ghost"
             size="icon"
@@ -463,10 +467,10 @@ function SortableTableRow({
   );
 }
 
-// Table wrapper that allows overflow for margin controls
+// Table wrapper - full width with overflow visible for margin controls
 function B31TableWrapper({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative mx-8 [&>div]:overflow-visible">
+    <div className="relative w-full [&>div]:overflow-visible">
       {children}
     </div>
   );
