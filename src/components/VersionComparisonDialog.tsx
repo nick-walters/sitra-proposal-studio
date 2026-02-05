@@ -10,13 +10,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   GitCompare, 
   Loader2,
   ArrowLeftRight,
   Plus,
   Minus,
-  Equal
+  Equal,
+  Code,
+  Eye
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -223,6 +226,15 @@ export function VersionComparisonDialog({
     return version ? stripHtml(version.content || '') : '';
   };
 
+  // Get raw HTML content for side-by-side preview
+  const getRawHtmlContent = (versionId: string): string => {
+    if (versionId === 'current') {
+      return currentContent;
+    }
+    const version = versions.find(v => v.id === versionId);
+    return version?.content || '';
+  };
+
   // Compute diff between selected versions
   const diff = useMemo(() => {
     if (!leftVersionId || !rightVersionId) return [];
@@ -230,6 +242,10 @@ export function VersionComparisonDialog({
     const rightContent = getVersionContent(rightVersionId);
     return computeDiff(leftContent, rightContent);
   }, [leftVersionId, rightVersionId, versions, currentContent]);
+
+  // Get HTML content for side-by-side view
+  const leftHtml = useMemo(() => getRawHtmlContent(leftVersionId), [leftVersionId, versions, currentContent]);
+  const rightHtml = useMemo(() => getRawHtmlContent(rightVersionId), [rightVersionId, versions, currentContent]);
 
   // Stats
   const stats = useMemo(() => {
@@ -339,54 +355,104 @@ export function VersionComparisonDialog({
               </div>
             </div>
 
-            {/* Diff View */}
-            <ScrollArea className="h-[400px] border rounded-md">
-              <div className="font-mono text-sm">
-                {diff.length === 0 ? (
-                  <div className="p-4 text-center text-muted-foreground">
-                    No differences found
+            {/* View Mode Tabs */}
+            <Tabs defaultValue="diff" className="w-full">
+              <TabsList className="w-full justify-start">
+                <TabsTrigger value="diff" className="gap-2">
+                  <Code className="w-4 h-4" />
+                  Text Diff
+                </TabsTrigger>
+                <TabsTrigger value="sidebyside" className="gap-2">
+                  <Eye className="w-4 h-4" />
+                  Side-by-Side Preview
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Text Diff View */}
+              <TabsContent value="diff" className="mt-2">
+                <ScrollArea className="h-[350px] border rounded-md">
+                  <div className="font-mono text-sm">
+                    {diff.length === 0 ? (
+                      <div className="p-4 text-center text-muted-foreground">
+                        No differences found
+                      </div>
+                    ) : (
+                      diff.map((line, idx) => (
+                        <div 
+                          key={idx}
+                          className={cn(
+                            "flex border-b border-border/50 last:border-b-0",
+                            line.type === 'added' && "bg-green-500/10",
+                            line.type === 'removed' && "bg-red-500/10"
+                          )}
+                        >
+                          {/* Line numbers */}
+                          <div className="w-12 flex-shrink-0 text-right pr-2 py-1 text-muted-foreground text-xs border-r border-border/50 select-none">
+                            {line.lineNumber.left || ''}
+                          </div>
+                          <div className="w-12 flex-shrink-0 text-right pr-2 py-1 text-muted-foreground text-xs border-r border-border/50 select-none">
+                            {line.lineNumber.right || ''}
+                          </div>
+                          
+                          {/* Change indicator */}
+                          <div className={cn(
+                            "w-6 flex-shrink-0 flex items-center justify-center py-1 border-r border-border/50",
+                            line.type === 'added' && "text-green-600",
+                            line.type === 'removed' && "text-red-600"
+                          )}>
+                            {line.type === 'added' && <Plus className="w-3 h-3" />}
+                            {line.type === 'removed' && <Minus className="w-3 h-3" />}
+                          </div>
+                          
+                          {/* Content */}
+                          <div className={cn(
+                            "flex-1 py-1 px-2 whitespace-pre-wrap break-all",
+                            line.type === 'added' && "text-green-700 dark:text-green-400",
+                            line.type === 'removed' && "text-red-700 dark:text-red-400 line-through"
+                          )}>
+                            {line.content || '\u00A0'}
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
-                ) : (
-                  diff.map((line, idx) => (
-                    <div 
-                      key={idx}
-                      className={cn(
-                        "flex border-b border-border/50 last:border-b-0",
-                        line.type === 'added' && "bg-green-500/10",
-                        line.type === 'removed' && "bg-red-500/10"
-                      )}
-                    >
-                      {/* Line numbers */}
-                      <div className="w-12 flex-shrink-0 text-right pr-2 py-1 text-muted-foreground text-xs border-r border-border/50 select-none">
-                        {line.lineNumber.left || ''}
-                      </div>
-                      <div className="w-12 flex-shrink-0 text-right pr-2 py-1 text-muted-foreground text-xs border-r border-border/50 select-none">
-                        {line.lineNumber.right || ''}
-                      </div>
-                      
-                      {/* Change indicator */}
-                      <div className={cn(
-                        "w-6 flex-shrink-0 flex items-center justify-center py-1 border-r border-border/50",
-                        line.type === 'added' && "text-green-600",
-                        line.type === 'removed' && "text-red-600"
-                      )}>
-                        {line.type === 'added' && <Plus className="w-3 h-3" />}
-                        {line.type === 'removed' && <Minus className="w-3 h-3" />}
-                      </div>
-                      
-                      {/* Content */}
-                      <div className={cn(
-                        "flex-1 py-1 px-2 whitespace-pre-wrap break-all",
-                        line.type === 'added' && "text-green-700 dark:text-green-400",
-                        line.type === 'removed' && "text-red-700 dark:text-red-400 line-through"
-                      )}>
-                        {line.content || '\u00A0'}
-                      </div>
+                </ScrollArea>
+              </TabsContent>
+
+              {/* Side-by-Side HTML Preview */}
+              <TabsContent value="sidebyside" className="mt-2">
+                <div className="grid grid-cols-2 gap-2 h-[350px]">
+                  <div className="border rounded-md overflow-hidden">
+                    <div className="bg-muted px-3 py-1.5 text-xs font-medium border-b flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">Left</Badge>
+                      <span className="text-muted-foreground truncate">
+                        {leftVersionId === 'current' ? 'Current' : versions.find(v => v.id === leftVersionId)?.version_number ? `v${versions.find(v => v.id === leftVersionId)?.version_number}` : ''}
+                      </span>
                     </div>
-                  ))
-                )}
-              </div>
-            </ScrollArea>
+                    <ScrollArea className="h-[310px]">
+                      <div 
+                        className="p-3 prose prose-sm max-w-none dark:prose-invert"
+                        dangerouslySetInnerHTML={{ __html: leftHtml || '<p class="text-muted-foreground italic">No content</p>' }}
+                      />
+                    </ScrollArea>
+                  </div>
+                  <div className="border rounded-md overflow-hidden">
+                    <div className="bg-muted px-3 py-1.5 text-xs font-medium border-b flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">Right</Badge>
+                      <span className="text-muted-foreground truncate">
+                        {rightVersionId === 'current' ? 'Current' : versions.find(v => v.id === rightVersionId)?.version_number ? `v${versions.find(v => v.id === rightVersionId)?.version_number}` : ''}
+                      </span>
+                    </div>
+                    <ScrollArea className="h-[310px]">
+                      <div 
+                        className="p-3 prose prose-sm max-w-none dark:prose-invert"
+                        dangerouslySetInnerHTML={{ __html: rightHtml || '<p class="text-muted-foreground italic">No content</p>' }}
+                      />
+                    </ScrollArea>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
 
             {/* Legend */}
             <div className="flex items-center justify-end gap-4 text-xs text-muted-foreground">
