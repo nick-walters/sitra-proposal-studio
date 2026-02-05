@@ -67,8 +67,9 @@ interface PopulateOptions {
 }
 
 // Common table styles for Horizon Europe compliance
+// 0.03pt cell padding = ~0.04px, using 1px for visibility in editor
 const tableStyle = `width: 100%; border-collapse: collapse; margin: 0; font-family: 'Times New Roman', Times, serif; font-size: 11pt;`;
-const cellStyle = `border: 0.25pt solid black; padding: 4px 6px;`;
+const cellStyle = `border: 0.25pt solid black; padding: 0.03pt;`;
 const headerCellStyle = `${cellStyle} font-weight: bold;`;
 const captionStyle = `font-style: italic; font-family: 'Times New Roman', Times, serif; font-size: 11pt; margin-top: 12pt; margin-bottom: 1pt;`;
 const captionLabelStyle = `font-weight: bold; font-style: italic;`;
@@ -106,7 +107,86 @@ function formatMonth(month: number | null): string {
 }
 
 /**
- * Generate Table 3.1b: Work package description
+ * Get risk level badge HTML with color
+ */
+function getRiskLevelBadge(level: string | null, category: 'likelihood' | 'severity'): string {
+  if (!level) return '—';
+  
+  const colors: Record<string, string> = {
+    'L': '#22c55e', // green
+    'M': '#f59e0b', // amber
+    'H': '#ef4444', // red
+  };
+  
+  const color = colors[level] || '#6b7280';
+  
+  return `<span style="display: inline-block; padding: 1px 4px; border-radius: 3px; background-color: ${color}; color: white; font-size: 9pt; font-weight: bold;">${level}</span>`;
+}
+
+/**
+ * Generate Table 3.1a. Overview of work packages
+ */
+function generateWorkPackageOverviewTable(
+  wps: WPDraftFull[],
+  participants: Map<string, ParticipantSummary>,
+  taskEffort: Map<string, TaskEffort[]>
+): string {
+  let html = `<p class="table-caption" style="${captionStyle}"><span class="caption-label" style="${captionLabelStyle}">Table 3.1a.</span> Overview of work packages</p>`;
+  html += `<table class="he-table" style="${tableStyle}">
+    <thead>
+      <tr style="background-color: black; color: white;">
+        <th style="${headerCellStyle}">№</th>
+        <th style="${headerCellStyle}">Work package title</th>
+        <th style="${headerCellStyle}">Lead</th>
+        <th style="${headerCellStyle}">Start</th>
+        <th style="${headerCellStyle}">End</th>
+        <th style="${headerCellStyle}">PM</th>
+      </tr>
+    </thead>
+    <tbody>`;
+
+  if (wps.length === 0) {
+    html += `<tr><td colspan="6" style="${cellStyle} text-align: center; font-style: italic;">No work packages defined</td></tr>`;
+  } else {
+    for (const wp of wps) {
+      // Calculate WP duration from tasks
+      let wpStartMonth: number | null = null;
+      let wpEndMonth: number | null = null;
+      for (const task of wp.tasks) {
+        if (task.start_month !== null) {
+          wpStartMonth = wpStartMonth === null ? task.start_month : Math.min(wpStartMonth, task.start_month);
+        }
+        if (task.end_month !== null) {
+          wpEndMonth = wpEndMonth === null ? task.end_month : Math.max(wpEndMonth, task.end_month);
+        }
+      }
+
+      // Calculate total person-months for this WP
+      let totalPM = 0;
+      for (const task of wp.tasks) {
+        const efforts = taskEffort.get(task.id) || [];
+        for (const e of efforts) {
+          totalPM += e.person_months;
+        }
+      }
+
+      html += `<tr>
+        <td style="${cellStyle}">WP${wp.number}</td>
+        <td style="${cellStyle}">${wp.title || wp.short_name || 'Untitled'}</td>
+        <td style="${cellStyle}">${getParticipantName(wp.lead_participant_id, participants)}</td>
+        <td style="${cellStyle}">${wpStartMonth !== null ? wpStartMonth : '—'}</td>
+        <td style="${cellStyle}">${wpEndMonth !== null ? wpEndMonth : '—'}</td>
+        <td style="${cellStyle}">${totalPM > 0 ? totalPM.toFixed(1) : '—'}</td>
+      </tr>`;
+    }
+  }
+
+  html += `</tbody></table>`;
+  return html;
+}
+
+/**
+ * Generate Table 3.1b. Work package description
  * Single caption followed by multiple WP tables (one per WP)
  */
 function generateWPDescriptionTables(
@@ -119,7 +199,7 @@ function generateWPDescriptionTables(
   if (wps.length === 0) return '';
 
   // Single caption for all WP description tables
-  let html = `<p class="table-caption" style="${captionStyle}"><span class="caption-label" style="${captionLabelStyle}">Table 3.1b:</span> Work package description</p>`;
+  let html = `<p class="table-caption" style="${captionStyle}"><span class="caption-label" style="${captionLabelStyle}">Table 3.1b.</span> Work package description</p>`;
 
   for (const wp of wps) {
     // Determine effective color (theme color if themes enabled, otherwise WP color)
@@ -226,7 +306,7 @@ function generateWPDescriptionTables(
 }
 
 /**
- * Generate Table 3.1c: List of deliverables
+ * Generate Table 3.1c. List of deliverables
  */
 function generateDeliverablesTable(
   wps: WPDraftFull[],
@@ -246,30 +326,29 @@ function generateDeliverablesTable(
     return a.number - b.number;
   });
 
-  let html = `<p class="table-caption" style="${captionStyle}"><span class="caption-label" style="${captionLabelStyle}">Table 3.1c:</span> List of deliverables</p>`;
+  let html = `<p class="table-caption" style="${captionStyle}"><span class="caption-label" style="${captionLabelStyle}">Table 3.1c.</span> List of deliverables</p>`;
   html += `<table class="he-table" style="${tableStyle}">
     <thead>
       <tr style="background-color: black; color: white;">
-        <th style="${headerCellStyle}">Number</th>
-        <th style="${headerCellStyle}">Deliverable name</th>
-        <th style="${headerCellStyle}">Short description</th>
-        <th style="${headerCellStyle}">WP</th>
+        <th style="${headerCellStyle}">Deliverable</th>
+        <th style="${headerCellStyle}">№</th>
         <th style="${headerCellStyle}">Lead</th>
         <th style="${headerCellStyle}">Type</th>
-        <th style="${headerCellStyle}">Diss.</th>
+        <th style="${headerCellStyle}">Level</th>
         <th style="${headerCellStyle}">Due</th>
       </tr>
     </thead>
     <tbody>`;
 
   if (allDeliverables.length === 0) {
-    html += `<tr><td colspan="8" style="${cellStyle} text-align: center; font-style: italic;">No deliverables defined</td></tr>`;
+    html += `<tr><td colspan="6" style="${cellStyle} text-align: center; font-style: italic;">No deliverables defined</td></tr>`;
   } else {
     for (const d of allDeliverables) {
+      // Merged column: "DX.X: Descriptive deliverable title"
+      const deliverableTitle = `${d.fullNumber}: ${d.title || 'Untitled'}`;
+      
       html += `<tr>
-        <td style="${cellStyle}">${d.fullNumber}</td>
-        <td style="${cellStyle}">${d.title || '—'}</td>
-        <td style="${cellStyle}">${d.description || '—'}</td>
+        <td style="${cellStyle}">${deliverableTitle}</td>
         <td style="${cellStyle}">${d.wpNumber}</td>
         <td style="${cellStyle}">${getParticipantName(d.responsible_participant_id, participants)}</td>
         <td style="${cellStyle}">${d.type || '—'}</td>
@@ -284,38 +363,34 @@ function generateDeliverablesTable(
 }
 
 /**
- * Generate Table 3.1d: List of milestones (empty template for manual entry)
+ * Generate Table 3.1d. List of milestones (empty template for manual entry)
  */
 function generateMilestonesTable(): string {
-  let html = `<p class="table-caption" style="${captionStyle}"><span class="caption-label" style="${captionLabelStyle}">Table 3.1d:</span> List of milestones</p>`;
+  let html = `<p class="table-caption" style="${captionStyle}"><span class="caption-label" style="${captionLabelStyle}">Table 3.1d.</span> List of milestones</p>`;
   html += `<table class="he-table" style="${tableStyle}">
     <thead>
       <tr style="background-color: black; color: white;">
-        <th style="${headerCellStyle}">Milestone number</th>
-        <th style="${headerCellStyle}">Milestone name</th>
-        <th style="${headerCellStyle}">Related work package(s)</th>
-        <th style="${headerCellStyle}">Due date (in month)</th>
+        <th style="${headerCellStyle}">Milestone</th>
+        <th style="${headerCellStyle}">WPs</th>
+        <th style="${headerCellStyle}">Due</th>
         <th style="${headerCellStyle}">Means of verification</th>
       </tr>
     </thead>
     <tbody>
       <tr>
-        <td style="${cellStyle}">MS1</td>
-        <td style="${cellStyle}"></td>
-        <td style="${cellStyle}"></td>
-        <td style="${cellStyle}"></td>
-        <td style="${cellStyle}"></td>
-      </tr>
-      <tr>
-        <td style="${cellStyle}">MS2</td>
-        <td style="${cellStyle}"></td>
+        <td style="${cellStyle}">MS1: </td>
         <td style="${cellStyle}"></td>
         <td style="${cellStyle}"></td>
         <td style="${cellStyle}"></td>
       </tr>
       <tr>
-        <td style="${cellStyle}">MS3</td>
+        <td style="${cellStyle}">MS2: </td>
         <td style="${cellStyle}"></td>
+        <td style="${cellStyle}"></td>
+        <td style="${cellStyle}"></td>
+      </tr>
+      <tr>
+        <td style="${cellStyle}">MS3: </td>
         <td style="${cellStyle}"></td>
         <td style="${cellStyle}"></td>
         <td style="${cellStyle}"></td>
@@ -326,7 +401,7 @@ function generateMilestonesTable(): string {
 }
 
 /**
- * Generate Table 3.1e: Critical risks for implementation
+ * Generate Table 3.1e. Critical risks for implementation
  */
 function generateRisksTable(wps: WPDraftFull[]): string {
   const allRisks = wps.flatMap((wp) =>
@@ -342,13 +417,13 @@ function generateRisksTable(wps: WPDraftFull[]): string {
     return a.number - b.number;
   });
 
-  let html = `<p class="table-caption" style="${captionStyle}"><span class="caption-label" style="${captionLabelStyle}">Table 3.1e:</span> Critical risks for implementation</p>`;
+  let html = `<p class="table-caption" style="${captionStyle}"><span class="caption-label" style="${captionLabelStyle}">Table 3.1e.</span> Critical risks for implementation (i. likelihood; ii. severity; L = low, M = medium, H = high)</p>`;
   html += `<table class="he-table" style="${tableStyle}">
     <thead>
       <tr style="background-color: black; color: white;">
-        <th style="${headerCellStyle}">Description of risk</th>
-        <th style="${headerCellStyle}">Work package(s) involved</th>
-        <th style="${headerCellStyle}">Proposed mitigation measures</th>
+        <th style="${headerCellStyle}">Risk</th>
+        <th style="${headerCellStyle}">WPs</th>
+        <th style="${headerCellStyle}">Mitigation &amp; adaptation measures</th>
       </tr>
     </thead>
     <tbody>`;
@@ -357,8 +432,13 @@ function generateRisksTable(wps: WPDraftFull[]): string {
     html += `<tr><td colspan="3" style="${cellStyle} text-align: center; font-style: italic;">No risks defined</td></tr>`;
   } else {
     for (const r of allRisks) {
+      // Include likelihood and severity badges in the risk column
+      const likelihoodBadge = getRiskLevelBadge(r.likelihood, 'likelihood');
+      const severityBadge = getRiskLevelBadge(r.severity, 'severity');
+      const riskWithBadges = `${r.title || '—'} ${likelihoodBadge} ${severityBadge}`;
+      
       html += `<tr>
-        <td style="${cellStyle}">${r.title || '—'}</td>
+        <td style="${cellStyle}">${riskWithBadges}</td>
         <td style="${cellStyle}">WP${r.wpNumber}</td>
         <td style="${cellStyle}">${r.mitigation || '—'}</td>
       </tr>`;
@@ -370,7 +450,7 @@ function generateRisksTable(wps: WPDraftFull[]): string {
 }
 
 /**
- * Generate Table 3.1f: Summary of staff effort
+ * Generate Table 3.1f. Summary of staff effort
  */
 function generateStaffEffortTable(
   wps: WPDraftFull[],
@@ -404,7 +484,7 @@ function generateStaffEffortTable(
     .sort((a, b) => a.number - b.number)
     .map(p => p.id);
 
-  let html = `<p class="table-caption" style="${captionStyle}"><span class="caption-label" style="${captionLabelStyle}">Table 3.1f:</span> Summary of staff effort</p>`;
+  let html = `<p class="table-caption" style="${captionStyle}"><span class="caption-label" style="${captionLabelStyle}">Table 3.1f.</span> Summary of staff effort</p>`;
   html += `<table class="he-table" style="${tableStyle}">
     <thead>
       <tr style="background-color: black; color: white;">
@@ -462,7 +542,7 @@ function generateStaffEffortTable(
 }
 
 /**
- * Generate Table 3.1g: Subcontracting costs
+ * Generate Table 3.1g. Subcontracting costs
  */
 function generateSubcontractingTable(
   budgetItems: BudgetItem[],
@@ -470,7 +550,7 @@ function generateSubcontractingTable(
 ): string {
   const subcontracting = budgetItems.filter(item => item.category === 'subcontracting');
 
-  let html = `<p class="table-caption" style="${captionStyle}"><span class="caption-label" style="${captionLabelStyle}">Table 3.1g:</span> 'Subcontracting costs' items</p>`;
+  let html = `<p class="table-caption" style="${captionStyle}"><span class="caption-label" style="${captionLabelStyle}">Table 3.1g.</span> 'Subcontracting costs' items</p>`;
   html += `<table class="he-table" style="${tableStyle}">
     <thead>
       <tr style="background-color: black; color: white;">
@@ -499,7 +579,7 @@ function generateSubcontractingTable(
 }
 
 /**
- * Generate Table 3.1h: Purchase costs (major equipment)
+ * Generate Table 3.1h. Purchase costs (major equipment)
  */
 function generatePurchaseCostsTable(
   budgetItems: BudgetItem[],
@@ -511,7 +591,7 @@ function generatePurchaseCostsTable(
            (item.category === 'other_direct' && item.subcategory === 'Equipment')
   );
 
-  let html = `<p class="table-caption" style="${captionStyle}"><span class="caption-label" style="${captionLabelStyle}">Table 3.1h:</span> 'Purchase costs' items (major equipment, infrastructure)</p>`;
+  let html = `<p class="table-caption" style="${captionStyle}"><span class="caption-label" style="${captionLabelStyle}">Table 3.1h.</span> 'Purchase costs' items (major equipment, infrastructure)</p>`;
   html += `<table class="he-table" style="${tableStyle}">
     <thead>
       <tr style="background-color: black; color: white;">
@@ -655,6 +735,9 @@ export async function populateB31(
     // Generate HTML content for all tables
     let fullContent = '';
 
+    // Table 3.1a: Overview of work packages (NEW)
+    fullContent += generateWorkPackageOverviewTable(sortedWPs, participantsMap, taskEffortMap);
+
     // Table 3.1b: Work package descriptions (single caption, multiple tables)
     fullContent += generateWPDescriptionTables(sortedWPs, participantsMap, themesMap, useWpThemes, taskEffortMap);
 
@@ -777,4 +860,93 @@ async function saveToSection(
       error: error instanceof Error ? error.message : 'Failed to save content',
     };
   }
+}
+
+/**
+ * Generate default B3.1 placeholder tables (empty templates)
+ * These are shown when B3.1 has no content yet
+ */
+export function generateDefaultB31Tables(): string {
+  let content = '';
+  
+  // Table 3.1a: Overview of work packages (empty)
+  content += `<p class="table-caption" style="${captionStyle}"><span class="caption-label" style="${captionLabelStyle}">Table 3.1a.</span> Overview of work packages</p>`;
+  content += `<table class="he-table" style="${tableStyle}">
+    <thead>
+      <tr style="background-color: black; color: white;">
+        <th style="${headerCellStyle}">№</th>
+        <th style="${headerCellStyle}">Work package title</th>
+        <th style="${headerCellStyle}">Lead</th>
+        <th style="${headerCellStyle}">Start</th>
+        <th style="${headerCellStyle}">End</th>
+        <th style="${headerCellStyle}">PM</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td colspan="6" style="${cellStyle} text-align: center; font-style: italic;">Use "Populate Part B3.1" from Work Packages to fill this table</td></tr>
+    </tbody>
+  </table>`;
+
+  // Table 3.1b: Work package description placeholder
+  content += `<p class="table-caption" style="${captionStyle} margin-top: 18pt;"><span class="caption-label" style="${captionLabelStyle}">Table 3.1b.</span> Work package description</p>`;
+  content += `<table class="he-table" style="${tableStyle}">
+    <tbody>
+      <tr><td style="${cellStyle} text-align: center; font-style: italic;">Work package description tables will be generated when you populate from Work Packages</td></tr>
+    </tbody>
+  </table>`;
+
+  // Table 3.1c: List of deliverables (empty)
+  content += `<p class="table-caption" style="${captionStyle} margin-top: 18pt;"><span class="caption-label" style="${captionLabelStyle}">Table 3.1c.</span> List of deliverables</p>`;
+  content += `<table class="he-table" style="${tableStyle}">
+    <thead>
+      <tr style="background-color: black; color: white;">
+        <th style="${headerCellStyle}">Deliverable</th>
+        <th style="${headerCellStyle}">№</th>
+        <th style="${headerCellStyle}">Lead</th>
+        <th style="${headerCellStyle}">Type</th>
+        <th style="${headerCellStyle}">Level</th>
+        <th style="${headerCellStyle}">Due</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td colspan="6" style="${cellStyle} text-align: center; font-style: italic;">No deliverables defined</td></tr>
+    </tbody>
+  </table>`;
+
+  // Table 3.1d: List of milestones
+  content += generateMilestonesTable().replace('margin-top: 12pt;', 'margin-top: 18pt;');
+
+  // Table 3.1e: Critical risks (empty)
+  content += `<p class="table-caption" style="${captionStyle} margin-top: 18pt;"><span class="caption-label" style="${captionLabelStyle}">Table 3.1e.</span> Critical risks for implementation (i. likelihood; ii. severity; L = low, M = medium, H = high)</p>`;
+  content += `<table class="he-table" style="${tableStyle}">
+    <thead>
+      <tr style="background-color: black; color: white;">
+        <th style="${headerCellStyle}">Risk</th>
+        <th style="${headerCellStyle}">WPs</th>
+        <th style="${headerCellStyle}">Mitigation &amp; adaptation measures</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td colspan="3" style="${cellStyle} text-align: center; font-style: italic;">No risks defined</td></tr>
+    </tbody>
+  </table>`;
+
+  // Table 3.1f: Summary of staff effort (empty)
+  content += `<p class="table-caption" style="${captionStyle} margin-top: 18pt;"><span class="caption-label" style="${captionLabelStyle}">Table 3.1f.</span> Summary of staff effort</p>`;
+  content += `<table class="he-table" style="${tableStyle}">
+    <thead>
+      <tr style="background-color: black; color: white;">
+        <th style="${headerCellStyle}">Participant No/Short Name</th>
+        <th style="${headerCellStyle} text-align: center;">WP1</th>
+        <th style="${headerCellStyle} text-align: center;">WP2</th>
+        <th style="${headerCellStyle} text-align: center;">...</th>
+        <th style="${headerCellStyle} text-align: center;">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td colspan="5" style="${cellStyle} text-align: center; font-style: italic;">No effort data available</td></tr>
+    </tbody>
+  </table>`;
+
+  return content;
 }
