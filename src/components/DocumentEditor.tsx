@@ -51,6 +51,7 @@ import { WritingAssistantDialog } from "./WritingAssistantDialog";
 import { SnippetsDialog } from "./SnippetsDialog";
 import { SplitViewPanel } from "./SplitViewPanel";
 import { TrackChange } from "@/extensions/TrackChanges";
+import { usePageEstimate } from "@/hooks/usePageEstimate";
 import { useAuth } from "@/hooks/useAuth";
 import { useTrackedChanges } from "@/hooks/useTrackedChanges";
 import {
@@ -548,6 +549,12 @@ export function DocumentEditor({
   // Strip HTML for grammar checking
   const plainText = content.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
 
+  // Page estimate for Part B sections
+  const { estimatedPages } = usePageEstimate(proposalId);
+
+  // State for collaboration panel - must be before early return
+  const [isCollaborationPanelOpen, setIsCollaborationPanelOpen] = useState(true);
+
   if (!section) {
     return (
       <div className="flex-1 flex items-center justify-center bg-muted/30">
@@ -563,9 +570,6 @@ export function DocumentEditor({
       </div>
     );
   }
-
-  // State for collaboration panel
-  const [isCollaborationPanelOpen, setIsCollaborationPanelOpen] = useState(true);
 
   return (
     <div className="flex-1 flex flex-col min-h-0 relative">
@@ -891,14 +895,22 @@ export function DocumentEditor({
         {/* Main content area */}
         <div className={`flex-1 overflow-auto p-6 bg-muted/30 transition-all ${isCommentsSidebarOpen ? 'mr-0' : ''}`}>
           <div className="max-w-4xl mx-auto space-y-6">
-            {/* Section Header - word/page limits only */}
-            {(section.wordLimit || section.pageLimit) && (
+            {/* Section Header - word/page limits and page estimate */}
+            {(section.wordLimit || section.pageLimit || estimatedPages !== null) && (
               <div className="flex items-center gap-3 mb-6">
                 {section.wordLimit && (
                   <Badge variant="secondary">Word limit: {section.wordLimit}</Badge>
                 )}
                 {section.pageLimit && (
                   <Badge variant="secondary">Page limit: {section.pageLimit}</Badge>
+                )}
+                {estimatedPages !== null && (
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground ml-auto">
+                    <span>{estimatedPages} {estimatedPages === 1 ? 'page' : 'pages'}</span>
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-blue-100 text-blue-700 hover:bg-blue-100">
+                      Est.
+                    </Badge>
+                  </div>
                 )}
               </div>
             )}
