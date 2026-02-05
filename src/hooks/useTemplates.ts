@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import type { Json } from '@/integrations/supabase/types';
 import type { 
   FundingProgramme, 
@@ -12,7 +12,6 @@ import type {
 } from '@/types/templates';
 
 export function useTemplates() {
-  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [fundingProgrammes, setFundingProgrammes] = useState<FundingProgramme[]>([]);
   const [templateTypes, setTemplateTypes] = useState<TemplateType[]>([]);
@@ -68,12 +67,12 @@ export function useTemplates() {
       .single();
     
     if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast.error(error.message);
       return null;
     }
     
     setFundingProgrammes(prev => [...prev, result as FundingProgramme]);
-    toast({ title: 'Success', description: 'Funding programme created' });
+    toast.success('Funding programme created');
     return result;
   };
 
@@ -86,12 +85,12 @@ export function useTemplates() {
       .single();
     
     if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast.error(error.message);
       return null;
     }
     
     setFundingProgrammes(prev => prev.map(p => p.id === id ? result as FundingProgramme : p));
-    toast({ title: 'Success', description: 'Funding programme updated' });
+    toast.success('Funding programme updated');
     return result;
   };
 
@@ -102,12 +101,12 @@ export function useTemplates() {
       .eq('id', id);
     
     if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast.error(error.message);
       return false;
     }
     
     setFundingProgrammes(prev => prev.filter(p => p.id !== id));
-    toast({ title: 'Success', description: 'Funding programme deleted' });
+    toast.success('Funding programme deleted');
     return true;
   };
 
@@ -120,12 +119,12 @@ export function useTemplates() {
       .single();
     
     if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast.error(error.message);
       return null;
     }
     
     setTemplateTypes(prev => [...prev, result as TemplateType]);
-    toast({ title: 'Success', description: 'Template type created' });
+    toast.success('Template type created');
     return result;
   };
 
@@ -138,12 +137,12 @@ export function useTemplates() {
       .single();
     
     if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast.error(error.message);
       return null;
     }
     
     setTemplateTypes(prev => prev.map(t => t.id === id ? result as TemplateType : t));
-    toast({ title: 'Success', description: 'Template type updated' });
+    toast.success('Template type updated');
     return result;
   };
 
@@ -154,12 +153,12 @@ export function useTemplates() {
       .eq('id', id);
     
     if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast.error(error.message);
       return false;
     }
     
     setTemplateTypes(prev => prev.filter(t => t.id !== id));
-    toast({ title: 'Success', description: 'Template type deleted' });
+    toast.success('Template type deleted');
     return true;
   };
 
@@ -172,7 +171,7 @@ export function useTemplates() {
       .single();
     
     if (fetchError || !original) {
-      toast({ title: 'Error', description: 'Could not fetch original template', variant: 'destructive' });
+      toast.error('Could not fetch original template');
       return null;
     }
 
@@ -195,7 +194,7 @@ export function useTemplates() {
       .single();
 
     if (createError) {
-      toast({ title: 'Error', description: createError.message, variant: 'destructive' });
+      toast.error(createError.message);
       return null;
     }
 
@@ -278,7 +277,7 @@ export function useTemplates() {
     }
 
     setTemplateTypes(prev => [...prev, newType as TemplateType]);
-    toast({ title: 'Success', description: 'Template duplicated successfully' });
+    toast.success('Template duplicated successfully');
     return newType;
   };
 
@@ -306,7 +305,6 @@ export function useTemplates() {
 
 // Hook for managing sections within a template type
 export function useTemplateSections(templateTypeId: string | null) {
-  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [sections, setSections] = useState<TemplateSection[]>([]);
 
@@ -326,7 +324,7 @@ export function useTemplateSections(templateTypeId: string | null) {
     
     if (error) {
       console.error('Error fetching sections:', error);
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast.error(error.message);
     } else {
       // Build hierarchical structure
       const sectionMap = new Map<string, TemplateSection>();
@@ -373,7 +371,7 @@ export function useTemplateSections(templateTypeId: string | null) {
       setSections(rootSections);
     }
     setLoading(false);
-  }, [templateTypeId, toast]);
+  }, [templateTypeId]);
 
   useEffect(() => {
     fetchSections();
@@ -398,12 +396,12 @@ export function useTemplateSections(templateTypeId: string | null) {
       .single();
     
     if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast.error(error.message);
       return null;
     }
     
     await fetchSections();
-    toast({ title: 'Success', description: 'Section created' });
+    toast.success('Section created');
     return result;
   };
 
@@ -416,12 +414,12 @@ export function useTemplateSections(templateTypeId: string | null) {
       .single();
     
     if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast.error(error.message);
       return null;
     }
     
     await fetchSections();
-    toast({ title: 'Success', description: 'Section updated' });
+    toast.success('Section updated');
     return result;
   };
 
@@ -432,12 +430,12 @@ export function useTemplateSections(templateTypeId: string | null) {
       .eq('id', id);
     
     if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast.error(error.message);
       return false;
     }
     
     await fetchSections();
-    toast({ title: 'Success', description: 'Section deleted' });
+    toast.success('Section deleted');
     return true;
   };
 
@@ -455,12 +453,12 @@ export function useTemplateSections(templateTypeId: string | null) {
       .single();
     
     if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast.error(error.message);
       return null;
     }
     
     await fetchSections();
-    toast({ title: 'Success', description: 'Guideline created' });
+    toast.success('Guideline created');
     return result;
   };
 
@@ -471,12 +469,12 @@ export function useTemplateSections(templateTypeId: string | null) {
       .eq('id', id);
     
     if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast.error(error.message);
       return false;
     }
     
     await fetchSections();
-    toast({ title: 'Success', description: 'Guideline updated' });
+    toast.success('Guideline updated');
     return true;
   };
 
@@ -487,12 +485,12 @@ export function useTemplateSections(templateTypeId: string | null) {
       .eq('id', id);
     
     if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast.error(error.message);
       return false;
     }
     
     await fetchSections();
-    toast({ title: 'Success', description: 'Guideline deleted' });
+    toast.success('Guideline deleted');
     return true;
   };
 
@@ -516,12 +514,12 @@ export function useTemplateSections(templateTypeId: string | null) {
       .single();
     
     if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast.error(error.message);
       return null;
     }
     
     await fetchSections();
-    toast({ title: 'Success', description: 'Form field created' });
+    toast.success('Form field created');
     return result;
   };
 
@@ -532,12 +530,12 @@ export function useTemplateSections(templateTypeId: string | null) {
       .eq('id', id);
     
     if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast.error(error.message);
       return false;
     }
     
     await fetchSections();
-    toast({ title: 'Success', description: 'Form field updated' });
+    toast.success('Form field updated');
     return true;
   };
 
@@ -548,12 +546,12 @@ export function useTemplateSections(templateTypeId: string | null) {
       .eq('id', id);
     
     if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast.error(error.message);
       return false;
     }
     
     await fetchSections();
-    toast({ title: 'Success', description: 'Form field deleted' });
+    toast.success('Form field deleted');
     return true;
   };
 

@@ -10,7 +10,7 @@ import {
   AssembledTemplate,
   FundingRateResult,
   ModifierConditions,
-} from '@/types/templateSystem';
+} from '@/types/templates';
 import { ProposalType, BudgetType, SubmissionStage } from '@/types/proposal';
 
 // =====================================================

@@ -90,10 +90,10 @@ export function useCollaborativeCursors({ proposalId, currentSectionId }: UseCol
         setCollaborators(users);
       })
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-        console.log('Cursor user joined:', key);
+        // User joined presence channel
       })
       .on('presence', { event: 'leave' }, ({ key }) => {
-        console.log('Cursor user left:', key);
+        // User left presence channel
       })
       .subscribe(async (status) => {
         if (status !== 'SUBSCRIBED') return;

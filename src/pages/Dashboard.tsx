@@ -306,7 +306,6 @@ export function Dashboard() {
           table: 'proposals',
         },
         (payload) => {
-          console.log('Proposal change detected:', payload.eventType);
           // Refetch proposals on any change
           fetchProposals();
         }

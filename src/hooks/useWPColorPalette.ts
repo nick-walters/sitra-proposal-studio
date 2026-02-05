@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 
 export function useWPColorPalette(proposalId: string | null) {
   const [colors, setColors] = useState<string[]>(DEFAULT_WP_COLORS);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
 
   const fetchPalette = useCallback(async () => {
     if (!proposalId) {
@@ -61,14 +60,10 @@ export function useWPColorPalette(proposalId: string | null) {
       return true;
     } catch (err) {
       console.error('Error updating color palette:', err);
-      toast({
-        title: 'Error',
-        description: 'Failed to update color palette',
-        variant: 'destructive',
-      });
+      toast.error('Failed to update color palette');
       return false;
     }
-  }, [proposalId, toast]);
+  }, [proposalId]);
 
   const updateColor = useCallback(async (index: number, newColor: string) => {
     const newColors = [...colors];
