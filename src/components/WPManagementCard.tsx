@@ -85,11 +85,16 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
   const selectedTheme = themes.find((t) => t.id === wp.theme_id);
   const effectiveColor = useThemes && selectedTheme ? selectedTheme.color : wp.color;
 
+  // Grid columns change based on whether themes are enabled
+  const gridCols = useThemes 
+    ? 'grid-cols-[24px_50px_100px_90px_1fr_80px_20px]' 
+    : 'grid-cols-[24px_50px_90px_1fr_80px_20px]';
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`grid grid-cols-[24px_50px_90px_1fr_80px_20px] gap-1.5 items-center py-1 border-b ${
+      className={`grid ${gridCols} gap-1.5 items-center py-1 border-b ${
         isDragging ? 'bg-muted shadow-lg' : ''
       }`}
     >
@@ -125,6 +130,37 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
         />
       )}
 
+      {/* Theme selector (only when themes enabled) */}
+      {useThemes && (
+        <Select
+          value={wp.theme_id || 'none'}
+          onValueChange={(value) => onUpdate(wp.id, { theme_id: value === 'none' ? null : value })}
+          disabled={!canEdit}
+        >
+          <SelectTrigger className="h-7 text-xs">
+            <SelectValue placeholder="Theme" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">
+              <span className="text-muted-foreground">No theme</span>
+            </SelectItem>
+            {themes.map((theme) => (
+              <SelectItem key={theme.id} value={theme.id}>
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className="w-3 h-3 rounded shrink-0"
+                    style={{ backgroundColor: theme.color }}
+                  />
+                  <span className="truncate">
+                    {theme.short_name || `Theme ${theme.number}`}
+                  </span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+
       {/* Short Name */}
       <Input
         value={wp.short_name || ''}
@@ -134,53 +170,14 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
         disabled={!canEdit}
       />
 
-      {/* Title with Theme selector if themes enabled */}
-      {useThemes ? (
-        <div className="flex gap-1.5 items-center">
-          <Select
-            value={wp.theme_id || 'none'}
-            onValueChange={(value) => onUpdate(wp.id, { theme_id: value === 'none' ? null : value })}
-            disabled={!canEdit}
-          >
-            <SelectTrigger className="h-7 w-28 text-xs">
-              <SelectValue placeholder="Theme" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">
-                <span className="text-muted-foreground">No theme</span>
-              </SelectItem>
-              {themes.map((theme) => (
-                <SelectItem key={theme.id} value={theme.id}>
-                  <div className="flex items-center gap-1.5">
-                    <span
-                      className="w-3 h-3 rounded shrink-0"
-                      style={{ backgroundColor: theme.color }}
-                    />
-                    <span className="truncate">
-                      {theme.short_name || `Theme ${theme.number}`}
-                    </span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Input
-            value={wp.title || ''}
-            onChange={(e) => onUpdate(wp.id, { title: e.target.value })}
-            placeholder="Work package title"
-            className="h-7 text-sm flex-1"
-            disabled={!canEdit}
-          />
-        </div>
-      ) : (
-        <Input
-          value={wp.title || ''}
-          onChange={(e) => onUpdate(wp.id, { title: e.target.value })}
-          placeholder="Work package title"
-          className="h-7 text-sm"
-          disabled={!canEdit}
-        />
-      )}
+      {/* Title */}
+      <Input
+        value={wp.title || ''}
+        onChange={(e) => onUpdate(wp.id, { title: e.target.value })}
+        placeholder="Work package title"
+        className="h-7 text-sm"
+        disabled={!canEdit}
+      />
 
       {/* WP Lead - Dialog styled like partner reference dialog */}
       <button
@@ -658,11 +655,12 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
         )}
 
         {/* Table Header */}
-        <div className="grid grid-cols-[24px_50px_90px_1fr_80px_20px] gap-1.5 text-xs font-medium text-muted-foreground border-b pb-1">
+        <div className={`grid ${useWpThemes ? 'grid-cols-[24px_50px_100px_90px_1fr_80px_20px]' : 'grid-cols-[24px_50px_90px_1fr_80px_20px]'} gap-1.5 text-xs font-medium text-muted-foreground border-b pb-1`}>
           <div />
           <div className="text-center">WP</div>
-          <div>{useWpThemes ? 'Short' : 'Short Name'}</div>
-          <div>{useWpThemes ? 'Theme / Title' : 'Title'}</div>
+          {useWpThemes && <div>Theme</div>}
+          <div>Short name</div>
+          <div>Title</div>
           <div>WP Leader</div>
           <div />
         </div>
