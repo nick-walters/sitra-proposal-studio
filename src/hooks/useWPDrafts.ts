@@ -50,6 +50,7 @@ export interface WPDraft {
   methodology: string | null;
   objectives: string | null;
   color: string;
+  theme_id: string | null;
   inputs_question: string | null;
   outputs_question: string | null;
   bottlenecks_question: string | null;

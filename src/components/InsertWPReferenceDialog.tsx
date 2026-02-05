@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,12 @@ interface WPDraft {
   short_name: string | null;
   title: string | null;
   color: string;
+  theme_id?: string | null;
+}
+
+interface WPTheme {
+  id: string;
+  color: string;
 }
 
 interface InsertWPReferenceDialogProps {
@@ -38,6 +45,38 @@ export function InsertWPReferenceDialog({
   const [wpDrafts, setWPDrafts] = useState<WPDraft[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Fetch proposal's use_wp_themes flag
+  const { data: proposalData } = useQuery({
+    queryKey: ['proposal-themes-flag', proposalId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('proposals')
+        .select('use_wp_themes')
+        .eq('id', proposalId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!proposalId && open,
+  });
+
+  // Fetch themes for the proposal
+  const { data: themesData = [] } = useQuery({
+    queryKey: ['wp-themes', proposalId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('wp_themes')
+        .select('id, color')
+        .eq('proposal_id', proposalId);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!proposalId && open,
+  });
+
+  const useWpThemes = proposalData?.use_wp_themes ?? false;
+  const themesMap = new Map(themesData.map((t: WPTheme) => [t.id, t]));
+
   useEffect(() => {
     if (open && proposalId) {
       fetchWPDrafts();
@@ -48,7 +87,7 @@ export function InsertWPReferenceDialog({
     setLoading(true);
     const { data, error } = await supabase
       .from('wp_drafts')
-      .select('id, number, short_name, title, color')
+      .select('id, number, short_name, title, color, theme_id')
       .eq('proposal_id', proposalId)
       .order('order_index');
 
@@ -60,8 +99,21 @@ export function InsertWPReferenceDialog({
     setLoading(false);
   };
 
+  // Get effective color for a WP (theme color if themes enabled, otherwise WP color)
+  const getEffectiveColor = (wp: WPDraft): string => {
+    if (useWpThemes && wp.theme_id) {
+      const theme = themesMap.get(wp.theme_id);
+      if (theme) {
+        return theme.color;
+      }
+    }
+    return wp.color;
+  };
+
   const handleSelect = (wp: WPDraft) => {
-    onSelect(wp);
+    // Pass the effective color to the callback
+    const effectiveColor = getEffectiveColor(wp);
+    onSelect({ ...wp, color: effectiveColor });
     onOpenChange(false);
   };
 
@@ -103,7 +155,7 @@ export function InsertWPReferenceDialog({
                   <Badge
                     className="shrink-0 rounded-full font-bold text-white w-12 justify-center"
                     style={{
-                      backgroundColor: wp.color,
+                      backgroundColor: getEffectiveColor(wp),
                     }}
                   >
                     WP{wp.number}
