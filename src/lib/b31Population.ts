@@ -46,133 +46,192 @@ interface WPTheme {
   color: string;
 }
 
+interface TaskEffort {
+  task_id: string;
+  participant_id: string;
+  person_months: number;
+}
+
+interface BudgetItem {
+  id: string;
+  participant_id: string;
+  category: string;
+  subcategory: string | null;
+  amount: number;
+  justification: string | null;
+  description: string | null;
+}
+
+interface PopulateOptions {
+  includeCostJustifications?: boolean;
+}
+
+// Common table styles for Horizon Europe compliance
+const tableStyle = `width: 100%; border-collapse: collapse; margin: 0; font-family: 'Times New Roman', Times, serif; font-size: 11pt;`;
+const cellStyle = `border: 0.25pt solid black; padding: 4px 6px;`;
+const headerCellStyle = `${cellStyle} font-weight: bold;`;
+const captionStyle = `font-style: italic; font-family: 'Times New Roman', Times, serif; font-size: 11pt; margin-top: 12pt; margin-bottom: 1pt;`;
+const captionLabelStyle = `font-weight: bold; font-style: italic;`;
+
 /**
- * Generate HTML content for a single WP to populate in Part B3.1
- * Uses Horizon Europe table formatting with WP color in header
+ * Get participant display name (short name preferred)
  */
-function generateWPContent(
-  wp: WPDraftFull,
+function getParticipantName(
+  id: string | null,
+  participants: Map<string, ParticipantSummary>
+): string {
+  if (!id) return '—';
+  const p = participants.get(id);
+  return p?.organisation_short_name || p?.organisation_name || '—';
+}
+
+/**
+ * Get participant number
+ */
+function getParticipantNumber(
+  id: string | null,
+  participants: Map<string, ParticipantSummary>
+): string {
+  if (!id) return '—';
+  const p = participants.get(id);
+  return p?.participant_number?.toString() || '—';
+}
+
+/**
+ * Format month as M01, M02, etc.
+ */
+function formatMonth(month: number | null): string {
+  if (month === null) return '—';
+  return `M${String(month).padStart(2, '0')}`;
+}
+
+/**
+ * Generate Table 3.1b: Work package description
+ * Single caption followed by multiple WP tables (one per WP)
+ */
+function generateWPDescriptionTables(
+  wps: WPDraftFull[],
   participants: Map<string, ParticipantSummary>,
   themes: Map<string, WPTheme>,
-  useWpThemes: boolean
+  useWpThemes: boolean,
+  taskEffort: Map<string, TaskEffort[]>
 ): string {
-  const getParticipantName = (id: string | null): string => {
-    if (!id) return '—';
-    const p = participants.get(id);
-    return p?.organisation_short_name || p?.organisation_name || '—';
-  };
+  if (wps.length === 0) return '';
 
-  const getParticipantNames = (ids: string[]): string => {
-    return ids.map((id) => getParticipantName(id)).join(', ') || '—';
-  };
+  // Single caption for all WP description tables
+  let html = `<p class="table-caption" style="${captionStyle}"><span class="caption-label" style="${captionLabelStyle}">Table 3.1b:</span> Work package description</p>`;
 
-  // Determine effective color (theme color if themes enabled, otherwise WP color)
-  const effectiveColor = useWpThemes && wp.theme_id && themes.get(wp.theme_id)
-    ? themes.get(wp.theme_id)!.color
-    : wp.color;
+  for (const wp of wps) {
+    // Determine effective color (theme color if themes enabled, otherwise WP color)
+    const effectiveColor = useWpThemes && wp.theme_id && themes.get(wp.theme_id)
+      ? themes.get(wp.theme_id)!.color
+      : wp.color;
 
-  // Calculate WP duration from tasks
-  let wpStartMonth: number | null = null;
-  let wpEndMonth: number | null = null;
-  for (const task of wp.tasks) {
-    if (task.start_month !== null) {
-      wpStartMonth = wpStartMonth === null ? task.start_month : Math.min(wpStartMonth, task.start_month);
-    }
-    if (task.end_month !== null) {
-      wpEndMonth = wpEndMonth === null ? task.end_month : Math.max(wpEndMonth, task.end_month);
-    }
-  }
-  const wpDuration = wpStartMonth !== null && wpEndMonth !== null 
-    ? `M${String(wpStartMonth).padStart(2, '0')}–M${String(wpEndMonth).padStart(2, '0')}`
-    : '—';
-
-  let html = '';
-
-  // WP Table with colored header
-  html += `<table class="he-table" style="width: 100%; border-collapse: collapse; margin: 1rem 0; font-family: 'Times New Roman', Times, serif; font-size: 11pt;">
-    <thead>
-      <tr>
-        <th colspan="4" style="background-color: ${effectiveColor}; color: white; font-weight: bold; border: 0.25pt solid black; padding: 4px 6px;">
-          WP${wp.number}: ${wp.title || wp.short_name || 'Untitled Work Package'} — ${getParticipantName(wp.lead_participant_id)} — ${wpDuration}
-        </th>
-      </tr>
-    </thead>
-    <tbody>`;
-
-  // Objectives row
-  html += `<tr>
-    <td style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold; width: 20%; vertical-align: top;">Objectives</td>
-    <td colspan="3" style="border: 0.25pt solid black; padding: 4px 6px; vertical-align: top;">${wp.objectives || '—'}</td>
-  </tr>`;
-
-  html += `</tbody></table>`;
-
-  // Tasks Table
-  if (wp.tasks.length > 0) {
-    html += `<table class="he-table" style="width: 100%; border-collapse: collapse; margin: 0.5rem 0 1rem 0; font-family: 'Times New Roman', Times, serif; font-size: 11pt;">
-      <thead>
-        <tr style="background-color: black; color: white;">
-          <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold; width: 10%;">Task</th>
-          <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold; width: 30%;">Title</th>
-          <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold; width: 15%;">Lead</th>
-          <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold; width: 30%;">Participants</th>
-          <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold; width: 15%;">Duration</th>
-        </tr>
-      </thead>
-      <tbody>`;
-
+    // Calculate WP duration from tasks
+    let wpStartMonth: number | null = null;
+    let wpEndMonth: number | null = null;
     for (const task of wp.tasks) {
-      const duration =
-        task.start_month && task.end_month
-          ? `M${String(task.start_month).padStart(2, '0')}–M${String(task.end_month).padStart(2, '0')}`
-          : '—';
-      const participantIds = task.participants?.map((p) => p.participant_id) || [];
-
-      html += `<tr>
-        <td style="border: 0.25pt solid black; padding: 4px 6px;">T${wp.number}.${task.number}</td>
-        <td style="border: 0.25pt solid black; padding: 4px 6px;">${task.title || '—'}</td>
-        <td style="border: 0.25pt solid black; padding: 4px 6px;">${getParticipantName(task.lead_participant_id)}</td>
-        <td style="border: 0.25pt solid black; padding: 4px 6px;">${getParticipantNames(participantIds)}</td>
-        <td style="border: 0.25pt solid black; padding: 4px 6px;">${duration}</td>
-      </tr>`;
-    }
-
-    html += `</tbody></table>`;
-
-    // Task Descriptions
-    for (const task of wp.tasks) {
-      if (task.title || task.description) {
-        html += `<p style="margin: 6pt 0;"><strong>T${wp.number}.${task.number} ${task.title || ''}</strong></p>`;
-        if (task.description) {
-          html += task.description;
-        }
+      if (task.start_month !== null) {
+        wpStartMonth = wpStartMonth === null ? task.start_month : Math.min(wpStartMonth, task.start_month);
+      }
+      if (task.end_month !== null) {
+        wpEndMonth = wpEndMonth === null ? task.end_month : Math.max(wpEndMonth, task.end_month);
       }
     }
-  }
 
-  // Methodology
-  if (wp.methodology) {
-    html += `<p style="margin: 6pt 0;"><strong>Methodology:</strong></p>`;
-    html += wp.methodology;
+    // Calculate total person-months for this WP
+    let totalPM = 0;
+    for (const task of wp.tasks) {
+      const efforts = taskEffort.get(task.id) || [];
+      for (const e of efforts) {
+        totalPM += e.person_months;
+      }
+    }
+
+    // Get all participant numbers involved in this WP
+    const participantIds = new Set<string>();
+    if (wp.lead_participant_id) participantIds.add(wp.lead_participant_id);
+    for (const task of wp.tasks) {
+      if (task.lead_participant_id) participantIds.add(task.lead_participant_id);
+      for (const p of task.participants || []) {
+        participantIds.add(p.participant_id);
+      }
+    }
+    const participantNumbers = Array.from(participantIds)
+      .map(id => getParticipantNumber(id, participants))
+      .filter(n => n !== '—')
+      .sort((a, b) => parseInt(a) - parseInt(b))
+      .join(', ') || '—';
+
+    // Build task descriptions
+    let taskDescriptions = '';
+    for (const task of wp.tasks) {
+      const taskParticipants = (task.participants || [])
+        .map(p => getParticipantName(p.participant_id, participants))
+        .join(', ') || '—';
+      
+      taskDescriptions += `<p style="margin: 6pt 0;"><strong>Task ${wp.number}.${task.number}: ${task.title || 'Untitled'}</strong> [${getParticipantName(task.lead_participant_id, participants)}; ${taskParticipants}]</p>`;
+      if (task.description) {
+        taskDescriptions += task.description;
+      }
+    }
+
+    // Generate the WP table with colored header
+    html += `<table class="he-table" style="${tableStyle} margin-top: 12pt;">
+      <thead>
+        <tr>
+          <th colspan="2" style="${headerCellStyle} background-color: ${effectiveColor}; color: white;">
+            Work Package ${wp.number}
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="${cellStyle} width: 30%; font-weight: bold;">Work package number</td>
+          <td style="${cellStyle}">WP${wp.number}</td>
+        </tr>
+        <tr>
+          <td style="${cellStyle} font-weight: bold;">Work package title</td>
+          <td style="${cellStyle}">${wp.title || wp.short_name || 'Untitled'}</td>
+        </tr>
+        <tr>
+          <td style="${cellStyle} font-weight: bold;">Participant number</td>
+          <td style="${cellStyle}">${participantNumbers}</td>
+        </tr>
+        <tr>
+          <td style="${cellStyle} font-weight: bold;">Person-months</td>
+          <td style="${cellStyle}">${totalPM.toFixed(1)}</td>
+        </tr>
+        <tr>
+          <td style="${cellStyle} font-weight: bold;">Start month</td>
+          <td style="${cellStyle}">${wpStartMonth !== null ? wpStartMonth : '—'}</td>
+        </tr>
+        <tr>
+          <td style="${cellStyle} font-weight: bold;">End month</td>
+          <td style="${cellStyle}">${wpEndMonth !== null ? wpEndMonth : '—'}</td>
+        </tr>
+        <tr>
+          <td style="${cellStyle} font-weight: bold; vertical-align: top;">Objectives</td>
+          <td style="${cellStyle}">${wp.objectives || '—'}</td>
+        </tr>
+        <tr>
+          <td style="${cellStyle} font-weight: bold; vertical-align: top;">Description of work</td>
+          <td style="${cellStyle}">${taskDescriptions || '—'}</td>
+        </tr>
+      </tbody>
+    </table>`;
   }
 
   return html;
 }
 
 /**
- * Generate consolidated deliverables table from all WPs
- * Uses Horizon Europe table formatting
+ * Generate Table 3.1c: List of deliverables
  */
 function generateDeliverablesTable(
   wps: WPDraftFull[],
   participants: Map<string, ParticipantSummary>
 ): string {
-  const getParticipantName = (id: string | null): string => {
-    if (!id) return '—';
-    const p = participants.get(id);
-    return p?.organisation_short_name || p?.organisation_name || '—';
-  };
-
   const allDeliverables = wps.flatMap((wp) =>
     wp.deliverables.map((d) => ({
       ...d,
@@ -181,58 +240,101 @@ function generateDeliverablesTable(
     }))
   );
 
-  if (allDeliverables.length === 0) return '';
-
   // Sort by WP number, then deliverable number
   allDeliverables.sort((a, b) => {
     if (a.wpNumber !== b.wpNumber) return a.wpNumber - b.wpNumber;
     return a.number - b.number;
   });
 
-  let html = `<p class="table-caption" style="font-style: italic; font-family: 'Times New Roman', Times, serif; font-size: 11pt; margin-top: 12pt; margin-bottom: 1pt;"><span class="caption-label" style="font-weight: bold; font-style: italic;">Table 3.1.a:</span> Deliverables</p>`;
-  html += `<table class="he-table" style="width: 100%; border-collapse: collapse; margin: 0; font-family: 'Times New Roman', Times, serif; font-size: 11pt;">
+  let html = `<p class="table-caption" style="${captionStyle}"><span class="caption-label" style="${captionLabelStyle}">Table 3.1c:</span> List of deliverables</p>`;
+  html += `<table class="he-table" style="${tableStyle}">
     <thead>
       <tr style="background-color: black; color: white;">
-        <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold;">No.</th>
-        <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold;">Title</th>
-        <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold;">Type</th>
-        <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold;">Diss.</th>
-        <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold;">Lead</th>
-        <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold;">Due</th>
+        <th style="${headerCellStyle}">Number</th>
+        <th style="${headerCellStyle}">Deliverable name</th>
+        <th style="${headerCellStyle}">Short description</th>
+        <th style="${headerCellStyle}">WP</th>
+        <th style="${headerCellStyle}">Lead</th>
+        <th style="${headerCellStyle}">Type</th>
+        <th style="${headerCellStyle}">Diss.</th>
+        <th style="${headerCellStyle}">Due</th>
       </tr>
     </thead>
     <tbody>`;
 
-  for (const d of allDeliverables) {
-    html += `<tr>
-      <td style="border: 0.25pt solid black; padding: 4px 6px;">${d.fullNumber}</td>
-      <td style="border: 0.25pt solid black; padding: 4px 6px;">${d.title || '—'}</td>
-      <td style="border: 0.25pt solid black; padding: 4px 6px;">${d.type || '—'}</td>
-      <td style="border: 0.25pt solid black; padding: 4px 6px;">${d.dissemination_level || '—'}</td>
-      <td style="border: 0.25pt solid black; padding: 4px 6px;">${getParticipantName(d.responsible_participant_id)}</td>
-      <td style="border: 0.25pt solid black; padding: 4px 6px;">${d.due_month ? `M${String(d.due_month).padStart(2, '0')}` : '—'}</td>
-    </tr>`;
+  if (allDeliverables.length === 0) {
+    html += `<tr><td colspan="8" style="${cellStyle} text-align: center; font-style: italic;">No deliverables defined</td></tr>`;
+  } else {
+    for (const d of allDeliverables) {
+      html += `<tr>
+        <td style="${cellStyle}">${d.fullNumber}</td>
+        <td style="${cellStyle}">${d.title || '—'}</td>
+        <td style="${cellStyle}">${d.description || '—'}</td>
+        <td style="${cellStyle}">${d.wpNumber}</td>
+        <td style="${cellStyle}">${getParticipantName(d.responsible_participant_id, participants)}</td>
+        <td style="${cellStyle}">${d.type || '—'}</td>
+        <td style="${cellStyle}">${d.dissemination_level || '—'}</td>
+        <td style="${cellStyle}">${formatMonth(d.due_month)}</td>
+      </tr>`;
+    }
   }
 
   html += `</tbody></table>`;
-
   return html;
 }
 
 /**
- * Generate consolidated risks table from all WPs
- * Uses Horizon Europe table formatting
+ * Generate Table 3.1d: List of milestones (empty template for manual entry)
+ */
+function generateMilestonesTable(): string {
+  let html = `<p class="table-caption" style="${captionStyle}"><span class="caption-label" style="${captionLabelStyle}">Table 3.1d:</span> List of milestones</p>`;
+  html += `<table class="he-table" style="${tableStyle}">
+    <thead>
+      <tr style="background-color: black; color: white;">
+        <th style="${headerCellStyle}">Milestone number</th>
+        <th style="${headerCellStyle}">Milestone name</th>
+        <th style="${headerCellStyle}">Related work package(s)</th>
+        <th style="${headerCellStyle}">Due date (in month)</th>
+        <th style="${headerCellStyle}">Means of verification</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="${cellStyle}">MS1</td>
+        <td style="${cellStyle}"></td>
+        <td style="${cellStyle}"></td>
+        <td style="${cellStyle}"></td>
+        <td style="${cellStyle}"></td>
+      </tr>
+      <tr>
+        <td style="${cellStyle}">MS2</td>
+        <td style="${cellStyle}"></td>
+        <td style="${cellStyle}"></td>
+        <td style="${cellStyle}"></td>
+        <td style="${cellStyle}"></td>
+      </tr>
+      <tr>
+        <td style="${cellStyle}">MS3</td>
+        <td style="${cellStyle}"></td>
+        <td style="${cellStyle}"></td>
+        <td style="${cellStyle}"></td>
+        <td style="${cellStyle}"></td>
+      </tr>
+    </tbody>
+  </table>`;
+  return html;
+}
+
+/**
+ * Generate Table 3.1e: Critical risks for implementation
  */
 function generateRisksTable(wps: WPDraftFull[]): string {
   const allRisks = wps.flatMap((wp) =>
     wp.risks.map((r) => ({
       ...r,
       wpNumber: wp.number,
-      fullNumber: `R${wp.number}.${r.number}`,
     }))
   );
-
-  if (allRisks.length === 0) return '';
 
   // Sort by WP number, then risk number
   allRisks.sort((a, b) => {
@@ -240,31 +342,200 @@ function generateRisksTable(wps: WPDraftFull[]): string {
     return a.number - b.number;
   });
 
-  let html = `<p class="table-caption" style="font-style: italic; font-family: 'Times New Roman', Times, serif; font-size: 11pt; margin-top: 12pt; margin-bottom: 1pt;"><span class="caption-label" style="font-weight: bold; font-style: italic;">Table 3.1.b:</span> Risks & Mitigation</p>`;
-  html += `<table class="he-table" style="width: 100%; border-collapse: collapse; margin: 0; font-family: 'Times New Roman', Times, serif; font-size: 11pt;">
+  let html = `<p class="table-caption" style="${captionStyle}"><span class="caption-label" style="${captionLabelStyle}">Table 3.1e:</span> Critical risks for implementation</p>`;
+  html += `<table class="he-table" style="${tableStyle}">
     <thead>
       <tr style="background-color: black; color: white;">
-        <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold;">Risk</th>
-        <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold;">Description</th>
-        <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold; text-align: center;">L</th>
-        <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold; text-align: center;">S</th>
-        <th style="border: 0.25pt solid black; padding: 4px 6px; font-weight: bold;">Mitigation</th>
+        <th style="${headerCellStyle}">Description of risk</th>
+        <th style="${headerCellStyle}">Work package(s) involved</th>
+        <th style="${headerCellStyle}">Proposed mitigation measures</th>
       </tr>
     </thead>
     <tbody>`;
 
-  for (const r of allRisks) {
-    html += `<tr>
-      <td style="border: 0.25pt solid black; padding: 4px 6px;">${r.fullNumber}</td>
-      <td style="border: 0.25pt solid black; padding: 4px 6px;">${r.title || '—'}</td>
-      <td style="border: 0.25pt solid black; padding: 4px 6px; text-align: center;">${r.likelihood || '—'}</td>
-      <td style="border: 0.25pt solid black; padding: 4px 6px; text-align: center;">${r.severity || '—'}</td>
-      <td style="border: 0.25pt solid black; padding: 4px 6px;">${r.mitigation || '—'}</td>
-    </tr>`;
+  if (allRisks.length === 0) {
+    html += `<tr><td colspan="3" style="${cellStyle} text-align: center; font-style: italic;">No risks defined</td></tr>`;
+  } else {
+    for (const r of allRisks) {
+      html += `<tr>
+        <td style="${cellStyle}">${r.title || '—'}</td>
+        <td style="${cellStyle}">WP${r.wpNumber}</td>
+        <td style="${cellStyle}">${r.mitigation || '—'}</td>
+      </tr>`;
+    }
   }
 
   html += `</tbody></table>`;
+  return html;
+}
 
+/**
+ * Generate Table 3.1f: Summary of staff effort
+ */
+function generateStaffEffortTable(
+  wps: WPDraftFull[],
+  participants: Map<string, ParticipantSummary>,
+  taskEffort: Map<string, TaskEffort[]>
+): string {
+  // Build effort matrix: participant -> WP -> person-months
+  const effortMatrix = new Map<string, Map<number, number>>();
+  const wpNumbers = wps.map(wp => wp.number).sort((a, b) => a - b);
+
+  // Initialize matrix for all participants involved
+  const involvedParticipants = new Set<string>();
+  for (const wp of wps) {
+    for (const task of wp.tasks) {
+      const efforts = taskEffort.get(task.id) || [];
+      for (const e of efforts) {
+        involvedParticipants.add(e.participant_id);
+        if (!effortMatrix.has(e.participant_id)) {
+          effortMatrix.set(e.participant_id, new Map());
+        }
+        const wpMap = effortMatrix.get(e.participant_id)!;
+        const current = wpMap.get(wp.number) || 0;
+        wpMap.set(wp.number, current + e.person_months);
+      }
+    }
+  }
+
+  // Sort participants by number
+  const sortedParticipants = Array.from(involvedParticipants)
+    .map(id => ({ id, number: participants.get(id)?.participant_number || 999 }))
+    .sort((a, b) => a.number - b.number)
+    .map(p => p.id);
+
+  let html = `<p class="table-caption" style="${captionStyle}"><span class="caption-label" style="${captionLabelStyle}">Table 3.1f:</span> Summary of staff effort</p>`;
+  html += `<table class="he-table" style="${tableStyle}">
+    <thead>
+      <tr style="background-color: black; color: white;">
+        <th style="${headerCellStyle}">Participant No/Short Name</th>`;
+
+  for (const wpNum of wpNumbers) {
+    html += `<th style="${headerCellStyle} text-align: center;">WP${wpNum}</th>`;
+  }
+  html += `<th style="${headerCellStyle} text-align: center;">Total</th>
+      </tr>
+    </thead>
+    <tbody>`;
+
+  // Track WP totals for footer row
+  const wpTotals = new Map<number, number>();
+  let grandTotal = 0;
+
+  if (sortedParticipants.length === 0) {
+    html += `<tr><td colspan="${wpNumbers.length + 2}" style="${cellStyle} text-align: center; font-style: italic;">No effort data available</td></tr>`;
+  } else {
+    for (const pId of sortedParticipants) {
+      const p = participants.get(pId);
+      const wpEffort = effortMatrix.get(pId) || new Map();
+      let rowTotal = 0;
+
+      html += `<tr>
+        <td style="${cellStyle}">${p?.participant_number || '—'} ${p?.organisation_short_name || ''}</td>`;
+
+      for (const wpNum of wpNumbers) {
+        const pm = wpEffort.get(wpNum) || 0;
+        rowTotal += pm;
+        const currentWpTotal = wpTotals.get(wpNum) || 0;
+        wpTotals.set(wpNum, currentWpTotal + pm);
+        html += `<td style="${cellStyle} text-align: center;">${pm > 0 ? pm.toFixed(1) : '—'}</td>`;
+      }
+
+      grandTotal += rowTotal;
+      html += `<td style="${cellStyle} text-align: center; font-weight: bold;">${rowTotal.toFixed(1)}</td>
+        </tr>`;
+    }
+
+    // Total row
+    html += `<tr style="background-color: #f0f0f0;">
+      <td style="${cellStyle} font-weight: bold;">Total Person-Months</td>`;
+    for (const wpNum of wpNumbers) {
+      const wpTotal = wpTotals.get(wpNum) || 0;
+      html += `<td style="${cellStyle} text-align: center; font-weight: bold;">${wpTotal.toFixed(1)}</td>`;
+    }
+    html += `<td style="${cellStyle} text-align: center; font-weight: bold;">${grandTotal.toFixed(1)}</td>
+      </tr>`;
+  }
+
+  html += `</tbody></table>`;
+  return html;
+}
+
+/**
+ * Generate Table 3.1g: Subcontracting costs
+ */
+function generateSubcontractingTable(
+  budgetItems: BudgetItem[],
+  participants: Map<string, ParticipantSummary>
+): string {
+  const subcontracting = budgetItems.filter(item => item.category === 'subcontracting');
+
+  let html = `<p class="table-caption" style="${captionStyle}"><span class="caption-label" style="${captionLabelStyle}">Table 3.1g:</span> 'Subcontracting costs' items</p>`;
+  html += `<table class="he-table" style="${tableStyle}">
+    <thead>
+      <tr style="background-color: black; color: white;">
+        <th style="${headerCellStyle}">Participant No/Short Name</th>
+        <th style="${headerCellStyle} text-align: right;">Cost (€)</th>
+        <th style="${headerCellStyle}">Description of tasks and justification</th>
+      </tr>
+    </thead>
+    <tbody>`;
+
+  if (subcontracting.length === 0) {
+    html += `<tr><td colspan="3" style="${cellStyle} text-align: center; font-style: italic;">No subcontracting costs</td></tr>`;
+  } else {
+    for (const item of subcontracting) {
+      const p = participants.get(item.participant_id);
+      html += `<tr>
+        <td style="${cellStyle}">${p?.participant_number || '—'} ${p?.organisation_short_name || ''}</td>
+        <td style="${cellStyle} text-align: right;">${item.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+        <td style="${cellStyle}">${item.description || ''} ${item.justification || ''}</td>
+      </tr>`;
+    }
+  }
+
+  html += `</tbody></table>`;
+  return html;
+}
+
+/**
+ * Generate Table 3.1h: Purchase costs (major equipment)
+ */
+function generatePurchaseCostsTable(
+  budgetItems: BudgetItem[],
+  participants: Map<string, ParticipantSummary>
+): string {
+  // Filter for purchase/equipment items
+  const equipment = budgetItems.filter(
+    item => item.category === 'purchase' || 
+           (item.category === 'other_direct' && item.subcategory === 'Equipment')
+  );
+
+  let html = `<p class="table-caption" style="${captionStyle}"><span class="caption-label" style="${captionLabelStyle}">Table 3.1h:</span> 'Purchase costs' items (major equipment, infrastructure)</p>`;
+  html += `<table class="he-table" style="${tableStyle}">
+    <thead>
+      <tr style="background-color: black; color: white;">
+        <th style="${headerCellStyle}">Participant No/Short Name</th>
+        <th style="${headerCellStyle} text-align: right;">Cost (€)</th>
+        <th style="${headerCellStyle}">Justification</th>
+      </tr>
+    </thead>
+    <tbody>`;
+
+  if (equipment.length === 0) {
+    html += `<tr><td colspan="3" style="${cellStyle} text-align: center; font-style: italic;">No major equipment costs</td></tr>`;
+  } else {
+    for (const item of equipment) {
+      const p = participants.get(item.participant_id);
+      html += `<tr>
+        <td style="${cellStyle}">${p?.participant_number || '—'} ${p?.organisation_short_name || ''}</td>
+        <td style="${cellStyle} text-align: right;">${item.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+        <td style="${cellStyle}">${item.justification || item.description || '—'}</td>
+      </tr>`;
+    }
+  }
+
+  html += `</tbody></table>`;
   return html;
 }
 
@@ -274,8 +545,11 @@ function generateRisksTable(wps: WPDraftFull[]): string {
 export async function populateB31(
   proposalId: string,
   wpIds: string[],
-  userId: string
+  userId: string,
+  options: PopulateOptions = {}
 ): Promise<{ success: boolean; error?: string }> {
+  const { includeCostJustifications = false } = options;
+
   try {
     // Fetch proposal to check use_wp_themes setting
     const { data: proposal, error: proposalError } = await supabase
@@ -337,6 +611,39 @@ export async function populateB31(
       participantsMap.set(p.id, p);
     }
 
+    // Fetch task effort data
+    const taskIds = wpDrafts.flatMap(wp => (wp.tasks || []).map((t: any) => t.id));
+    const taskEffortMap = new Map<string, TaskEffort[]>();
+    
+    if (taskIds.length > 0) {
+      const { data: effortData, error: effortError } = await supabase
+        .from('wp_draft_task_effort')
+        .select('task_id, participant_id, person_months')
+        .in('task_id', taskIds);
+
+      if (!effortError && effortData) {
+        for (const e of effortData) {
+          if (!taskEffortMap.has(e.task_id)) {
+            taskEffortMap.set(e.task_id, []);
+          }
+          taskEffortMap.get(e.task_id)!.push(e);
+        }
+      }
+    }
+
+    // Fetch budget items if cost justifications requested
+    let budgetItems: BudgetItem[] = [];
+    if (includeCostJustifications) {
+      const { data: budgetData, error: budgetError } = await supabase
+        .from('budget_items')
+        .select('id, participant_id, category, subcategory, amount, justification, description')
+        .eq('proposal_id', proposalId);
+
+      if (!budgetError && budgetData) {
+        budgetItems = budgetData;
+      }
+    }
+
     // Sort tasks, deliverables, risks within each WP
     const sortedWPs: WPDraftFull[] = (wpDrafts || []).map((wp) => ({
       ...wp,
@@ -345,19 +652,32 @@ export async function populateB31(
       risks: (wp.risks || []).sort((a: any, b: any) => a.number - b.number),
     }));
 
-    // Generate HTML content
+    // Generate HTML content for all tables
     let fullContent = '';
 
-    // Individual WP content
-    for (const wp of sortedWPs) {
-      fullContent += generateWPContent(wp, participantsMap, themesMap, useWpThemes);
-    }
+    // Table 3.1b: Work package descriptions (single caption, multiple tables)
+    fullContent += generateWPDescriptionTables(sortedWPs, participantsMap, themesMap, useWpThemes, taskEffortMap);
 
-    // Consolidated deliverables table
+    // Table 3.1c: List of deliverables
     fullContent += generateDeliverablesTable(sortedWPs, participantsMap);
 
-    // Consolidated risks table
+    // Table 3.1d: List of milestones (empty template)
+    fullContent += generateMilestonesTable();
+
+    // Table 3.1e: Critical risks
     fullContent += generateRisksTable(sortedWPs);
+
+    // Table 3.1f: Summary of staff effort
+    fullContent += generateStaffEffortTable(sortedWPs, participantsMap, taskEffortMap);
+
+    // Optional cost justification tables
+    if (includeCostJustifications) {
+      // Table 3.1g: Subcontracting costs
+      fullContent += generateSubcontractingTable(budgetItems, participantsMap);
+
+      // Table 3.1h: Purchase costs
+      fullContent += generatePurchaseCostsTable(budgetItems, participantsMap);
+    }
 
     // Find the B3.1 section ID
     const { data: proposalTemplate, error: templateError } = await supabase
@@ -376,20 +696,21 @@ export async function populateB31(
       .single();
 
     if (sectionError) {
-      // Try without B prefix
-      const { data: sectionAlt, error: sectionAltError } = await supabase
-        .from('proposal_template_sections')
-        .select('id')
-        .eq('proposal_template_id', proposalTemplate.id)
-        .eq('section_number', '3.1')
-        .single();
+      // Try alternative section numbers
+      const alternativeNumbers = ['3.1', 'b3.1'];
+      for (const altNum of alternativeNumbers) {
+        const { data: sectionAlt, error: sectionAltError } = await supabase
+          .from('proposal_template_sections')
+          .select('id')
+          .eq('proposal_template_id', proposalTemplate.id)
+          .eq('section_number', altNum)
+          .single();
 
-      if (sectionAltError) {
-        return { success: false, error: 'Could not find Part B3.1 section' };
+        if (!sectionAltError && sectionAlt) {
+          return await saveToSection(proposalId, sectionAlt.id, fullContent, userId);
+        }
       }
-
-      // Use alternative section
-      return await saveToSection(proposalId, sectionAlt.id, fullContent, userId);
+      return { success: false, error: 'Could not find Part B3.1 section' };
     }
 
     return await saveToSection(proposalId, section.id, fullContent, userId);
