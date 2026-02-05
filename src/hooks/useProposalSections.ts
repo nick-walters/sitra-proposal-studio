@@ -4,6 +4,15 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Section } from '@/types/proposal';
 import { PART_A_SECTIONS, HORIZON_EUROPE_SECTIONS } from '@/types/proposal';
 
+interface WPTheme {
+  id: string;
+  number: number;
+  short_name: string | null;
+  name: string | null;
+  color: string;
+  order_index: number;
+}
+
 // Extended section type with WP-specific fields
 export interface WPSection extends Section {
   wpId?: string;
@@ -193,7 +202,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       if (!proposalId) return [];
       const { data, error } = await supabase
         .from('wp_drafts')
-        .select('id, number, short_name, title, color, order_index')
+        .select('id, number, short_name, title, color, order_index, theme_id')
         .eq('proposal_id', proposalId)
         .order('order_index');
       if (error) throw error;
@@ -202,17 +211,64 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     enabled: !!proposalId,
   });
 
+  // Fetch proposal's use_wp_themes flag
+  const { data: proposalData } = useQuery({
+    queryKey: ['proposal-themes-flag', proposalId],
+    queryFn: async () => {
+      if (!proposalId) return null;
+      const { data, error } = await supabase
+        .from('proposals')
+        .select('use_wp_themes')
+        .eq('id', proposalId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!proposalId,
+  });
+
+  // Fetch themes for the proposal
+  const { data: themesData = [] } = useQuery({
+    queryKey: ['wp-themes', proposalId],
+    queryFn: async () => {
+      if (!proposalId) return [];
+      const { data, error } = await supabase
+        .from('wp_themes')
+        .select('*')
+        .eq('proposal_id', proposalId)
+        .order('order_index');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!proposalId,
+  });
+
+  const useWpThemes = proposalData?.use_wp_themes ?? false;
+  const themesMap = useMemo(() => {
+    return new Map(themesData.map((t: WPTheme) => [t.id, t]));
+  }, [themesData]);
+
   // Convert WP drafts to sections
   const wpDraftSections: WPSection[] = useMemo(() => {
-    return wpDraftsData.map(wp => ({
-      id: `wp-${wp.id}`,
-      number: `WP${wp.number}`,
-      title: wp.short_name || wp.title || `Work Package ${wp.number}`,
-      wpId: wp.id,
-      wpNumber: wp.number,
-      wpColor: wp.color,
-    }));
-  }, [wpDraftsData]);
+    return wpDraftsData.map(wp => {
+      // Resolve effective color: use theme color if themes are enabled and WP has a theme
+      let effectiveColor = wp.color;
+      if (useWpThemes && wp.theme_id) {
+        const theme = themesMap.get(wp.theme_id);
+        if (theme) {
+          effectiveColor = theme.color;
+        }
+      }
+      return {
+        id: `wp-${wp.id}`,
+        number: `WP${wp.number}`,
+        title: wp.short_name || wp.title || `Work Package ${wp.number}`,
+        wpId: wp.id,
+        wpNumber: wp.number,
+        wpColor: effectiveColor,
+      };
+    });
+  }, [wpDraftsData, useWpThemes, themesMap]);
 
   // Fetch Case drafts using react-query
   const { data: caseDraftsData = [] } = useQuery({
@@ -272,6 +328,56 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         () => {
           // Invalidate react-query cache to trigger refetch
           queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [proposalId, queryClient]);
+
+  // Subscribe to realtime updates for themes
+  useEffect(() => {
+    if (!proposalId) return;
+
+    const channel = supabase
+      .channel(`wp-themes-nav-${proposalId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'wp_themes',
+          filter: `proposal_id=eq.${proposalId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['wp-themes', proposalId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [proposalId, queryClient]);
+
+  // Subscribe to realtime updates for proposal use_wp_themes flag
+  useEffect(() => {
+    if (!proposalId) return;
+
+    const channel = supabase
+      .channel(`proposal-themes-flag-${proposalId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'proposals',
+          filter: `id=eq.${proposalId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['proposal-themes-flag', proposalId] });
         }
       )
       .subscribe();
