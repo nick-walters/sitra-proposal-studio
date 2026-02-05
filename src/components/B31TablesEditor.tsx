@@ -408,32 +408,48 @@ function SortableTableRow({
   };
 
   return (
-    <TableRow ref={setNodeRef} style={style} className="hover:bg-muted/50 relative group">
-      {children}
-      {/* Drag handle positioned outside table on left */}
-      {canDrag && (
-        <div 
-          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pr-1 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
-          {...attributes} 
-          {...listeners}
-        >
-          <GripVertical className="h-4 w-4 text-muted-foreground" />
-        </div>
-      )}
-      {/* Delete button positioned outside table on right */}
-      {onDelete && (
-        <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full pl-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-5 w-5 text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={onDelete}
+    <TableRow ref={setNodeRef} style={style} className="hover:bg-muted/50 group">
+      {/* Drag handle as first cell - hidden visually but positioned in margin */}
+      <TableCell className="w-0 p-0 border-0 relative">
+        {canDrag && (
+          <div 
+            className="absolute right-full top-1/2 -translate-y-1/2 pr-1 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity z-10"
+            {...attributes} 
+            {...listeners}
           >
-            <Trash2 className="h-3 w-3" />
-          </Button>
-        </div>
-      )}
+            <GripVertical className="h-4 w-4 text-muted-foreground" />
+          </div>
+        )}
+      </TableCell>
+      {children}
+      {/* Delete button as last cell - hidden visually but positioned in margin */}
+      <TableCell className="w-0 p-0 border-0 relative">
+        {onDelete && (
+          <div className="absolute left-full top-1/2 -translate-y-1/2 pl-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5 text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={onDelete}
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </div>
+        )}
+      </TableCell>
     </TableRow>
+  );
+}
+
+// Table wrapper that allows overflow for margin controls
+function B31TableWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <div 
+      className="relative [&>div]:overflow-visible" 
+      style={{ margin: '0 24px' }}
+    >
+      {children}
+    </div>
   );
 }
 
@@ -560,10 +576,11 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
         )}
       </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <div className="relative mx-8">
+        <B31TableWrapper>
           <Table className={tableStyles}>
             <TableHeader>
               <TableRow className="bg-black text-white hover:bg-black">
+                <TableHead className="w-0 p-0 border-0"></TableHead>
                 <TableHead className={`${cellStyles} text-white font-bold w-[30%]`}>Deliverable</TableHead>
                 <TableHead className={`${cellStyles} text-white font-bold w-[8%]`}>WP</TableHead>
                 <TableHead className={`${cellStyles} text-white font-bold w-[14%]`}>Lead</TableHead>
@@ -571,6 +588,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                 <TableHead className={`${cellStyles} text-white font-bold w-[8%]`}>Diss.</TableHead>
                 <TableHead className={`${cellStyles} text-white font-bold w-[8%]`}>Due</TableHead>
                 <TableHead className={`${cellStyles} text-white font-bold w-[24%]`}>Description</TableHead>
+                <TableHead className="w-0 p-0 border-0"></TableHead>
               </TableRow>
             </TableHeader>
             <SortableContext items={deliverables.map(d => d.id)} strategy={verticalListSortingStrategy}>
@@ -673,7 +691,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
               </TableBody>
             </SortableContext>
           </Table>
-        </div>
+        </B31TableWrapper>
       </DndContext>
       <Button variant="outline" size="sm" onClick={() => addDeliverable.mutate()} className="mt-2">
         <Plus className="h-4 w-4 mr-1" /> Add deliverable
@@ -805,14 +823,16 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
         )}
       </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <div className="relative mx-8">
+        <B31TableWrapper>
           <Table className={tableStyles}>
             <TableHeader>
               <TableRow className="bg-black text-white hover:bg-black">
+                <TableHead className="w-0 p-0 border-0"></TableHead>
                 <TableHead className={`${cellStyles} text-white font-bold w-[40%]`}>Milestone</TableHead>
                 <TableHead className={`${cellStyles} text-white font-bold w-[15%]`}>WPs</TableHead>
                 <TableHead className={`${cellStyles} text-white font-bold w-[10%]`}>Due</TableHead>
                 <TableHead className={`${cellStyles} text-white font-bold w-[35%]`}>Means of verification</TableHead>
+                <TableHead className="w-0 p-0 border-0"></TableHead>
               </TableRow>
             </TableHeader>
             <SortableContext items={milestones.map(m => m.id)} strategy={verticalListSortingStrategy}>
@@ -854,7 +874,7 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
               </TableBody>
             </SortableContext>
           </Table>
-        </div>
+        </B31TableWrapper>
       </DndContext>
       <Button variant="outline" size="sm" onClick={() => addMilestone.mutate()} className="mt-2">
         <Plus className="h-4 w-4 mr-1" /> Add milestone
@@ -991,13 +1011,15 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
         )}
       </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <div className="relative mx-8">
+        <B31TableWrapper>
           <Table className={tableStyles}>
             <TableHeader>
               <TableRow className="bg-black text-white hover:bg-black">
+                <TableHead className="w-0 p-0 border-0"></TableHead>
                 <TableHead className={`${cellStyles} text-white font-bold`} colSpan={2}>Risk</TableHead>
                 <TableHead className={`${cellStyles} text-white font-bold w-[12%]`}>WPs</TableHead>
                 <TableHead className={`${cellStyles} text-white font-bold w-[44%]`}>Mitigation & adaptation measures</TableHead>
+                <TableHead className="w-0 p-0 border-0"></TableHead>
               </TableRow>
             </TableHeader>
             <SortableContext items={risks.map(r => r.id)} strategy={verticalListSortingStrategy}>
@@ -1075,7 +1097,7 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
               </TableBody>
             </SortableContext>
           </Table>
-        </div>
+        </B31TableWrapper>
       </DndContext>
       <Button variant="outline" size="sm" onClick={() => addRisk.mutate()} className="mt-2">
         <Plus className="h-4 w-4 mr-1" /> Add risk
