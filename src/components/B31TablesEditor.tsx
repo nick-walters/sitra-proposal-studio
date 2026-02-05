@@ -436,22 +436,22 @@ function SortableTableRow({
   return (
     <TableRow ref={setNodeRef} style={style} className="hover:bg-muted/50 group relative">
       {children}
-      {/* Drag handle - positioned in left page margin */}
+      {/* Drag handle - positioned in left page margin, close to table */}
       {canDrag && (
         <div 
           className="absolute top-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity z-10"
-          style={{ left: '-1.5cm' }}
+          style={{ left: '-20px' }}
           {...attributes} 
           {...listeners}
         >
           <GripVertical className="h-4 w-4 text-muted-foreground" />
         </div>
       )}
-      {/* Delete button - positioned in right page margin */}
+      {/* Delete button - positioned in right page margin, close to table */}
       {onDelete && (
         <div 
           className="absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-          style={{ right: '-1.5cm' }}
+          style={{ right: '-20px' }}
         >
           <Button
             variant="ghost"
