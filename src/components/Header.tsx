@@ -30,6 +30,7 @@ export function Header() {
             <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
               <img src={sitraLogo} alt="Sitra Proposal Studio" className="h-8" />
             </Link>
+            <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded">alpha</span>
           </div>
 
           {/* Centre: Navigation */}
