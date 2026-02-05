@@ -558,7 +558,7 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
               onCheckedChange={(checked) => toggleWpThemesMutation.mutate(checked)}
             />
             <Label htmlFor="use-wp-themes" className="text-sm cursor-pointer">
-              Use WP themes (group work packages by colour)
+              Lump sum: Group WPs by themes (one colour per theme)
             </Label>
           </div>
         )}
