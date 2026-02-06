@@ -1243,6 +1243,124 @@ export type Database = {
           },
         ]
       }
+      participant_achievements: {
+        Row: {
+          achievement_type: string
+          created_at: string
+          description: string
+          id: string
+          order_index: number | null
+          participant_id: string
+          updated_at: string
+        }
+        Insert: {
+          achievement_type: string
+          created_at?: string
+          description: string
+          id?: string
+          order_index?: number | null
+          participant_id: string
+          updated_at?: string
+        }
+        Update: {
+          achievement_type?: string
+          created_at?: string
+          description?: string
+          id?: string
+          order_index?: number | null
+          participant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participant_achievements_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      participant_dependencies: {
+        Row: {
+          created_at: string
+          id: string
+          link_type: string
+          linked_participant_id: string | null
+          notes: string | null
+          participant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          link_type: string
+          linked_participant_id?: string | null
+          notes?: string | null
+          participant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          link_type?: string
+          linked_participant_id?: string | null
+          notes?: string | null
+          participant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participant_dependencies_linked_participant_id_fkey"
+            columns: ["linked_participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "participant_dependencies_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      participant_infrastructure: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          order_index: number | null
+          participant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          order_index?: number | null
+          participant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          order_index?: number | null
+          participant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participant_infrastructure_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       participant_members: {
         Row: {
           created_at: string
@@ -1300,6 +1418,138 @@ export type Database = {
           },
         ]
       }
+      participant_organisation_roles: {
+        Row: {
+          created_at: string
+          id: string
+          other_description: string | null
+          participant_id: string
+          role_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          other_description?: string | null
+          participant_id: string
+          role_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          other_description?: string | null
+          participant_id?: string
+          role_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participant_organisation_roles_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      participant_previous_projects: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          order_index: number | null
+          participant_id: string
+          project_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_index?: number | null
+          participant_id: string
+          project_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_index?: number | null
+          participant_id?: string
+          project_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participant_previous_projects_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      participant_researchers: {
+        Row: {
+          career_stage: string | null
+          created_at: string
+          email: string | null
+          first_name: string
+          gender: string | null
+          id: string
+          identifier_type: string | null
+          last_name: string
+          nationality: string | null
+          order_index: number | null
+          participant_id: string
+          reference_identifier: string | null
+          role_in_project: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          career_stage?: string | null
+          created_at?: string
+          email?: string | null
+          first_name: string
+          gender?: string | null
+          id?: string
+          identifier_type?: string | null
+          last_name: string
+          nationality?: string | null
+          order_index?: number | null
+          participant_id: string
+          reference_identifier?: string | null
+          role_in_project?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          career_stage?: string | null
+          created_at?: string
+          email?: string | null
+          first_name?: string
+          gender?: string | null
+          id?: string
+          identifier_type?: string | null
+          last_name?: string
+          nationality?: string | null
+          order_index?: number | null
+          participant_id?: string
+          reference_identifier?: string | null
+          role_in_project?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participant_researchers_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       participants: {
         Row: {
           address: string | null
@@ -1309,14 +1559,30 @@ export type Database = {
           department: string | null
           dependency_declaration: string | null
           english_name: string | null
+          gep_data_collection: boolean | null
+          gep_dedicated_resources: boolean | null
+          gep_gender_leadership: boolean | null
+          gep_gender_violence: boolean | null
+          gep_publication: boolean | null
+          gep_recruitment_progression: boolean | null
+          gep_research_teaching: boolean | null
+          gep_training: boolean | null
+          gep_work_life_balance: boolean | null
           has_gender_equality_plan: boolean | null
           id: string
           is_sme: boolean | null
           legal_entity_type: string | null
           logo_url: string | null
+          main_contact_country: string | null
+          main_contact_first_name: string | null
+          main_contact_gender: string | null
+          main_contact_last_name: string | null
           main_contact_phone: string | null
           main_contact_position: string | null
+          main_contact_postcode: string | null
+          main_contact_street: string | null
           main_contact_title: string | null
+          main_contact_town: string | null
           organisation_category: string | null
           organisation_name: string
           organisation_short_name: string | null
@@ -1326,6 +1592,7 @@ export type Database = {
           pic_number: string | null
           proposal_id: string
           updated_at: string
+          use_organisation_address: boolean | null
         }
         Insert: {
           address?: string | null
@@ -1335,14 +1602,30 @@ export type Database = {
           department?: string | null
           dependency_declaration?: string | null
           english_name?: string | null
+          gep_data_collection?: boolean | null
+          gep_dedicated_resources?: boolean | null
+          gep_gender_leadership?: boolean | null
+          gep_gender_violence?: boolean | null
+          gep_publication?: boolean | null
+          gep_recruitment_progression?: boolean | null
+          gep_research_teaching?: boolean | null
+          gep_training?: boolean | null
+          gep_work_life_balance?: boolean | null
           has_gender_equality_plan?: boolean | null
           id?: string
           is_sme?: boolean | null
           legal_entity_type?: string | null
           logo_url?: string | null
+          main_contact_country?: string | null
+          main_contact_first_name?: string | null
+          main_contact_gender?: string | null
+          main_contact_last_name?: string | null
           main_contact_phone?: string | null
           main_contact_position?: string | null
+          main_contact_postcode?: string | null
+          main_contact_street?: string | null
           main_contact_title?: string | null
+          main_contact_town?: string | null
           organisation_category?: string | null
           organisation_name: string
           organisation_short_name?: string | null
@@ -1352,6 +1635,7 @@ export type Database = {
           pic_number?: string | null
           proposal_id: string
           updated_at?: string
+          use_organisation_address?: boolean | null
         }
         Update: {
           address?: string | null
@@ -1361,14 +1645,30 @@ export type Database = {
           department?: string | null
           dependency_declaration?: string | null
           english_name?: string | null
+          gep_data_collection?: boolean | null
+          gep_dedicated_resources?: boolean | null
+          gep_gender_leadership?: boolean | null
+          gep_gender_violence?: boolean | null
+          gep_publication?: boolean | null
+          gep_recruitment_progression?: boolean | null
+          gep_research_teaching?: boolean | null
+          gep_training?: boolean | null
+          gep_work_life_balance?: boolean | null
           has_gender_equality_plan?: boolean | null
           id?: string
           is_sme?: boolean | null
           legal_entity_type?: string | null
           logo_url?: string | null
+          main_contact_country?: string | null
+          main_contact_first_name?: string | null
+          main_contact_gender?: string | null
+          main_contact_last_name?: string | null
           main_contact_phone?: string | null
           main_contact_position?: string | null
+          main_contact_postcode?: string | null
+          main_contact_street?: string | null
           main_contact_title?: string | null
+          main_contact_town?: string | null
           organisation_category?: string | null
           organisation_name?: string
           organisation_short_name?: string | null
@@ -1378,6 +1678,7 @@ export type Database = {
           pic_number?: string | null
           proposal_id?: string
           updated_at?: string
+          use_organisation_address?: boolean | null
         }
         Relationships: [
           {

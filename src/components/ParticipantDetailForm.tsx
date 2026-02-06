@@ -4,9 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Select,
   SelectContent,
@@ -14,14 +12,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Participant, ParticipantMember, ParticipantType, PARTICIPANT_TYPE_LABELS } from '@/types/proposal';
+import { Participant, ParticipantMember, ParticipantSummary, PARTICIPANT_TYPE_LABELS } from '@/types/proposal';
 import { SaveIndicator } from './SaveIndicator';
 import { CountrySelect } from './CountrySelect';
 import { PersonAutocomplete } from './PersonAutocomplete';
-import { User, Plus, Trash2, Building2, Link2 } from 'lucide-react';
+import { User, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { isEligibleForGEP } from '@/lib/countries';
+
+// Import new participant detail components
+import { useParticipantDetails } from '@/hooks/useParticipantDetails';
+import { MainContactSection } from './participant/MainContactSection';
+import { DependenciesSection } from './participant/DependenciesSection';
+import { ResearchersTable } from './participant/ResearchersTable';
+import { OrganisationRolesSection } from './participant/OrganisationRolesSection';
+import { AchievementsSection } from './participant/AchievementsSection';
+import { PreviousProjectsSection } from './participant/PreviousProjectsSection';
+import { InfrastructureSection } from './participant/InfrastructureSection';
+import { GEPSection } from './participant/GEPSection';
 
 interface SelectedPerson {
   id: string;
@@ -33,6 +42,7 @@ interface SelectedPerson {
 interface ParticipantDetailFormProps {
   participant: Participant;
   participantMembers: ParticipantMember[];
+  allParticipants?: ParticipantSummary[];
   onUpdateParticipant: (id: string, updates: Partial<Participant>) => void;
   onDeleteParticipant: (id: string) => void;
   onAddMember: (member: Omit<ParticipantMember, 'id'>) => void;
@@ -59,6 +69,7 @@ const LEGAL_ENTITY_TYPES = [
 export function ParticipantDetailForm({
   participant,
   participantMembers,
+  allParticipants = [],
   onUpdateParticipant,
   onDeleteParticipant,
   onAddMember,
@@ -79,10 +90,37 @@ export function ParticipantDetailForm({
   const [selectedPerson, setSelectedPerson] = useState<SelectedPerson | null>(null);
   const [showAddMember, setShowAddMember] = useState(false);
 
+  // Use new participant details hook for extended data
+  const {
+    loading: detailsLoading,
+    researchers,
+    organisationRoles,
+    achievements,
+    previousProjects,
+    infrastructure,
+    dependencies,
+    addResearcher,
+    updateResearcher,
+    deleteResearcher,
+    setOrganisationRole,
+    addAchievement,
+    updateAchievement,
+    deleteAchievement,
+    addPreviousProject,
+    updatePreviousProject,
+    deletePreviousProject,
+    addInfrastructure,
+    updateInfrastructure,
+    deleteInfrastructure,
+    addDependency,
+    updateDependency,
+    deleteDependency,
+  } = useParticipantDetails(participant.id);
+
   const members = participantMembers.filter(m => m.participantId === participant.id);
 
   // GEP eligibility: HES, RES, or PUB organisations from EU Member States or Associated Countries
-  const showGEPCheckbox = useMemo(() => {
+  const showGEPSection = useMemo(() => {
     const GEP_ELIGIBLE_CATEGORIES = ['HES', 'RES', 'PUB'];
     const isEligibleCategory = GEP_ELIGIBLE_CATEGORIES.includes(participant.organisationCategory || '');
     const isEligibleCountry = isEligibleForGEP(participant.country || '');
@@ -94,9 +132,9 @@ export function ParticipantDetailForm({
     return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
   };
 
-  const handleFieldUpdate = (field: string, value: any) => {
+  const handleFieldUpdate = (field: string, value: unknown) => {
     // Apply name case to legal name and English name
-    if (field === 'organisationName' || field === 'englishName') {
+    if ((field === 'organisationName' || field === 'englishName') && typeof value === 'string') {
       value = toNameCase(value);
     }
     setSaving(true);
@@ -129,7 +167,6 @@ export function ParticipantDetailForm({
 
       if (error) {
         console.error('Error creating person:', error);
-        // Continue anyway - the member will be added without a person_id link
       } else {
         personId = newPerson.id;
       }
@@ -159,7 +196,6 @@ export function ParticipantDetailForm({
     });
     setSelectedPerson(null);
     setShowAddMember(false);
-    // Note: toast is shown by useProposalData hook
   };
 
   // Handle person selection from autocomplete
@@ -204,7 +240,7 @@ export function ParticipantDetailForm({
         {canEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
         </div>
 
-        {/* Organisation Details */}
+        {/* 1. Organisation Details */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">Organisation details</CardTitle>
@@ -331,142 +367,37 @@ export function ParticipantDetailForm({
           </CardContent>
         </Card>
 
-        {/* Main Contact Person */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <User className="w-5 h-5" />
-              Main contact person
-            </CardTitle>
-            <CardDescription>
-              Primary contact for this organisation in the consortium
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Title</Label>
-                <Select
-                  value={participant.mainContactTitle || ''}
-                  onValueChange={(v) => handleFieldUpdate('mainContactTitle', v)}
-                  disabled={!canEdit}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select title" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Dr.">Dr.</SelectItem>
-                    <SelectItem value="Prof.">Prof.</SelectItem>
-                    <SelectItem value="Mr.">Mr.</SelectItem>
-                    <SelectItem value="Ms.">Ms.</SelectItem>
-                    <SelectItem value="Mx.">Mx.</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Position/Role</Label>
-                <Input
-                  value={participant.mainContactPosition || ''}
-                  onChange={(e) => handleFieldUpdate('mainContactPosition', e.target.value)}
-                  placeholder="e.g. Project Manager"
-                  disabled={!canEdit}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input
-                  type="email"
-                  value={participant.contactEmail || ''}
-                  onChange={(e) => handleFieldUpdate('contactEmail', e.target.value)}
-                  placeholder="contact@organisation.eu"
-                  disabled={!canEdit}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Phone</Label>
-                <Input
-                  type="tel"
-                  value={participant.mainContactPhone || ''}
-                  onChange={(e) => handleFieldUpdate('mainContactPhone', e.target.value)}
-                  placeholder="+358..."
-                  disabled={!canEdit}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* 2. Links with other participants (Dependencies) */}
+        <DependenciesSection
+          dependencies={dependencies}
+          participants={allParticipants}
+          currentParticipantId={participant.id}
+          legacyDependencyText={participant.dependencyDeclaration}
+          onAdd={addDependency}
+          onUpdate={updateDependency}
+          onDelete={deleteDependency}
+          onUpdateLegacyText={(text) => handleFieldUpdate('dependencyDeclaration', text)}
+          canEdit={canEdit}
+        />
 
-        {/* Dependencies Declaration */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Link2 className="w-5 h-5" />
-              Links with other participants
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Declare any significant links with other participants in the consortium 
-              (e.g. ownership, legal ties, shared resources, joint ventures).
-            </p>
-            <Textarea
-              value={participant.dependencyDeclaration || ''}
-              onChange={(e) => handleFieldUpdate('dependencyDeclaration', e.target.value)}
-              placeholder="Describe any dependencies or links with other consortium members..."
-              className="min-h-[80px]"
-              disabled={!canEdit}
-            />
-          </CardContent>
-        </Card>
+        {/* 3. Main Contact Person (Enhanced) */}
+        <MainContactSection
+          participant={participant}
+          onUpdate={handleFieldUpdate}
+          canEdit={canEdit}
+        />
 
-        {/* Gender Equality Plan (GEP) - conditional display */}
-        {showGEPCheckbox && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Building2 className="w-5 h-5" />
-                Gender Equality Plan (GEP)
-              </CardTitle>
-              <CardDescription>
-                Public bodies, higher education establishments, and research organisations 
-                from EU Member States or Associated Countries must have a GEP in place.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <RadioGroup
-                value={participant.hasGenderEqualityPlan === true ? 'yes' : participant.hasGenderEqualityPlan === false ? 'no' : ''}
-                onValueChange={(v) => handleFieldUpdate('hasGenderEqualityPlan', v === 'yes' ? true : v === 'no' ? false : null)}
-                disabled={!canEdit}
-                className="flex gap-6"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="yes" id="gep-yes" />
-                  <Label htmlFor="gep-yes" className="font-normal cursor-pointer">
-                    Yes, we have a Gender Equality Plan
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="no" id="gep-no" />
-                  <Label htmlFor="gep-no" className="font-normal cursor-pointer">
-                    No GEP in place
-                  </Label>
-                </div>
-              </RadioGroup>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Team Members */}
+        {/* 4. Other Contact Persons / Team Members */}
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <User className="w-5 h-5" />
-                  Team members
+                  Other contact persons
                 </CardTitle>
                 <CardDescription className="mt-1">
-                  Key personnel from this organisation involved in the project
+                  Additional contacts from this organisation for the proposal
                 </CardDescription>
               </div>
               {canEdit && (
@@ -477,7 +408,7 @@ export function ParticipantDetailForm({
                   className="gap-1"
                 >
                   <Plus className="w-4 h-4" />
-                  Add Member
+                  Add Contact
                 </Button>
               )}
             </div>
@@ -518,32 +449,13 @@ export function ParticipantDetailForm({
                         placeholder="e.g. WP Leader, Researcher"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label>Person-months</Label>
-                      <Input
-                        type="number"
-                        value={newMember.personMonths || ''}
-                        onChange={(e) => setNewMember({ ...newMember, personMonths: parseFloat(e.target.value) || 0 })}
-                        placeholder="0"
-                        min={0}
-                        step={0.5}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="primary-contact"
-                      checked={newMember.isPrimaryContact}
-                      onCheckedChange={(checked) => setNewMember({ ...newMember, isPrimaryContact: !!checked })}
-                    />
-                    <Label htmlFor="primary-contact">Primary contact for this organisation</Label>
                   </div>
                   <div className="flex justify-end gap-2">
                     <Button variant="ghost" onClick={() => setShowAddMember(false)}>
                       Cancel
                     </Button>
                     <Button onClick={handleAddMember}>
-                      Add Member
+                      Add Contact
                     </Button>
                   </div>
                 </CardContent>
@@ -553,7 +465,7 @@ export function ParticipantDetailForm({
             {members.length === 0 && !showAddMember ? (
               <div className="text-center py-6 text-muted-foreground">
                 <User className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No team members added yet</p>
+                <p className="text-sm">No other contacts added yet</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -577,7 +489,6 @@ export function ParticipantDetailForm({
                         </p>
                         <p className="text-sm text-muted-foreground">
                           {member.roleInProject || 'Role not specified'}
-                          {member.personMonths ? ` • ${member.personMonths} PM` : ''}
                         </p>
                       </div>
                     </div>
@@ -597,6 +508,57 @@ export function ParticipantDetailForm({
             )}
           </CardContent>
         </Card>
+
+        {/* 5. Researchers involved in the proposal */}
+        <ResearchersTable
+          researchers={researchers}
+          onAdd={addResearcher}
+          onUpdate={updateResearcher}
+          onDelete={deleteResearcher}
+          canEdit={canEdit}
+        />
+
+        {/* 6. Role of participating organisation in the project */}
+        <OrganisationRolesSection
+          roles={organisationRoles}
+          onSetRole={setOrganisationRole}
+          canEdit={canEdit}
+        />
+
+        {/* 7. List of up to 5 achievements */}
+        <AchievementsSection
+          achievements={achievements}
+          onAdd={addAchievement}
+          onUpdate={updateAchievement}
+          onDelete={deleteAchievement}
+          canEdit={canEdit}
+        />
+
+        {/* 8. List of up to 5 previous projects */}
+        <PreviousProjectsSection
+          projects={previousProjects}
+          onAdd={addPreviousProject}
+          onUpdate={updatePreviousProject}
+          onDelete={deletePreviousProject}
+          canEdit={canEdit}
+        />
+
+        {/* 9. Description of infrastructure/equipment */}
+        <InfrastructureSection
+          infrastructure={infrastructure}
+          onAdd={addInfrastructure}
+          onUpdate={updateInfrastructure}
+          onDelete={deleteInfrastructure}
+          canEdit={canEdit}
+        />
+
+        {/* 10. Gender Equality Plan (Enhanced) */}
+        <GEPSection
+          participant={participant}
+          onUpdate={handleFieldUpdate}
+          canEdit={canEdit}
+          showGEPSection={showGEPSection}
+        />
 
         {/* Delete Participant */}
         {canDelete && (
