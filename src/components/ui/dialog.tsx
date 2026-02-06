@@ -30,7 +30,7 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, onFocusOutside, ...props }, ref) => (
+>(({ className, children, onFocusOutside, onInteractOutside, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
@@ -43,6 +43,16 @@ const DialogContent = React.forwardRef<
         // Prevent dialog from closing when switching browser tabs
         e.preventDefault();
         onFocusOutside?.(e);
+      }}
+      onInteractOutside={(e) => {
+        // Only allow closing via explicit overlay click, not focus loss from tab switching
+        const target = e.target as HTMLElement;
+        const isOverlayClick = target?.getAttribute('data-state') === 'open' && 
+                               target?.classList.contains('fixed');
+        if (!isOverlayClick) {
+          e.preventDefault();
+        }
+        onInteractOutside?.(e);
       }}
       {...props}
     >
