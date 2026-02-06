@@ -45,6 +45,11 @@ const DialogContent = React.forwardRef<
         onFocusOutside?.(e);
       }}
       onInteractOutside={(e) => {
+        // Use document.hidden to detect if browser tab lost focus
+        if (document.hidden) {
+          e.preventDefault();
+          return;
+        }
         // Only allow closing via explicit overlay click, not focus loss from tab switching
         const target = e.target as HTMLElement;
         const isOverlayClick = target?.getAttribute('data-state') === 'open' && 
