@@ -2,6 +2,7 @@ import * as React from "react";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 
 import { cn } from "@/lib/utils";
+import { isWindowFocused } from "@/hooks/useWindowFocus";
 
 const Popover = PopoverPrimitive.Root;
 
@@ -10,16 +11,35 @@ const PopoverTrigger = PopoverPrimitive.Trigger;
 const PopoverContent = React.forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
->(({ className, align = "center", sideOffset = 4, style, onFocusOutside, ...props }, ref) => (
+>(({ className, align = "center", sideOffset = 4, style, onFocusOutside, onInteractOutside, onPointerDownOutside, ...props }, ref) => (
   <PopoverPrimitive.Portal>
     <PopoverPrimitive.Content
       ref={ref}
       align={align}
       sideOffset={sideOffset}
       onFocusOutside={(e) => {
-        // Prevent popover from closing when switching browser tabs
-        e.preventDefault();
+        // Prevent popover from closing when window loses focus (tab/app switch)
+        if (!isWindowFocused()) {
+          e.preventDefault();
+          return;
+        }
         onFocusOutside?.(e);
+      }}
+      onInteractOutside={(e) => {
+        // Prevent popover from closing when window loses focus
+        if (!isWindowFocused()) {
+          e.preventDefault();
+          return;
+        }
+        onInteractOutside?.(e);
+      }}
+      onPointerDownOutside={(e) => {
+        // Prevent popover from closing when window loses focus
+        if (!isWindowFocused()) {
+          e.preventDefault();
+          return;
+        }
+        onPointerDownOutside?.(e);
       }}
       className={cn(
         // NOTE: Removed zoom/slide animations (zoom-out-95, zoom-in-95, slide-in-from-*)
