@@ -1,268 +1,105 @@
 
-# Plan: Enhanced Part A2 Participant Form (Official EC Compliance)
+# Plan: Fix Dialog Persistence When Switching Browser Tabs
 
-## Overview
+## Problem Analysis
 
-This plan adds the missing fields from the official Horizon Europe RIA/IA Standard Application Form (Version 10.0, January 2026) to the Part A2 (Participants) section. The goal is to match the exact structure and field requirements of the official EC form.
+The current fix in `dialog.tsx` only addresses the dialog itself, but there are nested interactive components that also respond to focus/blur events:
 
-## Current State Analysis
+1. **Popover** (country selector) - closes on focus loss, can cascade to dialog
+2. **Select** (organisation category, participant type) - closes on focus loss
 
-### Already Implemented
-- Organisation details (legal name, short name, address, country, PIC, legal entity type, SME status)
-- Main contact person (title, position, email, phone)
-- Basic dependency declaration (free text)
-- Basic GEP (yes/no checkbox, conditional on organisation type)
-- Team members (name, email, role, person-months)
+When a user switches tabs with any of these open, they close and may trigger the parent dialog's close mechanism.
 
-### Missing from Official Form (All High Priority)
+## Solution
 
-| Section | Official Requirement |
-|---------|---------------------|
-| Researchers Table | Full researcher details with career stage, ORCID, gender, nationality |
-| Organisation Roles | 16 checkboxes defining organisation's role in project |
-| Publications | Up to 5 achievements (publications, datasets, software, etc.) |
-| Previous Projects | Up to 5 relevant previous projects |
-| Infrastructure | Significant infrastructure/equipment descriptions |
-| Enhanced GEP | Detailed GEP building blocks and content areas |
-| Main Contact | Separate first/last name, gender field, full address fields |
-| Dependencies | Structured link type selector (Same group, Controls, Is controlled by) |
+Apply the same focus/blur protection to all Radix UI components that can appear inside dialogs:
 
-## Implementation Plan
+### Files to Modify
 
-### Phase 1: Database Schema Updates
+1. **`src/components/ui/popover.tsx`** - Add `onFocusOutside` handler to prevent close on tab switch
+2. **`src/components/ui/select.tsx`** - Add `onFocusOutside` handler to `SelectContent`
+3. **`src/components/ui/dialog.tsx`** - Improve the detection logic using `document.hidden` state
 
-Create new tables and update existing ones:
+## Technical Implementation
 
-**1. New Table: `participant_researchers`**
-```text
-- id (uuid, PK)
-- participant_id (FK to participants)
-- title (text) - Dr., Prof., Mr., Ms., Mx.
-- first_name (text)
-- last_name (text)
-- gender (text) - Woman, Man, Non-binary
-- nationality (text)
-- email (text)
-- career_stage (text) - Category A/B/C/D
-- role_in_project (text) - Team member, etc.
-- reference_identifier (text) - ORCID ID, etc.
-- identifier_type (text) - ORCID, ResearcherID, Other
-- order_index (int)
+### 1. Update PopoverContent (`popover.tsx`)
+
+Add focus protection similar to DialogContent:
+
+```typescript
+const PopoverContent = React.forwardRef<...>(
+  ({ className, align = "center", sideOffset = 4, onFocusOutside, ...props }, ref) => (
+    <PopoverPrimitive.Portal>
+      <PopoverPrimitive.Content
+        ref={ref}
+        onFocusOutside={(e) => {
+          // Prevent popover from closing when switching browser tabs
+          e.preventDefault();
+          onFocusOutside?.(e);
+        }}
+        // ... rest
+      />
+    </PopoverPrimitive.Portal>
+  )
+);
 ```
 
-**2. New Table: `participant_organisation_roles`**
-```text
-- id (uuid, PK)
-- participant_id (FK to participants)
-- role_type (text) - Enum of 16+ role types
-- other_description (text) - For "Other" role
+### 2. Update SelectContent (`select.tsx`)
+
+Add focus protection:
+
+```typescript
+const SelectContent = React.forwardRef<...>(
+  ({ className, children, position = "popper", onFocusOutside, ...props }, ref) => (
+    <SelectPrimitive.Portal>
+      <SelectPrimitive.Content
+        ref={ref}
+        onFocusOutside={(e) => {
+          // Prevent select from closing when switching browser tabs
+          e.preventDefault();
+          onFocusOutside?.(e);
+        }}
+        // ... rest
+      />
+    </SelectPrimitive.Portal>
+  )
+);
 ```
 
-**3. New Table: `participant_achievements`**
-```text
-- id (uuid, PK)
-- participant_id (FK to participants)
-- achievement_type (text) - Publication, Dataset, Software, Good, Service, Other
-- description (text) - With DOI/PID
-- order_index (int)
+### 3. Improve Dialog Detection (`dialog.tsx`)
+
+Enhance the `onInteractOutside` handler to use `document.hidden` for more reliable tab-switch detection:
+
+```typescript
+onInteractOutside={(e) => {
+  // Use document.hidden to detect if browser tab lost focus
+  if (document.hidden) {
+    e.preventDefault();
+    return;
+  }
+  // Allow closing via explicit overlay click only
+  const target = e.target as HTMLElement;
+  const isOverlayClick = target?.getAttribute('data-state') === 'open' && 
+                         target?.classList.contains('fixed');
+  if (!isOverlayClick) {
+    e.preventDefault();
+  }
+  onInteractOutside?.(e);
+}}
 ```
 
-**4. New Table: `participant_previous_projects`**
-```text
-- id (uuid, PK)
-- participant_id (FK to participants)
-- project_name (text)
-- description (text)
-- order_index (int)
-```
+## Why This Works
 
-**5. New Table: `participant_infrastructure`**
-```text
-- id (uuid, PK)
-- participant_id (FK to participants)
-- name (text)
-- description (text)
-- order_index (int)
-```
+- **Popover/Select focus handlers**: Prevent nested dropdowns from closing when focus shifts due to tab switch
+- **Document.hidden check**: The `document.hidden` property is `true` when the browser tab is not visible, providing a reliable way to detect tab switches vs genuine user interactions
+- **Cascade prevention**: By preventing nested components from closing, we avoid any chain reaction that might close the parent dialog
 
-**6. Update `participants` Table** - Add Main Contact columns:
-```text
-- main_contact_first_name (text)
-- main_contact_last_name (text)
-- main_contact_gender (text) - Woman, Man, Non-binary
-- main_contact_street (text)
-- main_contact_town (text)
-- main_contact_postcode (text)
-- main_contact_country (text)
-- use_organisation_address (boolean) - default true
-```
+## Testing Scenarios
 
-**7. Update `participants` Table** - Add GEP detail columns:
-```text
-- gep_publication (boolean)
-- gep_dedicated_resources (boolean)
-- gep_data_collection (boolean)
-- gep_training (boolean)
-- gep_work_life_balance (boolean)
-- gep_gender_leadership (boolean)
-- gep_recruitment_progression (boolean)
-- gep_research_teaching (boolean)
-- gep_gender_violence (boolean)
-```
-
-**8. New Table: `participant_dependencies`**
-```text
-- id (uuid, PK)
-- participant_id (FK to participants)
-- linked_participant_id (FK to participants)
-- link_type (text) - Same group, Controls, Is controlled by
-```
-
-### Phase 2: UI Components
-
-**1. New Component: `ResearchersTable.tsx`**
-- Displays researchers in a table format matching EC form
-- Add/edit/delete functionality with inline editing
-- Fields: Title, First Name, Last Name, Gender, Nationality, Email, Career Stage, Role, Reference ID
-- Career stage definitions shown as tooltips (Category A-D explanations)
-
-**2. New Component: `OrganisationRolesSection.tsx`**
-- 16+ checkboxes in a grid layout matching EC form
-- Includes "Other" option with text input
-- Role options:
-  - Project management
-  - Communication, dissemination and engagement
-  - Provision of research and technology infrastructure
-  - Co-definition of research and market needs
-  - Civil society representative
-  - Policy maker or regulator, incl. standardisation body
-  - Research performer
-  - Technology developer
-  - Testing/validation of approaches and ideas
-  - Prototyping and demonstration
-  - IPR management incl. technology transfer
-  - Public procurer of results
-  - Private buyer of results
-  - Finance provider (public or private)
-  - Education and training
-  - Contributions from the social sciences or/and the humanities
-  - Other (specify)
-
-**3. New Component: `AchievementsSection.tsx`**
-- List of up to 5 achievements
-- Dropdown for type (Publication, Dataset, Software, Good, Service, Other)
-- Text area for description with DOI/PID guidance
-- Matches EC form wording about open access expectations
-
-**4. New Component: `PreviousProjectsSection.tsx`**
-- List of up to 5 previous projects
-- Fields: Project name, Short description
-
-**5. New Component: `InfrastructureSection.tsx`**
-- List of significant infrastructure/equipment
-- Fields: Name, Short description
-
-**6. New Component: `GEPSection.tsx`**
-- Replaces simple yes/no with detailed checklist
-- Section 1: Minimum process-related requirements (building blocks)
-  - Publication checkbox
-  - Dedicated resources checkbox
-  - Data collection and monitoring checkbox
-  - Training checkbox
-- Section 2: Recommended content areas
-  - Work-life balance and organisational culture
-  - Gender balance in leadership and decision-making
-  - Gender equality in recruitment and career progression
-  - Integration of gender dimension into research and teaching content
-  - Measures against gender-based violence including sexual harassment
-
-**7. New Component: `DependenciesSection.tsx`**
-- Replace free text with structured entries
-- Link type selector + participant selector
-- Keep free text area for additional notes
-
-**8. Enhanced: `MainContactSection` in `ParticipantDetailForm.tsx`**
-- Add first_name, last_name fields (separate from full name)
-- Add gender selector (Woman, Man, Non-binary)
-- Add address fields with "Same as organisation address" checkbox
-
-### Phase 3: Update ParticipantDetailForm Layout
-
-Reorganize `ParticipantDetailForm.tsx` to match EC form order:
-1. Organisation details (existing)
-2. Department (existing)
-3. Links with other participants (enhanced)
-4. Main contact person (enhanced)
-5. Other contact persons (existing team members, minor updates)
-6. Researchers involved in the proposal (NEW)
-7. Role of participating organisation in the project (NEW)
-8. List of up to 5 achievements (NEW)
-9. List of up to 5 previous projects (NEW)
-10. Description of infrastructure/equipment (NEW)
-11. Gender Equality Plan (enhanced)
-
-### Phase 4: Type Definitions
-
-Update `src/types/proposal.ts`:
-- Add interfaces for new data structures
-- Add enums for Career Stage, Achievement Type, Organisation Roles, Link Types
-- Update Participant interface with new fields
-
-## Technical Details
-
-### Career Stage Categories (exact EC wording)
-- **Category A - Leading researcher**: The single highest grade/post at which research is normally conducted (e.g., Full professor, Director of research)
-- **Category B - Senior researcher**: Researchers working in positions not as senior as top position but more senior than newly qualified doctoral graduates (e.g., Associate professor, Senior researcher, Principal investigator)
-- **Category C - Recognised researcher**: The first grade/post into which a newly qualified doctoral graduate would normally be recruited (e.g., Assistant professor, Investigator, Post-doctoral fellow)
-- **Category D - First stage researcher**: Either doctoral students at ISCED level 8 who are engaged as researchers, or researchers working in posts that do not normally require a doctorate degree (e.g., PhD students, Junior researchers without PhD)
-
-### Achievement Types
-- Publication
-- Dataset
-- Software
-- Good
-- Service
-- Other achievement
-
-### Reference Identifier Types
-- ORCID
-- ResearcherID
-- Other (specify)
-
-### Link Types
-- Same group
-- Controls
-- Is controlled by
-
-## Files to Create/Modify
-
-### New Files
-- `src/components/participant/ResearchersTable.tsx`
-- `src/components/participant/OrganisationRolesSection.tsx`
-- `src/components/participant/AchievementsSection.tsx`
-- `src/components/participant/PreviousProjectsSection.tsx`
-- `src/components/participant/InfrastructureSection.tsx`
-- `src/components/participant/GEPSection.tsx`
-- `src/components/participant/DependenciesSection.tsx`
-- `src/hooks/useParticipantDetails.ts` (for managing new tables)
-
-### Modified Files
-- `src/components/ParticipantDetailForm.tsx` - Major restructure to include new sections
-- `src/types/proposal.ts` - Add new interfaces and enums
-- Database migrations for new tables
-
-## Implementation Order
-
-1. Database migrations (create tables, update participants)
-2. Type definitions update
-3. Create new hook for fetching/updating participant details
-4. Create ResearchersTable component
-5. Create OrganisationRolesSection component
-6. Create AchievementsSection component
-7. Create PreviousProjectsSection component
-8. Create InfrastructureSection component
-9. Create enhanced GEPSection component
-10. Update MainContactSection with new fields
-11. Create DependenciesSection component
-12. Integrate all sections into ParticipantDetailForm
-13. Testing and validation
+After implementation, verify these scenarios:
+1. Open Add Participant dialog, switch tabs - dialog stays open
+2. Open Add Participant dialog, open country selector, switch tabs - both stay open
+3. Open Add Participant dialog, open organisation category dropdown, switch tabs - both stay open
+4. Open Add Participant dialog, click outside on overlay - dialog closes (expected)
+5. Open Add Participant dialog, press Escape - dialog closes (expected)
+6. Open Add Participant dialog, click X button - dialog closes (expected)
