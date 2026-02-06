@@ -502,6 +502,16 @@ export type Database = {
           personal_data: boolean | null
           personal_data_details: string | null
           proposal_id: string
+          security_dual_use: boolean | null
+          security_dual_use_page: string | null
+          security_eu_classified: boolean | null
+          security_eu_classified_level: string | null
+          security_eu_classified_page: string | null
+          security_exclusively_defence: boolean | null
+          security_exclusively_defence_page: string | null
+          security_misuse: boolean | null
+          security_misuse_page: string | null
+          self_assessment_text: string | null
           third_countries: boolean | null
           third_countries_details: string | null
           updated_at: string
@@ -526,6 +536,16 @@ export type Database = {
           personal_data?: boolean | null
           personal_data_details?: string | null
           proposal_id: string
+          security_dual_use?: boolean | null
+          security_dual_use_page?: string | null
+          security_eu_classified?: boolean | null
+          security_eu_classified_level?: string | null
+          security_eu_classified_page?: string | null
+          security_exclusively_defence?: boolean | null
+          security_exclusively_defence_page?: string | null
+          security_misuse?: boolean | null
+          security_misuse_page?: string | null
+          self_assessment_text?: string | null
           third_countries?: boolean | null
           third_countries_details?: string | null
           updated_at?: string
@@ -550,6 +570,16 @@ export type Database = {
           personal_data?: boolean | null
           personal_data_details?: string | null
           proposal_id?: string
+          security_dual_use?: boolean | null
+          security_dual_use_page?: string | null
+          security_eu_classified?: boolean | null
+          security_eu_classified_level?: string | null
+          security_eu_classified_page?: string | null
+          security_exclusively_defence?: boolean | null
+          security_exclusively_defence_page?: string | null
+          security_misuse?: boolean | null
+          security_misuse_page?: string | null
+          self_assessment_text?: string | null
           third_countries?: boolean | null
           third_countries_details?: string | null
           updated_at?: string
