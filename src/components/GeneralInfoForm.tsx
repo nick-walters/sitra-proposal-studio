@@ -519,7 +519,7 @@ export function GeneralInfoForm({
             {onExportPdf && !isAdmin && (
               <Button variant="outline" size="sm" className="gap-2" onClick={() => onExportPdf(true)}>
                 <Download className="w-4 h-4" />
-                Export PDF
+                Export Part B
               </Button>
             )}
             {onExportPdf && isAdmin && (
@@ -527,7 +527,7 @@ export function GeneralInfoForm({
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" size="sm" className="gap-2">
                     <Download className="w-4 h-4" />
-                    Export PDF
+                    Export Part B
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>

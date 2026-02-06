@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Select,
   SelectContent,
@@ -17,9 +18,10 @@ import { Participant, ParticipantMember, ParticipantType, PARTICIPANT_TYPE_LABEL
 import { SaveIndicator } from './SaveIndicator';
 import { CountrySelect } from './CountrySelect';
 import { PersonAutocomplete } from './PersonAutocomplete';
-import { User, Plus, Trash2 } from 'lucide-react';
+import { User, Plus, Trash2, Building2, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { isEligibleForGEP } from '@/lib/countries';
 
 interface SelectedPerson {
   id: string;
@@ -78,6 +80,14 @@ export function ParticipantDetailForm({
   const [showAddMember, setShowAddMember] = useState(false);
 
   const members = participantMembers.filter(m => m.participantId === participant.id);
+
+  // GEP eligibility: HES, RES, or PUB organisations from EU Member States or Associated Countries
+  const showGEPCheckbox = useMemo(() => {
+    const GEP_ELIGIBLE_CATEGORIES = ['HES', 'RES', 'PUB'];
+    const isEligibleCategory = GEP_ELIGIBLE_CATEGORIES.includes(participant.organisationCategory || '');
+    const isEligibleCountry = isEligibleForGEP(participant.country || '');
+    return isEligibleCategory && isEligibleCountry;
+  }, [participant.organisationCategory, participant.country]);
 
   // Helper to convert to Name Case
   const toNameCase = (str: string) => {
@@ -294,6 +304,18 @@ export function ParticipantDetailForm({
               />
             </div>
             <div className="space-y-2">
+              <Label>Department/unit</Label>
+              <Input
+                value={participant.department || ''}
+                onChange={(e) => handleFieldUpdate('department', e.target.value)}
+                placeholder="e.g. Faculty of Engineering"
+                disabled={!canEdit}
+              />
+              <p className="text-xs text-muted-foreground">
+                Only if different from the main organisation
+              </p>
+            </div>
+            <div className="space-y-2">
               <Label>Personnel cost rate (€/month)</Label>
               <Input
                 type="number"
@@ -308,6 +330,131 @@ export function ParticipantDetailForm({
             </div>
           </CardContent>
         </Card>
+
+        {/* Main Contact Person */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <User className="w-5 h-5" />
+              Main contact person
+            </CardTitle>
+            <CardDescription>
+              Primary contact for this organisation in the consortium
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Title</Label>
+                <Select
+                  value={participant.mainContactTitle || ''}
+                  onValueChange={(v) => handleFieldUpdate('mainContactTitle', v)}
+                  disabled={!canEdit}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select title" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Dr.">Dr.</SelectItem>
+                    <SelectItem value="Prof.">Prof.</SelectItem>
+                    <SelectItem value="Mr.">Mr.</SelectItem>
+                    <SelectItem value="Ms.">Ms.</SelectItem>
+                    <SelectItem value="Mx.">Mx.</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Position/Role</Label>
+                <Input
+                  value={participant.mainContactPosition || ''}
+                  onChange={(e) => handleFieldUpdate('mainContactPosition', e.target.value)}
+                  placeholder="e.g. Project Manager"
+                  disabled={!canEdit}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={participant.contactEmail || ''}
+                  onChange={(e) => handleFieldUpdate('contactEmail', e.target.value)}
+                  placeholder="contact@organisation.eu"
+                  disabled={!canEdit}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Phone</Label>
+                <Input
+                  type="tel"
+                  value={participant.mainContactPhone || ''}
+                  onChange={(e) => handleFieldUpdate('mainContactPhone', e.target.value)}
+                  placeholder="+358..."
+                  disabled={!canEdit}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Dependencies Declaration */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Link2 className="w-5 h-5" />
+              Links with other participants
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Declare any significant links with other participants in the consortium 
+              (e.g. ownership, legal ties, shared resources, joint ventures).
+            </p>
+            <Textarea
+              value={participant.dependencyDeclaration || ''}
+              onChange={(e) => handleFieldUpdate('dependencyDeclaration', e.target.value)}
+              placeholder="Describe any dependencies or links with other consortium members..."
+              className="min-h-[80px]"
+              disabled={!canEdit}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Gender Equality Plan (GEP) - conditional display */}
+        {showGEPCheckbox && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Building2 className="w-5 h-5" />
+                Gender Equality Plan (GEP)
+              </CardTitle>
+              <CardDescription>
+                Public bodies, higher education establishments, and research organisations 
+                from EU Member States or Associated Countries must have a GEP in place.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <RadioGroup
+                value={participant.hasGenderEqualityPlan === true ? 'yes' : participant.hasGenderEqualityPlan === false ? 'no' : ''}
+                onValueChange={(v) => handleFieldUpdate('hasGenderEqualityPlan', v === 'yes' ? true : v === 'no' ? false : null)}
+                disabled={!canEdit}
+                className="flex gap-6"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="yes" id="gep-yes" />
+                  <Label htmlFor="gep-yes" className="font-normal cursor-pointer">
+                    Yes, we have a Gender Equality Plan
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="no" id="gep-no" />
+                  <Label htmlFor="gep-no" className="font-normal cursor-pointer">
+                    No GEP in place
+                  </Label>
+                </div>
+              </RadioGroup>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Team Members */}
         <Card>

@@ -27,7 +27,7 @@ import {
   BUDGET_CATEGORIES_TRADITIONAL,
   BUDGET_CATEGORIES_LUMP_SUM,
 } from '@/types/proposal';
-import { Plus, Trash2, Download, Euro, Calculator, Info } from 'lucide-react';
+import { Plus, Trash2, Euro, Calculator, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { InlineGuideline } from './GuidelineBox';
 
@@ -112,10 +112,6 @@ export function BudgetSpreadsheet({
             <Badge variant={budgetType === 'lump_sum' ? 'default' : 'secondary'}>
               {budgetType === 'lump_sum' ? 'Lump Sum' : 'Standard'}
             </Badge>
-            <Button variant="outline" className="gap-2">
-              <Download className="w-4 h-4" />
-              Export
-            </Button>
           </div>
         </div>
 

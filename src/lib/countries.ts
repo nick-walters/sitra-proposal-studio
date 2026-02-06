@@ -225,6 +225,13 @@ export const ALL_COUNTRIES: Country[] = [
   ...THIRD_COUNTRIES,
 ];
 
+// Helper function to check if a country is eligible for GEP requirement
+// GEP is required only for HES, RES, PUB participants from EU Member States or Associated Countries
+export const isEligibleForGEP = (countryName: string): boolean => {
+  const country = ALL_COUNTRIES.find(c => c.name === countryName);
+  return country?.category === 'eu' || country?.category === 'associated';
+};
+
 // Sorted alphabetically for phone code lookup
 export const ALL_COUNTRIES_SORTED = [...ALL_COUNTRIES].sort((a, b) => 
   a.name.localeCompare(b.name)
