@@ -11,9 +11,19 @@ import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
 export interface EthicsAssessment {
   id?: string;
   proposalId: string;
-  // Section 1: Human Embryonic Stem Cells
+  // Section 1: Human Embryonic Stem Cells and Human Embryos
   humanEmbryonicStemCells?: boolean | null;
   humanEmbryonicStemCellsPage?: string;
+  hescDerivedFromEmbryos?: boolean | null;
+  hescDerivedFromEmbryosPage?: string;
+  hescEstablishedLines?: boolean | null;
+  hescEstablishedLinesPage?: string;
+  hescEuropeanRegistry?: boolean | null;
+  hescEuropeanRegistryPage?: string;
+  humanEmbryosSection1?: boolean | null;
+  humanEmbryosSection1Page?: string;
+  humanEmbryosDestruction?: boolean | null;
+  humanEmbryosDestructionPage?: string;
   // Section 2: Humans
   humanParticipants?: boolean | null;
   humanParticipantsPage?: string;
@@ -151,12 +161,45 @@ const ETHICS_SECTIONS: EthicsSection[] = [
   {
     id: 'hesc',
     number: 1,
-    title: 'HUMAN EMBRYONIC STEM CELLS',
+    title: 'HUMAN EMBRYONIC STEM CELLS AND HUMAN EMBRYOS',
     questions: [
       {
         id: 'humanEmbryonicStemCells',
         pageId: 'humanEmbryonicStemCellsPage',
         label: 'Does this activity involve Human Embryonic Stem Cells (hESCs)?',
+      },
+      {
+        id: 'hescDerivedFromEmbryos',
+        pageId: 'hescDerivedFromEmbryosPage',
+        label: 'Will they be directly derived from embryos within this project?',
+        indent: 1,
+        parentId: 'humanEmbryonicStemCells',
+      },
+      {
+        id: 'hescEstablishedLines',
+        pageId: 'hescEstablishedLinesPage',
+        label: 'Are they previously established cell lines?',
+        indent: 1,
+        parentId: 'humanEmbryonicStemCells',
+      },
+      {
+        id: 'hescEuropeanRegistry',
+        pageId: 'hescEuropeanRegistryPage',
+        label: 'Are they registered in the European hESC registry?',
+        indent: 1,
+        parentId: 'humanEmbryonicStemCells',
+      },
+      {
+        id: 'humanEmbryosSection1',
+        pageId: 'humanEmbryosSection1Page',
+        label: 'Does this activity involve the use of human embryos?',
+      },
+      {
+        id: 'humanEmbryosDestruction',
+        pageId: 'humanEmbryosDestructionPage',
+        label: 'Does this activity involve their destruction?',
+        indent: 1,
+        parentId: 'humanEmbryosSection1',
       },
     ],
   },
@@ -554,7 +597,7 @@ function EthicsQuestionRow({
     <>
       <div 
         className={cn(
-          "grid grid-cols-[1fr,auto,auto,80px] gap-2 items-start py-2 border-b border-border/50",
+          "grid grid-cols-[1fr,auto,auto] gap-2 items-start py-2 border-b border-border/50",
           indent > 0 && "bg-muted/30"
         )}
       >
@@ -595,15 +638,6 @@ function EthicsQuestionRow({
           className="h-7 w-16 text-xs px-2"
           disabled={!canEdit || value !== true}
         />
-
-        {/* Status indicator */}
-        <div className="flex justify-center">
-          {value === true && (
-            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/50 text-[10px] h-5">
-              Yes
-            </Badge>
-          )}
-        </div>
       </div>
 
       {/* Details input if applicable */}
@@ -699,12 +733,11 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                {/* Table header */}
-                <div className="grid grid-cols-[1fr,auto,auto,80px] gap-2 items-center py-2 border-b-2 border-border text-xs font-medium text-muted-foreground">
+              {/* Table header */}
+                <div className="grid grid-cols-[1fr,auto,auto] gap-2 items-center py-2 border-b-2 border-border text-xs font-medium text-muted-foreground">
                   <div>Question</div>
                   <div className="w-24 text-center">Answer</div>
                   <div className="w-16 text-center">Page</div>
-                  <div className="w-20 text-center">Status</div>
                 </div>
 
                 {/* Questions */}
