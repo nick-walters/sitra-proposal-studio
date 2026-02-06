@@ -864,8 +864,8 @@ export function usePdfExport() {
         return result;
       };
 
-      // Helper: Add participant table
-      const addParticipantTable = () => {
+      // Helper: Add participant table with logos, full width, and text wrapping
+      const addParticipantTable = async () => {
         if (participants.length === 0) return;
         
         yPosition += paragraphSpacingH2;
@@ -878,68 +878,148 @@ export function usePdfExport() {
         pdf.text('List of Participants', margin, yPosition);
         yPosition += 6;
         
-        // Table configuration
-        const colWidths = [12, 35, 80, 25]; // No., Short Name, Organisation Name, Country
-        const rowHeight = 6;
-        const tableWidth = colWidths.reduce((a, b) => a + b, 0);
+        // Table configuration - full content width (180mm)
+        // Logo, No., Short Name, Organisation Name (English + Legal), Country
+        const colWidths = [15, 10, 25, 110, 20]; // Total = 180mm = contentWidth
+        const baseRowHeight = 6;
+        const cellPadding = 1;
+        const tableWidth = contentWidth;
+        const logoHeight = 8; // Height for logo cell
         
         // Draw table header row
-        checkPageBreak(rowHeight * 2);
+        checkPageBreak(baseRowHeight * 2);
         let xPos = margin;
         
         // Header background
         pdf.setFillColor(0, 0, 0);
-        pdf.rect(xPos, yPosition - 4, tableWidth, rowHeight, 'F');
+        pdf.rect(xPos, yPosition - 4, tableWidth, baseRowHeight, 'F');
         
         // Header text
         pdf.setFontSize(FONT_SIZE_BODY);
         pdf.setFont('times', 'bold');
         pdf.setTextColor(255, 255, 255);
         
-        const headers = ['No.', 'Short Name', 'Organisation Name', 'Country'];
+        // Draw header borders
+        pdf.setDrawColor(...black);
+        pdf.setLineWidth(0.25);
+        const headers = ['Logo', 'No.', 'Short Name', 'Organisation Name', 'Country'];
         for (let i = 0; i < headers.length; i++) {
-          pdf.text(headers[i], xPos + 1, yPosition);
+          pdf.rect(xPos, yPosition - 4, colWidths[i], baseRowHeight);
+          pdf.text(headers[i], xPos + cellPadding, yPosition);
           xPos += colWidths[i];
         }
-        yPosition += rowHeight;
+        yPosition += baseRowHeight;
         
         // Draw data rows
         pdf.setFont('times', 'normal');
         pdf.setTextColor(...black);
         
         for (const participant of participants) {
-          checkPageBreak(rowHeight);
+          // Calculate row height based on content
+          // Organisation name column needs to fit: English name + legal name (if different)
+          const orgColWidth = colWidths[3] - cellPadding * 2;
+          
+          // Build organisation text lines
+          const orgLines: string[] = [];
+          const englishName = participant.englishName || '';
+          const legalName = participant.organisationName || '';
+          
+          // Add English name (if exists)
+          if (englishName) {
+            const englishLines = pdf.splitTextToSize(englishName, orgColWidth);
+            orgLines.push(...englishLines);
+          }
+          // Add legal name below if different from English name
+          if (legalName && legalName !== englishName) {
+            const legalLines = pdf.splitTextToSize(`(${legalName})`, orgColWidth);
+            orgLines.push(...legalLines);
+          }
+          // If no English name, just use legal name
+          if (!englishName && legalName) {
+            const legalLines = pdf.splitTextToSize(legalName, orgColWidth);
+            orgLines.push(...legalLines);
+          }
+          
+          // Calculate row height: max of logo height, text lines, or base height
+          const textHeight = Math.max(orgLines.length * lineHeightBody, baseRowHeight);
+          const rowHeight = Math.max(textHeight, logoHeight);
+          
+          checkPageBreak(rowHeight + 2);
+          
+          const rowStartY = yPosition;
           xPos = margin;
           
-          // Draw cell borders
+          // Draw cell borders for the entire row
           pdf.setDrawColor(...black);
-          pdf.setLineWidth(0.1);
+          pdf.setLineWidth(0.25);
           for (let i = 0; i < colWidths.length; i++) {
-            pdf.rect(xPos, yPosition - 4, colWidths[i], rowHeight);
+            pdf.rect(xPos, rowStartY - 4, colWidths[i], rowHeight);
             xPos += colWidths[i];
           }
           
           // Draw cell content
           xPos = margin;
-          pdf.text(String(participant.participantNumber), xPos + 1, yPosition);
+          
+          // Logo column
+          if (participant.logoUrl) {
+            try {
+              const logoData = await loadImageAsBase64(participant.logoUrl);
+              if (logoData) {
+                // Scale logo to fit in cell (max 13mm width, max logoHeight-2 mm height)
+                const maxLogoWidth = colWidths[0] - 2;
+                const maxLogoHeight = rowHeight - 2;
+                let logoW = logoData.width * 0.264583; // px to mm
+                let logoH = logoData.height * 0.264583;
+                
+                // Scale to fit
+                if (logoW > maxLogoWidth) {
+                  const scale = maxLogoWidth / logoW;
+                  logoW *= scale;
+                  logoH *= scale;
+                }
+                if (logoH > maxLogoHeight) {
+                  const scale = maxLogoHeight / logoH;
+                  logoW *= scale;
+                  logoH *= scale;
+                }
+                
+                // Center logo in cell
+                const logoX = xPos + (colWidths[0] - logoW) / 2;
+                const logoY = rowStartY - 4 + (rowHeight - logoH) / 2;
+                pdf.addImage(logoData.data, 'JPEG', logoX, logoY, logoW, logoH);
+              }
+            } catch (e) {
+              // Logo failed to load, leave cell empty
+            }
+          }
           xPos += colWidths[0];
           
-          const shortName = participant.organisationShortName ? `[${participant.organisationShortName}]` : '';
-          pdf.text(shortName.substring(0, 15), xPos + 1, yPosition);
+          // Participant number
+          pdf.text(String(participant.participantNumber), xPos + cellPadding, rowStartY);
           xPos += colWidths[1];
           
-          // Organisation name: English name with legal name in parentheses if different
-          let orgName = participant.englishName || participant.organisationName;
-          if (participant.englishName && participant.organisationName !== participant.englishName) {
-            orgName = `${participant.englishName} (${participant.organisationName})`;
+          // Short name
+          const shortName = participant.organisationShortName || '';
+          const shortNameLines = pdf.splitTextToSize(shortName, colWidths[2] - cellPadding * 2);
+          let textY = rowStartY;
+          for (const line of shortNameLines) {
+            pdf.text(line, xPos + cellPadding, textY);
+            textY += lineHeightBody;
           }
-          const truncatedOrg = orgName.length > 45 ? orgName.substring(0, 42) + '...' : orgName;
-          pdf.text(truncatedOrg, xPos + 1, yPosition);
           xPos += colWidths[2];
           
-          pdf.text(participant.country || '', xPos + 1, yPosition);
+          // Organisation name (English name + legal name if different)
+          textY = rowStartY;
+          for (const line of orgLines) {
+            pdf.text(line, xPos + cellPadding, textY);
+            textY += lineHeightBody;
+          }
+          xPos += colWidths[3];
           
-          yPosition += rowHeight;
+          // Country
+          pdf.text(participant.country || '', xPos + cellPadding, rowStartY);
+          
+          yPosition = rowStartY + rowHeight;
         }
         
         yPosition += paragraphSpacing;
@@ -954,7 +1034,7 @@ export function usePdfExport() {
       addTitle(`${proposal.title} (${proposal.acronym})`);
 
       // List of participants
-      addParticipantTable();
+      await addParticipantTable();
 
       // Get all Part B sections in order
       const partBSections = getPartBSections(sections);
