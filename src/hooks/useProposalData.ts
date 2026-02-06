@@ -4,27 +4,21 @@ import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 import type { Participant, ParticipantMember, BudgetType } from '@/types/proposal';
 
+// Helper to convert camelCase to snake_case
+function camelToSnake(str: string): string {
+  return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+}
+
+// Helper to convert snake_case to camelCase
+function snakeToCamel(str: string): string {
+  return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+// Dynamic ethics assessment interface - supports all fields from EthicsForm
 interface EthicsAssessment {
-  id: string;
+  id?: string;
   proposalId: string;
-  humanSubjects: boolean;
-  humanSubjectsDetails?: string;
-  personalData: boolean;
-  personalDataDetails?: string;
-  animals: boolean;
-  animalsDetails?: string;
-  humanCells: boolean;
-  humanCellsDetails?: string;
-  thirdCountries: boolean;
-  thirdCountriesDetails?: string;
-  environment: boolean;
-  environmentDetails?: string;
-  dualUse: boolean;
-  dualUseDetails?: string;
-  misuse: boolean;
-  misuseDetails?: string;
-  otherEthics: boolean;
-  otherEthicsDetails?: string;
+  [key: string]: string | boolean | null | undefined;
 }
 
 interface ProposalData {
@@ -210,28 +204,19 @@ export function useProposalData(proposalId: string) {
     }
 
     if (data) {
-      setEthics({
+      // Dynamically convert snake_case database fields to camelCase
+      const ethicsData: EthicsAssessment = {
         id: data.id,
         proposalId: data.proposal_id,
-        humanSubjects: data.human_subjects || false,
-        humanSubjectsDetails: data.human_subjects_details || undefined,
-        personalData: data.personal_data || false,
-        personalDataDetails: data.personal_data_details || undefined,
-        animals: data.animals || false,
-        animalsDetails: data.animals_details || undefined,
-        humanCells: data.human_cells || false,
-        humanCellsDetails: data.human_cells_details || undefined,
-        thirdCountries: data.third_countries || false,
-        thirdCountriesDetails: data.third_countries_details || undefined,
-        environment: data.environment || false,
-        environmentDetails: data.environment_details || undefined,
-        dualUse: data.dual_use || false,
-        dualUseDetails: data.dual_use_details || undefined,
-        misuse: data.misuse || false,
-        misuseDetails: data.misuse_details || undefined,
-        otherEthics: data.other_ethics || false,
-        otherEthicsDetails: data.other_ethics_details || undefined,
-      });
+      };
+      
+      for (const [key, value] of Object.entries(data)) {
+        if (key === 'id' || key === 'proposal_id' || key === 'created_at' || key === 'updated_at') continue;
+        const camelKey = snakeToCamel(key);
+        ethicsData[camelKey] = value ?? undefined;
+      }
+      
+      setEthics(ethicsData);
     }
   }, [proposalId]);
 
@@ -541,29 +526,17 @@ export function useProposalData(proposalId: string) {
     }
   };
 
-  // Update ethics
+  // Update ethics - dynamically handles all fields
   const updateEthics = async (updates: Partial<EthicsAssessment>) => {
-    const dbUpdates: any = {};
-    if (updates.humanSubjects !== undefined) dbUpdates.human_subjects = updates.humanSubjects;
-    if (updates.humanSubjectsDetails !== undefined) dbUpdates.human_subjects_details = updates.humanSubjectsDetails;
-    if (updates.personalData !== undefined) dbUpdates.personal_data = updates.personalData;
-    if (updates.personalDataDetails !== undefined) dbUpdates.personal_data_details = updates.personalDataDetails;
-    if (updates.animals !== undefined) dbUpdates.animals = updates.animals;
-    if (updates.animalsDetails !== undefined) dbUpdates.animals_details = updates.animalsDetails;
-    if (updates.humanCells !== undefined) dbUpdates.human_cells = updates.humanCells;
-    if (updates.humanCellsDetails !== undefined) dbUpdates.human_cells_details = updates.humanCellsDetails;
-    if (updates.thirdCountries !== undefined) dbUpdates.third_countries = updates.thirdCountries;
-    if (updates.thirdCountriesDetails !== undefined) dbUpdates.third_countries_details = updates.thirdCountriesDetails;
-    if (updates.environment !== undefined) dbUpdates.environment = updates.environment;
-    if (updates.environmentDetails !== undefined) dbUpdates.environment_details = updates.environmentDetails;
-    if (updates.dualUse !== undefined) dbUpdates.dual_use = updates.dualUse;
-    if (updates.dualUseDetails !== undefined) dbUpdates.dual_use_details = updates.dualUseDetails;
-    if (updates.misuse !== undefined) dbUpdates.misuse = updates.misuse;
-    if (updates.misuseDetails !== undefined) dbUpdates.misuse_details = updates.misuseDetails;
-    if (updates.otherEthics !== undefined) dbUpdates.other_ethics = updates.otherEthics;
-    if (updates.otherEthicsDetails !== undefined) dbUpdates.other_ethics_details = updates.otherEthicsDetails;
+    // Dynamically convert camelCase to snake_case for all updates
+    const dbUpdates: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(updates)) {
+      if (key === 'id' || key === 'proposalId') continue;
+      const snakeKey = camelToSnake(key);
+      dbUpdates[snakeKey] = value;
+    }
 
-    if (ethics) {
+    if (ethics?.id) {
       const { error } = await supabase.from('ethics_assessment').update(dbUpdates).eq('id', ethics.id);
       if (error) {
         toast.error('Failed to update ethics assessment');
