@@ -10,12 +10,17 @@ const PopoverTrigger = PopoverPrimitive.Trigger;
 const PopoverContent = React.forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
->(({ className, align = "center", sideOffset = 4, style, ...props }, ref) => (
+>(({ className, align = "center", sideOffset = 4, style, onFocusOutside, ...props }, ref) => (
   <PopoverPrimitive.Portal>
     <PopoverPrimitive.Content
       ref={ref}
       align={align}
       sideOffset={sideOffset}
+      onFocusOutside={(e) => {
+        // Prevent popover from closing when switching browser tabs
+        e.preventDefault();
+        onFocusOutside?.(e);
+      }}
       className={cn(
         // NOTE: Removed zoom/slide animations (zoom-out-95, zoom-in-95, slide-in-from-*)
         // because transform:scale() creates a clipping context that blocks overflow:auto scrolling
