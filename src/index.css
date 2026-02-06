@@ -714,7 +714,11 @@
   position: relative;
 }
 
-/* B3.1 section: remove bottom margin from last editor element to minimize gap before tables */
+/* B3.1 section: remove min-height and bottom margin to minimize gap before tables */
+.b31-editor-container .ProseMirror {
+  min-height: 0 !important;
+}
+
 .b31-editor-container .ProseMirror > *:last-child {
   margin-bottom: 0 !important;
 }
