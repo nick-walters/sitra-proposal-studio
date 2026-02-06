@@ -938,7 +938,7 @@ export function DocumentEditor({
                 <div ref={editorContainerRef} className="relative">
                   <EditorContent 
                     editor={editor} 
-                    className={`document-content outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''} ${(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') ? 'min-h-[50px]' : 'min-h-[400px]'}`}
+                    className={`document-content outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''} ${(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') ? '' : 'min-h-[400px]'}`}
                     style={{ fontFamily: '"Times New Roman", Times, serif' }}
                   />
                   {/* Block lock indicators */}
