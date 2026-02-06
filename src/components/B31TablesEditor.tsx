@@ -133,7 +133,7 @@ const disseminationLevels = [
 ];
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
-const cellStyles = "border border-black p-0 align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
+const cellStyles = "border border-black p-0 h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
 
 // Inline editable text that expands to multiple lines - with debounced save
 function EditableText({ 
@@ -587,9 +587,9 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
   };
 
   return (
-    <div className="space-y-2">
+    <div>
       <div className="flex items-center justify-between">
-        <p className={`${tableStyles} italic mb-1`}>
+        <p className={`${tableStyles} italic`}>
           <span className="font-bold italic">Table 3.1c.</span> List of deliverables
         </p>
         {isAdminOrOwner && (
@@ -824,9 +824,9 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
   };
 
   return (
-    <div className="space-y-2">
+    <div>
       <div className="flex items-center justify-between">
-        <p className={`${tableStyles} italic mb-1`}>
+        <p className={`${tableStyles} italic`}>
           <span className="font-bold italic">Table 3.1d.</span> List of milestones
         </p>
         {isAdminOrOwner && (
@@ -1010,9 +1010,9 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
   };
 
   return (
-    <div className="space-y-2">
+    <div>
       <div className="flex items-center justify-between">
-        <p className={`${tableStyles} italic mb-1`}>
+        <p className={`${tableStyles} italic`}>
           <span className="font-bold italic">Table 3.1e.</span> Critical risks (<span className="font-bold">i.</span> likelihood; <span className="font-bold">ii.</span> severity; <span className="font-bold text-green-600">L</span> = low, <span className="font-bold text-amber-500">M</span> = medium, <span className="font-bold text-red-500">H</span> = high)
         </p>
         {isAdminOrOwner && (
