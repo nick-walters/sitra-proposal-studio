@@ -513,6 +513,8 @@ export type Database = {
           environment_health_harmful: boolean | null
           environment_health_harmful_page: string | null
           environment_health_page: string | null
+          ethics_self_assessment_compliance: string | null
+          ethics_self_assessment_objectives: string | null
           hesc_derived_from_embryos: boolean | null
           hesc_derived_from_embryos_page: string | null
           hesc_established_lines: boolean | null
@@ -613,6 +615,7 @@ export type Database = {
           security_exclusively_defence_page: string | null
           security_misuse: boolean | null
           security_misuse_page: string | null
+          security_self_assessment: string | null
           self_assessment_text: string | null
           third_countries: boolean | null
           third_countries_details: string | null
@@ -649,6 +652,8 @@ export type Database = {
           environment_health_harmful?: boolean | null
           environment_health_harmful_page?: string | null
           environment_health_page?: string | null
+          ethics_self_assessment_compliance?: string | null
+          ethics_self_assessment_objectives?: string | null
           hesc_derived_from_embryos?: boolean | null
           hesc_derived_from_embryos_page?: string | null
           hesc_established_lines?: boolean | null
@@ -749,6 +754,7 @@ export type Database = {
           security_exclusively_defence_page?: string | null
           security_misuse?: boolean | null
           security_misuse_page?: string | null
+          security_self_assessment?: string | null
           self_assessment_text?: string | null
           third_countries?: boolean | null
           third_countries_details?: string | null
@@ -785,6 +791,8 @@ export type Database = {
           environment_health_harmful?: boolean | null
           environment_health_harmful_page?: string | null
           environment_health_page?: string | null
+          ethics_self_assessment_compliance?: string | null
+          ethics_self_assessment_objectives?: string | null
           hesc_derived_from_embryos?: boolean | null
           hesc_derived_from_embryos_page?: string | null
           hesc_established_lines?: boolean | null
@@ -885,6 +893,7 @@ export type Database = {
           security_exclusively_defence_page?: string | null
           security_misuse?: boolean | null
           security_misuse_page?: string | null
+          security_self_assessment?: string | null
           self_assessment_text?: string | null
           third_countries?: boolean | null
           third_countries_details?: string | null

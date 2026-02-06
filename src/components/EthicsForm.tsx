@@ -138,7 +138,12 @@ export interface EthicsAssessment {
   securityMisusePage?: string;
   securityExclusivelyDefence?: boolean | null;
   securityExclusivelyDefencePage?: string;
-  // Self-assessment text
+  // Ethics Self-assessment text fields
+  ethicsSelfAssessmentObjectives?: string;
+  ethicsSelfAssessmentCompliance?: string;
+  // Security Self-assessment text
+  securitySelfAssessment?: string;
+  // Legacy field (kept for backwards compatibility)
   selfAssessmentText?: string;
 }
 
@@ -766,7 +771,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
           </Badge>
         </div>
 
-        {/* Ethics Sections */}
+        {/* ETHICS ISSUES TABLE - Sections 1-9 */}
         {ETHICS_SECTIONS.map((section) => {
           const sectionHasIssues = section.questions.some(q => ethicsData[q.id] === true);
           
@@ -810,7 +815,61 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
           );
         })}
 
-        {/* Security Issues Section */}
+        {/* ETHICS SELF-ASSESSMENT */}
+        <Card>
+          <CardHeader className="pb-3">
+            <h3 className="font-semibold text-sm">ETHICS SELF-ASSESSMENT</h3>
+            <CardDescription className="text-xs mt-2">
+              If you have entered any issues in the ethics issue table, you must perform an ethics self-assessment 
+              in accordance with the guidelines "How to Complete your Ethics Self-Assessment" and complete the table below.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Ethical dimension */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">
+                Ethical dimension of the objectives, methodology and likely impact
+              </Label>
+              <CardDescription className="text-xs">
+                Explain in detail the identified issues in relation to:
+              </CardDescription>
+              <ul className="text-xs text-muted-foreground list-disc list-inside ml-2 space-y-0.5">
+                <li>objectives of the activities (e.g. study of vulnerable populations, etc.)</li>
+                <li>methodology (e.g. clinical trials, involvement of children, protection of personal data, etc.)</li>
+                <li>the potential impact of the activities (e.g. environmental damage, stigmatisation of particular social groups, political or financial adverse consequences, misuse, etc.)</li>
+              </ul>
+              <Textarea
+                value={ethicsData.ethicsSelfAssessmentObjectives || ''}
+                onChange={(e) => onUpdateEthics({ ethicsSelfAssessmentObjectives: e.target.value })}
+                placeholder="Explain the identified ethics issues in relation to objectives, methodology, and potential impact..."
+                className="min-h-[120px] text-sm mt-2"
+                disabled={!canEdit}
+              />
+            </div>
+
+            {/* Compliance */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">
+                Compliance with ethical principles and relevant legislations
+              </Label>
+              <CardDescription className="text-xs">
+                Describe how the issue(s) identified in the ethics issues table above will be addressed in order to adhere 
+                to the ethical principles and what will be done to ensure that the activities are compliant with the EU/national 
+                legal and ethical requirements of the country or countries where the tasks are to be carried out. It is reminded 
+                that for activities performed in a non-EU country, they should also be allowed in at least one EU Member State.
+              </CardDescription>
+              <Textarea
+                value={ethicsData.ethicsSelfAssessmentCompliance || ''}
+                onChange={(e) => onUpdateEthics({ ethicsSelfAssessmentCompliance: e.target.value })}
+                placeholder="Describe how you will ensure compliance with ethical principles and relevant legislations..."
+                className="min-h-[120px] text-sm mt-2"
+                disabled={!canEdit}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* SECURITY ISSUES TABLE */}
         <Card className={cn(SECURITY_QUESTIONS.some(q => ethicsData[q.id] === true) && 'border-warning/50')}>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -849,34 +908,30 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
           </CardContent>
         </Card>
 
-        {/* Self-Assessment Section */}
+        {/* SECURITY SELF-ASSESSMENT */}
         <Card>
-          <CardHeader className="pb-2">
-            <h3 className="font-semibold text-sm">ETHICS SELF-ASSESSMENT</h3>
-            <CardDescription className="text-xs">
-              If you have answered "Yes" to any of the ethics or security questions above, please provide a brief description 
-              of how you will address each identified issue. This will be used in the ethics review process.
+          <CardHeader className="pb-3">
+            <h3 className="font-semibold text-sm">SECURITY SELF-ASSESSMENT</h3>
+            <CardDescription className="text-xs mt-2">
+              If you have answered YES for one or more of the questions indicated above, describe the measures you intend 
+              to take to solve/avoid them. For more information, see the guidelines{' '}
+              <em>Classification of information in Horizon Europe projects</em>,{' '}
+              <em>Classification of information in Digital Europe projects</em>,{' '}
+              <em>Classification of information in EDF projects</em>.
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-0">
+          <CardContent>
             <Textarea
-              value={ethicsData.selfAssessmentText || ''}
-              onChange={(e) => onUpdateEthics({ selfAssessmentText: e.target.value })}
-              placeholder="Describe how you will address the ethics and security issues identified above..."
+              value={ethicsData.securitySelfAssessment || ''}
+              onChange={(e) => onUpdateEthics({ securitySelfAssessment: e.target.value })}
+              placeholder="Describe the measures you intend to take to address the security issues..."
               className="min-h-[150px] text-sm"
+              maxLength={5000}
               disabled={!canEdit}
             />
-          </CardContent>
-        </Card>
-
-        {/* Summary note */}
-        <Card className="bg-muted/50">
-          <CardContent className="pt-4">
-            <CardDescription className="text-xs">
-              <strong>Note:</strong> If you answered "Yes" to any of the questions above, you must address the ethics issues 
-              in Section 5 of Part B (Ethics and Security). The page numbers should refer to where each issue is discussed 
-              in your proposal.
-            </CardDescription>
+            <p className="text-xs text-muted-foreground mt-1 text-right">
+              {(ethicsData.securitySelfAssessment || '').length}/5000 characters
+            </p>
           </CardContent>
         </Card>
       </div>
