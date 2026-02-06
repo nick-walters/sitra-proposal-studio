@@ -3,6 +3,7 @@ import * as SelectPrimitive from "@radix-ui/react-select";
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { isWindowFocused } from "@/hooks/useWindowFocus";
 
 const Select = SelectPrimitive.Root;
 
@@ -68,9 +69,10 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       onPointerDownOutside={(e) => {
-        // Prevent select from closing when switching browser tabs
-        if (document.hidden) {
+        // Prevent select from closing when window loses focus (tab/app switch)
+        if (!isWindowFocused()) {
           e.preventDefault();
+          return;
         }
         onPointerDownOutside?.(e);
       }}

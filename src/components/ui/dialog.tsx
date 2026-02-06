@@ -3,6 +3,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { isWindowFocused } from "@/hooks/useWindowFocus";
 
 const Dialog = DialogPrimitive.Root;
 
@@ -40,17 +41,20 @@ const DialogContent = React.forwardRef<
         className,
       )}
       onFocusOutside={(e) => {
-        // Prevent dialog from closing when switching browser tabs
-        e.preventDefault();
-        onFocusOutside?.(e);
-      }}
-      onInteractOutside={(e) => {
-        // Use document.hidden to detect if browser tab lost focus
-        if (document.hidden) {
+        // Prevent dialog from closing when window loses focus (tab/app switch)
+        if (!isWindowFocused()) {
           e.preventDefault();
           return;
         }
-        // Only allow closing via explicit overlay click, not focus loss from tab switching
+        onFocusOutside?.(e);
+      }}
+      onInteractOutside={(e) => {
+        // Prevent dialog from closing when window loses focus
+        if (!isWindowFocused()) {
+          e.preventDefault();
+          return;
+        }
+        // Allow closing via explicit overlay click
         const target = e.target as HTMLElement;
         const isOverlayClick = target?.getAttribute('data-state') === 'open' && 
                                target?.classList.contains('fixed');
