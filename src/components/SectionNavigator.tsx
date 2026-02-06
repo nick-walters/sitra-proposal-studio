@@ -1,5 +1,5 @@
 import { Section, Participant } from "@/types/proposal";
-import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Layers, Building2, Info, Euro, Lightbulb, Target, Settings, FlaskConical } from "lucide-react";
+import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Layers, Building2, Info, Euro, Lightbulb, Target, Settings, FlaskConical, ShieldCheck, HelpCircle } from "lucide-react";
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
@@ -194,6 +194,10 @@ function SectionItem({
           <Info className="w-4 h-4 text-muted-foreground shrink-0" />
         ) : section.id === 'a3' ? (
           <Euro className="w-4 h-4 text-muted-foreground shrink-0" />
+        ) : section.id === 'a4' ? (
+          <ShieldCheck className="w-4 h-4 text-muted-foreground shrink-0" />
+        ) : section.id === 'a5' ? (
+          <HelpCircle className="w-4 h-4 text-muted-foreground shrink-0" />
         ) : section.id === 'b1' || section.number === 'B1' ? (
           <Lightbulb className="w-4 h-4 text-muted-foreground shrink-0" />
         ) : section.id === 'b2' || section.number === 'B2' ? (
