@@ -54,16 +54,16 @@ export interface EthicsAssessment {
   // Section 3: Human Cells/Tissues
   humanCells?: boolean | null;
   humanCellsPage?: string;
+  humanCellsEmbryonicFoetal?: boolean | null;
+  humanCellsEmbryonicFoetalPage?: string;
   humanCellsCommercial?: boolean | null;
   humanCellsCommercialPage?: string;
-  humanCellsEuApproved?: boolean | null;
-  humanCellsEuApprovedPage?: string;
-  humanCellsNonEu?: boolean | null;
-  humanCellsNonEuPage?: string;
-  humanEmbryos?: boolean | null;
-  humanEmbryosPage?: string;
-  humanFoetalTissue?: boolean | null;
-  humanFoetalTissuePage?: string;
+  humanCellsObtainedWithin?: boolean | null;
+  humanCellsObtainedWithinPage?: string;
+  humanCellsObtainedOther?: boolean | null;
+  humanCellsObtainedOtherPage?: string;
+  humanCellsBiobank?: boolean | null;
+  humanCellsBiobankPage?: string;
   // Section 4: Personal Data
   personalData?: boolean | null;
   personalDataPage?: string;
@@ -99,35 +99,31 @@ export interface EthicsAssessment {
   // Section 6: Non-EU Countries
   nonEuCountries?: boolean | null;
   nonEuCountriesPage?: string;
+  nonEuCountriesDetails?: string;
+  nonEuCountriesEthicsIssues?: boolean | null;
+  nonEuCountriesEthicsIssuesPage?: string;
+  nonEuCountriesEthicsIssuesDetails?: string;
+  nonEuCountriesMaterialExport?: boolean | null;
+  nonEuCountriesMaterialExportPage?: string;
+  nonEuCountriesMaterialExportDetails?: string;
+  nonEuCountriesMaterialImport?: boolean | null;
+  nonEuCountriesMaterialImportPage?: string;
+  nonEuCountriesMaterialImportDetails?: string;
   nonEuCountriesLmic?: boolean | null;
   nonEuCountriesLmicPage?: string;
-  nonEuCountriesLocalEthics?: boolean | null;
-  nonEuCountriesLocalEthicsPage?: string;
-  nonEuCountriesGeneticResources?: boolean | null;
-  nonEuCountriesGeneticResourcesPage?: string;
+  nonEuCountriesRisk?: boolean | null;
+  nonEuCountriesRiskPage?: string;
   // Section 7: Environment, Health & Safety
   environmentHealth?: boolean | null;
   environmentHealthPage?: string;
-  environmentHealthGmo?: boolean | null;
-  environmentHealthGmoPage?: string;
+  environmentHealthEndangered?: boolean | null;
+  environmentHealthEndangeredPage?: string;
   environmentHealthHarmful?: boolean | null;
   environmentHealthHarmfulPage?: string;
-  environmentHealthNanoparticles?: boolean | null;
-  environmentHealthNanoparticlesPage?: string;
   // Section 8: Artificial Intelligence
   artificialIntelligence?: boolean | null;
   artificialIntelligencePage?: string;
-  aiHumanOversight?: boolean | null;
-  aiHumanOversightPage?: string;
-  aiTransparency?: boolean | null;
-  aiTransparencyPage?: string;
-  aiBias?: boolean | null;
-  aiBiasPage?: string;
   // Section 9: Other Ethics Issues
-  dualUse?: boolean | null;
-  dualUsePage?: string;
-  misuse?: boolean | null;
-  misusePage?: string;
   otherEthics?: boolean | null;
   otherEthicsPage?: string;
   otherEthicsDetails?: string;
@@ -185,7 +181,7 @@ const ETHICS_SECTIONS: EthicsSection[] = [
       {
         id: 'hescEuropeanRegistry',
         pageId: 'hescEuropeanRegistryPage',
-        label: 'Are they registered in the European hESC registry?',
+        label: 'Are the cell lines registered in the European registry for human embryonic stem cell lines?',
         indent: 1,
         parentId: 'humanEmbryonicStemCells',
       },
@@ -197,7 +193,7 @@ const ETHICS_SECTIONS: EthicsSection[] = [
       {
         id: 'humanEmbryosDestruction',
         pageId: 'humanEmbryosDestructionPage',
-        label: 'Does this activity involve their destruction?',
+        label: 'Will the activity lead to their destruction?',
         indent: 1,
         parentId: 'humanEmbryosSection1',
       },
@@ -277,7 +273,7 @@ const ETHICS_SECTIONS: EthicsSection[] = [
       {
         id: 'clinicalStudy',
         pageId: 'clinicalStudyPage',
-        label: 'Does this activity involve conducting a clinical study as defined by the Clinical Trial Regulation (EU 536/2014)?',
+        label: 'Does this activity involve conducting a clinical study as defined by the Clinical Trial Regulation (EU 536/2014)? (using pharmaceuticals, biologicals, radiopharmaceuticals, or advanced therapy medicinal products)',
       },
       {
         id: 'clinicalTrial',
@@ -298,12 +294,19 @@ const ETHICS_SECTIONS: EthicsSection[] = [
   {
     id: 'humanCells',
     number: 3,
-    title: 'HUMAN CELLS / TISSUES',
+    title: 'HUMAN CELLS / TISSUES (not covered by section 1)',
     questions: [
       {
         id: 'humanCells',
         pageId: 'humanCellsPage',
-        label: 'Does this activity involve human cells or tissues (other than hESCs)?',
+        label: 'Does this activity involve the use of human cells or tissues?',
+      },
+      {
+        id: 'humanCellsEmbryonicFoetal',
+        pageId: 'humanCellsEmbryonicFoetalPage',
+        label: 'Are they human embryonic or foetal cells or tissues?',
+        indent: 1,
+        parentId: 'humanCells',
       },
       {
         id: 'humanCellsCommercial',
@@ -313,28 +316,25 @@ const ETHICS_SECTIONS: EthicsSection[] = [
         parentId: 'humanCells',
       },
       {
-        id: 'humanCellsEuApproved',
-        pageId: 'humanCellsEuApprovedPage',
-        label: 'Are they obtained from a tissue bank/biobank operating under EU or national ethics approval?',
+        id: 'humanCellsObtainedWithin',
+        pageId: 'humanCellsObtainedWithinPage',
+        label: 'Are they obtained within this project?',
         indent: 1,
         parentId: 'humanCells',
       },
       {
-        id: 'humanCellsNonEu',
-        pageId: 'humanCellsNonEuPage',
-        label: 'Are they obtained from non-EU countries?',
+        id: 'humanCellsObtainedOther',
+        pageId: 'humanCellsObtainedOtherPage',
+        label: 'Are they obtained from another project, laboratory or institution?',
         indent: 1,
         parentId: 'humanCells',
       },
       {
-        id: 'humanEmbryos',
-        pageId: 'humanEmbryosPage',
-        label: 'Does this activity involve the use of human embryos?',
-      },
-      {
-        id: 'humanFoetalTissue',
-        pageId: 'humanFoetalTissuePage',
-        label: 'Does this activity involve the use of human foetal tissues / cells?',
+        id: 'humanCellsBiobank',
+        pageId: 'humanCellsBiobankPage',
+        label: 'Are they obtained from a biobank?',
+        indent: 1,
+        parentId: 'humanCells',
       },
     ],
   },
@@ -450,61 +450,64 @@ const ETHICS_SECTIONS: EthicsSection[] = [
       {
         id: 'nonEuCountries',
         pageId: 'nonEuCountriesPage',
-        label: 'Is some of the research carried out in non-EU countries?',
+        label: 'Will some of the activities be carried out in non-EU countries?',
+        detailsId: 'nonEuCountriesDetails',
+        detailsPlaceholder: 'Specify the countries...',
+      },
+      {
+        id: 'nonEuCountriesEthicsIssues',
+        pageId: 'nonEuCountriesEthicsIssuesPage',
+        label: 'In case non-EU countries are involved, do the activities raise potential ethics issues?',
+        indent: 1,
+        parentId: 'nonEuCountries',
+        detailsId: 'nonEuCountriesEthicsIssuesDetails',
+        detailsPlaceholder: 'Specify the countries...',
+      },
+      {
+        id: 'nonEuCountriesMaterialExport',
+        pageId: 'nonEuCountriesMaterialExportPage',
+        label: 'Is it planned to export any material (other than data) from the EU to non-EU countries? For data exports, see section 4.',
+        detailsId: 'nonEuCountriesMaterialExportDetails',
+        detailsPlaceholder: 'Specify material and countries involved...',
+      },
+      {
+        id: 'nonEuCountriesMaterialImport',
+        pageId: 'nonEuCountriesMaterialImportPage',
+        label: 'Is it planned to import any material (other than data) from non-EU countries into the EU or from a non-EU country to another non-EU country? For data imports, see section 4.',
+        detailsId: 'nonEuCountriesMaterialImportDetails',
+        detailsPlaceholder: 'Specify material and countries involved...',
       },
       {
         id: 'nonEuCountriesLmic',
         pageId: 'nonEuCountriesLmicPage',
-        label: 'Is it carried out in a low or lower-middle income country (LMIC)?',
-        indent: 1,
-        parentId: 'nonEuCountries',
+        label: 'Does this activity involve low and/or lower-middle income countries? (if yes, detail the benefit-sharing actions planned in the self-assessment)',
       },
       {
-        id: 'nonEuCountriesLocalEthics',
-        pageId: 'nonEuCountriesLocalEthicsPage',
-        label: 'Is any material imported from non-EU countries?',
-        indent: 1,
-        parentId: 'nonEuCountries',
-      },
-      {
-        id: 'nonEuCountriesGeneticResources',
-        pageId: 'nonEuCountriesGeneticResourcesPage',
-        label: 'Is it planned to use local resources (genetic, animal, plant, etc.)?',
-        indent: 1,
-        parentId: 'nonEuCountries',
+        id: 'nonEuCountriesRisk',
+        pageId: 'nonEuCountriesRiskPage',
+        label: 'Could the situation in the country put the individuals taking part in the activity at risk?',
       },
     ],
   },
   {
     id: 'environment',
     number: 7,
-    title: 'ENVIRONMENT, HEALTH & SAFETY',
+    title: 'ENVIRONMENT, HEALTH AND SAFETY',
     questions: [
       {
         id: 'environmentHealth',
         pageId: 'environmentHealthPage',
-        label: 'Does this activity involve activities or results that may have an impact on the environment, health and safety?',
+        label: 'Does this activity involve the use of substances or processes that may cause harm to the environment, to animals or plants (during the implementation of the activity or further to the use of the results, as a possible impact)?',
       },
       {
-        id: 'environmentHealthGmo',
-        pageId: 'environmentHealthGmoPage',
-        label: 'Does it involve the use of genetically modified organisms (GMOs)?',
-        indent: 1,
-        parentId: 'environmentHealth',
+        id: 'environmentHealthEndangered',
+        pageId: 'environmentHealthEndangeredPage',
+        label: 'Does this activity deal with endangered fauna and/or flora / protected areas?',
       },
       {
         id: 'environmentHealthHarmful',
         pageId: 'environmentHealthHarmfulPage',
-        label: 'Does it involve the use of elements that may cause harm to humans, including research staff?',
-        indent: 1,
-        parentId: 'environmentHealth',
-      },
-      {
-        id: 'environmentHealthNanoparticles',
-        pageId: 'environmentHealthNanoparticlesPage',
-        label: 'Does it involve the use of nanomaterials/nanoparticles?',
-        indent: 1,
-        parentId: 'environmentHealth',
+        label: 'Does this activity involve the use of substances or processes that may cause harm to humans, including those performing the activity (during the implementation of the activity or further to the use of the results, as a possible impact)?',
       },
     ],
   },
@@ -516,28 +519,7 @@ const ETHICS_SECTIONS: EthicsSection[] = [
       {
         id: 'artificialIntelligence',
         pageId: 'artificialIntelligencePage',
-        label: 'Does this activity involve developing and/or using artificial intelligence (AI)?',
-      },
-      {
-        id: 'aiHumanOversight',
-        pageId: 'aiHumanOversightPage',
-        label: 'Could the AI present risks of discrimination, biased outcomes, or lack of human oversight?',
-        indent: 1,
-        parentId: 'artificialIntelligence',
-      },
-      {
-        id: 'aiTransparency',
-        pageId: 'aiTransparencyPage',
-        label: 'Could there be issues of transparency or explainability?',
-        indent: 1,
-        parentId: 'artificialIntelligence',
-      },
-      {
-        id: 'aiBias',
-        pageId: 'aiBiasPage',
-        label: 'Could there be issues of bias in data/algorithms?',
-        indent: 1,
-        parentId: 'artificialIntelligence',
+        label: 'Does this activity involve the development, deployment and/or use of Artificial Intelligence based systems? (if yes, detail in the self-assessment whether that could raise ethical concerns related to human rights and values and detail how this will be addressed)',
       },
     ],
   },
@@ -546,16 +528,6 @@ const ETHICS_SECTIONS: EthicsSection[] = [
     number: 9,
     title: 'OTHER ETHICS ISSUES',
     questions: [
-      {
-        id: 'dualUse',
-        pageId: 'dualUsePage',
-        label: 'Does this activity have the potential for misuse of research results (dual use)?',
-      },
-      {
-        id: 'misuse',
-        pageId: 'misusePage',
-        label: 'Is there potential for malevolent/criminal/terrorist abuse of the research results?',
-      },
       {
         id: 'otherEthics',
         pageId: 'otherEthicsPage',
