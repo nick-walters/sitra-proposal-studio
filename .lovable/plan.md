@@ -1,83 +1,89 @@
 
-# Plan: Fix Dialog Persistence When Switching Browser Tabs
+
+# Plan: Fix Add Participant Dialog Persistence on Tab/App Switch
 
 ## Problem Analysis
 
-The current fix in `dialog.tsx` only addresses the dialog itself, but there are nested interactive components that also respond to focus/blur events:
+The current fix attempts to use `document.hidden` to detect tab switches, but this approach has a critical timing issue: the `document.hidden` property may not be updated at the exact moment when Radix UI fires its dismissal events. The blur/focus sequence is:
 
-1. **Popover** (country selector) - closes on focus loss, can cascade to dialog
-2. **Select** (organisation category, participant type) - closes on focus loss
+1. User switches tab/app
+2. Window fires `blur` event
+3. Radix components fire `onFocusOutside` / `onInteractOutside`
+4. Browser updates `document.hidden` to `true` (slightly delayed)
 
-When a user switches tabs with any of these open, they close and may trigger the parent dialog's close mechanism.
+Since step 4 happens after step 3, checking `document.hidden` in the event handlers returns `false`, and the dialog closes.
 
-## Solution
+## Solution: Window Blur State Tracking
 
-Apply the same focus/blur protection to all Radix UI components that can appear inside dialogs:
+Create a global utility that tracks window focus state synchronously using the `blur` and `focus` events on the window object. Components can then check this state to determine if dismissal should be prevented.
 
-### Files to Modify
+## Files to Create/Modify
 
-1. **`src/components/ui/popover.tsx`** - Add `onFocusOutside` handler to prevent close on tab switch
-2. **`src/components/ui/select.tsx`** - Add `onFocusOutside` handler to `SelectContent`
-3. **`src/components/ui/dialog.tsx`** - Improve the detection logic using `document.hidden` state
+### 1. Create New Hook: `src/hooks/useWindowFocus.ts`
 
-## Technical Implementation
-
-### 1. Update PopoverContent (`popover.tsx`)
-
-Add focus protection similar to DialogContent:
+Create a reusable hook that tracks window blur/focus state:
 
 ```typescript
-const PopoverContent = React.forwardRef<...>(
-  ({ className, align = "center", sideOffset = 4, onFocusOutside, ...props }, ref) => (
-    <PopoverPrimitive.Portal>
-      <PopoverPrimitive.Content
-        ref={ref}
-        onFocusOutside={(e) => {
-          // Prevent popover from closing when switching browser tabs
-          e.preventDefault();
-          onFocusOutside?.(e);
-        }}
-        // ... rest
-      />
-    </PopoverPrimitive.Portal>
-  )
-);
+import { useEffect, useSyncExternalStore } from 'react';
+
+// Global state tracked outside React for synchronous updates
+let windowHasFocus = true;
+let listeners: Set<() => void> = new Set();
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+function getSnapshot() {
+  return windowHasFocus;
+}
+
+// Initialize listeners once
+if (typeof window !== 'undefined') {
+  window.addEventListener('blur', () => {
+    windowHasFocus = false;
+    listeners.forEach(l => l());
+  });
+  window.addEventListener('focus', () => {
+    windowHasFocus = true;
+    listeners.forEach(l => l());
+  });
+}
+
+export function useWindowFocus() {
+  return useSyncExternalStore(subscribe, getSnapshot, () => true);
+}
+
+// Direct function for use in event handlers (non-hook)
+export function isWindowFocused() {
+  return windowHasFocus;
+}
 ```
 
-### 2. Update SelectContent (`select.tsx`)
+### 2. Update `src/components/ui/dialog.tsx`
 
-Add focus protection:
-
-```typescript
-const SelectContent = React.forwardRef<...>(
-  ({ className, children, position = "popper", onFocusOutside, ...props }, ref) => (
-    <SelectPrimitive.Portal>
-      <SelectPrimitive.Content
-        ref={ref}
-        onFocusOutside={(e) => {
-          // Prevent select from closing when switching browser tabs
-          e.preventDefault();
-          onFocusOutside?.(e);
-        }}
-        // ... rest
-      />
-    </SelectPrimitive.Portal>
-  )
-);
-```
-
-### 3. Improve Dialog Detection (`dialog.tsx`)
-
-Enhance the `onInteractOutside` handler to use `document.hidden` for more reliable tab-switch detection:
+Import and use the `isWindowFocused` function:
 
 ```typescript
-onInteractOutside={(e) => {
-  // Use document.hidden to detect if browser tab lost focus
-  if (document.hidden) {
+import { isWindowFocused } from '@/hooks/useWindowFocus';
+
+// In DialogContent:
+onFocusOutside={(e) => {
+  // Prevent dialog from closing when window loses focus (tab/app switch)
+  if (!isWindowFocused()) {
     e.preventDefault();
     return;
   }
-  // Allow closing via explicit overlay click only
+  onFocusOutside?.(e);
+}}
+onInteractOutside={(e) => {
+  // Prevent dialog from closing when window loses focus
+  if (!isWindowFocused()) {
+    e.preventDefault();
+    return;
+  }
+  // Allow closing via explicit overlay click
   const target = e.target as HTMLElement;
   const isOverlayClick = target?.getAttribute('data-state') === 'open' && 
                          target?.classList.contains('fixed');
@@ -88,18 +94,81 @@ onInteractOutside={(e) => {
 }}
 ```
 
-## Why This Works
+### 3. Update `src/components/ui/popover.tsx`
 
-- **Popover/Select focus handlers**: Prevent nested dropdowns from closing when focus shifts due to tab switch
-- **Document.hidden check**: The `document.hidden` property is `true` when the browser tab is not visible, providing a reliable way to detect tab switches vs genuine user interactions
-- **Cascade prevention**: By preventing nested components from closing, we avoid any chain reaction that might close the parent dialog
+Add protection for all dismissal event handlers:
+
+```typescript
+import { isWindowFocused } from '@/hooks/useWindowFocus';
+
+// In PopoverContent, add all three handlers:
+onFocusOutside={(e) => {
+  if (!isWindowFocused()) {
+    e.preventDefault();
+    return;
+  }
+  onFocusOutside?.(e);
+}}
+onInteractOutside={(e) => {
+  if (!isWindowFocused()) {
+    e.preventDefault();
+    return;
+  }
+  onInteractOutside?.(e);
+}}
+onPointerDownOutside={(e) => {
+  if (!isWindowFocused()) {
+    e.preventDefault();
+    return;
+  }
+  onPointerDownOutside?.(e);
+}}
+```
+
+### 4. Update `src/components/ui/select.tsx`
+
+Add protection for all dismissal event handlers:
+
+```typescript
+import { isWindowFocused } from '@/hooks/useWindowFocus';
+
+// In SelectContent:
+onPointerDownOutside={(e) => {
+  if (!isWindowFocused()) {
+    e.preventDefault();
+    return;
+  }
+  onPointerDownOutside?.(e);
+}}
+onFocusOutside={(e) => {
+  if (!isWindowFocused()) {
+    e.preventDefault();
+    return;
+  }
+  onFocusOutside?.(e);
+}}
+```
+
+## Why This Solution Works
+
+1. **Synchronous Event Handling**: The window `blur` event fires synchronously when focus leaves, immediately updating our `windowHasFocus` variable before any Radix UI events fire.
+
+2. **Race Condition Free**: Unlike checking `document.hidden`, our state is updated in the same event loop as the blur, so it's always accurate when Radix components check it.
+
+3. **All Event Types Covered**: We handle `onFocusOutside`, `onInteractOutside`, and `onPointerDownOutside` - the three event types Radix uses for dismissal.
+
+4. **Cascade Prevention**: By preventing nested components (Popover, Select) from closing, we avoid the chain reaction that could close the parent Dialog.
+
+5. **Normal Behavior Preserved**: Clicking outside, pressing Escape, and clicking the X button still work as expected when the window has focus.
 
 ## Testing Scenarios
 
-After implementation, verify these scenarios:
-1. Open Add Participant dialog, switch tabs - dialog stays open
-2. Open Add Participant dialog, open country selector, switch tabs - both stay open
-3. Open Add Participant dialog, open organisation category dropdown, switch tabs - both stay open
-4. Open Add Participant dialog, click outside on overlay - dialog closes (expected)
-5. Open Add Participant dialog, press Escape - dialog closes (expected)
-6. Open Add Participant dialog, click X button - dialog closes (expected)
+After implementation, verify:
+1. Open Add Participant dialog, switch to another browser tab - dialog stays open
+2. Open Add Participant dialog, switch to another application - dialog stays open
+3. Open country selector popover, switch tabs - both popover and dialog stay open
+4. Open organisation category dropdown, switch tabs - both select and dialog stay open
+5. Open dialog, click on the dark overlay - dialog closes (expected)
+6. Open dialog, press Escape key - dialog closes (expected)
+7. Open dialog, click X button - dialog closes (expected)
+
