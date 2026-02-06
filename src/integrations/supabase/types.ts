@@ -1385,6 +1385,7 @@ export type Database = {
           duration: number | null
           expected_projects: string | null
           id: string
+          is_two_stage_second_stage: boolean | null
           logo_url: string | null
           status: Database["public"]["Enums"]["proposal_status"]
           submission_stage: string | null
@@ -1416,6 +1417,7 @@ export type Database = {
           duration?: number | null
           expected_projects?: string | null
           id?: string
+          is_two_stage_second_stage?: boolean | null
           logo_url?: string | null
           status?: Database["public"]["Enums"]["proposal_status"]
           submission_stage?: string | null
@@ -1447,6 +1449,7 @@ export type Database = {
           duration?: number | null
           expected_projects?: string | null
           id?: string
+          is_two_stage_second_stage?: boolean | null
           logo_url?: string | null
           status?: Database["public"]["Enums"]["proposal_status"]
           submission_stage?: string | null

@@ -511,7 +511,7 @@ export function ProposalEditor() {
         return (
           <OtherQuestionsForm
             proposalId={id || ''}
-            submissionStage={proposal?.submissionStage}
+            isTwoStageSecondStage={proposal?.isTwoStageSecondStage}
             canEdit={canEdit}
           />
         );

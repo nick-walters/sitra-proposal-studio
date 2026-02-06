@@ -35,6 +35,7 @@ interface ProposalData {
   budgetType: BudgetType;
   status: 'draft' | 'submitted' | 'funded' | 'not_funded';
   submissionStage?: 'full' | 'stage_1';
+  isTwoStageSecondStage?: boolean;
   totalBudget?: number;
   deadline?: Date;
   description?: string;
@@ -89,6 +90,7 @@ export function useProposalData(proposalId: string) {
         budgetType: data.budget_type as BudgetType,
         status: data.status as ProposalData['status'],
         submissionStage: ((data as any).submission_stage as 'full' | 'stage_1') || undefined,
+        isTwoStageSecondStage: (data as any).is_two_stage_second_stage || false,
         totalBudget: data.total_budget || undefined,
         deadline: data.deadline ? new Date(data.deadline) : undefined,
         description: data.description || undefined,

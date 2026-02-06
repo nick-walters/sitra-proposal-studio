@@ -489,6 +489,7 @@ export function Dashboard() {
     deadline?: Date;
     templateTypeId?: string;
     usesFstp?: boolean;
+    isTwoStageSecondStage?: boolean;
   }) => {
     if (!user) {
       toast.error('You must be logged in to create a proposal');
@@ -513,6 +514,14 @@ export function Dashboard() {
         });
 
       if (proposalError) throw proposalError;
+
+      // Update the is_two_stage_second_stage field if provided
+      if (newProposalId && data.isTwoStageSecondStage !== undefined) {
+        await supabase
+          .from('proposals')
+          .update({ is_two_stage_second_stage: data.isTwoStageSecondStage })
+          .eq('id', newProposalId);
+      }
 
       // If a template was selected, create the proposal template with copied sections
       if (data.templateTypeId && newProposalId) {
