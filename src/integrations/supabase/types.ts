@@ -513,6 +513,7 @@ export type Database = {
           environment_health_harmful: boolean | null
           environment_health_harmful_page: string | null
           environment_health_page: string | null
+          ethics_confirmation: boolean | null
           ethics_self_assessment_compliance: string | null
           ethics_self_assessment_objectives: string | null
           hesc_derived_from_embryos: boolean | null
@@ -652,6 +653,7 @@ export type Database = {
           environment_health_harmful?: boolean | null
           environment_health_harmful_page?: string | null
           environment_health_page?: string | null
+          ethics_confirmation?: boolean | null
           ethics_self_assessment_compliance?: string | null
           ethics_self_assessment_objectives?: string | null
           hesc_derived_from_embryos?: boolean | null
@@ -791,6 +793,7 @@ export type Database = {
           environment_health_harmful?: boolean | null
           environment_health_harmful_page?: string | null
           environment_health_page?: string | null
+          ethics_confirmation?: boolean | null
           ethics_self_assessment_compliance?: string | null
           ethics_self_assessment_objectives?: string | null
           hesc_derived_from_embryos?: boolean | null

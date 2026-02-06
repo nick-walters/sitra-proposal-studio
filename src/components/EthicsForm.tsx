@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { AlertTriangle, CheckCircle, Shield, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
@@ -143,6 +144,8 @@ export interface EthicsAssessment {
   ethicsSelfAssessmentCompliance?: string;
   // Security Self-assessment text
   securitySelfAssessment?: string;
+  // Ethics confirmation checkbox
+  ethicsConfirmation?: boolean;
   // Legacy field (kept for backwards compatibility)
   selfAssessmentText?: string;
 }
@@ -814,6 +817,30 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
             </Card>
           );
         })}
+
+        {/* Ethics Confirmation Checkbox */}
+        <div className="flex items-start space-x-3 py-4 px-4 bg-muted/50 rounded-lg border">
+          <Checkbox
+            id="ethics-confirmation"
+            checked={ethicsData.ethicsConfirmation || false}
+            onCheckedChange={(checked) => onUpdateEthics({ ethicsConfirmation: checked === true })}
+            disabled={!canEdit}
+            className="mt-0.5"
+          />
+          <Label htmlFor="ethics-confirmation" className="text-sm leading-relaxed cursor-pointer">
+            I confirm that I have taken into account all ethics issues above and that, if any ethics issues apply, 
+            I will complete the ethics self-assessment as described in the guidelines{' '}
+            <a 
+              href="https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/how-to-complete-your-ethics-self-assessment_en.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline hover:text-primary/80"
+              onClick={(e) => e.stopPropagation()}
+            >
+              'How to Complete your Ethics Self-Assessment'
+            </a>.
+          </Label>
+        </div>
 
         {/* ETHICS SELF-ASSESSMENT */}
         <Card>
