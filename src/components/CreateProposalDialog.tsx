@@ -53,6 +53,7 @@ interface CreateProposalDialogProps {
     deadline?: Date;
     templateTypeId?: string;
     usesFstp?: boolean;
+    isTwoStageSecondStage?: boolean;
   }) => void;
 }
 
@@ -94,6 +95,7 @@ export function CreateProposalDialog({
   const [deadline, setDeadline] = useState<Date | undefined>(undefined);
   const [templateTypeId, setTemplateTypeId] = useState<string>('');
   const [usesFstp, setUsesFstp] = useState<boolean>(false);
+  const [isTwoStageSecondStage, setIsTwoStageSecondStage] = useState<boolean | null>(null);
 
   // Get destinations filtered by selected work programme
   const availableDestinations = useMemo(() => {
@@ -146,6 +148,7 @@ export function CreateProposalDialog({
         deadline: deadline || undefined,
         templateTypeId: templateTypeId || undefined,
         usesFstp,
+        isTwoStageSecondStage: submissionStage === 'full' ? (isTwoStageSecondStage ?? false) : false,
       });
       // Reset form
       setAcronym('');
@@ -159,6 +162,7 @@ export function CreateProposalDialog({
       setDeadline(undefined);
       setTemplateTypeId('');
       setUsesFstp(false);
+      setIsTwoStageSecondStage(null);
       onOpenChange(false);
     }
   };
@@ -211,7 +215,12 @@ export function CreateProposalDialog({
               </Label>
               <RadioGroup 
                 value={submissionStage} 
-                onValueChange={(v) => setSubmissionStage(v as SubmissionStage)}
+                onValueChange={(v) => {
+                  setSubmissionStage(v as SubmissionStage);
+                  if (v === 'stage_1') {
+                    setIsTwoStageSecondStage(null);
+                  }
+                }}
                 className="grid grid-cols-2 gap-3"
               >
                 <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-muted/50 transition-colors">
@@ -229,6 +238,33 @@ export function CreateProposalDialog({
                   </Label>
                 </div>
               </RadioGroup>
+
+              {/* Two-stage question for full proposals */}
+              {submissionStage === 'full' && (
+                <div className="mt-2 p-3 border rounded-lg bg-muted/30">
+                  <Label className="text-sm font-medium">
+                    Is this proposal a one-stage proposal, or the second stage in a two-stage proposal?
+                  </Label>
+                  <RadioGroup 
+                    value={isTwoStageSecondStage === true ? 'two_stage' : isTwoStageSecondStage === false ? 'one_stage' : ''}
+                    onValueChange={(v) => setIsTwoStageSecondStage(v === 'two_stage')}
+                    className="mt-2 flex gap-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="one_stage" id="one-stage" />
+                      <Label htmlFor="one-stage" className="cursor-pointer font-normal">
+                        One-stage proposal
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="two_stage" id="two-stage" />
+                      <Label htmlFor="two-stage" className="cursor-pointer font-normal">
+                        Second stage in a two-stage proposal
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              )}
             </div>
 
             {/* Proposal Type */}
