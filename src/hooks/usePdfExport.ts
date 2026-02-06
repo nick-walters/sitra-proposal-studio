@@ -2,11 +2,43 @@ import { useCallback } from 'react';
 import jsPDF from 'jspdf';
 import { toast } from 'sonner';
 import { Proposal, Section, Participant } from '@/types/proposal';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SectionContent {
   id: string;
   sectionId: string;
   content: string;
+}
+
+interface B31Deliverable {
+  id: string;
+  number: string;
+  name: string;
+  description: string;
+  wp_number: number | null;
+  lead_participant_id: string | null;
+  type: string | null;
+  dissemination_level: string | null;
+  due_month: number | null;
+}
+
+interface B31Milestone {
+  id: string;
+  number: number;
+  name: string;
+  wps: string;
+  due_month: number | null;
+  means_of_verification: string;
+}
+
+interface B31Risk {
+  id: string;
+  number: number;
+  description: string;
+  wps: string;
+  likelihood: string | null;
+  severity: string | null;
+  mitigation: string;
 }
 
 interface ExportData {
@@ -160,7 +192,7 @@ export function usePdfExport() {
         pdf.text(pageText, xPos, footerY);
       };
 
-      // Helper: Add title (14pt bold, 12pt paragraph spacing after)
+      // Helper: Add title (14pt bold, 12pt paragraph spacing after) - CENTERED
       const addTitle = (text: string) => {
         checkPageBreak(15);
         pdf.setFontSize(FONT_SIZE_TITLE);
@@ -170,7 +202,7 @@ export function usePdfExport() {
         const lines = pdf.splitTextToSize(text, contentWidth);
         for (const line of lines) {
           checkPageBreak(6);
-          pdf.text(line, margin, yPosition);
+          pdf.text(line, pageWidth / 2, yPosition, { align: 'center' });
           yPosition += 5.5;
         }
         yPosition += titleParagraphSpacing;
@@ -623,6 +655,146 @@ export function usePdfExport() {
         yPosition += paragraphSpacing;
       };
 
+      // Helper: Add B3.1 table with custom column widths
+      const addB31Table = (headers: string[], rows: string[][], colWidths: number[], tableCaption: string) => {
+        if (rows.length === 0) return;
+        
+        // Add table caption first
+        addCaption(tableCaption, 'table');
+        
+        const rowHeight = 6;
+        const cellPadding = 1;
+        const tableWidth = colWidths.reduce((a, b) => a + b, 0);
+        
+        // Check if table fits on current page (at least header + 2 rows)
+        checkPageBreak(rowHeight * Math.min(3, rows.length + 1));
+        
+        pdf.setFontSize(FONT_SIZE_BODY);
+        pdf.setDrawColor(...black);
+        pdf.setLineWidth(0.25);
+        
+        // Draw header row
+        let xPos = margin;
+        pdf.setFillColor(0, 0, 0);
+        pdf.rect(margin, yPosition - 4, tableWidth, rowHeight, 'F');
+        pdf.setFont('times', 'bold');
+        pdf.setTextColor(255, 255, 255);
+        
+        for (let i = 0; i < headers.length; i++) {
+          pdf.rect(xPos, yPosition - 4, colWidths[i], rowHeight);
+          const maxTextWidth = colWidths[i] - cellPadding * 2;
+          let displayText = headers[i];
+          while (pdf.getTextWidth(displayText) > maxTextWidth && displayText.length > 3) {
+            displayText = displayText.substring(0, displayText.length - 4) + '...';
+          }
+          pdf.text(displayText, xPos + cellPadding, yPosition);
+          xPos += colWidths[i];
+        }
+        yPosition += rowHeight;
+        
+        // Draw data rows
+        pdf.setFont('times', 'normal');
+        pdf.setTextColor(...black);
+        
+        for (const row of rows) {
+          checkPageBreak(rowHeight);
+          xPos = margin;
+          
+          for (let i = 0; i < colWidths.length; i++) {
+            pdf.rect(xPos, yPosition - 4, colWidths[i], rowHeight);
+            const cellText = row[i] || '';
+            const maxTextWidth = colWidths[i] - cellPadding * 2;
+            let displayText = cellText;
+            while (pdf.getTextWidth(displayText) > maxTextWidth && displayText.length > 3) {
+              displayText = displayText.substring(0, displayText.length - 4) + '...';
+            }
+            pdf.text(displayText, xPos + cellPadding, yPosition);
+            xPos += colWidths[i];
+          }
+          yPosition += rowHeight;
+        }
+        
+        pdf.setTextColor(...black);
+        yPosition += paragraphSpacing * 2;
+      };
+
+      // Helper: Fetch and render B3.1 tables
+      const renderB31Tables = async (proposalId: string) => {
+        // Fetch deliverables
+        const { data: deliverables } = await supabase
+          .from('b31_deliverables')
+          .select('*')
+          .eq('proposal_id', proposalId)
+          .order('order_index');
+        
+        // Fetch milestones
+        const { data: milestones } = await supabase
+          .from('b31_milestones')
+          .select('*')
+          .eq('proposal_id', proposalId)
+          .order('order_index');
+        
+        // Fetch risks
+        const { data: risks } = await supabase
+          .from('b31_risks')
+          .select('*')
+          .eq('proposal_id', proposalId)
+          .order('order_index');
+
+        // Fetch participants for lead participant lookup
+        const { data: parts } = await supabase
+          .from('participants')
+          .select('id, organisation_short_name, participant_number')
+          .eq('proposal_id', proposalId);
+        
+        const participantMap = new Map(parts?.map(p => [p.id, p.organisation_short_name || `P${p.participant_number}`]) || []);
+
+        // Table 3.1c - Deliverables
+        if (deliverables && deliverables.length > 0) {
+          const delHeaders = ['No.', 'Name', 'WP', 'Lead', 'Type', 'Diss.', 'Due'];
+          const delColWidths = [15, 70, 15, 20, 20, 20, 20];
+          const delRows = (deliverables as B31Deliverable[]).map(d => [
+            d.number || '',
+            d.name || '',
+            d.wp_number ? `WP${d.wp_number}` : '',
+            d.lead_participant_id ? (participantMap.get(d.lead_participant_id) || '') : '',
+            d.type || '',
+            d.dissemination_level || '',
+            d.due_month ? `M${String(d.due_month).padStart(2, '0')}` : ''
+          ]);
+          addB31Table(delHeaders, delRows, delColWidths, 'Table 3.1c. List of deliverables');
+        }
+
+        // Table 3.1d - Milestones
+        if (milestones && milestones.length > 0) {
+          const msHeaders = ['No.', 'Name', 'Related WPs', 'Due', 'Means of verification'];
+          const msColWidths = [15, 50, 30, 20, 65];
+          const msRows = (milestones as B31Milestone[]).map(m => [
+            `MS${m.number}`,
+            m.name || '',
+            m.wps || '',
+            m.due_month ? `M${String(m.due_month).padStart(2, '0')}` : '',
+            m.means_of_verification || ''
+          ]);
+          addB31Table(msHeaders, msRows, msColWidths, 'Table 3.1d. List of milestones');
+        }
+
+        // Table 3.1e - Risks
+        if (risks && risks.length > 0) {
+          const riskHeaders = ['No.', 'Description', 'WPs', '(i)', '(ii)', 'Mitigation'];
+          const riskColWidths = [12, 55, 25, 12, 12, 64];
+          const riskRows = (risks as B31Risk[]).map(r => [
+            `R${r.number}`,
+            r.description || '',
+            r.wps || '',
+            r.likelihood || '',
+            r.severity || '',
+            r.mitigation || ''
+          ]);
+          addB31Table(riskHeaders, riskRows, riskColWidths, 'Table 3.1e. Critical risks and mitigation measures');
+        }
+      };
+
       // Helper: Add H3 (inline, bold and underlined, 11pt)
       const addH3 = (text: string) => {
         yPosition += paragraphSpacing;
@@ -824,6 +996,12 @@ export function usePdfExport() {
           
           if (!content) {
             addParagraph('[Section content to be completed]');
+          }
+          
+          // After section 3.1 content, render B3.1 tables (Deliverables, Milestones, Risks)
+          const sectionNum = section.number.replace(/^B/, '');
+          if (sectionNum === '3.1') {
+            await renderB31Tables(proposal.id);
           }
         }
       }
