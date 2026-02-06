@@ -925,7 +925,7 @@ export function DocumentEditor({
                 </span>
               </div>
 
-              <h1 className="document-h1 text-foreground mb-6">{formatSectionHeading(section.number)} {section.title}</h1>
+              <h1 className={`document-h1 text-foreground ${(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') ? 'mb-2' : 'mb-6'}`}>{formatSectionHeading(section.number)} {section.title}</h1>
               
               {loading ? (
                 <div className="space-y-4">
@@ -958,7 +958,7 @@ export function DocumentEditor({
 
               {/* Interactive B3.1 Tables - Deliverables, Milestones and Risks */}
               {(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') && (
-                <div className="b31-tables-container space-y-4 [&_p]:!my-0 -mt-1">
+                <div className="b31-tables-container space-y-4 [&_p]:!my-0 -mt-4">
                   <B31DeliverablesTable proposalId={proposalId} />
                   <B31MilestonesTable proposalId={proposalId} />
                   <B31RisksTable proposalId={proposalId} />
