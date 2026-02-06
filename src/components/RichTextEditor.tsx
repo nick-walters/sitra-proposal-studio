@@ -824,6 +824,43 @@ export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootn
       BlockReordering,
       WPReferenceMark,
       CaseReferenceMark,
+      // Prevent tables from being first element after H2 headings
+      Extension.create({
+        name: 'preventTableAfterHeading',
+        addProseMirrorPlugins() {
+          return [
+            new Plugin({
+              key: new PluginKey('preventTableAfterHeading'),
+              appendTransaction(transactions, oldState, newState) {
+                const docChanged = transactions.some(tr => tr.docChanged);
+                if (!docChanged) return null;
+
+                let tr = newState.tr;
+                let modified = false;
+
+                newState.doc.descendants((node, pos) => {
+                  if (node.type.name === 'heading' && node.attrs.level === 2) {
+                    const afterPos = pos + node.nodeSize;
+                    if (afterPos < newState.doc.content.size) {
+                      const $afterPos = newState.doc.resolve(afterPos);
+                      const afterNode = $afterPos.nodeAfter;
+                      if (afterNode && afterNode.type.name === 'table') {
+                        const paragraphNode = newState.schema.nodes.paragraph.create();
+                        const insertPos = tr.mapping.map(afterPos);
+                        tr = tr.insert(insertPos, paragraphNode);
+                        modified = true;
+                      }
+                    }
+                  }
+                  return true;
+                });
+
+                return modified ? tr : null;
+              },
+            }),
+          ];
+        },
+      }),
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -1030,6 +1067,49 @@ export function useRichTextEditor({
       }),
       // Table formula extension
       TableFormula,
+      // Prevent tables from being first element after H2 headings
+      Extension.create({
+        name: 'preventTableAfterHeading',
+        addProseMirrorPlugins() {
+          return [
+            new Plugin({
+              key: new PluginKey('preventTableAfterHeading'),
+              appendTransaction(transactions, oldState, newState) {
+                // Only process if document changed
+                const docChanged = transactions.some(tr => tr.docChanged);
+                if (!docChanged) return null;
+
+                let tr = newState.tr;
+                let modified = false;
+
+                // Scan document for tables directly after H2 headings
+                newState.doc.descendants((node, pos) => {
+                  if (node.type.name === 'heading' && node.attrs.level === 2) {
+                    // Check what comes immediately after this heading
+                    const afterPos = pos + node.nodeSize;
+                    if (afterPos < newState.doc.content.size) {
+                      const $afterPos = newState.doc.resolve(afterPos);
+                      const afterNode = $afterPos.nodeAfter;
+                      
+                      // If next node is a table, insert empty paragraph before it
+                      if (afterNode && afterNode.type.name === 'table') {
+                        const paragraphNode = newState.schema.nodes.paragraph.create();
+                        // Adjust position for any previous insertions
+                        const insertPos = tr.mapping.map(afterPos);
+                        tr = tr.insert(insertPos, paragraphNode);
+                        modified = true;
+                      }
+                    }
+                  }
+                  return true;
+                });
+
+                return modified ? tr : null;
+              },
+            }),
+          ];
+        },
+      }),
     ],
     content,
     onUpdate: ({ editor }) => {
