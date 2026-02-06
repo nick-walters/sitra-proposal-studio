@@ -824,55 +824,29 @@ export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootn
       BlockReordering,
       WPReferenceMark,
       CaseReferenceMark,
-      // Prevent tables from being first element after H2 headings
+      // Prevent tables from being first element in the document content
       Extension.create({
-        name: 'preventTableAfterHeading',
+        name: 'preventTableAtStart',
         addProseMirrorPlugins() {
           return [
             new Plugin({
-              key: new PluginKey('preventTableAfterHeading'),
+              key: new PluginKey('preventTableAtStart'),
               appendTransaction(transactions, oldState, newState) {
                 // Only process if document changed
                 const docChanged = transactions.some(tr => tr.docChanged);
                 if (!docChanged) return null;
 
-                let tr = newState.tr;
-                let modified = false;
-                const insertPositions: number[] = [];
-
-                // Iterate through top-level nodes to find H2 followed by table
                 const doc = newState.doc;
-                let pos = 0;
-                
-                for (let i = 0; i < doc.childCount; i++) {
-                  const node = doc.child(i);
-                  const nodePos = pos;
-                  pos += node.nodeSize;
-                  
-                  // Check if this is an H2 heading
-                  if (node.type.name === 'heading' && node.attrs.level === 2) {
-                    // Check the next node
-                    if (i + 1 < doc.childCount) {
-                      const nextNode = doc.child(i + 1);
-                      console.log('H2 found, next node type:', nextNode.type.name);
-                      if (nextNode.type.name === 'table') {
-                        // Table directly after H2 - need to insert paragraph
-                        console.log('Inserting paragraph at position:', nodePos + node.nodeSize);
-                        insertPositions.push(nodePos + node.nodeSize);
-                      }
-                    }
-                  }
-                }
+                if (doc.childCount === 0) return null;
 
-                // Insert paragraphs at collected positions (in reverse order)
-                for (let i = insertPositions.length - 1; i >= 0; i--) {
-                  const insertPos = insertPositions[i];
-                  const paragraphNode = newState.schema.nodes.paragraph.create();
-                  tr = tr.insert(insertPos, paragraphNode);
-                  modified = true;
-                }
+                // Check if first child is a table
+                const firstChild = doc.child(0);
+                if (firstChild.type.name !== 'table') return null;
 
-                return modified ? tr : null;
+                // Insert empty paragraph at position 0 (before the table)
+                const paragraphNode = newState.schema.nodes.paragraph.create();
+                const tr = newState.tr.insert(0, paragraphNode);
+                return tr;
               },
             }),
           ];
@@ -1084,55 +1058,29 @@ export function useRichTextEditor({
       }),
       // Table formula extension
       TableFormula,
-      // Prevent tables from being first element after H2 headings
+      // Prevent tables from being first element in the document content
       Extension.create({
-        name: 'preventTableAfterHeading',
+        name: 'preventTableAtStart',
         addProseMirrorPlugins() {
           return [
             new Plugin({
-              key: new PluginKey('preventTableAfterHeading'),
+              key: new PluginKey('preventTableAtStart'),
               appendTransaction(transactions, oldState, newState) {
                 // Only process if document changed
                 const docChanged = transactions.some(tr => tr.docChanged);
                 if (!docChanged) return null;
 
-                let tr = newState.tr;
-                let modified = false;
-                const insertPositions: number[] = [];
-
-                // Iterate through top-level nodes to find H2 followed by table
                 const doc = newState.doc;
-                let pos = 0;
-                
-                for (let i = 0; i < doc.childCount; i++) {
-                  const node = doc.child(i);
-                  const nodePos = pos;
-                  pos += node.nodeSize;
-                  
-                  // Check if this is an H2 heading
-                  if (node.type.name === 'heading' && node.attrs.level === 2) {
-                    // Check the next node
-                    if (i + 1 < doc.childCount) {
-                      const nextNode = doc.child(i + 1);
-                      console.log('H2 found, next node type:', nextNode.type.name);
-                      if (nextNode.type.name === 'table') {
-                        // Table directly after H2 - need to insert paragraph
-                        console.log('Inserting paragraph at position:', nodePos + node.nodeSize);
-                        insertPositions.push(nodePos + node.nodeSize);
-                      }
-                    }
-                  }
-                }
+                if (doc.childCount === 0) return null;
 
-                // Insert paragraphs at collected positions (in reverse order)
-                for (let i = insertPositions.length - 1; i >= 0; i--) {
-                  const insertPos = insertPositions[i];
-                  const paragraphNode = newState.schema.nodes.paragraph.create();
-                  tr = tr.insert(insertPos, paragraphNode);
-                  modified = true;
-                }
+                // Check if first child is a table
+                const firstChild = doc.child(0);
+                if (firstChild.type.name !== 'table') return null;
 
-                return modified ? tr : null;
+                // Insert empty paragraph at position 0 (before the table)
+                const paragraphNode = newState.schema.nodes.paragraph.create();
+                const tr = newState.tr.insert(0, paragraphNode);
+                return tr;
               },
             }),
           ];
