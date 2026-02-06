@@ -935,7 +935,7 @@ export function DocumentEditor({
                   <Skeleton className="h-4 w-2/3" />
                 </div>
               ) : (
-                <div ref={editorContainerRef} className="relative">
+                <div ref={editorContainerRef} className={`relative ${(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') ? 'b31-editor-container' : ''}`}>
                   <EditorContent 
                     editor={editor} 
                     className={`document-content outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''} ${(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') ? '' : 'min-h-[400px]'}`}
@@ -958,7 +958,7 @@ export function DocumentEditor({
 
               {/* Interactive B3.1 Tables - Deliverables, Milestones and Risks */}
               {(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') && (
-                <div className="b31-tables-container space-y-4 [&_p]:!my-0">
+                <div className="b31-tables-container space-y-4 [&_p]:!my-0 -mt-1">
                   <B31DeliverablesTable proposalId={proposalId} />
                   <B31MilestonesTable proposalId={proposalId} />
                   <B31RisksTable proposalId={proposalId} />
