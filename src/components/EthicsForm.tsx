@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Textarea } from '@/components/ui/textarea';
 import { AlertTriangle, CheckCircle, Shield, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
@@ -127,6 +128,18 @@ export interface EthicsAssessment {
   otherEthics?: boolean | null;
   otherEthicsPage?: string;
   otherEthicsDetails?: string;
+  // Security Issues
+  securityEuClassified?: boolean | null;
+  securityEuClassifiedPage?: string;
+  securityEuClassifiedLevel?: string;
+  securityDualUse?: boolean | null;
+  securityDualUsePage?: string;
+  securityMisuse?: boolean | null;
+  securityMisusePage?: string;
+  securityExclusivelyDefence?: boolean | null;
+  securityExclusivelyDefencePage?: string;
+  // Self-assessment text
+  selfAssessmentText?: string;
 }
 
 interface EthicsFormProps {
@@ -140,6 +153,7 @@ interface EthicsQuestion {
   id: keyof EthicsAssessment;
   pageId: keyof EthicsAssessment;
   label: string;
+  labelWithLink?: { text: string; linkText: string; linkUrl: string; afterLinkText: string };
   indent?: number;
   parentId?: keyof EthicsAssessment;
   detailsId?: keyof EthicsAssessment; // For questions needing text input
@@ -152,6 +166,42 @@ interface EthicsSection {
   title: string;
   questions: EthicsQuestion[];
 }
+
+// Security issues section (separate from ethics)
+interface SecurityQuestion {
+  id: keyof EthicsAssessment;
+  pageId: keyof EthicsAssessment;
+  label: string;
+  indent?: number;
+  parentId?: keyof EthicsAssessment;
+  detailsId?: keyof EthicsAssessment;
+  detailsPlaceholder?: string;
+}
+
+const SECURITY_QUESTIONS: SecurityQuestion[] = [
+  {
+    id: 'securityEuClassified',
+    pageId: 'securityEuClassifiedPage',
+    label: 'Does this activity involve the use of classified information as background and/or does it have the potential to generate EU-classified results/foreground?',
+    detailsId: 'securityEuClassifiedLevel',
+    detailsPlaceholder: 'If yes, specify the classification level...',
+  },
+  {
+    id: 'securityDualUse',
+    pageId: 'securityDualUsePage',
+    label: 'Does this activity have the potential for misuse of research results? (dual use)',
+  },
+  {
+    id: 'securityMisuse',
+    pageId: 'securityMisusePage',
+    label: 'Is there potential for malevolent/criminal/terrorist abuse of the research results?',
+  },
+  {
+    id: 'securityExclusivelyDefence',
+    pageId: 'securityExclusivelyDefencePage',
+    label: 'Does this activity involve other activities or results that have an exclusively defence-related focus?',
+  },
+];
 
 const ETHICS_SECTIONS: EthicsSection[] = [
   {
@@ -273,7 +323,13 @@ const ETHICS_SECTIONS: EthicsSection[] = [
       {
         id: 'clinicalStudy',
         pageId: 'clinicalStudyPage',
-        label: 'Does this activity involve conducting a clinical study as defined by the Clinical Trial Regulation (EU 536/2014)? (using pharmaceuticals, biologicals, radiopharmaceuticals, or advanced therapy medicinal products)',
+        label: '',
+        labelWithLink: {
+          text: 'Does this activity involve conducting a clinical study as defined by the Clinical Trial ',
+          linkText: 'Regulation (EU 536/2014)',
+          linkUrl: 'https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32014R0536',
+          afterLinkText: '? (using pharmaceuticals, biologicals, radiopharmaceuticals, or advanced therapy medicinal products)'
+        },
       },
       {
         id: 'clinicalTrial',
@@ -551,7 +607,7 @@ function EthicsQuestionRow({
   canEdit,
   isVisible,
 }: {
-  question: EthicsQuestion;
+  question: EthicsQuestion | SecurityQuestion;
   value: boolean | null | undefined;
   pageValue: string | undefined;
   detailsValue?: string;
@@ -563,7 +619,29 @@ function EthicsQuestionRow({
 }) {
   if (!isVisible) return null;
 
-  const indent = question.indent || 0;
+  const indent = (question as EthicsQuestion).indent || 0;
+  const labelWithLink = (question as EthicsQuestion).labelWithLink;
+
+  // Render label with optional link
+  const renderLabel = () => {
+    if (labelWithLink) {
+      return (
+        <>
+          {labelWithLink.text}
+          <a 
+            href={labelWithLink.linkUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary underline hover:text-primary/80"
+          >
+            {labelWithLink.linkText}
+          </a>
+          {labelWithLink.afterLinkText}
+        </>
+      );
+    }
+    return question.label;
+  };
 
   return (
     <>
@@ -577,7 +655,7 @@ function EthicsQuestionRow({
         <div className={cn("text-sm", indent > 0 && `pl-${indent * 6}`)}>
           <span style={{ paddingLeft: `${indent * 24}px` }}>
             {indent > 0 && <span className="text-muted-foreground mr-1">↳</span>}
-            {question.label}
+            {renderLabel()}
           </span>
         </div>
 
@@ -731,6 +809,65 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
             </Card>
           );
         })}
+
+        {/* Security Issues Section */}
+        <Card className={cn(SECURITY_QUESTIONS.some(q => ethicsData[q.id] === true) && 'border-warning/50')}>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-sm flex items-center gap-2">
+                <Shield className="w-4 h-4" />
+                SECURITY ISSUES
+              </h3>
+              {SECURITY_QUESTIONS.some(q => ethicsData[q.id] === true) && (
+                <AlertTriangle className="w-4 h-4 text-warning" />
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {/* Table header */}
+            <div className="grid grid-cols-[1fr,auto,auto] gap-2 items-center py-2 border-b-2 border-border text-xs font-medium text-muted-foreground">
+              <div>Question</div>
+              <div className="w-24 text-center">Answer</div>
+              <div className="w-16 text-center">Page</div>
+            </div>
+
+            {/* Security Questions */}
+            {SECURITY_QUESTIONS.map((question) => (
+              <EthicsQuestionRow
+                key={question.id}
+                question={question}
+                value={ethicsData[question.id] as boolean | null | undefined}
+                pageValue={ethicsData[question.pageId] as string | undefined}
+                detailsValue={question.detailsId ? (ethicsData[question.detailsId] as string | undefined) : undefined}
+                onChange={(value) => handleValueChange(question.id, value)}
+                onPageChange={(value) => handlePageChange(question.pageId, value)}
+                onDetailsChange={question.detailsId ? (value) => handleDetailsChange(question.detailsId!, value) : undefined}
+                canEdit={canEdit}
+                isVisible={true}
+              />
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* Self-Assessment Section */}
+        <Card>
+          <CardHeader className="pb-2">
+            <h3 className="font-semibold text-sm">ETHICS SELF-ASSESSMENT</h3>
+            <CardDescription className="text-xs">
+              If you have answered "Yes" to any of the ethics or security questions above, please provide a brief description 
+              of how you will address each identified issue. This will be used in the ethics review process.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <Textarea
+              value={ethicsData.selfAssessmentText || ''}
+              onChange={(e) => onUpdateEthics({ selfAssessmentText: e.target.value })}
+              placeholder="Describe how you will address the ethics and security issues identified above..."
+              className="min-h-[150px] text-sm"
+              disabled={!canEdit}
+            />
+          </CardContent>
+        </Card>
 
         {/* Summary note */}
         <Card className="bg-muted/50">
