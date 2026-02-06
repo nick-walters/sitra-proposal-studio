@@ -484,23 +484,125 @@ export type Database = {
       ethics_assessment: {
         Row: {
           animals: boolean | null
+          animals_cloned: boolean | null
+          animals_cloned_page: string | null
           animals_details: string | null
+          animals_endangered: boolean | null
+          animals_endangered_page: string | null
+          animals_non_human_primates: boolean | null
+          animals_non_human_primates_page: string | null
+          animals_page: string | null
+          animals_transgenic: boolean | null
+          animals_transgenic_page: string | null
+          animals_vertebrates: boolean | null
+          animals_vertebrates_page: string | null
+          artificial_intelligence: boolean | null
+          artificial_intelligence_page: string | null
+          clinical_study: boolean | null
+          clinical_study_page: string | null
+          clinical_trial: boolean | null
+          clinical_trial_page: string | null
           created_at: string
           dual_use: boolean | null
           dual_use_details: string | null
           environment: boolean | null
           environment_details: string | null
+          environment_health: boolean | null
+          environment_health_endangered: boolean | null
+          environment_health_endangered_page: string | null
+          environment_health_harmful: boolean | null
+          environment_health_harmful_page: string | null
+          environment_health_page: string | null
+          hesc_derived_from_embryos: boolean | null
+          hesc_derived_from_embryos_page: string | null
+          hesc_established_lines: boolean | null
+          hesc_established_lines_page: string | null
+          hesc_european_registry: boolean | null
+          hesc_european_registry_page: string | null
+          human_biological_samples: boolean | null
+          human_biological_samples_page: string | null
           human_cells: boolean | null
+          human_cells_biobank: boolean | null
+          human_cells_biobank_page: string | null
+          human_cells_commercial: boolean | null
+          human_cells_commercial_page: string | null
           human_cells_details: string | null
+          human_cells_embryonic_foetal: boolean | null
+          human_cells_embryonic_foetal_page: string | null
+          human_cells_obtained_other: boolean | null
+          human_cells_obtained_other_page: string | null
+          human_cells_obtained_within: boolean | null
+          human_cells_obtained_within_page: string | null
+          human_cells_page: string | null
+          human_children: boolean | null
+          human_children_page: string | null
+          human_embryonic_stem_cells: boolean | null
+          human_embryonic_stem_cells_page: string | null
+          human_embryos_destruction: boolean | null
+          human_embryos_destruction_page: string | null
+          human_embryos_section1: boolean | null
+          human_embryos_section1_page: string | null
+          human_interventions: boolean | null
+          human_interventions_page: string | null
+          human_invasive: boolean | null
+          human_invasive_page: string | null
+          human_participants: boolean | null
+          human_participants_page: string | null
+          human_patients: boolean | null
+          human_patients_page: string | null
           human_subjects: boolean | null
           human_subjects_details: string | null
+          human_unable_consent: boolean | null
+          human_unable_consent_page: string | null
+          human_volunteers_medical: boolean | null
+          human_volunteers_medical_page: string | null
+          human_volunteers_non_medical: boolean | null
+          human_volunteers_non_medical_page: string | null
+          human_vulnerable: boolean | null
+          human_vulnerable_page: string | null
           id: string
+          low_intervention_trial: boolean | null
+          low_intervention_trial_page: string | null
           misuse: boolean | null
           misuse_details: string | null
+          non_eu_countries: boolean | null
+          non_eu_countries_details: string | null
+          non_eu_countries_ethics_issues: boolean | null
+          non_eu_countries_ethics_issues_details: string | null
+          non_eu_countries_ethics_issues_page: string | null
+          non_eu_countries_lmic: boolean | null
+          non_eu_countries_lmic_page: string | null
+          non_eu_countries_material_export: boolean | null
+          non_eu_countries_material_export_details: string | null
+          non_eu_countries_material_export_page: string | null
+          non_eu_countries_material_import: boolean | null
+          non_eu_countries_material_import_details: string | null
+          non_eu_countries_material_import_page: string | null
+          non_eu_countries_page: string | null
+          non_eu_countries_risk: boolean | null
+          non_eu_countries_risk_page: string | null
           other_ethics: boolean | null
           other_ethics_details: string | null
+          other_ethics_page: string | null
           personal_data: boolean | null
+          personal_data_criminal: boolean | null
+          personal_data_criminal_page: string | null
           personal_data_details: string | null
+          personal_data_export_non_eu: boolean | null
+          personal_data_export_non_eu_details: string | null
+          personal_data_export_non_eu_page: string | null
+          personal_data_genetic: boolean | null
+          personal_data_genetic_page: string | null
+          personal_data_import_non_eu: boolean | null
+          personal_data_import_non_eu_details: string | null
+          personal_data_import_non_eu_page: string | null
+          personal_data_page: string | null
+          personal_data_previously_collected: boolean | null
+          personal_data_previously_collected_page: string | null
+          personal_data_profiling: boolean | null
+          personal_data_profiling_page: string | null
+          personal_data_special_categories: boolean | null
+          personal_data_special_categories_page: string | null
           proposal_id: string
           security_dual_use: boolean | null
           security_dual_use_page: string | null
@@ -518,23 +620,125 @@ export type Database = {
         }
         Insert: {
           animals?: boolean | null
+          animals_cloned?: boolean | null
+          animals_cloned_page?: string | null
           animals_details?: string | null
+          animals_endangered?: boolean | null
+          animals_endangered_page?: string | null
+          animals_non_human_primates?: boolean | null
+          animals_non_human_primates_page?: string | null
+          animals_page?: string | null
+          animals_transgenic?: boolean | null
+          animals_transgenic_page?: string | null
+          animals_vertebrates?: boolean | null
+          animals_vertebrates_page?: string | null
+          artificial_intelligence?: boolean | null
+          artificial_intelligence_page?: string | null
+          clinical_study?: boolean | null
+          clinical_study_page?: string | null
+          clinical_trial?: boolean | null
+          clinical_trial_page?: string | null
           created_at?: string
           dual_use?: boolean | null
           dual_use_details?: string | null
           environment?: boolean | null
           environment_details?: string | null
+          environment_health?: boolean | null
+          environment_health_endangered?: boolean | null
+          environment_health_endangered_page?: string | null
+          environment_health_harmful?: boolean | null
+          environment_health_harmful_page?: string | null
+          environment_health_page?: string | null
+          hesc_derived_from_embryos?: boolean | null
+          hesc_derived_from_embryos_page?: string | null
+          hesc_established_lines?: boolean | null
+          hesc_established_lines_page?: string | null
+          hesc_european_registry?: boolean | null
+          hesc_european_registry_page?: string | null
+          human_biological_samples?: boolean | null
+          human_biological_samples_page?: string | null
           human_cells?: boolean | null
+          human_cells_biobank?: boolean | null
+          human_cells_biobank_page?: string | null
+          human_cells_commercial?: boolean | null
+          human_cells_commercial_page?: string | null
           human_cells_details?: string | null
+          human_cells_embryonic_foetal?: boolean | null
+          human_cells_embryonic_foetal_page?: string | null
+          human_cells_obtained_other?: boolean | null
+          human_cells_obtained_other_page?: string | null
+          human_cells_obtained_within?: boolean | null
+          human_cells_obtained_within_page?: string | null
+          human_cells_page?: string | null
+          human_children?: boolean | null
+          human_children_page?: string | null
+          human_embryonic_stem_cells?: boolean | null
+          human_embryonic_stem_cells_page?: string | null
+          human_embryos_destruction?: boolean | null
+          human_embryos_destruction_page?: string | null
+          human_embryos_section1?: boolean | null
+          human_embryos_section1_page?: string | null
+          human_interventions?: boolean | null
+          human_interventions_page?: string | null
+          human_invasive?: boolean | null
+          human_invasive_page?: string | null
+          human_participants?: boolean | null
+          human_participants_page?: string | null
+          human_patients?: boolean | null
+          human_patients_page?: string | null
           human_subjects?: boolean | null
           human_subjects_details?: string | null
+          human_unable_consent?: boolean | null
+          human_unable_consent_page?: string | null
+          human_volunteers_medical?: boolean | null
+          human_volunteers_medical_page?: string | null
+          human_volunteers_non_medical?: boolean | null
+          human_volunteers_non_medical_page?: string | null
+          human_vulnerable?: boolean | null
+          human_vulnerable_page?: string | null
           id?: string
+          low_intervention_trial?: boolean | null
+          low_intervention_trial_page?: string | null
           misuse?: boolean | null
           misuse_details?: string | null
+          non_eu_countries?: boolean | null
+          non_eu_countries_details?: string | null
+          non_eu_countries_ethics_issues?: boolean | null
+          non_eu_countries_ethics_issues_details?: string | null
+          non_eu_countries_ethics_issues_page?: string | null
+          non_eu_countries_lmic?: boolean | null
+          non_eu_countries_lmic_page?: string | null
+          non_eu_countries_material_export?: boolean | null
+          non_eu_countries_material_export_details?: string | null
+          non_eu_countries_material_export_page?: string | null
+          non_eu_countries_material_import?: boolean | null
+          non_eu_countries_material_import_details?: string | null
+          non_eu_countries_material_import_page?: string | null
+          non_eu_countries_page?: string | null
+          non_eu_countries_risk?: boolean | null
+          non_eu_countries_risk_page?: string | null
           other_ethics?: boolean | null
           other_ethics_details?: string | null
+          other_ethics_page?: string | null
           personal_data?: boolean | null
+          personal_data_criminal?: boolean | null
+          personal_data_criminal_page?: string | null
           personal_data_details?: string | null
+          personal_data_export_non_eu?: boolean | null
+          personal_data_export_non_eu_details?: string | null
+          personal_data_export_non_eu_page?: string | null
+          personal_data_genetic?: boolean | null
+          personal_data_genetic_page?: string | null
+          personal_data_import_non_eu?: boolean | null
+          personal_data_import_non_eu_details?: string | null
+          personal_data_import_non_eu_page?: string | null
+          personal_data_page?: string | null
+          personal_data_previously_collected?: boolean | null
+          personal_data_previously_collected_page?: string | null
+          personal_data_profiling?: boolean | null
+          personal_data_profiling_page?: string | null
+          personal_data_special_categories?: boolean | null
+          personal_data_special_categories_page?: string | null
           proposal_id: string
           security_dual_use?: boolean | null
           security_dual_use_page?: string | null
@@ -552,23 +756,125 @@ export type Database = {
         }
         Update: {
           animals?: boolean | null
+          animals_cloned?: boolean | null
+          animals_cloned_page?: string | null
           animals_details?: string | null
+          animals_endangered?: boolean | null
+          animals_endangered_page?: string | null
+          animals_non_human_primates?: boolean | null
+          animals_non_human_primates_page?: string | null
+          animals_page?: string | null
+          animals_transgenic?: boolean | null
+          animals_transgenic_page?: string | null
+          animals_vertebrates?: boolean | null
+          animals_vertebrates_page?: string | null
+          artificial_intelligence?: boolean | null
+          artificial_intelligence_page?: string | null
+          clinical_study?: boolean | null
+          clinical_study_page?: string | null
+          clinical_trial?: boolean | null
+          clinical_trial_page?: string | null
           created_at?: string
           dual_use?: boolean | null
           dual_use_details?: string | null
           environment?: boolean | null
           environment_details?: string | null
+          environment_health?: boolean | null
+          environment_health_endangered?: boolean | null
+          environment_health_endangered_page?: string | null
+          environment_health_harmful?: boolean | null
+          environment_health_harmful_page?: string | null
+          environment_health_page?: string | null
+          hesc_derived_from_embryos?: boolean | null
+          hesc_derived_from_embryos_page?: string | null
+          hesc_established_lines?: boolean | null
+          hesc_established_lines_page?: string | null
+          hesc_european_registry?: boolean | null
+          hesc_european_registry_page?: string | null
+          human_biological_samples?: boolean | null
+          human_biological_samples_page?: string | null
           human_cells?: boolean | null
+          human_cells_biobank?: boolean | null
+          human_cells_biobank_page?: string | null
+          human_cells_commercial?: boolean | null
+          human_cells_commercial_page?: string | null
           human_cells_details?: string | null
+          human_cells_embryonic_foetal?: boolean | null
+          human_cells_embryonic_foetal_page?: string | null
+          human_cells_obtained_other?: boolean | null
+          human_cells_obtained_other_page?: string | null
+          human_cells_obtained_within?: boolean | null
+          human_cells_obtained_within_page?: string | null
+          human_cells_page?: string | null
+          human_children?: boolean | null
+          human_children_page?: string | null
+          human_embryonic_stem_cells?: boolean | null
+          human_embryonic_stem_cells_page?: string | null
+          human_embryos_destruction?: boolean | null
+          human_embryos_destruction_page?: string | null
+          human_embryos_section1?: boolean | null
+          human_embryos_section1_page?: string | null
+          human_interventions?: boolean | null
+          human_interventions_page?: string | null
+          human_invasive?: boolean | null
+          human_invasive_page?: string | null
+          human_participants?: boolean | null
+          human_participants_page?: string | null
+          human_patients?: boolean | null
+          human_patients_page?: string | null
           human_subjects?: boolean | null
           human_subjects_details?: string | null
+          human_unable_consent?: boolean | null
+          human_unable_consent_page?: string | null
+          human_volunteers_medical?: boolean | null
+          human_volunteers_medical_page?: string | null
+          human_volunteers_non_medical?: boolean | null
+          human_volunteers_non_medical_page?: string | null
+          human_vulnerable?: boolean | null
+          human_vulnerable_page?: string | null
           id?: string
+          low_intervention_trial?: boolean | null
+          low_intervention_trial_page?: string | null
           misuse?: boolean | null
           misuse_details?: string | null
+          non_eu_countries?: boolean | null
+          non_eu_countries_details?: string | null
+          non_eu_countries_ethics_issues?: boolean | null
+          non_eu_countries_ethics_issues_details?: string | null
+          non_eu_countries_ethics_issues_page?: string | null
+          non_eu_countries_lmic?: boolean | null
+          non_eu_countries_lmic_page?: string | null
+          non_eu_countries_material_export?: boolean | null
+          non_eu_countries_material_export_details?: string | null
+          non_eu_countries_material_export_page?: string | null
+          non_eu_countries_material_import?: boolean | null
+          non_eu_countries_material_import_details?: string | null
+          non_eu_countries_material_import_page?: string | null
+          non_eu_countries_page?: string | null
+          non_eu_countries_risk?: boolean | null
+          non_eu_countries_risk_page?: string | null
           other_ethics?: boolean | null
           other_ethics_details?: string | null
+          other_ethics_page?: string | null
           personal_data?: boolean | null
+          personal_data_criminal?: boolean | null
+          personal_data_criminal_page?: string | null
           personal_data_details?: string | null
+          personal_data_export_non_eu?: boolean | null
+          personal_data_export_non_eu_details?: string | null
+          personal_data_export_non_eu_page?: string | null
+          personal_data_genetic?: boolean | null
+          personal_data_genetic_page?: string | null
+          personal_data_import_non_eu?: boolean | null
+          personal_data_import_non_eu_details?: string | null
+          personal_data_import_non_eu_page?: string | null
+          personal_data_page?: string | null
+          personal_data_previously_collected?: boolean | null
+          personal_data_previously_collected_page?: string | null
+          personal_data_profiling?: boolean | null
+          personal_data_profiling_page?: string | null
+          personal_data_special_categories?: boolean | null
+          personal_data_special_categories_page?: string | null
           proposal_id?: string
           security_dual_use?: boolean | null
           security_dual_use_page?: string | null
