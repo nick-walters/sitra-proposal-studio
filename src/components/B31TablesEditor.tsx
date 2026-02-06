@@ -1026,66 +1026,63 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
           <Table className={tableStyles}>
             <TableHeader>
               <TableRow className="bg-black text-white hover:bg-black">
-                <TableHead className={`${cellStyles} text-white font-bold`} colSpan={2}>Risk</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold`}>Risk</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[28px] text-center`}>i</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[28px] text-center`}>ii</TableHead>
                 <TableHead className={`${cellStyles} text-white font-bold w-[12%]`}>WPs</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[44%]`}>Mitigation & adaptation measures</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold`}>Mitigation & adaptation measures</TableHead>
               </TableRow>
             </TableHeader>
             <SortableContext items={risks.map(r => r.id)} strategy={verticalListSortingStrategy}>
               <TableBody>
                 {risks.map((risk) => (
                   <SortableTableRow key={risk.id} id={risk.id} canDrag={isAdminOrOwner} onDelete={() => deleteRisk.mutate(risk.id)}>
-                    <TableCell className={`${cellStyles} border-r-0`}>
+                    <TableCell className={cellStyles}>
                       <EditableText
                         value={risk.description}
                         onChange={(val) => updateRisk.mutate({ id: risk.id, description: val })}
                         placeholder="Description of risk"
                       />
                     </TableCell>
-                    {/* Likelihood/Severity column - visually part of Risk but separate cell */}
-                    <TableCell className={`${cellStyles} border-l-0 w-[60px] align-middle`}>
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-0.5 font-['Times_New_Roman',Times,serif] text-[11pt]">
-                          <span className="font-bold">i.</span>
-                          <Select value={risk.likelihood || ''} onValueChange={(v) => updateRisk.mutate({ id: risk.id, likelihood: v as 'L' | 'M' | 'H' || null })}>
-                            <SelectTrigger className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex">
-                              <SelectValue>
-                                {risk.likelihood ? <RiskBadge level={risk.likelihood} /> : <span className="text-muted-foreground">-</span>}
-                              </SelectValue>
-                            </SelectTrigger>
-                            <SelectContent className="bg-background z-50">
-                              {riskLevelOptions.map(opt => (
-                                <SelectItem key={opt.value} value={opt.value}>
-                                  <div className="flex items-center gap-2">
-                                    <RiskBadge level={opt.value as 'L' | 'M' | 'H'} />
-                                    <span>{opt.label}</span>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="flex items-center gap-0.5 font-['Times_New_Roman',Times,serif] text-[11pt]">
-                          <span className="font-bold">ii.</span>
-                          <Select value={risk.severity || ''} onValueChange={(v) => updateRisk.mutate({ id: risk.id, severity: v as 'L' | 'M' | 'H' || null })}>
-                            <SelectTrigger className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex">
-                              <SelectValue>
-                                {risk.severity ? <RiskBadge level={risk.severity} /> : <span className="text-muted-foreground">-</span>}
-                              </SelectValue>
-                            </SelectTrigger>
-                            <SelectContent className="bg-background z-50">
-                              {riskLevelOptions.map(opt => (
-                                <SelectItem key={opt.value} value={opt.value}>
-                                  <div className="flex items-center gap-2">
-                                    <RiskBadge level={opt.value as 'L' | 'M' | 'H'} />
-                                    <span>{opt.label}</span>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
+                    {/* Likelihood (i) column */}
+                    <TableCell className={`${cellStyles} text-center`}>
+                      <Select value={risk.likelihood || ''} onValueChange={(v) => updateRisk.mutate({ id: risk.id, likelihood: v as 'L' | 'M' | 'H' || null })}>
+                        <SelectTrigger className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex justify-center">
+                          <SelectValue>
+                            {risk.likelihood ? <RiskBadge level={risk.likelihood} /> : <span className="text-muted-foreground">-</span>}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent className="bg-background z-50">
+                          {riskLevelOptions.map(opt => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              <div className="flex items-center gap-2">
+                                <RiskBadge level={opt.value as 'L' | 'M' | 'H'} />
+                                <span>{opt.label}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    {/* Severity (ii) column */}
+                    <TableCell className={`${cellStyles} text-center`}>
+                      <Select value={risk.severity || ''} onValueChange={(v) => updateRisk.mutate({ id: risk.id, severity: v as 'L' | 'M' | 'H' || null })}>
+                        <SelectTrigger className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex justify-center">
+                          <SelectValue>
+                            {risk.severity ? <RiskBadge level={risk.severity} /> : <span className="text-muted-foreground">-</span>}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent className="bg-background z-50">
+                          {riskLevelOptions.map(opt => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              <div className="flex items-center gap-2">
+                                <RiskBadge level={opt.value as 'L' | 'M' | 'H'} />
+                                <span>{opt.label}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </TableCell>
                     <TableCell className={cellStyles}>
                       <MultiWPSelector
