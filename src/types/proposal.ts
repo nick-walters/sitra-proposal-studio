@@ -230,6 +230,13 @@ export interface Participant {
   organisationCategory?: string;
   englishName?: string;
   personnelCostRate?: number; // Monthly cost rate in EUR for personnel calculations
+  // Part A2 additional fields
+  department?: string;
+  mainContactTitle?: string;
+  mainContactPosition?: string;
+  mainContactPhone?: string;
+  hasGenderEqualityPlan?: boolean;
+  dependencyDeclaration?: string;
 }
 
 /**

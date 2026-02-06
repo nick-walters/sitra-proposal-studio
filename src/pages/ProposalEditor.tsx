@@ -7,6 +7,7 @@ import { ParticipantDetailForm } from "@/components/ParticipantDetailForm";
 import { GeneralInfoForm } from "@/components/GeneralInfoForm";
 import { BudgetSpreadsheetEnhanced } from "@/components/BudgetSpreadsheetEnhanced";
 import { EthicsForm } from "@/components/EthicsForm";
+import { OtherQuestionsForm } from "@/components/OtherQuestionsForm";
 import { DeclarationsForm } from "@/components/DeclarationsForm";
 import { FigureManager } from "@/components/FigureManager";
 import { SectionProgressDashboard } from "@/components/SectionProgressDashboard";
@@ -490,6 +491,28 @@ export function ProposalEditor() {
             canEdit={canEdit}
             proposalId={id || ''}
             saving={budgetSaving}
+          />
+        );
+      }
+
+      // A4 - Ethics & Security (form) - matches "a4"
+      if (activeSection.id === 'a4' || activeSection.id === 'ethics') {
+        return (
+          <EthicsForm
+            ethics={ethics}
+            onUpdateEthics={updateEthics}
+            canEdit={canEdit}
+          />
+        );
+      }
+
+      // A5 - Other Questions (form) - matches "a5"
+      if (activeSection.id === 'a5' || activeSection.id === 'other-questions') {
+        return (
+          <OtherQuestionsForm
+            proposalId={id || ''}
+            submissionStage={proposal?.submissionStage}
+            canEdit={canEdit}
           />
         );
       }

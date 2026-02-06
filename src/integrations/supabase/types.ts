@@ -958,11 +958,17 @@ export type Database = {
           contact_email: string | null
           country: string | null
           created_at: string
+          department: string | null
+          dependency_declaration: string | null
           english_name: string | null
+          has_gender_equality_plan: boolean | null
           id: string
           is_sme: boolean | null
           legal_entity_type: string | null
           logo_url: string | null
+          main_contact_phone: string | null
+          main_contact_position: string | null
+          main_contact_title: string | null
           organisation_category: string | null
           organisation_name: string
           organisation_short_name: string | null
@@ -978,11 +984,17 @@ export type Database = {
           contact_email?: string | null
           country?: string | null
           created_at?: string
+          department?: string | null
+          dependency_declaration?: string | null
           english_name?: string | null
+          has_gender_equality_plan?: boolean | null
           id?: string
           is_sme?: boolean | null
           legal_entity_type?: string | null
           logo_url?: string | null
+          main_contact_phone?: string | null
+          main_contact_position?: string | null
+          main_contact_title?: string | null
           organisation_category?: string | null
           organisation_name: string
           organisation_short_name?: string | null
@@ -998,11 +1010,17 @@ export type Database = {
           contact_email?: string | null
           country?: string | null
           created_at?: string
+          department?: string | null
+          dependency_declaration?: string | null
           english_name?: string | null
+          has_gender_equality_plan?: boolean | null
           id?: string
           is_sme?: boolean | null
           legal_entity_type?: string | null
           logo_url?: string | null
+          main_contact_phone?: string | null
+          main_contact_position?: string | null
+          main_contact_title?: string | null
           organisation_category?: string | null
           organisation_name?: string
           organisation_short_name?: string | null
