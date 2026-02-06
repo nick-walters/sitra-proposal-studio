@@ -188,15 +188,16 @@ function SectionItem({
         }}
       >
         {/* Left-side icons */}
-        {section.id === 'a2' ? (
-          <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
-        ) : section.id === 'a1' ? (
+        {/* Left-side icons */}
+        {section.id === 'a1' || section.number === 'A1' ? (
           <Info className="w-4 h-4 text-muted-foreground shrink-0" />
-        ) : section.id === 'a3' ? (
+        ) : section.id === 'a2' || section.number === 'A2' ? (
+          <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
+        ) : section.id === 'a3' || section.number === 'A3' ? (
           <Euro className="w-4 h-4 text-muted-foreground shrink-0" />
-        ) : section.id === 'a4' ? (
+        ) : section.id === 'a4' || section.number === 'A4' ? (
           <ShieldCheck className="w-4 h-4 text-muted-foreground shrink-0" />
-        ) : section.id === 'a5' ? (
+        ) : section.id === 'a5' || section.number === 'A5' ? (
           <HelpCircle className="w-4 h-4 text-muted-foreground shrink-0" />
         ) : section.id === 'b1' || section.number === 'B1' ? (
           <Lightbulb className="w-4 h-4 text-muted-foreground shrink-0" />
