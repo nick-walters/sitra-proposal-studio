@@ -217,7 +217,7 @@ function SortableRiskCard({
             onValueChange={(value) => onUpdate(risk.id, { likelihood: value })}
             disabled={readOnly}
           >
-            <SelectTrigger className={cn("h-6 w-[42px] text-xs px-1.5", getRiskLevelColor(risk.likelihood))}>
+            <SelectTrigger hideArrow className={cn("h-6 w-[32px] text-xs px-1.5", getRiskLevelColor(risk.likelihood))}>
               <SelectValue placeholder="—" />
             </SelectTrigger>
             <SelectContent>
@@ -236,7 +236,7 @@ function SortableRiskCard({
             onValueChange={(value) => onUpdate(risk.id, { severity: value })}
             disabled={readOnly}
           >
-            <SelectTrigger className={cn("h-6 w-[42px] text-xs px-1.5", getRiskLevelColor(risk.severity))}>
+            <SelectTrigger hideArrow className={cn("h-6 w-[32px] text-xs px-1.5", getRiskLevelColor(risk.severity))}>
               <SelectValue placeholder="—" />
             </SelectTrigger>
             <SelectContent>
