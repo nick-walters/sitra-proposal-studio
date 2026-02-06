@@ -317,7 +317,6 @@ function MultiWPSelector({
           ) : (
             <span className="font-['Times_New_Roman',Times,serif] text-[11pt] text-muted-foreground">-</span>
           )}
-          <ChevronDown className="h-3 w-3 opacity-50 ml-0.5" />
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-56 p-2 bg-background z-50" align="start">
