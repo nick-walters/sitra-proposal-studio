@@ -148,12 +148,21 @@ function EditableText({
   className?: string;
 }) {
   const [localValue, setLocalValue] = useState(value);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Sync local value when prop changes (e.g., from another user)
   useEffect(() => {
     setLocalValue(value);
   }, [value]);
+  
+  // Auto-resize on mount and when value changes
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+    }
+  }, [localValue]);
   
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
@@ -175,6 +184,7 @@ function EditableText({
   
   return (
     <textarea
+      ref={textareaRef}
       value={localValue}
       onChange={handleChange}
       placeholder={placeholder}
@@ -185,11 +195,6 @@ function EditableText({
         lineHeight: '1.2',
         overflow: 'hidden',
         display: 'block'
-      }}
-      onInput={(e) => {
-        const target = e.target as HTMLTextAreaElement;
-        target.style.height = 'auto';
-        target.style.height = target.scrollHeight + 'px';
       }}
     />
   );
@@ -592,7 +597,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
           <span className="font-bold italic">Table 3.1c.</span> List of deliverables
         </p>
         {isAdminOrOwner && (
-          <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs">
+          <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs h-6 px-2 py-0">
             <ArrowUpDown className="h-3 w-3 mr-1" /> Auto-reorder
           </Button>
         )}
@@ -829,7 +834,7 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
           <span className="font-bold italic">Table 3.1d.</span> List of milestones
         </p>
         {isAdminOrOwner && (
-          <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs">
+          <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs h-6 px-2 py-0">
             <ArrowUpDown className="h-3 w-3 mr-1" /> Auto-reorder
           </Button>
         )}
@@ -1015,7 +1020,7 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
           <span className="font-bold italic">Table 3.1e.</span> Critical risks (<span className="font-bold">i.</span> likelihood; <span className="font-bold">ii.</span> severity; <span className="font-bold text-green-600">L</span> = low, <span className="font-bold text-amber-500">M</span> = medium, <span className="font-bold text-red-500">H</span> = high)
         </p>
         {isAdminOrOwner && (
-          <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs">
+          <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs h-6 px-2 py-0">
             <ArrowUpDown className="h-3 w-3 mr-1" /> Auto-reorder
           </Button>
         )}
