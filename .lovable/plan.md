@@ -1,40 +1,51 @@
 
-# Plan: Fix A4 and A5 Parent Section Assignment
+# Fix: Remove Large Gap Before B3.1 Tables
 
 ## Problem
 
-A4 (Ethics & Security) and A5 (Other Questions) sections were inserted into the database without the `parent_section_id` field, causing them to render as top-level sections instead of nested under "Part A" like A1, A2, and A3.
+Section 3.1 displays a large whitespace gap between the editor content and the interactive tables (Deliverables, Milestones, Risks), even when there's minimal text in the editor.
+
+## Root Cause
+
+The `useRichTextEditor` hook in `src/components/RichTextEditor.tsx` hardcodes `min-h-[400px]` directly on the ProseMirror editor element via `editorProps.attributes.class`:
+
+```tsx
+editorProps: {
+  attributes: {
+    class: 'document-content min-h-[400px] outline-none prose prose-sm max-w-none',
+    ...
+  },
+},
+```
+
+This minimum height is applied to the internal `.ProseMirror` element, not the wrapper `EditorContent` component. Previous fixes only removed the `min-h-[400px]` from the `EditorContent` className, but the ProseMirror element inside still retains the 400px minimum height.
 
 ## Solution
 
-Run a database migration to set the correct `parent_section_id` for A4 and A5 sections.
+Add a CSS override in `src/index.css` to remove the minimum height specifically for B3.1 sections:
 
-## Database Migration
-
-```sql
-UPDATE template_sections 
-SET parent_section_id = '00000000-0002-0000-0000-000000000002'
-WHERE section_number IN ('A4', 'A5') 
-AND template_type_id = '33333333-3333-3333-3333-333333333333';
+```css
+.b31-editor-container .ProseMirror {
+  min-height: 0 !important;
+}
 ```
 
-## Expected Result
+This targets the inner ProseMirror element when it's within a B3.1 editor container, overriding the hardcoded 400px minimum height.
 
-After the fix:
+## Implementation Steps
 
-| Section | parent_section_id |
-|---------|-------------------|
-| Part A | `null` (root) |
-| A1 | Part A |
-| A2 | Part A |
-| A3 | Part A |
-| A4 | Part A |
-| A5 | Part A |
-
-This will render A4 and A5 at the same indentation level as A1-A3 in the left navigation panel.
+1. **Update `src/index.css`** - Add CSS rule to override the min-height on `.ProseMirror` for B3.1 sections
+   - Add new rule: `.b31-editor-container .ProseMirror { min-height: 0 !important; }`
+   - Place this near the existing `.b31-editor-container` rule for organization
 
 ## Technical Details
 
-- Parent section ID: `00000000-0002-0000-0000-000000000002` (the "Part A: Administrative forms" section)
-- Template type ID: `33333333-3333-3333-3333-333333333333` (Full RIA template)
-- No code changes required - this is purely a database fix
+- The fix uses CSS specificity to override the Tailwind utility class (`min-h-[400px]`) that's hardcoded in the hook
+- The `!important` flag is necessary because Tailwind utility classes are applied inline
+- This approach is minimal and doesn't require modifying the shared `useRichTextEditor` hook, which is used by other components
+- The existing `b31-editor-container` class is already being applied to the wrapper div in DocumentEditor.tsx
+
+## Files to Modify
+
+1. `src/index.css` - Add CSS override rule
+
