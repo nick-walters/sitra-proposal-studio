@@ -240,7 +240,7 @@ function SortableDeliverableCard({
             onValueChange={(value) => onUpdate(deliverable.id, { type: value })}
             disabled={readOnly}
           >
-            <SelectTrigger className="h-6 w-[75px] text-xs px-1.5">
+            <SelectTrigger hideArrow className="h-6 w-[60px] text-xs px-1.5">
               <SelectValue placeholder="Type" />
             </SelectTrigger>
             <SelectContent className="bg-popover">
@@ -263,7 +263,7 @@ function SortableDeliverableCard({
             onValueChange={(value) => onUpdate(deliverable.id, { dissemination_level: value })}
             disabled={readOnly}
           >
-            <SelectTrigger className="h-6 w-[70px] text-xs px-1.5">
+            <SelectTrigger hideArrow className="h-6 w-[55px] text-xs px-1.5">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -283,7 +283,7 @@ function SortableDeliverableCard({
             onValueChange={(value) => onUpdate(deliverable.id, { responsible_participant_id: value || null })}
             disabled={readOnly}
           >
-            <SelectTrigger className="h-6 w-[90px] text-xs px-1.5">
+            <SelectTrigger hideArrow className="h-6 w-[80px] text-xs px-1.5">
               <SelectValue placeholder="Select..." />
             </SelectTrigger>
             <SelectContent>
@@ -303,7 +303,7 @@ function SortableDeliverableCard({
             onValueChange={(value) => onUpdate(deliverable.id, { due_month: value ? parseInt(value) : null })}
             disabled={readOnly}
           >
-            <SelectTrigger className="h-6 w-[55px] text-xs px-1">
+            <SelectTrigger hideArrow className="h-6 w-[45px] text-xs px-1">
               <SelectValue placeholder="M" />
             </SelectTrigger>
             <SelectContent>
