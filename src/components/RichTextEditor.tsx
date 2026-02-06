@@ -832,28 +832,45 @@ export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootn
             new Plugin({
               key: new PluginKey('preventTableAfterHeading'),
               appendTransaction(transactions, oldState, newState) {
+                // Only process if document changed
                 const docChanged = transactions.some(tr => tr.docChanged);
                 if (!docChanged) return null;
 
                 let tr = newState.tr;
                 let modified = false;
+                const insertPositions: number[] = [];
 
-                newState.doc.descendants((node, pos) => {
+                // Iterate through top-level nodes to find H2 followed by table
+                const doc = newState.doc;
+                let pos = 0;
+                
+                for (let i = 0; i < doc.childCount; i++) {
+                  const node = doc.child(i);
+                  const nodePos = pos;
+                  pos += node.nodeSize;
+                  
+                  // Check if this is an H2 heading
                   if (node.type.name === 'heading' && node.attrs.level === 2) {
-                    const afterPos = pos + node.nodeSize;
-                    if (afterPos < newState.doc.content.size) {
-                      const $afterPos = newState.doc.resolve(afterPos);
-                      const afterNode = $afterPos.nodeAfter;
-                      if (afterNode && afterNode.type.name === 'table') {
-                        const paragraphNode = newState.schema.nodes.paragraph.create();
-                        const insertPos = tr.mapping.map(afterPos);
-                        tr = tr.insert(insertPos, paragraphNode);
-                        modified = true;
+                    // Check the next node
+                    if (i + 1 < doc.childCount) {
+                      const nextNode = doc.child(i + 1);
+                      console.log('H2 found, next node type:', nextNode.type.name);
+                      if (nextNode.type.name === 'table') {
+                        // Table directly after H2 - need to insert paragraph
+                        console.log('Inserting paragraph at position:', nodePos + node.nodeSize);
+                        insertPositions.push(nodePos + node.nodeSize);
                       }
                     }
                   }
-                  return true;
-                });
+                }
+
+                // Insert paragraphs at collected positions (in reverse order)
+                for (let i = insertPositions.length - 1; i >= 0; i--) {
+                  const insertPos = insertPositions[i];
+                  const paragraphNode = newState.schema.nodes.paragraph.create();
+                  tr = tr.insert(insertPos, paragraphNode);
+                  modified = true;
+                }
 
                 return modified ? tr : null;
               },
@@ -1081,28 +1098,39 @@ export function useRichTextEditor({
 
                 let tr = newState.tr;
                 let modified = false;
+                const insertPositions: number[] = [];
 
-                // Scan document for tables directly after H2 headings
-                newState.doc.descendants((node, pos) => {
+                // Iterate through top-level nodes to find H2 followed by table
+                const doc = newState.doc;
+                let pos = 0;
+                
+                for (let i = 0; i < doc.childCount; i++) {
+                  const node = doc.child(i);
+                  const nodePos = pos;
+                  pos += node.nodeSize;
+                  
+                  // Check if this is an H2 heading
                   if (node.type.name === 'heading' && node.attrs.level === 2) {
-                    // Check what comes immediately after this heading
-                    const afterPos = pos + node.nodeSize;
-                    if (afterPos < newState.doc.content.size) {
-                      const $afterPos = newState.doc.resolve(afterPos);
-                      const afterNode = $afterPos.nodeAfter;
-                      
-                      // If next node is a table, insert empty paragraph before it
-                      if (afterNode && afterNode.type.name === 'table') {
-                        const paragraphNode = newState.schema.nodes.paragraph.create();
-                        // Adjust position for any previous insertions
-                        const insertPos = tr.mapping.map(afterPos);
-                        tr = tr.insert(insertPos, paragraphNode);
-                        modified = true;
+                    // Check the next node
+                    if (i + 1 < doc.childCount) {
+                      const nextNode = doc.child(i + 1);
+                      console.log('H2 found, next node type:', nextNode.type.name);
+                      if (nextNode.type.name === 'table') {
+                        // Table directly after H2 - need to insert paragraph
+                        console.log('Inserting paragraph at position:', nodePos + node.nodeSize);
+                        insertPositions.push(nodePos + node.nodeSize);
                       }
                     }
                   }
-                  return true;
-                });
+                }
+
+                // Insert paragraphs at collected positions (in reverse order)
+                for (let i = insertPositions.length - 1; i >= 0; i--) {
+                  const insertPos = insertPositions[i];
+                  const paragraphNode = newState.schema.nodes.paragraph.create();
+                  tr = tr.insert(insertPos, paragraphNode);
+                  modified = true;
+                }
 
                 return modified ? tr : null;
               },
