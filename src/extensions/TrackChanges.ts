@@ -222,6 +222,10 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           if (!extension.storage.enabled) return null;
           
           let hasChanges = false;
+          const authorId = extension.options.authorId;
+          const authorName = extension.options.authorName;
+          const authorColor = extension.options.authorColor;
+          const MERGE_WINDOW_MS = 2000; // Merge changes within 2 seconds
           
           for (const tr of transactions) {
             if (!tr.docChanged || tr.getMeta('trackChangesInternal')) continue;
@@ -230,44 +234,79 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
               const stepMap = step.getMap();
               
               stepMap.forEach((oldStart, oldEnd, newStart, newEnd) => {
-                // Deletion: old content existed but new content doesn't
+                // Deletion
                 if (oldEnd > oldStart && newEnd === newStart) {
                   const deletedContent = oldState.doc.textBetween(oldStart, oldEnd, ' ');
                   if (deletedContent.trim()) {
-                    // For proper track changes, we need to mark the deletion
-                    // Since content is actually deleted, we store metadata only
-                    extension.storage.changes.push({
-                      id: generateChangeId(),
-                      type: 'deletion',
-                      authorId: extension.options.authorId,
-                      authorName: extension.options.authorName,
-                      authorColor: extension.options.authorColor,
-                      timestamp: new Date(),
-                      from: newStart,
-                      to: newStart, // Point position after deletion
-                      content: deletedContent,
-                    });
+                    // Try to merge with an adjacent recent deletion by the same author
+                    const now = Date.now();
+                    const existing = extension.storage.changes.find(
+                      (c: TrackChange) =>
+                        c.type === 'deletion' &&
+                        c.authorId === authorId &&
+                        now - new Date(c.timestamp).getTime() < MERGE_WINDOW_MS &&
+                        (c.from === newStart || c.from === newStart + 1 || c.from - 1 === newStart)
+                    );
+                    
+                    if (existing) {
+                      // Merge: prepend or append deleted content
+                      if (newStart <= existing.from) {
+                        existing.content = deletedContent + (existing.content || '');
+                        existing.from = newStart;
+                      } else {
+                        existing.content = (existing.content || '') + deletedContent;
+                      }
+                      existing.timestamp = new Date();
+                    } else {
+                      extension.storage.changes.push({
+                        id: generateChangeId(),
+                        type: 'deletion',
+                        authorId,
+                        authorName,
+                        authorColor,
+                        timestamp: new Date(),
+                        from: newStart,
+                        to: newStart,
+                        content: deletedContent,
+                      });
+                    }
                     hasChanges = true;
                   }
                 }
                 
-                // Insertion: new content appeared where there was none or less
+                // Insertion
                 if (newEnd > newStart) {
-                  // Check if this is pure insertion (no replacement)
                   if (oldEnd === oldStart) {
                     const insertedContent = newState.doc.textBetween(newStart, newEnd, ' ');
                     if (insertedContent.trim()) {
-                      extension.storage.changes.push({
-                        id: generateChangeId(),
-                        type: 'insertion',
-                        authorId: extension.options.authorId,
-                        authorName: extension.options.authorName,
-                        authorColor: extension.options.authorColor,
-                        timestamp: new Date(),
-                        from: newStart,
-                        to: newEnd,
-                        content: insertedContent,
-                      });
+                      // Try to merge with an adjacent recent insertion by the same author
+                      const now = Date.now();
+                      const existing = extension.storage.changes.find(
+                        (c: TrackChange) =>
+                          c.type === 'insertion' &&
+                          c.authorId === authorId &&
+                          now - new Date(c.timestamp).getTime() < MERGE_WINDOW_MS &&
+                          (c.to === newStart || c.to === newStart - 1 || c.to + 1 === newStart)
+                      );
+                      
+                      if (existing) {
+                        // Extend the existing insertion range and content
+                        existing.to = newEnd;
+                        existing.content = (existing.content || '') + insertedContent;
+                        existing.timestamp = new Date();
+                      } else {
+                        extension.storage.changes.push({
+                          id: generateChangeId(),
+                          type: 'insertion',
+                          authorId,
+                          authorName,
+                          authorColor,
+                          timestamp: new Date(),
+                          from: newStart,
+                          to: newEnd,
+                          content: insertedContent,
+                        });
+                      }
                       hasChanges = true;
                     }
                   }
