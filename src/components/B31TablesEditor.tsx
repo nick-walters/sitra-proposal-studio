@@ -133,7 +133,7 @@ const disseminationLevels = [
 ];
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
-const cellStyles = "border border-black p-0 h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
+const cellStyles = "border border-black px-0.5 py-[2px] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
 
 // Inline editable text that expands to multiple lines - with debounced save
 function EditableText({ 
