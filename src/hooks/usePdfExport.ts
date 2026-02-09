@@ -1029,7 +1029,7 @@ export function usePdfExport() {
         // Caption will be added from the editor content, not hardcoded
         if (milestones && milestones.length > 0) {
           const msHeaders = ['Milestone', 'WPs', 'Due', 'Means of verification'];
-          const msColWidths = [70, 22, 13, 75]; // WPs fits 2 bubbles, Due narrower
+          const msColWidths = [62, 28, 13, 77]; // WPs widened to fit 2 bubbles side by side
           const msRows: CellContent[][] = (milestones as B31Milestone[]).map(m => {
             // Format: "MSX: Title" in sentence case
             const title = m.name ? toSentenceCase(m.name) : '';
@@ -1057,7 +1057,7 @@ export function usePdfExport() {
         // Caption will be added from the editor content, not hardcoded
         if (risks && risks.length > 0) {
           const riskHeaders = ['Risk', 'WPs', '(i)', '(ii)', 'Mitigation & adaptation measures'];
-          const riskColWidths = [55, 20, 8, 8, 89]; // Narrow i/ii columns for single letter bubbles
+          const riskColWidths = [47, 28, 8, 8, 89]; // WPs widened to fit 2 bubbles side by side
           const riskRows: CellContent[][] = (risks as B31Risk[]).map(r => {
             const likelihood = r.likelihood || '';
             const severity = r.severity || '';
