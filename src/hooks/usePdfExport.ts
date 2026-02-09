@@ -1144,9 +1144,8 @@ export function usePdfExport() {
         pdf.text('List of Participants', margin, yPosition);
         yPosition += 6;
         
-        // Table configuration - add Role column
-        // No., Short Name, Role, Legal Name + English, Logo (no left border), Country
-        const colWidths = [7, 25, 30, 83, 15, 20]; // Total = 180mm = contentWidth
+        // Table configuration - columns: No., Short Name, Legal Name, Logo, Role, Country
+        const colWidths = [7, 22, 78, 15, 35, 23]; // Total = 180mm = contentWidth
         const baseRowHeight = 6;
         const cellPadding = 1;
         const tableWidth = contentWidth;
@@ -1177,28 +1176,28 @@ export function usePdfExport() {
         pdf.text('Short name', xPos + cellPadding, yPosition);
         xPos += colWidths[1];
         
-        // Column 2: Role
-        pdf.rect(xPos, yPosition - 4, colWidths[2], baseRowHeight);
-        pdf.text('Role', xPos + cellPadding, yPosition);
-        xPos += colWidths[2];
-        
-        // Column 3: Participant legal name | English name, if different (no right border)
-        pdf.line(xPos, yPosition - 4, xPos + colWidths[3], yPosition - 4);
+        // Column 2: Participant legal name | English name, if different (no right border)
+        pdf.line(xPos, yPosition - 4, xPos + colWidths[2], yPosition - 4);
         pdf.line(xPos, yPosition - 4, xPos, yPosition - 4 + baseRowHeight);
-        pdf.line(xPos, yPosition - 4 + baseRowHeight, xPos + colWidths[3], yPosition - 4 + baseRowHeight);
+        pdf.line(xPos, yPosition - 4 + baseRowHeight, xPos + colWidths[2], yPosition - 4 + baseRowHeight);
         const headerPart1 = 'Participant legal name | ';
         pdf.text(headerPart1, xPos + cellPadding, yPosition);
         const part1Width = pdf.getTextWidth(headerPart1);
         pdf.setFont('times', 'bolditalic');
         pdf.text('English name, if different', xPos + cellPadding + part1Width, yPosition);
         pdf.setFont('times', 'bold');
+        xPos += colWidths[2];
+        
+        // Column 3: Logo (no left border)
+        pdf.line(xPos, yPosition - 4, xPos + colWidths[3], yPosition - 4);
+        pdf.line(xPos + colWidths[3], yPosition - 4, xPos + colWidths[3], yPosition - 4 + baseRowHeight);
+        pdf.line(xPos, yPosition - 4 + baseRowHeight, xPos + colWidths[3], yPosition - 4 + baseRowHeight);
+        pdf.text('Logo', xPos + cellPadding, yPosition);
         xPos += colWidths[3];
         
-        // Column 4: Logo (no left border)
-        pdf.line(xPos, yPosition - 4, xPos + colWidths[4], yPosition - 4);
-        pdf.line(xPos + colWidths[4], yPosition - 4, xPos + colWidths[4], yPosition - 4 + baseRowHeight);
-        pdf.line(xPos, yPosition - 4 + baseRowHeight, xPos + colWidths[4], yPosition - 4 + baseRowHeight);
-        pdf.text('Logo', xPos + cellPadding, yPosition);
+        // Column 4: Role
+        pdf.rect(xPos, yPosition - 4, colWidths[4], baseRowHeight);
+        pdf.text('Role', xPos + cellPadding, yPosition);
         xPos += colWidths[4];
         
         // Column 5: Country
@@ -1212,7 +1211,7 @@ export function usePdfExport() {
         pdf.setTextColor(...black);
         
         for (const participant of participants) {
-          const orgColWidth = colWidths[3] - cellPadding * 2;
+          const orgColWidth = colWidths[2] - cellPadding * 2;
           
           // Build organisation text
           const englishName = participant.englishName || '';
@@ -1229,8 +1228,11 @@ export function usePdfExport() {
           const caseRoles = caseLeadership.get(participant.id) || [];
           const totalRoleBubbles = (isCoordinator ? 1 : 0) + wpRoles.length + caseRoles.length;
           
-          // Each role bubble is ~4mm height, estimate rows needed
-          const roleRows = Math.max(1, Math.ceil(totalRoleBubbles / 2)); // ~2 bubbles per row
+          // Calculate how many bubbles can fit per row in the role column
+          const roleColWidth = colWidths[4] - cellPadding * 2;
+          const avgBubbleWidth = 12; // Average bubble width ~12mm
+          const bubblesPerRow = Math.max(1, Math.floor(roleColWidth / (avgBubbleWidth + 1.5)));
+          const roleRows = Math.max(1, Math.ceil(totalRoleBubbles / bubblesPerRow));
           const rolesHeight = roleRows * 5;
           
           // Calculate row height
@@ -1255,20 +1257,20 @@ export function usePdfExport() {
           pdf.rect(xPos, cellTop, colWidths[1], rowHeight);
           xPos += colWidths[1];
           
-          // Column 2: Role
-          pdf.rect(xPos, cellTop, colWidths[2], rowHeight);
+          // Column 2: Legal/English Name (no right border)
+          pdf.line(xPos, cellTop, xPos + colWidths[2], cellTop);
+          pdf.line(xPos, cellTop, xPos, cellTop + rowHeight);
+          pdf.line(xPos, cellTop + rowHeight, xPos + colWidths[2], cellTop + rowHeight);
           xPos += colWidths[2];
           
-          // Column 3: Legal/English Name (no right border)
+          // Column 3: Logo (no left border)
           pdf.line(xPos, cellTop, xPos + colWidths[3], cellTop);
-          pdf.line(xPos, cellTop, xPos, cellTop + rowHeight);
+          pdf.line(xPos + colWidths[3], cellTop, xPos + colWidths[3], cellTop + rowHeight);
           pdf.line(xPos, cellTop + rowHeight, xPos + colWidths[3], cellTop + rowHeight);
           xPos += colWidths[3];
           
-          // Column 4: Logo (no left border)
-          pdf.line(xPos, cellTop, xPos + colWidths[4], cellTop);
-          pdf.line(xPos + colWidths[4], cellTop, xPos + colWidths[4], cellTop + rowHeight);
-          pdf.line(xPos, cellTop + rowHeight, xPos + colWidths[4], cellTop + rowHeight);
+          // Column 4: Role
+          pdf.rect(xPos, cellTop, colWidths[4], rowHeight);
           xPos += colWidths[4];
           
           // Column 5: Country
@@ -1282,13 +1284,13 @@ export function usePdfExport() {
             return cellTop + (rowHeight - textBlockHeight) / 2 + lineHeightBody * 0.7;
           };
           
-          // Participant number
+          // Column 0: Participant number
           pdf.setFont('times', 'normal');
           const numY = getVerticalCenter(1);
           pdf.text(String(participant.participantNumber || ''), xPos + cellPadding, numY);
           xPos += colWidths[0];
           
-          // Short name as bubble
+          // Column 1: Short name as bubble
           const shortName = participant.organisationShortName || '';
           if (shortName) {
             const bubbleY = cellTop + rowHeight / 2 + 1;
@@ -1296,51 +1298,7 @@ export function usePdfExport() {
           }
           xPos += colWidths[1];
           
-          // Roles column - draw bubbles
-          let roleX = xPos + cellPadding;
-          let roleY = cellTop + 5;
-          const roleColWidth = colWidths[2] - cellPadding * 2;
-          
-          // Coordinator badge (red/burgundy)
-          if (isCoordinator) {
-            const bubbleWidth = drawBubble('Coord.', roleX, roleY, [185, 28, 28]); // Red
-            roleX += bubbleWidth + 1.5;
-            if (roleX > xPos + roleColWidth) {
-              roleX = xPos + cellPadding;
-              roleY += 5;
-            }
-          }
-          
-          // WP badges
-          for (const wp of wpRoles) {
-            const hexToRgb = (hex: string): [number, number, number] => {
-              const h = hex.replace('#', '');
-              return [parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16)];
-            };
-            const bubbleWidth = drawBubble(`WP${wp.wpNumber}`, roleX, roleY, hexToRgb(wp.color));
-            roleX += bubbleWidth + 1.5;
-            if (roleX > xPos + roleColWidth) {
-              roleX = xPos + cellPadding;
-              roleY += 5;
-            }
-          }
-          
-          // Case badges
-          for (const c of caseRoles) {
-            const hexToRgb = (hex: string): [number, number, number] => {
-              const h = hex.replace('#', '');
-              return [parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16)];
-            };
-            const bubbleWidth = drawBubble(`${c.prefix}${c.caseNumber}`, roleX, roleY, hexToRgb(c.color));
-            roleX += bubbleWidth + 1.5;
-            if (roleX > xPos + roleColWidth) {
-              roleX = xPos + cellPadding;
-              roleY += 5;
-            }
-          }
-          xPos += colWidths[2];
-          
-          // Organisation name
+          // Column 2: Organisation name
           let textY = getVerticalCenter(totalOrgLines);
           pdf.setFont('times', 'normal');
           for (const line of legalLines) {
@@ -1355,14 +1313,14 @@ export function usePdfExport() {
             }
             pdf.setFont('times', 'normal');
           }
-          xPos += colWidths[3];
+          xPos += colWidths[2];
           
-          // Logo
+          // Column 3: Logo
           if (participant.logoUrl) {
             try {
               const logoData = await loadImageAsBase64(participant.logoUrl);
               if (logoData) {
-                const maxLogoWidth = colWidths[4] - 2;
+                const maxLogoWidth = colWidths[3] - 2;
                 const maxLogoHeight = rowHeight - 2;
                 let logoW = logoData.width * 0.264583;
                 let logoH = logoData.height * 0.264583;
@@ -1378,7 +1336,7 @@ export function usePdfExport() {
                   logoH *= scale;
                 }
                 
-                const logoX = xPos + (colWidths[4] - logoW) / 2;
+                const logoX = xPos + (colWidths[3] - logoW) / 2;
                 const logoY = cellTop + (rowHeight - logoH) / 2;
                 pdf.addImage(logoData.data, 'JPEG', logoX, logoY, logoW, logoH);
               }
@@ -1386,9 +1344,53 @@ export function usePdfExport() {
               // Logo failed to load
             }
           }
+          xPos += colWidths[3];
+          
+          // Column 4: Roles - draw bubbles with wrapping
+          let roleX = xPos + cellPadding;
+          let roleY = cellTop + 5;
+          const roleColWidthActual = colWidths[4] - cellPadding * 2;
+          
+          // Coordinator badge (red/burgundy)
+          if (isCoordinator) {
+            const bubbleWidth = drawBubble('Coord.', roleX, roleY, [185, 28, 28]); // Red
+            roleX += bubbleWidth + 1.5;
+            if (roleX + avgBubbleWidth > xPos + roleColWidthActual) {
+              roleX = xPos + cellPadding;
+              roleY += 5;
+            }
+          }
+          
+          // WP badges
+          for (const wp of wpRoles) {
+            const hexToRgb = (hex: string): [number, number, number] => {
+              const h = hex.replace('#', '');
+              return [parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16)];
+            };
+            const bubbleWidth = drawBubble(`WP${wp.wpNumber}`, roleX, roleY, hexToRgb(wp.color));
+            roleX += bubbleWidth + 1.5;
+            if (roleX + avgBubbleWidth > xPos + roleColWidthActual) {
+              roleX = xPos + cellPadding;
+              roleY += 5;
+            }
+          }
+          
+          // Case badges
+          for (const c of caseRoles) {
+            const hexToRgb = (hex: string): [number, number, number] => {
+              const h = hex.replace('#', '');
+              return [parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16)];
+            };
+            const bubbleWidth = drawBubble(`${c.prefix}${c.caseNumber}`, roleX, roleY, hexToRgb(c.color));
+            roleX += bubbleWidth + 1.5;
+            if (roleX + avgBubbleWidth > xPos + roleColWidthActual) {
+              roleX = xPos + cellPadding;
+              roleY += 5;
+            }
+          }
           xPos += colWidths[4];
           
-          // Country
+          // Column 5: Country
           pdf.setFont('times', 'normal');
           const countryY = getVerticalCenter(1);
           pdf.text(participant.country || '', xPos + cellPadding, countryY);

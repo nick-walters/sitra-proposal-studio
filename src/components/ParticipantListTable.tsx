@@ -77,9 +77,9 @@ export function ParticipantListTable({
             <tr>
               <th style={{ width: '5%' }}>No.</th>
               <th style={{ width: '12%' }}>Short name</th>
-              <th style={{ width: '15%' }}>Role</th>
               <th style={{ width: '40%' }}>Legal name</th>
               <th style={{ width: '8%' }}>Logo</th>
+              <th style={{ width: '15%' }}>Role</th>
               <th style={{ width: '20%' }}>Country</th>
             </tr>
           </thead>
@@ -119,6 +119,42 @@ export function ParticipantListTable({
                         '—'
                       )}
                     </p>
+                  </td>
+                  
+                  {/* Legal name + English name */}
+                  <td>
+                    <p>
+                      <span className="font-medium">
+                        {toNameCase(participant.organisationName)}
+                      </span>
+                    </p>
+                    {participant.englishName && 
+                     participant.englishName.trim() && 
+                     participant.englishName.trim().toLowerCase() !== participant.organisationName.trim().toLowerCase() && (
+                      <p>
+                        <span className="italic" style={{ color: '#666' }}>
+                          {toNameCase(participant.englishName)}
+                        </span>
+                      </p>
+                    )}
+                  </td>
+                  
+                  {/* Logo */}
+                  <td style={{ textAlign: 'center' }}>
+                    {participant.logoUrl ? (
+                      <img 
+                        src={participant.logoUrl} 
+                        alt="" 
+                        style={{ 
+                          maxWidth: '32px', 
+                          maxHeight: '32px', 
+                          objectFit: 'contain',
+                          display: 'inline-block',
+                        }}
+                      />
+                    ) : (
+                      <p>—</p>
+                    )}
                   </td>
                   
                   {/* Role badges */}
@@ -183,42 +219,6 @@ export function ParticipantListTable({
                         )}
                       </span>
                     </p>
-                  </td>
-                  
-                  {/* Legal name + English name */}
-                  <td>
-                    <p>
-                      <span className="font-medium">
-                        {toNameCase(participant.organisationName)}
-                      </span>
-                    </p>
-                    {participant.englishName && 
-                     participant.englishName.trim() && 
-                     participant.englishName.trim().toLowerCase() !== participant.organisationName.trim().toLowerCase() && (
-                      <p>
-                        <span className="italic" style={{ color: '#666' }}>
-                          {toNameCase(participant.englishName)}
-                        </span>
-                      </p>
-                    )}
-                  </td>
-                  
-                  {/* Logo */}
-                  <td style={{ textAlign: 'center' }}>
-                    {participant.logoUrl ? (
-                      <img 
-                        src={participant.logoUrl} 
-                        alt="" 
-                        style={{ 
-                          maxWidth: '32px', 
-                          maxHeight: '32px', 
-                          objectFit: 'contain',
-                          display: 'inline-block',
-                        }}
-                      />
-                    ) : (
-                      <p>—</p>
-                    )}
                   </td>
                   
                   {/* Country */}
