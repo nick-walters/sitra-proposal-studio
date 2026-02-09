@@ -249,7 +249,7 @@ function EditableTextInline({
       suppressContentEditableWarning
       onInput={handleInput}
       data-placeholder={placeholder}
-      className="outline-none min-w-[50px] empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground"
+      className="outline-none min-w-[50px] empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight"
       style={{ display: 'inline' }}
     >
       {value}
