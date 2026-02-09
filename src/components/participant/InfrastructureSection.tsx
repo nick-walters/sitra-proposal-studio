@@ -60,18 +60,18 @@ function SortableInfraRow({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg"
+      className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
     >
       {canEdit && (
         <button
-          className="flex-shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground mt-1"
+          className="flex-shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
           {...attributes}
           {...listeners}
         >
           <GripVertical className="w-4 h-4" />
         </button>
       )}
-      <MonitorCog className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+      <MonitorCog className="w-5 h-5 text-primary flex-shrink-0" />
       <div className="flex-1 min-w-0">
         <p className="font-medium">{infra.name}</p>
         {infra.description && (
