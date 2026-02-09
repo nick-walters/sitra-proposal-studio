@@ -1013,14 +1013,16 @@ export function usePdfExport() {
           pdf.text(String(participant.participantNumber || ''), xPos + cellPadding, numY);
           xPos += colWidths[0];
           
-          // Short name (vertically centered)
+          // Short name (bold italic, vertically centered)
           const shortName = participant.organisationShortName || '';
+          pdf.setFont('times', 'bolditalic');
           const shortNameLines = pdf.splitTextToSize(shortName, colWidths[1] - cellPadding * 2);
           let textY = getVerticalCenter(shortNameLines.length);
           for (const line of shortNameLines) {
             pdf.text(line, xPos + cellPadding, textY);
             textY += lineHeightBody;
           }
+          pdf.setFont('times', 'normal');
           xPos += colWidths[1];
           
           // Organisation name: Legal name (normal), then English name (italic) if different
