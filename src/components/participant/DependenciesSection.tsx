@@ -1,8 +1,5 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -13,16 +10,22 @@ import {
 import { Plus, Trash2, Link2 } from 'lucide-react';
 import { ParticipantDependency, LINK_TYPES } from '@/types/participantDetails';
 import { ParticipantSummary } from '@/types/proposal';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 interface DependenciesSectionProps {
   dependencies: ParticipantDependency[];
   participants: ParticipantSummary[];
   currentParticipantId: string;
-  legacyDependencyText?: string;
   onAdd: (dependency: Omit<ParticipantDependency, 'id' | 'createdAt'>) => void;
   onUpdate: (id: string, updates: Partial<ParticipantDependency>) => void;
   onDelete: (id: string) => void;
-  onUpdateLegacyText: (text: string) => void;
   canEdit: boolean;
 }
 
@@ -30,45 +33,19 @@ export function DependenciesSection({
   dependencies,
   participants,
   currentParticipantId,
-  legacyDependencyText,
   onAdd,
   onUpdate,
   onDelete,
-  onUpdateLegacyText,
   canEdit,
 }: DependenciesSectionProps) {
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newDependency, setNewDependency] = useState({
-    linkedParticipantId: '',
-    linkType: '',
-    notes: '',
-  });
-
-  // Filter out current participant from the list
   const otherParticipants = participants.filter(p => p.id !== currentParticipantId);
 
-  const handleAdd = () => {
-    if (!newDependency.linkType) return;
-
+  const handleAddRow = () => {
     onAdd({
       participantId: currentParticipantId,
-      linkedParticipantId: newDependency.linkedParticipantId || undefined,
-      linkType: newDependency.linkType,
-      notes: newDependency.notes || undefined,
+      linkedParticipantId: otherParticipants[0]?.id || undefined,
+      linkType: 'Same group',
     });
-
-    setNewDependency({
-      linkedParticipantId: '',
-      linkType: '',
-      notes: '',
-    });
-    setShowAddForm(false);
-  };
-
-  const getParticipantName = (id: string | undefined) => {
-    if (!id) return 'Unspecified';
-    const participant = participants.find(p => p.id === id);
-    return participant?.organisation_short_name || participant?.organisation_name || 'Unknown';
   };
 
   return (
@@ -107,132 +84,106 @@ export function DependenciesSection({
               <li>the legal entities concerned are owned or supervised by the same public body.</li>
             </ol>
           </div>
-          {canEdit && otherParticipants.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowAddForm(!showAddForm)}
-              className="gap-1"
-            >
-              <Plus className="w-4 h-4" />
-              Add Link
-            </Button>
-          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Add Form */}
-        {showAddForm && (
-          <Card className="border-dashed">
-            <CardContent className="pt-4 space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Link type *</Label>
-                  <Select
-                    value={newDependency.linkType}
-                    onValueChange={(v) => setNewDependency({ ...newDependency, linkType: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {LINK_TYPES.map((t) => (
-                        <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Linked participant</Label>
-                  <Select
-                    value={newDependency.linkedParticipantId}
-                    onValueChange={(v) => setNewDependency({ ...newDependency, linkedParticipantId: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select participant" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {otherParticipants.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.participant_number ? `${p.participant_number}. ` : ''}
-                          {p.organisation_short_name || p.organisation_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Notes</Label>
-                <Textarea
-                  value={newDependency.notes}
-                  onChange={(e) => setNewDependency({ ...newDependency, notes: e.target.value })}
-                  placeholder="Additional details about the relationship..."
-                  className="min-h-[60px]"
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={() => setShowAddForm(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleAdd} disabled={!newDependency.linkType}>
-                  Add Link
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Dependencies List */}
         {dependencies.length > 0 && (
-          <div className="space-y-2">
-            {dependencies.map((dep) => (
-              <div
-                key={dep.id}
-                className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg"
-              >
-                <Link2 className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm">
-                    <span className="font-medium">{dep.linkType}</span>
-                    {dep.linkedParticipantId && (
-                      <> with <span className="font-medium">{getParticipantName(dep.linkedParticipantId)}</span></>
+          <div className="border rounded-lg overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[50%]">Participant</TableHead>
+                  <TableHead className="w-[40%]">Type of link</TableHead>
+                  {canEdit && <TableHead className="w-[10%]" />}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {dependencies.map((dep) => (
+                  <TableRow key={dep.id}>
+                    <TableCell>
+                      {canEdit ? (
+                        <Select
+                          value={dep.linkedParticipantId || ''}
+                          onValueChange={(v) => onUpdate(dep.id, { linkedParticipantId: v })}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select participant" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {otherParticipants.map((p) => (
+                              <SelectItem key={p.id} value={p.id}>
+                                {p.participant_number ? `${p.participant_number}. ` : ''}
+                                {p.organisation_short_name || p.organisation_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <span className="text-sm">
+                          {dep.linkedParticipantId
+                            ? (() => {
+                                const p = participants.find(x => x.id === dep.linkedParticipantId);
+                                return p
+                                  ? `${p.participant_number ? `${p.participant_number}. ` : ''}${p.organisation_short_name || p.organisation_name}`
+                                  : 'Unknown';
+                              })()
+                            : 'Unspecified'}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {canEdit ? (
+                        <Select
+                          value={dep.linkType}
+                          onValueChange={(v) => onUpdate(dep.id, { linkType: v })}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {LINK_TYPES.map((t) => (
+                              <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <span className="text-sm">{dep.linkType}</span>
+                      )}
+                    </TableCell>
+                    {canEdit && (
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-muted-foreground hover:text-destructive"
+                          onClick={() => onDelete(dep.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </TableCell>
                     )}
-                  </p>
-                  {dep.notes && (
-                    <p className="text-xs text-muted-foreground mt-1">{dep.notes}</p>
-                  )}
-                </div>
-                {canEdit && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="flex-shrink-0 text-muted-foreground hover:text-destructive"
-                    onClick={() => onDelete(dep.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         )}
 
-        {/* Legacy text area for additional notes */}
-        <div className="space-y-2">
-          <Label className="text-sm text-muted-foreground">Additional notes</Label>
-          <Textarea
-            value={legacyDependencyText || ''}
-            onChange={(e) => onUpdateLegacyText(e.target.value)}
-            placeholder="Describe any other dependencies or relationships not captured above..."
-            className="min-h-[80px]"
-            disabled={!canEdit}
-          />
-        </div>
+        {canEdit && otherParticipants.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleAddRow}
+            className="gap-1"
+          >
+            <Plus className="w-4 h-4" />
+            Add Link
+          </Button>
+        )}
 
-        {dependencies.length === 0 && !legacyDependencyText && !showAddForm && (
-          <p className="text-xs text-muted-foreground text-center py-2">
-            No links declared. Add structured links or use the notes field above.
+        {dependencies.length === 0 && !canEdit && (
+          <p className="text-sm text-muted-foreground text-center py-4">
+            No dependencies declared.
           </p>
         )}
       </CardContent>
