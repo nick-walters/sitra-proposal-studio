@@ -76,7 +76,7 @@ const DEFAULT_SECTION_OPTIONS: SectionOption[] = [
   { id: '1.2', number: 'B1.2', label: 'Methodology' },
   { id: '2.1', number: 'B2.1', label: "Project's pathways towards impact" },
   { id: '2.2', number: 'B2.2', label: 'Measures to maximise impact' },
-  { id: '3.1', number: 'B3.1', label: 'Work plan and resources' },
+  { id: '3.1', number: 'B3.1', label: 'Work plan & resources' },
   { id: '3.2', number: 'B3.2', label: 'Capacity of participants' },
 ];
 
