@@ -870,7 +870,7 @@ export function usePdfExport() {
         // Caption will be added from the editor content, not hardcoded
         if (deliverables && deliverables.length > 0) {
           const delHeaders = ['Deliverable', 'WP', 'Lead', 'Type', 'Diss.', 'Due'];
-          const delColWidths = [85, 15, 25, 15, 20, 20]; // Wider first column for merged number+title
+          const delColWidths = [105, 12, 18, 12, 18, 15]; // Narrow dropdown columns, wide title column
           const delRows: CellContent[][] = (deliverables as B31Deliverable[]).map(d => {
             // Merged: "DX.X: Title" in sentence case
             const title = d.name ? toSentenceCase(d.name) : '';
@@ -900,7 +900,7 @@ export function usePdfExport() {
         // Caption will be added from the editor content, not hardcoded
         if (milestones && milestones.length > 0) {
           const msHeaders = ['Milestone', 'WPs', 'Due', 'Means of verification'];
-          const msColWidths = [65, 30, 20, 65];
+          const msColWidths = [70, 22, 13, 75]; // WPs fits 2 bubbles, Due narrower
           const msRows: CellContent[][] = (milestones as B31Milestone[]).map(m => {
             // Format: "MSX: Title" in sentence case
             const title = m.name ? toSentenceCase(m.name) : '';
@@ -921,7 +921,7 @@ export function usePdfExport() {
         // Caption will be added from the editor content, not hardcoded
         if (risks && risks.length > 0) {
           const riskHeaders = ['Risk', 'WPs', '(i)', '(ii)', 'Mitigation & adaptation measures'];
-          const riskColWidths = [50, 25, 12, 12, 81];
+          const riskColWidths = [55, 20, 8, 8, 89]; // Narrow i/ii columns for single letter bubbles
           const riskRows: CellContent[][] = (risks as B31Risk[]).map(r => {
             const likelihood = r.likelihood || '';
             const severity = r.severity || '';
