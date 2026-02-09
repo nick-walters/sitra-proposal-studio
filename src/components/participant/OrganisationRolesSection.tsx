@@ -68,6 +68,11 @@ export function OrganisationRolesSection({
                 >
                   {role.label}
                 </Label>
+                {'description' in role && role.description && (
+                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                    {role.description}
+                  </p>
+                )}
                 {role.value === 'other' && isRoleSelected('other') && (
                   <Input
                     className="mt-2"
