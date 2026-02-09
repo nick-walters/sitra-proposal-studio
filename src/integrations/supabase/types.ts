@@ -616,6 +616,10 @@ export type Database = {
           security_euci_background_page: string | null
           security_euci_foreground: boolean | null
           security_euci_foreground_page: string | null
+          security_euci_non_eu_access: boolean | null
+          security_euci_non_eu_access_page: string | null
+          security_euci_non_eu_agreement: boolean | null
+          security_euci_non_eu_agreement_page: string | null
           security_exclusively_defence: boolean | null
           security_exclusively_defence_page: string | null
           security_misuse: boolean | null
@@ -770,6 +774,10 @@ export type Database = {
           security_euci_background_page?: string | null
           security_euci_foreground?: boolean | null
           security_euci_foreground_page?: string | null
+          security_euci_non_eu_access?: boolean | null
+          security_euci_non_eu_access_page?: string | null
+          security_euci_non_eu_agreement?: boolean | null
+          security_euci_non_eu_agreement_page?: string | null
           security_exclusively_defence?: boolean | null
           security_exclusively_defence_page?: string | null
           security_misuse?: boolean | null
@@ -924,6 +932,10 @@ export type Database = {
           security_euci_background_page?: string | null
           security_euci_foreground?: boolean | null
           security_euci_foreground_page?: string | null
+          security_euci_non_eu_access?: boolean | null
+          security_euci_non_eu_access_page?: string | null
+          security_euci_non_eu_agreement?: boolean | null
+          security_euci_non_eu_agreement_page?: string | null
           security_exclusively_defence?: boolean | null
           security_exclusively_defence_page?: string | null
           security_misuse?: boolean | null
