@@ -1,4 +1,6 @@
 import { useState, useMemo } from 'react';
+import { formatCurrency } from '@/lib/formatNumber';
+import { FormattedNumberInput } from '@/components/FormattedNumberInput';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -178,14 +180,7 @@ export function BudgetSpreadsheetEnhanced({
     };
   }, [budgetItems]);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-EU', {
-      style: 'currency',
-      currency: 'EUR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
+  // formatCurrency imported from shared utility
 
   const handleAddItem = (participantId: string, category: string, subcategory?: string) => {
     onAddBudgetItem({
@@ -598,13 +593,10 @@ export function BudgetSpreadsheetEnhanced({
                                       </TableCell>
                                     )}
                                     <TableCell className="text-right">
-                                      <Input
-                                        type="number"
+                                      <FormattedNumberInput
                                         value={item.amount || ''}
-                                        onChange={(e) =>
-                                          onUpdateBudgetItem(item.id, {
-                                            amount: parseFloat(e.target.value) || 0,
-                                          })
+                                        onChange={(val) =>
+                                          onUpdateBudgetItem(item.id, { amount: val })
                                         }
                                         disabled={!canEdit}
                                         className="h-8 w-28 text-right font-mono"

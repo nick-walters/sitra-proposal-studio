@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FormattedNumberInput } from '@/components/FormattedNumberInput';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -1002,11 +1003,10 @@ export function GeneralInfoForm({
               <div>
                 <label className="text-xs text-muted-foreground mb-0.5 block">Budget available (topic)</label>
                 {isEditing && editedProposal ? (
-                  <Input
-                    type="number"
+                  <FormattedNumberInput
                     value={editedProposal.totalBudget || ''}
-                    onChange={(e) => setEditedProposal({ ...editedProposal, totalBudget: parseFloat(e.target.value) || undefined })}
-                    placeholder="e.g. 5000000"
+                    onChange={(val) => setEditedProposal({ ...editedProposal, totalBudget: val || undefined })}
+                    placeholder="e.g. 5,000,000"
                     className="h-8 text-sm"
                   />
                 ) : (
