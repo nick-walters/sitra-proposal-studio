@@ -30,6 +30,7 @@ import { OrganisationRolesSection } from './participant/OrganisationRolesSection
 import { AchievementsSection } from './participant/AchievementsSection';
 import { PreviousProjectsSection } from './participant/PreviousProjectsSection';
 import { InfrastructureSection } from './participant/InfrastructureSection';
+import { DepartmentsSection } from './participant/DepartmentsSection';
 import { GEPSection } from './participant/GEPSection';
 
 interface SelectedPerson {
@@ -317,6 +318,35 @@ export function ParticipantDetailForm({
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Street</Label>
+                <Input
+                  value={participant.street || ''}
+                  onChange={(e) => handleFieldUpdate('street', e.target.value)}
+                  placeholder="Street address"
+                  disabled={!canEdit}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Town</Label>
+                <Input
+                  value={participant.town || ''}
+                  onChange={(e) => handleFieldUpdate('town', e.target.value)}
+                  placeholder="Town / City"
+                  disabled={!canEdit}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Postcode</Label>
+                <Input
+                  value={participant.postcode || ''}
+                  onChange={(e) => handleFieldUpdate('postcode', e.target.value)}
+                  placeholder="Postcode"
+                  disabled={!canEdit}
+                />
+              </div>
               <div className="space-y-2">
                 <Label>Country *</Label>
                 {canEdit ? (
@@ -328,31 +358,30 @@ export function ParticipantDetailForm({
                   <Input value={participant.country || ''} disabled />
                 )}
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Address *</Label>
-              <Textarea
-                value={participant.address || ''}
-                onChange={(e) => handleFieldUpdate('address', e.target.value)}
-                placeholder="Street, city, postal code"
-                className="min-h-[80px]"
-                disabled={!canEdit}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Department/unit</Label>
-              <Input
-                value={participant.department || ''}
-                onChange={(e) => handleFieldUpdate('department', e.target.value)}
-                placeholder="e.g. Faculty of Engineering"
-                disabled={!canEdit}
-              />
-              <p className="text-xs text-muted-foreground">
-                Only if different from the main organisation
-              </p>
+              <div className="space-y-2">
+                <Label>Website</Label>
+                <Input
+                  value={participant.website || ''}
+                  onChange={(e) => handleFieldUpdate('website', e.target.value)}
+                  placeholder="https://www.example.org"
+                  disabled={!canEdit}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* Departments */}
+        <DepartmentsSection
+          participantId={participant.id}
+          organisationStreet={participant.street}
+          organisationTown={participant.town}
+          organisationPostcode={participant.postcode}
+          organisationCountry={participant.country}
+          departmentsNotApplicable={participant.departmentsNotApplicable || false}
+          onToggleNotApplicable={(v) => handleFieldUpdate('departmentsNotApplicable', v)}
+          canEdit={canEdit}
+        />
 
         {/* 2. Links with other participants (Dependencies) */}
         <DependenciesSection

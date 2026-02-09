@@ -230,9 +230,14 @@ export interface Participant {
   participantNumber: number;
   contactEmail?: string;
   address?: string;
+  street?: string;
+  town?: string;
+  postcode?: string;
+  website?: string;
+  departmentsNotApplicable?: boolean;
   organisationCategory?: string;
   englishName?: string;
-  personnelCostRate?: number; // Monthly cost rate in EUR for personnel calculations
+  personnelCostRate?: number;
   // Part A2 additional fields
   department?: string;
   mainContactTitle?: string;
