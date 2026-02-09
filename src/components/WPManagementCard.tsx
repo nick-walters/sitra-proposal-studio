@@ -282,7 +282,7 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
   const [selectedWPs, setSelectedWPs] = useState<Set<string>>(new Set());
   const [isPopulating, setIsPopulating] = useState(false);
   const [paletteEditorOpen, setPaletteEditorOpen] = useState(false);
-  const [includeCostJustifications, setIncludeCostJustifications] = useState(false);
+  
   
   // Color palette for the proposal
   const { colors: wpColors, updatePalette } = useWPColorPalette(proposalId);
@@ -508,13 +508,10 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
       const wpsToPopulate = all ? wpDrafts : wpDrafts.filter((wp) => selectedWPs.has(wp.id));
       const wpIds = wpsToPopulate.map((wp) => wp.id);
       
-      const result = await populateB31(proposalId, wpIds, user.id, {
-        includeCostJustifications,
-      });
+      const result = await populateB31(proposalId, wpIds, user.id);
       
       if (result.success) {
-        const costMsg = includeCostJustifications ? ' (with cost justifications)' : '';
-        toast.success(`Populated ${wpsToPopulate.length} work package(s) to Part B3.1${costMsg}`);
+        toast.success(`Populated ${wpsToPopulate.length} work package(s) to Part B3.1`);
         // Invalidate section content queries to refresh the editor
         queryClient.invalidateQueries({ queryKey: ['section-content'] });
       } else {
@@ -773,23 +770,11 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
                 ))}
               </div>
 
-              {/* Cost Justifications Toggle */}
-              <div className="flex items-center space-x-2 mb-3">
-                <Checkbox
-                  id="include-cost-justifications"
-                  checked={includeCostJustifications}
-                  onCheckedChange={(checked) => setIncludeCostJustifications(checked === true)}
-                />
-                <Label htmlFor="include-cost-justifications" className="text-sm cursor-pointer">
-                  Include cost justifications from budget (Tables 3.1g & 3.1h)
-                </Label>
-              </div>
-
               {/* Warning */}
               <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 p-2 rounded mb-3">
                 <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
                 <span>
-                  This will generate Tables 3.1b-f (WP descriptions, deliverables, milestones, risks, staff effort){includeCostJustifications ? ' and 3.1g-h (cost justifications)' : ''}. Existing content will be replaced.
+                  This will generate Tables 3.1a-f (WP descriptions, deliverables, milestones, risks, staff effort). Existing content will be replaced. Cost justifications (3.1g-h) can be added separately from Part A3: Budget.
                 </span>
               </div>
 

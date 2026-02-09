@@ -807,6 +807,107 @@ export async function populateB31(
 }
 
 /**
+ * Append cost justification tables (3.1g & 3.1h) to existing B3.1 content
+ */
+export async function appendCostJustificationsToB31(
+  proposalId: string,
+  userId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Fetch budget items
+    const { data: budgetData, error: budgetError } = await supabase
+      .from('budget_items')
+      .select('id, participant_id, category, subcategory, amount, justification, description')
+      .eq('proposal_id', proposalId);
+
+    if (budgetError) throw budgetError;
+
+    // Fetch participants
+    const { data: participantsData, error: partError } = await supabase
+      .from('participants')
+      .select('id, organisation_short_name, organisation_name, participant_number')
+      .eq('proposal_id', proposalId);
+
+    if (partError) throw partError;
+
+    const participantsMap = new Map<string, ParticipantSummary>();
+    for (const p of participantsData || []) {
+      participantsMap.set(p.id, p);
+    }
+
+    // Generate cost justification tables
+    let costContent = generateSubcontractingTable(budgetData || [], participantsMap);
+    costContent += generatePurchaseCostsTable(budgetData || [], participantsMap);
+
+    // Find B3.1 section
+    const { data: proposalTemplate, error: templateError } = await supabase
+      .from('proposal_templates')
+      .select('id')
+      .eq('proposal_id', proposalId)
+      .single();
+
+    if (templateError) throw templateError;
+
+    const sectionNumbers = ['B3.1', '3.1', 'b3.1'];
+    let sectionId: string | null = null;
+
+    for (const num of sectionNumbers) {
+      const { data, error } = await supabase
+        .from('proposal_template_sections')
+        .select('id')
+        .eq('proposal_template_id', proposalTemplate.id)
+        .eq('section_number', num)
+        .maybeSingle();
+
+      if (!error && data) {
+        sectionId = data.id;
+        break;
+      }
+    }
+
+    if (!sectionId) {
+      return { success: false, error: 'Could not find Part B3.1 section' };
+    }
+
+    // Get existing content
+    const { data: existing, error: existingError } = await supabase
+      .from('section_content')
+      .select('id, content')
+      .eq('proposal_id', proposalId)
+      .eq('section_id', sectionId)
+      .maybeSingle();
+
+    if (existingError && existingError.code !== 'PGRST116') throw existingError;
+
+    let finalContent = '';
+    if (existing?.content) {
+      // Remove any existing 3.1g/3.1h tables, then append new ones
+      let cleaned = existing.content as string;
+      // Remove from Table 3.1g caption onwards (if present)
+      const gIndex = cleaned.indexOf('Table 3.1g.');
+      if (gIndex > -1) {
+        // Find the caption paragraph start
+        const captionStart = cleaned.lastIndexOf('<p', gIndex);
+        if (captionStart > -1) {
+          cleaned = cleaned.substring(0, captionStart);
+        }
+      }
+      finalContent = cleaned + costContent;
+    } else {
+      finalContent = costContent;
+    }
+
+    return await saveToSection(proposalId, sectionId, finalContent, userId);
+  } catch (error) {
+    console.error('Error appending cost justifications:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+/**
  * Save content to a section
  */
 async function saveToSection(

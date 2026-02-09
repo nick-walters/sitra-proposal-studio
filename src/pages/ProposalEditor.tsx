@@ -544,6 +544,8 @@ export function ProposalEditor() {
             canEdit={canEdit}
             proposalId={id || ''}
             saving={budgetSaving}
+            isAdmin={isAdmin}
+            isFullProposal={proposal?.submissionStage !== 'stage_1'}
           />
         );
       }
