@@ -35,7 +35,13 @@ interface UserWithRoles {
     id: string;
     role: AppRole;
     proposal_id: string | null;
+    proposal_acronym?: string | null;
   }[];
+}
+
+interface ProposalOption {
+  id: string;
+  acronym: string;
 }
 
 export function UserRightsAdmin() {
@@ -47,6 +53,9 @@ export function UserRightsAdmin() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserWithRoles | null>(null);
   const [newRole, setNewRole] = useState<AppRole>("viewer");
+  const [roleScope, setRoleScope] = useState<'global' | 'proposal'>('global');
+  const [selectedProposalId, setSelectedProposalId] = useState<string>("");
+  const [proposals, setProposals] = useState<ProposalOption[]>([]);
 
   // Redirect non-admins
   useEffect(() => {
@@ -56,34 +65,34 @@ export function UserRightsAdmin() {
     }
   }, [isAdminOrOwner, roleLoading, navigate]);
 
-  // Fetch users with their roles
+  // Fetch users with their roles and proposals
   useEffect(() => {
     const fetchUsers = async () => {
       setLoading(true);
       try {
-        // Fetch all profiles
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, email, full_name, first_name, last_name, avatar_url');
+        // Fetch profiles, roles, and proposals in parallel
+        const [profilesRes, rolesRes, proposalsRes] = await Promise.all([
+          supabase.from('profiles').select('id, email, full_name, first_name, last_name, avatar_url'),
+          supabase.from('user_roles').select('id, user_id, role, proposal_id'),
+          supabase.from('proposals').select('id, acronym'),
+        ]);
 
-        if (profilesError) throw profilesError;
+        if (profilesRes.error) throw profilesRes.error;
+        if (rolesRes.error) throw rolesRes.error;
 
-        // Fetch all roles
-        const { data: roles, error: rolesError } = await supabase
-          .from('user_roles')
-          .select('id, user_id, role, proposal_id');
+        const proposalMap = new Map<string, string>();
+        (proposalsRes.data || []).forEach(p => proposalMap.set(p.id, p.acronym));
+        setProposals((proposalsRes.data || []).map(p => ({ id: p.id, acronym: p.acronym })));
 
-        if (rolesError) throw rolesError;
-
-        // Combine profiles with their roles
-        const usersWithRoles: UserWithRoles[] = (profiles || []).map(profile => ({
+        const usersWithRoles: UserWithRoles[] = (profilesRes.data || []).map(profile => ({
           ...profile,
-          roles: (roles || [])
+          roles: (rolesRes.data || [])
             .filter(r => r.user_id === profile.id)
             .map(r => ({
               id: r.id,
               role: r.role as AppRole,
-              proposal_id: r.proposal_id
+              proposal_id: r.proposal_id,
+              proposal_acronym: r.proposal_id ? proposalMap.get(r.proposal_id) || null : null,
             }))
         }));
 
@@ -124,16 +133,25 @@ export function UserRightsAdmin() {
     return user.roles.filter(r => !r.proposal_id);
   };
 
-  const handleAddGlobalRole = async () => {
+  const handleAddRole = async () => {
     if (!selectedUser) return;
+    if (roleScope === 'proposal' && !selectedProposalId) {
+      toast.error('Please select a proposal');
+      return;
+    }
 
     try {
+      const insertData: any = {
+        user_id: selectedUser.id,
+        role: newRole,
+      };
+      if (roleScope === 'proposal') {
+        insertData.proposal_id = selectedProposalId;
+      }
+
       const { error } = await supabase
         .from('user_roles')
-        .insert({
-          user_id: selectedUser.id,
-          role: newRole,
-        });
+        .insert(insertData);
 
       if (error) throw error;
 
@@ -143,13 +161,24 @@ export function UserRightsAdmin() {
         .select('id, role, proposal_id')
         .eq('user_id', selectedUser.id);
 
+      const proposalMap = new Map<string, string>();
+      proposals.forEach(p => proposalMap.set(p.id, p.acronym));
+
       setUsers(prev => prev.map(u => 
         u.id === selectedUser.id 
-          ? { ...u, roles: (updatedRoles || []).map(r => ({ id: r.id, role: r.role as AppRole, proposal_id: r.proposal_id })) }
+          ? { ...u, roles: (updatedRoles || []).map(r => ({ 
+              id: r.id, 
+              role: r.role as AppRole, 
+              proposal_id: r.proposal_id,
+              proposal_acronym: r.proposal_id ? proposalMap.get(r.proposal_id) || null : null,
+            })) }
           : u
       ));
 
-      toast.success(`Added ${newRole} role to ${getDisplayName(selectedUser)}`);
+      const scopeLabel = roleScope === 'proposal' 
+        ? proposals.find(p => p.id === selectedProposalId)?.acronym || 'proposal'
+        : 'global';
+      toast.success(`Added ${newRole} role (${scopeLabel}) to ${getDisplayName(selectedUser)}`);
       setDialogOpen(false);
     } catch (error) {
       console.error('Error adding role:', error);
@@ -318,9 +347,23 @@ export function UserRightsAdmin() {
                             {proposalRoles.length === 0 ? (
                               <span className="text-muted-foreground text-sm">None</span>
                             ) : (
-                              <Badge variant="outline">
-                                {proposalRoles.length} proposal{proposalRoles.length !== 1 ? 's' : ''}
-                              </Badge>
+                              proposalRoles.map(r => (
+                                <Badge 
+                                  key={r.id} 
+                                  variant="outline"
+                                  className="gap-1"
+                                >
+                                  {r.proposal_acronym || 'Unknown'}: {r.role}
+                                  {isOwner && (
+                                    <button 
+                                      onClick={() => handleRemoveRole(user, r.id)}
+                                      className="hover:text-destructive ml-1"
+                                    >
+                                      ×
+                                    </button>
+                                  )}
+                                </Badge>
+                              ))
                             )}
                           </div>
                         </TableCell>
@@ -332,6 +375,8 @@ export function UserRightsAdmin() {
                               onClick={() => {
                                 setSelectedUser(user);
                                 setNewRole('viewer');
+                                setRoleScope('global');
+                                setSelectedProposalId('');
                                 setDialogOpen(true);
                               }}
                             >
@@ -353,12 +398,41 @@ export function UserRightsAdmin() {
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add Global Role</DialogTitle>
+              <DialogTitle>Add Role</DialogTitle>
               <DialogDescription>
-                Add a global role to {selectedUser ? getDisplayName(selectedUser) : 'user'}
+                Add a role to {selectedUser ? getDisplayName(selectedUser) : 'user'}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Scope</Label>
+                <Select value={roleScope} onValueChange={(v) => setRoleScope(v as 'global' | 'proposal')}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="global">Global - Applies across the platform</SelectItem>
+                    <SelectItem value="proposal">Proposal - Specific to one proposal</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {roleScope === 'proposal' && (
+                <div className="space-y-2">
+                  <Label>Proposal</Label>
+                  <Select value={selectedProposalId} onValueChange={setSelectedProposalId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a proposal" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {proposals.map(p => (
+                        <SelectItem key={p.id} value={p.id}>{p.acronym}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label>Role</Label>
                 <Select value={newRole} onValueChange={(v) => setNewRole(v as AppRole)}>
@@ -366,7 +440,9 @@ export function UserRightsAdmin() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="owner">Owner - Full access including template management</SelectItem>
+                    {roleScope === 'global' && (
+                      <SelectItem value="owner">Owner - Full access including template management</SelectItem>
+                    )}
                     <SelectItem value="admin">Admin - Can manage proposals and users</SelectItem>
                     <SelectItem value="editor">Editor - Can edit proposal content</SelectItem>
                     <SelectItem value="viewer">Viewer - Can only view proposals</SelectItem>
@@ -376,7 +452,7 @@ export function UserRightsAdmin() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleAddGlobalRole}>Add Role</Button>
+              <Button onClick={handleAddRole}>Add Role</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
