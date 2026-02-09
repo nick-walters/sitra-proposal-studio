@@ -55,7 +55,6 @@ interface CollaborationPanelProps {
   // Comments props
   selectedText: string;
   selectionRange?: { start: number; end: number };
-  onApplySuggestion: (originalText: string, suggestedText: string) => void;
   onClearSelection: () => void;
   // Panel state
   isCollapsed: boolean;
@@ -75,7 +74,6 @@ export function CollaborationPanel({
   onOpenAssignmentDialog,
   selectedText,
   selectionRange,
-  onApplySuggestion,
   onClearSelection,
   isCollapsed,
   onToggleCollapse,
@@ -308,7 +306,6 @@ export function CollaborationPanel({
             sectionId={sectionId}
             selectedText={selectedText}
             selectionRange={selectionRange}
-            onApplySuggestion={onApplySuggestion}
             onClearSelection={onClearSelection}
             compact
           />
