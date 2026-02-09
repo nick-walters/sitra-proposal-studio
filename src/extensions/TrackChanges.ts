@@ -431,7 +431,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           newTr.setMeta('trackChangesInternal', true);
           let modified = false;
 
-          const MERGE_WINDOW_MS = 3000;
+          const MERGE_WINDOW_MS = 10000;
           const now = Date.now();
 
           for (const tr of transactions) {
@@ -491,14 +491,16 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                 if (newEnd > newStart && oldEnd <= oldStart) {
                   const insertedText = newState.doc.textBetween(newStart, newEnd, ' ');
 
-                  if (insertedText.trim()) {
-                    // Check if we should merge with a recent insertion
+                  // Merge with recent insertion even for whitespace/newlines
+                  const hasActiveMerge =
+                    extension.storage.lastInsertionId &&
+                    now - extension.storage.lastInsertionTime < MERGE_WINDOW_MS;
+
+                  // Skip only if it's pure whitespace AND there's no active merge
+                  if (insertedText.trim() || hasActiveMerge) {
                     let changeId: string;
-                    if (
-                      extension.storage.lastInsertionId &&
-                      now - extension.storage.lastInsertionTime < MERGE_WINDOW_MS
-                    ) {
-                      changeId = extension.storage.lastInsertionId;
+                    if (hasActiveMerge) {
+                      changeId = extension.storage.lastInsertionId!;
                     } else {
                       changeId = generateChangeId();
                     }
