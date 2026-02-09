@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Trash2, Award, ExternalLink } from 'lucide-react';
+import { Plus, Trash2, Award } from 'lucide-react';
 import { ParticipantAchievement, ACHIEVEMENT_TYPES } from '@/types/participantDetails';
 
 interface AchievementsSectionProps {
@@ -59,11 +59,8 @@ export function AchievementsSection({
           <div>
             <CardTitle className="text-lg flex items-center gap-2">
               <Award className="w-5 h-5" />
-              List of up to 5 achievements
+              List of up to 5 publications, widely-used datasets, software, goods, services, or any other achievements relevant to the call content
             </CardTitle>
-            <CardDescription className="mt-1">
-              Publications, datasets, software, goods, services or other achievements relevant to the project
-            </CardDescription>
           </div>
           {canEdit && canAddMore && (
             <Button
@@ -79,19 +76,10 @@ export function AchievementsSection({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-xs text-muted-foreground">
-          Provide a DOI (Digital Object Identifier) or other PID (Persistent Identifier) when available. 
-          Applicants are expected to follow the open access guidelines for publications and to provide 
-          open access to data/research outputs.{' '}
-          <a 
-            href="https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/aga_en.pdf"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary hover:underline inline-flex items-center gap-0.5"
-          >
-            See AGA Article 17 <ExternalLink className="w-3 h-3" />
-          </a>
-        </p>
+        <div className="text-xs text-muted-foreground space-y-1">
+          <p><strong>Type of achievement:</strong> Publication / Dataset / Software / Good / Service</p>
+          <p><strong>Short description</strong> – Key elements of the achievement, including a short qualitative assessment of its impact and (where available) its digital object identifier (DOI) or other type of persistent identifier (PID). Publications, in particular journal articles, are expected to be open access. Datasets are expected to be FAIR and 'as open as possible, as closed as necessary'.</p>
+        </div>
 
         {/* Add Form */}
         {showAddForm && (

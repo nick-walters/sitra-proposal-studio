@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -53,11 +53,8 @@ export function PreviousProjectsSection({
           <div>
             <CardTitle className="text-lg flex items-center gap-2">
               <FolderKanban className="w-5 h-5" />
-              List of up to 5 previous projects
+              List of up to 5 most relevant previous projects or activities, connected to the subject of this proposal
             </CardTitle>
-            <CardDescription className="mt-1">
-              Relevant previous projects undertaken by this organisation
-            </CardDescription>
           </div>
           {canEdit && canAddMore && (
             <Button
@@ -73,12 +70,16 @@ export function PreviousProjectsSection({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="text-xs text-muted-foreground space-y-1">
+          <p><strong>Name of Project or Activity</strong></p>
+          <p><strong>Short description</strong></p>
+        </div>
         {/* Add Form */}
         {showAddForm && (
           <Card className="border-dashed">
             <CardContent className="pt-4 space-y-4">
               <div className="space-y-2">
-                <Label>Project name *</Label>
+                <Label>Name of Project or Activity *</Label>
                 <Input
                   value={newProject.projectName}
                   onChange={(e) => setNewProject({ ...newProject, projectName: e.target.value })}
