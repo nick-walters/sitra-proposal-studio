@@ -428,6 +428,12 @@ export function ProposalEditor() {
               <ParticipantDetailForm
                 participant={selectedParticipant}
                 participantMembers={participantMembers}
+                allParticipants={participants.map(p => ({
+                  id: p.id,
+                  participant_number: p.participantNumber,
+                  organisation_short_name: p.organisationShortName || null,
+                  organisation_name: p.organisationName || '',
+                }))}
                 onUpdateParticipant={updateParticipant}
                 onDeleteParticipant={(id) => {
                   deleteParticipant(id);
@@ -492,9 +498,15 @@ export function ProposalEditor() {
           const canEditThisParticipant = canEdit && (isAdmin || isUserMemberOfParticipant);
           
           return (
-            <ParticipantDetailForm
+             <ParticipantDetailForm
               participant={participant}
               participantMembers={participantMembers}
+              allParticipants={participants.map(p => ({
+                id: p.id,
+                participant_number: p.participantNumber,
+                organisation_short_name: p.organisationShortName || null,
+                organisation_name: p.organisationName || '',
+              }))}
               onUpdateParticipant={updateParticipant}
               onDeleteParticipant={(id) => {
                 deleteParticipant(id);
