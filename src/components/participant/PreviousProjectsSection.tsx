@@ -34,12 +34,10 @@ interface PreviousProjectsSectionProps {
 
 function SortableProjectRow({
   project,
-  index,
-  canEdit,
-  onDelete,
-}: {
-  project: ParticipantPreviousProject;
-  index: number;
+    canEdit,
+    onDelete,
+  }: {
+    project: ParticipantPreviousProject;
   canEdit: boolean;
   onDelete: (id: string) => void;
 }) {
@@ -73,9 +71,7 @@ function SortableProjectRow({
           <GripVertical className="w-4 h-4" />
         </button>
       )}
-      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
-        <span className="text-xs font-medium text-primary">{index + 1}</span>
-      </div>
+      <FolderKanban className="w-5 h-5 text-primary flex-shrink-0" />
       <div className="flex-1 min-w-0">
         <p className="font-medium">{project.projectName}</p>
         {project.description && (
@@ -213,11 +209,10 @@ export function PreviousProjectsSection({
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={projects.map((p) => p.id)} strategy={verticalListSortingStrategy}>
               <div className="space-y-3">
-                {projects.map((project, index) => (
+                {projects.map((project) => (
                   <SortableProjectRow
                     key={project.id}
                     project={project}
-                    index={index}
                     canEdit={canEdit}
                     onDelete={onDelete}
                   />

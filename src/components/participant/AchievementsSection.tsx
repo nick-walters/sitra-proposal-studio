@@ -40,12 +40,10 @@ interface AchievementsSectionProps {
 
 function SortableAchievementRow({
   achievement,
-  index,
-  canEdit,
-  onDelete,
-}: {
-  achievement: ParticipantAchievement;
-  index: number;
+    canEdit,
+    onDelete,
+  }: {
+    achievement: ParticipantAchievement;
   canEdit: boolean;
   onDelete: (id: string) => void;
 }) {
@@ -79,9 +77,7 @@ function SortableAchievementRow({
           <GripVertical className="w-4 h-4" />
         </button>
       )}
-      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
-        <span className="text-xs font-medium text-primary">{index + 1}</span>
-      </div>
+      <Award className="w-5 h-5 text-primary flex-shrink-0" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-xs font-medium px-2 py-0.5 bg-primary/10 text-primary rounded">
@@ -234,11 +230,10 @@ export function AchievementsSection({
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={achievements.map((a) => a.id)} strategy={verticalListSortingStrategy}>
               <div className="space-y-3">
-                {achievements.map((achievement, index) => (
+                {achievements.map((achievement) => (
                   <SortableAchievementRow
                     key={achievement.id}
                     achievement={achievement}
-                    index={index}
                     canEdit={canEdit}
                     onDelete={onDelete}
                   />

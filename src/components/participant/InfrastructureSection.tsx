@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2, Server, GripVertical } from 'lucide-react';
+import { Plus, Trash2, MonitorCog, GripVertical } from 'lucide-react';
 import { ParticipantInfrastructure } from '@/types/participantDetails';
 import {
   DndContext,
@@ -71,7 +71,7 @@ function SortableInfraRow({
           <GripVertical className="w-4 h-4" />
         </button>
       )}
-      <Server className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+      <MonitorCog className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
         <p className="font-medium">{infra.name}</p>
         {infra.description && (
@@ -144,7 +144,7 @@ export function InfrastructureSection({
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-lg flex items-center gap-2">
-              <Server className="w-5 h-5" />
+              <MonitorCog className="w-5 h-5" />
               Description of any significant infrastructure and/or any major items of technical equipment, relevant to the proposed work
             </CardTitle>
           </div>
@@ -198,7 +198,7 @@ export function InfrastructureSection({
         {/* Infrastructure List */}
         {infrastructure.length === 0 && !showAddForm ? (
           <div className="text-center py-6 text-muted-foreground">
-            <Server className="w-8 h-8 mx-auto mb-2 opacity-50" />
+            <MonitorCog className="w-8 h-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">No infrastructure added yet</p>
             <p className="text-xs mt-1">Add significant infrastructure or equipment relevant to the project</p>
           </div>
