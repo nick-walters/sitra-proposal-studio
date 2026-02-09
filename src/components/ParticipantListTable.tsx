@@ -105,7 +105,7 @@ export function ParticipantListTable({
                     <p>
                       {participant.organisationShortName ? (
                         <span
-                          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs"
+                          className="inline-flex items-center px-2.5 py-1 rounded-full text-[11pt]"
                           style={{ 
                             backgroundColor: '#000000', 
                             color: '#ffffff',
@@ -130,7 +130,7 @@ export function ParticipantListTable({
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <span 
-                                className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium"
+                                className="inline-flex items-center px-2.5 py-1 rounded text-[11pt] font-medium"
                                 style={{ 
                                   backgroundColor: 'hsl(var(--primary))', 
                                   color: 'hsl(var(--primary-foreground))',
@@ -148,7 +148,7 @@ export function ParticipantListTable({
                           <Tooltip key={`wp-${wp.wpNumber}`}>
                             <TooltipTrigger asChild>
                               <span
-                                className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold text-white"
+                                className="inline-flex items-center px-2.5 py-1 rounded-full text-[11pt] font-bold text-white"
                                 style={{ backgroundColor: wp.color }}
                               >
                                 WP{wp.wpNumber}
@@ -165,7 +165,7 @@ export function ParticipantListTable({
                           <Tooltip key={`case-${c.caseNumber}`}>
                             <TooltipTrigger asChild>
                               <span
-                                className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold text-white"
+                                className="inline-flex items-center px-2.5 py-1 rounded-full text-[11pt] font-bold text-white"
                                 style={{ backgroundColor: c.color }}
                               >
                                 {c.prefix}{c.caseNumber}
