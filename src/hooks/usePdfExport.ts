@@ -897,7 +897,7 @@ export function usePdfExport() {
         
         // Table configuration - full content width (180mm)
         // No., Short Name, Legal Name + English, Logo (no left border), Country
-        const colWidths = [10, 25, 110, 15, 20]; // Total = 180mm = contentWidth
+        const colWidths = [7, 25, 113, 15, 20]; // Total = 180mm = contentWidth (No. column sized for "39")
         const baseRowHeight = 6;
         const cellPadding = 1;
         const tableWidth = contentWidth;
