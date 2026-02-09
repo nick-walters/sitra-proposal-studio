@@ -31,7 +31,6 @@ export function AdminAvatarUpload({ userId, avatarUrl, initials, onAvatarChange 
     if (!file) return;
     if (!file.type.startsWith("image/")) { toast.error("Please select an image"); return; }
     if (file.size > 5 * 1024 * 1024) { toast.error("Image must be < 5MB"); return; }
-
     const reader = new FileReader();
     reader.onload = (ev) => {
       const url = ev.target?.result as string;
@@ -49,15 +48,38 @@ export function AdminAvatarUpload({ userId, avatarUrl, initials, onAvatarChange 
     e.target.value = "";
   };
 
+  const CROP_SIZE = 200;
+
+  const getScaled = (z: number) => {
+    if (imgDims.width === 0 || imgDims.height === 0) return { w: 0, h: 0 };
+    const baseScale = CROP_SIZE / Math.min(imgDims.width, imgDims.height);
+    const s = baseScale * z;
+    return { w: imgDims.width * s, h: imgDims.height * s };
+  };
+
+  const clampPosition = (pos: { x: number; y: number }, z: number) => {
+    const { w, h } = getScaled(z);
+    const maxX = Math.max(0, (w - CROP_SIZE) / 2);
+    const maxY = Math.max(0, (h - CROP_SIZE) / 2);
+    return {
+      x: Math.min(maxX, Math.max(-maxX, pos.x)),
+      y: Math.min(maxY, Math.max(-maxY, pos.y)),
+    };
+  };
+
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
     setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
   };
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
-    setPosition({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+    setPosition(clampPosition({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y }, zoom[0]));
   };
   const handleMouseUp = () => setIsDragging(false);
+  const handleZoomChange = (val: number[]) => {
+    setZoom(val);
+    setPosition(prev => clampPosition(prev, val[0]));
+  };
 
   const cropAndUpload = async () => {
     if (!previewImage || !canvasRef.current) return;
@@ -118,12 +140,6 @@ export function AdminAvatarUpload({ userId, avatarUrl, initials, onAvatarChange 
     }
   };
 
-  const cropSize = 200;
-  const baseScale = imgDims.width > 0 ? cropSize / Math.min(imgDims.width, imgDims.height) : 1;
-  const effectiveScale = baseScale * zoom[0];
-  const scaledW = imgDims.width * effectiveScale;
-  const scaledH = imgDims.height * effectiveScale;
-
   return (
     <>
       <div className="relative group cursor-pointer" onClick={() => fileRef.current?.click()}>
@@ -152,24 +168,27 @@ export function AdminAvatarUpload({ userId, avatarUrl, initials, onAvatarChange 
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
             >
-              {previewImage && imgDims.width > 0 && (
-                <img
-                  src={previewImage}
-                  alt="Preview"
-                  className="absolute select-none pointer-events-none"
-                  style={{
-                    width: `${scaledW}px`,
-                    height: `${scaledH}px`,
-                    left: `${(cropSize - scaledW) / 2 + position.x}px`,
-                    top: `${(cropSize - scaledH) / 2 + position.y}px`,
-                  }}
-                  draggable={false}
-                />
-              )}
+              {previewImage && imgDims.width > 0 && (() => {
+                const { w, h } = getScaled(zoom[0]);
+                return (
+                  <img
+                    src={previewImage}
+                    alt="Preview"
+                    className="absolute select-none pointer-events-none"
+                    style={{
+                      width: `${w}px`,
+                      height: `${h}px`,
+                      left: `${(CROP_SIZE - w) / 2 + position.x}px`,
+                      top: `${(CROP_SIZE - h) / 2 + position.y}px`,
+                    }}
+                    draggable={false}
+                  />
+                );
+              })()}
             </div>
             <div className="space-y-2 px-4">
               <label className="text-sm text-muted-foreground">Zoom</label>
-              <Slider value={zoom} onValueChange={setZoom} min={0.5} max={3} step={0.1} className="w-full" />
+              <Slider value={zoom} onValueChange={handleZoomChange} min={1} max={3} step={0.1} className="w-full" />
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => { setCropOpen(false); setPreviewImage(null); }} disabled={uploading}>Cancel</Button>
