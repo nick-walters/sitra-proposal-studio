@@ -930,8 +930,11 @@ export function usePdfExport() {
         pdf.text('Short name', xPos + cellPadding, yPosition);
         xPos += colWidths[1];
         
-        // Column 2: Participant legal name | English name, if different (with italic part)
-        pdf.rect(xPos, yPosition - 4, colWidths[2], baseRowHeight);
+        // Column 2: Participant legal name | English name, if different (no right border)
+        // Draw top, left, bottom borders only
+        pdf.line(xPos, yPosition - 4, xPos + colWidths[2], yPosition - 4); // top
+        pdf.line(xPos, yPosition - 4, xPos, yPosition - 4 + baseRowHeight); // left
+        pdf.line(xPos, yPosition - 4 + baseRowHeight, xPos + colWidths[2], yPosition - 4 + baseRowHeight); // bottom
         const headerPart1 = 'Participant legal name | ';
         pdf.text(headerPart1, xPos + cellPadding, yPosition);
         const part1Width = pdf.getTextWidth(headerPart1);
@@ -998,8 +1001,10 @@ export function usePdfExport() {
           pdf.rect(xPos, rowStartY - 4, colWidths[1], rowHeight);
           xPos += colWidths[1];
           
-          // Column 2: Legal/English Name - full border
-          pdf.rect(xPos, rowStartY - 4, colWidths[2], rowHeight);
+          // Column 2: Legal/English Name - no right border (draw top, left, bottom only)
+          pdf.line(xPos, rowStartY - 4, xPos + colWidths[2], rowStartY - 4); // top
+          pdf.line(xPos, rowStartY - 4, xPos, rowStartY - 4 + rowHeight); // left
+          pdf.line(xPos, rowStartY - 4 + rowHeight, xPos + colWidths[2], rowStartY - 4 + rowHeight); // bottom
           xPos += colWidths[2];
           
           // Column 3: Logo - no left border (draw top, right, bottom only)
