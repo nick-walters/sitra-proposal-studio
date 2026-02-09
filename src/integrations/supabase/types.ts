@@ -2041,6 +2041,9 @@ export type Database = {
           submitted_at: string | null
           template_type_id: string | null
           title: string
+          topic_content_imported_at: string | null
+          topic_description: string | null
+          topic_destination_description: string | null
           topic_id: string | null
           topic_title: string | null
           topic_url: string | null
@@ -2073,6 +2076,9 @@ export type Database = {
           submitted_at?: string | null
           template_type_id?: string | null
           title: string
+          topic_content_imported_at?: string | null
+          topic_description?: string | null
+          topic_destination_description?: string | null
           topic_id?: string | null
           topic_title?: string | null
           topic_url?: string | null
@@ -2105,6 +2111,9 @@ export type Database = {
           submitted_at?: string | null
           template_type_id?: string | null
           title?: string
+          topic_content_imported_at?: string | null
+          topic_description?: string | null
+          topic_destination_description?: string | null
           topic_id?: string | null
           topic_title?: string | null
           topic_url?: string | null
