@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Phone, Video, MoreVertical } from "lucide-react";
+import { Send, MoreVertical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 
@@ -110,12 +110,6 @@ export function DirectChatDialog({ open, onOpenChange, userId, currentUserId = '
               </div>
             </div>
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon">
-                <Phone className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="icon">
-                <Video className="w-4 h-4" />
-              </Button>
               <Button variant="ghost" size="icon">
                 <MoreVertical className="w-4 h-4" />
               </Button>
