@@ -867,6 +867,7 @@ export function usePdfExport() {
         };
 
         // Table 3.1c - Deliverables (format: "DX.X: Title" in sentence case)
+        // Caption will be added from the editor content, not hardcoded
         if (deliverables && deliverables.length > 0) {
           const delHeaders = ['Deliverable', 'WP', 'Lead', 'Type', 'Diss.', 'Due'];
           const delColWidths = [85, 15, 25, 15, 20, 20]; // Wider first column for merged number+title
@@ -891,10 +892,12 @@ export function usePdfExport() {
               { text: d.due_month ? `M${String(d.due_month).padStart(2, '0')}` : '—', type: 'text' as const }
             ];
           });
-          addB31TableAdvanced(delHeaders, delRows, delColWidths, 'Table 3.1c. List of deliverables');
+          // No hardcoded caption - captions come from editor content
+          addB31TableAdvanced(delHeaders, delRows, delColWidths, '');
         }
 
         // Table 3.1d - Milestones (format: "MSX: Title" in sentence case)
+        // Caption will be added from the editor content, not hardcoded
         if (milestones && milestones.length > 0) {
           const msHeaders = ['Milestone', 'WPs', 'Due', 'Means of verification'];
           const msColWidths = [65, 30, 20, 65];
@@ -910,10 +913,12 @@ export function usePdfExport() {
               { text: m.means_of_verification || '—', type: 'text' as const }
             ];
           });
-          addB31TableAdvanced(msHeaders, msRows, msColWidths, 'Table 3.1d. List of milestones');
+          // No hardcoded caption - captions come from editor content
+          addB31TableAdvanced(msHeaders, msRows, msColWidths, '');
         }
 
         // Table 3.1e - Risks (NOT numbered, include likelihood/severity badges)
+        // Caption will be added from the editor content, not hardcoded
         if (risks && risks.length > 0) {
           const riskHeaders = ['Risk', 'WPs', '(i)', '(ii)', 'Mitigation & adaptation measures'];
           const riskColWidths = [50, 25, 12, 12, 81];
@@ -931,7 +936,8 @@ export function usePdfExport() {
               { text: r.mitigation || '—', type: 'text' as const }
             ];
           });
-          addB31TableAdvanced(riskHeaders, riskRows, riskColWidths, 'Table 3.1e. Critical risks and mitigation measures');
+          // No hardcoded caption - captions come from editor content
+          addB31TableAdvanced(riskHeaders, riskRows, riskColWidths, '');
         }
       };
 
