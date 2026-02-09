@@ -351,19 +351,6 @@ export function ParticipantDetailForm({
                 Only if different from the main organisation
               </p>
             </div>
-            <div className="space-y-2">
-              <Label>Personnel cost rate (€/month)</Label>
-              <Input
-                type="number"
-                value={participant.personnelCostRate || 5000}
-                onChange={(e) => handleFieldUpdate('personnelCostRate', parseFloat(e.target.value) || 5000)}
-                placeholder="5000"
-                disabled={!canEdit}
-              />
-              <p className="text-xs text-muted-foreground">
-                Average monthly cost per person-month. Used to calculate personnel costs from effort data.
-              </p>
-            </div>
           </CardContent>
         </Card>
 
