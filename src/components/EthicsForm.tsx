@@ -545,7 +545,13 @@ const ETHICS_SECTIONS: EthicsSection[] = [
       {
         id: 'nonEuCountriesLmic',
         pageId: 'nonEuCountriesLmicPage',
-        label: 'Does this activity involve low and/or lower-middle income countries? (if yes, detail the benefit-sharing actions planned in the self-assessment)',
+        label: '',
+        labelWithLink: {
+          text: 'Does this activity involve ',
+          linkText: 'low and/or lower-middle income countries',
+          linkUrl: 'https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/programme-guide_horizon_en.pdf',
+          afterLinkText: '? (if yes, detail the benefit-sharing actions planned in the self-assessment)',
+        },
       },
       {
         id: 'nonEuCountriesRisk',
