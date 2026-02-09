@@ -995,7 +995,7 @@ export function usePdfExport() {
           xPos += colWidths[0];
           
           // Participant number
-          pdf.text(String(participant.participantNumber), xPos + cellPadding, rowStartY);
+          pdf.text(String(participant.participantNumber || ''), xPos + cellPadding, rowStartY);
           xPos += colWidths[1];
           
           // Short name
