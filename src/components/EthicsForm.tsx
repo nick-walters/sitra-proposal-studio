@@ -876,16 +876,6 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
   return (
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
       <div className="max-w-5xl mx-auto space-y-6">
-        {/* Guidelines Button */}
-        <PartAGuidelinesDialog
-          sectionTitle="Part A4: Ethics self-assessment"
-          officialGuidelines={[{
-            id: 'ethics-info',
-            title: 'Ethics Issues Table',
-            content: 'Complete the ethics self-assessment by answering all applicable questions.\n\nFor each "Yes" answer:\n• Provide the page number in Part B where the issue is addressed\n• Sub-questions only appear when the parent question is answered "Yes"\n\nThis assessment covers:\n• Human embryonic stem cells\n• Research involving humans\n• Human cells/tissues\n• Personal data protection\n• Animals in research\n• Third countries research\n• Environment and safety\n• Artificial intelligence\n• Other potential ethics issues'
-          }]}
-        />
-
         {/* Header */}
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-foreground">Part A4: Ethics self-assessment</h1>
