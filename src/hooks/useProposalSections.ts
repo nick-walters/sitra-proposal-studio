@@ -143,7 +143,7 @@ function buildSectionHierarchy(sections: TemplateSectionData[]): Section[] {
   return rootSections;
 }
 
-export function useProposalSections(templateTypeId: string | null, proposalId?: string | null) {
+export function useProposalSections(templateTypeId: string | null, proposalId?: string | null, proposalLoaded?: boolean) {
   const [loading, setLoading] = useState(true);
   const [templateSections, setTemplateSections] = useState<Section[]>([]);
   const [hasTemplateSections, setHasTemplateSections] = useState(false);
@@ -151,8 +151,15 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
 
   // Use useEffect directly with templateTypeId as dependency for proper reactivity
   useEffect(() => {
+    // If proposal is still loading (proposalId present but not yet loaded), stay in loading state
+    if (proposalLoaded === false && proposalId) {
+      setLoading(true);
+      return;
+    }
+
     const fetchSections = async () => {
       if (!templateTypeId) {
+        // Proposal has loaded but has no templateTypeId — legacy proposal, use fallback
         setTemplateSections([]);
         setHasTemplateSections(false);
         setLoading(false);
@@ -193,7 +200,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     };
 
     fetchSections();
-  }, [templateTypeId]);
+  }, [templateTypeId, proposalLoaded, proposalId]);
 
   // Fetch WP drafts using react-query to share cache with WPManagementCard
   const { data: wpDraftsData = [] } = useQuery({
