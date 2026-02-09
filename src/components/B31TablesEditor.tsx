@@ -1093,8 +1093,8 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
   return (
     <div>
       <div className="flex items-center justify-between">
-        <p className={`${tableStyles} italic`}>
-          <span className="font-bold italic">Table 3.1e.</span> Critical risks (<span className="font-bold">i.</span> likelihood; <span className="font-bold">ii.</span> severity; <span className="font-bold text-green-600">L</span> = low, <span className="font-bold text-amber-500">M</span> = medium, <span className="font-bold text-red-500">H</span> = high)
+        <p className={`${tableStyles} italic flex items-center gap-1 flex-wrap`}>
+          <span className="font-bold italic">Table 3.1e.</span> Critical risks (<span className="font-bold">i.</span> likelihood; <span className="font-bold">ii.</span> severity; <RiskBadge level="L" /> = low, <RiskBadge level="M" /> = medium, <RiskBadge level="H" /> = high)
         </p>
         {isAdminOrOwner && (
           <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs h-6 px-2 py-0">
