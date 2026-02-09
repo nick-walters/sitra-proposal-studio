@@ -872,7 +872,16 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
             <h3 className="font-semibold text-sm">ETHICS SELF-ASSESSMENT</h3>
             <CardDescription className="text-xs mt-2">
               If you have entered any issues in the ethics issue table, you must perform an ethics self-assessment 
-              in accordance with the guidelines "How to Complete your Ethics Self-Assessment" and complete the table below.
+              in accordance with the guidelines{' '}
+              <a 
+                href="https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/how-to-complete-your-ethics-self-assessment_en.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline hover:text-primary/80"
+              >
+                "How to Complete your Ethics Self-Assessment"
+              </a>{' '}
+              and complete the table below.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
