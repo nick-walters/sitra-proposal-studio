@@ -68,16 +68,12 @@ export function InfrastructureSection({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="text-xs text-muted-foreground space-y-1">
-          <p><strong>Name of infrastructure or equipment</strong></p>
-          <p><strong>Short description</strong></p>
-        </div>
         {/* Add Form */}
         {showAddForm && (
           <Card className="border-dashed">
             <CardContent className="pt-4 space-y-4">
               <div className="space-y-2">
-                <Label>Name of infrastructure or equipment *</Label>
+                <Label>Name of infrastructure or equipment</Label>
                 <Input
                   value={newInfra.name}
                   onChange={(e) => setNewInfra({ ...newInfra, name: e.target.value })}
