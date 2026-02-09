@@ -85,7 +85,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
               <SelectTrigger className="h-7 w-[110px] text-sm font-medium border-0 bg-transparent hover:bg-accent focus:ring-0 focus:ring-offset-0">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[100]">
                 {MONTHS.map((month, index) => (
                   <SelectItem key={month} value={index.toString()}>
                     {month}
@@ -100,7 +100,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
               <SelectTrigger className="h-7 w-[80px] text-sm font-medium border-0 bg-transparent hover:bg-accent focus:ring-0 focus:ring-offset-0">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[100]">
                 {years.map((year) => (
                   <SelectItem key={year} value={year.toString()}>
                     {year}
