@@ -228,7 +228,7 @@ export function usePdfExport() {
       };
 
       // Helper: Add title (14pt bold, 12pt paragraph spacing after) - CENTERED
-      // For full proposals (not stage_1), use Sitra branding: Arial Black for acronym, Arial for title
+      // For full proposals (not stage_1), use Sitra branding: "Acronym: Title" in Arial Black
       const addTitle = (titleText: string, acronymText: string) => {
         checkPageBreak(15);
         pdf.setTextColor(...black);
@@ -247,31 +247,21 @@ export function usePdfExport() {
             yPosition += 5.5;
           }
         } else {
-          // Full proposal: Sitra branding
-          // Title: Arial (helvetica normal in jsPDF)
-          // Acronym: Arial Black (custom font if loaded, else helvetica bold fallback)
-          
-          // First, render the title in Arial (not bold)
-          pdf.setFontSize(FONT_SIZE_TITLE);
-          pdf.setFont('helvetica', 'normal'); // Arial normal
-          const titleLines = pdf.splitTextToSize(titleText, contentWidth);
-          for (const line of titleLines) {
-            checkPageBreak(6);
-            pdf.text(line, pageWidth / 2, yPosition, { align: 'center' });
-            yPosition += 5.5;
-          }
-          
-          // Then render the acronym in Arial Black
+          // Full proposal: Sitra branding - "Acronym: Title" all in Arial Black
           pdf.setFontSize(FONT_SIZE_TITLE);
           if (arialBlackLoaded) {
             pdf.setFont('ArialBlack', 'normal'); // Use actual Arial Black
           } else {
             pdf.setFont('helvetica', 'bold'); // Fallback to helvetica bold
           }
-          const acronymWithParens = `(${acronymText})`;
-          checkPageBreak(6);
-          pdf.text(acronymWithParens, pageWidth / 2, yPosition, { align: 'center' });
-          yPosition += 5.5;
+          
+          const fullText = `${acronymText}: ${titleText}`;
+          const lines = pdf.splitTextToSize(fullText, contentWidth);
+          for (const line of lines) {
+            checkPageBreak(6);
+            pdf.text(line, pageWidth / 2, yPosition, { align: 'center' });
+            yPosition += 5.5;
+          }
         }
         
         yPosition += titleParagraphSpacing;
