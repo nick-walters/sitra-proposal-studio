@@ -44,6 +44,7 @@ import { format, isPast, isToday, differenceInDays } from "date-fns";
 import { CollaborativeCursors } from "./CollaborativeCursors";
 import { BlockLockIndicator } from "./BlockLockIndicator";
 import { TrackChangesToolbar } from "./TrackChangesToolbar";
+import { TrackChangeTooltip } from "./TrackChangeTooltip";
 import { SearchReplaceDialog } from "./SearchReplaceDialog";
 import { TableFormulaDialog } from "./TableFormulaDialog";
 import { VersionComparisonDialog } from "./VersionComparisonDialog";
@@ -943,6 +944,11 @@ export function DocumentEditor({
                     editor={editor} 
                     className={`document-content outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''} ${(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') ? '' : 'min-h-[400px]'}`}
                     style={{ fontFamily: '"Times New Roman", Times, serif' }}
+                  />
+                  {/* Track change inline tooltip */}
+                  <TrackChangeTooltip
+                    editor={editor}
+                    containerRef={editorContainerRef}
                   />
                   {/* Block lock indicators */}
                   <BlockLockIndicator
