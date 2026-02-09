@@ -1,174 +1,37 @@
 
 
-# Plan: Fix Add Participant Dialog Persistence on Tab/App Switch
+## Fix: Bubble Clipping in B31 Deliverables Table
 
-## Problem Analysis
+### Problem
+The WP and Partner pill-shaped badges (bubbles) in the Deliverables table (Table 3.1c) are being cut off at the top and bottom. The root cause is that the shared `cellStyles` uses `py-px` (1px padding) and `leading-none`, which provides insufficient vertical space for the taller bubble elements.
 
-The current fix attempts to use `document.hidden` to detect tab switches, but this approach has a critical timing issue: the `document.hidden` property may not be updated at the exact moment when Radix UI fires its dismissal events. The blur/focus sequence is:
+Previous attempts to fix this with `overflow-visible` on SelectTrigger did not work because CSS overflow clipping is enforced by parent containers -- a child cannot override its ancestor's clipping behavior.
 
-1. User switches tab/app
-2. Window fires `blur` event
-3. Radix components fire `onFocusOutside` / `onInteractOutside`
-4. Browser updates `document.hidden` to `true` (slightly delayed)
+### Solution
+Instead of fighting overflow, give the bubble-containing cells enough vertical space by using a dedicated cell style with more padding.
 
-Since step 4 happens after step 3, checking `document.hidden` in the event handlers returns `false`, and the dialog closes.
+### Changes (1 file)
 
-## Solution: Window Blur State Tracking
+**`src/components/B31TablesEditor.tsx`**
 
-Create a global utility that tracks window focus state synchronously using the `blur` and `focus` events on the window object. Components can then check this state to determine if dismissal should be prevented.
+1. **Add a new `bubbleCellStyles` constant** (next to existing `cellStyles` on line 136):
+   ```
+   const bubbleCellStyles = "border border-black px-0.5 py-1 h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-normal";
+   ```
+   Key differences from `cellStyles`: `py-1` instead of `py-px`, `leading-normal` instead of `leading-none`.
 
-## Files to Create/Modify
+2. **Apply `bubbleCellStyles` to the WP column cell** (line 702): Change `cellStyles` to `bubbleCellStyles`.
 
-### 1. Create New Hook: `src/hooks/useWindowFocus.ts`
+3. **Apply `bubbleCellStyles` to the Lead Participant column cell** (line 709): Change `cellStyles` to `bubbleCellStyles`.
 
-Create a reusable hook that tracks window blur/focus state:
+4. **Simplify the Lead Participant SelectTrigger** (line 714): Remove the `overflow-visible` workaround since the extra cell padding makes it unnecessary. Change to:
+   ```
+   className="h-auto px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex items-center"
+   ```
 
-```typescript
-import { useEffect, useSyncExternalStore } from 'react';
+5. **Also apply `bubbleCellStyles` to the Milestones table WP column** (line 944) if multi-WP bubbles have the same clipping issue there.
 
-// Global state tracked outside React for synchronous updates
-let windowHasFocus = true;
-let listeners: Set<() => void> = new Set();
-
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-}
-
-function getSnapshot() {
-  return windowHasFocus;
-}
-
-// Initialize listeners once
-if (typeof window !== 'undefined') {
-  window.addEventListener('blur', () => {
-    windowHasFocus = false;
-    listeners.forEach(l => l());
-  });
-  window.addEventListener('focus', () => {
-    windowHasFocus = true;
-    listeners.forEach(l => l());
-  });
-}
-
-export function useWindowFocus() {
-  return useSyncExternalStore(subscribe, getSnapshot, () => true);
-}
-
-// Direct function for use in event handlers (non-hook)
-export function isWindowFocused() {
-  return windowHasFocus;
-}
-```
-
-### 2. Update `src/components/ui/dialog.tsx`
-
-Import and use the `isWindowFocused` function:
-
-```typescript
-import { isWindowFocused } from '@/hooks/useWindowFocus';
-
-// In DialogContent:
-onFocusOutside={(e) => {
-  // Prevent dialog from closing when window loses focus (tab/app switch)
-  if (!isWindowFocused()) {
-    e.preventDefault();
-    return;
-  }
-  onFocusOutside?.(e);
-}}
-onInteractOutside={(e) => {
-  // Prevent dialog from closing when window loses focus
-  if (!isWindowFocused()) {
-    e.preventDefault();
-    return;
-  }
-  // Allow closing via explicit overlay click
-  const target = e.target as HTMLElement;
-  const isOverlayClick = target?.getAttribute('data-state') === 'open' && 
-                         target?.classList.contains('fixed');
-  if (!isOverlayClick) {
-    e.preventDefault();
-  }
-  onInteractOutside?.(e);
-}}
-```
-
-### 3. Update `src/components/ui/popover.tsx`
-
-Add protection for all dismissal event handlers:
-
-```typescript
-import { isWindowFocused } from '@/hooks/useWindowFocus';
-
-// In PopoverContent, add all three handlers:
-onFocusOutside={(e) => {
-  if (!isWindowFocused()) {
-    e.preventDefault();
-    return;
-  }
-  onFocusOutside?.(e);
-}}
-onInteractOutside={(e) => {
-  if (!isWindowFocused()) {
-    e.preventDefault();
-    return;
-  }
-  onInteractOutside?.(e);
-}}
-onPointerDownOutside={(e) => {
-  if (!isWindowFocused()) {
-    e.preventDefault();
-    return;
-  }
-  onPointerDownOutside?.(e);
-}}
-```
-
-### 4. Update `src/components/ui/select.tsx`
-
-Add protection for all dismissal event handlers:
-
-```typescript
-import { isWindowFocused } from '@/hooks/useWindowFocus';
-
-// In SelectContent:
-onPointerDownOutside={(e) => {
-  if (!isWindowFocused()) {
-    e.preventDefault();
-    return;
-  }
-  onPointerDownOutside?.(e);
-}}
-onFocusOutside={(e) => {
-  if (!isWindowFocused()) {
-    e.preventDefault();
-    return;
-  }
-  onFocusOutside?.(e);
-}}
-```
-
-## Why This Solution Works
-
-1. **Synchronous Event Handling**: The window `blur` event fires synchronously when focus leaves, immediately updating our `windowHasFocus` variable before any Radix UI events fire.
-
-2. **Race Condition Free**: Unlike checking `document.hidden`, our state is updated in the same event loop as the blur, so it's always accurate when Radix components check it.
-
-3. **All Event Types Covered**: We handle `onFocusOutside`, `onInteractOutside`, and `onPointerDownOutside` - the three event types Radix uses for dismissal.
-
-4. **Cascade Prevention**: By preventing nested components (Popover, Select) from closing, we avoid the chain reaction that could close the parent Dialog.
-
-5. **Normal Behavior Preserved**: Clicking outside, pressing Escape, and clicking the X button still work as expected when the window has focus.
-
-## Testing Scenarios
-
-After implementation, verify:
-1. Open Add Participant dialog, switch to another browser tab - dialog stays open
-2. Open Add Participant dialog, switch to another application - dialog stays open
-3. Open country selector popover, switch tabs - both popover and dialog stay open
-4. Open organisation category dropdown, switch tabs - both select and dialog stay open
-5. Open dialog, click on the dark overlay - dialog closes (expected)
-6. Open dialog, press Escape key - dialog closes (expected)
-7. Open dialog, click X button - dialog closes (expected)
-
+### Why This Works
+- The bubbles are approximately 18-20px tall; `py-1` (8px total) provides enough breathing room vs `py-px` (2px total)
+- No overflow hacks needed -- content fits naturally within the cell
+- Only the columns with bubbles get the extra padding; other columns stay compact
