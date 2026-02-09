@@ -110,8 +110,17 @@ export function usePdfExport() {
       const contentWidth = pageWidth - margin * 2;
       let yPosition = margin + 10; // Leave space for header
 
-      // Track current section for footer
+      // Track current section for footer - maps page number to section name
       let currentSectionName = '';
+      const pageSectionMap: Map<number, string> = new Map();
+      
+      // Helper to record current section for current page
+      const updatePageSection = () => {
+        const currentPage = pdf.internal.pages.length - 1;
+        if (!pageSectionMap.has(currentPage)) {
+          pageSectionMap.set(currentPage, currentSectionName);
+        }
+      };
 
       // Colors
       const black: [number, number, number] = [0, 0, 0];
@@ -137,6 +146,8 @@ export function usePdfExport() {
         if (yPosition + requiredSpace > pageHeight - margin - footerSpace) {
           pdf.addPage();
           yPosition = margin + 10; // Reset with header space
+          // Record section for the new page
+          updatePageSection();
           return true;
         }
         return false;
@@ -160,10 +171,12 @@ export function usePdfExport() {
         const footerY = pageHeight - margin + 5;
         const centerX = pageWidth / 2;
         
-        // Build footer: "ACRONYM (Stage 1 of 2) | Part BX.X. Subsection title | Page X of X"
+        // Build footer: "ACRONYM (Stage 1 of 2) | Section info | Page X of X"
+        // For "List of participants" don't add "Part " prefix
         const acronymText = proposal.acronym;
         const stageText = proposal.submissionStage === 'stage_1' ? ' (Stage 1 of 2) | ' : ' | ';
-        const sectionText = sectionName ? `Part ${sectionName}` : '';
+        const isListOfParticipants = sectionName === 'List of participants';
+        const sectionText = sectionName ? (isListOfParticipants ? sectionName : `Part ${sectionName}`) : '';
         const pageText = ` | Page ${pageNum} of ${totalPages}`;
         
         // Calculate total width to center properly
@@ -1090,6 +1103,10 @@ export function usePdfExport() {
 
       // ========== DOCUMENT CONTENT ==========
 
+      // Set initial section for first page (List of participants)
+      currentSectionName = 'List of participants';
+      updatePageSection();
+
       // Add header to first page
       addHeader();
 
@@ -1111,6 +1128,9 @@ export function usePdfExport() {
         } else if (isContentSection(section)) {
           // Format section number for H2
           const formattedNumber = section.number.replace(/^B/, '');
+          // Update current section name for footer tracking
+          currentSectionName = `B${formattedNumber}. ${section.title}`;
+          updatePageSection();
           addH2(`${formattedNumber}. ${section.title}`);
           
           // Get and render content
@@ -1149,12 +1169,14 @@ export function usePdfExport() {
         }
       }
 
-      // Add headers and footers to all pages
+      // Add headers and footers to all pages using the page-section map
       const totalPages = pdf.internal.pages.length - 1;
       for (let i = 1; i <= totalPages; i++) {
         pdf.setPage(i);
         addHeader();
-        addFooter(i, totalPages, currentSectionName);
+        // Get the section name for this page from the map
+        const pageSectionName = pageSectionMap.get(i) || pageSectionMap.get(i - 1) || 'List of participants';
+        addFooter(i, totalPages, pageSectionName);
       }
 
       // Add watermark to all pages if enabled
