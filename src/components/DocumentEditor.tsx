@@ -577,7 +577,7 @@ export function DocumentEditor({
   }
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 relative">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
       {/* Fixed toolbar container */}
       <div className="sticky top-0 z-10 bg-background">
         {/* Row 1: Guidelines | Autosaved | Find | Split Compare | Lock History | Shortcuts Comments/Panel */}
