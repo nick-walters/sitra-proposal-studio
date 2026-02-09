@@ -5,6 +5,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminAvatarUpload } from "@/components/admin/AdminAvatarUpload";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -307,10 +308,21 @@ export function UserRightsAdmin() {
                       <TableRow key={user.id}>
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8">
-                              <AvatarImage src={user.avatar_url || undefined} />
-                              <AvatarFallback>{getInitials(user)}</AvatarFallback>
-                            </Avatar>
+                            {isOwner ? (
+                              <AdminAvatarUpload
+                                userId={user.id}
+                                avatarUrl={user.avatar_url}
+                                initials={getInitials(user)}
+                                onAvatarChange={(uid, newUrl) => {
+                                  setUsers(prev => prev.map(u => u.id === uid ? { ...u, avatar_url: newUrl } : u));
+                                }}
+                              />
+                            ) : (
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={user.avatar_url || undefined} />
+                                <AvatarFallback>{getInitials(user)}</AvatarFallback>
+                              </Avatar>
+                            )}
                             <span className="font-medium">{getDisplayName(user)}</span>
                           </div>
                         </TableCell>
