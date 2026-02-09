@@ -202,6 +202,61 @@ function EditableText({
   );
 }
 
+// Inline editable text using contenteditable for true inline flow (no indent on wrap)
+function EditableTextInline({ 
+  value, 
+  onChange, 
+  placeholder
+}: { 
+  value: string; 
+  onChange: (val: string) => void;
+  placeholder?: string;
+}) {
+  const [localValue, setLocalValue] = useState(value);
+  const spanRef = useRef<HTMLSpanElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Sync local value when prop changes
+  useEffect(() => {
+    setLocalValue(value);
+    if (spanRef.current && spanRef.current.textContent !== value) {
+      spanRef.current.textContent = value;
+    }
+  }, [value]);
+  
+  const handleInput = () => {
+    const newValue = spanRef.current?.textContent || '';
+    setLocalValue(newValue);
+    
+    // Debounce the save
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      onChange(newValue);
+    }, 500);
+  };
+  
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+  
+  return (
+    <span
+      ref={spanRef}
+      contentEditable
+      suppressContentEditableWarning
+      onInput={handleInput}
+      data-placeholder={placeholder}
+      className="outline-none min-w-[50px] empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground"
+      style={{ display: 'inline' }}
+    >
+      {value}
+    </span>
+  );
+}
+
 // Compact month selector with minimal padding
 function MonthSelect({ 
   value, 
@@ -622,13 +677,15 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                 {deliverables.map((del) => (
                   <SortableTableRow key={del.id} id={del.id} canDrag={isAdminOrOwner} onDelete={() => deleteDeliverable.mutate(del.id)}>
                     <TableCell className={cellStyles}>
-                      <div className="flex items-start">
-                        <span className="font-medium font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight whitespace-nowrap">{del.number}:&nbsp;</span>
-                        <EditableText
-                          value={del.name}
-                          onChange={(val) => updateDeliverable.mutate({ id: del.id, name: val })}
-                          placeholder="Deliverable name"
-                        />
+                      <div>
+                        <span className="font-medium font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">{del.number}:&nbsp;</span>
+                        <span className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">
+                          <EditableTextInline
+                            value={del.name}
+                            onChange={(val) => updateDeliverable.mutate({ id: del.id, name: val })}
+                            placeholder="Deliverable name"
+                          />
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell className={cellStyles}>
@@ -862,13 +919,15 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
                 {milestones.map((ms) => (
                   <SortableTableRow key={ms.id} id={ms.id} canDrag={isAdminOrOwner} onDelete={() => deleteMilestone.mutate(ms.id)}>
                     <TableCell className={cellStyles}>
-                      <div className="flex items-start">
-                        <span className="font-medium font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight whitespace-nowrap">MS{ms.number}:&nbsp;</span>
-                        <EditableText
-                          value={ms.name}
-                          onChange={(val) => updateMilestone.mutate({ id: ms.id, name: val })}
-                          placeholder="Milestone name"
-                        />
+                      <div>
+                        <span className="font-medium font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">MS{ms.number}:&nbsp;</span>
+                        <span className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">
+                          <EditableTextInline
+                            value={ms.name}
+                            onChange={(val) => updateMilestone.mutate({ id: ms.id, name: val })}
+                            placeholder="Milestone name"
+                          />
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell className={cellStyles}>
