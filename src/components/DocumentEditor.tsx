@@ -1,7 +1,7 @@
 import { Section } from "@/types/proposal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, BookOpen, Route, History, Info, Image, Link2, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search, GitCompare, Keyboard, Wand2, FileCode, SplitSquareHorizontal, Layers, Building2, FlaskConical } from "lucide-react";
+import { Sparkles, BookOpen, Route, History, Info, Image, Link2, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search, GitCompare, Keyboard, Wand2, FileCode, SplitSquareHorizontal, Layers, Building2, FlaskConical, Check } from "lucide-react";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
 import {
@@ -36,6 +36,7 @@ import { useBlockLocking } from "@/hooks/useBlockLocking";
 import { renumberFootnotes } from "@/lib/captionRenumbering";
 import { useProposalReferences } from "@/hooks/useProposalReferences";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -108,7 +109,7 @@ export function DocumentEditor({
   const [isImpactPathwayOpen, setIsImpactPathwayOpen] = useState(false);
   const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
   const [isGuidelinesOpen, setIsGuidelinesOpen] = useState(false);
-  const [isCommentsSidebarOpen, setIsCommentsSidebarOpen] = useState(false);
+  const [collaborationTab, setCollaborationTab] = useState<'comments' | 'changes'>('comments');
   const [isAssignmentDialogOpen, setIsAssignmentDialogOpen] = useState(false);
   const [selectedText, setSelectedText] = useState<string>('');
   const [selectionRange, setSelectionRange] = useState<{ start: number; end: number } | undefined>();
@@ -894,7 +895,7 @@ export function DocumentEditor({
 
       <div className="flex-1 flex overflow-hidden">
         {/* Main content area */}
-        <div className={`flex-1 overflow-auto p-6 bg-muted/30 transition-all ${isCommentsSidebarOpen ? 'mr-0' : ''}`}>
+        <div className={`flex-1 overflow-auto p-6 bg-muted/30 transition-all`}>
           <div className="max-w-4xl mx-auto space-y-6">
             {/* Section Header - word/page limits and page estimate */}
             {(section.wordLimit || section.pageLimit || estimatedPages !== null) && (
@@ -1006,20 +1007,154 @@ export function DocumentEditor({
           />
         )}
 
-        {/* Comments Sidebar */}
-        {isCommentsSidebarOpen && (
-          <div className="w-80 shrink-0 h-full">
-            <CommentsSidebar
-              proposalId={proposalId}
-              sectionId={section?.id || ''}
-              selectedText={selectedText}
-              selectionRange={selectionRange}
-              onApplySuggestion={handleApplySuggestion}
-              onClearSelection={() => {
-                setSelectedText('');
-                setSelectionRange(undefined);
-              }}
-            />
+        {/* Right-hand Collaboration Panel */}
+        {isCollaborationPanelOpen && (
+          <div className="w-80 shrink-0 h-full border-l border-border bg-card flex flex-col">
+            {/* Panel Tabs */}
+            <div className="flex border-b border-border">
+              <button
+                className={`flex-1 px-3 py-2 text-xs font-medium transition-colors ${
+                  collaborationTab === 'comments'
+                    ? 'text-primary border-b-2 border-primary bg-primary/5'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                onClick={() => setCollaborationTab('comments')}
+              >
+                <MessageSquare className="w-3 h-3 inline mr-1.5" />
+                Comments
+              </button>
+              <button
+                className={`flex-1 px-3 py-2 text-xs font-medium transition-colors ${
+                  collaborationTab === 'changes'
+                    ? 'text-primary border-b-2 border-primary bg-primary/5'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                onClick={() => setCollaborationTab('changes')}
+              >
+                <GitCompare className="w-3 h-3 inline mr-1.5" />
+                Track Changes
+                {trackedChanges.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 text-[10px] px-1 py-0 h-4">
+                    {trackedChanges.length}
+                  </Badge>
+                )}
+              </button>
+            </div>
+
+            {/* Panel Content */}
+            <div className="flex-1 overflow-hidden">
+              {collaborationTab === 'comments' ? (
+                <CommentsSidebar
+                  proposalId={proposalId}
+                  sectionId={section?.id || ''}
+                  selectedText={selectedText}
+                  selectionRange={selectionRange}
+                  onApplySuggestion={handleApplySuggestion}
+                  onClearSelection={() => {
+                    setSelectedText('');
+                    setSelectionRange(undefined);
+                  }}
+                  compact
+                />
+              ) : (
+                <div className="h-full flex flex-col">
+                  {/* Track Changes Toggle */}
+                  <div className="p-3 border-b border-border">
+                    <TrackChangesToolbar
+                      editor={editor}
+                      enabled={trackChangesEnabled}
+                      onToggle={setTrackChangesEnabled}
+                      changes={trackedChanges}
+                    />
+                  </div>
+                  {/* Changes List */}
+                  <ScrollArea className="flex-1">
+                    <div className="p-3 space-y-2">
+                      {!trackChangesEnabled && trackedChanges.length === 0 && (
+                        <div className="text-center py-8">
+                          <GitCompare className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                          <p className="text-sm text-muted-foreground">Track Changes is off</p>
+                          <p className="text-xs text-muted-foreground mt-1">Enable it to track edits by all collaborators</p>
+                        </div>
+                      )}
+                      {trackChangesEnabled && trackedChanges.length === 0 && (
+                        <div className="text-center py-8">
+                          <Check className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                          <p className="text-sm text-muted-foreground">No pending changes</p>
+                          <p className="text-xs text-muted-foreground mt-1">Edits will appear here as they're made</p>
+                        </div>
+                      )}
+                      {trackedChanges.map((change) => (
+                        <div
+                          key={change.id}
+                          className={`p-2 rounded-md text-xs border ${
+                            change.type === 'insertion'
+                              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                              : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-1.5">
+                              <div 
+                                className="w-2 h-2 rounded-full"
+                                style={{ backgroundColor: change.authorColor }}
+                              />
+                              <span className="font-medium">{change.authorName}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-5 w-5 p-0 text-green-600 hover:text-green-700"
+                                    onClick={() => editor?.commands.acceptChange(change.id)}
+                                  >
+                                    <Check className="w-3 h-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Accept</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-5 w-5 p-0 text-destructive hover:text-destructive"
+                                    onClick={() => editor?.commands.rejectChange(change.id)}
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Reject</TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <span>{format(new Date(change.timestamp), 'MMM d, h:mm a')}</span>
+                            <Badge 
+                              variant="outline" 
+                              className={`text-[10px] py-0 ${
+                                change.type === 'insertion' 
+                                  ? 'border-green-300 text-green-700 dark:border-green-700 dark:text-green-400'
+                                  : 'border-red-300 text-red-700 dark:border-red-700 dark:text-red-400'
+                              }`}
+                            >
+                              {change.type === 'insertion' ? 'Added' : 'Deleted'}
+                            </Badge>
+                          </div>
+                          {change.content && (
+                            <div className="mt-1 text-muted-foreground italic truncate">
+                              "{change.content}"
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
