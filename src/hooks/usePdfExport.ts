@@ -671,19 +671,76 @@ export function usePdfExport() {
         yPosition += paragraphSpacing;
       };
 
-      // Helper: Add B3.1 table with custom column widths
-      const addB31Table = (headers: string[], rows: string[][], colWidths: number[], tableCaption: string) => {
+// Bubble badge colors for levels and elements
+      const bubbleColors: Record<string, [number, number, number]> = {
+        'L': [34, 197, 94],   // green for Low
+        'M': [245, 158, 11],  // amber for Medium
+        'H': [239, 68, 68],   // red for High
+      };
+
+      // Helper: Draw a rounded bubble badge
+      const drawBubble = (text: string, x: number, y: number, bgColor: [number, number, number]): number => {
+        pdf.setFontSize(8);
+        pdf.setFont('times', 'bold');
+        const textWidth = pdf.getTextWidth(text);
+        const padding = 1.5;
+        const bubbleWidth = textWidth + padding * 2;
+        const bubbleHeight = 3.5;
+        
+        // Draw rounded rectangle background
+        pdf.setFillColor(...bgColor);
+        pdf.roundedRect(x, y - 2.8, bubbleWidth, bubbleHeight, 1, 1, 'F');
+        
+        // Draw white text
+        pdf.setTextColor(255, 255, 255);
+        pdf.text(text, x + padding, y - 0.5);
+        
+        // Reset text color
+        pdf.setTextColor(...black);
+        pdf.setFont('times', 'normal');
+        pdf.setFontSize(FONT_SIZE_BODY);
+        
+        return bubbleWidth;
+      };
+
+      // Helper: Draw WP bubble with custom color
+      const drawWPBubble = (wpNum: number, x: number, y: number, color: string): number => {
+        const text = `WP${wpNum}`;
+        // Parse hex color to RGB
+        const hex = color.replace('#', '');
+        const r = parseInt(hex.substr(0, 2), 16);
+        const g = parseInt(hex.substr(2, 2), 16);
+        const b = parseInt(hex.substr(4, 2), 16);
+        return drawBubble(text, x, y, [r, g, b]);
+      };
+
+      // Helper: Draw partner short name bubble
+      const drawPartnerBubble = (shortName: string, x: number, y: number): number => {
+        // Use a muted blue/gray color for partner bubbles
+        return drawBubble(shortName, x, y, [71, 85, 105]); // slate-600
+      };
+
+      // Helper: Add B3.1 table with custom column widths and multi-line text support
+      type CellContent = { text: string; type: 'text' } | { text: string; color: [number, number, number]; type: 'bubble' };
+      
+      const addB31TableAdvanced = (
+        headers: string[], 
+        rows: CellContent[][], 
+        colWidths: number[], 
+        tableCaption: string
+      ) => {
         if (rows.length === 0) return;
         
         // Add table caption first
         addCaption(tableCaption, 'table');
         
-        const rowHeight = 6;
+        const baseRowHeight = 6;
         const cellPadding = 1;
         const tableWidth = colWidths.reduce((a, b) => a + b, 0);
+        const lineHeight = 3.5; // For multi-line text
         
         // Check if table fits on current page (at least header + 2 rows)
-        checkPageBreak(rowHeight * Math.min(3, rows.length + 1));
+        checkPageBreak(baseRowHeight * Math.min(3, rows.length + 1));
         
         pdf.setFontSize(FONT_SIZE_BODY);
         pdf.setDrawColor(...black);
@@ -692,12 +749,12 @@ export function usePdfExport() {
         // Draw header row
         let xPos = margin;
         pdf.setFillColor(0, 0, 0);
-        pdf.rect(margin, yPosition - 4, tableWidth, rowHeight, 'F');
+        pdf.rect(margin, yPosition - 4, tableWidth, baseRowHeight, 'F');
         pdf.setFont('times', 'bold');
         pdf.setTextColor(255, 255, 255);
         
         for (let i = 0; i < headers.length; i++) {
-          pdf.rect(xPos, yPosition - 4, colWidths[i], rowHeight);
+          pdf.rect(xPos, yPosition - 4, colWidths[i], baseRowHeight);
           const maxTextWidth = colWidths[i] - cellPadding * 2;
           let displayText = headers[i];
           while (pdf.getTextWidth(displayText) > maxTextWidth && displayText.length > 3) {
@@ -706,35 +763,65 @@ export function usePdfExport() {
           pdf.text(displayText, xPos + cellPadding, yPosition);
           xPos += colWidths[i];
         }
-        yPosition += rowHeight;
+        yPosition += baseRowHeight;
         
-        // Draw data rows
+        // Draw data rows with multi-line support
         pdf.setFont('times', 'normal');
         pdf.setTextColor(...black);
         
         for (const row of rows) {
+          // Calculate row height based on content
+          let maxLines = 1;
+          for (let i = 0; i < colWidths.length; i++) {
+            const cell = row[i];
+            if (cell && cell.type === 'text') {
+              const maxTextWidth = colWidths[i] - cellPadding * 2;
+              const lines = pdf.splitTextToSize(cell.text, maxTextWidth);
+              maxLines = Math.max(maxLines, lines.length);
+            }
+          }
+          const rowHeight = Math.max(baseRowHeight, maxLines * lineHeight + 2);
+          
           checkPageBreak(rowHeight);
           xPos = margin;
+          const rowStartY = yPosition;
           
+          // Draw cell borders first
           for (let i = 0; i < colWidths.length; i++) {
-            pdf.rect(xPos, yPosition - 4, colWidths[i], rowHeight);
-            const cellText = row[i] || '';
-            const maxTextWidth = colWidths[i] - cellPadding * 2;
-            let displayText = cellText;
-            while (pdf.getTextWidth(displayText) > maxTextWidth && displayText.length > 3) {
-              displayText = displayText.substring(0, displayText.length - 4) + '...';
-            }
-            pdf.text(displayText, xPos + cellPadding, yPosition);
+            pdf.rect(xPos, rowStartY - 4, colWidths[i], rowHeight);
             xPos += colWidths[i];
           }
-          yPosition += rowHeight;
+          
+          // Draw cell content
+          xPos = margin;
+          for (let i = 0; i < colWidths.length; i++) {
+            const cell = row[i];
+            const maxTextWidth = colWidths[i] - cellPadding * 2;
+            
+            if (cell) {
+              if (cell.type === 'bubble') {
+                // Draw bubble badge
+                drawBubble(cell.text, xPos + cellPadding, rowStartY, cell.color);
+              } else {
+                // Draw text (with wrapping)
+                const lines = pdf.splitTextToSize(cell.text, maxTextWidth);
+                let textY = rowStartY;
+                for (const line of lines) {
+                  pdf.text(line, xPos + cellPadding, textY);
+                  textY += lineHeight;
+                }
+              }
+            }
+            xPos += colWidths[i];
+          }
+          yPosition = rowStartY + rowHeight;
         }
         
         pdf.setTextColor(...black);
         yPosition += paragraphSpacing * 2;
       };
 
-      // Helper: Fetch and render B3.1 tables
+// Helper: Fetch and render B3.1 tables
       const renderB31Tables = async (proposalId: string) => {
         // Fetch deliverables
         const { data: deliverables } = await supabase
@@ -765,49 +852,86 @@ export function usePdfExport() {
         
         const participantMap = new Map(parts?.map(p => [p.id, p.organisation_short_name || `P${p.participant_number}`]) || []);
 
-        // Table 3.1c - Deliverables
+        // Fetch WP colors for bubble styling
+        const { data: wpColors } = await supabase
+          .from('wp_drafts')
+          .select('number, color')
+          .eq('proposal_id', proposalId);
+        
+        const wpColorMap = new Map((wpColors || []).map(wp => [wp.number, wp.color]));
+        
+        // Helper to convert text to sentence case
+        const toSentenceCase = (text: string): string => {
+          if (!text) return '';
+          return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+        };
+
+        // Table 3.1c - Deliverables (format: "DX.X: Title" in sentence case)
         if (deliverables && deliverables.length > 0) {
-          const delHeaders = ['No.', 'Name', 'WP', 'Lead', 'Type', 'Diss.', 'Due'];
-          const delColWidths = [15, 70, 15, 20, 20, 20, 20];
-          const delRows = (deliverables as B31Deliverable[]).map(d => [
-            d.number || '',
-            d.name || '',
-            d.wp_number ? `WP${d.wp_number}` : '',
-            d.lead_participant_id ? (participantMap.get(d.lead_participant_id) || '') : '',
-            d.type || '',
-            d.dissemination_level || '',
-            d.due_month ? `M${String(d.due_month).padStart(2, '0')}` : ''
-          ]);
-          addB31Table(delHeaders, delRows, delColWidths, 'Table 3.1c. List of deliverables');
+          const delHeaders = ['Deliverable', 'WP', 'Lead', 'Type', 'Diss.', 'Due'];
+          const delColWidths = [85, 15, 25, 15, 20, 20]; // Wider first column for merged number+title
+          const delRows: CellContent[][] = (deliverables as B31Deliverable[]).map(d => {
+            // Merged: "DX.X: Title" in sentence case
+            const title = d.name ? toSentenceCase(d.name) : '';
+            const deliverableText = `${d.number}: ${title}`;
+            const wpNum = d.wp_number;
+            const wpColor = wpNum && wpColorMap.get(wpNum) ? wpColorMap.get(wpNum)! : '#475569';
+            const hexToRgb = (hex: string): [number, number, number] => {
+              const h = hex.replace('#', '');
+              return [parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16)];
+            };
+            const leadName = d.lead_participant_id ? (participantMap.get(d.lead_participant_id) || '') : '—';
+            
+            return [
+              { text: deliverableText, type: 'text' as const },
+              wpNum ? { text: `WP${wpNum}`, color: hexToRgb(wpColor), type: 'bubble' as const } : { text: '—', type: 'text' as const },
+              leadName !== '—' ? { text: leadName, color: [71, 85, 105] as [number, number, number], type: 'bubble' as const } : { text: '—', type: 'text' as const },
+              { text: d.type || '—', type: 'text' as const },
+              { text: d.dissemination_level || '—', type: 'text' as const },
+              { text: d.due_month ? `M${String(d.due_month).padStart(2, '0')}` : '—', type: 'text' as const }
+            ];
+          });
+          addB31TableAdvanced(delHeaders, delRows, delColWidths, 'Table 3.1c. List of deliverables');
         }
 
-        // Table 3.1d - Milestones
+        // Table 3.1d - Milestones (format: "MSX: Title" in sentence case)
         if (milestones && milestones.length > 0) {
-          const msHeaders = ['No.', 'Name', 'Related WPs', 'Due', 'Means of verification'];
-          const msColWidths = [15, 50, 30, 20, 65];
-          const msRows = (milestones as B31Milestone[]).map(m => [
-            `MS${m.number}`,
-            m.name || '',
-            m.wps || '',
-            m.due_month ? `M${String(m.due_month).padStart(2, '0')}` : '',
-            m.means_of_verification || ''
-          ]);
-          addB31Table(msHeaders, msRows, msColWidths, 'Table 3.1d. List of milestones');
+          const msHeaders = ['Milestone', 'WPs', 'Due', 'Means of verification'];
+          const msColWidths = [65, 30, 20, 65];
+          const msRows: CellContent[][] = (milestones as B31Milestone[]).map(m => {
+            // Format: "MSX: Title" in sentence case
+            const title = m.name ? toSentenceCase(m.name) : '';
+            const milestoneText = `MS${m.number}: ${title}`;
+            
+            return [
+              { text: milestoneText, type: 'text' as const },
+              { text: m.wps || '—', type: 'text' as const }, // WPs column - could add bubbles but would need parsing
+              { text: m.due_month ? `M${String(m.due_month).padStart(2, '0')}` : '—', type: 'text' as const },
+              { text: m.means_of_verification || '—', type: 'text' as const }
+            ];
+          });
+          addB31TableAdvanced(msHeaders, msRows, msColWidths, 'Table 3.1d. List of milestones');
         }
 
-        // Table 3.1e - Risks
+        // Table 3.1e - Risks (NOT numbered, include likelihood/severity badges)
         if (risks && risks.length > 0) {
-          const riskHeaders = ['No.', 'Description', 'WPs', '(i)', '(ii)', 'Mitigation'];
-          const riskColWidths = [12, 55, 25, 12, 12, 64];
-          const riskRows = (risks as B31Risk[]).map(r => [
-            `R${r.number}`,
-            r.description || '',
-            r.wps || '',
-            r.likelihood || '',
-            r.severity || '',
-            r.mitigation || ''
-          ]);
-          addB31Table(riskHeaders, riskRows, riskColWidths, 'Table 3.1e. Critical risks and mitigation measures');
+          const riskHeaders = ['Risk', 'WPs', '(i)', '(ii)', 'Mitigation & adaptation measures'];
+          const riskColWidths = [50, 25, 12, 12, 81];
+          const riskRows: CellContent[][] = (risks as B31Risk[]).map(r => {
+            const likelihood = r.likelihood || '';
+            const severity = r.severity || '';
+            const likelihoodColor = bubbleColors[likelihood] || [107, 114, 128];
+            const severityColor = bubbleColors[severity] || [107, 114, 128];
+            
+            return [
+              { text: r.description || '—', type: 'text' as const }, // Risk description (no number)
+              { text: r.wps || '—', type: 'text' as const }, // WPs
+              likelihood ? { text: likelihood, color: likelihoodColor, type: 'bubble' as const } : { text: '—', type: 'text' as const },
+              severity ? { text: severity, color: severityColor, type: 'bubble' as const } : { text: '—', type: 'text' as const },
+              { text: r.mitigation || '—', type: 'text' as const }
+            ];
+          });
+          addB31TableAdvanced(riskHeaders, riskRows, riskColWidths, 'Table 3.1e. Critical risks and mitigation measures');
         }
       };
 
@@ -880,9 +1004,67 @@ export function usePdfExport() {
         return result;
       };
 
-      // Helper: Add participant table with logos, full width, and text wrapping
+// Helper: Add participant table with logos, full width, text wrapping, and roles
       const addParticipantTable = async () => {
         if (participants.length === 0) return;
+        
+        // Fetch WP leadership data
+        const { data: wpLeadershipData } = await supabase
+          .from('wp_drafts')
+          .select('id, number, short_name, lead_participant_id, color')
+          .eq('proposal_id', proposal.id)
+          .order('number');
+        
+        // Fetch Case leadership data
+        const { data: caseLeadershipData } = await supabase
+          .from('case_drafts')
+          .select('id, number, short_name, lead_participant_id, color, case_type, custom_type_name')
+          .eq('proposal_id', proposal.id)
+          .order('number');
+        
+        // Build WP leadership map: participantId -> array of WP info
+        const wpLeadership = new Map<string, { wpNumber: number; color: string }[]>();
+        for (const wp of wpLeadershipData || []) {
+          if (wp.lead_participant_id) {
+            if (!wpLeadership.has(wp.lead_participant_id)) {
+              wpLeadership.set(wp.lead_participant_id, []);
+            }
+            wpLeadership.get(wp.lead_participant_id)!.push({
+              wpNumber: wp.number,
+              color: wp.color,
+            });
+          }
+        }
+        
+        // Helper to get case prefix
+        const getCasePrefix = (caseType: string, customTypeName: string | null): string => {
+          if (caseType === 'other' && customTypeName) {
+            return customTypeName.toUpperCase();
+          }
+          switch (caseType) {
+            case 'case_study': return 'CS';
+            case 'use_case': return 'UC';
+            case 'living_lab': return 'LL';
+            case 'pilot': return 'P';
+            case 'demonstration': return 'D';
+            default: return 'C';
+          }
+        };
+        
+        // Build Case leadership map: participantId -> array of case info
+        const caseLeadership = new Map<string, { caseNumber: number; color: string; prefix: string }[]>();
+        for (const c of caseLeadershipData || []) {
+          if (c.lead_participant_id) {
+            if (!caseLeadership.has(c.lead_participant_id)) {
+              caseLeadership.set(c.lead_participant_id, []);
+            }
+            caseLeadership.get(c.lead_participant_id)!.push({
+              caseNumber: c.number,
+              color: c.color,
+              prefix: getCasePrefix(c.case_type, c.custom_type_name),
+            });
+          }
+        }
         
         yPosition += paragraphSpacingH2;
         checkPageBreak(20);
@@ -894,13 +1076,13 @@ export function usePdfExport() {
         pdf.text('List of Participants', margin, yPosition);
         yPosition += 6;
         
-        // Table configuration - full content width (180mm)
-        // No., Short Name, Legal Name + English, Logo (no left border), Country
-        const colWidths = [7, 25, 113, 15, 20]; // Total = 180mm = contentWidth (No. column sized for "39")
+        // Table configuration - add Role column
+        // No., Short Name, Role, Legal Name + English, Logo (no left border), Country
+        const colWidths = [7, 25, 30, 83, 15, 20]; // Total = 180mm = contentWidth
         const baseRowHeight = 6;
         const cellPadding = 1;
         const tableWidth = contentWidth;
-        const logoHeight = 8; // Height for logo cell
+        const logoHeight = 8;
         
         // Draw table header row
         checkPageBreak(baseRowHeight * 2);
@@ -910,11 +1092,9 @@ export function usePdfExport() {
         pdf.setFillColor(0, 0, 0);
         pdf.rect(xPos, yPosition - 4, tableWidth, baseRowHeight, 'F');
         
-        // Header text - custom rendering for italic part
+        // Header text
         pdf.setFontSize(FONT_SIZE_BODY);
         pdf.setTextColor(255, 255, 255);
-        
-        // Draw header borders and text
         pdf.setDrawColor(...black);
         pdf.setLineWidth(0.25);
         
@@ -929,31 +1109,32 @@ export function usePdfExport() {
         pdf.text('Short name', xPos + cellPadding, yPosition);
         xPos += colWidths[1];
         
-        // Column 2: Participant legal name | English name, if different (no right border)
-        // Draw top, left, bottom borders only
-        pdf.line(xPos, yPosition - 4, xPos + colWidths[2], yPosition - 4); // top
-        pdf.line(xPos, yPosition - 4, xPos, yPosition - 4 + baseRowHeight); // left
-        pdf.line(xPos, yPosition - 4 + baseRowHeight, xPos + colWidths[2], yPosition - 4 + baseRowHeight); // bottom
+        // Column 2: Role
+        pdf.rect(xPos, yPosition - 4, colWidths[2], baseRowHeight);
+        pdf.text('Role', xPos + cellPadding, yPosition);
+        xPos += colWidths[2];
+        
+        // Column 3: Participant legal name | English name, if different (no right border)
+        pdf.line(xPos, yPosition - 4, xPos + colWidths[3], yPosition - 4);
+        pdf.line(xPos, yPosition - 4, xPos, yPosition - 4 + baseRowHeight);
+        pdf.line(xPos, yPosition - 4 + baseRowHeight, xPos + colWidths[3], yPosition - 4 + baseRowHeight);
         const headerPart1 = 'Participant legal name | ';
         pdf.text(headerPart1, xPos + cellPadding, yPosition);
         const part1Width = pdf.getTextWidth(headerPart1);
         pdf.setFont('times', 'bolditalic');
         pdf.text('English name, if different', xPos + cellPadding + part1Width, yPosition);
         pdf.setFont('times', 'bold');
-        xPos += colWidths[2];
-        
-        // Column 3: Logo (no left border - draw only top, right, bottom)
-        // Draw top border
-        pdf.line(xPos, yPosition - 4, xPos + colWidths[3], yPosition - 4);
-        // Draw right border
-        pdf.line(xPos + colWidths[3], yPosition - 4, xPos + colWidths[3], yPosition - 4 + baseRowHeight);
-        // Draw bottom border
-        pdf.line(xPos, yPosition - 4 + baseRowHeight, xPos + colWidths[3], yPosition - 4 + baseRowHeight);
-        pdf.text('Logo', xPos + cellPadding, yPosition);
         xPos += colWidths[3];
         
-        // Column 4: Country
-        pdf.rect(xPos, yPosition - 4, colWidths[4], baseRowHeight);
+        // Column 4: Logo (no left border)
+        pdf.line(xPos, yPosition - 4, xPos + colWidths[4], yPosition - 4);
+        pdf.line(xPos + colWidths[4], yPosition - 4, xPos + colWidths[4], yPosition - 4 + baseRowHeight);
+        pdf.line(xPos, yPosition - 4 + baseRowHeight, xPos + colWidths[4], yPosition - 4 + baseRowHeight);
+        pdf.text('Logo', xPos + cellPadding, yPosition);
+        xPos += colWidths[4];
+        
+        // Column 5: Country
+        pdf.rect(xPos, yPosition - 4, colWidths[5], baseRowHeight);
         pdf.text('Country', xPos + cellPadding, yPosition);
         
         yPosition += baseRowHeight;
@@ -963,92 +1144,136 @@ export function usePdfExport() {
         pdf.setTextColor(...black);
         
         for (const participant of participants) {
-          // Calculate row height based on content
-          const orgColWidth = colWidths[2] - cellPadding * 2;
+          const orgColWidth = colWidths[3] - cellPadding * 2;
           
-          // Build organisation text: legal name first, then English name in italics if different
+          // Build organisation text
           const englishName = participant.englishName || '';
           const legalName = participant.organisationName || '';
-          
-          // Calculate lines for legal name
           const legalLines = legalName ? pdf.splitTextToSize(legalName, orgColWidth) : [];
-          // Calculate lines for English name (if different)
           const englishLines = (englishName && englishName !== legalName) 
             ? pdf.splitTextToSize(englishName, orgColWidth) 
             : [];
-          
           const totalOrgLines = legalLines.length + englishLines.length;
           
-          // Calculate row height: max of logo height, text lines, or base height
+          // Calculate roles for this participant
+          const isCoordinator = participant.participantNumber === 1;
+          const wpRoles = wpLeadership.get(participant.id) || [];
+          const caseRoles = caseLeadership.get(participant.id) || [];
+          const totalRoleBubbles = (isCoordinator ? 1 : 0) + wpRoles.length + caseRoles.length;
+          
+          // Each role bubble is ~4mm height, estimate rows needed
+          const roleRows = Math.max(1, Math.ceil(totalRoleBubbles / 2)); // ~2 bubbles per row
+          const rolesHeight = roleRows * 5;
+          
+          // Calculate row height
           const textHeight = Math.max(totalOrgLines * lineHeightBody, baseRowHeight);
-          const rowHeight = Math.max(textHeight, logoHeight);
+          const rowHeight = Math.max(textHeight, logoHeight, rolesHeight);
           
           checkPageBreak(rowHeight + 2);
           
           const rowStartY = yPosition;
           xPos = margin;
+          const cellTop = rowStartY - 4;
           
-          // Draw cell borders for the entire row (except logo column left border)
+          // Draw cell borders
           pdf.setDrawColor(...black);
           pdf.setLineWidth(0.25);
           
-          // Column 0: No. - full border
-          pdf.rect(xPos, rowStartY - 4, colWidths[0], rowHeight);
+          // Column 0: No.
+          pdf.rect(xPos, cellTop, colWidths[0], rowHeight);
           xPos += colWidths[0];
           
-          // Column 1: Short Name - full border
-          pdf.rect(xPos, rowStartY - 4, colWidths[1], rowHeight);
+          // Column 1: Short Name
+          pdf.rect(xPos, cellTop, colWidths[1], rowHeight);
           xPos += colWidths[1];
           
-          // Column 2: Legal/English Name - no right border (draw top, left, bottom only)
-          pdf.line(xPos, rowStartY - 4, xPos + colWidths[2], rowStartY - 4); // top
-          pdf.line(xPos, rowStartY - 4, xPos, rowStartY - 4 + rowHeight); // left
-          pdf.line(xPos, rowStartY - 4 + rowHeight, xPos + colWidths[2], rowStartY - 4 + rowHeight); // bottom
+          // Column 2: Role
+          pdf.rect(xPos, cellTop, colWidths[2], rowHeight);
           xPos += colWidths[2];
           
-          // Column 3: Logo - no left border (draw top, right, bottom only)
-          pdf.line(xPos, rowStartY - 4, xPos + colWidths[3], rowStartY - 4); // top
-          pdf.line(xPos + colWidths[3], rowStartY - 4, xPos + colWidths[3], rowStartY - 4 + rowHeight); // right
-          pdf.line(xPos, rowStartY - 4 + rowHeight, xPos + colWidths[3], rowStartY - 4 + rowHeight); // bottom
+          // Column 3: Legal/English Name (no right border)
+          pdf.line(xPos, cellTop, xPos + colWidths[3], cellTop);
+          pdf.line(xPos, cellTop, xPos, cellTop + rowHeight);
+          pdf.line(xPos, cellTop + rowHeight, xPos + colWidths[3], cellTop + rowHeight);
           xPos += colWidths[3];
           
-          // Column 4: Country - full border
-          pdf.rect(xPos, rowStartY - 4, colWidths[4], rowHeight);
+          // Column 4: Logo (no left border)
+          pdf.line(xPos, cellTop, xPos + colWidths[4], cellTop);
+          pdf.line(xPos + colWidths[4], cellTop, xPos + colWidths[4], cellTop + rowHeight);
+          pdf.line(xPos, cellTop + rowHeight, xPos + colWidths[4], cellTop + rowHeight);
+          xPos += colWidths[4];
+          
+          // Column 5: Country
+          pdf.rect(xPos, cellTop, colWidths[5], rowHeight);
           
           // Draw cell content
           xPos = margin;
           
-          // Cell top is at rowStartY - 4, cell height is rowHeight
-          // For vertical centering, calculate the starting Y for text block
-          const cellTop = rowStartY - 4;
-          
-          // Helper to calculate vertically centered Y position for text
           const getVerticalCenter = (numLines: number) => {
             const textBlockHeight = numLines * lineHeightBody;
-            return cellTop + (rowHeight - textBlockHeight) / 2 + lineHeightBody * 0.7; // 0.7 accounts for baseline
+            return cellTop + (rowHeight - textBlockHeight) / 2 + lineHeightBody * 0.7;
           };
           
-          // Participant number (single line, vertically centered)
+          // Participant number
           pdf.setFont('times', 'normal');
           const numY = getVerticalCenter(1);
           pdf.text(String(participant.participantNumber || ''), xPos + cellPadding, numY);
           xPos += colWidths[0];
           
-          // Short name (bold italic, vertically centered)
+          // Short name as bubble
           const shortName = participant.organisationShortName || '';
-          pdf.setFont('times', 'bolditalic');
-          const shortNameLines = pdf.splitTextToSize(shortName, colWidths[1] - cellPadding * 2);
-          let textY = getVerticalCenter(shortNameLines.length);
-          for (const line of shortNameLines) {
-            pdf.text(line, xPos + cellPadding, textY);
-            textY += lineHeightBody;
+          if (shortName) {
+            const bubbleY = cellTop + rowHeight / 2 + 1;
+            drawPartnerBubble(shortName, xPos + cellPadding, bubbleY);
           }
-          pdf.setFont('times', 'normal');
           xPos += colWidths[1];
           
-          // Organisation name: Legal name (normal), then English name (italic) if different
-          // Vertically center the combined text block
-          textY = getVerticalCenter(totalOrgLines);
+          // Roles column - draw bubbles
+          let roleX = xPos + cellPadding;
+          let roleY = cellTop + 5;
+          const roleColWidth = colWidths[2] - cellPadding * 2;
+          
+          // Coordinator badge (red/burgundy)
+          if (isCoordinator) {
+            const bubbleWidth = drawBubble('Coord.', roleX, roleY, [185, 28, 28]); // Red
+            roleX += bubbleWidth + 1.5;
+            if (roleX > xPos + roleColWidth) {
+              roleX = xPos + cellPadding;
+              roleY += 5;
+            }
+          }
+          
+          // WP badges
+          for (const wp of wpRoles) {
+            const hexToRgb = (hex: string): [number, number, number] => {
+              const h = hex.replace('#', '');
+              return [parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16)];
+            };
+            const bubbleWidth = drawBubble(`WP${wp.wpNumber}`, roleX, roleY, hexToRgb(wp.color));
+            roleX += bubbleWidth + 1.5;
+            if (roleX > xPos + roleColWidth) {
+              roleX = xPos + cellPadding;
+              roleY += 5;
+            }
+          }
+          
+          // Case badges
+          for (const c of caseRoles) {
+            const hexToRgb = (hex: string): [number, number, number] => {
+              const h = hex.replace('#', '');
+              return [parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16)];
+            };
+            const bubbleWidth = drawBubble(`${c.prefix}${c.caseNumber}`, roleX, roleY, hexToRgb(c.color));
+            roleX += bubbleWidth + 1.5;
+            if (roleX > xPos + roleColWidth) {
+              roleX = xPos + cellPadding;
+              roleY += 5;
+            }
+          }
+          xPos += colWidths[2];
+          
+          // Organisation name
+          let textY = getVerticalCenter(totalOrgLines);
           pdf.setFont('times', 'normal');
           for (const line of legalLines) {
             pdf.text(line, xPos + cellPadding, textY);
@@ -1062,20 +1287,18 @@ export function usePdfExport() {
             }
             pdf.setFont('times', 'normal');
           }
-          xPos += colWidths[2];
+          xPos += colWidths[3];
           
-          // Logo column (already vertically centered)
+          // Logo
           if (participant.logoUrl) {
             try {
               const logoData = await loadImageAsBase64(participant.logoUrl);
               if (logoData) {
-                // Scale logo to fit in cell
-                const maxLogoWidth = colWidths[3] - 2;
+                const maxLogoWidth = colWidths[4] - 2;
                 const maxLogoHeight = rowHeight - 2;
-                let logoW = logoData.width * 0.264583; // px to mm
+                let logoW = logoData.width * 0.264583;
                 let logoH = logoData.height * 0.264583;
                 
-                // Scale to fit
                 if (logoW > maxLogoWidth) {
                   const scale = maxLogoWidth / logoW;
                   logoW *= scale;
@@ -1087,18 +1310,17 @@ export function usePdfExport() {
                   logoH *= scale;
                 }
                 
-                // Center logo in cell
-                const logoX = xPos + (colWidths[3] - logoW) / 2;
+                const logoX = xPos + (colWidths[4] - logoW) / 2;
                 const logoY = cellTop + (rowHeight - logoH) / 2;
                 pdf.addImage(logoData.data, 'JPEG', logoX, logoY, logoW, logoH);
               }
             } catch (e) {
-              // Logo failed to load, leave cell empty
+              // Logo failed to load
             }
           }
-          xPos += colWidths[3];
+          xPos += colWidths[4];
           
-          // Country (single line, vertically centered)
+          // Country
           pdf.setFont('times', 'normal');
           const countryY = getVerticalCenter(1);
           pdf.text(participant.country || '', xPos + cellPadding, countryY);
