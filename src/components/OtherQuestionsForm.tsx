@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { SaveIndicator } from './SaveIndicator';
-import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
+
 import { Info, AlertTriangle, Plus, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -32,26 +32,6 @@ interface FormData {
   clinicalTrials: ClinicalTrial[];
 }
 
-const officialGuidelines = [
-  {
-    id: 'two-stage-changes',
-    title: 'Two-stage submission changes',
-    content: 'For proposals submitted to two-stage calls, indicate if there are substantial changes compared to the first stage proposal. Substantial changes must be justified.',
-  },
-  {
-    id: 'clinical-trials',
-    title: 'Clinical trials',
-    content: 'If clinical studies / trials / investigations are included in the work plan, provide a short title, an acronym or a unique identifier to each one, to be used as a reference / identifier in the other parts of the proposal.',
-  },
-];
-
-const sitraTips = [
-  {
-    id: 'stage1-tips',
-    title: 'Changes from Stage 1',
-    content: 'If your proposal was invited to Stage 2 after a successful Stage 1 evaluation, reviewers will compare both versions. Be transparent about significant changes and explain why they were made.',
-  },
-];
 
 export function OtherQuestionsForm({ proposalId, isTwoStageSecondStage, canEdit }: OtherQuestionsFormProps) {
   const [formData, setFormData] = useState<FormData>({
@@ -177,13 +157,8 @@ export function OtherQuestionsForm({ proposalId, isTwoStageSecondStage, canEdit 
   return (
     <div className="flex-1 overflow-auto p-4 bg-muted/30">
       <div className="max-w-4xl mx-auto space-y-4">
-        {/* Header */}
         <div className="flex items-center justify-between">
-          <PartAGuidelinesDialog
-            sectionTitle="Part A5: Other questions"
-            officialGuidelines={officialGuidelines}
-            sitraTips={sitraTips}
-          />
+          <h1 className="text-2xl font-bold text-foreground">Part A5: Other questions</h1>
           {canEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
         </div>
 
