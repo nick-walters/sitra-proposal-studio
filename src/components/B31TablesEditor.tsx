@@ -655,7 +655,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
     <div>
       <div className="flex items-center justify-between">
         <p className={`${tableStyles} italic`}>
-          <span className="font-bold italic">Table 3.1c.</span> List of deliverables
+          <span className="font-bold italic">Table 3.1c.</span> Deliverables
         </p>
         {isAdminOrOwner && (
           <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs h-6 px-2 py-0">
@@ -906,7 +906,7 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
     <div>
       <div className="flex items-center justify-between">
         <p className={`${tableStyles} italic`}>
-          <span className="font-bold italic">Table 3.1d.</span> List of milestones
+          <span className="font-bold italic">Table 3.1d.</span> Milestones
         </p>
         {isAdminOrOwner && (
           <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs h-6 px-2 py-0">
