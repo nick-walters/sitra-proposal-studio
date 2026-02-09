@@ -22,7 +22,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DuplicateProposalDialog } from "@/components/DuplicateProposalDialog";
 import { Section, BudgetType, ProposalStatus, WORK_PROGRAMMES, DESTINATIONS } from "@/types/proposal";
 import type { WPSection, CaseSection } from "@/hooks/useProposalSections";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { format, differenceInDays } from "date-fns";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -221,6 +221,44 @@ export function ProposalEditor() {
       }
     }
   }, [allSections, sectionsLoading, activeSection]);
+
+  // Preserve scroll position when switching tabs/apps
+  const scrollPositionRef = useRef<number>(0);
+  
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Save scroll position when tab becomes hidden
+        scrollPositionRef.current = window.scrollY;
+      } else {
+        // Restore scroll position when tab becomes visible
+        // Use requestAnimationFrame to ensure DOM is ready
+        requestAnimationFrame(() => {
+          window.scrollTo(0, scrollPositionRef.current);
+        });
+      }
+    };
+
+    const handleBlur = () => {
+      scrollPositionRef.current = window.scrollY;
+    };
+
+    const handleFocus = () => {
+      requestAnimationFrame(() => {
+        window.scrollTo(0, scrollPositionRef.current);
+      });
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleBlur);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
 
   const handleSectionClick = (section: Section | WPSection) => {
     // Clear selected participant when navigating away from A2
