@@ -902,10 +902,10 @@ export function usePdfExport() {
         pdf.setDrawColor(...black);
         pdf.setLineWidth(0.25);
         
-        // Column 0: No.
+        // Column 0: №
         pdf.setFont('times', 'bold');
         pdf.rect(xPos, yPosition - 4, colWidths[0], baseRowHeight);
-        pdf.text('No.', xPos + cellPadding, yPosition);
+        pdf.text('№', xPos + cellPadding, yPosition);
         xPos += colWidths[0];
         
         // Column 1: Short Name
