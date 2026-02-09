@@ -612,10 +612,21 @@ export type Database = {
           security_eu_classified: boolean | null
           security_eu_classified_level: string | null
           security_eu_classified_page: string | null
+          security_euci_background: boolean | null
+          security_euci_background_page: string | null
+          security_euci_foreground: boolean | null
+          security_euci_foreground_page: string | null
           security_exclusively_defence: boolean | null
           security_exclusively_defence_page: string | null
           security_misuse: boolean | null
+          security_misuse_cbrn: boolean | null
+          security_misuse_cbrn_page: string | null
+          security_misuse_crime_terrorism: boolean | null
+          security_misuse_crime_terrorism_page: string | null
           security_misuse_page: string | null
+          security_other_national: boolean | null
+          security_other_national_details: string | null
+          security_other_national_page: string | null
           security_self_assessment: string | null
           self_assessment_text: string | null
           third_countries: boolean | null
@@ -752,10 +763,21 @@ export type Database = {
           security_eu_classified?: boolean | null
           security_eu_classified_level?: string | null
           security_eu_classified_page?: string | null
+          security_euci_background?: boolean | null
+          security_euci_background_page?: string | null
+          security_euci_foreground?: boolean | null
+          security_euci_foreground_page?: string | null
           security_exclusively_defence?: boolean | null
           security_exclusively_defence_page?: string | null
           security_misuse?: boolean | null
+          security_misuse_cbrn?: boolean | null
+          security_misuse_cbrn_page?: string | null
+          security_misuse_crime_terrorism?: boolean | null
+          security_misuse_crime_terrorism_page?: string | null
           security_misuse_page?: string | null
+          security_other_national?: boolean | null
+          security_other_national_details?: string | null
+          security_other_national_page?: string | null
           security_self_assessment?: string | null
           self_assessment_text?: string | null
           third_countries?: boolean | null
@@ -892,10 +914,21 @@ export type Database = {
           security_eu_classified?: boolean | null
           security_eu_classified_level?: string | null
           security_eu_classified_page?: string | null
+          security_euci_background?: boolean | null
+          security_euci_background_page?: string | null
+          security_euci_foreground?: boolean | null
+          security_euci_foreground_page?: string | null
           security_exclusively_defence?: boolean | null
           security_exclusively_defence_page?: string | null
           security_misuse?: boolean | null
+          security_misuse_cbrn?: boolean | null
+          security_misuse_cbrn_page?: string | null
+          security_misuse_crime_terrorism?: boolean | null
+          security_misuse_crime_terrorism_page?: string | null
           security_misuse_page?: string | null
+          security_other_national?: boolean | null
+          security_other_national_details?: string | null
+          security_other_national_page?: string | null
           security_self_assessment?: string | null
           self_assessment_text?: string | null
           third_countries?: boolean | null
