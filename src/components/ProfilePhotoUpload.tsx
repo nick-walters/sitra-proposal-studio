@@ -329,8 +329,7 @@ export function ProfilePhotoUpload({
                     className="absolute select-none pointer-events-none"
                     style={{
                       width: `${w}px`,
-                      height: 'auto',
-                      aspectRatio: `${naturalDims.width} / ${naturalDims.height}`,
+                      height: `${h}px`,
                       left: `${(CROP_SIZE - w) / 2 + position.x}px`,
                       top: `${(CROP_SIZE - h) / 2 + position.y}px`,
                     }}
