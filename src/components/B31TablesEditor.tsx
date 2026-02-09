@@ -622,13 +622,14 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                 {deliverables.map((del) => (
                   <SortableTableRow key={del.id} id={del.id} canDrag={isAdminOrOwner} onDelete={() => deleteDeliverable.mutate(del.id)}>
                     <TableCell className={cellStyles}>
-                      <span className="font-medium font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">{del.number}:&nbsp;</span>
-                      <EditableText
-                        value={del.name}
-                        onChange={(val) => updateDeliverable.mutate({ id: del.id, name: val })}
-                        placeholder="Deliverable name"
-                        inline
-                      />
+                      <div className="flex items-start">
+                        <span className="font-medium font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight whitespace-nowrap">{del.number}:&nbsp;</span>
+                        <EditableText
+                          value={del.name}
+                          onChange={(val) => updateDeliverable.mutate({ id: del.id, name: val })}
+                          placeholder="Deliverable name"
+                        />
+                      </div>
                     </TableCell>
                     <TableCell className={cellStyles}>
                       <SingleWPSelector
@@ -861,13 +862,14 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
                 {milestones.map((ms) => (
                   <SortableTableRow key={ms.id} id={ms.id} canDrag={isAdminOrOwner} onDelete={() => deleteMilestone.mutate(ms.id)}>
                     <TableCell className={cellStyles}>
-                      <span className="font-medium font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">MS{ms.number}:&nbsp;</span>
-                      <EditableText
-                        value={ms.name}
-                        onChange={(val) => updateMilestone.mutate({ id: ms.id, name: val })}
-                        placeholder="Milestone name"
-                        inline
-                      />
+                      <div className="flex items-start">
+                        <span className="font-medium font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight whitespace-nowrap">MS{ms.number}:&nbsp;</span>
+                        <EditableText
+                          value={ms.name}
+                          onChange={(val) => updateMilestone.mutate({ id: ms.id, name: val })}
+                          placeholder="Milestone name"
+                        />
+                      </div>
                     </TableCell>
                     <TableCell className={cellStyles}>
                       <MultiWPSelector
