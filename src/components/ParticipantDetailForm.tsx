@@ -388,11 +388,9 @@ export function ParticipantDetailForm({
           dependencies={dependencies}
           participants={allParticipants}
           currentParticipantId={participant.id}
-          legacyDependencyText={participant.dependencyDeclaration}
           onAdd={addDependency}
           onUpdate={updateDependency}
           onDelete={deleteDependency}
-          onUpdateLegacyText={(text) => handleFieldUpdate('dependencyDeclaration', text)}
           canEdit={canEdit}
         />
 
