@@ -10,8 +10,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Trash2, Award } from 'lucide-react';
+import { Plus, Trash2, Award, GripVertical } from 'lucide-react';
 import { ParticipantAchievement, ACHIEVEMENT_TYPES } from '@/types/participantDetails';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface AchievementsSectionProps {
   achievements: ParticipantAchievement[];
@@ -19,6 +36,72 @@ interface AchievementsSectionProps {
   onUpdate: (id: string, updates: Partial<ParticipantAchievement>) => void;
   onDelete: (id: string) => void;
   canEdit: boolean;
+}
+
+function SortableAchievementRow({
+  achievement,
+  index,
+  canEdit,
+  onDelete,
+}: {
+  achievement: ParticipantAchievement;
+  index: number;
+  canEdit: boolean;
+  onDelete: (id: string) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: achievement.id, disabled: !canEdit });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg"
+    >
+      {canEdit && (
+        <button
+          className="flex-shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground mt-1"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="w-4 h-4" />
+        </button>
+      )}
+      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+        <span className="text-xs font-medium text-primary">{index + 1}</span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xs font-medium px-2 py-0.5 bg-primary/10 text-primary rounded">
+            {achievement.achievementType}
+          </span>
+        </div>
+        <p className="text-sm whitespace-pre-wrap">{achievement.description}</p>
+      </div>
+      {canEdit && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="flex-shrink-0 text-muted-foreground hover:text-destructive"
+          onClick={() => onDelete(achievement.id)}
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      )}
+    </div>
+  );
 }
 
 export function AchievementsSection({
@@ -34,6 +117,11 @@ export function AchievementsSection({
     description: '',
   });
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
   const handleAdd = () => {
     if (!newAchievement.description.trim()) return;
 
@@ -48,6 +136,18 @@ export function AchievementsSection({
       description: '',
     });
     setShowAddForm(false);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = achievements.findIndex((a) => a.id === active.id);
+    const newIndex = achievements.findIndex((a) => a.id === over.id);
+    const reordered = arrayMove(achievements, oldIndex, newIndex);
+    reordered.forEach((item, i) => {
+      onUpdate(item.id, { orderIndex: i });
+    });
   };
 
   const canAddMore = achievements.length < 5;
@@ -131,36 +231,21 @@ export function AchievementsSection({
             <p className="text-xs mt-1">Add up to 5 relevant publications, datasets, or other achievements</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {achievements.map((achievement, index) => (
-              <div
-                key={achievement.id}
-                className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg"
-              >
-                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-xs font-medium text-primary">{index + 1}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-medium px-2 py-0.5 bg-primary/10 text-primary rounded">
-                      {achievement.achievementType}
-                    </span>
-                  </div>
-                  <p className="text-sm whitespace-pre-wrap">{achievement.description}</p>
-                </div>
-                {canEdit && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="flex-shrink-0 text-muted-foreground hover:text-destructive"
-                    onClick={() => onDelete(achievement.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                )}
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={achievements.map((a) => a.id)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-3">
+                {achievements.map((achievement, index) => (
+                  <SortableAchievementRow
+                    key={achievement.id}
+                    achievement={achievement}
+                    index={index}
+                    canEdit={canEdit}
+                    onDelete={onDelete}
+                  />
+                ))}
               </div>
-            ))}
-          </div>
+            </SortableContext>
+          </DndContext>
         )}
 
         {!canAddMore && achievements.length > 0 && (

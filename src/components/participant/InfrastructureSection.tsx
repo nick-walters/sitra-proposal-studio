@@ -4,8 +4,25 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2, Server } from 'lucide-react';
+import { Plus, Trash2, Server, GripVertical } from 'lucide-react';
 import { ParticipantInfrastructure } from '@/types/participantDetails';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface InfrastructureSectionProps {
   infrastructure: ParticipantInfrastructure[];
@@ -13,6 +30,66 @@ interface InfrastructureSectionProps {
   onUpdate: (id: string, updates: Partial<ParticipantInfrastructure>) => void;
   onDelete: (id: string) => void;
   canEdit: boolean;
+}
+
+function SortableInfraRow({
+  infra,
+  canEdit,
+  onDelete,
+}: {
+  infra: ParticipantInfrastructure;
+  canEdit: boolean;
+  onDelete: (id: string) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: infra.id, disabled: !canEdit });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg"
+    >
+      {canEdit && (
+        <button
+          className="flex-shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground mt-1"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="w-4 h-4" />
+        </button>
+      )}
+      <Server className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+      <div className="flex-1 min-w-0">
+        <p className="font-medium">{infra.name}</p>
+        {infra.description && (
+          <p className="text-sm text-muted-foreground mt-1">{infra.description}</p>
+        )}
+      </div>
+      {canEdit && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="flex-shrink-0 text-muted-foreground hover:text-destructive"
+          onClick={() => onDelete(infra.id)}
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      )}
+    </div>
+  );
 }
 
 export function InfrastructureSection({
@@ -28,6 +105,11 @@ export function InfrastructureSection({
     description: '',
   });
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
   const handleAdd = () => {
     if (!newInfra.name.trim()) return;
 
@@ -42,6 +124,18 @@ export function InfrastructureSection({
       description: '',
     });
     setShowAddForm(false);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = infrastructure.findIndex((i) => i.id === active.id);
+    const newIndex = infrastructure.findIndex((i) => i.id === over.id);
+    const reordered = arrayMove(infrastructure, oldIndex, newIndex);
+    reordered.forEach((item, i) => {
+      onUpdate(item.id, { orderIndex: i });
+    });
   };
 
   return (
@@ -109,32 +203,20 @@ export function InfrastructureSection({
             <p className="text-xs mt-1">Add significant infrastructure or equipment relevant to the project</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {infrastructure.map((infra) => (
-              <div
-                key={infra.id}
-                className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg"
-              >
-                <Server className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium">{infra.name}</p>
-                  {infra.description && (
-                    <p className="text-sm text-muted-foreground mt-1">{infra.description}</p>
-                  )}
-                </div>
-                {canEdit && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="flex-shrink-0 text-muted-foreground hover:text-destructive"
-                    onClick={() => onDelete(infra.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                )}
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={infrastructure.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-3">
+                {infrastructure.map((infra) => (
+                  <SortableInfraRow
+                    key={infra.id}
+                    infra={infra}
+                    canEdit={canEdit}
+                    onDelete={onDelete}
+                  />
+                ))}
               </div>
-            ))}
-          </div>
+            </SortableContext>
+          </DndContext>
         )}
       </CardContent>
     </Card>
