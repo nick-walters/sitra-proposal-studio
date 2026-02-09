@@ -28,7 +28,7 @@ export function Header() {
           {/* Left: Logo */}
           <div className="flex items-center gap-4 flex-1">
             <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
-              <img src={sitraLogo} alt="Sitra Proposal Studio" className="h-8" />
+              <img src={sitraLogo} alt="Sitra Proposal Studio" className="h-8 w-auto object-contain flex-shrink-0" />
             </Link>
             <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded">alpha</span>
           </div>
