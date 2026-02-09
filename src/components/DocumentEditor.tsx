@@ -125,7 +125,7 @@ export function DocumentEditor({
   } = useProposalReferences(proposalId);
   
   // Track changes persistence hook
-  const [trackChangesEnabled, setTrackChangesEnabled] = useState(false);
+  const [trackChangesEnabled, setTrackChangesEnabled] = useState(true);
   const {
     changes: trackedChanges,
     loading: trackChangesLoading,
