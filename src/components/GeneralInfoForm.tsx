@@ -20,7 +20,8 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SaveIndicator } from "./SaveIndicator";
-import { Loader2, FileText, Target, Euro, Calendar as CalendarIcon, ExternalLink, Download } from "lucide-react";
+import { Loader2, FileText, Target, Euro, Calendar as CalendarIcon, ExternalLink, Download, Trash2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -1199,7 +1200,95 @@ export function GeneralInfoForm({
             isAdmin={isAdmin}
           />
         )}
+
+        {/* Delete Proposal - Admins/Owners Only */}
+        {isAdmin && (
+          <DeleteProposalSection proposalId={proposalId} proposalTitle={proposal?.title || 'this proposal'} />
+        )}
       </div>
     </div>
+  );
+}
+
+function DeleteProposalSection({ proposalId, proposalTitle }: { proposalId: string; proposalTitle: string }) {
+  const navigate = useNavigate();
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteProposal = async () => {
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('proposals')
+        .delete()
+        .eq('id', proposalId);
+
+      if (error) throw error;
+
+      toast.success('Proposal deleted successfully');
+      navigate('/');
+    } catch (error) {
+      console.error('Error deleting proposal:', error);
+      toast.error('Failed to delete proposal');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <Card className="border-destructive/50">
+      <CardHeader>
+        <CardTitle className="text-destructive flex items-center gap-2">
+          <Trash2 className="h-5 w-5" />
+          Delete Proposal
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground mb-4">
+          Permanently delete this proposal and all associated data. This action cannot be undone.
+        </p>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" disabled={isDeleting}>
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Proposal
+                </>
+              )}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete <strong>"{proposalTitle}"</strong> and all its data, including:
+                <ul className="list-disc ml-5 mt-2 space-y-1">
+                  <li>All sections and content</li>
+                  <li>All participants and their data</li>
+                  <li>All work packages and drafts</li>
+                  <li>All budget items and figures</li>
+                  <li>All comments and version history</li>
+                </ul>
+                <p className="mt-3 font-medium text-destructive">This action cannot be undone.</p>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteProposal}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Yes, delete proposal
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </CardContent>
+    </Card>
   );
 }
