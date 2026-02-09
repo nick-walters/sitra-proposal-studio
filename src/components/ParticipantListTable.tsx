@@ -100,16 +100,17 @@ export function ParticipantListTable({
                     <p>{participant.participantNumber}</p>
                   </td>
                   
-                  {/* Short name - as bubble */}
+                  {/* Short name - as bubble (black bg, white italic bold text) */}
                   <td>
                     <p>
                       {participant.organisationShortName ? (
                         <span
-                          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold"
+                          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs"
                           style={{ 
                             backgroundColor: '#000000', 
                             color: '#ffffff',
-                            display: 'inline-block',
+                            fontWeight: 'bold',
+                            fontStyle: 'italic',
                           }}
                         >
                           {participant.organisationShortName}
