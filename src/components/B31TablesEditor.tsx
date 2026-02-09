@@ -607,12 +607,12 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
           <Table className={tableStyles}>
             <TableHeader>
               <TableRow className="bg-black text-white hover:bg-black">
-                <TableHead className={`${cellStyles} text-white font-bold w-[50%]`}>Deliverable</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[10%]`}>WP</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[15%]`}>Lead</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[10%]`}>Type</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[8%]`}>Diss.</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[7%]`}>Due</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold`}>Deliverable</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[40px]`}>WP</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[60px]`}>Lead</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[40px]`}>Type</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[50px]`}>Diss.</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[40px]`}>Due</TableHead>
               </TableRow>
             </TableHeader>
             <SortableContext items={deliverables.map(d => d.id)} strategy={verticalListSortingStrategy}>
@@ -641,13 +641,18 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                         value={del.lead_participant_id || ''} 
                         onValueChange={(v) => updateDeliverable.mutate({ id: del.id, lead_participant_id: v || null })}
                       >
-                        <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto font-['Times_New_Roman',Times,serif] text-[11pt]">
+                        <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto">
                           <SelectValue placeholder="-">
-                            <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">
-                              {del.lead_participant_id 
-                                ? participants.find(p => p.id === del.lead_participant_id)?.organisation_short_name || '-'
-                                : '-'}
-                            </span>
+                            {del.lead_participant_id ? (
+                              <span
+                                className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9pt] text-white"
+                                style={{ backgroundColor: '#000', fontWeight: 'bold', fontStyle: 'italic' }}
+                              >
+                                {participants.find(p => p.id === del.lead_participant_id)?.organisation_short_name || '-'}
+                              </span>
+                            ) : (
+                              <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">-</span>
+                            )}
                           </SelectValue>
                         </SelectTrigger>
                         <SelectContent className="bg-background z-50">
@@ -845,9 +850,9 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
             <TableHeader>
               <TableRow className="bg-black text-white hover:bg-black">
                 <TableHead className={`${cellStyles} text-white font-bold w-[40%]`}>Milestone</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[15%]`}>WPs</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[10%]`}>Due</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[35%]`}>Means of verification</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[70px]`}>WPs</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[40px]`}>Due</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold`}>Means of verification</TableHead>
               </TableRow>
             </TableHeader>
             <SortableContext items={milestones.map(m => m.id)} strategy={verticalListSortingStrategy}>
@@ -1030,10 +1035,10 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
           <Table className={tableStyles}>
             <TableHeader>
               <TableRow className="bg-black text-white hover:bg-black">
-                <TableHead className={`${cellStyles} text-white font-bold`}>Risk</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[28px]`}>i</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[28px]`}>ii</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[12%]`}>WPs</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[30%]`}>Risk</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[24px]`}>i</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[24px]`}>ii</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[70px]`}>WPs</TableHead>
                 <TableHead className={`${cellStyles} text-white font-bold`}>Mitigation & adaptation measures</TableHead>
               </TableRow>
             </TableHeader>
