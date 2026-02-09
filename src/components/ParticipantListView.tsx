@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Participant, ParticipantMember, Section, ParticipantType } from '@/types/proposal';
 import { Building2, GripVertical, UserPlus, Plus, Search, Check, Upload, X, Loader2 } from 'lucide-react';
+import { ParticipantListTable } from './ParticipantListTable';
 import { generateParticipantLogoPath, uploadProposalFile } from '@/lib/proposalStorage';
 import { CountrySelect } from './CountrySelect';
 import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
@@ -686,20 +687,7 @@ export function ParticipantListView({
             </div>
           </div>
 
-          {/* Column Headers */}
-          {sortedParticipants.length > 0 && (
-            <div className="flex items-end gap-1.5 px-2 pb-1 text-xs text-muted-foreground font-medium">
-              {canReorder && <div className="w-4" />}
-              <div className="w-24 text-left"># / Short</div>
-              <div className="flex-1 min-w-0 text-left">Organisation</div>
-              <div className="w-20 text-left">Roles</div>
-              <div className="w-10 text-left">Logo</div>
-              <div className="text-left" style={{ width: '140px' }}>Country</div>
-              <div className="w-10" />
-            </div>
-          )}
-
-          {/* Participants List */}
+          {/* Participants Display */}
           {sortedParticipants.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center">
@@ -710,53 +698,88 @@ export function ParticipantListView({
                 </p>
               </CardContent>
             </Card>
-          ) : canReorder && onReorderParticipants ? (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={sortedParticipants.map((p) => p.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                <div className="space-y-1.5">
-                  {sortedParticipants.map((participant) => (
-                    <SortableParticipantCard
-                      key={participant.id}
-                      participant={participant}
-                      proposalId={proposalId}
-                      onSelect={() => onSelectParticipant(participant)}
-                      canReorder={canReorder}
-                      canEdit={canEdit}
-                      wpLeadership={wpLeadership[participant.id]}
-                      caseLeadership={caseLeadership[participant.id]}
-                      onFetchLogo={() => handleFetchLogo(participant)}
-                      isFetchingLogo={fetchingLogoFor === participant.id}
-                      onUpdateParticipant={onUpdateParticipant}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
-          ) : (
-            <div className="space-y-1.5">
-              {sortedParticipants.map((participant) => (
-                <ParticipantCard
-                  key={participant.id}
-                  participant={participant}
-                  proposalId={proposalId}
-                  onSelect={() => onSelectParticipant(participant)}
-                  canReorder={false}
-                  canEdit={canEdit}
-                  wpLeadership={wpLeadership[participant.id]}
-                  caseLeadership={caseLeadership[participant.id]}
-                  onFetchLogo={onUpdateParticipant ? () => handleFetchLogo(participant) : undefined}
-                  isFetchingLogo={fetchingLogoFor === participant.id}
-                  onUpdateParticipant={onUpdateParticipant}
-                />
-              ))}
+          ) : !canEdit && !canReorder ? (
+            /* Read-only view: Use Part B-style table */
+            <div className="bg-white rounded-lg border p-4">
+              <ParticipantListTable
+                participants={sortedParticipants}
+                wpLeadership={wpLeadership}
+                caseLeadership={caseLeadership}
+                onRowClick={onSelectParticipant}
+              />
             </div>
+          ) : canReorder && onReorderParticipants ? (
+            /* Edit mode with reordering */
+            <>
+              {/* Column Headers for card view */}
+              <div className="flex items-end gap-1.5 px-2 pb-1 text-xs text-muted-foreground font-medium">
+                {canReorder && <div className="w-4" />}
+                <div className="w-24 text-left"># / Short</div>
+                <div className="flex-1 min-w-0 text-left">Organisation</div>
+                <div className="w-20 text-left">Roles</div>
+                <div className="w-10 text-left">Logo</div>
+                <div className="text-left" style={{ width: '140px' }}>Country</div>
+                <div className="w-10" />
+              </div>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={sortedParticipants.map((p) => p.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-1.5">
+                    {sortedParticipants.map((participant) => (
+                      <SortableParticipantCard
+                        key={participant.id}
+                        participant={participant}
+                        proposalId={proposalId}
+                        onSelect={() => onSelectParticipant(participant)}
+                        canReorder={canReorder}
+                        canEdit={canEdit}
+                        wpLeadership={wpLeadership[participant.id]}
+                        caseLeadership={caseLeadership[participant.id]}
+                        onFetchLogo={() => handleFetchLogo(participant)}
+                        isFetchingLogo={fetchingLogoFor === participant.id}
+                        onUpdateParticipant={onUpdateParticipant}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            </>
+          ) : (
+            /* Edit mode without reordering (card view) */
+            <>
+              {/* Column Headers for card view */}
+              <div className="flex items-end gap-1.5 px-2 pb-1 text-xs text-muted-foreground font-medium">
+                <div className="w-24 text-left"># / Short</div>
+                <div className="flex-1 min-w-0 text-left">Organisation</div>
+                <div className="w-20 text-left">Roles</div>
+                <div className="w-10 text-left">Logo</div>
+                <div className="text-left" style={{ width: '140px' }}>Country</div>
+                <div className="w-10" />
+              </div>
+              <div className="space-y-1.5">
+                {sortedParticipants.map((participant) => (
+                  <ParticipantCard
+                    key={participant.id}
+                    participant={participant}
+                    proposalId={proposalId}
+                    onSelect={() => onSelectParticipant(participant)}
+                    canReorder={false}
+                    canEdit={canEdit}
+                    wpLeadership={wpLeadership[participant.id]}
+                    caseLeadership={caseLeadership[participant.id]}
+                    onFetchLogo={onUpdateParticipant ? () => handleFetchLogo(participant) : undefined}
+                    isFetchingLogo={fetchingLogoFor === participant.id}
+                    onUpdateParticipant={onUpdateParticipant}
+                  />
+                ))}
+              </div>
+            </>
           )}
 
         </div>
