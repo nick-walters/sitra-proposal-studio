@@ -169,7 +169,7 @@ export default function Index() {
               <div className="relative bg-card rounded-2xl shadow-2xl p-8 rotate-1">
                 <div className="document-page transform scale-[0.6] origin-top-left" style={{ width: '210mm', minHeight: '200mm' }}>
                   <h1 className="document-h1 mb-4">1. Excellence</h1>
-                  <h2 className="document-h2 mb-3">1.1 Objectives and ambition</h2>
+                  <h2 className="document-h2 mb-3">1.1 Objectives & ambition</h2>
                   <p className="document-content text-muted-foreground">
                     This project aims to develop innovative solutions for sustainable urban development
                     through the integration of green technologies and smart city infrastructure...
