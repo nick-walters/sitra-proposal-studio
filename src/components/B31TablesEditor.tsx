@@ -622,7 +622,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                 {deliverables.map((del) => (
                   <SortableTableRow key={del.id} id={del.id} canDrag={isAdminOrOwner} onDelete={() => deleteDeliverable.mutate(del.id)}>
                     <TableCell className={cellStyles}>
-                      <span className="font-medium font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">{del.number}: </span>
+                      <span className="font-medium font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">{del.number}:&nbsp;</span>
                       <EditableText
                         value={del.name}
                         onChange={(val) => updateDeliverable.mutate({ id: del.id, name: val })}
@@ -861,14 +861,13 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
                 {milestones.map((ms) => (
                   <SortableTableRow key={ms.id} id={ms.id} canDrag={isAdminOrOwner} onDelete={() => deleteMilestone.mutate(ms.id)}>
                     <TableCell className={cellStyles}>
-                      <div className="flex items-baseline gap-1">
-                        <span className="font-medium shrink-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">MS{ms.number}:</span>
-                        <EditableText
-                          value={ms.name}
-                          onChange={(val) => updateMilestone.mutate({ id: ms.id, name: val })}
-                          placeholder="Milestone name"
-                        />
-                      </div>
+                      <span className="font-medium font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">MS{ms.number}:&nbsp;</span>
+                      <EditableText
+                        value={ms.name}
+                        onChange={(val) => updateMilestone.mutate({ id: ms.id, name: val })}
+                        placeholder="Milestone name"
+                        inline
+                      />
                     </TableCell>
                     <TableCell className={cellStyles}>
                       <MultiWPSelector
