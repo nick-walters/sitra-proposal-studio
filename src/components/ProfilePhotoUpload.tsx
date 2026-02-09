@@ -31,10 +31,9 @@ export function ProfilePhotoUpload({
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
+  const [naturalDims, setNaturalDims] = useState({ width: 0, height: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imageRef = useRef<HTMLImageElement | null>(null);
 
   const getInitials = () => {
     if (firstName || lastName) {
@@ -63,10 +62,9 @@ export function ProfilePhotoUpload({
     const reader = new FileReader();
     reader.onload = (event) => {
       const dataUrl = event.target?.result as string;
-      // Pre-load image to get dimensions
       const img = new Image();
       img.onload = () => {
-        setImageDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+        setNaturalDims({ width: img.naturalWidth, height: img.naturalHeight });
         setPreviewImage(dataUrl);
         setZoom([1]);
         setPosition({ x: 0, y: 0 });
@@ -77,6 +75,27 @@ export function ProfilePhotoUpload({
     reader.readAsDataURL(file);
   };
 
+  const CROP_SIZE = 200;
+
+  // Compute scaled dimensions for current zoom
+  const getScaled = (z: number) => {
+    if (naturalDims.width === 0 || naturalDims.height === 0) return { w: 0, h: 0 };
+    const baseScale = CROP_SIZE / Math.min(naturalDims.width, naturalDims.height);
+    const s = baseScale * z;
+    return { w: naturalDims.width * s, h: naturalDims.height * s };
+  };
+
+  // Constrain position so image always covers the crop circle
+  const clampPosition = (pos: { x: number; y: number }, z: number) => {
+    const { w, h } = getScaled(z);
+    const maxX = Math.max(0, (w - CROP_SIZE) / 2);
+    const maxY = Math.max(0, (h - CROP_SIZE) / 2);
+    return {
+      x: Math.min(maxX, Math.max(-maxX, pos.x)),
+      y: Math.min(maxY, Math.max(-maxY, pos.y)),
+    };
+  };
+
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
     setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
@@ -84,14 +103,16 @@ export function ProfilePhotoUpload({
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
-    setPosition({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y,
-    });
+    const raw = { x: e.clientX - dragStart.x, y: e.clientY - dragStart.y };
+    setPosition(clampPosition(raw, zoom[0]));
   };
 
-  const handleMouseUp = () => {
-    setIsDragging(false);
+  const handleMouseUp = () => setIsDragging(false);
+
+  const handleZoomChange = (val: number[]) => {
+    setZoom(val);
+    // Re-clamp position for new zoom level
+    setPosition(prev => clampPosition(prev, val[0]));
   };
 
   const cropAndUpload = async () => {
@@ -118,16 +139,12 @@ export function ProfilePhotoUpload({
       canvas.width = outputSize;
       canvas.height = outputSize;
 
-      // Calculate crop area - match the preview exactly
-      const cropSize = 200; // Size of visible crop area in the dialog
-      const ratio = outputSize / cropSize;
-      
-      // Scale the image to fit the crop area, then apply zoom
-      const baseScale = cropSize / Math.min(img.width, img.height);
+      const ratio = outputSize / CROP_SIZE;
+      const baseScale = CROP_SIZE / Math.min(img.naturalWidth, img.naturalHeight);
       const scale = baseScale * zoom[0];
       
-      const scaledWidth = img.width * scale * ratio;
-      const scaledHeight = img.height * scale * ratio;
+      const scaledWidth = img.naturalWidth * scale * ratio;
+      const scaledHeight = img.naturalHeight * scale * ratio;
       
       // Center the image and apply drag offset
       const offsetX = (outputSize - scaledWidth) / 2 + (position.x * ratio);
@@ -296,32 +313,23 @@ export function ProfilePhotoUpload({
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
             >
-            {previewImage && imageDimensions.width > 0 && (
-                (() => {
-                  // Calculate base scale to fit the smaller dimension to the crop circle
-                  const cropSize = 200;
-                  const baseScale = cropSize / Math.min(imageDimensions.width, imageDimensions.height);
-                  const effectiveScale = baseScale * zoom[0];
-                  const scaledWidth = imageDimensions.width * effectiveScale;
-                  const scaledHeight = imageDimensions.height * effectiveScale;
-                  
-                  return (
-                    <img
-                      ref={(el) => { imageRef.current = el; }}
-                      src={previewImage}
-                      alt="Preview"
-                      className="absolute select-none pointer-events-none"
-                      style={{
-                        width: `${scaledWidth}px`,
-                        height: `${scaledHeight}px`,
-                        left: `${(cropSize - scaledWidth) / 2 + position.x}px`,
-                        top: `${(cropSize - scaledHeight) / 2 + position.y}px`,
-                      }}
-                      draggable={false}
-                    />
-                  );
-                })()
-              )}
+            {previewImage && naturalDims.width > 0 && (() => {
+                const { w, h } = getScaled(zoom[0]);
+                return (
+                  <img
+                    src={previewImage}
+                    alt="Preview"
+                    className="absolute select-none pointer-events-none"
+                    style={{
+                      width: `${w}px`,
+                      height: `${h}px`,
+                      left: `${(CROP_SIZE - w) / 2 + position.x}px`,
+                      top: `${(CROP_SIZE - h) / 2 + position.y}px`,
+                    }}
+                    draggable={false}
+                  />
+                );
+              })()}
             </div>
 
             {/* Zoom slider */}
@@ -329,8 +337,8 @@ export function ProfilePhotoUpload({
               <label className="text-sm text-muted-foreground">Zoom</label>
               <Slider
                 value={zoom}
-                onValueChange={setZoom}
-                min={0.5}
+                onValueChange={handleZoomChange}
+                min={1}
                 max={3}
                 step={0.1}
                 className="w-full"
