@@ -134,6 +134,7 @@ const disseminationLevels = [
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles = "border border-black px-0.5 py-px h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-none";
+const bubbleCellStyles = "border border-black px-0.5 py-1 h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-normal";
 const headerCellStyles = "border border-black px-0.5 py-px h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-none";
 
 // Inline editable text that expands to multiple lines - with debounced save
@@ -699,19 +700,19 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className={cellStyles}>
+                    <TableCell className={bubbleCellStyles}>
                       <SingleWPSelector
                         value={del.wp_number}
                         onChange={(val) => updateDeliverable.mutate({ id: del.id, wp_number: val })}
                         workPackages={workPackages}
                       />
                     </TableCell>
-                    <TableCell className={cellStyles}>
+                    <TableCell className={bubbleCellStyles}>
                       <Select 
                         value={del.lead_participant_id || ''} 
                         onValueChange={(v) => updateDeliverable.mutate({ id: del.id, lead_participant_id: v || null })}
                       >
-                        <SelectTrigger hideArrow className="h-auto py-0.5 px-0 border-0 bg-transparent focus:ring-0 w-auto items-center overflow-visible">
+                        <SelectTrigger hideArrow className="h-auto px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex items-center">
                           <SelectValue placeholder="-">
                             {del.lead_participant_id ? (
                               <span
@@ -941,7 +942,7 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className={cellStyles}>
+                    <TableCell className={bubbleCellStyles}>
                       <MultiWPSelector
                         value={ms.wps}
                         onChange={(val) => updateMilestone.mutate({ id: ms.id, wps: val })}
