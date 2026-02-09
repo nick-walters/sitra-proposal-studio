@@ -166,6 +166,7 @@ interface EthicsQuestion {
   parentId?: keyof EthicsAssessment;
   detailsId?: keyof EthicsAssessment; // For questions needing text input
   detailsPlaceholder?: string;
+  detailsMaxLength?: number; // Character limit for details field
 }
 
 interface EthicsSection {
@@ -598,6 +599,7 @@ const ETHICS_SECTIONS: EthicsSection[] = [
         label: 'Are there any other ethics issues that should be taken into consideration?',
         detailsId: 'otherEthicsDetails',
         detailsPlaceholder: 'Please specify the ethics issues...',
+        detailsMaxLength: 1000,
       },
     ],
   },
@@ -701,13 +703,35 @@ function EthicsQuestionRow({
       {/* Details input if applicable */}
       {question.detailsId && value === true && (
         <div className="py-2 pl-8 pr-4 bg-muted/20 border-b border-border/50">
-          <Input
-            value={detailsValue || ''}
-            onChange={(e) => onDetailsChange?.(e.target.value)}
-            placeholder={question.detailsPlaceholder || 'Please specify...'}
-            className="h-8 text-xs"
-            disabled={!canEdit}
-          />
+          {(question as EthicsQuestion).detailsMaxLength ? (
+            <div className="space-y-1">
+              <Textarea
+                value={detailsValue || ''}
+                onChange={(e) => {
+                  const newValue = e.target.value;
+                  const maxLength = (question as EthicsQuestion).detailsMaxLength!;
+                  if (newValue.length <= maxLength) {
+                    onDetailsChange?.(newValue);
+                  }
+                }}
+                placeholder={question.detailsPlaceholder || 'Please specify...'}
+                className="min-h-[80px] text-xs"
+                disabled={!canEdit}
+                maxLength={(question as EthicsQuestion).detailsMaxLength}
+              />
+              <div className="text-xs text-muted-foreground text-right">
+                {(detailsValue || '').length} / {(question as EthicsQuestion).detailsMaxLength} characters
+              </div>
+            </div>
+          ) : (
+            <Input
+              value={detailsValue || ''}
+              onChange={(e) => onDetailsChange?.(e.target.value)}
+              placeholder={question.detailsPlaceholder || 'Please specify...'}
+              className="h-8 text-xs"
+              disabled={!canEdit}
+            />
+          )}
         </div>
       )}
     </>
