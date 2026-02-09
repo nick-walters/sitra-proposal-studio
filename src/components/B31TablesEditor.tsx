@@ -681,14 +681,14 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                   <SortableTableRow key={del.id} id={del.id} canDrag={isAdminOrOwner} onDelete={() => deleteDeliverable.mutate(del.id)}>
                     <TableCell className={cellStyles}>
                       <div>
-                        <span className="font-medium font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">
+                        <span className="font-bold font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">
                           <EditableTextInline
                             value={del.number}
                             onChange={(val) => updateDeliverable.mutate({ id: del.id, number: val })}
                             placeholder="D#.#"
                           />
                         </span>
-                        <span className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">:&nbsp;</span>
+                        <span className="font-bold font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">:&nbsp;</span>
                         <span className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">
                           <EditableTextInline
                             value={del.name}
@@ -930,7 +930,7 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
                   <SortableTableRow key={ms.id} id={ms.id} canDrag={isAdminOrOwner} onDelete={() => deleteMilestone.mutate(ms.id)}>
                     <TableCell className={cellStyles}>
                       <div>
-                        <span className="font-medium font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">MS{ms.number}:&nbsp;</span>
+                        <span className="font-bold font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">MS{ms.number}:&nbsp;</span>
                         <span className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">
                           <EditableTextInline
                             value={ms.name}
