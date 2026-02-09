@@ -908,9 +908,9 @@ export function usePdfExport() {
         pdf.text('№', xPos + cellPadding, yPosition);
         xPos += colWidths[0];
         
-        // Column 1: Short Name
+        // Column 1: Short name
         pdf.rect(xPos, yPosition - 4, colWidths[1], baseRowHeight);
-        pdf.text('Short Name', xPos + cellPadding, yPosition);
+        pdf.text('Short name', xPos + cellPadding, yPosition);
         xPos += colWidths[1];
         
         // Column 2: Participant legal name | English name, if different (with italic part)
