@@ -66,7 +66,7 @@ export function ProfilePhotoUpload({
       // Pre-load image to get dimensions
       const img = new Image();
       img.onload = () => {
-        setImageDimensions({ width: img.width, height: img.height });
+        setImageDimensions({ width: img.naturalWidth, height: img.naturalHeight });
         setPreviewImage(dataUrl);
         setZoom([1]);
         setPosition({ x: 0, y: 0 });
@@ -316,7 +316,6 @@ export function ProfilePhotoUpload({
                         height: `${scaledHeight}px`,
                         left: `${(cropSize - scaledWidth) / 2 + position.x}px`,
                         top: `${(cropSize - scaledHeight) / 2 + position.y}px`,
-                        objectFit: 'contain',
                       }}
                       draggable={false}
                     />
