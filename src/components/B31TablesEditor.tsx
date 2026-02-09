@@ -140,12 +140,14 @@ function EditableText({
   value, 
   onChange, 
   placeholder,
-  className = ''
+  className = '',
+  inline = false
 }: { 
   value: string; 
   onChange: (val: string) => void;
   placeholder?: string;
   className?: string;
+  inline?: boolean;
 }) {
   const [localValue, setLocalValue] = useState(value);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -189,12 +191,12 @@ function EditableText({
       onChange={handleChange}
       placeholder={placeholder}
       rows={1}
-      className={`w-full bg-transparent border-0 p-0 m-0 resize-none focus:outline-none focus:ring-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight ${className}`}
+      className={`bg-transparent border-0 p-0 m-0 resize-none focus:outline-none focus:ring-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight ${inline ? '' : 'w-full'} ${className}`}
       style={{ 
         minHeight: '1em',
         lineHeight: '1.2',
         overflow: 'hidden',
-        display: 'block'
+        display: inline ? 'inline' : 'block'
       }}
     />
   );
@@ -620,14 +622,13 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                 {deliverables.map((del) => (
                   <SortableTableRow key={del.id} id={del.id} canDrag={isAdminOrOwner} onDelete={() => deleteDeliverable.mutate(del.id)}>
                     <TableCell className={cellStyles}>
-                      <div className="flex items-baseline gap-1">
-                        <span className="font-medium shrink-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">{del.number}:</span>
-                        <EditableText
-                          value={del.name}
-                          onChange={(val) => updateDeliverable.mutate({ id: del.id, name: val })}
-                          placeholder="Deliverable name"
-                        />
-                      </div>
+                      <span className="font-medium font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">{del.number}: </span>
+                      <EditableText
+                        value={del.name}
+                        onChange={(val) => updateDeliverable.mutate({ id: del.id, name: val })}
+                        placeholder="Deliverable name"
+                        inline
+                      />
                     </TableCell>
                     <TableCell className={cellStyles}>
                       <SingleWPSelector
