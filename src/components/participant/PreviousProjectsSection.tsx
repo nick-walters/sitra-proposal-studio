@@ -60,11 +60,11 @@ function SortableProjectRow({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg"
+      className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
     >
       {canEdit && (
         <button
-          className="flex-shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground mt-1"
+          className="flex-shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
           {...attributes}
           {...listeners}
         >
