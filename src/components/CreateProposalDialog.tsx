@@ -406,7 +406,7 @@ export function CreateProposalDialog({
                   <SelectContent>
                     {availableDestinations.map((dest) => (
                       <SelectItem key={dest.id} value={dest.id}>
-                        <div className="flex flex-col">
+                        <div className="flex flex-col items-start text-left">
                           <span className="font-medium">{dest.abbreviation}</span>
                           <span className="text-xs text-muted-foreground">{dest.fullName}</span>
                         </div>
