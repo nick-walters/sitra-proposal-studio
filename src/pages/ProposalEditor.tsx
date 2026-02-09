@@ -13,6 +13,7 @@ import { FigureManager } from "@/components/FigureManager";
 import { SectionProgressDashboard } from "@/components/SectionProgressDashboard";
 import { WPDraftEditor } from "@/components/WPDraftEditor";
 import { WPManagementCard } from "@/components/WPManagementCard";
+import { ProposalCollaboratorsPanel } from "@/components/ProposalCollaboratorsPanel";
 import { CaseManagementCard } from "@/components/CaseManagementCard";
 import { WPProgressTracker } from "@/components/WPProgressTracker";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ import { useProposalSections } from "@/hooks/useProposalSections";
 import { useBudget } from "@/hooks/useBudget";
 import { useAuth } from "@/hooks/useAuth";
 import { useSectionAssignments } from "@/hooks/useSectionAssignments";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { WPLeadershipInfo, CaseLeadershipInfo } from "@/components/ParticipantListView";
@@ -66,6 +68,7 @@ export function ProposalEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isOwner: isGlobalOwner } = useUserRole();
   const [activeSection, setActiveSection] = useState<Section | WPSection | CaseSection | null>(null);
   const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -1024,35 +1027,11 @@ export function ProposalEditor() {
           </div>
 
           {/* Collaborators - fixed at bottom */}
-          <div className="p-4 border-t border-border flex-shrink-0">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Collaborators
-              </span>
-              <Button variant="ghost" size="icon" className="h-6 w-6">
-                <Users className="w-3.5 h-3.5" />
-              </Button>
-            </div>
-            <div className="space-y-2">
-              {collaborators.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No one else is online</p>
-              ) : (
-                collaborators.map((collaborator) => (
-                  <div key={collaborator.id} className="flex items-center gap-2">
-                    <div className="relative">
-                      <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-xs font-medium text-primary">
-                          {collaborator.name.split(' ').map((n) => n[0]).join('')}
-                        </span>
-                      </div>
-                      <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-success border border-card" />
-                    </div>
-                    <span className="text-sm truncate">{collaborator.name}</span>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+          <ProposalCollaboratorsPanel
+            proposalId={id || ''}
+            canManage={isGlobalOwner || isAdmin}
+            onlineCollaborators={collaborators}
+          />
         </aside>
 
         {/* Collapse Toggle */}
