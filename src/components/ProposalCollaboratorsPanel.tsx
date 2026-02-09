@@ -443,7 +443,6 @@ export function ProposalCollaboratorsPanel({
           open={!!chatUserId}
           onOpenChange={(open) => !open && setChatUserId(null)}
           userId={chatUserId}
-          currentUserId={user?.id}
         />
       )}
     </>
