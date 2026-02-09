@@ -114,12 +114,11 @@ export function usePdfExport() {
       let currentSectionName = '';
       const pageSectionMap: Map<number, string> = new Map();
       
-      // Helper to record current section for current page
+      // Helper to record current section for current page (always updates to latest section)
       const updatePageSection = () => {
         const currentPage = pdf.internal.pages.length - 1;
-        if (!pageSectionMap.has(currentPage)) {
-          pageSectionMap.set(currentPage, currentSectionName);
-        }
+        // Always update to latest section - if multiple sections on same page, use the later one
+        pageSectionMap.set(currentPage, currentSectionName);
       };
 
       // Colors
