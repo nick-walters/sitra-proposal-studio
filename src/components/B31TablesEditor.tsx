@@ -919,8 +919,8 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
           <Table className={tableStyles}>
             <TableHeader>
               <TableRow className="bg-black text-white hover:bg-black">
-                <TableHead className={`${headerCellStyles} text-white font-bold w-[40%]`}>Milestone</TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold w-[80px]`}>WPs</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold w-[35%]`}>Milestone</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold w-[120px]`}>WPs</TableHead>
                 <TableHead className={`${headerCellStyles} text-white font-bold w-[40px]`}>Due</TableHead>
                 <TableHead className={`${headerCellStyles} text-white font-bold`}>Means of verification</TableHead>
               </TableRow>
@@ -1107,10 +1107,10 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
           <Table className={tableStyles}>
             <TableHeader>
               <TableRow className="bg-black text-white hover:bg-black">
-                <TableHead className={`${headerCellStyles} text-white font-bold w-[30%]`}>Risk</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold w-[25%]`}>Risk</TableHead>
                 <TableHead className={`${headerCellStyles} text-white font-bold w-[24px]`}>i.</TableHead>
                 <TableHead className={`${headerCellStyles} text-white font-bold w-[24px]`}>ii.</TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold w-[80px]`}>WPs</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold w-[120px]`}>WPs</TableHead>
                 <TableHead className={`${headerCellStyles} text-white font-bold`}>Mitigation & adaptation measures</TableHead>
               </TableRow>
             </TableHeader>
