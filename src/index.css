@@ -32,6 +32,7 @@
   font-size: 11pt !important;
   white-space: nowrap;
   font-family: "Times New Roman", Times, serif !important;
+  padding: 2px 6px !important;
 }
 
 .he-table td,
@@ -498,6 +499,7 @@
   font-size: 11pt !important;
   white-space: nowrap;
   font-family: "Times New Roman", Times, serif !important;
+  padding: 2px 6px !important;
 }
 
 .ProseMirror table td {
