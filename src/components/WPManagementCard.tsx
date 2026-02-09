@@ -204,6 +204,18 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
           </DialogHeader>
           <ScrollArea className="max-h-[400px]">
             <div className="space-y-1 p-1">
+              {/* Clear selection option when a lead is selected */}
+              {selectedLead && (
+                <button
+                  onClick={() => {
+                    onUpdate(wp.id, { lead_participant_id: null });
+                    setLeadOpen(false);
+                  }}
+                  className="w-full flex items-center p-3 rounded-md text-left hover:bg-destructive/10 transition-colors text-destructive border-b mb-1"
+                >
+                  <span className="text-sm font-medium">Clear selection</span>
+                </button>
+              )}
               {participants.map((p) => (
                 <button
                   key={p.id}
@@ -211,7 +223,9 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
                     onUpdate(wp.id, { lead_participant_id: p.id });
                     setLeadOpen(false);
                   }}
-                  className="w-full flex items-center p-3 rounded-md text-left hover:bg-muted/80 transition-colors"
+                  className={`w-full flex items-center p-3 rounded-md text-left hover:bg-muted/80 transition-colors ${
+                    p.id === wp.lead_participant_id ? 'bg-muted' : ''
+                  }`}
                 >
                   <div className="w-24 shrink-0">
                     <span
