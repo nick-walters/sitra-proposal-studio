@@ -768,10 +768,12 @@ export function usePdfExport() {
         // Add table caption first
         addCaption(tableCaption, 'table');
         
-        const baseRowHeight = 6;
+        const baseRowHeight = 7; // Increased to ensure bubbles fit
         const cellPadding = 1;
         const tableWidth = colWidths.reduce((a, b) => a + b, 0);
         const lineHeight = 3.5; // For multi-line text
+        const bubbleHeight = 3.5;
+        const bubbleRowSpacing = 4.5; // Height per row of bubbles
         
         // Check if table fits on current page (at least header + 2 rows)
         checkPageBreak(baseRowHeight * Math.min(3, rows.length + 1));
@@ -854,14 +856,16 @@ export function usePdfExport() {
           checkPageBreak(rowHeight);
           xPos = margin;
           const rowStartY = yPosition;
+          const cellTop = rowStartY - 4; // Cell top position
+          const cellBottom = cellTop + rowHeight; // Cell bottom position
           
           // Draw cell borders first
           for (let i = 0; i < colWidths.length; i++) {
-            pdf.rect(xPos, rowStartY - 4, colWidths[i], rowHeight);
+            pdf.rect(xPos, cellTop, colWidths[i], rowHeight);
             xPos += colWidths[i];
           }
           
-          // Draw cell content - vertically centered
+          // Draw cell content - vertically centered within cell bounds
           xPos = margin;
           for (let i = 0; i < colWidths.length; i++) {
             const cell = row[i];
@@ -869,10 +873,10 @@ export function usePdfExport() {
             
             if (cell) {
               if (cell.type === 'bubble') {
-                // Calculate vertical center for single bubble
-                const bubbleHeight = 3.5;
-                const verticalOffset = (rowHeight - bubbleHeight) / 2;
-                const centeredY = rowStartY + verticalOffset - 1;
+                // Calculate vertical center for single bubble within cell bounds
+                // Bubble Y is the baseline, bubble draws from y-2.8 to y-2.8+3.5
+                const cellCenterY = cellTop + rowHeight / 2;
+                const bubbleY = cellCenterY + 1.4; // Center the bubble vertically (3.5/2 = 1.75, adjust for text baseline)
                 
                 // Truncate bubble text if needed to fit column
                 let bubbleText = cell.text;
@@ -882,7 +886,7 @@ export function usePdfExport() {
                   bubbleWidth = getBubbleWidth(bubbleText);
                 }
                 
-                drawBubble(bubbleText, xPos + cellPadding, centeredY, cell.color, cell.italic || false);
+                drawBubble(bubbleText, xPos + cellPadding, bubbleY, cell.color, cell.italic || false);
               } else if (cell.type === 'wpBubbles') {
                 // Calculate how many rows of bubbles and render with wrapping
                 const bubbleGap = 1;
@@ -892,19 +896,19 @@ export function usePdfExport() {
                 
                 // First pass: count rows for vertical centering
                 for (const wpNum of cell.wpNumbers) {
-                  const bubbleWidth = getBubbleWidth(`WP${wpNum}`);
-                  if (currentRowWidth + bubbleWidth > maxTextWidth && currentRowWidth > 0) {
+                  const bWidth = getBubbleWidth(`WP${wpNum}`);
+                  if (currentRowWidth + bWidth > maxTextWidth && currentRowWidth > 0) {
                     bubbleRowCount++;
-                    currentRowWidth = bubbleWidth + bubbleGap;
+                    currentRowWidth = bWidth + bubbleGap;
                   } else {
-                    currentRowWidth += bubbleWidth + bubbleGap;
+                    currentRowWidth += bWidth + bubbleGap;
                   }
                 }
                 
-                // Calculate vertical starting position for centering
-                const totalBubblesHeight = bubbleRowCount * 4.5;
-                const startY = rowStartY + (rowHeight - totalBubblesHeight) / 2;
-                let bubbleY = startY;
+                // Calculate vertical starting position for centering within cell bounds
+                const totalBubblesHeight = bubbleRowCount * bubbleRowSpacing;
+                const cellCenterY = cellTop + rowHeight / 2;
+                let bubbleY = cellCenterY - totalBubblesHeight / 2 + bubbleRowSpacing / 2 + 1.4;
                 
                 // Second pass: render bubbles with wrapping
                 bubbleX = xPos + cellPadding;
@@ -912,25 +916,25 @@ export function usePdfExport() {
                 
                 for (const wpNum of cell.wpNumbers) {
                   const color = cell.wpColorMap.get(wpNum) || '#6b7280';
-                  const bubbleWidth = getBubbleWidth(`WP${wpNum}`);
+                  const bWidth = getBubbleWidth(`WP${wpNum}`);
                   
                   // Check if we need to wrap to next row
-                  if (currentRowWidth + bubbleWidth > maxTextWidth && currentRowWidth > 0) {
-                    bubbleY += 4.5;
+                  if (currentRowWidth + bWidth > maxTextWidth && currentRowWidth > 0) {
+                    bubbleY += bubbleRowSpacing;
                     bubbleX = xPos + cellPadding;
                     currentRowWidth = 0;
                   }
                   
                   drawWPBubble(wpNum, bubbleX, bubbleY, color);
-                  bubbleX += bubbleWidth + bubbleGap;
-                  currentRowWidth += bubbleWidth + bubbleGap;
+                  bubbleX += bWidth + bubbleGap;
+                  currentRowWidth += bWidth + bubbleGap;
                 }
               } else {
-                // Draw text (with wrapping) - vertically centered
+                // Draw text (with wrapping) - vertically centered within cell bounds
                 const lines = pdf.splitTextToSize(cell.text, maxTextWidth);
                 const textHeight = lines.length * lineHeight;
-                const verticalOffset = (rowHeight - textHeight) / 2;
-                let textY = rowStartY + verticalOffset - 2;
+                const cellCenterY = cellTop + rowHeight / 2;
+                let textY = cellCenterY - textHeight / 2 + lineHeight * 0.7; // Adjust for text baseline
                 for (const line of lines) {
                   pdf.text(line, xPos + cellPadding, textY);
                   textY += lineHeight;
