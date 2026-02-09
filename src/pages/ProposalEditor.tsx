@@ -394,24 +394,26 @@ export function ProposalEditor() {
       // Only admins/owners can edit A1, but all users can view it
       if (activeSection.id === 'a1' || activeSection.id === 'general-info') {
         return (
-          <GeneralInfoForm
-            proposalId={id || ''}
-            proposal={proposal ? {
-              ...proposal,
-              members: [],
-              sections: allSections,
-            } : null}
-            section={activeSection}
-            canEdit={canEdit && isAdmin}
-            isAdmin={isAdmin}
-            onUpdateProposal={updateProposal}
-            participants={participants}
-            budgetItems={budgetItems.map((b) => ({
-              amount: b.amount,
-              participantId: b.participantId,
-            }))}
-            onExportPdf={handleExportPdf}
-          />
+          <div className="flex-1 overflow-y-auto">
+            <GeneralInfoForm
+              proposalId={id || ''}
+              proposal={proposal ? {
+                ...proposal,
+                members: [],
+                sections: allSections,
+              } : null}
+              section={activeSection}
+              canEdit={canEdit && isAdmin}
+              isAdmin={isAdmin}
+              onUpdateProposal={updateProposal}
+              participants={participants}
+              budgetItems={budgetItems.map((b) => ({
+                amount: b.amount,
+                participantId: b.participantId,
+              }))}
+              onExportPdf={handleExportPdf}
+            />
+          </div>
         );
       }
 
@@ -461,32 +463,33 @@ export function ProposalEditor() {
             });
 
         return (
-          <ParticipantListView
-            participants={visibleParticipants}
-            proposalId={id || ''}
-            proposalAcronym={proposal?.acronym || ''}
-            section={activeSection}
-            onSelectParticipant={(p) => setSelectedParticipantId(p.id)}
-            onReorderParticipants={reorderParticipants}
-            onMemberAdded={(member) => {
-              addParticipantMember(member);
-            }}
-            onAddParticipant={async (participantData) => {
-              // Add required properties for the full Participant type
-              await addParticipant({
-                ...participantData,
-                proposalId: id || '',
-                participantNumber: participants.length + 1,
-              });
-            }}
-            onUpdateParticipant={updateParticipant}
-            canInvite={isAdmin && canEdit}
-            canReorder={isAdmin && canEdit}
-            canAddParticipant={isAdmin && canEdit}
-            canEdit={isAdmin && canEdit}
-            wpLeadership={wpLeadership}
-            caseLeadership={caseLeadership}
-          />
+          <div className="flex-1 overflow-y-auto">
+            <ParticipantListView
+              participants={visibleParticipants}
+              proposalId={id || ''}
+              proposalAcronym={proposal?.acronym || ''}
+              section={activeSection}
+              onSelectParticipant={(p) => setSelectedParticipantId(p.id)}
+              onReorderParticipants={reorderParticipants}
+              onMemberAdded={(member) => {
+                addParticipantMember(member);
+              }}
+              onAddParticipant={async (participantData) => {
+                await addParticipant({
+                  ...participantData,
+                  proposalId: id || '',
+                  participantNumber: participants.length + 1,
+                });
+              }}
+              onUpdateParticipant={updateParticipant}
+              canInvite={isAdmin && canEdit}
+              canReorder={isAdmin && canEdit}
+              canAddParticipant={isAdmin && canEdit}
+              canEdit={isAdmin && canEdit}
+              wpLeadership={wpLeadership}
+              caseLeadership={caseLeadership}
+            />
+          </div>
         );
       }
 
@@ -501,29 +504,30 @@ export function ProposalEditor() {
           const canEditThisParticipant = canEdit && (isAdmin || isUserMemberOfParticipant);
           
           return (
-             <ParticipantDetailForm
-              participant={participant}
-              participantMembers={participantMembers}
-              allParticipants={participants.map(p => ({
-                id: p.id,
-                participant_number: p.participantNumber,
-                organisation_short_name: p.organisationShortName || null,
-                organisation_name: p.organisationName || '',
-              }))}
-              onUpdateParticipant={updateParticipant}
-              onDeleteParticipant={(id) => {
-                deleteParticipant(id);
-                // Navigate back to A2 list
-                const a2Section = allSections.find(s => s.id === 'a2') || 
-                  allSections.flatMap(s => s.subsections || []).find(s => s.id === 'a2');
-                if (a2Section) setActiveSection(a2Section);
-              }}
-              onAddMember={addParticipantMember}
-              onUpdateMember={updateParticipantMember}
-              onDeleteMember={deleteParticipantMember}
-              canEdit={canEditThisParticipant}
-              canDelete={isAdmin && canEdit}
-            />
+            <div className="flex-1 overflow-y-auto">
+              <ParticipantDetailForm
+                participant={participant}
+                participantMembers={participantMembers}
+                allParticipants={participants.map(p => ({
+                  id: p.id,
+                  participant_number: p.participantNumber,
+                  organisation_short_name: p.organisationShortName || null,
+                  organisation_name: p.organisationName || '',
+                }))}
+                onUpdateParticipant={updateParticipant}
+                onDeleteParticipant={(id) => {
+                  deleteParticipant(id);
+                  const a2Section = allSections.find(s => s.id === 'a2') || 
+                    allSections.flatMap(s => s.subsections || []).find(s => s.id === 'a2');
+                  if (a2Section) setActiveSection(a2Section);
+                }}
+                onAddMember={addParticipantMember}
+                onUpdateMember={updateParticipantMember}
+                onDeleteMember={deleteParticipantMember}
+                canEdit={canEditThisParticipant}
+                canDelete={isAdmin && canEdit}
+              />
+            </div>
           );
         }
       }
@@ -531,44 +535,50 @@ export function ProposalEditor() {
       // A3 - Budget (spreadsheet) - matches "a3"
       if (activeSection.id === 'a3' || activeSection.id === 'budget') {
         return (
-          <BudgetSpreadsheetEnhanced
-            budgetItems={budgetItems}
-            budgetChanges={budgetChanges}
-            participants={participants}
-            budgetType={proposal?.budgetType || 'traditional'}
-            totalBudget={proposal?.totalBudget}
-            onAddBudgetItem={addBudgetItem}
-            onUpdateBudgetItem={updateBudgetItem}
-            onDeleteBudgetItem={deleteBudgetItem}
-            onChangeBudgetType={handleBudgetTypeChange}
-            canEdit={canEdit}
-            proposalId={id || ''}
-            saving={budgetSaving}
-            isAdmin={isAdmin}
-            isFullProposal={proposal?.submissionStage !== 'stage_1'}
-          />
+          <div className="flex-1 overflow-y-auto">
+            <BudgetSpreadsheetEnhanced
+              budgetItems={budgetItems}
+              budgetChanges={budgetChanges}
+              participants={participants}
+              budgetType={proposal?.budgetType || 'traditional'}
+              totalBudget={proposal?.totalBudget}
+              onAddBudgetItem={addBudgetItem}
+              onUpdateBudgetItem={updateBudgetItem}
+              onDeleteBudgetItem={deleteBudgetItem}
+              onChangeBudgetType={handleBudgetTypeChange}
+              canEdit={canEdit}
+              proposalId={id || ''}
+              saving={budgetSaving}
+              isAdmin={isAdmin}
+              isFullProposal={proposal?.submissionStage !== 'stage_1'}
+            />
+          </div>
         );
       }
 
       // A4 - Ethics & Security (form) - matches "a4"
       if (activeSection.id === 'a4' || activeSection.id === 'ethics') {
         return (
-          <EthicsForm
-            ethics={ethics}
-            onUpdateEthics={updateEthics}
-            canEdit={canEdit}
-          />
+          <div className="flex-1 overflow-y-auto">
+            <EthicsForm
+              ethics={ethics}
+              onUpdateEthics={updateEthics}
+              canEdit={canEdit}
+            />
+          </div>
         );
       }
 
       // A5 - Other Questions (form) - matches "a5"
       if (activeSection.id === 'a5' || activeSection.id === 'other-questions') {
         return (
-          <OtherQuestionsForm
-            proposalId={id || ''}
-            isTwoStageSecondStage={proposal?.isTwoStageSecondStage}
-            canEdit={canEdit}
-          />
+          <div className="flex-1 overflow-y-auto">
+            <OtherQuestionsForm
+              proposalId={id || ''}
+              isTwoStageSecondStage={proposal?.isTwoStageSecondStage}
+              canEdit={canEdit}
+            />
+          </div>
         );
       }
 
@@ -628,22 +638,26 @@ export function ProposalEditor() {
       const partBSections = getPartBLeafSections(allSections);
       
       return (
-        <FigureManager
-          proposalId={id || ''}
-          canEdit={canEdit}
-          availableSections={partBSections}
-        />
+        <div className="flex-1 overflow-y-auto">
+          <FigureManager
+            proposalId={id || ''}
+            canEdit={canEdit}
+            availableSections={partBSections}
+          />
+        </div>
       );
     }
 
     // Assignments section (legacy fallback)
     if (activeSection.id === 'assignments') {
       return (
-        <SectionProgressDashboard
-          proposalId={id || ''}
-          proposalAcronym={proposal?.acronym}
-          currentUserId={user?.id}
-        />
+        <div className="flex-1 overflow-y-auto">
+          <SectionProgressDashboard
+            proposalId={id || ''}
+            proposalAcronym={proposal?.acronym}
+            currentUserId={user?.id}
+          />
+        </div>
       );
     }
 
@@ -715,12 +729,14 @@ export function ProposalEditor() {
     const wpSection = activeSection as WPSection;
     if (activeSection.id.startsWith('wp-') && wpSection.wpId) {
       return (
-        <WPDraftEditor
-          wpId={wpSection.wpId}
-          proposalId={id || ''}
-          canEdit={canEdit}
-          projectDuration={proposal?.duration || 36}
-        />
+        <div className="flex-1 overflow-y-auto">
+          <WPDraftEditor
+            wpId={wpSection.wpId}
+            proposalId={id || ''}
+            canEdit={canEdit}
+            projectDuration={proposal?.duration || 36}
+          />
+        </div>
       );
     }
 
@@ -1048,8 +1064,8 @@ export function ProposalEditor() {
           )}
         </button>
 
-        {/* Content Area - scrolls independently */}
-        <main className="flex-1 overflow-auto">
+        {/* Content Area */}
+        <main className="flex-1 flex flex-col min-h-0">
           {renderContent()}
         </main>
       </div>
