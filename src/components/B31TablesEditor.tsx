@@ -850,7 +850,7 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
             <TableHeader>
               <TableRow className="bg-black text-white hover:bg-black">
                 <TableHead className={`${cellStyles} text-white font-bold w-[40%]`}>Milestone</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[70px]`}>WPs</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[80px]`}>WPs</TableHead>
                 <TableHead className={`${cellStyles} text-white font-bold w-[40px]`}>Due</TableHead>
                 <TableHead className={`${cellStyles} text-white font-bold`}>Means of verification</TableHead>
               </TableRow>
@@ -1038,7 +1038,7 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
                 <TableHead className={`${cellStyles} text-white font-bold w-[30%]`}>Risk</TableHead>
                 <TableHead className={`${cellStyles} text-white font-bold w-[24px]`}>i</TableHead>
                 <TableHead className={`${cellStyles} text-white font-bold w-[24px]`}>ii</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[70px]`}>WPs</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[80px]`}>WPs</TableHead>
                 <TableHead className={`${cellStyles} text-white font-bold`}>Mitigation & adaptation measures</TableHead>
               </TableRow>
             </TableHeader>
