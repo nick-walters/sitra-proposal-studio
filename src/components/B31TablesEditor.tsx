@@ -323,7 +323,7 @@ function SingleWPSelector({
       value={value?.toString() || ''} 
       onValueChange={(v) => onChange(v ? parseInt(v) : null)}
     >
-      <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex">
+      <SelectTrigger hideArrow className="h-auto min-h-[1.5em] py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex items-center">
         <SelectValue placeholder="-">
           {selectedWP ? <WPBubble wp={selectedWP} /> : <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">-</span>}
         </SelectValue>
@@ -710,12 +710,12 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                         value={del.lead_participant_id || ''} 
                         onValueChange={(v) => updateDeliverable.mutate({ id: del.id, lead_participant_id: v || null })}
                       >
-                        <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto">
+                        <SelectTrigger hideArrow className="h-auto min-h-[1.5em] py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto items-center">
                           <SelectValue placeholder="-">
                             {del.lead_participant_id ? (
                               <span
-                                className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[9pt] font-bold italic text-white whitespace-nowrap align-middle"
-                                style={{ backgroundColor: '#000', lineHeight: 1, verticalAlign: 'middle' }}
+                                className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[9pt] font-bold italic text-white whitespace-nowrap"
+                                style={{ backgroundColor: '#000' }}
                               >
                                 {participants.find(p => p.id === del.lead_participant_id)?.organisation_short_name || '-'}
                               </span>
