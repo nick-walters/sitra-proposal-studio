@@ -1160,9 +1160,30 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
             <CardDescription className="text-xs mt-2">
               If you have answered YES for one or more of the questions indicated above, describe the measures you intend 
               to take to solve/avoid them. For more information, see the guidelines{' '}
-              <em>Classification of information in Horizon Europe projects</em>,{' '}
-              <em>Classification of information in Digital Europe projects</em>,{' '}
-              <em>Classification of information in EDF projects</em>.
+              <a 
+                href="https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/classification-of-information-in-he-projects_he_en.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline hover:text-primary/80"
+              >
+                Classification of information in Horizon Europe projects
+              </a>,{' '}
+              <a 
+                href="https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/digital/guidance/classification-of-information-in-dep-projects_dep_en.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline hover:text-primary/80"
+              >
+                Classification of information in Digital Europe projects
+              </a>,{' '}
+              <a 
+                href="https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/edf/guidance/classification-of-information-in-edf-projects_edf_en.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline hover:text-primary/80"
+              >
+                Classification of information in EDF projects
+              </a>.
             </CardDescription>
           </CardHeader>
           <CardContent>
