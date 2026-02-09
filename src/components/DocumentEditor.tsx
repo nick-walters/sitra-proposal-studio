@@ -54,6 +54,7 @@ import { SplitViewPanel } from "./SplitViewPanel";
 import { B31DeliverablesTable, B31MilestonesTable, B31RisksTable } from "./B31TablesEditor";
 import { TrackChange } from "@/extensions/TrackChanges";
 import { usePageEstimate } from "@/hooks/usePageEstimate";
+import { EditorZoomBar } from "./EditorZoomBar";
 import { useAuth } from "@/hooks/useAuth";
 import { useTrackedChanges } from "@/hooks/useTrackedChanges";
 import {
@@ -126,6 +127,7 @@ export function DocumentEditor({
   
   // Track changes persistence hook
   const [trackChangesEnabled, setTrackChangesEnabled] = useState(true);
+  const [zoomLevel, setZoomLevel] = useState(100);
   const {
     changes: trackedChanges,
     loading: trackChangesLoading,
@@ -896,7 +898,7 @@ export function DocumentEditor({
       <div className="flex-1 flex overflow-hidden">
         {/* Main content area */}
         <div className={`flex-1 overflow-auto p-6 bg-muted/30 transition-all`}>
-          <div className="max-w-4xl mx-auto space-y-6">
+          <div className="mx-auto space-y-6" style={{ maxWidth: '56rem', zoom: `${zoomLevel}%` }}>
             {/* Section Header - word/page limits and page estimate */}
             {(section.wordLimit || section.pageLimit || estimatedPages !== null) && (
               <div className="flex items-center gap-3 mb-6">
@@ -1352,6 +1354,8 @@ export function DocumentEditor({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Zoom Bar */}
+      <EditorZoomBar zoom={zoomLevel} onZoomChange={setZoomLevel} />
     </div>
   );
 }

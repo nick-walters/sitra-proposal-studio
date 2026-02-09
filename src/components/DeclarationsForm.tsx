@@ -215,7 +215,7 @@ export function DeclarationsForm({ participants, proposalId, canEdit }: Declarat
   if (loading) {
     return (
       <div className="flex-1 p-6 bg-muted/30">
-        <div className="max-w-4xl mx-auto flex items-center justify-center h-64">
+        <div className="max-w-7xl mx-auto flex items-center justify-center h-64">
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>
       </div>
@@ -224,7 +224,7 @@ export function DeclarationsForm({ participants, proposalId, canEdit }: Declarat
 
   return (
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Guidelines Button */}
         <PartAGuidelinesDialog
           sectionTitle="Part A5: Declarations"

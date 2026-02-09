@@ -156,7 +156,7 @@ export function OtherQuestionsForm({ proposalId, isTwoStageSecondStage, canEdit 
 
   return (
     <div className="flex-1 overflow-auto p-4 bg-muted/30">
-      <div className="max-w-4xl mx-auto space-y-4">
+      <div className="max-w-7xl mx-auto space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-foreground">Part A5: Other questions</h1>
           {canEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
