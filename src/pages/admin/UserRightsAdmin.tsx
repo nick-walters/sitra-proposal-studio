@@ -133,7 +133,6 @@ export function UserRightsAdmin() {
         .insert({
           user_id: selectedUser.id,
           role: newRole,
-          proposal_id: null as any // Global role - cast to any to satisfy type
         });
 
       if (error) throw error;
