@@ -228,11 +228,13 @@ export function usePdfExport() {
             yPosition += 5.5;
           }
         } else {
-          // Full proposal: Sitra branding - Arial Black for title and acronym
-          // Note: jsPDF doesn't have Arial Black, so we use helvetica bold as closest available
-          // First, render the title
+          // Full proposal: Sitra branding
+          // Title: Arial (helvetica normal in jsPDF)
+          // Acronym: Arial Black (helvetica bold in jsPDF - closest available)
+          
+          // First, render the title in Arial (not bold)
           pdf.setFontSize(FONT_SIZE_TITLE);
-          pdf.setFont('helvetica', 'bold'); // helvetica bold is closest to Arial Black in jsPDF
+          pdf.setFont('helvetica', 'normal'); // Arial normal
           const titleLines = pdf.splitTextToSize(titleText, contentWidth);
           for (const line of titleLines) {
             checkPageBreak(6);
@@ -240,9 +242,9 @@ export function usePdfExport() {
             yPosition += 5.5;
           }
           
-          // Then render the acronym
+          // Then render the acronym in Arial Black (helvetica bold)
           pdf.setFontSize(FONT_SIZE_TITLE);
-          pdf.setFont('helvetica', 'bold');
+          pdf.setFont('helvetica', 'bold'); // Arial Black approximation
           const acronymWithParens = `(${acronymText})`;
           checkPageBreak(6);
           pdf.text(acronymWithParens, pageWidth / 2, yPosition, { align: 'center' });
