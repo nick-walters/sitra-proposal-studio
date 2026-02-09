@@ -829,7 +829,7 @@ function EthicsQuestionRow({
                 maxLength={(question as EthicsQuestion).detailsMaxLength}
               />
               <div className="text-xs text-muted-foreground text-right">
-                {(detailsValue || '').length} / {(question as EthicsQuestion).detailsMaxLength} characters
+                {(detailsValue || '').length.toLocaleString()} / {(question as EthicsQuestion).detailsMaxLength!.toLocaleString()} characters
               </div>
             </div>
           ) : (
@@ -1202,7 +1202,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
               disabled={!canEdit}
             />
             <p className="text-xs text-muted-foreground mt-1 text-right">
-              {(ethicsData.securitySelfAssessment || '').length}/5000 characters
+              {(ethicsData.securitySelfAssessment || '').length.toLocaleString()}/{(5000).toLocaleString()} characters
             </p>
           </CardContent>
         </Card>
