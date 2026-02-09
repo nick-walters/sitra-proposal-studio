@@ -554,9 +554,6 @@ export function ParticipantDetailForm({
 
         {/* 10. Gender Equality Plan (Enhanced) */}
         <GEPSection
-          participant={participant}
-          onUpdate={handleFieldUpdate}
-          canEdit={canEdit}
           showGEPSection={showGEPSection}
         />
 
