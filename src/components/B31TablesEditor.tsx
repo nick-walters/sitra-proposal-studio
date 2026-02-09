@@ -645,8 +645,8 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                           <SelectValue placeholder="-">
                             {del.lead_participant_id ? (
                               <span
-                                className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9pt] text-white"
-                                style={{ backgroundColor: '#000', fontWeight: 'bold', fontStyle: 'italic' }}
+                                className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[9pt] font-bold italic text-white whitespace-nowrap align-middle"
+                                style={{ backgroundColor: '#000', lineHeight: 1, verticalAlign: 'middle' }}
                               >
                                 {participants.find(p => p.id === del.lead_participant_id)?.organisation_short_name || '-'}
                               </span>
