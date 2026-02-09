@@ -749,7 +749,10 @@ export function usePdfExport() {
       };
 
       // Helper: Add B3.1 table with custom column widths and multi-line text support
-      type CellContent = { text: string; type: 'text' } | { text: string; color: [number, number, number]; type: 'bubble'; italic?: boolean };
+      type CellContent = 
+        | { text: string; type: 'text' } 
+        | { text: string; color: [number, number, number]; type: 'bubble'; italic?: boolean }
+        | { wpNumbers: number[]; wpColorMap: Map<number, string>; type: 'wpBubbles' };
       
       const addB31TableAdvanced = (
         headers: string[], 
@@ -830,6 +833,14 @@ export function usePdfExport() {
               if (cell.type === 'bubble') {
                 // Draw bubble badge (with optional italic for partner bubbles)
                 drawBubble(cell.text, xPos + cellPadding, rowStartY, cell.color, cell.italic || false);
+              } else if (cell.type === 'wpBubbles') {
+                // Draw multiple WP bubbles
+                let bubbleX = xPos + cellPadding;
+                for (const wpNum of cell.wpNumbers) {
+                  const color = cell.wpColorMap.get(wpNum) || '#6b7280'; // default gray
+                  const bubbleWidth = drawWPBubble(wpNum, bubbleX, rowStartY, color);
+                  bubbleX += bubbleWidth + 1; // 1mm gap between bubbles
+                }
               } else {
                 // Draw text (with wrapping)
                 const lines = pdf.splitTextToSize(cell.text, maxTextWidth);
@@ -934,9 +945,16 @@ export function usePdfExport() {
             const title = m.name ? toSentenceCase(m.name) : '';
             const milestoneText = `MS${m.number}: ${title}`;
             
+            // Parse WPs string (e.g., "1,2,3") into array of numbers
+            const wpNumbers = m.wps 
+              ? m.wps.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n))
+              : [];
+            
             return [
               { text: milestoneText, type: 'text' as const },
-              { text: m.wps || '—', type: 'text' as const }, // WPs column - could add bubbles but would need parsing
+              wpNumbers.length > 0 
+                ? { wpNumbers, wpColorMap, type: 'wpBubbles' as const }
+                : { text: '—', type: 'text' as const },
               { text: m.due_month ? `M${String(m.due_month).padStart(2, '0')}` : '—', type: 'text' as const },
               { text: m.means_of_verification || '—', type: 'text' as const }
             ];
@@ -956,9 +974,16 @@ export function usePdfExport() {
             const likelihoodColor = bubbleColors[likelihood] || [107, 114, 128];
             const severityColor = bubbleColors[severity] || [107, 114, 128];
             
+            // Parse WPs string (e.g., "1,2,3") into array of numbers
+            const wpNumbers = r.wps 
+              ? r.wps.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n))
+              : [];
+            
             return [
               { text: r.description || '—', type: 'text' as const }, // Risk description (no number)
-              { text: r.wps || '—', type: 'text' as const }, // WPs
+              wpNumbers.length > 0 
+                ? { wpNumbers, wpColorMap, type: 'wpBubbles' as const }
+                : { text: '—', type: 'text' as const },
               likelihood ? { text: likelihood, color: likelihoodColor, type: 'bubble' as const } : { text: '—', type: 'text' as const },
               severity ? { text: severity, color: severityColor, type: 'bubble' as const } : { text: '—', type: 'text' as const },
               { text: r.mitigation || '—', type: 'text' as const }
