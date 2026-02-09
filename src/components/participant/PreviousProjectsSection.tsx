@@ -4,8 +4,25 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2, FolderKanban } from 'lucide-react';
+import { Plus, Trash2, FolderKanban, GripVertical } from 'lucide-react';
 import { ParticipantPreviousProject } from '@/types/participantDetails';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface PreviousProjectsSectionProps {
   projects: ParticipantPreviousProject[];
@@ -13,6 +30,70 @@ interface PreviousProjectsSectionProps {
   onUpdate: (id: string, updates: Partial<ParticipantPreviousProject>) => void;
   onDelete: (id: string) => void;
   canEdit: boolean;
+}
+
+function SortableProjectRow({
+  project,
+  index,
+  canEdit,
+  onDelete,
+}: {
+  project: ParticipantPreviousProject;
+  index: number;
+  canEdit: boolean;
+  onDelete: (id: string) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: project.id, disabled: !canEdit });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg"
+    >
+      {canEdit && (
+        <button
+          className="flex-shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground mt-1"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="w-4 h-4" />
+        </button>
+      )}
+      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+        <span className="text-xs font-medium text-primary">{index + 1}</span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-medium">{project.projectName}</p>
+        {project.description && (
+          <p className="text-sm text-muted-foreground mt-1">{project.description}</p>
+        )}
+      </div>
+      {canEdit && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="flex-shrink-0 text-muted-foreground hover:text-destructive"
+          onClick={() => onDelete(project.id)}
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      )}
+    </div>
+  );
 }
 
 export function PreviousProjectsSection({
@@ -28,6 +109,11 @@ export function PreviousProjectsSection({
     description: '',
   });
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
   const handleAdd = () => {
     if (!newProject.projectName.trim()) return;
 
@@ -42,6 +128,18 @@ export function PreviousProjectsSection({
       description: '',
     });
     setShowAddForm(false);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = projects.findIndex((p) => p.id === active.id);
+    const newIndex = projects.findIndex((p) => p.id === over.id);
+    const reordered = arrayMove(projects, oldIndex, newIndex);
+    reordered.forEach((item, i) => {
+      onUpdate(item.id, { orderIndex: i });
+    });
   };
 
   const canAddMore = projects.length < 5;
@@ -112,34 +210,21 @@ export function PreviousProjectsSection({
             <p className="text-xs mt-1">Add up to 5 relevant previous projects</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {projects.map((project, index) => (
-              <div
-                key={project.id}
-                className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg"
-              >
-                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-xs font-medium text-primary">{index + 1}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium">{project.projectName}</p>
-                  {project.description && (
-                    <p className="text-sm text-muted-foreground mt-1">{project.description}</p>
-                  )}
-                </div>
-                {canEdit && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="flex-shrink-0 text-muted-foreground hover:text-destructive"
-                    onClick={() => onDelete(project.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                )}
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={projects.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-3">
+                {projects.map((project, index) => (
+                  <SortableProjectRow
+                    key={project.id}
+                    project={project}
+                    index={index}
+                    canEdit={canEdit}
+                    onDelete={onDelete}
+                  />
+                ))}
               </div>
-            ))}
-          </div>
+            </SortableContext>
+          </DndContext>
         )}
 
         {!canAddMore && projects.length > 0 && (
