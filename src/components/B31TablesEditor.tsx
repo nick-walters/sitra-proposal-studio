@@ -134,6 +134,7 @@ const disseminationLevels = [
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles = "border border-black px-0.5 py-1 h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
+const headerCellStyles = "border border-black px-0.5 py-0.5 h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
 
 // Inline editable text that expands to multiple lines - with debounced save
 function EditableText({ 
@@ -667,12 +668,12 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
           <Table className={tableStyles}>
             <TableHeader>
               <TableRow className="bg-black text-white hover:bg-black">
-                <TableHead className={`${cellStyles} text-white font-bold`}>Deliverable</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[40px]`}>WP</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[60px]`}>Lead</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[40px]`}>Type</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[50px]`}>Diss.</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[40px]`}>Due</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold`}>Deliverable</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold w-[40px]`}>WP</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold w-[60px]`}>Lead</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold w-[40px]`}>Type</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold w-[50px]`}>Diss.</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold w-[40px]`}>Due</TableHead>
               </TableRow>
             </TableHeader>
             <SortableContext items={deliverables.map(d => d.id)} strategy={verticalListSortingStrategy}>
@@ -918,10 +919,10 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
           <Table className={tableStyles}>
             <TableHeader>
               <TableRow className="bg-black text-white hover:bg-black">
-                <TableHead className={`${cellStyles} text-white font-bold w-[40%]`}>Milestone</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[80px]`}>WPs</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[40px]`}>Due</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold`}>Means of verification</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold w-[40%]`}>Milestone</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold w-[80px]`}>WPs</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold w-[40px]`}>Due</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold`}>Means of verification</TableHead>
               </TableRow>
             </TableHeader>
             <SortableContext items={milestones.map(m => m.id)} strategy={verticalListSortingStrategy}>
@@ -1106,11 +1107,11 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
           <Table className={tableStyles}>
             <TableHeader>
               <TableRow className="bg-black text-white hover:bg-black">
-                <TableHead className={`${cellStyles} text-white font-bold w-[30%]`}>Risk</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[24px]`}>i.</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[24px]`}>ii.</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[80px]`}>WPs</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold`}>Mitigation & adaptation measures</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold w-[30%]`}>Risk</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold w-[24px]`}>i.</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold w-[24px]`}>ii.</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold w-[80px]`}>WPs</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold`}>Mitigation & adaptation measures</TableHead>
               </TableRow>
             </TableHeader>
             <SortableContext items={risks.map(r => r.id)} strategy={verticalListSortingStrategy}>
