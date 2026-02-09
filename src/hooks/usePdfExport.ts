@@ -706,7 +706,7 @@ export function usePdfExport() {
         'H': [239, 68, 68],   // red for High
       };
 
-      // Helper: Draw a rounded bubble badge
+      // Helper: Draw a rounded bubble badge (pill shape - maximally rounded)
       const drawBubble = (text: string, x: number, y: number, bgColor: [number, number, number], italic: boolean = false): number => {
         pdf.setFontSize(8);
         pdf.setFont('times', italic ? 'bolditalic' : 'bold');
@@ -714,10 +714,11 @@ export function usePdfExport() {
         const padding = 1.5;
         const bubbleWidth = textWidth + padding * 2;
         const bubbleHeight = 3.5;
+        const pillRadius = bubbleHeight / 2; // Maximum rounding for pill shape
         
-        // Draw rounded rectangle background
+        // Draw rounded rectangle background (pill shape)
         pdf.setFillColor(...bgColor);
-        pdf.roundedRect(x, y - 2.8, bubbleWidth, bubbleHeight, 1, 1, 'F');
+        pdf.roundedRect(x, y - 2.8, bubbleWidth, bubbleHeight, pillRadius, pillRadius, 'F');
         
         // Draw white text
         pdf.setTextColor(255, 255, 255);
