@@ -1097,8 +1097,8 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
             <TableHeader>
               <TableRow className="bg-black text-white hover:bg-black">
                 <TableHead className={`${cellStyles} text-white font-bold w-[30%]`}>Risk</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[24px]`}>i</TableHead>
-                <TableHead className={`${cellStyles} text-white font-bold w-[24px]`}>ii</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[24px]`}>i.</TableHead>
+                <TableHead className={`${cellStyles} text-white font-bold w-[24px]`}>ii.</TableHead>
                 <TableHead className={`${cellStyles} text-white font-bold w-[80px]`}>WPs</TableHead>
                 <TableHead className={`${cellStyles} text-white font-bold`}>Mitigation & adaptation measures</TableHead>
               </TableRow>
