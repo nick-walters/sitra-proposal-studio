@@ -104,6 +104,25 @@ export function usePdfExport() {
         format: 'a4',
       });
 
+      // Load and embed Arial Black font for full proposals
+      let arialBlackLoaded = false;
+      if (proposal.submissionStage !== 'stage_1') {
+        try {
+          const fontResponse = await fetch('/fonts/arial_black.ttf');
+          if (fontResponse.ok) {
+            const fontBuffer = await fontResponse.arrayBuffer();
+            const fontBase64 = btoa(
+              new Uint8Array(fontBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+            );
+            pdf.addFileToVFS('ArialBlack.ttf', fontBase64);
+            pdf.addFont('ArialBlack.ttf', 'ArialBlack', 'normal');
+            arialBlackLoaded = true;
+          }
+        } catch (e) {
+          console.warn('Could not load Arial Black font, falling back to Helvetica Bold');
+        }
+      }
+
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
       const margin = 15; // 1.5cm margins
@@ -209,7 +228,7 @@ export function usePdfExport() {
       };
 
       // Helper: Add title (14pt bold, 12pt paragraph spacing after) - CENTERED
-      // For full proposals (not stage_1), use Sitra branding: Arial Black for title and acronym
+      // For full proposals (not stage_1), use Sitra branding: Arial Black for acronym, Arial for title
       const addTitle = (titleText: string, acronymText: string) => {
         checkPageBreak(15);
         pdf.setTextColor(...black);
@@ -230,7 +249,7 @@ export function usePdfExport() {
         } else {
           // Full proposal: Sitra branding
           // Title: Arial (helvetica normal in jsPDF)
-          // Acronym: Arial Black (helvetica bold in jsPDF - closest available)
+          // Acronym: Arial Black (custom font if loaded, else helvetica bold fallback)
           
           // First, render the title in Arial (not bold)
           pdf.setFontSize(FONT_SIZE_TITLE);
@@ -242,9 +261,13 @@ export function usePdfExport() {
             yPosition += 5.5;
           }
           
-          // Then render the acronym in Arial Black (helvetica bold)
+          // Then render the acronym in Arial Black
           pdf.setFontSize(FONT_SIZE_TITLE);
-          pdf.setFont('helvetica', 'bold'); // Arial Black approximation
+          if (arialBlackLoaded) {
+            pdf.setFont('ArialBlack', 'normal'); // Use actual Arial Black
+          } else {
+            pdf.setFont('helvetica', 'bold'); // Fallback to helvetica bold
+          }
           const acronymWithParens = `(${acronymText})`;
           checkPageBreak(6);
           pdf.text(acronymWithParens, pageWidth / 2, yPosition, { align: 'center' });
