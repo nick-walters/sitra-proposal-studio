@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,14 +6,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, MoreVertical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
-
-interface Message {
-  id: string;
-  senderId: string;
-  content: string;
-  timestamp: Date;
-}
 
 interface ChatUser {
   id: string;
@@ -28,14 +22,24 @@ interface DirectChatDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   userId: string;
-  currentUserId?: string;
 }
 
-export function DirectChatDialog({ open, onOpenChange, userId, currentUserId = 'current-user' }: DirectChatDialogProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
+interface DBMessage {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  content: string;
+  created_at: string;
+}
+
+export function DirectChatDialog({ open, onOpenChange, userId }: DirectChatDialogProps) {
+  const { user } = useAuth();
+  const [messages, setMessages] = useState<DBMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [chatUser, setChatUser] = useState<ChatUser | null>(null);
+  const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const currentUserId = user?.id || '';
 
   // Fetch user profile
   useEffect(() => {
@@ -47,14 +51,73 @@ export function DirectChatDialog({ open, onOpenChange, userId, currentUserId = '
         .select('id, full_name, first_name, last_name, organisation, avatar_url')
         .eq('id', userId)
         .maybeSingle();
-
       setChatUser(data);
     }
 
     fetchUser();
-    setMessages([]);
   }, [open, userId]);
 
+  // Load message history
+  const loadMessages = useCallback(async () => {
+    if (!currentUserId || !userId) return;
+    setLoading(true);
+
+    const { data, error } = await supabase
+      .from('direct_messages')
+      .select('*')
+      .or(
+        `and(sender_id.eq.${currentUserId},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${currentUserId})`
+      )
+      .order('created_at', { ascending: true });
+
+    if (!error && data) {
+      setMessages(data as DBMessage[]);
+    }
+    setLoading(false);
+  }, [currentUserId, userId]);
+
+  useEffect(() => {
+    if (open && currentUserId && userId) {
+      loadMessages();
+    }
+  }, [open, currentUserId, userId, loadMessages]);
+
+  // Realtime subscription for new messages
+  useEffect(() => {
+    if (!open || !currentUserId || !userId) return;
+
+    const channel = supabase
+      .channel(`dm:${[currentUserId, userId].sort().join('-')}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'direct_messages',
+        },
+        (payload) => {
+          const msg = payload.new as DBMessage;
+          // Only add if it's part of this conversation
+          if (
+            (msg.sender_id === currentUserId && msg.receiver_id === userId) ||
+            (msg.sender_id === userId && msg.receiver_id === currentUserId)
+          ) {
+            setMessages((prev) => {
+              // Avoid duplicates
+              if (prev.some((m) => m.id === msg.id)) return prev;
+              return [...prev, msg];
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [open, currentUserId, userId]);
+
+  // Auto-scroll to bottom
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -76,18 +139,22 @@ export function DirectChatDialog({ open, onOpenChange, userId, currentUserId = '
     return '?';
   };
 
-  const handleSend = () => {
-    if (!newMessage.trim()) return;
+  const handleSend = async () => {
+    if (!newMessage.trim() || !currentUserId || !userId) return;
 
-    const message: Message = {
-      id: String(Date.now()),
-      senderId: currentUserId,
-      content: newMessage.trim(),
-      timestamp: new Date(),
-    };
-
-    setMessages([...messages, message]);
+    const content = newMessage.trim();
     setNewMessage('');
+
+    const { error } = await supabase.from('direct_messages').insert({
+      sender_id: currentUserId,
+      receiver_id: userId,
+      content,
+    });
+
+    if (error) {
+      console.error('Failed to send message:', error);
+      setNewMessage(content); // restore on failure
+    }
   };
 
   if (!chatUser) return null;
@@ -119,13 +186,16 @@ export function DirectChatDialog({ open, onOpenChange, userId, currentUserId = '
 
         <ScrollArea className="flex-1 px-4" ref={scrollRef}>
           <div className="py-4 space-y-4">
-            {messages.length === 0 && (
+            {loading && messages.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground text-sm">Loading...</div>
+            )}
+            {!loading && messages.length === 0 && (
               <div className="text-center py-8 text-muted-foreground text-sm">
                 Start a conversation with {getDisplayName(chatUser)}
               </div>
             )}
             {messages.map((message) => {
-              const isOwn = message.senderId === currentUserId;
+              const isOwn = message.sender_id === currentUserId;
 
               return (
                 <div
@@ -147,7 +217,7 @@ export function DirectChatDialog({ open, onOpenChange, userId, currentUserId = '
                       <p className="text-sm">{message.content}</p>
                     </div>
                     <p className="text-[10px] text-muted-foreground mt-1 px-1">
-                      {format(message.timestamp, 'HH:mm')}
+                      {format(new Date(message.created_at), 'HH:mm')}
                     </p>
                   </div>
                 </div>
@@ -170,7 +240,7 @@ export function DirectChatDialog({ open, onOpenChange, userId, currentUserId = '
               onChange={(e) => setNewMessage(e.target.value)}
               className="flex-1"
             />
-            <Button type="submit" size="icon">
+            <Button type="submit" size="icon" disabled={!newMessage.trim()}>
               <Send className="w-4 h-4" />
             </Button>
           </form>
