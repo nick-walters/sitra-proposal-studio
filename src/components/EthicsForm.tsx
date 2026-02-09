@@ -804,49 +804,77 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
           </Badge>
         </div>
 
-        {/* ETHICS ISSUES TABLE - Sections 1-9 */}
-        {ETHICS_SECTIONS.map((section) => {
-          const sectionHasIssues = section.questions.some(q => ethicsData[q.id] === true);
-          
-          return (
-            <Card key={section.id} className={cn(sectionHasIssues && 'border-warning/50')}>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-sm">
-                    {section.number}. {section.title}
-                  </h3>
-                  {sectionHasIssues && (
-                    <AlertTriangle className="w-4 h-4 text-warning" />
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-              {/* Table header */}
-                <div className="grid grid-cols-[1fr,auto,auto] gap-2 items-center py-2 border-b-2 border-border text-xs font-medium text-muted-foreground">
-                  <div>Question</div>
-                  <div className="w-24 text-center">Answer</div>
-                  <div className="w-16 text-center">Page</div>
-                </div>
+        {/* ETHICS ISSUES TABLE SUBSECTION */}
+        <Card>
+          <CardHeader className="pb-3">
+            <h2 className="font-semibold text-base">Ethics issues table</h2>
+            <CardDescription className="text-xs mt-2 space-y-2">
+              <p>
+                This table should be completed as an essential part of your proposal. Please go through the table and indicate which elements concern your proposal by answering 'Yes' or 'No'. If you answer 'Yes' to any of the questions:
+              </p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>indicate in the adjacent box at which page in your full proposal further information relating to that ethics issue can be found, and</li>
+                <li>provide additional information on that ethics issue in the Ethics Self-Assessment section.</li>
+              </ul>
+              <p>
+                For more information on each of the ethics issues and how to address them, including detailed legal references, see the guidelines{' '}
+                <a 
+                  href="https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/how-to-complete-your-ethics-self-assessment_en.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline hover:text-primary/80"
+                >
+                  'How to Complete your Ethics Self-Assessment'
+                </a>.
+              </p>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Sections 1-9 */}
+            {ETHICS_SECTIONS.map((section) => {
+              const sectionHasIssues = section.questions.some(q => ethicsData[q.id] === true);
+              
+              return (
+                <Card key={section.id} className={cn(sectionHasIssues && 'border-warning/50')}>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-sm">
+                        {section.number}. {section.title}
+                      </h3>
+                      {sectionHasIssues && (
+                        <AlertTriangle className="w-4 h-4 text-warning" />
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                  {/* Table header */}
+                    <div className="grid grid-cols-[1fr,auto,auto] gap-2 items-center py-2 border-b-2 border-border text-xs font-medium text-muted-foreground">
+                      <div>Question</div>
+                      <div className="w-24 text-center">Answer</div>
+                      <div className="w-16 text-center">Page</div>
+                    </div>
 
-                {/* Questions */}
-                {section.questions.map((question) => (
-                  <EthicsQuestionRow
-                    key={question.id}
-                    question={question}
-                    value={ethicsData[question.id] as boolean | null | undefined}
-                    pageValue={ethicsData[question.pageId] as string | undefined}
-                    detailsValue={question.detailsId ? (ethicsData[question.detailsId] as string | undefined) : undefined}
-                    onChange={(value) => handleValueChange(question.id, value)}
-                    onPageChange={(value) => handlePageChange(question.pageId, value)}
-                    onDetailsChange={question.detailsId ? (value) => handleDetailsChange(question.detailsId!, value) : undefined}
-                    canEdit={canEdit}
-                    isVisible={isQuestionVisible(question)}
-                  />
-                ))}
-              </CardContent>
-            </Card>
-          );
-        })}
+                    {/* Questions */}
+                    {section.questions.map((question) => (
+                      <EthicsQuestionRow
+                        key={question.id}
+                        question={question}
+                        value={ethicsData[question.id] as boolean | null | undefined}
+                        pageValue={ethicsData[question.pageId] as string | undefined}
+                        detailsValue={question.detailsId ? (ethicsData[question.detailsId] as string | undefined) : undefined}
+                        onChange={(value) => handleValueChange(question.id, value)}
+                        onPageChange={(value) => handlePageChange(question.pageId, value)}
+                        onDetailsChange={question.detailsId ? (value) => handleDetailsChange(question.detailsId!, value) : undefined}
+                        canEdit={canEdit}
+                        isVisible={isQuestionVisible(question)}
+                      />
+                    ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </CardContent>
+        </Card>
 
         {/* Ethics Confirmation Checkbox */}
         <div className="flex items-start space-x-3 py-4 px-4 bg-muted/50 rounded-lg border">
