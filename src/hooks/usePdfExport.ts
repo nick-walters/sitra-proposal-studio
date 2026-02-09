@@ -823,7 +823,7 @@ export function usePdfExport() {
             xPos += colWidths[i];
           }
           
-          // Draw cell content
+          // Draw cell content - vertically centered
           xPos = margin;
           for (let i = 0; i < colWidths.length; i++) {
             const cell = row[i];
@@ -831,20 +831,28 @@ export function usePdfExport() {
             
             if (cell) {
               if (cell.type === 'bubble') {
-                // Draw bubble badge (with optional italic for partner bubbles)
-                drawBubble(cell.text, xPos + cellPadding, rowStartY, cell.color, cell.italic || false);
+                // Calculate vertical center for single bubble
+                const bubbleHeight = 3.5;
+                const verticalOffset = (rowHeight - bubbleHeight) / 2;
+                const centeredY = rowStartY + verticalOffset - 1;
+                drawBubble(cell.text, xPos + cellPadding, centeredY, cell.color, cell.italic || false);
               } else if (cell.type === 'wpBubbles') {
-                // Draw multiple WP bubbles
+                // Calculate vertical center for WP bubbles
+                const bubbleHeight = 3.5;
+                const verticalOffset = (rowHeight - bubbleHeight) / 2;
+                const centeredY = rowStartY + verticalOffset - 1;
                 let bubbleX = xPos + cellPadding;
                 for (const wpNum of cell.wpNumbers) {
                   const color = cell.wpColorMap.get(wpNum) || '#6b7280'; // default gray
-                  const bubbleWidth = drawWPBubble(wpNum, bubbleX, rowStartY, color);
+                  const bubbleWidth = drawWPBubble(wpNum, bubbleX, centeredY, color);
                   bubbleX += bubbleWidth + 1; // 1mm gap between bubbles
                 }
               } else {
-                // Draw text (with wrapping)
+                // Draw text (with wrapping) - vertically centered
                 const lines = pdf.splitTextToSize(cell.text, maxTextWidth);
-                let textY = rowStartY;
+                const textHeight = lines.length * lineHeight;
+                const verticalOffset = (rowHeight - textHeight) / 2;
+                let textY = rowStartY + verticalOffset - 2;
                 for (const line of lines) {
                   pdf.text(line, xPos + cellPadding, textY);
                   textY += lineHeight;
