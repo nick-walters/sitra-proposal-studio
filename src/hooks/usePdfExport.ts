@@ -721,7 +721,7 @@ export function usePdfExport() {
       };
 
       // Helper: Add B3.1 table with custom column widths and multi-line text support
-      type CellContent = { text: string; type: 'text' } | { text: string; color: [number, number, number]; type: 'bubble' };
+      type CellContent = { text: string; type: 'text' } | { text: string; color: [number, number, number]; type: 'bubble'; italic?: boolean };
       
       const addB31TableAdvanced = (
         headers: string[], 
@@ -800,8 +800,8 @@ export function usePdfExport() {
             
             if (cell) {
               if (cell.type === 'bubble') {
-                // Draw bubble badge
-                drawBubble(cell.text, xPos + cellPadding, rowStartY, cell.color);
+                // Draw bubble badge (with optional italic for partner bubbles)
+                drawBubble(cell.text, xPos + cellPadding, rowStartY, cell.color, cell.italic || false);
               } else {
                 // Draw text (with wrapping)
                 const lines = pdf.splitTextToSize(cell.text, maxTextWidth);
@@ -886,7 +886,7 @@ export function usePdfExport() {
             return [
               { text: deliverableText, type: 'text' as const },
               wpNum ? { text: `WP${wpNum}`, color: hexToRgb(wpColor), type: 'bubble' as const } : { text: '—', type: 'text' as const },
-              leadName !== '—' ? { text: leadName, color: [71, 85, 105] as [number, number, number], type: 'bubble' as const } : { text: '—', type: 'text' as const },
+              leadName !== '—' ? { text: leadName, color: [0, 0, 0] as [number, number, number], type: 'bubble' as const, italic: true } : { text: '—', type: 'text' as const },
               { text: d.type || '—', type: 'text' as const },
               { text: d.dissemination_level || '—', type: 'text' as const },
               { text: d.due_month ? `M${String(d.due_month).padStart(2, '0')}` : '—', type: 'text' as const }
