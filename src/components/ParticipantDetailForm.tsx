@@ -214,7 +214,7 @@ export function ParticipantDetailForm({
 
   return (
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
