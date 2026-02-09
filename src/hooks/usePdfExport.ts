@@ -803,18 +803,53 @@ export function usePdfExport() {
         pdf.setFont('times', 'normal');
         pdf.setTextColor(...black);
         
+        // Helper to calculate bubble width
+        const getBubbleWidth = (text: string): number => {
+          pdf.setFontSize(8);
+          pdf.setFont('times', 'bold');
+          const textWidth = pdf.getTextWidth(text);
+          pdf.setFontSize(FONT_SIZE_BODY);
+          pdf.setFont('times', 'normal');
+          return textWidth + 3; // padding * 2
+        };
+        
         for (const row of rows) {
           // Calculate row height based on content
           let maxLines = 1;
+          let maxBubbleRows = 1;
+          
           for (let i = 0; i < colWidths.length; i++) {
             const cell = row[i];
+            const maxCellWidth = colWidths[i] - cellPadding * 2;
+            
             if (cell && cell.type === 'text') {
-              const maxTextWidth = colWidths[i] - cellPadding * 2;
-              const lines = pdf.splitTextToSize(cell.text, maxTextWidth);
+              const lines = pdf.splitTextToSize(cell.text, maxCellWidth);
               maxLines = Math.max(maxLines, lines.length);
+            } else if (cell && cell.type === 'wpBubbles') {
+              // Calculate how many rows of bubbles we need
+              let currentRowWidth = 0;
+              let bubbleRows = 1;
+              const bubbleGap = 1;
+              
+              for (const wpNum of cell.wpNumbers) {
+                const bubbleWidth = getBubbleWidth(`WP${wpNum}`);
+                if (currentRowWidth + bubbleWidth > maxCellWidth && currentRowWidth > 0) {
+                  bubbleRows++;
+                  currentRowWidth = bubbleWidth + bubbleGap;
+                } else {
+                  currentRowWidth += bubbleWidth + bubbleGap;
+                }
+              }
+              maxBubbleRows = Math.max(maxBubbleRows, bubbleRows);
+            } else if (cell && cell.type === 'bubble') {
+              // Single bubble - check if it fits, if not we'll truncate when rendering
+              maxBubbleRows = Math.max(maxBubbleRows, 1);
             }
           }
-          const rowHeight = Math.max(baseRowHeight, maxLines * lineHeight + 2);
+          
+          const textRowHeight = Math.max(baseRowHeight, maxLines * lineHeight + 2);
+          const bubbleRowHeight = maxBubbleRows * 4.5 + 2; // 4.5mm per bubble row
+          const rowHeight = Math.max(textRowHeight, bubbleRowHeight);
           
           checkPageBreak(rowHeight);
           xPos = margin;
@@ -838,17 +873,57 @@ export function usePdfExport() {
                 const bubbleHeight = 3.5;
                 const verticalOffset = (rowHeight - bubbleHeight) / 2;
                 const centeredY = rowStartY + verticalOffset - 1;
-                drawBubble(cell.text, xPos + cellPadding, centeredY, cell.color, cell.italic || false);
+                
+                // Truncate bubble text if needed to fit column
+                let bubbleText = cell.text;
+                let bubbleWidth = getBubbleWidth(bubbleText);
+                while (bubbleWidth > maxTextWidth && bubbleText.length > 2) {
+                  bubbleText = bubbleText.substring(0, bubbleText.length - 1);
+                  bubbleWidth = getBubbleWidth(bubbleText);
+                }
+                
+                drawBubble(bubbleText, xPos + cellPadding, centeredY, cell.color, cell.italic || false);
               } else if (cell.type === 'wpBubbles') {
-                // Calculate vertical center for WP bubbles
-                const bubbleHeight = 3.5;
-                const verticalOffset = (rowHeight - bubbleHeight) / 2;
-                const centeredY = rowStartY + verticalOffset - 1;
+                // Calculate how many rows of bubbles and render with wrapping
+                const bubbleGap = 1;
                 let bubbleX = xPos + cellPadding;
+                let bubbleRowCount = 1;
+                let currentRowWidth = 0;
+                
+                // First pass: count rows for vertical centering
                 for (const wpNum of cell.wpNumbers) {
-                  const color = cell.wpColorMap.get(wpNum) || '#6b7280'; // default gray
-                  const bubbleWidth = drawWPBubble(wpNum, bubbleX, centeredY, color);
-                  bubbleX += bubbleWidth + 1; // 1mm gap between bubbles
+                  const bubbleWidth = getBubbleWidth(`WP${wpNum}`);
+                  if (currentRowWidth + bubbleWidth > maxTextWidth && currentRowWidth > 0) {
+                    bubbleRowCount++;
+                    currentRowWidth = bubbleWidth + bubbleGap;
+                  } else {
+                    currentRowWidth += bubbleWidth + bubbleGap;
+                  }
+                }
+                
+                // Calculate vertical starting position for centering
+                const totalBubblesHeight = bubbleRowCount * 4.5;
+                const startY = rowStartY + (rowHeight - totalBubblesHeight) / 2;
+                let bubbleY = startY;
+                
+                // Second pass: render bubbles with wrapping
+                bubbleX = xPos + cellPadding;
+                currentRowWidth = 0;
+                
+                for (const wpNum of cell.wpNumbers) {
+                  const color = cell.wpColorMap.get(wpNum) || '#6b7280';
+                  const bubbleWidth = getBubbleWidth(`WP${wpNum}`);
+                  
+                  // Check if we need to wrap to next row
+                  if (currentRowWidth + bubbleWidth > maxTextWidth && currentRowWidth > 0) {
+                    bubbleY += 4.5;
+                    bubbleX = xPos + cellPadding;
+                    currentRowWidth = 0;
+                  }
+                  
+                  drawWPBubble(wpNum, bubbleX, bubbleY, color);
+                  bubbleX += bubbleWidth + bubbleGap;
+                  currentRowWidth += bubbleWidth + bubbleGap;
                 }
               } else {
                 // Draw text (with wrapping) - vertically centered
