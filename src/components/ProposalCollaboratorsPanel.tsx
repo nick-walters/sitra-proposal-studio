@@ -195,6 +195,20 @@ export function ProposalCollaboratorsPanel({
     }
   };
 
+  const handleChangeRole = async (collab: Collaborator, newRole: 'admin' | 'editor' | 'viewer') => {
+    if (newRole === collab.role) return;
+    const { error } = await supabase
+      .from('user_roles')
+      .update({ role: newRole })
+      .eq('id', collab.id);
+    if (error) {
+      toast.error('Failed to update role');
+    } else {
+      toast.success(`${collab.fullName || collab.email} is now ${ROLE_LABELS[newRole]}`);
+      fetchCollaborators();
+    }
+  };
+
   const onlineIds = new Set(onlineCollaborators.map(c => c.id));
 
   return (
@@ -356,10 +370,27 @@ export function ProposalCollaboratorsPanel({
                         </div>
                         <span className="text-xs text-muted-foreground truncate block">{collab.email}</span>
                       </div>
-                      <Badge variant="outline" className="gap-1 text-xs flex-shrink-0">
-                        <RoleIcon className="w-3 h-3" />
-                        {ROLE_LABELS[collab.role] || collab.role}
-                      </Badge>
+                      {canManage && !isSelf ? (
+                        <Select
+                          value={collab.role}
+                          onValueChange={(v) => handleChangeRole(collab, v as 'admin' | 'editor' | 'viewer')}
+                        >
+                          <SelectTrigger className="h-6 w-24 text-xs gap-1 px-2">
+                            <RoleIcon className="w-3 h-3 flex-shrink-0" />
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="editor">Editor</SelectItem>
+                            <SelectItem value="viewer">Viewer</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Badge variant="outline" className="gap-1 text-xs flex-shrink-0">
+                          <RoleIcon className="w-3 h-3" />
+                          {ROLE_LABELS[collab.role] || collab.role}
+                        </Badge>
+                      )}
                       {canManage && !isSelf && (
                         <Tooltip>
                           <TooltipTrigger asChild>
