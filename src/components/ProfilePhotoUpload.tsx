@@ -316,6 +316,7 @@ export function ProfilePhotoUpload({
                         height: `${scaledHeight}px`,
                         left: `${(cropSize - scaledWidth) / 2 + position.x}px`,
                         top: `${(cropSize - scaledHeight) / 2 + position.y}px`,
+                        objectFit: 'contain',
                       }}
                       draggable={false}
                     />
