@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -51,11 +51,8 @@ export function InfrastructureSection({
           <div>
             <CardTitle className="text-lg flex items-center gap-2">
               <Server className="w-5 h-5" />
-              Description of any significant infrastructure and/or major items of technical equipment
+              Description of any significant infrastructure and/or any major items of technical equipment, relevant to the proposed work
             </CardTitle>
-            <CardDescription className="mt-1">
-              Relevant to the proposed work
-            </CardDescription>
           </div>
           {canEdit && (
             <Button
@@ -71,12 +68,16 @@ export function InfrastructureSection({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="text-xs text-muted-foreground space-y-1">
+          <p><strong>Name of infrastructure or equipment</strong></p>
+          <p><strong>Short description</strong></p>
+        </div>
         {/* Add Form */}
         {showAddForm && (
           <Card className="border-dashed">
             <CardContent className="pt-4 space-y-4">
               <div className="space-y-2">
-                <Label>Name *</Label>
+                <Label>Name of infrastructure or equipment *</Label>
                 <Input
                   value={newInfra.name}
                   onChange={(e) => setNewInfra({ ...newInfra, name: e.target.value })}
