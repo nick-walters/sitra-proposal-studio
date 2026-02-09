@@ -1120,7 +1120,61 @@ export function useRichTextEditor({
       // Force re-render of decorations
       editor.view.dispatch(editor.state.tr);
     }
-  }, [editor, trackChanges?.enabled]);
+    // Keep the onChangesUpdate callback in sync
+    const ext = editor.extensionManager.extensions.find(e => e.name === 'trackChanges');
+    if (ext) {
+      ext.options.onChangesUpdate = trackChanges?.onChangesUpdate;
+    }
+  }, [editor, trackChanges?.enabled, trackChanges?.onChangesUpdate]);
+
+  // Scan document for existing track change marks on load
+  useEffect(() => {
+    if (!editor || !trackChanges?.onChangesUpdate) return;
+    // Wait a tick for content to be fully set
+    const timer = setTimeout(() => {
+      const doc = editor.state.doc;
+      const schema = editor.state.schema;
+      const insertionType = schema.marks.trackInsertion;
+      const deletionType = schema.marks.trackDeletion;
+      if (!insertionType && !deletionType) return;
+
+      const changes: any[] = [];
+      doc.descendants((node: any, pos: number) => {
+        if (!node.isText) return;
+        for (const mark of node.marks) {
+          if (mark.type === insertionType || mark.type === deletionType) {
+            const attrs = mark.attrs;
+            const markEnd = pos + node.nodeSize;
+            const existing = changes.find((c: any) => c.id === attrs.changeId);
+            if (existing) {
+              existing.from = Math.min(existing.from, pos);
+              existing.to = Math.max(existing.to, markEnd);
+              existing.content = doc.textBetween(existing.from, existing.to, ' ');
+            } else {
+              changes.push({
+                id: attrs.changeId,
+                type: mark.type === insertionType ? 'insertion' : 'deletion',
+                authorId: attrs.authorId || '',
+                authorName: attrs.authorName || 'Unknown',
+                authorColor: attrs.authorColor || '#3B82F6',
+                timestamp: new Date(attrs.timestamp || Date.now()),
+                from: pos,
+                to: markEnd,
+                content: doc.textBetween(pos, markEnd, ' '),
+              });
+            }
+          }
+        }
+      });
+
+      if (changes.length > 0) {
+        const storage = (editor.storage as any).trackChanges;
+        if (storage) storage.changes = changes;
+        trackChanges.onChangesUpdate(changes);
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [editor, content, trackChanges?.onChangesUpdate]);
 
   return editor;
 }
