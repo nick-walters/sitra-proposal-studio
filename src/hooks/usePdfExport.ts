@@ -997,15 +997,26 @@ export function usePdfExport() {
           // Draw cell content
           xPos = margin;
           
-          // Participant number
+          // Cell top is at rowStartY - 4, cell height is rowHeight
+          // For vertical centering, calculate the starting Y for text block
+          const cellTop = rowStartY - 4;
+          
+          // Helper to calculate vertically centered Y position for text
+          const getVerticalCenter = (numLines: number) => {
+            const textBlockHeight = numLines * lineHeightBody;
+            return cellTop + (rowHeight - textBlockHeight) / 2 + lineHeightBody * 0.7; // 0.7 accounts for baseline
+          };
+          
+          // Participant number (single line, vertically centered)
           pdf.setFont('times', 'normal');
-          pdf.text(String(participant.participantNumber || ''), xPos + cellPadding, rowStartY);
+          const numY = getVerticalCenter(1);
+          pdf.text(String(participant.participantNumber || ''), xPos + cellPadding, numY);
           xPos += colWidths[0];
           
-          // Short name
+          // Short name (vertically centered)
           const shortName = participant.organisationShortName || '';
           const shortNameLines = pdf.splitTextToSize(shortName, colWidths[1] - cellPadding * 2);
-          let textY = rowStartY;
+          let textY = getVerticalCenter(shortNameLines.length);
           for (const line of shortNameLines) {
             pdf.text(line, xPos + cellPadding, textY);
             textY += lineHeightBody;
@@ -1013,7 +1024,8 @@ export function usePdfExport() {
           xPos += colWidths[1];
           
           // Organisation name: Legal name (normal), then English name (italic) if different
-          textY = rowStartY;
+          // Vertically center the combined text block
+          textY = getVerticalCenter(totalOrgLines);
           pdf.setFont('times', 'normal');
           for (const line of legalLines) {
             pdf.text(line, xPos + cellPadding, textY);
@@ -1029,7 +1041,7 @@ export function usePdfExport() {
           }
           xPos += colWidths[2];
           
-          // Logo column
+          // Logo column (already vertically centered)
           if (participant.logoUrl) {
             try {
               const logoData = await loadImageAsBase64(participant.logoUrl);
@@ -1054,7 +1066,7 @@ export function usePdfExport() {
                 
                 // Center logo in cell
                 const logoX = xPos + (colWidths[3] - logoW) / 2;
-                const logoY = rowStartY - 4 + (rowHeight - logoH) / 2;
+                const logoY = cellTop + (rowHeight - logoH) / 2;
                 pdf.addImage(logoData.data, 'JPEG', logoX, logoY, logoW, logoH);
               }
             } catch (e) {
@@ -1063,9 +1075,10 @@ export function usePdfExport() {
           }
           xPos += colWidths[3];
           
-          // Country
+          // Country (single line, vertically centered)
           pdf.setFont('times', 'normal');
-          pdf.text(participant.country || '', xPos + cellPadding, rowStartY);
+          const countryY = getVerticalCenter(1);
+          pdf.text(participant.country || '', xPos + cellPadding, countryY);
           
           yPosition = rowStartY + rowHeight;
         }
