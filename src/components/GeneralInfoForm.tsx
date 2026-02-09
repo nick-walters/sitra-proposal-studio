@@ -575,7 +575,7 @@ export function GeneralInfoForm({
                       placeholder="Full proposal title"
                     />
                   ) : (
-                    <h2 className="text-sm font-semibold text-foreground">{proposal?.title}</h2>
+                    <h2 className="text-sm font-semibold text-foreground" style={{ fontFamily: 'Arial, sans-serif' }}>{proposal?.title}</h2>
                   )}
                   <InlineGuideline className="mt-1">
                     Max 200 characters (with spaces). Must be understandable for non-specialists.
@@ -593,7 +593,7 @@ export function GeneralInfoForm({
                         placeholder="Acronym"
                       />
                     ) : (
-                      <p className="text-sm font-semibold">{proposal?.acronym}</p>
+                      <p className="text-sm font-black" style={{ fontFamily: '"Arial Black", Arial, sans-serif' }}>{proposal?.acronym}</p>
                     )}
                   </div>
 

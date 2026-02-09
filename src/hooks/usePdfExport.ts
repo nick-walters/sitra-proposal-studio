@@ -209,18 +209,46 @@ export function usePdfExport() {
       };
 
       // Helper: Add title (14pt bold, 12pt paragraph spacing after) - CENTERED
-      const addTitle = (text: string) => {
+      // For full proposals (not stage_1), use Sitra branding: Arial for title, Arial Black for acronym
+      const addTitle = (titleText: string, acronymText: string) => {
         checkPageBreak(15);
-        pdf.setFontSize(FONT_SIZE_TITLE);
-        pdf.setFont('times', 'bold');
         pdf.setTextColor(...black);
         
-        const lines = pdf.splitTextToSize(text, contentWidth);
-        for (const line of lines) {
+        const isPreProposal = proposal.submissionStage === 'stage_1';
+        
+        if (isPreProposal) {
+          // Pre-proposal: Times New Roman for both
+          const fullText = `${titleText} (${acronymText})`;
+          pdf.setFontSize(FONT_SIZE_TITLE);
+          pdf.setFont('times', 'bold');
+          const lines = pdf.splitTextToSize(fullText, contentWidth);
+          for (const line of lines) {
+            checkPageBreak(6);
+            pdf.text(line, pageWidth / 2, yPosition, { align: 'center' });
+            yPosition += 5.5;
+          }
+        } else {
+          // Full proposal: Sitra branding - Arial for title, Arial Black for acronym
+          // First, render the title in Arial
+          pdf.setFontSize(FONT_SIZE_TITLE);
+          pdf.setFont('helvetica', 'bold'); // helvetica is the PDF equivalent of Arial
+          const titleLines = pdf.splitTextToSize(titleText, contentWidth);
+          for (const line of titleLines) {
+            checkPageBreak(6);
+            pdf.text(line, pageWidth / 2, yPosition, { align: 'center' });
+            yPosition += 5.5;
+          }
+          
+          // Then render the acronym in Arial Black (helvetica bold is closest available)
+          // Note: jsPDF doesn't have Arial Black, so we use helvetica bold at slightly larger size
+          pdf.setFontSize(FONT_SIZE_TITLE);
+          pdf.setFont('helvetica', 'bold');
+          const acronymWithParens = `(${acronymText})`;
           checkPageBreak(6);
-          pdf.text(line, pageWidth / 2, yPosition, { align: 'center' });
+          pdf.text(acronymWithParens, pageWidth / 2, yPosition, { align: 'center' });
           yPosition += 5.5;
         }
+        
         yPosition += titleParagraphSpacing;
       };
 
@@ -1346,8 +1374,8 @@ export function usePdfExport() {
       // Add header to first page
       addHeader();
 
-      // Title: Proposal title followed by acronym in parentheses
-      addTitle(`${proposal.title} (${proposal.acronym})`);
+      // Title: Proposal title followed by acronym
+      addTitle(proposal.title, proposal.acronym);
 
       // List of participants
       await addParticipantTable();
