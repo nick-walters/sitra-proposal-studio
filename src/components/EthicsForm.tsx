@@ -965,16 +965,48 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
 
         {/* SECURITY ISSUES TABLE */}
         <Card className={cn(SECURITY_QUESTIONS.some(q => ethicsData[q.id] === true) && 'border-warning/50')}>
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-sm flex items-center gap-2">
                 <Shield className="w-4 h-4" />
-                SECURITY ISSUES
+                Security issues table
               </h3>
               {SECURITY_QUESTIONS.some(q => ethicsData[q.id] === true) && (
                 <AlertTriangle className="w-4 h-4 text-warning" />
               )}
             </div>
+            <CardDescription className="text-xs mt-2 space-y-2">
+              <p>
+                Please go through the table and indicate which elements concern your proposal by answering YES or NO.
+              </p>
+              <p>
+                If you answer YES to any of the questions:
+              </p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>indicate in the adjacent box at which page in your full proposal further information relating to that security issue can be found, and</li>
+                <li>provide additional information on this security issue in the Security self-assessment section below.</li>
+              </ul>
+              <p>
+                For more information on potential security issues and how to address them, see the guidance{' '}
+                <a 
+                  href="https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/how-to-handle-security-sensitive-projects_en.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline hover:text-primary/80"
+                >
+                  How to handle security-sensitive projects
+                </a>
+                {' '}and the programme-specific guidelines{' '}
+                <a 
+                  href="https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/classification-of-information-in-horizon-europe-projects_he_en.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline hover:text-primary/80"
+                >
+                  Classification of information in Horizon Europe projects
+                </a>.
+              </p>
+            </CardDescription>
           </CardHeader>
           <CardContent className="pt-0">
             {/* Table header */}
