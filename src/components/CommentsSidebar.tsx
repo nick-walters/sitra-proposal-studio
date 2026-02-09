@@ -15,7 +15,6 @@ import {
 } from '@/components/ui/popover';
 import {
   MessageSquare,
-  Lightbulb,
   Check,
   X,
   Reply,
@@ -34,7 +33,6 @@ interface CommentsSidebarProps {
   sectionId: string;
   selectedText?: string;
   selectionRange?: { start: number; end: number };
-  onApplySuggestion?: (originalText: string, suggestedText: string) => void;
   onClearSelection?: () => void;
   compact?: boolean;
 }
@@ -51,17 +49,13 @@ function CommentCard({
   currentUserId,
   onReply,
   onResolve,
-  onReject,
   onDelete,
-  onApplySuggestion,
 }: {
   comment: Comment;
   currentUserId?: string;
   onReply: (commentId: string) => void;
   onResolve: (commentId: string) => void;
-  onReject: (commentId: string) => void;
   onDelete: (commentId: string) => void;
-  onApplySuggestion?: (originalText: string, suggestedText: string) => void;
 }) {
   const [showReplies, setShowReplies] = useState(true);
   const isOwn = comment.user_id === currentUserId;
@@ -110,8 +104,7 @@ function CommentCard({
     <div
       className={cn(
         'border rounded-lg p-3 space-y-2 transition-opacity',
-        isResolved && 'opacity-60 bg-green-50/50 border-green-200 dark:bg-green-950/20 dark:border-green-800',
-        isRejected && 'opacity-60 bg-muted/50 line-through'
+        isResolved && 'opacity-60 bg-muted/30 border-muted'
       )}
     >
       {/* Header */}
@@ -130,14 +123,8 @@ function CommentCard({
           </div>
         </div>
         <div className="flex items-center gap-1">
-          {comment.is_suggestion && (
-            <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
-              <Lightbulb className="w-3 h-3 mr-1" />
-              Suggestion
-            </Badge>
-          )}
           {isResolved && (
-            <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
+            <Badge variant="secondary" className="text-xs">
               Resolved
             </Badge>
           )}
@@ -154,15 +141,9 @@ function CommentCard({
       {/* Comment content with @mentions */}
       <p className="text-sm">{renderContent(comment.content)}</p>
 
-      {/* Suggested text */}
-      {comment.is_suggestion && comment.suggested_text && (
-        <div className="text-sm bg-green-50 dark:bg-green-950/30 p-2 rounded border border-green-200 dark:border-green-800">
-          <span className="text-xs text-muted-foreground block mb-1">Suggested change:</span>
-          <span className="text-green-800 dark:text-green-200">{comment.suggested_text}</span>
-        </div>
-      )}
 
-      {/* Actions */}
+
+
       {comment.status === 'open' && (
         <div className="flex items-center gap-1 pt-1">
           <Button
@@ -174,37 +155,14 @@ function CommentCard({
             <Reply className="w-3 h-3 mr-1" />
             Reply
           </Button>
-          {comment.is_suggestion && comment.suggested_text && onApplySuggestion && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-xs text-green-600 hover:text-green-700 hover:bg-green-50"
-              onClick={() => {
-                onApplySuggestion(comment.selected_text || '', comment.suggested_text!);
-                onResolve(comment.id);
-              }}
-            >
-              <Check className="w-3 h-3 mr-1" />
-              Accept
-            </Button>
-          )}
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 px-2 text-xs text-green-600 hover:text-green-700 hover:bg-green-50"
+            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
             onClick={() => onResolve(comment.id)}
           >
             <Check className="w-3 h-3 mr-1" />
             Resolve
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={() => onReject(comment.id)}
-          >
-            <X className="w-3 h-3 mr-1" />
-            Reject
           </Button>
           {isOwn && (
             <Button
@@ -365,7 +323,6 @@ export function CommentsSidebar({
   sectionId,
   selectedText,
   selectionRange,
-  onApplySuggestion,
   onClearSelection,
   compact = false,
 }: CommentsSidebarProps) {
@@ -377,13 +334,10 @@ export function CommentsSidebar({
     updateCommentStatus,
     deleteComment,
     openCount,
-    suggestionsCount,
   } = useSectionComments({ proposalId, sectionId });
 
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [newComment, setNewComment] = useState('');
-  const [isSuggestion, setIsSuggestion] = useState(false);
-  const [suggestedText, setSuggestedText] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
   const [activeTab, setActiveTab] = useState('all');
@@ -441,8 +395,6 @@ export function CommentsSidebar({
       selectionStart: selectionRange?.start,
       selectionEnd: selectionRange?.end,
       selectedText: selectedText,
-      isSuggestion,
-      suggestedText: isSuggestion ? suggestedText : undefined,
     });
 
     // Create notifications for mentioned users
@@ -464,8 +416,6 @@ export function CommentsSidebar({
     }
 
     setNewComment('');
-    setSuggestedText('');
-    setIsSuggestion(false);
     onClearSelection?.();
   };
 
@@ -495,8 +445,7 @@ export function CommentsSidebar({
   };
 
   const filteredComments = comments.filter((c) => {
-    if (activeTab === 'suggestions') return c.is_suggestion && c.status === 'open';
-    if (activeTab === 'resolved') return c.status === 'resolved' || c.status === 'rejected';
+    if (activeTab === 'resolved') return c.status === 'resolved';
     return c.status === 'open';
   });
 
@@ -511,9 +460,6 @@ export function CommentsSidebar({
           </h3>
           <div className="flex gap-2 mt-2">
             <Badge variant="secondary">{openCount} open</Badge>
-            <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
-              {suggestionsCount} suggestions
-            </Badge>
           </div>
         </div>
       )}
@@ -522,7 +468,6 @@ export function CommentsSidebar({
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
         <TabsList className="mx-4 mt-2">
           <TabsTrigger value="all" className="text-xs">Open</TabsTrigger>
-          <TabsTrigger value="suggestions" className="text-xs">Suggestions</TabsTrigger>
           <TabsTrigger value="resolved" className="text-xs">Resolved</TabsTrigger>
         </TabsList>
 
@@ -535,7 +480,7 @@ export function CommentsSidebar({
                 </div>
               ) : filteredComments.length === 0 ? (
                 <div className="text-sm text-muted-foreground text-center py-8">
-                  No {activeTab === 'suggestions' ? 'suggestions' : activeTab === 'resolved' ? 'resolved comments' : 'open comments'} yet
+                  No {activeTab === 'resolved' ? 'resolved comments' : 'open comments'} yet
                 </div>
               ) : (
                 filteredComments.map((comment) => (
@@ -545,9 +490,7 @@ export function CommentsSidebar({
                       currentUserId={user?.id}
                       onReply={(id) => setReplyingTo(id)}
                       onResolve={(id) => updateCommentStatus(id, 'resolved')}
-                      onReject={(id) => updateCommentStatus(id, 'rejected')}
                       onDelete={deleteComment}
-                      onApplySuggestion={onApplySuggestion}
                     />
                     {/* Reply input */}
                     {replyingTo === comment.id && (
@@ -604,49 +547,26 @@ export function CommentsSidebar({
           </div>
         )}
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant={isSuggestion ? 'default' : 'outline'}
-            size="sm"
-            className={cn(
-              'text-xs',
-              isSuggestion && 'bg-amber-500 hover:bg-amber-600'
-            )}
-            onClick={() => setIsSuggestion(!isSuggestion)}
-          >
-            <Lightbulb className="w-3 h-3 mr-1" />
-            {isSuggestion ? 'Suggestion Mode' : 'Comment Mode'}
-          </Button>
-          <span className="text-xs text-muted-foreground flex items-center gap-1">
-            <AtSign className="w-3 h-3" />
-            Type @ to mention
-          </span>
-        </div>
+        <span className="text-xs text-muted-foreground flex items-center gap-1">
+          <AtSign className="w-3 h-3" />
+          Type @ to mention
+        </span>
 
         <MentionTextarea
           value={newComment}
           onChange={setNewComment}
-          placeholder={isSuggestion ? 'Explain your suggestion...' : 'Add a comment...'}
+          placeholder="Add a comment..."
           className="text-sm min-h-[60px]"
           teamMembers={teamMembers}
         />
 
-        {isSuggestion && (
-          <Textarea
-            value={suggestedText}
-            onChange={(e) => setSuggestedText(e.target.value)}
-            placeholder="Enter suggested replacement text..."
-            className="text-sm min-h-[60px] border-amber-300 focus-visible:ring-amber-400"
-          />
-        )}
-
         <Button
           className="w-full"
           onClick={handleSubmitComment}
-          disabled={!newComment.trim() || (isSuggestion && !suggestedText.trim())}
+          disabled={!newComment.trim()}
         >
           <Send className="w-4 h-4 mr-2" />
-          {isSuggestion ? 'Submit Suggestion' : 'Add Comment'}
+          Add Comment
         </Button>
       </div>
     </div>

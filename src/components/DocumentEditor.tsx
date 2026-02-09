@@ -1049,7 +1049,6 @@ export function DocumentEditor({
                   sectionId={section?.id || ''}
                   selectedText={selectedText}
                   selectionRange={selectionRange}
-                  onApplySuggestion={handleApplySuggestion}
                   onClearSelection={() => {
                     setSelectedText('');
                     setSelectionRange(undefined);
