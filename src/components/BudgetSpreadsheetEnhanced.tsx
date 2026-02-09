@@ -41,9 +41,12 @@ import {
 import { Participant, BudgetType } from '@/types/proposal';
 import { BudgetItem, BudgetChange } from '@/hooks/useBudget';
 import { BudgetChangeHistory } from './BudgetChangeHistory';
-import { Plus, Trash2, Download, Euro, Calculator, History, Info, FileSpreadsheet, AlertCircle, BookOpen } from 'lucide-react';
+import { Plus, Trash2, Download, Euro, Calculator, History, Info, FileSpreadsheet, AlertCircle, BookOpen, Loader2, TableProperties } from 'lucide-react';
 import { toast } from 'sonner';
 import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
+import { appendCostJustificationsToB31 } from '@/lib/b31Population';
+import { useAuth } from '@/hooks/useAuth';
+import { useQueryClient } from '@tanstack/react-query';
 
 // Detailed EU cost categories for standard budget
 const STANDARD_CATEGORIES = [
@@ -118,6 +121,8 @@ interface BudgetSpreadsheetEnhancedProps {
   canEdit: boolean;
   proposalId: string;
   saving?: boolean;
+  isAdmin?: boolean;
+  isFullProposal?: boolean;
 }
 
 export function BudgetSpreadsheetEnhanced({
@@ -133,10 +138,15 @@ export function BudgetSpreadsheetEnhanced({
   canEdit,
   proposalId,
   saving = false,
+  isAdmin = false,
+  isFullProposal = false,
 }: BudgetSpreadsheetEnhancedProps) {
   const [selectedParticipant, setSelectedParticipant] = useState<string | 'all'>('all');
   const [showChangeHistory, setShowChangeHistory] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [isCopying, setIsCopying] = useState(false);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const categories = budgetType === 'traditional' ? STANDARD_CATEGORIES : LUMP_SUM_CATEGORIES;
 
@@ -220,6 +230,28 @@ export function BudgetSpreadsheetEnhanced({
     toast.success('Budget exported to CSV');
   };
 
+  const handleCopyCostJustifications = async () => {
+    if (!user?.id) {
+      toast.error('You must be logged in');
+      return;
+    }
+    setIsCopying(true);
+    try {
+      const result = await appendCostJustificationsToB31(proposalId, user.id);
+      if (result.success) {
+        toast.success('Cost justifications copied to Part B3.1 (Tables 3.1g & 3.1h)');
+        queryClient.invalidateQueries({ queryKey: ['section-content'] });
+      } else {
+        toast.error(result.error || 'Failed to copy cost justifications');
+      }
+    } catch (error) {
+      console.error('Error copying cost justifications:', error);
+      toast.error('Failed to copy cost justifications');
+    } finally {
+      setIsCopying(false);
+    }
+  };
+
   return (
     <div className="flex-1 overflow-auto p-4 bg-muted/30">
       <div className="max-w-7xl mx-auto space-y-4">
@@ -282,6 +314,17 @@ export function BudgetSpreadsheetEnhanced({
               <Download className="w-4 h-4" />
               Export
             </Button>
+            {isFullProposal && isAdmin && (
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={handleCopyCostJustifications}
+                disabled={isCopying}
+              >
+                {isCopying ? <Loader2 className="w-4 h-4 animate-spin" /> : <TableProperties className="w-4 h-4" />}
+                Copy justifications to B3.1
+              </Button>
+            )}
           </div>
         </div>
 
