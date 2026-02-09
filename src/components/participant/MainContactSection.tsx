@@ -20,7 +20,6 @@ interface MainContactSectionProps {
   canEdit: boolean;
 }
 
-// Extended participant fields for main contact (from database)
 interface MainContactFields {
   mainContactTitle?: string | null;
   mainContactFirstName?: string | null;
@@ -29,11 +28,21 @@ interface MainContactFields {
   mainContactPosition?: string | null;
   contactEmail?: string | null;
   mainContactPhone?: string | null;
+  mainContactPhone2?: string | null;
+  mainContactDepartment?: string | null;
+  mainContactDeptSameAsOrg?: boolean | null;
   mainContactStreet?: string | null;
   mainContactTown?: string | null;
   mainContactPostcode?: string | null;
   mainContactCountry?: string | null;
+  mainContactWebsite?: string | null;
   useOrganisationAddress?: boolean | null;
+  // Organisation-level fields for reference
+  street?: string | null;
+  town?: string | null;
+  postcode?: string | null;
+  country?: string | null;
+  website?: string | null;
 }
 
 export function MainContactSection({
@@ -42,7 +51,8 @@ export function MainContactSection({
   canEdit,
 }: MainContactSectionProps) {
   const fields = participant as unknown as MainContactFields;
-  const useOrgAddress = fields.useOrganisationAddress !== false; // Default to true
+  const useOrgAddress = fields.useOrganisationAddress ?? true;
+  const deptSameAsOrg = fields.mainContactDeptSameAsOrg ?? true;
 
   return (
     <Card>
@@ -56,6 +66,7 @@ export function MainContactSection({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Name row */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-2">
             <Label>Title</Label>
@@ -111,13 +122,14 @@ export function MainContactSection({
           </div>
         </div>
 
+        {/* Position & Email */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label>Position/Role</Label>
+            <Label>Position in organisation</Label>
             <Input
               value={fields.mainContactPosition || ''}
               onChange={(e) => onUpdate('mainContactPosition', e.target.value)}
-              placeholder="e.g., Project Manager"
+              placeholder="e.g., Professor, Director"
               disabled={!canEdit}
             />
           </div>
@@ -131,20 +143,36 @@ export function MainContactSection({
               disabled={!canEdit}
             />
           </div>
-          <div className="space-y-2">
-            <Label>Phone</Label>
-            <Input
-              type="tel"
-              value={fields.mainContactPhone || ''}
-              onChange={(e) => onUpdate('mainContactPhone', e.target.value)}
-              placeholder="+358..."
-              disabled={!canEdit}
-            />
-          </div>
         </div>
 
-        {/* Address section */}
-        <div className="space-y-4 pt-2 border-t">
+        {/* Department */}
+        <div className="space-y-3 pt-2 border-t">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="dept-same-as-org"
+              checked={deptSameAsOrg}
+              onCheckedChange={(checked) => onUpdate('mainContactDeptSameAsOrg', !!checked)}
+              disabled={!canEdit}
+            />
+            <Label htmlFor="dept-same-as-org" className="font-normal cursor-pointer">
+              Same as organisation
+            </Label>
+          </div>
+          {!deptSameAsOrg && (
+            <div className="space-y-2">
+              <Label>Department</Label>
+              <Input
+                value={fields.mainContactDepartment || ''}
+                onChange={(e) => onUpdate('mainContactDepartment', e.target.value)}
+                placeholder="Department name"
+                disabled={!canEdit}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Address */}
+        <div className="space-y-3 pt-2 border-t">
           <div className="flex items-center space-x-2">
             <Checkbox
               id="use-org-address"
@@ -199,6 +227,39 @@ export function MainContactSection({
               </div>
             </div>
           )}
+        </div>
+
+        {/* Website & Phones */}
+        <div className="grid gap-4 sm:grid-cols-3 pt-2 border-t">
+          <div className="space-y-2">
+            <Label>Website</Label>
+            <Input
+              value={fields.mainContactWebsite || ''}
+              onChange={(e) => onUpdate('mainContactWebsite', e.target.value)}
+              placeholder="https://..."
+              disabled={!canEdit}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Phone 1</Label>
+            <Input
+              type="tel"
+              value={fields.mainContactPhone || ''}
+              onChange={(e) => onUpdate('mainContactPhone', e.target.value)}
+              placeholder="+358..."
+              disabled={!canEdit}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Phone 2</Label>
+            <Input
+              type="tel"
+              value={fields.mainContactPhone2 || ''}
+              onChange={(e) => onUpdate('mainContactPhone2', e.target.value)}
+              placeholder="+358..."
+              disabled={!canEdit}
+            />
+          </div>
         </div>
       </CardContent>
     </Card>
