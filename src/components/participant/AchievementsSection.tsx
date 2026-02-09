@@ -76,16 +76,12 @@ export function AchievementsSection({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="text-xs text-muted-foreground space-y-1">
-          <p><strong>Type of achievement:</strong> Publication / Dataset / Software / Good / Service</p>
-          <p><strong>Short description</strong> – Key elements of the achievement, including a short qualitative assessment of its impact and (where available) its digital object identifier (DOI) or other type of persistent identifier (PID). Publications, in particular journal articles, are expected to be open access. Datasets are expected to be FAIR and 'as open as possible, as closed as necessary'.</p>
-        </div>
 
         {/* Add Form */}
         {showAddForm && (
           <Card className="border-dashed">
             <CardContent className="pt-4 space-y-4">
-              <div className="grid gap-4 sm:grid-cols-4">
+              <div className="space-y-2">
                 <div className="space-y-2">
                   <Label>Type *</Label>
                   <Select
@@ -102,8 +98,11 @@ export function AchievementsSection({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2 sm:col-span-3">
-                  <Label>Description (with DOI/PID) *</Label>
+                <div className="space-y-2">
+                  <Label>Description *</Label>
+                  <p className="text-[11px] text-muted-foreground leading-snug">
+                    Key elements of the achievement, including a short qualitative assessment of its impact and (where available) its digital object identifier (DOI) or other type of persistent identifier (PID). Publications, in particular journal articles, are expected to be open access. Datasets are expected to be FAIR and 'as open as possible, as closed as necessary'.
+                  </p>
                   <Textarea
                     value={newAchievement.description}
                     onChange={(e) => setNewAchievement({ ...newAchievement, description: e.target.value })}
