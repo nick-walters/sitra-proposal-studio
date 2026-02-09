@@ -324,7 +324,7 @@ function SingleWPSelector({
       value={value?.toString() || ''} 
       onValueChange={(v) => onChange(v ? parseInt(v) : null)}
     >
-      <SelectTrigger hideArrow className="h-auto min-h-[1.5em] py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex items-center">
+      <SelectTrigger hideArrow className="h-auto py-0.5 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex items-center overflow-visible">
         <SelectValue placeholder="-">
           {selectedWP ? <WPBubble wp={selectedWP} /> : <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">-</span>}
         </SelectValue>
@@ -711,7 +711,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                         value={del.lead_participant_id || ''} 
                         onValueChange={(v) => updateDeliverable.mutate({ id: del.id, lead_participant_id: v || null })}
                       >
-                        <SelectTrigger hideArrow className="h-auto min-h-[1.5em] py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto items-center">
+                        <SelectTrigger hideArrow className="h-auto py-0.5 px-0 border-0 bg-transparent focus:ring-0 w-auto items-center overflow-visible">
                           <SelectValue placeholder="-">
                             {del.lead_participant_id ? (
                               <span
