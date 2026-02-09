@@ -432,19 +432,27 @@ export function ParticipantDetailForm({
               <Card className="border-dashed">
                 <CardContent className="pt-4 space-y-4">
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2 sm:col-span-2">
-                      <Label>Full name *</Label>
-                      <PersonAutocomplete
-                        value={newMember.fullName}
-                        onChange={(value) => setNewMember({ ...newMember, fullName: value })}
-                        onPersonSelect={handlePersonSelect}
-                        placeholder="Start typing a name..."
+                    <div className="space-y-2">
+                      <Label>First name *</Label>
+                      <Input
+                        value={newMember.fullName.split(' ')[0] || ''}
+                        onChange={(e) => {
+                          const lastName = newMember.fullName.split(' ').slice(1).join(' ');
+                          setNewMember({ ...newMember, fullName: `${e.target.value} ${lastName}`.trim() });
+                        }}
+                        placeholder="First name"
                       />
-                      {selectedPerson && (
-                        <p className="text-xs text-green-600">
-                          ✓ Selected from database - other fields auto-filled
-                        </p>
-                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Last name *</Label>
+                      <Input
+                        value={newMember.fullName.split(' ').slice(1).join(' ') || ''}
+                        onChange={(e) => {
+                          const firstName = newMember.fullName.split(' ')[0] || '';
+                          setNewMember({ ...newMember, fullName: `${firstName} ${e.target.value}`.trim() });
+                        }}
+                        placeholder="Last name"
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label>Email</Label>
@@ -456,11 +464,12 @@ export function ParticipantDetailForm({
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Role in project</Label>
+                      <Label>Phone</Label>
                       <Input
+                        type="tel"
                         value={newMember.roleInProject}
                         onChange={(e) => setNewMember({ ...newMember, roleInProject: e.target.value })}
-                        placeholder="e.g. WP Leader, Researcher"
+                        placeholder="+358..."
                       />
                     </div>
                   </div>
@@ -483,41 +492,45 @@ export function ParticipantDetailForm({
               </div>
             ) : (
               <div className="space-y-3">
-                {members.map((member) => (
-                  <div
-                    key={member.id}
-                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-sm font-medium text-primary">
-                          {member.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2)}
-                        </span>
+                {members.map((member) => {
+                  const nameParts = member.fullName.split(' ');
+                  const firstName = nameParts[0] || '';
+                  const lastName = nameParts.slice(1).join(' ') || '';
+                  const initials = `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase();
+                  return (
+                    <div
+                      key={member.id}
+                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-sm font-medium text-primary">
+                            {initials}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium">
+                            {firstName} {lastName}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {member.email || 'No email'}
+                            {member.roleInProject ? ` · ${member.roleInProject}` : ''}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium">
-                          {member.fullName}
-                          {member.isPrimaryContact && (
-                            <Badge variant="secondary" className="ml-2 text-xs">Primary</Badge>
-                          )}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {member.roleInProject || 'Role not specified'}
-                        </p>
-                      </div>
+                      {canEdit && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-muted-foreground hover:text-destructive"
+                          onClick={() => onDeleteMember(member.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
-                    {canEdit && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground hover:text-destructive"
-                        onClick={() => onDeleteMember(member.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>
