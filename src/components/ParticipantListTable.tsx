@@ -161,7 +161,6 @@ export function ParticipantListTable({
                   <td>
                     <p>
                       <span className="inline-flex flex-wrap gap-1">
-                        {/* Coordinator badge for first participant */}
                         {participant.participantNumber === 1 && (
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -179,7 +178,6 @@ export function ParticipantListTable({
                           </Tooltip>
                         )}
                         
-                        {/* WP leadership badges */}
                         {wpLead.map((wp) => (
                           <Tooltip key={`wp-${wp.wpNumber}`}>
                             <TooltipTrigger asChild>
@@ -196,7 +194,6 @@ export function ParticipantListTable({
                           </Tooltip>
                         ))}
                         
-                        {/* Case leadership badges */}
                         {caseLead.map((c) => (
                           <Tooltip key={`case-${c.caseNumber}`}>
                             <TooltipTrigger asChild>
@@ -213,7 +210,6 @@ export function ParticipantListTable({
                           </Tooltip>
                         ))}
                         
-                        {/* Dash if no roles */}
                         {participant.participantNumber !== 1 && wpLead.length === 0 && caseLead.length === 0 && (
                           <span>—</span>
                         )}
