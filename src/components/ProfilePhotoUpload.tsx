@@ -77,17 +77,23 @@ export function ProfilePhotoUpload({
 
   const CROP_SIZE = 200;
 
-  // Compute scaled dimensions for current zoom
-  const getScaled = (z: number) => {
-    if (naturalDims.width === 0 || naturalDims.height === 0) return { w: 0, h: 0 };
+  // Compute scaled width for current zoom — height derived from aspect ratio
+  const getScaledWidth = (z: number): number => {
+    if (naturalDims.width === 0 || naturalDims.height === 0) return 0;
     const baseScale = CROP_SIZE / Math.min(naturalDims.width, naturalDims.height);
-    const s = baseScale * z;
-    return { w: naturalDims.width * s, h: naturalDims.height * s };
+    return naturalDims.width * baseScale * z;
+  };
+
+  const getScaledHeight = (z: number): number => {
+    if (naturalDims.width === 0 || naturalDims.height === 0) return 0;
+    const baseScale = CROP_SIZE / Math.min(naturalDims.width, naturalDims.height);
+    return naturalDims.height * baseScale * z;
   };
 
   // Constrain position so image always covers the crop circle
   const clampPosition = (pos: { x: number; y: number }, z: number) => {
-    const { w, h } = getScaled(z);
+    const w = getScaledWidth(z);
+    const h = getScaledHeight(z);
     const maxX = Math.max(0, (w - CROP_SIZE) / 2);
     const maxY = Math.max(0, (h - CROP_SIZE) / 2);
     return {
@@ -314,7 +320,8 @@ export function ProfilePhotoUpload({
               onMouseLeave={handleMouseUp}
             >
             {previewImage && naturalDims.width > 0 && (() => {
-                const { w, h } = getScaled(zoom[0]);
+                const w = getScaledWidth(zoom[0]);
+                const h = getScaledHeight(zoom[0]);
                 return (
                   <img
                     src={previewImage}
@@ -322,7 +329,8 @@ export function ProfilePhotoUpload({
                     className="absolute select-none pointer-events-none"
                     style={{
                       width: `${w}px`,
-                      height: `${h}px`,
+                      height: 'auto',
+                      aspectRatio: `${naturalDims.width} / ${naturalDims.height}`,
                       left: `${(CROP_SIZE - w) / 2 + position.x}px`,
                       top: `${(CROP_SIZE - h) / 2 + position.y}px`,
                     }}

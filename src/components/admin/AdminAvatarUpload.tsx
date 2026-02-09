@@ -50,15 +50,21 @@ export function AdminAvatarUpload({ userId, avatarUrl, initials, onAvatarChange 
 
   const CROP_SIZE = 200;
 
-  const getScaled = (z: number) => {
-    if (imgDims.width === 0 || imgDims.height === 0) return { w: 0, h: 0 };
+  const getScaledWidth = (z: number): number => {
+    if (imgDims.width === 0 || imgDims.height === 0) return 0;
     const baseScale = CROP_SIZE / Math.min(imgDims.width, imgDims.height);
-    const s = baseScale * z;
-    return { w: imgDims.width * s, h: imgDims.height * s };
+    return imgDims.width * baseScale * z;
+  };
+
+  const getScaledHeight = (z: number): number => {
+    if (imgDims.width === 0 || imgDims.height === 0) return 0;
+    const baseScale = CROP_SIZE / Math.min(imgDims.width, imgDims.height);
+    return imgDims.height * baseScale * z;
   };
 
   const clampPosition = (pos: { x: number; y: number }, z: number) => {
-    const { w, h } = getScaled(z);
+    const w = getScaledWidth(z);
+    const h = getScaledHeight(z);
     const maxX = Math.max(0, (w - CROP_SIZE) / 2);
     const maxY = Math.max(0, (h - CROP_SIZE) / 2);
     return {
@@ -169,7 +175,8 @@ export function AdminAvatarUpload({ userId, avatarUrl, initials, onAvatarChange 
               onMouseLeave={handleMouseUp}
             >
               {previewImage && imgDims.width > 0 && (() => {
-                const { w, h } = getScaled(zoom[0]);
+                const w = getScaledWidth(zoom[0]);
+                const h = getScaledHeight(zoom[0]);
                 return (
                   <img
                     src={previewImage}
@@ -177,7 +184,8 @@ export function AdminAvatarUpload({ userId, avatarUrl, initials, onAvatarChange 
                     className="absolute select-none pointer-events-none"
                     style={{
                       width: `${w}px`,
-                      height: `${h}px`,
+                      height: 'auto',
+                      aspectRatio: `${imgDims.width} / ${imgDims.height}`,
                       left: `${(CROP_SIZE - w) / 2 + position.x}px`,
                       top: `${(CROP_SIZE - h) / 2 + position.y}px`,
                     }}
