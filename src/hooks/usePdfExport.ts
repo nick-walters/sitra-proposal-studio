@@ -158,8 +158,12 @@ export function usePdfExport() {
         pdf.setFontSize(FONT_SIZE_HEADER_FOOTER);
         pdf.setFont('times', 'normal');
         pdf.setTextColor(...gray);
-        const headerText = `${proposal.topicId || ''} ${proposal.topicTitle || proposal.title}`;
-        const truncatedHeader = headerText.length > 100 ? headerText.substring(0, 97) + '...' : headerText;
+        // Format: "Topic ID: Topic title (type of action)"
+        const topicId = proposal.topicId || '';
+        const topicTitle = proposal.topicTitle || proposal.title || '';
+        const topicType = proposal.type || '';
+        const headerText = `${topicId}${topicId && topicTitle ? ': ' : ''}${topicTitle}${topicType ? ` (${topicType})` : ''}`;
+        const truncatedHeader = headerText.length > 120 ? headerText.substring(0, 117) + '...' : headerText;
         pdf.text(truncatedHeader, pageWidth / 2, margin, { align: 'center' });
       };
 
