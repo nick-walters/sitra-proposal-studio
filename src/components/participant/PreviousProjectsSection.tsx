@@ -70,16 +70,13 @@ export function PreviousProjectsSection({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="text-xs text-muted-foreground space-y-1">
-          <p><strong>Name of Project or Activity</strong></p>
-          <p><strong>Short description</strong></p>
-        </div>
+        
         {/* Add Form */}
         {showAddForm && (
           <Card className="border-dashed">
             <CardContent className="pt-4 space-y-4">
               <div className="space-y-2">
-                <Label>Name of Project or Activity *</Label>
+                <Label>Name of project or activity</Label>
                 <Input
                   value={newProject.projectName}
                   onChange={(e) => setNewProject({ ...newProject, projectName: e.target.value })}
