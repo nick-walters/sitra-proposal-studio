@@ -160,8 +160,20 @@ export function useProposalData(proposalId: string) {
         participantNumber: p.participant_number || 1,
         contactEmail: p.contact_email || undefined,
         address: p.address || undefined,
+        street: p.street || undefined,
+        town: p.town || undefined,
+        postcode: p.postcode || undefined,
+        website: p.website || undefined,
+        departmentsNotApplicable: p.departments_not_applicable || false,
         organisationCategory: p.organisation_category || undefined,
         englishName: p.english_name || undefined,
+        personnelCostRate: p.personnel_cost_rate || undefined,
+        department: p.department || undefined,
+        mainContactTitle: p.main_contact_title || undefined,
+        mainContactPosition: p.main_contact_position || undefined,
+        mainContactPhone: p.main_contact_phone || undefined,
+        hasGenderEqualityPlan: p.has_gender_equality_plan || undefined,
+        dependencyDeclaration: p.dependency_declaration || undefined,
       }))
     );
   }, [proposalId]);
@@ -359,8 +371,20 @@ export function useProposalData(proposalId: string) {
     if (updates.isSme !== undefined) dbUpdates.is_sme = updates.isSme;
     if (updates.contactEmail !== undefined) dbUpdates.contact_email = updates.contactEmail;
     if (updates.address !== undefined) dbUpdates.address = updates.address;
+    if (updates.street !== undefined) dbUpdates.street = updates.street;
+    if (updates.town !== undefined) dbUpdates.town = updates.town;
+    if (updates.postcode !== undefined) dbUpdates.postcode = updates.postcode;
+    if (updates.website !== undefined) dbUpdates.website = updates.website;
+    if (updates.departmentsNotApplicable !== undefined) dbUpdates.departments_not_applicable = updates.departmentsNotApplicable;
     if (updates.organisationCategory !== undefined) dbUpdates.organisation_category = updates.organisationCategory;
     if (updates.englishName !== undefined) dbUpdates.english_name = updates.englishName;
+    if (updates.department !== undefined) dbUpdates.department = updates.department;
+    if (updates.mainContactTitle !== undefined) dbUpdates.main_contact_title = updates.mainContactTitle;
+    if (updates.mainContactPosition !== undefined) dbUpdates.main_contact_position = updates.mainContactPosition;
+    if (updates.mainContactPhone !== undefined) dbUpdates.main_contact_phone = updates.mainContactPhone;
+    if (updates.hasGenderEqualityPlan !== undefined) dbUpdates.has_gender_equality_plan = updates.hasGenderEqualityPlan;
+    if (updates.dependencyDeclaration !== undefined) dbUpdates.dependency_declaration = updates.dependencyDeclaration;
+    if (updates.personnelCostRate !== undefined) dbUpdates.personnel_cost_rate = updates.personnelCostRate;
     // Handle logoUrl - use null check to allow clearing (null means delete, undefined means no change)
     if ('logoUrl' in updates) dbUpdates.logo_url = updates.logoUrl || null;
 

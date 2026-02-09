@@ -1335,6 +1335,56 @@ export type Database = {
           },
         ]
       }
+      participant_departments: {
+        Row: {
+          country: string | null
+          created_at: string
+          department_name: string
+          id: string
+          order_index: number | null
+          participant_id: string
+          postcode: string | null
+          same_as_organisation: boolean | null
+          street: string | null
+          town: string | null
+          updated_at: string
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          department_name: string
+          id?: string
+          order_index?: number | null
+          participant_id: string
+          postcode?: string | null
+          same_as_organisation?: boolean | null
+          street?: string | null
+          town?: string | null
+          updated_at?: string
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          department_name?: string
+          id?: string
+          order_index?: number | null
+          participant_id?: string
+          postcode?: string | null
+          same_as_organisation?: boolean | null
+          street?: string | null
+          town?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participant_departments_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       participant_dependencies: {
         Row: {
           created_at: string
@@ -1611,6 +1661,7 @@ export type Database = {
           country: string | null
           created_at: string
           department: string | null
+          departments_not_applicable: boolean | null
           dependency_declaration: string | null
           english_name: string | null
           gep_data_collection: boolean | null
@@ -1644,9 +1695,13 @@ export type Database = {
           participant_number: number | null
           personnel_cost_rate: number | null
           pic_number: string | null
+          postcode: string | null
           proposal_id: string
+          street: string | null
+          town: string | null
           updated_at: string
           use_organisation_address: boolean | null
+          website: string | null
         }
         Insert: {
           address?: string | null
@@ -1654,6 +1709,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           department?: string | null
+          departments_not_applicable?: boolean | null
           dependency_declaration?: string | null
           english_name?: string | null
           gep_data_collection?: boolean | null
@@ -1687,9 +1743,13 @@ export type Database = {
           participant_number?: number | null
           personnel_cost_rate?: number | null
           pic_number?: string | null
+          postcode?: string | null
           proposal_id: string
+          street?: string | null
+          town?: string | null
           updated_at?: string
           use_organisation_address?: boolean | null
+          website?: string | null
         }
         Update: {
           address?: string | null
@@ -1697,6 +1757,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           department?: string | null
+          departments_not_applicable?: boolean | null
           dependency_declaration?: string | null
           english_name?: string | null
           gep_data_collection?: boolean | null
@@ -1730,9 +1791,13 @@ export type Database = {
           participant_number?: number | null
           personnel_cost_rate?: number | null
           pic_number?: string | null
+          postcode?: string | null
           proposal_id?: string
+          street?: string | null
+          town?: string | null
           updated_at?: string
           use_organisation_address?: boolean | null
+          website?: string | null
         }
         Relationships: [
           {
