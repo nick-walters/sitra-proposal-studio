@@ -624,6 +624,9 @@ export type Database = {
           security_misuse_crime_terrorism: boolean | null
           security_misuse_crime_terrorism_page: string | null
           security_misuse_page: string | null
+          security_other_issues: boolean | null
+          security_other_issues_details: string | null
+          security_other_issues_page: string | null
           security_other_national: boolean | null
           security_other_national_details: string | null
           security_other_national_page: string | null
@@ -775,6 +778,9 @@ export type Database = {
           security_misuse_crime_terrorism?: boolean | null
           security_misuse_crime_terrorism_page?: string | null
           security_misuse_page?: string | null
+          security_other_issues?: boolean | null
+          security_other_issues_details?: string | null
+          security_other_issues_page?: string | null
           security_other_national?: boolean | null
           security_other_national_details?: string | null
           security_other_national_page?: string | null
@@ -926,6 +932,9 @@ export type Database = {
           security_misuse_crime_terrorism?: boolean | null
           security_misuse_crime_terrorism_page?: string | null
           security_misuse_page?: string | null
+          security_other_issues?: boolean | null
+          security_other_issues_details?: string | null
+          security_other_issues_page?: string | null
           security_other_national?: boolean | null
           security_other_national_details?: string | null
           security_other_national_page?: string | null

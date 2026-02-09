@@ -152,6 +152,9 @@ export interface EthicsAssessment {
   securityOtherNational?: boolean | null;
   securityOtherNationalPage?: string;
   securityOtherNationalDetails?: string;
+  securityOtherIssues?: boolean | null;
+  securityOtherIssuesPage?: string;
+  securityOtherIssuesDetails?: string;
   // Ethics Self-assessment text fields
   ethicsSelfAssessmentObjectives?: string;
   ethicsSelfAssessmentCompliance?: string;
@@ -276,6 +279,14 @@ const SECURITY_SECTIONS: SecuritySection[] = [
         pageId: 'securityOtherNationalPage',
         label: 'Does this activity involve information and/or materials subject to national security restrictions?',
         detailsId: 'securityOtherNationalDetails',
+        detailsPlaceholder: 'If yes, please specify...',
+        detailsMaxLength: 1000,
+      },
+      {
+        id: 'securityOtherIssues',
+        pageId: 'securityOtherIssuesPage',
+        label: 'Are there any other security issues that should be taken into consideration?',
+        detailsId: 'securityOtherIssuesDetails',
         detailsPlaceholder: 'If yes, please specify...',
         detailsMaxLength: 1000,
       },
