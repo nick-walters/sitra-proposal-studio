@@ -37,6 +37,9 @@ interface ProposalData {
   topicId?: string;
   topicUrl?: string;
   topicTitle?: string;
+  topicDescription?: string;
+  topicDestinationDescription?: string;
+  topicContentImportedAt?: Date;
   workProgramme?: string;
   destination?: string;
   logoUrl?: string;
@@ -92,6 +95,9 @@ export function useProposalData(proposalId: string) {
         topicId: data.topic_id || undefined,
         topicUrl: data.topic_url || undefined,
         topicTitle: data.topic_title || undefined,
+        topicDescription: (data as any).topic_description || undefined,
+        topicDestinationDescription: (data as any).topic_destination_description || undefined,
+        topicContentImportedAt: (data as any).topic_content_imported_at ? new Date((data as any).topic_content_imported_at) : undefined,
         workProgramme: data.work_programme || undefined,
         destination: data.destination || undefined,
         logoUrl: data.logo_url || undefined,

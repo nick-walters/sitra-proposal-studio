@@ -200,6 +200,9 @@ export interface Proposal {
   topicUrl?: string;
   topicId?: string;
   topicTitle?: string;
+  topicDescription?: string;
+  topicDestinationDescription?: string;
+  topicContentImportedAt?: Date;
   totalBudget?: number;
   deadline?: Date;
   description?: string;
