@@ -679,9 +679,9 @@ export function usePdfExport() {
       };
 
       // Helper: Draw a rounded bubble badge
-      const drawBubble = (text: string, x: number, y: number, bgColor: [number, number, number]): number => {
+      const drawBubble = (text: string, x: number, y: number, bgColor: [number, number, number], italic: boolean = false): number => {
         pdf.setFontSize(8);
-        pdf.setFont('times', 'bold');
+        pdf.setFont('times', italic ? 'bolditalic' : 'bold');
         const textWidth = pdf.getTextWidth(text);
         const padding = 1.5;
         const bubbleWidth = textWidth + padding * 2;
@@ -714,10 +714,10 @@ export function usePdfExport() {
         return drawBubble(text, x, y, [r, g, b]);
       };
 
-      // Helper: Draw partner short name bubble
+      // Helper: Draw partner short name bubble (black bg, white italic bold text)
       const drawPartnerBubble = (shortName: string, x: number, y: number): number => {
-        // Use a muted blue/gray color for partner bubbles
-        return drawBubble(shortName, x, y, [71, 85, 105]); // slate-600
+        // Black background for partner bubbles
+        return drawBubble(shortName, x, y, [0, 0, 0], true); // black, italic
       };
 
       // Helper: Add B3.1 table with custom column widths and multi-line text support
