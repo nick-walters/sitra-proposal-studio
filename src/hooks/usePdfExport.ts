@@ -1012,7 +1012,7 @@ export function usePdfExport() {
         // Caption will be added from the editor content, not hardcoded
         if (deliverables && deliverables.length > 0) {
           const delHeaders = ['Deliverable', 'WP', 'Lead', 'Type', 'Diss.', 'Due'];
-          const delColWidths = [105, 12, 18, 12, 18, 15]; // Narrow dropdown columns, wide title column
+          const delColWidths = [85, 20, 25, 12, 18, 20]; // WP = 20mm for single bubble, Lead = 25mm
           const delRows: CellContent[][] = (deliverables as B31Deliverable[]).map(d => {
             // Merged: "DX.X: Title" in sentence case
             const title = d.name ? toSentenceCase(d.name) : '';
