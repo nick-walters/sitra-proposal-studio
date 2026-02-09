@@ -1,37 +1,31 @@
 
 
-## Fix: Bubble Clipping in B31 Deliverables Table
+## Fix: Profile Photo Zoom Squashing
 
 ### Problem
-The WP and Partner pill-shaped badges (bubbles) in the Deliverables table (Table 3.1c) are being cut off at the top and bottom. The root cause is that the shared `cellStyles` uses `py-px` (1px padding) and `leading-none`, which provides insufficient vertical space for the taller bubble elements.
+When zooming the profile photo in the crop dialog, the image gets distorted instead of maintaining its aspect ratio.
 
-Previous attempts to fix this with `overflow-visible` on SelectTrigger did not work because CSS overflow clipping is enforced by parent containers -- a child cannot override its ancestor's clipping behavior.
+### Root Cause
+The `<img>` element in the crop preview has both `width` and `height` set as explicit pixel values in the `style` attribute. While the calculated values should theoretically maintain the aspect ratio, browser rounding and edge cases (especially at low zoom levels) can cause slight mismatches. More importantly, adding `object-fit: contain` as a safeguard is missing, which means any calculation imprecision leads to visible distortion.
 
 ### Solution
-Instead of fighting overflow, give the bubble-containing cells enough vertical space by using a dedicated cell style with more padding.
+In `src/components/ProfilePhotoUpload.tsx`, add `objectFit: 'contain'` to the preview image's inline style to ensure the browser always preserves the image's natural aspect ratio regardless of the explicit width/height values.
 
-### Changes (1 file)
+### Technical Details
 
-**`src/components/B31TablesEditor.tsx`**
+**File: `src/components/ProfilePhotoUpload.tsx`**
 
-1. **Add a new `bubbleCellStyles` constant** (next to existing `cellStyles` on line 136):
-   ```
-   const bubbleCellStyles = "border border-black px-0.5 py-1 h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-normal";
-   ```
-   Key differences from `cellStyles`: `py-1` instead of `py-px`, `leading-normal` instead of `leading-none`.
+- On the `<img>` element inside the crop preview (around line 309-321), add `objectFit: 'contain'` to the style object so it becomes a safety net against any dimensional rounding issues:
 
-2. **Apply `bubbleCellStyles` to the WP column cell** (line 702): Change `cellStyles` to `bubbleCellStyles`.
+```tsx
+style={{
+  width: `${scaledWidth}px`,
+  height: `${scaledHeight}px`,
+  left: `${(cropSize - scaledWidth) / 2 + position.x}px`,
+  top: `${(cropSize - scaledHeight) / 2 + position.y}px`,
+  objectFit: 'contain',
+}}
+```
 
-3. **Apply `bubbleCellStyles` to the Lead Participant column cell** (line 709): Change `cellStyles` to `bubbleCellStyles`.
+- Additionally, ensure the canvas crop logic (`cropAndUpload` function) also uses the correct aspect-preserving dimensions so the final uploaded image matches what the user sees in the preview.
 
-4. **Simplify the Lead Participant SelectTrigger** (line 714): Remove the `overflow-visible` workaround since the extra cell padding makes it unnecessary. Change to:
-   ```
-   className="h-auto px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex items-center"
-   ```
-
-5. **Also apply `bubbleCellStyles` to the Milestones table WP column** (line 944) if multi-WP bubbles have the same clipping issue there.
-
-### Why This Works
-- The bubbles are approximately 18-20px tall; `py-1` (8px total) provides enough breathing room vs `py-px` (2px total)
-- No overflow hacks needed -- content fits naturally within the cell
-- Only the columns with bubbles get the extra padding; other columns stay compact
