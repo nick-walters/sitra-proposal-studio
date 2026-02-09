@@ -80,10 +80,32 @@ export function DependenciesSection({
               <Link2 className="w-5 h-5" />
               Links with other participants
             </CardTitle>
-            <CardDescription className="mt-1">
-              Declare any significant links with other participants in the consortium 
-              (e.g., ownership, legal ties, shared resources, joint ventures)
-            </CardDescription>
+            <p className="text-sm text-muted-foreground mt-2">
+              Please indicate if there are dependencies with other participants of the proposal.
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Two participants (legal entities) are dependent on each other where there is a controlling relationship between them:
+            </p>
+            <ul className="text-sm text-muted-foreground mt-1 ml-4 list-disc space-y-1">
+              <li>A legal entity is under the same direct or indirect control as another legal entity; or</li>
+              <li>A legal entity directly or indirectly controls another legal entity; or</li>
+              <li>A legal entity is directly or indirectly controlled by another legal entity.</li>
+            </ul>
+            <p className="text-sm text-muted-foreground mt-2 font-medium">Control:</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Legal entity A controls legal entity B if:
+            </p>
+            <ul className="text-sm text-muted-foreground mt-1 ml-4 list-disc space-y-1">
+              <li>A, directly or indirectly, holds more than 50% of the nominal value of the issued share capital or a majority of the voting rights of the shareholders or associates of B, or</li>
+              <li>A, directly or indirectly, holds in fact or in law the decision-making powers in B.</li>
+            </ul>
+            <p className="text-sm text-muted-foreground mt-2 italic">
+              The following relationships between legal entities shall not in themselves be deemed to constitute controlling relationships:
+            </p>
+            <ol className="text-sm text-muted-foreground mt-1 ml-4 list-[lower-alpha] space-y-1 italic">
+              <li>the same public investment corporation, institutional investor or venture-capital company has a direct or indirect holding of more than 50% of the nominal value of the issued share capital or a majority of voting rights of the shareholders or associates;</li>
+              <li>the legal entities concerned are owned or supervised by the same public body.</li>
+            </ol>
           </div>
           {canEdit && otherParticipants.length > 0 && (
             <Button
