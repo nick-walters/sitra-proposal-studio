@@ -409,7 +409,10 @@ function RiskBadge({ level }: { level: 'L' | 'M' | 'H' }) {
   if (!option) return null;
   
   return (
-    <span className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-white text-[9pt] font-medium ${option.color}`}>
+    <span 
+      className={`inline-flex items-center justify-center rounded-full text-white text-[9pt] font-medium ${option.color}`}
+      style={{ width: '18px', height: '18px', minWidth: '18px', minHeight: '18px' }}
+    >
       {level}
     </span>
   );
