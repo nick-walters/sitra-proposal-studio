@@ -428,7 +428,7 @@ export function ProposalEditor() {
             const userParticipantMembers = participantMembers.filter(m => m.userId === user?.id);
             const isUserMemberOfParticipant = userParticipantMembers.some(m => m.participantId === selectedParticipantId);
             // isAdmin already includes owner (owner || admin), so admins AND owners can edit any participant
-            const canEditThisParticipant = canEdit && (isAdmin || isUserMemberOfParticipant);
+            const canEditThisParticipant = canEdit;
             
             return (
               <ParticipantDetailForm
@@ -449,19 +449,14 @@ export function ProposalEditor() {
                 onUpdateMember={updateParticipantMember}
                 onDeleteMember={deleteParticipantMember}
                 canEdit={canEditThisParticipant}
-                canDelete={isAdmin && canEdit}
+                canDelete={canEdit}
               />
             );
           }
         }
 
-        // Admins/owners see all participants, regular users only see their linked organisation(s)
-        const visibleParticipants = isAdmin 
-          ? participants 
-          : participants.filter(p => {
-              const userMembers = participantMembers.filter(m => m.userId === user?.id);
-              return userMembers.some(m => m.participantId === p.id);
-            });
+        // All users with proposal access can see all participants
+        const visibleParticipants = participants;
 
         return (
           <div className="flex-1 overflow-y-auto">
@@ -502,7 +497,7 @@ export function ProposalEditor() {
         if (participant) {
           const userParticipantMembers = participantMembers.filter(m => m.userId === user?.id);
           const isUserMemberOfParticipant = userParticipantMembers.some(m => m.participantId === participantId);
-          const canEditThisParticipant = canEdit && (isAdmin || isUserMemberOfParticipant);
+          const canEditThisParticipant = canEdit;
           
           return (
             <div className="flex-1 overflow-y-auto">
@@ -526,7 +521,7 @@ export function ProposalEditor() {
                 onUpdateMember={updateParticipantMember}
                 onDeleteMember={deleteParticipantMember}
                 canEdit={canEditThisParticipant}
-                canDelete={isAdmin && canEdit}
+                canDelete={canEdit}
               />
             </div>
           );
