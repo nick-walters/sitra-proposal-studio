@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -87,18 +88,18 @@ export function MainContactSection({
           </div>
           <div className="space-y-2">
             <Label>First name</Label>
-            <Input
+            <DebouncedInput
               value={fields.mainContactFirstName || ''}
-              onChange={(e) => onUpdate('mainContactFirstName', e.target.value)}
+              onDebouncedChange={(v) => onUpdate('mainContactFirstName', v)}
               placeholder="First name"
               disabled={!canEdit}
             />
           </div>
           <div className="space-y-2">
             <Label>Last name</Label>
-            <Input
+            <DebouncedInput
               value={fields.mainContactLastName || ''}
-              onChange={(e) => onUpdate('mainContactLastName', e.target.value)}
+              onDebouncedChange={(v) => onUpdate('mainContactLastName', v)}
               placeholder="Last name"
               disabled={!canEdit}
             />
@@ -126,19 +127,19 @@ export function MainContactSection({
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label>Position in organisation</Label>
-            <Input
+            <DebouncedInput
               value={fields.mainContactPosition || ''}
-              onChange={(e) => onUpdate('mainContactPosition', e.target.value)}
+              onDebouncedChange={(v) => onUpdate('mainContactPosition', v)}
               placeholder="e.g., Professor, Director"
               disabled={!canEdit}
             />
           </div>
           <div className="space-y-2">
             <Label>Email</Label>
-            <Input
+            <DebouncedInput
               type="email"
               value={fields.contactEmail || ''}
-              onChange={(e) => onUpdate('contactEmail', e.target.value)}
+              onDebouncedChange={(v) => onUpdate('contactEmail', v)}
               placeholder="contact@organisation.eu"
               disabled={!canEdit}
             />
@@ -161,9 +162,9 @@ export function MainContactSection({
           {!deptSameAsOrg && (
             <div className="space-y-2">
               <Label>Department</Label>
-              <Input
+              <DebouncedInput
                 value={fields.mainContactDepartment || ''}
-                onChange={(e) => onUpdate('mainContactDepartment', e.target.value)}
+                onDebouncedChange={(v) => onUpdate('mainContactDepartment', v)}
                 placeholder="Department name"
                 disabled={!canEdit}
               />
@@ -189,27 +190,27 @@ export function MainContactSection({
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
                 <Label>Street address</Label>
-                <Input
+                <DebouncedInput
                   value={fields.mainContactStreet || ''}
-                  onChange={(e) => onUpdate('mainContactStreet', e.target.value)}
+                  onDebouncedChange={(v) => onUpdate('mainContactStreet', v)}
                   placeholder="Street address"
                   disabled={!canEdit}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Town/City</Label>
-                <Input
+                <DebouncedInput
                   value={fields.mainContactTown || ''}
-                  onChange={(e) => onUpdate('mainContactTown', e.target.value)}
+                  onDebouncedChange={(v) => onUpdate('mainContactTown', v)}
                   placeholder="Town/City"
                   disabled={!canEdit}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Postcode</Label>
-                <Input
+                <DebouncedInput
                   value={fields.mainContactPostcode || ''}
-                  onChange={(e) => onUpdate('mainContactPostcode', e.target.value)}
+                  onDebouncedChange={(v) => onUpdate('mainContactPostcode', v)}
                   placeholder="Postcode"
                   disabled={!canEdit}
                 />
@@ -233,29 +234,29 @@ export function MainContactSection({
         <div className="grid gap-4 sm:grid-cols-3 pt-2 border-t">
           <div className="space-y-2">
             <Label>Website</Label>
-            <Input
+            <DebouncedInput
               value={fields.mainContactWebsite || ''}
-              onChange={(e) => onUpdate('mainContactWebsite', e.target.value)}
+              onDebouncedChange={(v) => onUpdate('mainContactWebsite', v)}
               placeholder="https://..."
               disabled={!canEdit}
             />
           </div>
           <div className="space-y-2">
             <Label>Phone 1</Label>
-            <Input
+            <DebouncedInput
               type="tel"
               value={fields.mainContactPhone || ''}
-              onChange={(e) => onUpdate('mainContactPhone', e.target.value)}
+              onDebouncedChange={(v) => onUpdate('mainContactPhone', v)}
               placeholder="+358..."
               disabled={!canEdit}
             />
           </div>
           <div className="space-y-2">
             <Label>Phone 2</Label>
-            <Input
+            <DebouncedInput
               type="tel"
               value={fields.mainContactPhone2 || ''}
-              onChange={(e) => onUpdate('mainContactPhone2', e.target.value)}
+              onDebouncedChange={(v) => onUpdate('mainContactPhone2', v)}
               placeholder="+358..."
               disabled={!canEdit}
             />

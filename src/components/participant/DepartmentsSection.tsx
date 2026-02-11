@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Trash2, Building2, GripVertical } from 'lucide-react';
@@ -111,9 +112,9 @@ function SortableDepartmentCard({
         )}
         <Building2 className="w-5 h-5 text-primary flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <Input
+          <DebouncedInput
             value={dept.departmentName}
-            onChange={(e) => onUpdate(dept.id, { departmentName: e.target.value })}
+            onDebouncedChange={(v) => onUpdate(dept.id, { departmentName: v })}
             placeholder="Department name"
             disabled={!canEdit}
             className="font-medium"
@@ -146,27 +147,27 @@ function SortableDepartmentCard({
       <div className="grid gap-3 sm:grid-cols-2 ml-9">
         <div className="space-y-1 sm:col-span-2">
           <Label className="text-xs">Street</Label>
-          <Input
+          <DebouncedInput
             value={dept.street || ''}
-            onChange={(e) => onUpdate(dept.id, { street: e.target.value })}
+            onDebouncedChange={(v) => onUpdate(dept.id, { street: v })}
             placeholder="Street address"
             disabled={!canEdit || dept.sameAsOrganisation}
           />
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Town</Label>
-          <Input
+          <DebouncedInput
             value={dept.town || ''}
-            onChange={(e) => onUpdate(dept.id, { town: e.target.value })}
+            onDebouncedChange={(v) => onUpdate(dept.id, { town: v })}
             placeholder="Town / City"
             disabled={!canEdit || dept.sameAsOrganisation}
           />
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Postcode</Label>
-          <Input
+          <DebouncedInput
             value={dept.postcode || ''}
-            onChange={(e) => onUpdate(dept.id, { postcode: e.target.value })}
+            onDebouncedChange={(v) => onUpdate(dept.id, { postcode: v })}
             placeholder="Postcode"
             disabled={!canEdit || dept.sameAsOrganisation}
           />

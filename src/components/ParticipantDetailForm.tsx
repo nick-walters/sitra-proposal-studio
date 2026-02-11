@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -250,9 +251,9 @@ export function ParticipantDetailForm({
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
                 <Label>Legal name *</Label>
-                <Input
+                <DebouncedInput
                   value={participant.organisationName || ''}
-                  onChange={(e) => handleFieldUpdate('organisationName', e.target.value)}
+                  onDebouncedChange={(v) => handleFieldUpdate('organisationName', v)}
                   placeholder="Full legal name of the organisation"
                   disabled={!canEdit}
                   required
@@ -260,9 +261,9 @@ export function ParticipantDetailForm({
               </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label>English name</Label>
-                <Input
+                <DebouncedInput
                   value={participant.englishName || ''}
-                  onChange={(e) => handleFieldUpdate('englishName', e.target.value)}
+                  onDebouncedChange={(v) => handleFieldUpdate('englishName', v)}
                   placeholder="English name (if legal name is not in English)"
                   disabled={!canEdit}
                 />
@@ -272,9 +273,9 @@ export function ParticipantDetailForm({
               </div>
               <div className="space-y-2">
                 <Label>Short name *</Label>
-                <Input
+                <DebouncedInput
                   value={participant.organisationShortName || ''}
-                  onChange={(e) => handleFieldUpdate('organisationShortName', e.target.value)}
+                  onDebouncedChange={(v) => handleFieldUpdate('organisationShortName', v)}
                   placeholder="e.g. UH, CNRS"
                   disabled={!canEdit}
                   required
@@ -322,27 +323,27 @@ export function ParticipantDetailForm({
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
                 <Label>Street</Label>
-                <Input
+                <DebouncedInput
                   value={participant.street || ''}
-                  onChange={(e) => handleFieldUpdate('street', e.target.value)}
+                  onDebouncedChange={(v) => handleFieldUpdate('street', v)}
                   placeholder="Street address"
                   disabled={!canEdit}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Town</Label>
-                <Input
+                <DebouncedInput
                   value={participant.town || ''}
-                  onChange={(e) => handleFieldUpdate('town', e.target.value)}
+                  onDebouncedChange={(v) => handleFieldUpdate('town', v)}
                   placeholder="Town / City"
                   disabled={!canEdit}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Postcode</Label>
-                <Input
+                <DebouncedInput
                   value={participant.postcode || ''}
-                  onChange={(e) => handleFieldUpdate('postcode', e.target.value)}
+                  onDebouncedChange={(v) => handleFieldUpdate('postcode', v)}
                   placeholder="Postcode"
                   disabled={!canEdit}
                 />
@@ -360,9 +361,9 @@ export function ParticipantDetailForm({
               </div>
               <div className="space-y-2">
                 <Label>Website</Label>
-                <Input
+                <DebouncedInput
                   value={participant.website || ''}
-                  onChange={(e) => handleFieldUpdate('website', e.target.value)}
+                  onDebouncedChange={(v) => handleFieldUpdate('website', v)}
                   placeholder="https://www.example.org"
                   disabled={!canEdit}
                 />
