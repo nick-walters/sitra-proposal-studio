@@ -57,7 +57,7 @@ function QuestionField({ id, label, question, value, onChange, placeholder, read
 
   return (
     <div className="space-y-2">
-      <Label htmlFor={id} className="text-sm font-medium">{label}</Label>
+      <Label htmlFor={id} className="text-xs font-medium">{label}</Label>
       <p className="text-xs text-muted-foreground">{question}</p>
       <Textarea
         id={id}
