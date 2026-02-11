@@ -250,7 +250,13 @@ export function Dashboard() {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        // Ignore abort errors (caused by React StrictMode re-mounting)
+        if (error.message?.includes('AbortError') || error.message?.includes('aborted')) {
+          return;
+        }
+        throw error;
+      }
 
       // Transform database rows to Proposal type
       const transformedProposals: Proposal[] = (data || []).map(row => ({
@@ -280,7 +286,11 @@ export function Dashboard() {
       }));
 
       setProposals(transformedProposals);
-    } catch (error) {
+    } catch (error: any) {
+      // Don't show error toast for abort errors
+      if (error?.message?.includes('AbortError') || error?.message?.includes('aborted')) {
+        return;
+      }
       console.error('Error fetching proposals:', error);
       toast.error('Failed to load proposals');
     } finally {

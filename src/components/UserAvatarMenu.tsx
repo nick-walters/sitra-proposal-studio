@@ -32,16 +32,28 @@ export function UserAvatarMenu({ userId, email, onLogout }: UserAvatarMenuProps)
 
   const fetchProfile = async () => {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('first_name, last_name, full_name, avatar_url')
         .eq('id', userId)
         .single();
 
+      if (error) {
+        // Ignore abort errors
+        if (error.message?.includes('AbortError') || error.message?.includes('aborted')) {
+          return;
+        }
+        console.error('Error fetching profile:', error);
+        return;
+      }
+
       if (data) {
         setProfile(data);
       }
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.message?.includes('AbortError') || error?.message?.includes('aborted')) {
+        return;
+      }
       console.error('Error fetching profile:', error);
     }
   };
