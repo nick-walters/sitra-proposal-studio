@@ -40,6 +40,17 @@ export interface WPDraftRisk {
   order_index: number;
 }
 
+export interface WPDraftMilestone {
+  id: string;
+  wp_draft_id: string;
+  number: number;
+  title: string | null;
+  related_wps: string | null;
+  due_month: number | null;
+  means_of_verification: string | null;
+  order_index: number;
+}
+
 export interface WPDraft {
   id: string;
   proposal_id: string;
@@ -60,6 +71,7 @@ export interface WPDraft {
   tasks?: WPDraftTask[];
   deliverables?: WPDraftDeliverable[];
   risks?: WPDraftRisk[];
+  milestones?: WPDraftMilestone[];
 }
 
 export function useWPDrafts(proposalId: string | null) {
@@ -89,7 +101,8 @@ export function useWPDrafts(proposalId: string | null) {
             effort:wp_draft_task_effort(participant_id, person_months)
           ),
           deliverables:wp_draft_deliverables(*),
-          risks:wp_draft_risks(*)
+          risks:wp_draft_risks(*),
+          milestones:wp_draft_milestones(*)
         `)
         .eq('proposal_id', proposalId)
         .order('order_index');
@@ -102,6 +115,7 @@ export function useWPDrafts(proposalId: string | null) {
         tasks: (wp.tasks || []).sort((a: WPDraftTask, b: WPDraftTask) => a.order_index - b.order_index),
         deliverables: (wp.deliverables || []).sort((a: WPDraftDeliverable, b: WPDraftDeliverable) => a.order_index - b.order_index),
         risks: (wp.risks || []).sort((a: WPDraftRisk, b: WPDraftRisk) => a.order_index - b.order_index),
+        milestones: (wp.milestones || []).sort((a: WPDraftMilestone, b: WPDraftMilestone) => a.order_index - b.order_index),
       }));
 
       setWPDrafts(sortedData);
@@ -179,10 +193,17 @@ export function useWPDrafts(proposalId: string | null) {
         order_index: num - 1,
       }));
 
+      const milestonesToCreate = [1, 2].map(num => ({
+        wp_draft_id: data.id,
+        number: num,
+        order_index: num - 1,
+      }));
+
       await Promise.all([
         supabase.from('wp_draft_tasks').insert(tasksToCreate),
         supabase.from('wp_draft_deliverables').insert(deliverablesToCreate),
         supabase.from('wp_draft_risks').insert(risksToCreate),
+        supabase.from('wp_draft_milestones').insert(milestonesToCreate),
       ]);
 
       await fetchWPDrafts();
@@ -286,7 +307,8 @@ export function useWPDraftEditor(wpId: string | null) {
             effort:wp_draft_task_effort(participant_id, person_months)
           ),
           deliverables:wp_draft_deliverables(*),
-          risks:wp_draft_risks(*)
+          risks:wp_draft_risks(*),
+          milestones:wp_draft_milestones(*)
         `)
         .eq('id', wpId)
         .single();
@@ -299,6 +321,7 @@ export function useWPDraftEditor(wpId: string | null) {
         tasks: (data.tasks || []).sort((a: WPDraftTask, b: WPDraftTask) => a.order_index - b.order_index),
         deliverables: (data.deliverables || []).sort((a: WPDraftDeliverable, b: WPDraftDeliverable) => a.order_index - b.order_index),
         risks: (data.risks || []).sort((a: WPDraftRisk, b: WPDraftRisk) => a.order_index - b.order_index),
+        milestones: (data.milestones || []).sort((a: WPDraftMilestone, b: WPDraftMilestone) => a.order_index - b.order_index),
       };
 
       setWPDraft(sortedData);
@@ -781,6 +804,121 @@ export function useWPDraftEditor(wpId: string | null) {
     }
   }, []);
 
+  // Milestone operations
+  const addMilestone = useCallback(async () => {
+    if (!wpDraft) return null;
+
+    try {
+      const nextNumber = wpDraft.milestones && wpDraft.milestones.length > 0
+        ? Math.max(...wpDraft.milestones.map(m => m.number)) + 1
+        : 1;
+
+      const { data, error } = await supabase
+        .from('wp_draft_milestones')
+        .insert({
+          wp_draft_id: wpDraft.id,
+          number: nextNumber,
+          order_index: wpDraft.milestones?.length || 0,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setWPDraft(prev => prev ? {
+        ...prev,
+        milestones: [...(prev.milestones || []), data],
+      } : null);
+
+      return data;
+    } catch (err) {
+      console.error('Error adding milestone:', err);
+      toast.error('Failed to add milestone');
+      return null;
+    }
+  }, [wpDraft]);
+
+  const updateMilestone = useCallback(async (milestoneId: string, updates: Partial<WPDraftMilestone>) => {
+    try {
+      const { error } = await supabase
+        .from('wp_draft_milestones')
+        .update(updates)
+        .eq('id', milestoneId);
+
+      if (error) throw error;
+
+      setWPDraft(prev => prev ? {
+        ...prev,
+        milestones: prev.milestones?.map(m => m.id === milestoneId ? { ...m, ...updates } : m),
+      } : null);
+
+      return true;
+    } catch (err) {
+      console.error('Error updating milestone:', err);
+      return false;
+    }
+  }, []);
+
+  const deleteMilestone = useCallback(async (milestoneId: string) => {
+    try {
+      const { error } = await supabase
+        .from('wp_draft_milestones')
+        .delete()
+        .eq('id', milestoneId);
+
+      if (error) throw error;
+
+      setWPDraft(prev => prev ? {
+        ...prev,
+        milestones: prev.milestones?.filter(m => m.id !== milestoneId),
+      } : null);
+
+      return true;
+    } catch (err) {
+      console.error('Error deleting milestone:', err);
+      toast.error('Failed to delete milestone');
+      return false;
+    }
+  }, []);
+
+  const reorderMilestones = useCallback(async (newOrder: string[]) => {
+    if (!wpDraft) return false;
+
+    try {
+      const updates = newOrder.map((id, index) => ({
+        id,
+        order_index: index,
+        number: index + 1,
+      }));
+
+      setWPDraft(prev => {
+        if (!prev || !prev.milestones) return prev;
+        const milestoneMap = new Map(prev.milestones.map(m => [m.id, m]));
+        return {
+          ...prev,
+          milestones: newOrder.map((id, index) => ({
+            ...milestoneMap.get(id)!,
+            order_index: index,
+            number: index + 1,
+          })),
+        };
+      });
+
+      for (const update of updates) {
+        await supabase
+          .from('wp_draft_milestones')
+          .update({ order_index: update.order_index, number: update.number })
+          .eq('id', update.id);
+      }
+
+      return true;
+    } catch (err) {
+      console.error('Error reordering milestones:', err);
+      toast.error('Failed to reorder milestones');
+      return false;
+    }
+  }, [wpDraft]);
+
   return {
     wpDraft,
     loading,
@@ -804,5 +942,10 @@ export function useWPDraftEditor(wpId: string | null) {
     updateRisk,
     deleteRisk,
     reorderRisks,
+    // Milestones
+    addMilestone,
+    updateMilestone,
+    deleteMilestone,
+    reorderMilestones,
   };
 }

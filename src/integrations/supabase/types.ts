@@ -3187,6 +3187,53 @@ export type Database = {
           },
         ]
       }
+      wp_draft_milestones: {
+        Row: {
+          created_at: string
+          due_month: number | null
+          id: string
+          means_of_verification: string | null
+          number: number
+          order_index: number
+          related_wps: string | null
+          title: string | null
+          updated_at: string
+          wp_draft_id: string
+        }
+        Insert: {
+          created_at?: string
+          due_month?: number | null
+          id?: string
+          means_of_verification?: string | null
+          number?: number
+          order_index?: number
+          related_wps?: string | null
+          title?: string | null
+          updated_at?: string
+          wp_draft_id: string
+        }
+        Update: {
+          created_at?: string
+          due_month?: number | null
+          id?: string
+          means_of_verification?: string | null
+          number?: number
+          order_index?: number
+          related_wps?: string | null
+          title?: string | null
+          updated_at?: string
+          wp_draft_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wp_draft_milestones_wp_draft_id_fkey"
+            columns: ["wp_draft_id"]
+            isOneToOne: false
+            referencedRelation: "wp_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wp_draft_risks: {
         Row: {
           created_at: string
