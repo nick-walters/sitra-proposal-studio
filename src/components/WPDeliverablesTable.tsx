@@ -241,7 +241,7 @@ function SortableDeliverableCard({
             disabled={readOnly}
           >
             <SelectTrigger hideArrow className="h-6 w-[60px] text-xs px-1.5">
-              <SelectValue placeholder="Type" />
+              <SelectValue placeholder="Select" />
             </SelectTrigger>
             <SelectContent className="bg-popover">
               {DELIVERABLE_TYPES.map((type) => (
@@ -257,14 +257,14 @@ function SortableDeliverableCard({
         </div>
 
         <div className="flex items-center gap-1 flex-shrink-0">
-          <span className="text-xs text-muted-foreground">Diss.:</span>
+          <span className="text-xs text-muted-foreground">Dissemination level:</span>
           <Select
             value={deliverable.dissemination_level || 'PU'}
             onValueChange={(value) => onUpdate(deliverable.id, { dissemination_level: value })}
             disabled={readOnly}
           >
             <SelectTrigger hideArrow className="h-6 w-[55px] text-xs px-1.5">
-              <SelectValue />
+              <SelectValue placeholder="Select" />
             </SelectTrigger>
             <SelectContent>
               {DISSEMINATION_LEVELS.map((level) => (
@@ -277,14 +277,14 @@ function SortableDeliverableCard({
         </div>
 
         <div className="flex items-center gap-1 flex-shrink-0">
-          <span className="text-xs text-muted-foreground">Responsible:</span>
+          <span className="text-xs text-muted-foreground">Partner responsible:</span>
           <Select
             value={deliverable.responsible_participant_id || ''}
             onValueChange={(value) => onUpdate(deliverable.id, { responsible_participant_id: value || null })}
             disabled={readOnly}
           >
             <SelectTrigger hideArrow className="h-6 w-[80px] text-xs px-1.5">
-              <SelectValue placeholder="Select..." />
+              <SelectValue placeholder="Select" />
             </SelectTrigger>
             <SelectContent>
               {participants.map((p) => (
@@ -304,7 +304,7 @@ function SortableDeliverableCard({
             disabled={readOnly}
           >
             <SelectTrigger hideArrow className="h-6 w-[45px] text-xs px-1">
-              <SelectValue placeholder="M" />
+              <SelectValue placeholder="Select" />
             </SelectTrigger>
             <SelectContent>
               {monthOptions.map((m) => (

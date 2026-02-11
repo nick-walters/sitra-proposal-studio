@@ -260,13 +260,12 @@ function SortableRiskCard({
         )}
       </div>
 
-      {/* Row 2: Mitigation & adaptation measures */}
+      {/* Row 2: Mitigation */}
       <div className="flex items-start gap-1.5 mt-1.5 ml-5">
-        <span className="text-xs text-muted-foreground flex-shrink-0 mt-1">Mitigation & adaptation measures:</span>
         <Textarea
           value={localMitigation}
           onChange={handleMitigationChange}
-          placeholder="Describe mitigation strategies..."
+          placeholder="Describe mitigation & adaptation measures..."
           className="min-h-[40px] resize-y text-xs flex-1"
           disabled={readOnly}
         />

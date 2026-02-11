@@ -261,14 +261,14 @@ function SortableTaskCard({
       {/* Row 2: Leader, Participants, Timing */}
       <div className="flex items-center gap-1.5 mt-1.5 ml-5">
         <div className="flex items-center gap-1 flex-shrink-0">
-          <span className="text-xs text-muted-foreground">Leader:</span>
+          <span className="text-xs text-muted-foreground">Task leader:</span>
           <Select
             value={task.lead_participant_id || ''}
             onValueChange={(value) => onUpdate(task.id, { lead_participant_id: value || null })}
             disabled={readOnly}
           >
             <SelectTrigger className="h-6 w-[90px] text-xs px-1.5">
-              <SelectValue placeholder="Select..." />
+              <SelectValue placeholder="Select" />
             </SelectTrigger>
             <SelectContent>
               {participants.map((p) => (
@@ -298,7 +298,7 @@ function SortableTaskCard({
             disabled={readOnly}
           >
             <SelectTrigger className="h-6 w-[52px] text-xs px-1">
-              <SelectValue placeholder="M" />
+              <SelectValue placeholder="Select" />
             </SelectTrigger>
             <SelectContent>
               {monthOptions.map((m) => (
@@ -313,7 +313,7 @@ function SortableTaskCard({
             disabled={readOnly}
           >
             <SelectTrigger className="h-6 w-[52px] text-xs px-1">
-              <SelectValue placeholder="M" />
+              <SelectValue placeholder="Select" />
             </SelectTrigger>
             <SelectContent>
               {monthOptions.map((m) => (
