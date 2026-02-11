@@ -24,7 +24,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Plus, Trash2, Users, HelpCircle, Edit2, Check, X } from 'lucide-react';
+import { Plus, Trash2, Users, HelpCircle, Edit2, Check, X, BookOpen } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -200,22 +207,42 @@ export function ResearchersTable({
                 <div className="space-y-2">
                   <Label className="flex items-center gap-1">
                     Career stage
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <HelpCircle className="w-3 h-3 text-muted-foreground" />
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-sm">
-                          <div className="space-y-2 text-xs">
-                            {CAREER_STAGES.map((stage) => (
-                              <div key={stage.value}>
-                                <strong>{stage.label}:</strong> {stage.description}
-                              </div>
-                            ))}
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <button type="button" className="text-destructive hover:text-destructive/80">
+                          <HelpCircle className="w-3.5 h-3.5" />
+                        </button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-lg">
+                        <DialogHeader>
+                          <DialogTitle className="flex items-center gap-2">
+                            <BookOpen className="w-5 h-5" />
+                            Career Stage Definitions
+                          </DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 text-sm">
+                          <p className="text-muted-foreground">Career stages as defined in Frascati 2015 manual:</p>
+                          <div className="space-y-3">
+                            <div>
+                              <p className="font-semibold">Category A – Top grade researcher</p>
+                              <p className="text-muted-foreground">The single highest grade/post at which research is normally conducted. Example: 'Full professor' or 'Director of research'.</p>
+                            </div>
+                            <div>
+                              <p className="font-semibold">Category B – Senior researcher</p>
+                              <p className="text-muted-foreground">Researchers working in positions not as senior as top position but more senior than newly qualified doctoral graduates (ISCED level 8). Examples: 'associate professor' or 'senior researcher' or 'principal investigator'.</p>
+                            </div>
+                            <div>
+                              <p className="font-semibold">Category C – Recognised researcher</p>
+                              <p className="text-muted-foreground">The first grade/post into which a newly qualified doctoral graduate would normally be recruited. Examples: 'assistant professor', 'investigator' or 'postdoctoral fellow'.</p>
+                            </div>
+                            <div>
+                              <p className="font-semibold">Category D – First stage researcher</p>
+                              <p className="text-muted-foreground">Either doctoral students at the ISCED level 8 who are engaged as researchers, or researchers working in posts that do not normally require a doctorate degree. Examples: 'PhD students' or 'junior researchers' (without a PhD).</p>
+                            </div>
                           </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </Label>
                   <Select
                     value={newResearcher.careerStage}
