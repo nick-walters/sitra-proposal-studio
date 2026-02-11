@@ -1,98 +1,117 @@
 
 
-# Combined Plan: Clickable Global Role Badges + Contact Person Access Control
+# Unified Contact Persons Section + Copy to Researchers
 
-## Part A: Clickable Global Role Badges in User Rights Manager
+## Overview
 
-### What changes
+Replace the separate "Main contact person" and "Other contact persons" sections with a single unified section called **"Contact persons to be added to Funding & Tenders Portal"**, with streamlined access management and an MCP designation feature. Additionally, allow copying a contact person's details into the Researchers table to avoid data duplication.
 
-The global role badge (Admin/Owner) displayed below each user's name in the User Rights Manager becomes a clickable dropdown -- but only for Owners.
+## Changes
 
-### Behavior by viewer role
+### 1. Unified contact list
 
-| Viewer | See global roles? | Edit global roles? |
-|--------|-------------------|-------------------|
-| Owner | Yes, as clickable dropdown | Yes (except own role and other Owners) |
-| Admin (with coordinator role) | Yes, as static badge | No |
-| Others | No access to page | No access to page |
+- Remove the standalone `MainContactSection` from the participant detail page.
+- Rename/rebuild the "Other contact persons" card into **"Contact persons to be added to Funding & Tenders Portal"**.
+- All contacts live in the `participant_members` table. The main contact's extra detail fields (title, gender, position, department, address, phones) remain on the `participants` table, linked to whichever member is flagged as MCP.
 
-### File: `src/pages/admin/UserRightsAdmin.tsx`
+### 2. Adding a contact person
 
-1. **Replace lines 375-405** (the global role badges, trash buttons, and "+ Make Admin" button) with a role-aware UI:
-   - When `isOwner` and the target user is not an Owner: render a `Select` dropdown below the name with options "None", "Admin", "Owner"
-   - When the target is an Owner or the current user is viewing themselves: render a static read-only `Badge`
-   - When the viewer is an Admin (not Owner): render a static `Badge`
+The "Add Contact" form includes:
+- First name (required)
+- Last name (required)
+- Email (required)
+- Phone
+- **"Should this person have access to the proposal on Sitra Proposal Studio?"** -- required Yes/No dropdown (defaults to No), stored as `wants_platform_access` on the member row.
 
-2. **Add `handleChangeGlobalRole(targetUser, existingRoleId, newValue)` function** that handles all transitions:
-   - "none" to "admin" or "owner": insert a new `user_roles` row with `proposal_id = null`
-   - "admin" to "owner" or reverse: update the existing row
-   - Any role to "none": delete the row
-   - Refresh local user state after each operation
+### 3. Contact list view
 
-3. **Remove** the old `handleAddGlobalRole` function and inline trash buttons for global roles -- replaced by the unified dropdown.
+Each contact row shows name, email, phone, and:
 
----
+- **MCP flag**: A star icon to designate one contact as the Main Contact Person. Toggling it on removes the flag from the previous MCP. When flagged, additional fields expand inline (title, gender, position, department, address, phones).
+- **Access button** (Owners and Coordinators only):
+  - Shown only if the contact answered "Yes" to platform access.
+  - Before access is granted: a "Give access" button that grants **editor** access directly (no role picker).
+  - After access is granted: status indicator ("Invite sent" or "Has access") plus a revoke (trash) button.
+  - Revoking removes the `user_roles` row for that proposal only.
+- **Copy to Researchers button**: A small icon button (e.g. copy/clipboard icon) on each contact row. Clicking it copies the contact's overlapping fields into the Researchers table as a new entry. The fields that copy across are:
+  - First name
+  - Last name
+  - Email
+  - Role in project
 
-## Part B: Contact Person Access Request and Invite
+  After copying, a brief toast confirms "Copied to researchers list". The researcher entry is independent -- editing one does not update the other.
 
-### What changes
+### 4. MCP expanded details
 
-Every contact person listed under a participant (in the "Other contact persons" section) gets access controls. Editors can request access on their behalf; coordinators/owners can directly invite them with a role assignment.
+When a contact is flagged as MCP, an expandable area appears with the fields currently in `MainContactSection`:
+- Title, Gender, Position
+- Department (with "Same as organisation" checkbox)
+- Address (with "Same as organisation address" checkbox)
+- Website, Phone 1, Phone 2
 
-### Behavior by role
+These sync to the `participants` table's `main_contact_*` columns.
 
-| Role | What they see | What they can do |
-|------|--------------|-----------------|
-| Editor | "Request access" button (UserPlus icon) | Flag a contact for platform access |
-| Coordinator/Owner | Direct "Invite" button | Open role picker and send invitation immediately |
-| All users | "Invited as [role]" badge | View invitation status (read-only) |
+### 5. Copy to Researchers feature
 
-When an editor has flagged a contact, coordinators/owners see:
-- "Access requested" badge
-- "Invite" button to approve (sends invitation)
-- Dismiss button to reject the request
+This is a one-time copy action, not a sync. Contact persons and researchers are independent lists that can overlap but are maintained separately.
 
-### Files modified
+- A contact who is also a researcher appears in both lists independently.
+- The copy button pre-fills shared fields only; researcher-specific fields (career stage, nationality, gender, identifier type/value) can be filled in manually afterward.
+- If a researcher with the same first+last name already exists, a confirmation prompt asks whether to add a duplicate or cancel.
 
-**1. `src/types/proposal.ts`** -- Add access control fields to `ParticipantMember`:
+## Technical Details
 
+### Database migration
+
+Add one column to `participant_members`:
 ```text
-accessRequested?: boolean
-accessRequestedBy?: string
-accessGranted?: boolean
-accessGrantedRole?: string
-accessGrantedBy?: string
-accessGrantedAt?: string
+wants_platform_access boolean DEFAULT false
 ```
 
-**2. `src/components/participant/ContactAccessControl.tsx`** -- Redesign the component:
+### Files to modify
 
-- Replace `Flag` icon with `UserPlus` throughout
-- For editors (`canFlag` but not `canGrant`): show "Request access" button; once requested, show "Access requested" badge with cancel option
-- For coordinators/owners (`canGrant`): show direct "Invite" button that opens role-selection popover immediately (no flagging step needed); if an editor already flagged the contact, show both the "Access requested" badge and "Invite" button; add dismiss button to reject requests
-- After invitation sent: show "Invited as [role]" badge (visible to all)
+**`src/types/proposal.ts`**
+- Add `wantsPlatformAccess?: boolean` to `ParticipantMember` interface.
+- Remove or deprecate `accessRequested`/`accessRequestedBy` fields (keep `accessGranted`, `accessGrantedRole` for the simplified flow).
 
-**3. `src/components/ParticipantDetailForm.tsx`** -- Wire `ContactAccessControl` into each member row (around lines 517-549):
+**`src/components/ParticipantDetailForm.tsx`**
+- Remove `MainContactSection` import and usage.
+- Rebuild the contact persons card as the unified section.
+- Add MCP flagging logic with expandable detail fields.
+- Add access granting/revoking buttons (visible to owners/coordinators).
+- Add "Copy to Researchers" button on each contact row that calls the existing `addResearcher` function with mapped fields.
 
-- Add `ContactAccessControl` between the contact info and the delete button for each member
-- Pass: `member.email`, `member.fullName`, `member.accessRequested`, `member.accessGranted`, `member.accessGrantedRole`
-- Pass: `canFlag`, `canGrant`, `proposalId`, `proposalAcronym` from props
-- `onFlagAccess` calls `onUpdateMember(member.id, { accessRequested: value })`
-- `onAccessGranted` calls `onUpdateMember(member.id, { accessGranted: true, accessGrantedRole: role })`
+**`src/components/participant/ContactAccessControl.tsx`**
+- Simplify to a single "Give access" / "Revoke" button flow (no request/approve, no role picker).
+- Show status badge once access is granted.
 
-**4. `src/hooks/useProposalData.ts`** -- Verify the member update function maps camelCase fields (`accessRequested`, `accessGranted`, `accessGrantedRole`) to their snake_case DB columns (`access_requested`, `access_granted`, `access_granted_role`).
+**`src/components/participant/MainContactSection.tsx`**
+- Repurpose as an inline expandable form for MCP detail fields only (no card wrapper). Used inside the unified contact list when a member is flagged as MCP.
 
-### No database migration needed
+**`src/hooks/useParticipantDetails.ts`** (or equivalent)
+- Verify field mapping for the new `wants_platform_access` column.
 
-The `participant_members` table already has all required columns: `access_requested`, `access_requested_by`, `access_granted`, `access_granted_role`, `access_granted_by`, `access_granted_at`.
+### Access granting logic
 
----
+1. Look up the contact's email in `profiles`.
+2. If found: insert `user_roles` row with `(user_id, proposal_id, role='editor')`.
+3. If not found: call `invite-user` edge function, then insert role.
+4. Update member row: `access_granted = true`, `access_granted_role = 'editor'`.
 
-## Implementation Order
+### Access revoking logic
 
-1. Update `ParticipantMember` type in `src/types/proposal.ts`
-2. Redesign `ContactAccessControl.tsx` (icons, direct invite path, reject capability)
-3. Wire `ContactAccessControl` into member rows in `ParticipantDetailForm.tsx`
-4. Verify field mapping in `useProposalData.ts`
-5. Add `handleChangeGlobalRole` and clickable badge UI in `UserRightsAdmin.tsx`
+1. Look up the user by email in `profiles`.
+2. Delete the `user_roles` row for that `(user_id, proposal_id)`.
+3. Update member row: `access_granted = false`, clear `access_granted_role`.
+
+### Copy to Researchers mapping
+
+| Contact Person field | Researcher field |
+|---------------------|-----------------|
+| firstName | firstName |
+| lastName | lastName |
+| email | email |
+| roleInProject | roleInProject |
+
+All other researcher fields (title, gender, nationality, career stage, identifiers) are left blank for the user to fill in.
 
