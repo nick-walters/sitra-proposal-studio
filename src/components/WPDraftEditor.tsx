@@ -832,17 +832,6 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           projectDuration={projectDuration}
         />
 
-        {/* Risks - moved above Staff Effort */}
-        <WPRisksTable
-          wpNumber={wpDraft.number}
-          risks={wpDraft.risks || []}
-          onRiskUpdate={updateRisk}
-          onRiskAdd={addRisk}
-          onRiskDelete={deleteRisk}
-          onRiskReorder={reorderRisks}
-          readOnly={readOnly}
-        />
-
         {/* Task Interactions & Bottlenecks */}
         <WPPlanningQuestions
           inputs={wpDraft.inputs_question}
@@ -851,6 +840,17 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           onInputsChange={(value) => updateField('inputs_question', value)}
           onOutputsChange={(value) => updateField('outputs_question', value)}
           onBottlenecksChange={(value) => updateField('bottlenecks_question', value)}
+          readOnly={readOnly}
+        />
+
+        {/* Risks */}
+        <WPRisksTable
+          wpNumber={wpDraft.number}
+          risks={wpDraft.risks || []}
+          onRiskUpdate={updateRisk}
+          onRiskAdd={addRisk}
+          onRiskDelete={deleteRisk}
+          onRiskReorder={reorderRisks}
           readOnly={readOnly}
         />
 
