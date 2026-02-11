@@ -146,7 +146,7 @@ export function ParticipantDetailForm({
 
   return (
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-4">
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -178,8 +178,8 @@ export function ParticipantDetailForm({
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">Organisation details</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
+          <CardContent className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
                 <Label>Legal name *</Label>
                 <DebouncedInput
@@ -251,7 +251,7 @@ export function ParticipantDetailForm({
                 </Select>
               </div>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
                 <Label>Street</Label>
                 <DebouncedInput

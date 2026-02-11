@@ -358,7 +358,7 @@ export function DepartmentsSection({
         {!departmentsNotApplicable && (
           <>
             {departments.length === 0 && !loading ? (
-              <div className="text-center py-3 text-muted-foreground">
+              <div className="text-center py-1.5 text-muted-foreground">
                 <p className="text-sm">No departments added yet</p>
               </div>
             ) : (
