@@ -1,24 +1,59 @@
 
 
-## Reorder WP Draft Sections
+## Fix: Global roles not detected for proposal access
 
-Rearrange the sections in `src/components/WPDraftEditor.tsx` (lines 797-864) to the following order:
+### Problem
+The `fetchUserRole` function in `src/hooks/useProposalData.ts` (line 121-126) only queries for roles matching the specific `proposal_id`. Global roles (owner, admin) are stored with `proposal_id = NULL`, so they are never found. This means a global owner who is also a proposal editor gets no role detected (or only the editor role if it exists), and the "Add Participant" button stays hidden.
 
-1. **Methodology** (unchanged position)
-2. **WP Table** (unchanged position)
-3. **Deliverables** (unchanged position)
-4. **Task Interactions & Bottlenecks + Milestones** -- move Task Interactions up from its current position (after Risks) and place Milestones table directly below it within the same visual grouping. These two will be wrapped in a shared Card container with a combined header (e.g., "Interactions & Milestones") so they appear as one section.
-5. **Risks** (moved down, after the combined section)
-6. **Staff Effort Matrix** (stays last)
+### Solution
+Update `fetchUserRole` to query both proposal-specific and global roles, then use the highest-privilege one.
 
 ### Technical Details
 
-**File: `src/components/WPDraftEditor.tsx`**
+**File: `src/hooks/useProposalData.ts` (lines 117-131)**
 
-- Move the `WPPlanningQuestions` block (lines 846-855) to appear after the `WPDeliverablesTable` block (after line 833)
-- Place the new `WPMilestonesTable` component (from the already-approved milestones plan) immediately after `WPPlanningQuestions`
-- Wrap both in a single `Card` so they read as one combined section
-- Move `WPRisksTable` (lines 836-844) to appear after this combined section
-- `WPEffortMatrix` remains last
+Replace the single query with two parallel queries:
 
-No other files need changes for this reordering.
+```typescript
+const fetchUserRole = useCallback(async () => {
+  if (!proposalId || !user) return;
+
+  // Fetch proposal-specific and global roles in parallel
+  const [proposalResult, globalResult] = await Promise.all([
+    supabase
+      .from('user_roles')
+      .select('role')
+      .eq('proposal_id', proposalId)
+      .eq('user_id', user.id)
+      .maybeSingle(),
+    supabase
+      .from('user_roles')
+      .select('role')
+      .is('proposal_id', null)
+      .eq('user_id', user.id)
+      .maybeSingle(),
+  ]);
+
+  const rolePriority: Record<string, number> = {
+    owner: 4, admin: 3, editor: 2, viewer: 1
+  };
+
+  const roles = [
+    proposalResult.data?.role,
+    globalResult.data?.role
+  ].filter(Boolean) as string[];
+
+  if (roles.length > 0) {
+    const bestRole = roles.sort(
+      (a, b) => (rolePriority[b] || 0) - (rolePriority[a] || 0)
+    )[0];
+    setUserRole(bestRole as 'owner' | 'admin' | 'editor' | 'viewer');
+  }
+}, [proposalId, user]);
+```
+
+This is a single-file, single-function change. It ensures that:
+- A global owner sees full permissions on every proposal
+- A proposal-level editor also gets edit rights (including adding participants)
+- If both exist, the higher role wins
+
