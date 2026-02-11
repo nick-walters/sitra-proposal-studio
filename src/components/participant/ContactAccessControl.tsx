@@ -241,13 +241,13 @@ export function ContactAccessControl({
           <Tooltip>
             <TooltipTrigger asChild>
               <span>
-                <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" disabled>
+                <Button variant="outline" size="sm" className="h-7 gap-1 text-xs opacity-50 cursor-not-allowed" disabled>
                   <UserPlus className="w-3 h-3" />
-                  Invite
+                  Add email to invite
                 </Button>
               </span>
             </TooltipTrigger>
-            <TooltipContent>Add an email address first</TooltipContent>
+            <TooltipContent>Enter an email address for this contact first</TooltipContent>
           </Tooltip>
         )
       )}
