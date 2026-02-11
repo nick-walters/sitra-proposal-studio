@@ -19,6 +19,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Dialog,
@@ -162,18 +163,18 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
       )}
 
       {/* Short Name */}
-      <Input
+      <DebouncedInput
         value={wp.short_name || ''}
-        onChange={(e) => onUpdate(wp.id, { short_name: e.target.value })}
+        onDebouncedChange={(v) => onUpdate(wp.id, { short_name: v })}
         placeholder="Short"
         className="h-7 text-sm"
         disabled={!canEdit}
       />
 
       {/* Title */}
-      <Input
+      <DebouncedInput
         value={wp.title || ''}
-        onChange={(e) => onUpdate(wp.id, { title: e.target.value })}
+        onDebouncedChange={(v) => onUpdate(wp.id, { title: v })}
         placeholder="Work package title"
         className="h-7 text-sm"
         disabled={!canEdit}
@@ -611,17 +612,17 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
                   </button>
                 </div>
                 {/* Short Name */}
-                <Input
+                <DebouncedInput
                   value={theme.short_name || ''}
-                  onChange={(e) => updateTheme(theme.id, { short_name: e.target.value })}
+                  onDebouncedChange={(v) => updateTheme(theme.id, { short_name: v })}
                   placeholder="Short"
                   className="h-7 text-sm"
                   disabled={!isAdmin}
                 />
                 {/* Theme Name */}
-                <Input
+                <DebouncedInput
                   value={theme.name || ''}
-                  onChange={(e) => updateTheme(theme.id, { name: e.target.value })}
+                  onDebouncedChange={(v) => updateTheme(theme.id, { name: v })}
                   placeholder="Theme name"
                   className="h-7 text-sm"
                   disabled={!isAdmin}
