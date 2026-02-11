@@ -392,7 +392,7 @@ export function UserRightsAdmin() {
                                 const currentGlobalValue = globalRole?.role || 'none';
                                 const isTargetOwner = currentGlobalValue === 'owner';
                                 const isSelf = u.id === user?.id;
-                                const canEditGlobal = isOwner && !isTargetOwner && !isSelf;
+                                const canEditGlobal = isOwner && !isSelf;
 
                                 if (canEditGlobal) {
                                   return (
