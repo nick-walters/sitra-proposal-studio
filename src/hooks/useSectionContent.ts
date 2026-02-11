@@ -7,14 +7,80 @@ import { renumberAllCaptionsWithMapping } from '@/lib/captionRenumbering';
 interface UseSectionContentProps {
   proposalId: string;
   sectionId: string;
-  sectionNumber?: string; // For caption renumbering
-  placeholderContent?: string; // Pre-filled guidance text for new sections
+  sectionNumber?: string;
+  placeholderContent?: string;
 }
 
-// Version save interval: 5 minutes
-const VERSION_SAVE_INTERVAL = 5 * 60 * 1000;
+// Minimum interval between version snapshots: 2 minutes
+const VERSION_MIN_INTERVAL = 2 * 60 * 1000;
 // Debounce delay for autosave
 const AUTOSAVE_DEBOUNCE = 1000;
+// Retry config for saves
+const MAX_SAVE_RETRIES = 2;
+const RETRY_DELAY = 1500;
+
+/**
+ * Helper: get a valid auth token for sync XHR calls (beforeunload / unmount).
+ * Falls back to reading from localStorage if session isn't available synchronously.
+ */
+function getAuthToken(): string {
+  try {
+    const raw = localStorage.getItem('sb-nfeoyxjstfehwrkgapho-auth-token');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return parsed?.access_token || '';
+    }
+  } catch { /* ignore */ }
+  return '';
+}
+
+/**
+ * Perform a synchronous PATCH via XHR — used only in beforeunload / unmount
+ * where we cannot await an async call.
+ */
+function syncSaveContent(contentId: string, content: string, userId: string) {
+  try {
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/section_content?id=eq.${contentId}`;
+    const xhr = new XMLHttpRequest();
+    xhr.open('PATCH', url, false); // synchronous
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('apikey', import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
+    xhr.setRequestHeader('Authorization', `Bearer ${getAuthToken()}`);
+    xhr.setRequestHeader('Prefer', 'return=minimal');
+    xhr.send(JSON.stringify({
+      content,
+      last_edited_by: userId,
+      updated_at: new Date().toISOString(),
+    }));
+  } catch (e) {
+    console.error('[useSectionContent] syncSaveContent failed:', e);
+  }
+}
+
+/**
+ * Perform a synchronous POST to insert a version via XHR — used in unmount.
+ */
+function syncSaveVersion(proposalId: string, sectionId: string, content: string, userId: string, versionNumber: number) {
+  try {
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/section_versions`;
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url, false); // synchronous
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('apikey', import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
+    xhr.setRequestHeader('Authorization', `Bearer ${getAuthToken()}`);
+    xhr.setRequestHeader('Prefer', 'return=minimal');
+    xhr.send(JSON.stringify({
+      proposal_id: proposalId,
+      section_id: sectionId,
+      content,
+      created_by: userId,
+      version_number: versionNumber,
+      is_auto_save: true,
+    }));
+  } catch (e) {
+    console.error('[useSectionContent] syncSaveVersion failed:', e);
+  }
+}
 
 export function useSectionContent({ proposalId, sectionId, sectionNumber, placeholderContent }: UseSectionContentProps) {
   const [content, setContentState] = useState('');
@@ -22,19 +88,65 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [lastCitationMapping, setLastCitationMapping] = useState<Map<number, number>>(new Map());
-  const [isPlaceholder, setIsPlaceholder] = useState(false); // Track if content is still placeholder
+  const [isPlaceholder, setIsPlaceholder] = useState(false);
   const { user } = useAuth();
-  
-  // Refs for managing state across effects
+
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const versionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const contentIdRef = useRef<string | null>(null);
   const lastVersionContentRef = useRef<string>('');
-  const lastVersionTimeRef = useRef<number>(0); // 0 allows first version save immediately
+  const lastVersionTimeRef = useRef<number>(0);
+  const lastVersionNumberRef = useRef<number>(0);
   const pendingContentRef = useRef<string | null>(null);
   const isSavingRef = useRef(false);
+  const contentRef = useRef<string>(''); // always-current content mirror
 
-  // Immediate save function (no debounce) - used for urgent saves
+  // Keep contentRef in sync
+  useEffect(() => {
+    contentRef.current = content;
+  }, [content]);
+
+  // ── Save a version snapshot (async, throttled) ──────────────────────
+  const saveVersion = useCallback(async (contentToSave: string) => {
+    if (!proposalId || !sectionId || !user?.id) return;
+    if (contentToSave === lastVersionContentRef.current) return;
+    if (!contentToSave.trim()) return;
+
+    const now = Date.now();
+    if (now - lastVersionTimeRef.current < VERSION_MIN_INTERVAL) return;
+
+    try {
+      const { data: existingVersions } = await supabase
+        .from('section_versions')
+        .select('version_number')
+        .eq('proposal_id', proposalId)
+        .eq('section_id', sectionId)
+        .order('version_number', { ascending: false })
+        .limit(1);
+
+      const nextVersion = (existingVersions?.[0]?.version_number || 0) + 1;
+
+      const { error } = await supabase
+        .from('section_versions')
+        .insert({
+          proposal_id: proposalId,
+          section_id: sectionId,
+          content: contentToSave,
+          created_by: user.id,
+          version_number: nextVersion,
+          is_auto_save: true,
+        });
+
+      if (error) throw error;
+
+      lastVersionContentRef.current = contentToSave;
+      lastVersionTimeRef.current = now;
+      lastVersionNumberRef.current = nextVersion;
+    } catch (error) {
+      console.error('[useSectionContent] Error saving version:', error);
+    }
+  }, [proposalId, sectionId, user?.id]);
+
+  // ── Save content (with retry) ──────────────────────────────────────
   const saveContentImmediately = useCallback(async (contentToSave: string, shouldRenumber = true): Promise<boolean> => {
     if (!proposalId || !sectionId || !user?.id) return false;
     if (isSavingRef.current) return false;
@@ -42,7 +154,6 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
     isSavingRef.current = true;
     setSaving(true);
 
-    // Auto-renumber captions before saving if section number is provided
     let finalContent = contentToSave;
     let citationMapping = new Map<number, number>();
     if (shouldRenumber && sectionNumber) {
@@ -51,61 +162,69 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
       citationMapping = result.citationMapping;
     }
 
-    try {
-      if (contentIdRef.current) {
-        // Update existing
-        const { error } = await supabase
-          .from('section_content')
-          .update({
-            content: finalContent,
-            last_edited_by: user.id,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', contentIdRef.current);
+    let attempt = 0;
+    let success = false;
 
-        if (error) throw error;
-      } else {
-        // Insert new
-        const { data, error } = await supabase
-          .from('section_content')
-          .insert({
-            proposal_id: proposalId,
-            section_id: sectionId,
-            content: finalContent,
-            last_edited_by: user.id,
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-        contentIdRef.current = data.id;
+    while (attempt <= MAX_SAVE_RETRIES && !success) {
+      try {
+        if (contentIdRef.current) {
+          const { error } = await supabase
+            .from('section_content')
+            .update({
+              content: finalContent,
+              last_edited_by: user.id,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', contentIdRef.current);
+          if (error) throw error;
+        } else {
+          const { data, error } = await supabase
+            .from('section_content')
+            .insert({
+              proposal_id: proposalId,
+              section_id: sectionId,
+              content: finalContent,
+              last_edited_by: user.id,
+            })
+            .select()
+            .single();
+          if (error) throw error;
+          contentIdRef.current = data.id;
+        }
+        success = true;
+      } catch (error) {
+        attempt++;
+        if (attempt > MAX_SAVE_RETRIES) {
+          console.error('[useSectionContent] Save failed after retries:', error);
+          toast.error('Failed to save content. Your changes may not be saved.');
+        } else {
+          console.warn(`[useSectionContent] Save attempt ${attempt} failed, retrying...`);
+          await new Promise(r => setTimeout(r, RETRY_DELAY));
+        }
       }
+    }
 
+    if (success) {
       setLastSaved(new Date());
       pendingContentRef.current = null;
-      
-      // Update citation mapping for footnote sync
+
       if (citationMapping.size > 0) {
         setLastCitationMapping(citationMapping);
       }
-      
-      // Update state if content was renumbered
       if (finalContent !== contentToSave) {
         setContentState(finalContent);
       }
-      
-      return true;
-    } catch (error) {
-      console.error('Error saving content:', error);
-      toast.error('Failed to save content');
-      return false;
-    } finally {
-      isSavingRef.current = false;
-      setSaving(false);
-    }
-  }, [proposalId, sectionId, sectionNumber, user?.id]);
 
-  // Fetch content on mount
+      // Trigger a throttled version save after every successful content save
+      saveVersion(finalContent);
+    }
+
+    isSavingRef.current = false;
+    setSaving(false);
+    return success;
+  }, [proposalId, sectionId, sectionNumber, user?.id, saveVersion]);
+
+  // ── Fetch content on mount ─────────────────────────────────────────
   useEffect(() => {
     if (!proposalId || !sectionId) return;
 
@@ -119,7 +238,7 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching content:', error);
+        console.error('[useSectionContent] Error fetching content:', error);
         toast.error('Failed to load content');
       }
 
@@ -128,8 +247,36 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
         contentIdRef.current = data.id;
         lastVersionContentRef.current = data.content || '';
         setIsPlaceholder(false);
+
+        // Save an initial version (baseline) if none exist yet
+        if (data.content?.trim()) {
+          const { count } = await supabase
+            .from('section_versions')
+            .select('id', { count: 'exact', head: true })
+            .eq('proposal_id', proposalId)
+            .eq('section_id', sectionId);
+
+          if (count === 0) {
+            // No versions yet — create baseline
+            const userId = data.last_edited_by || '';
+            if (userId) {
+              await supabase
+                .from('section_versions')
+                .insert({
+                  proposal_id: proposalId,
+                  section_id: sectionId,
+                  content: data.content,
+                  created_by: userId,
+                  version_number: 1,
+                  is_auto_save: true,
+                });
+              lastVersionContentRef.current = data.content;
+              lastVersionTimeRef.current = Date.now();
+              lastVersionNumberRef.current = 1;
+            }
+          }
+        }
       } else {
-        // No saved content - use placeholder if available
         if (placeholderContent) {
           setContentState(placeholderContent);
           setIsPlaceholder(true);
@@ -146,7 +293,7 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
     fetchContent();
   }, [proposalId, sectionId]);
 
-  // Real-time subscription
+  // ── Real-time subscription ─────────────────────────────────────────
   useEffect(() => {
     if (!proposalId || !sectionId) return;
 
@@ -177,65 +324,20 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
     };
   }, [proposalId, sectionId, user?.id]);
 
-  // Save a version snapshot
-  const saveVersion = useCallback(async (contentToSave: string) => {
-    if (!proposalId || !sectionId || !user?.id) return;
-    
-    // Don't save if content hasn't changed since last version
-    if (contentToSave === lastVersionContentRef.current) return;
-    
-    // Don't save too frequently
-    const now = Date.now();
-    if (now - lastVersionTimeRef.current < VERSION_SAVE_INTERVAL) return;
-
-    try {
-      // Get the next version number
-      const { data: existingVersions } = await supabase
-        .from('section_versions')
-        .select('version_number')
-        .eq('proposal_id', proposalId)
-        .eq('section_id', sectionId)
-        .order('version_number', { ascending: false })
-        .limit(1);
-
-      const nextVersion = (existingVersions?.[0]?.version_number || 0) + 1;
-
-      await supabase
-        .from('section_versions')
-        .insert({
-          proposal_id: proposalId,
-          section_id: sectionId,
-          content: contentToSave,
-          created_by: user.id,
-          version_number: nextVersion,
-          is_auto_save: true,
-        });
-
-      lastVersionContentRef.current = contentToSave;
-      lastVersionTimeRef.current = now;
-    } catch (error) {
-      console.error('Error saving version:', error);
-    }
-  }, [proposalId, sectionId, user?.id]);
-
-  // Debounced save with queuing
+  // ── Debounced save on content change ───────────────────────────────
   const saveContent = useCallback(async (newContent: string) => {
     if (!proposalId || !sectionId || !user?.id) return;
-
     await saveContentImmediately(newContent);
   }, [proposalId, sectionId, user?.id, saveContentImmediately]);
 
-  // Handle content change with debounce
   const handleContentChange = useCallback((newContent: string) => {
     setContentState(newContent);
     pendingContentRef.current = newContent;
-    
-    // Clear placeholder flag when user starts editing
+
     if (isPlaceholder) {
       setIsPlaceholder(false);
     }
 
-    // Debounced save
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
@@ -244,54 +346,42 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
     }, AUTOSAVE_DEBOUNCE);
   }, [saveContent, isPlaceholder]);
 
-  // Periodic version saving: every VERSION_SAVE_INTERVAL, snapshot current content
+  // ── Periodic version saving (safety net) ───────────────────────────
   useEffect(() => {
     if (!proposalId || !sectionId || !user?.id) return;
 
     const intervalId = setInterval(() => {
-      const currentContent = pendingContentRef.current ?? content;
+      const currentContent = pendingContentRef.current ?? contentRef.current;
       if (currentContent && currentContent !== lastVersionContentRef.current && currentContent.trim()) {
         saveVersion(currentContent);
       }
-    }, VERSION_SAVE_INTERVAL);
+    }, VERSION_MIN_INTERVAL);
 
     return () => clearInterval(intervalId);
-  }, [proposalId, sectionId, user?.id, saveVersion, content]);
+  }, [proposalId, sectionId, user?.id, saveVersion]);
 
-  // Clear placeholder content and start fresh
   const clearPlaceholder = useCallback(() => {
     setContentState('');
     setIsPlaceholder(false);
     pendingContentRef.current = '';
   }, []);
 
-  // Flush pending changes immediately
+  // ── Flush pending changes immediately ──────────────────────────────
   const flushPendingChanges = useCallback(async () => {
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
       saveTimeoutRef.current = null;
     }
-    
     if (pendingContentRef.current !== null) {
       await saveContentImmediately(pendingContentRef.current);
     }
   }, [saveContentImmediately]);
 
-  // Handle beforeunload - save immediately when user leaves page
+  // ── beforeunload: save via sync XHR (sendBeacon can't carry auth) ─
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (pendingContentRef.current !== null) {
-        // Use sendBeacon for reliable save on page unload
-        const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/section_content?id=eq.${contentIdRef.current}`;
-        const data = JSON.stringify({
-          content: pendingContentRef.current,
-          last_edited_by: user?.id,
-          updated_at: new Date().toISOString(),
-        });
-        
-        navigator.sendBeacon(url, new Blob([data], { type: 'application/json' }));
-        
-        // Also try to save synchronously
+      if (pendingContentRef.current !== null && contentIdRef.current && user?.id) {
+        syncSaveContent(contentIdRef.current, pendingContentRef.current, user.id);
         e.preventDefault();
         e.returnValue = '';
       }
@@ -301,7 +391,7 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [user?.id]);
 
-  // Handle visibility change - save when tab becomes hidden
+  // ── Visibility change: flush saves when tab becomes hidden ─────────
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden' && pendingContentRef.current !== null) {
@@ -313,48 +403,31 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [flushPendingChanges]);
 
-  // Cleanup on unmount - flush any pending changes
+  // ── Cleanup on unmount: sync XHR for both content and version ──────
   useEffect(() => {
     return () => {
-      // Clear save timeout
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
-      
-      // Synchronously save any pending content using sendBeacon
+
+      // Save pending content via sync XHR
       if (pendingContentRef.current !== null && contentIdRef.current && user?.id) {
-        const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/section_content?id=eq.${contentIdRef.current}`;
-        const headers = {
-          'Content-Type': 'application/json',
-          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          'Prefer': 'return=minimal',
-        };
-        
-        // sendBeacon doesn't support custom headers, so we'll use a sync XHR as fallback
-        try {
-          const xhr = new XMLHttpRequest();
-          xhr.open('PATCH', url, false); // Synchronous
-          xhr.setRequestHeader('Content-Type', 'application/json');
-          xhr.setRequestHeader('apikey', import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
-          xhr.setRequestHeader('Authorization', `Bearer ${localStorage.getItem('sb-nfeoyxjstfehwrkgapho-auth-token') ? JSON.parse(localStorage.getItem('sb-nfeoyxjstfehwrkgapho-auth-token') || '{}')?.access_token : ''}`);
-          xhr.setRequestHeader('Prefer', 'return=minimal');
-          xhr.send(JSON.stringify({
-            content: pendingContentRef.current,
-            last_edited_by: user.id,
-            updated_at: new Date().toISOString(),
-          }));
-        } catch (e) {
-          console.error('Failed to save on unmount:', e);
-        }
+        syncSaveContent(contentIdRef.current, pendingContentRef.current, user.id);
       }
-      
-      // Save version if content changed when leaving the section
-      const currentContent = pendingContentRef.current || '';
-      if (currentContent !== lastVersionContentRef.current && currentContent.trim()) {
-        saveVersion(currentContent);
+
+      // Save a version if content changed since last version
+      const currentContent = pendingContentRef.current ?? contentRef.current;
+      if (
+        currentContent &&
+        currentContent !== lastVersionContentRef.current &&
+        currentContent.trim() &&
+        user?.id
+      ) {
+        const nextVersion = lastVersionNumberRef.current + 1;
+        syncSaveVersion(proposalId, sectionId, currentContent, user.id, nextVersion);
       }
     };
-  }, [user?.id, saveVersion]);
+  }, [proposalId, sectionId, user?.id]);
 
   return {
     content,
