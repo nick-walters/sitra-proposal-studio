@@ -67,7 +67,7 @@ export function ContactPersonsSection({
   const [grantingId, setGrantingId] = useState<string | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ firstName: '', lastName: '', email: '', phone: '' });
+  const [editForm, setEditForm] = useState({ firstName: '', lastName: '', email: '', phone: '', originalEmail: '', wantsPlatformAccess: undefined as 'yes' | 'no' | undefined });
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
   const [copyDialogData, setCopyDialogData] = useState<{ firstName: string; lastName: string; email: string; roleInProject: string } | null>(null);
   const [newContact, setNewContact] = useState({
@@ -162,23 +162,61 @@ export function ContactPersonsSection({
       lastName: parts.slice(1).join(' ') || '',
       email: member.email || '',
       phone: member.roleInProject || '',
+      originalEmail: member.email || '',
+      wantsPlatformAccess: member.wantsPlatformAccess ? 'yes' : member.wantsPlatformAccess === false ? 'no' : undefined,
     });
   };
 
-  const handleSaveEdit = (memberId: string) => {
+  const handleSaveEdit = async (memberId: string) => {
     if (!editForm.firstName.trim() || !editForm.lastName.trim() || !editForm.email.trim()) {
       toast.error('First name, last name and email are required');
       return;
     }
     const fullName = `${editForm.firstName.trim()} ${editForm.lastName.trim()}`;
-    onUpdateMember(memberId, {
+    const member = members.find(m => m.id === memberId);
+    const oldEmail = member?.email?.toLowerCase();
+    const newEmail = editForm.email.trim().toLowerCase();
+    const emailChanged = oldEmail && newEmail !== oldEmail;
+
+    // If email changed and old email had access, revoke old access
+    if (emailChanged && member?.accessGranted && proposalId) {
+      try {
+        const { data: oldProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', oldEmail)
+          .maybeSingle();
+
+        if (oldProfile) {
+          await supabase
+            .from('user_roles')
+            .delete()
+            .eq('user_id', oldProfile.id)
+            .eq('proposal_id', proposalId);
+        }
+        toast.info(`Access revoked for previous email (${oldEmail})`);
+      } catch (error) {
+        console.error('Error revoking old email access:', error);
+      }
+    }
+
+    // Build update payload
+    const updates: Partial<ParticipantMember> = {
       fullName,
       email: editForm.email.trim(),
       roleInProject: editForm.phone.trim(),
-    });
+    };
+
+    // If email changed, reset access state and apply new access preference
+    if (emailChanged) {
+      updates.accessGranted = false;
+      updates.accessGrantedRole = undefined;
+      updates.wantsPlatformAccess = editForm.wantsPlatformAccess === 'yes' ? true : editForm.wantsPlatformAccess === 'no' ? false : undefined;
+    }
+
+    onUpdateMember(memberId, updates);
 
     // If this member is the MCP, sync to participant fields
-    const member = members.find(m => m.id === memberId);
     if (member?.isPrimaryContact) {
       onUpdateParticipant('mainContactFirstName', editForm.firstName.trim());
       onUpdateParticipant('mainContactLastName', editForm.lastName.trim());
@@ -487,6 +525,23 @@ export function ContactPersonsSection({
                             className="h-8 text-sm"
                           />
                         </div>
+                        {editForm.email.trim().toLowerCase() !== editForm.originalEmail.toLowerCase() && (
+                          <div className="space-y-1 sm:col-span-2">
+                            <Label className="text-xs">Should this person have access to the proposal? *</Label>
+                            <Select
+                              value={editForm.wantsPlatformAccess || ''}
+                              onValueChange={(v) => setEditForm({ ...editForm, wantsPlatformAccess: v as 'yes' | 'no' })}
+                            >
+                              <SelectTrigger className="h-8 text-sm">
+                                <SelectValue placeholder="Select..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="no">No</SelectItem>
+                                <SelectItem value="yes">Yes</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
                       </div>
                       <div className="flex justify-end gap-1">
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCancelEdit}>
