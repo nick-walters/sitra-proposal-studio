@@ -11,12 +11,57 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Authenticate the user
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+    // Create a client with the user's token for auth verification
+    const userSupabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await userSupabase.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const userId = claimsData.claims.sub;
+
     const { proposalId, topicUrl } = await req.json();
 
     if (!proposalId || !topicUrl) {
       return new Response(
         JSON.stringify({ success: false, error: 'Proposal ID and topic URL are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify the user has access to this proposal
+    const serviceSupabase = createClient(supabaseUrl, supabaseServiceKey);
+    const { data: userRole } = await serviceSupabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .eq('proposal_id', proposalId)
+      .maybeSingle();
+
+    if (!userRole) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Access denied to this proposal' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -89,12 +134,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Update the proposal with the extracted content
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Update the proposal with the extracted content (using serviceSupabase created earlier)
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await serviceSupabase
       .from('proposals')
       .update({
         topic_description: extractedContent.topicDescription,
