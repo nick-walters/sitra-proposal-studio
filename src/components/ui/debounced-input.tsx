@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 
-interface DebouncedInputProps extends Omit<React.ComponentProps<'input'>, 'onChange'> {
+interface DebouncedInputProps extends Omit<React.ComponentProps<'input'>, 'onChange' | 'onFocus' | 'onBlur'> {
   value: string;
   onDebouncedChange: (value: string) => void;
   debounceMs?: number;
@@ -47,12 +47,11 @@ const DebouncedInput = React.forwardRef<HTMLInputElement, DebouncedInputProps>(
       }, debounceMs);
     };
 
-    const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    const handleFocus = () => {
       isFocused.current = true;
-      if (props.onFocus) (props as any).onFocus(e);
     };
 
-    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const handleBlur = () => {
       isFocused.current = false;
       // Flush any pending debounced change immediately on blur
       if (timeoutRef.current) {
@@ -60,7 +59,6 @@ const DebouncedInput = React.forwardRef<HTMLInputElement, DebouncedInputProps>(
         timeoutRef.current = null;
         callbackRef.current(localValue);
       }
-      if (props.onBlur) (props as any).onBlur(e);
     };
 
     return (
