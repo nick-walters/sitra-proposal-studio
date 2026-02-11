@@ -16,6 +16,7 @@ import { useProposalReferences } from '@/hooks/useProposalReferences';
 import { useQuery } from '@tanstack/react-query';
 
 import { Input } from '@/components/ui/input';
+import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -670,9 +671,9 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           {/* WPX: Title */}
           <div className="flex items-center gap-2">
             <span className="text-xl font-bold">WP{wpDraft.number}:</span>
-            <Input
+            <DebouncedInput
               value={wpDraft.title || ''}
-              onChange={(e) => updateField('title', e.target.value)}
+              onDebouncedChange={(v) => updateField('title', v)}
               placeholder="Work package title"
               className="bg-white/90 text-foreground flex-1"
               disabled={readOnly}
@@ -683,9 +684,9 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           <div className="mt-2 flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2">
               <span className="text-sm opacity-80">Short name:</span>
-              <Input
+              <DebouncedInput
                 value={wpDraft.short_name || ''}
-                onChange={(e) => updateField('short_name', e.target.value)}
+                onDebouncedChange={(v) => updateField('short_name', v)}
                 placeholder="e.g. COORD"
                 className="bg-white/90 text-foreground h-7 w-[140px] text-sm"
                 disabled={readOnly}
