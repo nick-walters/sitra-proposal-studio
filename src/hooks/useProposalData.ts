@@ -118,15 +118,35 @@ export function useProposalData(proposalId: string) {
   const fetchUserRole = useCallback(async () => {
     if (!proposalId || !user) return;
 
-    const { data } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('proposal_id', proposalId)
-      .eq('user_id', user.id)
-      .single();
+    const [proposalResult, globalResult] = await Promise.all([
+      supabase
+        .from('user_roles')
+        .select('role')
+        .eq('proposal_id', proposalId)
+        .eq('user_id', user.id)
+        .maybeSingle(),
+      supabase
+        .from('user_roles')
+        .select('role')
+        .is('proposal_id', null)
+        .eq('user_id', user.id)
+        .maybeSingle(),
+    ]);
 
-    if (data) {
-      setUserRole(data.role as 'owner' | 'admin' | 'editor' | 'viewer');
+    const rolePriority: Record<string, number> = {
+      owner: 4, admin: 3, editor: 2, viewer: 1
+    };
+
+    const roles = [
+      proposalResult.data?.role,
+      globalResult.data?.role
+    ].filter(Boolean) as string[];
+
+    if (roles.length > 0) {
+      const bestRole = roles.sort(
+        (a, b) => (rolePriority[b] || 0) - (rolePriority[a] || 0)
+      )[0];
+      setUserRole(bestRole as 'owner' | 'admin' | 'editor' | 'viewer');
     }
   }, [proposalId, user]);
 
