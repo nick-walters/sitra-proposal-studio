@@ -234,8 +234,22 @@ export function ContactAccessControl({
       )}
 
       {/* Coordinator/Owner: Direct invite (no request needed) */}
-      {canGrant && !accessRequested && !accessGranted && email && (
-        <InvitePopover />
+      {canGrant && !accessRequested && !accessGranted && (
+        email ? (
+          <InvitePopover />
+        ) : (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" disabled>
+                  <UserPlus className="w-3 h-3" />
+                  Invite
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>Add an email address first</TooltipContent>
+          </Tooltip>
+        )
       )}
     </div>
   );

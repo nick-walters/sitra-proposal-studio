@@ -86,7 +86,7 @@ export function MainContactSection({
               Primary contact for this organisation in the consortium
             </CardDescription>
           </div>
-          {proposalId && proposalAcronym && (canFlag || canGrant || fields.mainContactAccessGranted) && (
+          {proposalId && proposalAcronym && (
             <ContactAccessControl
               email={fields.contactEmail}
               name={contactName || null}
