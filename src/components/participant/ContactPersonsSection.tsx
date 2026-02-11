@@ -129,16 +129,46 @@ export function ContactPersonsSection({
       }
     }
 
-    onAddMember({
+    const newMember = {
       participantId: participant.id,
       fullName,
       email: newContact.email.trim(),
-      roleInProject: newContact.phone.trim(), // phone stored in roleInProject field for "other contacts"
+      roleInProject: newContact.phone.trim(),
       personMonths: 0,
       isPrimaryContact: false,
       wantsPlatformAccess: newContact.wantsPlatformAccess === 'yes',
       personId: personId || undefined,
-    });
+    };
+
+    onAddMember(newMember);
+
+    // Auto-invite if coordinator/owner adds with access=yes
+    if (canGrant && newContact.wantsPlatformAccess === 'yes' && proposalId && proposalAcronym) {
+      // Wait briefly for the member to be persisted, then find and grant
+      setTimeout(async () => {
+        try {
+          // Look up the newly added member by email
+          const { data: newMembers } = await supabase
+            .from('participant_members')
+            .select('id')
+            .eq('participant_id', participant.id)
+            .eq('email', newContact.email.trim().toLowerCase())
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          if (newMembers && newMembers.length > 0) {
+            const fakeMember = {
+              id: newMembers[0].id,
+              email: newContact.email.trim(),
+              fullName,
+            } as ParticipantMember;
+            await handleGrantAccess(fakeMember);
+          }
+        } catch (err) {
+          console.error('Auto-invite failed:', err);
+        }
+      }, 500);
+    }
 
     setNewContact({ firstName: '', lastName: '', email: '', phone: '', wantsPlatformAccess: 'no' });
     setSelectedPerson(null);
@@ -639,16 +669,23 @@ export function ContactPersonsSection({
                           <>
                             {hasAccess ? (
                               <>
-                                <Badge variant="outline" className="gap-1 text-xs">
-                                  <ShieldCheck className="w-3 h-3" />
-                                  {member.accessGrantedRole === 'editor' ? 'Has access' : 'Invite sent'}
-                                </Badge>
+                                {member.accessGrantedRole === 'editor' ? (
+                                  <Badge className="gap-1 text-xs bg-green-100 text-green-800 border-green-300 hover:bg-green-100">
+                                    <ShieldCheck className="w-3 h-3" />
+                                    Has access
+                                  </Badge>
+                                ) : (
+                                  <Badge className="gap-1 text-xs bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-100">
+                                    <ShieldCheck className="w-3 h-3" />
+                                    Invite sent
+                                  </Badge>
+                                )}
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                      className="h-7 w-7 text-destructive hover:text-destructive"
                                       onClick={() => handleRevokeAccess(member)}
                                       disabled={isRevoking}
                                     >
@@ -678,7 +715,7 @@ export function ContactPersonsSection({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="text-muted-foreground hover:text-destructive h-7 w-7"
+                            className="text-destructive hover:text-destructive h-7 w-7"
                             onClick={() => setDeleteConfirm({ id: member.id, name: member.fullName })}
                           >
                             <Trash2 className="w-4 h-4" />
