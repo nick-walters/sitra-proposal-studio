@@ -1,97 +1,97 @@
 
 
-## Fix: Characters lost when typing fast in form fields
-
-### Problem
-Multiple form components call their parent's update handler on **every keystroke** without local state buffering. This triggers parent state updates and re-renders, which can overwrite the input value mid-typing, causing characters to be dropped during fast input.
+## Fix: Proposal editors and global owners/admins unable to add participants
 
 ### Root Cause
-The anti-pattern looks like this:
-```
-<Input
-  value={participant.organisationName || ''}
-  onChange={(e) => handleFieldUpdate('organisationName', e.target.value)}
-/>
-```
-Here, `handleFieldUpdate` immediately calls the parent (`onUpdateParticipant`), which updates parent state, which re-renders this component with new props -- but during fast typing, React batching can cause the input to "reset" to a stale value before the next keystroke is processed.
 
-### Solution: Create a reusable `DebouncedInput` and `DebouncedTextarea` component
-Instead of fixing each component individually (which would be error-prone and repetitive), create two shared wrapper components that:
-1. Maintain **local state** for immediate responsiveness
-2. **Debounce** the parent callback (500ms delay)
-3. **Sync from props** only when the input is not focused (to avoid overwriting user input)
+The issue is **not in the frontend** -- it's in the **database security functions**. When a user tries to add a participant, the database RLS policy on the `participants` table calls `can_edit_proposal()`, which only checks for roles with a matching `proposal_id`. Global roles (owner/admin with `proposal_id = NULL`) are never matched because `NULL = 'some-uuid'` evaluates to NULL in SQL, not TRUE.
 
-### Affected Components (files to update)
+The same problem exists in three core database functions:
+- `can_edit_proposal()` -- used for INSERT/UPDATE/DELETE on participants
+- `has_any_proposal_role()` -- used for SELECT on participants and many other tables
+- `is_proposal_admin()` -- used for admin-level operations
 
-1. **`src/components/ParticipantDetailForm.tsx`** -- Organisation details fields (legal name, short name, English name, street, town, postcode, website) all call `handleFieldUpdate` directly on every keystroke
-2. **`src/components/participant/MainContactSection.tsx`** -- All 11+ input fields call `onUpdate` directly per keystroke
-3. **`src/components/participant/DepartmentsSection.tsx`** -- Department name, street, town, postcode fields call `onUpdate` directly per keystroke
+### Why the frontend appears to work
 
-These are the primary offenders. Other components (WPRisksTable, WPDeliverablesTable, B31TablesEditor, WPEffortMatrix) already use the correct local-state + debounce pattern.
+The frontend code in `useProposalData.ts` correctly fetches both global and proposal-specific roles and picks the highest-privilege one. So the UI shows the "Add Participant" button. But when the user clicks it and the INSERT query runs, the database rejects it because the RLS policy function doesn't account for global roles.
 
-### Technical Details
+### Solution
 
-**Step 1: Create `src/components/ui/debounced-input.tsx`**
+Update three database functions to also check for global roles (where `proposal_id IS NULL`):
 
-A reusable component wrapping `Input`:
-- Uses `useState` for local value
-- Uses `useRef` to track focus state
-- Debounces `onChange` callback with `setTimeout` (500ms)
-- Only syncs from external `value` prop when the field is **not focused**
-
-```typescript
-// Pseudocode
-function DebouncedInput({ value, onDebouncedChange, debounceMs = 500, ...props }) {
-  const [localValue, setLocalValue] = useState(value);
-  const isFocused = useRef(false);
-  const timeoutRef = useRef(null);
-
-  // Sync from props only when not focused
-  useEffect(() => {
-    if (!isFocused.current) setLocalValue(value);
-  }, [value]);
-
-  const handleChange = (e) => {
-    setLocalValue(e.target.value);
-    clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      onDebouncedChange(e.target.value);
-    }, debounceMs);
-  };
-
-  return <Input value={localValue} onChange={handleChange}
-    onFocus={() => isFocused.current = true}
-    onBlur={() => { isFocused.current = false; /* flush pending */ }}
-  />;
-}
+**1. `can_edit_proposal`** -- Add a check for global owner/admin roles:
+```sql
+CREATE OR REPLACE FUNCTION public.can_edit_proposal(_user_id UUID, _proposal_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_roles
+    WHERE user_id = _user_id
+      AND (
+        (proposal_id = _proposal_id AND role IN ('owner', 'admin', 'editor'))
+        OR
+        (proposal_id IS NULL AND role IN ('owner', 'admin'))
+      )
+  )
+$$;
 ```
 
-Similarly create `DebouncedTextarea` with the same logic.
-
-**Step 2: Replace direct `onChange` calls in affected components**
-
-In each affected file, replace:
-```tsx
-<Input value={x} onChange={(e) => onUpdate('field', e.target.value)} />
+**2. `has_any_proposal_role`** -- Add a check for global roles:
+```sql
+CREATE OR REPLACE FUNCTION public.has_any_proposal_role(_user_id UUID, _proposal_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_roles
+    WHERE user_id = _user_id
+      AND (
+        proposal_id = _proposal_id
+        OR
+        (proposal_id IS NULL AND role IN ('owner', 'admin'))
+      )
+  )
+$$;
 ```
-with:
-```tsx
-<DebouncedInput value={x} onDebouncedChange={(v) => onUpdate('field', v)} />
+
+**3. `is_proposal_admin`** -- Add a check for global owner/admin:
+```sql
+CREATE OR REPLACE FUNCTION public.is_proposal_admin(_user_id UUID, _proposal_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_roles
+    WHERE user_id = _user_id
+      AND (
+        (proposal_id = _proposal_id AND role IN ('owner', 'admin'))
+        OR
+        (proposal_id IS NULL AND role IN ('owner', 'admin'))
+      )
+  )
+$$;
 ```
 
-This is a mechanical find-and-replace within each file, keeping all other props (placeholder, disabled, className) unchanged.
+### What this fixes
 
-**Step 3: Verify existing good patterns are untouched**
+- Global owners and admins will be able to add/edit/delete participants on any proposal
+- Proposal-level editors will be able to add/edit participants (they already had `can_edit_proposal` matching their role, but only if stored with the correct `proposal_id`)
+- SELECT access will also work for global roles across all tables using `has_any_proposal_role`
 
-Components that already use local state + debounce (WPRisksTable, WPDeliverablesTable, B31TablesEditor, WPEffortMatrix) will not be modified.
+### Files changed
 
-### Summary of Changes
-
-| File | Change |
-|------|--------|
-| `src/components/ui/debounced-input.tsx` | New file -- DebouncedInput component |
-| `src/components/ui/debounced-textarea.tsx` | New file -- DebouncedTextarea component |
-| `src/components/ParticipantDetailForm.tsx` | Replace ~7 Input fields with DebouncedInput |
-| `src/components/participant/MainContactSection.tsx` | Replace ~11 Input fields with DebouncedInput |
-| `src/components/participant/DepartmentsSection.tsx` | Replace ~4 Input fields with DebouncedInput |
+| Change | Description |
+|--------|-------------|
+| Database migration (SQL) | Update 3 security functions to recognize global roles |
+| No frontend changes needed | The frontend already handles global roles correctly |
 
