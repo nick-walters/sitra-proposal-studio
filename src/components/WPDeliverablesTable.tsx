@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -175,9 +175,10 @@ function SortableDeliverableCard({
 
   const [localTitle, setLocalTitle] = useState(deliverable.title || '');
   const [titleTimeout, setTitleTimeout] = useState<NodeJS.Timeout | null>(null);
+  const isFocused = useRef(false);
 
   useEffect(() => {
-    setLocalTitle(deliverable.title || '');
+    if (!isFocused.current) setLocalTitle(deliverable.title || '');
   }, [deliverable.title]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -215,6 +216,8 @@ function SortableDeliverableCard({
         <Input
           value={localTitle}
           onChange={handleTitleChange}
+          onFocus={() => { isFocused.current = true; }}
+          onBlur={() => { isFocused.current = false; }}
           placeholder="Deliverable title..."
           className="h-6 text-xs flex-1"
           disabled={readOnly}

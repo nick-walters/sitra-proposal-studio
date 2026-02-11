@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -147,10 +147,11 @@ function SortableMilestoneCard({
   const [titleTimeout, setTitleTimeout] = useState<NodeJS.Timeout | null>(null);
   const [relatedWpsTimeout, setRelatedWpsTimeout] = useState<NodeJS.Timeout | null>(null);
   const [verificationTimeout, setVerificationTimeout] = useState<NodeJS.Timeout | null>(null);
+  const isFocused = useRef(false);
 
-  useEffect(() => { setLocalTitle(milestone.title || ''); }, [milestone.title]);
-  useEffect(() => { setLocalRelatedWps(milestone.related_wps || ''); }, [milestone.related_wps]);
-  useEffect(() => { setLocalVerification(milestone.means_of_verification || ''); }, [milestone.means_of_verification]);
+  useEffect(() => { if (!isFocused.current) setLocalTitle(milestone.title || ''); }, [milestone.title]);
+  useEffect(() => { if (!isFocused.current) setLocalRelatedWps(milestone.related_wps || ''); }, [milestone.related_wps]);
+  useEffect(() => { if (!isFocused.current) setLocalVerification(milestone.means_of_verification || ''); }, [milestone.means_of_verification]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
@@ -197,6 +198,8 @@ function SortableMilestoneCard({
         <Input
           value={localTitle}
           onChange={handleTitleChange}
+          onFocus={() => { isFocused.current = true; }}
+          onBlur={() => { isFocused.current = false; }}
           placeholder="Milestone title..."
           className="h-6 text-xs flex-1"
           disabled={readOnly}
@@ -206,6 +209,8 @@ function SortableMilestoneCard({
           <Input
             value={localRelatedWps}
             onChange={handleRelatedWpsChange}
+            onFocus={() => { isFocused.current = true; }}
+            onBlur={() => { isFocused.current = false; }}
             placeholder="e.g. WP1, WP3"
             className="h-6 text-xs w-[90px]"
             disabled={readOnly}
@@ -245,6 +250,8 @@ function SortableMilestoneCard({
         <Textarea
           value={localVerification}
           onChange={handleVerificationChange}
+          onFocus={() => { isFocused.current = true; }}
+          onBlur={() => { isFocused.current = false; }}
           placeholder="Describe means of verification..."
           className="min-h-[40px] resize-y text-xs flex-1"
           disabled={readOnly}

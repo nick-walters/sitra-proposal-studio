@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -150,13 +150,14 @@ function SortableRiskCard({
   const [localMitigation, setLocalMitigation] = useState(risk.mitigation || '');
   const [titleTimeout, setTitleTimeout] = useState<NodeJS.Timeout | null>(null);
   const [mitigationTimeout, setMitigationTimeout] = useState<NodeJS.Timeout | null>(null);
+  const isFocused = useRef(false);
 
   useEffect(() => {
-    setLocalTitle(risk.title || '');
+    if (!isFocused.current) setLocalTitle(risk.title || '');
   }, [risk.title]);
 
   useEffect(() => {
-    setLocalMitigation(risk.mitigation || '');
+    if (!isFocused.current) setLocalMitigation(risk.mitigation || '');
   }, [risk.mitigation]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -206,6 +207,8 @@ function SortableRiskCard({
         <Input
           value={localTitle}
           onChange={handleTitleChange}
+          onFocus={() => { isFocused.current = true; }}
+          onBlur={() => { isFocused.current = false; }}
           placeholder="Describe the risk..."
           className="h-6 text-xs flex-1"
           disabled={readOnly}
@@ -265,6 +268,8 @@ function SortableRiskCard({
         <Textarea
           value={localMitigation}
           onChange={handleMitigationChange}
+          onFocus={() => { isFocused.current = true; }}
+          onBlur={() => { isFocused.current = false; }}
           placeholder="Describe mitigation & adaptation measures..."
           className="min-h-[40px] resize-y text-xs flex-1"
           disabled={readOnly}

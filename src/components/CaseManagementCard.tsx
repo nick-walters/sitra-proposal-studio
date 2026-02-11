@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -87,6 +87,25 @@ interface SortableCaseRowProps {
 
 function SortableCaseRow({ caseItem, participants, onUpdate, onDelete, canEdit }: SortableCaseRowProps) {
   const [leadOpen, setLeadOpen] = useState(false);
+  const [localShortName, setLocalShortName] = useState(caseItem.short_name || '');
+  const [localTitle, setLocalTitle] = useState(caseItem.title || '');
+  const [localCustomName, setLocalCustomName] = useState(caseItem.custom_type_name || '');
+  const isFocused = useRef(false);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (!isFocused.current) {
+      setLocalShortName(caseItem.short_name || '');
+      setLocalTitle(caseItem.title || '');
+      setLocalCustomName(caseItem.custom_type_name || '');
+    }
+  }, [caseItem.short_name, caseItem.title, caseItem.custom_type_name]);
+
+  const debouncedUpdate = (id: string, updates: Partial<CaseDraft>) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => onUpdate(id, updates), 500);
+  };
+
   const {
     attributes,
     listeners,
@@ -156,8 +175,14 @@ function SortableCaseRow({ caseItem, participants, onUpdate, onDelete, canEdit }
       {/* Custom Abbreviation (only for "other" type) */}
       {isOtherType ? (
         <Input
-          value={caseItem.custom_type_name || ''}
-          onChange={(e) => onUpdate(caseItem.id, { custom_type_name: e.target.value.slice(0, 4) })}
+          value={localCustomName}
+          onChange={(e) => {
+            const v = e.target.value.slice(0, 4);
+            setLocalCustomName(v);
+            debouncedUpdate(caseItem.id, { custom_type_name: v });
+          }}
+          onFocus={() => { isFocused.current = true; }}
+          onBlur={() => { isFocused.current = false; }}
           placeholder="Abbr"
           className="h-7 text-xs uppercase"
           maxLength={4}
@@ -169,8 +194,13 @@ function SortableCaseRow({ caseItem, participants, onUpdate, onDelete, canEdit }
 
       {/* Short Name */}
       <Input
-        value={caseItem.short_name || ''}
-        onChange={(e) => onUpdate(caseItem.id, { short_name: e.target.value })}
+        value={localShortName}
+        onChange={(e) => {
+          setLocalShortName(e.target.value);
+          debouncedUpdate(caseItem.id, { short_name: e.target.value });
+        }}
+        onFocus={() => { isFocused.current = true; }}
+        onBlur={() => { isFocused.current = false; }}
         placeholder="Short"
         className="h-7 text-sm"
         disabled={!canEdit}
@@ -178,8 +208,13 @@ function SortableCaseRow({ caseItem, participants, onUpdate, onDelete, canEdit }
 
       {/* Title */}
       <Input
-        value={caseItem.title || ''}
-        onChange={(e) => onUpdate(caseItem.id, { title: e.target.value })}
+        value={localTitle}
+        onChange={(e) => {
+          setLocalTitle(e.target.value);
+          debouncedUpdate(caseItem.id, { title: e.target.value });
+        }}
+        onFocus={() => { isFocused.current = true; }}
+        onBlur={() => { isFocused.current = false; }}
         placeholder="Case title"
         className="h-7 text-sm"
         disabled={!canEdit}

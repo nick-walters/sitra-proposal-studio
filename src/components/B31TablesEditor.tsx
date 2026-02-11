@@ -154,10 +154,11 @@ function EditableText({
   const [localValue, setLocalValue] = useState(value);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isFocused = useRef(false);
   
-  // Sync local value when prop changes (e.g., from another user)
+  // Sync local value when prop changes (e.g., from another user) - but not while focused
   useEffect(() => {
-    setLocalValue(value);
+    if (!isFocused.current) setLocalValue(value);
   }, [value]);
   
   // Auto-resize on mount and when value changes
@@ -191,6 +192,8 @@ function EditableText({
       ref={textareaRef}
       value={localValue}
       onChange={handleChange}
+      onFocus={() => { isFocused.current = true; }}
+      onBlur={() => { isFocused.current = false; }}
       placeholder={placeholder}
       rows={1}
       className={`bg-transparent border-0 p-0 m-0 resize-none focus:outline-none focus:ring-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight ${inline ? '' : 'w-full'} ${className}`}
@@ -217,12 +220,15 @@ function EditableTextInline({
   const [localValue, setLocalValue] = useState(value);
   const spanRef = useRef<HTMLSpanElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isFocused = useRef(false);
   
-  // Sync local value when prop changes
+  // Sync local value when prop changes - but not while focused
   useEffect(() => {
-    setLocalValue(value);
-    if (spanRef.current && spanRef.current.textContent !== value) {
-      spanRef.current.textContent = value;
+    if (!isFocused.current) {
+      setLocalValue(value);
+      if (spanRef.current && spanRef.current.textContent !== value) {
+        spanRef.current.textContent = value;
+      }
     }
   }, [value]);
   
@@ -250,6 +256,8 @@ function EditableTextInline({
       contentEditable
       suppressContentEditableWarning
       onInput={handleInput}
+      onFocus={() => { isFocused.current = true; }}
+      onBlur={() => { isFocused.current = false; }}
       data-placeholder={placeholder}
       className="outline-none min-w-[50px] empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight"
       style={{ display: 'inline' }}
