@@ -1,59 +1,97 @@
 
 
-## Fix: Global roles not detected for proposal access
+## Fix: Characters lost when typing fast in form fields
 
 ### Problem
-The `fetchUserRole` function in `src/hooks/useProposalData.ts` (line 121-126) only queries for roles matching the specific `proposal_id`. Global roles (owner, admin) are stored with `proposal_id = NULL`, so they are never found. This means a global owner who is also a proposal editor gets no role detected (or only the editor role if it exists), and the "Add Participant" button stays hidden.
+Multiple form components call their parent's update handler on **every keystroke** without local state buffering. This triggers parent state updates and re-renders, which can overwrite the input value mid-typing, causing characters to be dropped during fast input.
 
-### Solution
-Update `fetchUserRole` to query both proposal-specific and global roles, then use the highest-privilege one.
+### Root Cause
+The anti-pattern looks like this:
+```
+<Input
+  value={participant.organisationName || ''}
+  onChange={(e) => handleFieldUpdate('organisationName', e.target.value)}
+/>
+```
+Here, `handleFieldUpdate` immediately calls the parent (`onUpdateParticipant`), which updates parent state, which re-renders this component with new props -- but during fast typing, React batching can cause the input to "reset" to a stale value before the next keystroke is processed.
+
+### Solution: Create a reusable `DebouncedInput` and `DebouncedTextarea` component
+Instead of fixing each component individually (which would be error-prone and repetitive), create two shared wrapper components that:
+1. Maintain **local state** for immediate responsiveness
+2. **Debounce** the parent callback (500ms delay)
+3. **Sync from props** only when the input is not focused (to avoid overwriting user input)
+
+### Affected Components (files to update)
+
+1. **`src/components/ParticipantDetailForm.tsx`** -- Organisation details fields (legal name, short name, English name, street, town, postcode, website) all call `handleFieldUpdate` directly on every keystroke
+2. **`src/components/participant/MainContactSection.tsx`** -- All 11+ input fields call `onUpdate` directly per keystroke
+3. **`src/components/participant/DepartmentsSection.tsx`** -- Department name, street, town, postcode fields call `onUpdate` directly per keystroke
+
+These are the primary offenders. Other components (WPRisksTable, WPDeliverablesTable, B31TablesEditor, WPEffortMatrix) already use the correct local-state + debounce pattern.
 
 ### Technical Details
 
-**File: `src/hooks/useProposalData.ts` (lines 117-131)**
+**Step 1: Create `src/components/ui/debounced-input.tsx`**
 
-Replace the single query with two parallel queries:
+A reusable component wrapping `Input`:
+- Uses `useState` for local value
+- Uses `useRef` to track focus state
+- Debounces `onChange` callback with `setTimeout` (500ms)
+- Only syncs from external `value` prop when the field is **not focused**
 
 ```typescript
-const fetchUserRole = useCallback(async () => {
-  if (!proposalId || !user) return;
+// Pseudocode
+function DebouncedInput({ value, onDebouncedChange, debounceMs = 500, ...props }) {
+  const [localValue, setLocalValue] = useState(value);
+  const isFocused = useRef(false);
+  const timeoutRef = useRef(null);
 
-  // Fetch proposal-specific and global roles in parallel
-  const [proposalResult, globalResult] = await Promise.all([
-    supabase
-      .from('user_roles')
-      .select('role')
-      .eq('proposal_id', proposalId)
-      .eq('user_id', user.id)
-      .maybeSingle(),
-    supabase
-      .from('user_roles')
-      .select('role')
-      .is('proposal_id', null)
-      .eq('user_id', user.id)
-      .maybeSingle(),
-  ]);
+  // Sync from props only when not focused
+  useEffect(() => {
+    if (!isFocused.current) setLocalValue(value);
+  }, [value]);
 
-  const rolePriority: Record<string, number> = {
-    owner: 4, admin: 3, editor: 2, viewer: 1
+  const handleChange = (e) => {
+    setLocalValue(e.target.value);
+    clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      onDebouncedChange(e.target.value);
+    }, debounceMs);
   };
 
-  const roles = [
-    proposalResult.data?.role,
-    globalResult.data?.role
-  ].filter(Boolean) as string[];
-
-  if (roles.length > 0) {
-    const bestRole = roles.sort(
-      (a, b) => (rolePriority[b] || 0) - (rolePriority[a] || 0)
-    )[0];
-    setUserRole(bestRole as 'owner' | 'admin' | 'editor' | 'viewer');
-  }
-}, [proposalId, user]);
+  return <Input value={localValue} onChange={handleChange}
+    onFocus={() => isFocused.current = true}
+    onBlur={() => { isFocused.current = false; /* flush pending */ }}
+  />;
+}
 ```
 
-This is a single-file, single-function change. It ensures that:
-- A global owner sees full permissions on every proposal
-- A proposal-level editor also gets edit rights (including adding participants)
-- If both exist, the higher role wins
+Similarly create `DebouncedTextarea` with the same logic.
+
+**Step 2: Replace direct `onChange` calls in affected components**
+
+In each affected file, replace:
+```tsx
+<Input value={x} onChange={(e) => onUpdate('field', e.target.value)} />
+```
+with:
+```tsx
+<DebouncedInput value={x} onDebouncedChange={(v) => onUpdate('field', v)} />
+```
+
+This is a mechanical find-and-replace within each file, keeping all other props (placeholder, disabled, className) unchanged.
+
+**Step 3: Verify existing good patterns are untouched**
+
+Components that already use local state + debounce (WPRisksTable, WPDeliverablesTable, B31TablesEditor, WPEffortMatrix) will not be modified.
+
+### Summary of Changes
+
+| File | Change |
+|------|--------|
+| `src/components/ui/debounced-input.tsx` | New file -- DebouncedInput component |
+| `src/components/ui/debounced-textarea.tsx` | New file -- DebouncedTextarea component |
+| `src/components/ParticipantDetailForm.tsx` | Replace ~7 Input fields with DebouncedInput |
+| `src/components/participant/MainContactSection.tsx` | Replace ~11 Input fields with DebouncedInput |
+| `src/components/participant/DepartmentsSection.tsx` | Replace ~4 Input fields with DebouncedInput |
 
