@@ -30,7 +30,7 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
   const versionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const contentIdRef = useRef<string | null>(null);
   const lastVersionContentRef = useRef<string>('');
-  const lastVersionTimeRef = useRef<number>(0);
+  const lastVersionTimeRef = useRef<number>(0); // 0 allows first version save immediately
   const pendingContentRef = useRef<string | null>(null);
   const isSavingRef = useRef(false);
 
@@ -222,18 +222,8 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
   const saveContent = useCallback(async (newContent: string) => {
     if (!proposalId || !sectionId || !user?.id) return;
 
-    const success = await saveContentImmediately(newContent);
-    
-    if (success) {
-      // Schedule version save check
-      if (versionTimeoutRef.current) {
-        clearTimeout(versionTimeoutRef.current);
-      }
-      versionTimeoutRef.current = setTimeout(() => {
-        saveVersion(newContent);
-      }, VERSION_SAVE_INTERVAL);
-    }
-  }, [proposalId, sectionId, user?.id, saveVersion, saveContentImmediately]);
+    await saveContentImmediately(newContent);
+  }, [proposalId, sectionId, user?.id, saveContentImmediately]);
 
   // Handle content change with debounce
   const handleContentChange = useCallback((newContent: string) => {
@@ -253,6 +243,20 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
       saveContent(newContent);
     }, AUTOSAVE_DEBOUNCE);
   }, [saveContent, isPlaceholder]);
+
+  // Periodic version saving: every VERSION_SAVE_INTERVAL, snapshot current content
+  useEffect(() => {
+    if (!proposalId || !sectionId || !user?.id) return;
+
+    const intervalId = setInterval(() => {
+      const currentContent = pendingContentRef.current ?? content;
+      if (currentContent && currentContent !== lastVersionContentRef.current && currentContent.trim()) {
+        saveVersion(currentContent);
+      }
+    }, VERSION_SAVE_INTERVAL);
+
+    return () => clearInterval(intervalId);
+  }, [proposalId, sectionId, user?.id, saveVersion, content]);
 
   // Clear placeholder content and start fresh
   const clearPlaceholder = useCallback(() => {
@@ -312,12 +316,9 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
   // Cleanup on unmount - flush any pending changes
   useEffect(() => {
     return () => {
-      // Clear timeouts
+      // Clear save timeout
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
-      }
-      if (versionTimeoutRef.current) {
-        clearTimeout(versionTimeoutRef.current);
       }
       
       // Synchronously save any pending content using sendBeacon
