@@ -490,13 +490,10 @@ export function SectionNavigator({
   assignments,
   collaborators = [],
 }: SectionNavigatorProps) {
-  // Filter visible participants based on role
+  // All users with proposal access can see all participants
   const visibleParticipants = useMemo(() => {
-    if (isAdmin) return participants;
-    return participants.filter(p => 
-      participantMembers.some(m => m.participantId === p.id && m.userId === currentUserId)
-    );
-  }, [participants, isAdmin, currentUserId, participantMembers]);
+    return participants;
+  }, [participants]);
 
   // Inject participants under A2 section
   const sectionsWithParticipants = useMemo(() => {
