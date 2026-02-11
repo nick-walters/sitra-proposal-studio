@@ -49,7 +49,7 @@ interface ProposalScheduleProps {
   onSubmit: () => Promise<void>;
   onUpdateStatus: (status: ProposalStatus) => Promise<void>;
   canEdit: boolean;
-  isAdmin: boolean;
+  isCoordinator: boolean;
 }
 
 export function ProposalSchedule({
@@ -59,7 +59,7 @@ export function ProposalSchedule({
   onSubmit,
   onUpdateStatus,
   canEdit,
-  isAdmin,
+  isCoordinator,
 }: ProposalScheduleProps) {
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -68,7 +68,7 @@ export function ProposalSchedule({
   const totalBudget = budgetItems.reduce((sum, item) => sum + (item.amount || 0), 0);
 
   // Determine if user can edit this section (admins and owners only)
-  const userCanEdit = canEdit && isAdmin;
+  const userCanEdit = canEdit && isCoordinator;
 
   const checks: CheckItem[] = [
     {
