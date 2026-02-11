@@ -52,6 +52,14 @@ interface ParticipantDetailFormProps {
   onDeleteMember: (id: string) => void;
   canEdit: boolean;
   canDelete: boolean;
+  /** Can the user flag contacts for access (editor+) */
+  canFlag?: boolean;
+  /** Can the user grant access (coordinator/owner) */
+  canGrant?: boolean;
+  /** Proposal ID */
+  proposalId?: string;
+  /** Proposal acronym */
+  proposalAcronym?: string;
 }
 
 // Legal entity types aligned with organisation categories
@@ -79,6 +87,10 @@ export function ParticipantDetailForm({
   onDeleteMember,
   canEdit,
   canDelete,
+  canFlag = false,
+  canGrant = false,
+  proposalId,
+  proposalAcronym,
 }: ParticipantDetailFormProps) {
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -400,6 +412,10 @@ export function ParticipantDetailForm({
           participant={participant}
           onUpdate={handleFieldUpdate}
           canEdit={canEdit}
+          canFlag={canFlag}
+          canGrant={canGrant}
+          proposalId={proposalId}
+          proposalAcronym={proposalAcronym}
         />
 
         {/* 4. Other Contact Persons / Team Members */}

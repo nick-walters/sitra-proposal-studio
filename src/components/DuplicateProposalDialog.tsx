@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Copy, Loader2, AlertTriangle } from "lucide-react";
 import { Proposal } from "@/types/proposal";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DuplicateProposalDialogProps {
   isOpen: boolean;
@@ -21,8 +22,36 @@ export function DuplicateProposalDialog({
   onDuplicate,
 }: DuplicateProposalDialogProps) {
   const [loading, setLoading] = useState(false);
-  const [acronym, setAcronym] = useState(`${proposal.acronym}-v2`);
+  const [acronym, setAcronym] = useState('');
   const [title, setTitle] = useState(proposal.title);
+
+  // Determine the next copy number when dialog opens
+  useEffect(() => {
+    if (!isOpen) return;
+    setTitle(proposal.title);
+
+    const findNextCopyNumber = async () => {
+      // Strip existing "(copy N)" suffix to get the base acronym
+      const baseAcronym = proposal.acronym.replace(/\s*\(copy \d+\)$/i, '');
+
+      const { data } = await supabase
+        .from('proposals')
+        .select('acronym')
+        .ilike('acronym', `${baseAcronym} (copy %)`);
+
+      const existingNumbers = (data || [])
+        .map(p => {
+          const match = p.acronym.match(/\(copy (\d+)\)$/i);
+          return match ? parseInt(match[1], 10) : 0;
+        })
+        .filter(n => n > 0);
+
+      const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
+      setAcronym(`${baseAcronym} (copy ${nextNumber})`);
+    };
+
+    findNextCopyNumber();
+  }, [isOpen, proposal.acronym, proposal.title]);
 
   const handleDuplicate = async () => {
     if (!acronym.trim() || !title.trim()) return;
@@ -87,6 +116,11 @@ export function DuplicateProposalDialog({
               <li>Work packages and tasks</li>
               <li>Ethics assessment</li>
               <li>Figures and references</li>
+            </ul>
+            <p className="mt-2 text-xs font-medium">Access:</p>
+            <ul className="list-disc list-inside space-y-0.5 text-xs">
+              <li>Only Coordinators from the original will retain access</li>
+              <li>Editors and Viewers will not be copied</li>
             </ul>
           </div>
         </div>

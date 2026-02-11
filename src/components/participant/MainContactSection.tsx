@@ -14,11 +14,20 @@ import { User } from 'lucide-react';
 import { Participant } from '@/types/proposal';
 import { CONTACT_TITLES, GENDER_OPTIONS } from '@/types/participantDetails';
 import { CountrySelect } from '@/components/CountrySelect';
+import { ContactAccessControl } from './ContactAccessControl';
 
 interface MainContactSectionProps {
   participant: Participant;
   onUpdate: (field: string, value: unknown) => void;
   canEdit: boolean;
+  /** Can the current user flag contacts for access (editor+) */
+  canFlag?: boolean;
+  /** Can the current user grant access (coordinator/owner) */
+  canGrant?: boolean;
+  /** Proposal ID for access granting */
+  proposalId?: string;
+  /** Proposal acronym for invitations */
+  proposalAcronym?: string;
 }
 
 interface MainContactFields {
@@ -44,27 +53,58 @@ interface MainContactFields {
   postcode?: string | null;
   country?: string | null;
   website?: string | null;
+  // Access control fields
+  mainContactAccessRequested?: boolean | null;
+  mainContactAccessGranted?: boolean | null;
+  mainContactAccessGrantedRole?: string | null;
 }
 
 export function MainContactSection({
   participant,
   onUpdate,
   canEdit,
+  canFlag = false,
+  canGrant = false,
+  proposalId,
+  proposalAcronym,
 }: MainContactSectionProps) {
   const fields = participant as unknown as MainContactFields;
   const useOrgAddress = fields.useOrganisationAddress ?? true;
   const deptSameAsOrg = fields.mainContactDeptSameAsOrg ?? true;
+  const contactName = [fields.mainContactFirstName, fields.mainContactLastName].filter(Boolean).join(' ');
 
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <User className="w-5 h-5" />
-          Main contact person
-        </CardTitle>
-        <CardDescription>
-          Primary contact for this organisation in the consortium
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <User className="w-5 h-5" />
+              Main contact person
+            </CardTitle>
+            <CardDescription>
+              Primary contact for this organisation in the consortium
+            </CardDescription>
+          </div>
+          {proposalId && proposalAcronym && (canFlag || canGrant || fields.mainContactAccessRequested || fields.mainContactAccessGranted) && (
+            <ContactAccessControl
+              email={fields.contactEmail}
+              name={contactName || null}
+              accessRequested={fields.mainContactAccessRequested || false}
+              accessGranted={fields.mainContactAccessGranted || false}
+              accessGrantedRole={fields.mainContactAccessGrantedRole}
+              canFlag={canFlag}
+              canGrant={canGrant}
+              proposalId={proposalId}
+              proposalAcronym={proposalAcronym}
+              onFlagAccess={(requested) => onUpdate('mainContactAccessRequested', requested)}
+              onAccessGranted={(role) => {
+                onUpdate('mainContactAccessGranted', true);
+                onUpdate('mainContactAccessGrantedRole', role);
+              }}
+            />
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Name row */}
