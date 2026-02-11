@@ -88,7 +88,7 @@ export function WPTableSection({
       <CardContent className="space-y-2 px-3 pb-3 pt-0">
         {/* Objectives section */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">Objective</label>
+          <label className="text-xs font-medium">Objective</label>
           <WPSimpleEditor
             value={objectives || ''}
             onChange={onObjectivesChange}
@@ -102,7 +102,7 @@ export function WPTableSection({
 
         {/* Tasks list */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">Tasks</label>
+          <label className="text-xs font-medium">Tasks</label>
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}

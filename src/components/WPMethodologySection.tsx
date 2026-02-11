@@ -28,7 +28,7 @@ export function WPMethodologySection({
       <CardContent className="space-y-2 px-3 pb-3 pt-0">
         {/* Official question */}
         <div className="rounded-md border border-border bg-muted/30 p-2">
-          <p className="text-sm text-muted-foreground italic">
+          <p className="text-xs text-muted-foreground italic">
             {METHODOLOGY_QUESTION}
           </p>
         </div>
