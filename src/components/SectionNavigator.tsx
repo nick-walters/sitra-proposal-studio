@@ -23,7 +23,7 @@ interface SectionNavigatorProps {
   activeSectionId: string | null;
   onSectionClick: (section: Section | WPSection | CaseSection) => void;
   participants?: Participant[];
-  isAdmin?: boolean;
+  isCoordinator?: boolean;
   currentUserId?: string;
   participantMembers?: { participantId: string; userId?: string }[];
   assignments?: Map<string, SectionAssignment>;
@@ -484,7 +484,7 @@ export function SectionNavigator({
   activeSectionId,
   onSectionClick,
   participants = [],
-  isAdmin = false,
+  isCoordinator = false,
   currentUserId,
   participantMembers = [],
   assignments,

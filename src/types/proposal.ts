@@ -1,6 +1,6 @@
 export type ProposalType = 'RIA' | 'IA' | 'CSA';
 export type BudgetType = 'traditional' | 'lump_sum';
-export type UserRole = 'admin' | 'editor' | 'viewer';
+export type UserRole = 'coordinator' | 'editor' | 'viewer';
 export type ProposalStatus = 'draft' | 'submitted' | 'funded' | 'not_funded';
 export type SubmissionStage = 'full' | 'stage_1';
 

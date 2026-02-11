@@ -6,6 +6,8 @@ interface UserRoleState {
   isOwner: boolean;
   isAdmin: boolean;
   isAdminOrOwner: boolean;
+  isGlobalAdmin: boolean;
+  hasAnyCoordinatorRole: boolean;
   loading: boolean;
 }
 
@@ -14,6 +16,8 @@ export function useUserRole(): UserRoleState {
     isOwner: false,
     isAdmin: false,
     isAdminOrOwner: false,
+    isGlobalAdmin: false,
+    hasAnyCoordinatorRole: false,
     loading: true,
   });
 
@@ -25,15 +29,16 @@ export function useUserRole(): UserRoleState {
           isOwner: false,
           isAdmin: false,
           isAdminOrOwner: false,
+          isGlobalAdmin: false,
+          hasAnyCoordinatorRole: false,
           loading: false,
         });
         return;
       }
 
-      // Check for owner role (global, proposal_id is null or check for any owner role)
       const { data: roles, error } = await supabase
         .from('user_roles')
-        .select('role')
+        .select('role, proposal_id')
         .eq('user_id', user.id);
 
       if (error) {
@@ -41,19 +46,26 @@ export function useUserRole(): UserRoleState {
           isOwner: false,
           isAdmin: false,
           isAdminOrOwner: false,
+          isGlobalAdmin: false,
+          hasAnyCoordinatorRole: false,
           loading: false,
         });
         return;
       }
 
-      const roleSet = new Set(roles?.map(r => r.role) || []);
-      const isOwner = roleSet.has('owner');
-      const isAdmin = roleSet.has('admin');
+      const globalRoles = (roles || []).filter(r => !r.proposal_id).map(r => r.role);
+      const proposalRoles = (roles || []).filter(r => r.proposal_id).map(r => r.role);
+      
+      const isOwner = globalRoles.includes('owner');
+      const isGlobalAdmin = globalRoles.includes('admin');
+      const hasAnyCoordinatorRole = proposalRoles.includes('coordinator') || isOwner || isGlobalAdmin;
 
       setState({
         isOwner,
-        isAdmin,
-        isAdminOrOwner: isOwner || isAdmin,
+        isAdmin: isOwner || isGlobalAdmin,
+        isAdminOrOwner: isOwner || isGlobalAdmin,
+        isGlobalAdmin,
+        hasAnyCoordinatorRole,
         loading: false,
       });
     };

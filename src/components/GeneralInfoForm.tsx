@@ -31,7 +31,7 @@ interface GeneralInfoFormProps {
   proposal: Proposal | null;
   section: Section;
   canEdit: boolean;
-  isAdmin?: boolean;
+  isCoordinator?: boolean;
   onUpdateProposal: (updates: Record<string, any>) => Promise<void>;
   // Additional props for overview content
   participants?: Participant[];
@@ -264,7 +264,7 @@ export function GeneralInfoForm({
   proposal,
   section,
   canEdit,
-  isAdmin = false,
+  isCoordinator = false,
   onUpdateProposal,
   participants = [],
   budgetItems = [],
@@ -326,7 +326,7 @@ export function GeneralInfoForm({
     : null;
 
   // User can edit overview fields if admin/owner
-  const userCanEditOverview = canEdit && isAdmin;
+  const userCanEditOverview = canEdit && isCoordinator;
   const isEditing = userCanEditOverview;
 
   // Auto-save overview changes with debounce
@@ -553,13 +553,13 @@ export function GeneralInfoForm({
             sitraTips={sitraTips}
           />
           <div className="flex items-center gap-3">
-            {onExportPdf && !isAdmin && (
+            {onExportPdf && !isCoordinator && (
               <Button variant="outline" size="sm" className="gap-2" onClick={() => onExportPdf(true)}>
                 <Download className="w-4 h-4" />
                 Export Part B
               </Button>
             )}
-            {onExportPdf && isAdmin && (
+            {onExportPdf && isCoordinator && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" size="sm" className="gap-2">
@@ -1323,12 +1323,12 @@ export function GeneralInfoForm({
         {proposal?.submissionStage !== 'stage_1' && (
           <WPDependencySelector
             proposalId={proposalId}
-            isAdmin={isAdmin}
+            isCoordinator={isCoordinator}
           />
         )}
 
         {/* Delete Proposal - Admins/Owners Only */}
-        {isAdmin && (
+        {isCoordinator && (
           <DeleteProposalSection proposalId={proposalId} proposalTitle={proposal?.title || 'this proposal'} />
         )}
       </div>

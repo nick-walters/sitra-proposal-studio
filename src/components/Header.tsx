@@ -12,7 +12,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 
 export function Header() {
   const { user, signOut } = useAuth();
-  const { isAdminOrOwner } = useUserRole();
+  const { isOwner, hasAnyCoordinatorRole, isGlobalAdmin } = useUserRole();
   const [isCollaboratorsOpen, setIsCollaboratorsOpen] = useState(false);
   const [chatUserId, setChatUserId] = useState<string | null>(null);
 
@@ -54,7 +54,7 @@ export function Header() {
           {/* Right: Notifications, Backend (admin/owner only), Avatar */}
           <div className="flex items-center gap-2 flex-1 justify-end">
             {user && <NotificationCenter />}
-            {isAdminOrOwner && (
+            {(isOwner || (isGlobalAdmin && hasAnyCoordinatorRole)) && (
               <Link to="/admin">
                 <Button variant="ghost" size="sm" className="gap-2">
                   <Database className="w-4 h-4" />

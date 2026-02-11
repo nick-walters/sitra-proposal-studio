@@ -13,6 +13,7 @@ import { Plus, Search, LayoutGrid, List, X, Filter, Leaf, Brain, Zap, Wheat, Shi
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useProfileCompletion } from "@/hooks/useProfileCompletion";
 import { useProposalTemplateCreation } from "@/hooks/useProposalTemplateCreation";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,7 +59,7 @@ const sampleProposals: Proposal[] = [
     topicUrl: 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2024-d2-01-01',
     sections: HORIZON_EUROPE_SECTIONS,
     members: [
-      { user: { id: '1', name: 'John Doe', email: 'john@example.com' }, role: 'admin' },
+      { user: { id: '1', name: 'John Doe', email: 'john@example.com' }, role: 'coordinator' },
       { user: { id: '2', name: 'Jane Smith', email: 'jane@example.com' }, role: 'editor' },
       { user: { id: '3', name: 'Bob Wilson', email: 'bob@example.com' }, role: 'viewer' },
     ],
@@ -80,7 +81,7 @@ const sampleProposals: Proposal[] = [
     sections: HORIZON_EUROPE_SECTIONS,
     members: [
       { user: { id: '1', name: 'John Doe', email: 'john@example.com' }, role: 'editor' },
-      { user: { id: '4', name: 'Alice Brown', email: 'alice@example.com' }, role: 'admin' },
+      { user: { id: '4', name: 'Alice Brown', email: 'alice@example.com' }, role: 'coordinator' },
     ],
   },
   {
@@ -100,7 +101,7 @@ const sampleProposals: Proposal[] = [
     topicUrl: 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl5-2024-d3-01-01',
     sections: HORIZON_EUROPE_SECTIONS,
     members: [
-      { user: { id: '5', name: 'Chris Davis', email: 'chris@example.com' }, role: 'admin' },
+      { user: { id: '5', name: 'Chris Davis', email: 'chris@example.com' }, role: 'coordinator' },
       { user: { id: '1', name: 'John Doe', email: 'john@example.com' }, role: 'editor' },
       { user: { id: '6', name: 'Eva Martinez', email: 'eva@example.com' }, role: 'editor' },
       { user: { id: '7', name: 'Frank Lee', email: 'frank@example.com' }, role: 'viewer' },
@@ -124,7 +125,7 @@ const sampleProposals: Proposal[] = [
     topicUrl: 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl6-2024-circbio-01-01',
     sections: HORIZON_EUROPE_SECTIONS,
     members: [
-      { user: { id: '1', name: 'John Doe', email: 'john@example.com' }, role: 'admin' },
+      { user: { id: '1', name: 'John Doe', email: 'john@example.com' }, role: 'coordinator' },
     ],
   },
   {
@@ -142,7 +143,7 @@ const sampleProposals: Proposal[] = [
     topicUrl: 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl3-2024-cs-01-01',
     sections: HORIZON_EUROPE_SECTIONS,
     members: [
-      { user: { id: '1', name: 'John Doe', email: 'john@example.com' }, role: 'admin' },
+      { user: { id: '1', name: 'John Doe', email: 'john@example.com' }, role: 'coordinator' },
       { user: { id: '9', name: 'Sarah Kim', email: 'sarah@example.com' }, role: 'editor' },
     ],
   },
@@ -161,7 +162,7 @@ const sampleProposals: Proposal[] = [
     topicUrl: 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl6-2024-farm2fork-01-4',
     sections: HORIZON_EUROPE_SECTIONS,
     members: [
-      { user: { id: '10', name: 'Marco Rossi', email: 'marco@example.com' }, role: 'admin' },
+      { user: { id: '10', name: 'Marco Rossi', email: 'marco@example.com' }, role: 'coordinator' },
       { user: { id: '1', name: 'John Doe', email: 'john@example.com' }, role: 'viewer' },
     ],
   },
@@ -180,7 +181,7 @@ const sampleProposals: Proposal[] = [
     topicUrl: 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl4-2024-digital-emerging-01-01',
     sections: HORIZON_EUROPE_SECTIONS,
     members: [
-      { user: { id: '11', name: 'Lisa Zhang', email: 'lisa@example.com' }, role: 'admin' },
+      { user: { id: '11', name: 'Lisa Zhang', email: 'lisa@example.com' }, role: 'coordinator' },
       { user: { id: '12', name: 'Tom Brown', email: 'tom@example.com' }, role: 'editor' },
       { user: { id: '1', name: 'John Doe', email: 'john@example.com' }, role: 'editor' },
     ],
@@ -201,7 +202,7 @@ const sampleProposals: Proposal[] = [
     topicUrl: 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-hlth-2024-care-06-01',
     sections: HORIZON_EUROPE_SECTIONS,
     members: [
-      { user: { id: '13', name: 'Anna Mueller', email: 'anna@example.com' }, role: 'admin' },
+      { user: { id: '13', name: 'Anna Mueller', email: 'anna@example.com' }, role: 'coordinator' },
       { user: { id: '14', name: 'Peter Schmidt', email: 'peter@example.com' }, role: 'editor' },
     ],
   },
@@ -221,7 +222,7 @@ const sampleProposals: Proposal[] = [
     topicUrl: 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/horizon-cl6-2026-zeropollution-01-01',
     sections: HORIZON_EUROPE_SECTIONS,
     members: [
-      { user: { id: '15', name: 'Henrik Larsson', email: 'henrik@example.com' }, role: 'admin' },
+      { user: { id: '15', name: 'Henrik Larsson', email: 'henrik@example.com' }, role: 'coordinator' },
       { user: { id: '1', name: 'John Doe', email: 'john@example.com' }, role: 'editor' },
     ],
   },
@@ -353,8 +354,8 @@ export function Dashboard() {
     return proposal.status;
   };
 
-  // Check if user is Sitra staff (based on email domain)
-  const isSitraStaff = user?.email?.endsWith('@sitra.fi') || user?.email?.endsWith('@sitra.dev') || false;
+  // Check if user can create proposals (Owner or Admin global role)
+  const { isAdminOrOwner: canCreateProposal } = useUserRole();
 
   // Get available destinations based on selected work programmes
   const availableDestinations = useMemo(() => {
@@ -592,7 +593,7 @@ export function Dashboard() {
             </div>
             
             {/* New Proposal button - visible on mobile at top */}
-            {isSitraStaff && (
+            {canCreateProposal && (
               <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2 w-full sm:w-auto" size="sm">
                 <Plus className="w-4 h-4" />
                 New Proposal

@@ -137,26 +137,28 @@ export interface BudgetCategory {
 // User Role Types and Permissions
 // =====================================================
 
-export type AppRole = 'owner' | 'admin' | 'editor' | 'viewer';
+export type AppRole = 'owner' | 'admin' | 'coordinator' | 'editor' | 'viewer';
 
 export const ROLE_LABELS: Record<AppRole, string> = {
   owner: 'Owner',
   admin: 'Admin',
+  coordinator: 'Coordinator',
   editor: 'Editor',
   viewer: 'Viewer',
 };
 
 export const ROLE_DESCRIPTIONS: Record<AppRole, string> = {
-  owner: 'Full access including template management',
-  admin: 'Can manage proposals, users, and settings',
-  editor: 'Can edit proposal content',
-  viewer: 'Can only view proposals',
+  owner: 'Full platform access including all proposals and admin pages',
+  admin: 'Can create proposals and access backend for coordinated proposals',
+  coordinator: 'Full management of the proposal including privileged actions',
+  editor: 'Can edit proposal content with restrictions',
+  viewer: 'Read-only access to the proposal',
 };
 
 // Permission helpers
 export const canManageTemplates = (role: AppRole) => role === 'owner';
-export const canManageProposal = (role: AppRole) => role === 'owner' || role === 'admin';
-export const canEditProposal = (role: AppRole) => role === 'owner' || role === 'admin' || role === 'editor';
+export const canManageProposal = (role: AppRole) => role === 'owner' || role === 'admin' || role === 'coordinator';
+export const canEditProposal = (role: AppRole) => role === 'owner' || role === 'admin' || role === 'coordinator' || role === 'editor';
 export const canViewProposal = (role: AppRole) => true; // All roles can view
 
 // =====================================================

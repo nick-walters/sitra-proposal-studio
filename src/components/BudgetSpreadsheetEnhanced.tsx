@@ -121,7 +121,7 @@ interface BudgetSpreadsheetEnhancedProps {
   canEdit: boolean;
   proposalId: string;
   saving?: boolean;
-  isAdmin?: boolean;
+  isCoordinator?: boolean;
   isFullProposal?: boolean;
 }
 
@@ -138,7 +138,7 @@ export function BudgetSpreadsheetEnhanced({
   canEdit,
   proposalId,
   saving = false,
-  isAdmin = false,
+  isCoordinator = false,
   isFullProposal = false,
 }: BudgetSpreadsheetEnhancedProps) {
   const [selectedParticipant, setSelectedParticipant] = useState<string | 'all'>('all');
@@ -314,7 +314,7 @@ export function BudgetSpreadsheetEnhanced({
               <Download className="w-4 h-4" />
               Export
             </Button>
-            {isFullProposal && isAdmin && (
+            {isFullProposal && isCoordinator && (
               <Button
                 variant="outline"
                 className="gap-2"

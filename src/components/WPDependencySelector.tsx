@@ -22,10 +22,10 @@ interface Dependency {
 
 interface WPDependencySelectorProps {
   proposalId: string;
-  isAdmin: boolean;
+  isCoordinator: boolean;
 }
 
-export function WPDependencySelector({ proposalId, isAdmin }: WPDependencySelectorProps) {
+export function WPDependencySelector({ proposalId, isCoordinator }: WPDependencySelectorProps) {
   const queryClient = useQueryClient();
   const [fromWp, setFromWp] = useState<string>('');
   const [toWp, setToWp] = useState<string>('');
@@ -146,7 +146,7 @@ export function WPDependencySelector({ proposalId, isAdmin }: WPDependencySelect
                   style={{ backgroundColor: getWpColor(dep.to_wp_id) }}
                 />
                 <span className="font-medium">{getWpLabel(dep.to_wp_id)}</span>
-                {isAdmin && (
+                {isCoordinator && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -166,7 +166,7 @@ export function WPDependencySelector({ proposalId, isAdmin }: WPDependencySelect
         )}
 
         {/* Add New Dependency */}
-        {isAdmin && (
+        {isCoordinator && (
           <div className="flex items-center gap-2 pt-2 border-t">
             <Select value={fromWp} onValueChange={setFromWp}>
               <SelectTrigger className="flex-1 h-8 text-sm">

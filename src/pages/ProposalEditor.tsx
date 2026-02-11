@@ -85,7 +85,7 @@ export function ProposalEditor() {
     loading,
     isDraft,
     canEdit,
-    isAdmin,
+    isCoordinator,
     updateProposal,
     addParticipant,
     updateParticipant,
@@ -404,8 +404,8 @@ export function ProposalEditor() {
                 sections: allSections,
               } : null}
               section={activeSection}
-              canEdit={canEdit && isAdmin}
-              isAdmin={isAdmin}
+              canEdit={canEdit && isCoordinator}
+              isCoordinator={isCoordinator}
               onUpdateProposal={updateProposal}
               participants={participants}
               budgetItems={budgetItems.map((b) => ({
@@ -479,7 +479,7 @@ export function ProposalEditor() {
               }}
               onUpdateParticipant={updateParticipant}
               canInvite={canEdit}
-              canReorder={canEdit}
+              canReorder={canEdit && isCoordinator}
               canAddParticipant={canEdit}
               canEdit={canEdit}
               wpLeadership={wpLeadership}
@@ -545,7 +545,7 @@ export function ProposalEditor() {
               canEdit={canEdit}
               proposalId={id || ''}
               saving={budgetSaving}
-              isAdmin={isAdmin}
+              isCoordinator={isCoordinator}
               isFullProposal={proposal?.submissionStage !== 'stage_1'}
             />
           </div>
@@ -672,12 +672,12 @@ export function ProposalEditor() {
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           <WPManagementCard
             proposalId={id || ''}
-            isAdmin={canEdit}
+            isCoordinator={canEdit}
             isFullProposal={proposal?.submissionStage !== 'stage_1'}
           />
           <CaseManagementCard
             proposalId={id || ''}
-            isAdmin={canEdit && isAdmin}
+            isCoordinator={canEdit && isCoordinator}
             casesEnabled={proposal?.casesEnabled || false}
             onToggleCases={handleToggleCases}
           />
@@ -1032,7 +1032,7 @@ export function ProposalEditor() {
               activeSectionId={activeSection?.id || selectedParticipantId ? `a2-${selectedParticipantId}` : null}
               onSectionClick={handleSectionClick}
               participants={participants}
-              isAdmin={isAdmin}
+              isCoordinator={isCoordinator}
               currentUserId={user?.id}
               participantMembers={participantMembers.map(m => ({ participantId: m.participantId, userId: m.userId }))}
               assignments={assignments}
@@ -1043,7 +1043,7 @@ export function ProposalEditor() {
           {/* Collaborators - fixed at bottom */}
           <ProposalCollaboratorsPanel
             proposalId={id || ''}
-            canManage={isGlobalOwner || isAdmin}
+            canManage={isGlobalOwner || isCoordinator}
             onlineCollaborators={collaborators}
           />
         </aside>
