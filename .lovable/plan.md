@@ -1,42 +1,68 @@
 
 
-# Contact Persons: Role Protection, Crown Icon, and MCP Exclusivity
+# Fix Track Changes: Individual Accept/Reject and Anonymous Author
 
-## Overview
+## Problems Identified
 
-Three changes to the Contact Persons section:
+### 1. Author shows as "Anonymous"
+The `authorId`, `authorName`, and `authorColor` are only set once during editor initialization via `TrackChanges.configure(...)` in the `useEditor` hook. The `useEffect` that syncs track changes state (line 1113-1128 of `RichTextEditor.tsx`) only syncs `enabled` and `onChangesUpdate` -- it never updates `authorId`, `authorName`, or `authorColor` on the extension options.
 
-1. **No role demotion**: When granting access to a CP who already has a higher role (coordinator, owner, or global admin), skip inserting a new editor role and just mark them as having access.
-2. **Crown icon instead of star**: Replace the Star icon with Crown for the MCP toggle.
-3. **MCP exclusivity**: Once one CP is flagged as MCP, the crown button is hidden (or disabled) for all other CPs. The only way to assign a different MCP is to first click the crown on the current MCP to remove their status.
+So if the user data hasn't fully loaded when the editor first mounts, the defaults (`'Anonymous'`, `''`, `'#3B82F6'`) are baked into the extension and every mark it creates uses those values permanently.
+
+### 2. Individual accept/reject doesn't work
+The `acceptChange` and `rejectChange` commands read `authorId`/`authorName`/`authorColor` from `extension.options`, which are stale for the same reason above. But more critically, the commands themselves appear structurally correct. The likely root cause is that the extension options (including `authorId`, `authorName`, `authorColor`) are stale references, meaning the `appendTransaction` plugin is also reading stale values. This doesn't directly explain the individual failure, but there could be a secondary issue where the tooltip click causes the editor to blur or the command fails silently.
+
+To fix this robustly, I'll add `onMouseDown={e => e.preventDefault()}` on tooltip buttons to prevent focus steal, and add diagnostic logging.
+
+## Changes
+
+### File: `src/components/RichTextEditor.tsx`
+
+**Sync all track change author options, not just `enabled`:**
+
+Update the existing `useEffect` (lines 1113-1128) to also sync `authorId`, `authorName`, and `authorColor` on both `ext.options` and `ext.storage` whenever they change. This ensures the `appendTransaction` plugin always reads the current user's identity.
+
+Add `trackChanges?.authorId`, `trackChanges?.authorName`, `trackChanges?.authorColor` to the dependency array.
+
+### File: `src/components/TrackChangeTooltip.tsx`
+
+**Prevent focus stealing and improve reliability:**
+
+- Add `onMouseDown={e => e.preventDefault()}` to both accept/reject buttons so clicking them doesn't cause the editor to lose focus or trigger unwanted ProseMirror transactions.
+- Read `authorName` directly from the DOM element's `data-author-name` attribute as a fallback, since the storage `changes` array might not always be in sync with the DOM.
+
+### File: `src/components/DocumentEditor.tsx`
+
+**No changes needed** -- it already passes the correct user metadata. The issue is downstream in `RichTextEditor.tsx` not syncing those values after initialization.
 
 ## Technical Details
 
-All changes are in **`src/components/participant/ContactPersonsSection.tsx`**.
+The core fix is in `RichTextEditor.tsx`:
 
-### 1. Role-aware access granting (`handleGrantAccess`)
+```typescript
+useEffect(() => {
+  if (!editor) return;
+  trackChangesRef.current = trackChanges;
+  const storage = (editor.storage as any).trackChanges;
+  if (storage && storage.enabled !== trackChanges?.enabled) {
+    storage.enabled = trackChanges?.enabled || false;
+    editor.view.dispatch(editor.state.tr);
+  }
+  const ext = editor.extensionManager.extensions.find(e => e.name === 'trackChanges');
+  if (ext) {
+    ext.options.onChangesUpdate = trackChanges?.onChangesUpdate;
+    ext.options.authorId = trackChanges?.authorId || '';
+    ext.options.authorName = trackChanges?.authorName || 'Anonymous';
+    ext.options.authorColor = trackChanges?.authorColor || '#3B82F6';
+  }
+}, [editor, trackChanges?.enabled, trackChanges?.onChangesUpdate,
+    trackChanges?.authorId, trackChanges?.authorName, trackChanges?.authorColor]);
+```
 
-Currently, when an existing user already has a `user_roles` entry for this proposal, the code shows "already has access". But if they have no proposal-specific role, it always inserts `editor`. The fix:
+And in `TrackChangeTooltip.tsx`, adding `onMouseDown` prevention and reading author from DOM:
 
-- After finding the existing profile, query their existing role for this proposal **and** check for global roles (owner/admin).
-- If they already have a role equal to or higher than editor (coordinator, owner, admin), do NOT insert an editor role -- just update the member's `accessGranted` flag and show a toast like "Already has coordinator access".
-- Only insert `editor` if they have no existing role at all.
-
-### 2. Replace Star with Crown
-
-- Change the import from `Star` to `Crown` (from `lucide-react`).
-- Replace all `<Star ...>` references with `<Crown ...>` in the MCP toggle button.
-- Update fill class from `fill-primary` to `fill-primary` (same, just on Crown now).
-
-### 3. MCP exclusivity logic
-
-- Derive `hasMCP` = `members.some(m => m.isPrimaryContact)` at the top of the render.
-- For each member row, only show the crown button if:
-  - The member IS the current MCP (so they can un-flag themselves), OR
-  - There is NO MCP currently set (so any member can be flagged).
-- If `hasMCP` is true and this member is not the MCP, the crown button is hidden (not shown at all), preventing accidental re-assignment.
-
-### Files modified
-
-- `src/components/participant/ContactPersonsSection.tsx` -- all three changes in this single file.
+```typescript
+// Read authorName from DOM attribute as primary source
+let authorName = el.getAttribute('data-author-name') || 'Unknown';
+```
 
