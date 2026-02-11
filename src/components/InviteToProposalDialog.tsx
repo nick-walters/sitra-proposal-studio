@@ -21,6 +21,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { UserPlus, Loader2, Building2, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import type { Participant, ParticipantMember } from '@/types/proposal';
 
 interface InviteToProposalDialogProps {
@@ -48,6 +49,7 @@ export function InviteToProposalDialog({
   participants,
   onMemberAdded,
 }: InviteToProposalDialogProps) {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
@@ -178,8 +180,48 @@ export function InviteToProposalDialog({
           }
         }
       } else {
-        // User doesn't exist yet - they'll need to sign up
-        toast.success(`${memberData.fullName} added as team member. They will receive access when they sign up with ${email}`);
+        // User doesn't exist yet - invite them via edge function
+        try {
+          const { data: inviteResult, error: inviteError } = await supabase.functions.invoke('invite-user', {
+            body: {
+              email: email.toLowerCase(),
+              fullName: fullName || email.split('@')[0],
+              proposalId,
+              proposalAcronym,
+            },
+          });
+
+          if (inviteError) {
+            console.error('Invite error:', inviteError);
+            toast.success(`${memberData.fullName} added as team member, but invitation email could not be sent`);
+          } else if (inviteResult?.userId) {
+            // Grant role to the newly created user
+            const { error: roleError } = await supabase
+              .from('user_roles')
+              .insert({
+                user_id: inviteResult.userId,
+                proposal_id: proposalId,
+                role: accessLevel,
+              });
+
+            if (roleError) {
+              console.error('Error granting access:', roleError);
+            }
+
+            // Update the participant member with the new user_id
+            await supabase
+              .from('participant_members')
+              .update({ user_id: inviteResult.userId })
+              .eq('id', newMember.id);
+
+            toast.success(`Invitation sent to ${email}. They will be prompted to set a password.`);
+          } else {
+            toast.success(`${memberData.fullName} added as team member. Invitation sent to ${email}.`);
+          }
+        } catch (err) {
+          console.error('Error sending invite:', err);
+          toast.success(`${memberData.fullName} added as team member, but invitation email could not be sent`);
+        }
       }
 
       // Notify parent component

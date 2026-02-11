@@ -37,9 +37,9 @@ export default function Auth() {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       
-      // Check if this is a password recovery callback
+      // Check if this is a password recovery or invite callback
       const type = searchParams.get('type');
-      if (type === 'recovery' && session) {
+      if ((type === 'recovery' || type === 'invite') && session) {
         setShowNewPassword(true);
         setIsCheckingAuth(false);
         return;
