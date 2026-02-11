@@ -89,17 +89,39 @@ function collectChangesFromDoc(doc: any, schema: any): TrackChange[] {
 /**
  * The TrackInsertion mark — applied to newly inserted text.
  */
+const trackChangeAttributes = () => ({
+  changeId: {
+    default: null,
+    parseHTML: (element: HTMLElement) => element.getAttribute('data-change-id'),
+    renderHTML: (attributes: Record<string, any>) => ({ 'data-change-id': attributes.changeId }),
+  },
+  authorId: {
+    default: '',
+    parseHTML: (element: HTMLElement) => element.getAttribute('data-author-id'),
+    renderHTML: (attributes: Record<string, any>) => ({ 'data-author-id': attributes.authorId }),
+  },
+  authorName: {
+    default: 'Anonymous',
+    parseHTML: (element: HTMLElement) => element.getAttribute('data-author-name'),
+    renderHTML: (attributes: Record<string, any>) => ({ 'data-author-name': attributes.authorName }),
+  },
+  authorColor: {
+    default: '#3B82F6',
+    parseHTML: (element: HTMLElement) => element.getAttribute('data-author-color'),
+    renderHTML: (attributes: Record<string, any>) => ({ 'data-author-color': attributes.authorColor }),
+  },
+  timestamp: {
+    default: null,
+    parseHTML: (element: HTMLElement) => element.getAttribute('data-timestamp'),
+    renderHTML: (attributes: Record<string, any>) => ({ 'data-timestamp': attributes.timestamp }),
+  },
+});
+
 const TrackInsertionMark = Mark.create({
   name: 'trackInsertion',
   
   addAttributes() {
-    return {
-      changeId: { default: null },
-      authorId: { default: '' },
-      authorName: { default: 'Anonymous' },
-      authorColor: { default: '#3B82F6' },
-      timestamp: { default: null },
-    };
+    return trackChangeAttributes();
   },
 
   parseHTML() {
@@ -112,6 +134,10 @@ const TrackInsertionMark = Mark.create({
       {
         'data-track-insertion': '',
         'data-change-id': HTMLAttributes.changeId,
+        'data-author-id': HTMLAttributes.authorId,
+        'data-author-name': HTMLAttributes.authorName,
+        'data-author-color': HTMLAttributes.authorColor,
+        'data-timestamp': HTMLAttributes.timestamp,
         style: `background-color: rgba(34, 197, 94, 0.3); border-bottom: 2px solid ${HTMLAttributes.authorColor};`,
       },
       0,
@@ -126,13 +152,7 @@ const TrackDeletionMark = Mark.create({
   name: 'trackDeletion',
   
   addAttributes() {
-    return {
-      changeId: { default: null },
-      authorId: { default: '' },
-      authorName: { default: 'Anonymous' },
-      authorColor: { default: '#3B82F6' },
-      timestamp: { default: null },
-    };
+    return trackChangeAttributes();
   },
 
   parseHTML() {
@@ -145,6 +165,10 @@ const TrackDeletionMark = Mark.create({
       {
         'data-track-deletion': '',
         'data-change-id': HTMLAttributes.changeId,
+        'data-author-id': HTMLAttributes.authorId,
+        'data-author-name': HTMLAttributes.authorName,
+        'data-author-color': HTMLAttributes.authorColor,
+        'data-timestamp': HTMLAttributes.timestamp,
         style: `background-color: rgba(239, 68, 68, 0.2); text-decoration: line-through; text-decoration-color: ${HTMLAttributes.authorColor}; color: #9ca3af;`,
       },
       0,
