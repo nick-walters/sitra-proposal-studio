@@ -138,9 +138,46 @@ export function UserRightsAdmin() {
 
   // Can the current user manage a specific proposal role?
   const canManageProposalRole = (proposalId: string | null) => {
-    if (!proposalId) return false; // global roles managed in Cloud Settings
+    if (!proposalId) return isOwner; // global roles managed by owners
     if (isOwner) return true;
     return coordinatedProposalIds.has(proposalId);
+  };
+
+  const handleAddGlobalRole = async (targetUser: UserWithRoles, role: string) => {
+    if (!isOwner) return;
+    try {
+      const { error } = await supabase.from('user_roles').insert([{
+        user_id: targetUser.id,
+        role: role as 'owner' | 'admin',
+      }]);
+      if (error) throw error;
+
+      // Refresh roles
+      const { data: updatedRoles } = await supabase
+        .from('user_roles')
+        .select('id, role, proposal_id')
+        .eq('user_id', targetUser.id);
+
+      const proposalMap = new Map<string, string>();
+      proposals.forEach(p => proposalMap.set(p.id, p.acronym));
+
+      setUsers(prev => prev.map(u =>
+        u.id === targetUser.id
+          ? {
+            ...u, roles: (updatedRoles || []).map(r => ({
+              id: r.id,
+              role: r.role,
+              proposal_id: r.proposal_id,
+              proposal_acronym: r.proposal_id ? proposalMap.get(r.proposal_id) || null : null,
+            }))
+          }
+          : u
+      ));
+      toast.success(`Added global ${role} role to ${getDisplayName(targetUser)}`);
+    } catch (error) {
+      console.error('Error adding global role:', error);
+      toast.error("Failed to add global role");
+    }
   };
 
   const handleAddRole = async () => {
@@ -335,14 +372,36 @@ export function UserRightsAdmin() {
                             )}
                             <div>
                               <span className="font-medium">{getDisplayName(u)}</span>
-                              {globalRoles.length > 0 && (
+                                {globalRoles.length > 0 && (
                                 <div className="flex gap-1 mt-0.5">
                                   {globalRoles.map(r => (
-                                    <Badge key={r.id} variant={r.role === 'owner' ? 'default' : 'secondary'} className="text-[10px] h-4 px-1.5">
-                                      {r.role}
-                                    </Badge>
+                                    <div key={r.id} className="flex items-center gap-0.5">
+                                      <Badge variant={r.role === 'owner' ? 'default' : 'secondary'} className="text-[10px] h-4 px-1.5">
+                                        {r.role}
+                                      </Badge>
+                                      {isOwner && r.role !== 'owner' && (
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-4 w-4"
+                                          onClick={() => handleRemoveRole(u, r.id, r.proposal_id)}
+                                        >
+                                          <Trash2 className="w-2.5 h-2.5 text-destructive" />
+                                        </Button>
+                                      )}
+                                    </div>
                                   ))}
                                 </div>
+                              )}
+                              {isOwner && !globalRoles.some(r => r.role === 'admin') && !globalRoles.some(r => r.role === 'owner') && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-5 text-[10px] px-1.5 text-muted-foreground mt-0.5"
+                                  onClick={() => handleAddGlobalRole(u, 'admin')}
+                                >
+                                  + Make Admin
+                                </Button>
                               )}
                             </div>
                           </div>
