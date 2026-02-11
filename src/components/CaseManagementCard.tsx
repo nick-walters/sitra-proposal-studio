@@ -299,14 +299,14 @@ function SortableCaseRow({ caseItem, participants, onUpdate, onDelete, canEdit }
 
 interface CaseManagementCardProps {
   proposalId: string;
-  isAdmin: boolean;
+  isCoordinator: boolean;
   casesEnabled: boolean;
   onToggleCases: (enabled: boolean) => void;
 }
 
 export function CaseManagementCard({ 
   proposalId, 
-  isAdmin, 
+  isCoordinator, 
   casesEnabled, 
   onToggleCases 
 }: CaseManagementCardProps) {
@@ -474,7 +474,7 @@ export function CaseManagementCard({
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Enable cases checkbox */}
-        {isAdmin && (
+        {isCoordinator && (
           <div className="flex items-start gap-3">
             <Checkbox
               id="cases-enabled"
@@ -526,14 +526,14 @@ export function CaseManagementCard({
                         participants={participants}
                         onUpdate={handleUpdateCase}
                         onDelete={handleDeleteCase}
-                        canEdit={isAdmin}
+                        canEdit={isCoordinator}
                       />
                     ))}
                   </SortableContext>
                 </DndContext>
 
                 {/* Add button */}
-                {isAdmin && (
+                {isCoordinator && (
                   <div className="pt-2">
                     <Button
                       variant="outline"

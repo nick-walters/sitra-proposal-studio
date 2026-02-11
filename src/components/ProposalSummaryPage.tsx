@@ -35,7 +35,7 @@ interface ProposalSummaryPageProps {
   onSubmit?: () => Promise<void>;
   onUpdateStatus?: (status: ProposalStatus) => Promise<void>;
   canEdit?: boolean;
-  isAdmin?: boolean;
+  isCoordinator?: boolean;
   onExportPdf?: () => void;
   onExportPdfNoWatermark?: () => void;
 }
@@ -118,7 +118,7 @@ export function ProposalSummaryPage({
   onSubmit,
   onUpdateStatus,
   canEdit = true,
-  isAdmin = false,
+  isCoordinator = false,
   onExportPdf,
   onExportPdfNoWatermark,
 }: ProposalSummaryPageProps) {
@@ -156,8 +156,8 @@ export function ProposalSummaryPage({
     ethics: 100,
   };
 
-  // Check if user can edit (admin or owner) - isAdmin already includes owner check from useProposalData
-  const userCanEdit = canEdit && isAdmin;
+  // Check if user can edit (coordinator or owner)
+  const userCanEdit = canEdit && isCoordinator;
   
   // For admins/owners, always show editable fields
   const isEditing = userCanEdit;
@@ -214,7 +214,7 @@ export function ProposalSummaryPage({
                   Export PDF
                 </Button>
               )}
-              {isAdmin && onExportPdfNoWatermark && (
+              {isCoordinator && onExportPdfNoWatermark && (
                 <Button variant="outline" size="sm" className="gap-2" onClick={onExportPdfNoWatermark}>
                   <Download className="w-4 h-4" />
                   Export watermark-free
@@ -629,7 +629,7 @@ export function ProposalSummaryPage({
         {proposal.submissionStage !== 'stage_1' && (
           <WPDependencySelector
             proposalId={proposal.id}
-            isAdmin={isAdmin}
+            isCoordinator={isCoordinator}
           />
         )}
 

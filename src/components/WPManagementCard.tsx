@@ -273,11 +273,11 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
 
 interface WPManagementCardProps {
   proposalId: string;
-  isAdmin: boolean;
+  isCoordinator: boolean;
   isFullProposal?: boolean;
 }
 
-export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }: WPManagementCardProps) {
+export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = true }: WPManagementCardProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [selectedWPs, setSelectedWPs] = useState<Set<string>>(new Set());
@@ -556,7 +556,7 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
       </CardHeader>
       <CardContent className="space-y-2">
         {/* WP Themes Toggle (only for lump sum proposals) */}
-        {isLumpSum && isAdmin && (
+        {isLumpSum && isCoordinator && (
           <div className="flex items-center space-x-2 pb-3 border-b mb-3">
             <Switch
               id="use-wp-themes"
@@ -605,7 +605,7 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
                       input.onchange = (e) => updateTheme(theme.id, { color: (e.target as HTMLInputElement).value });
                       input.click();
                     }}
-                    disabled={!isAdmin}
+                    disabled={!isCoordinator}
                     title="Click to change colour"
                   >
                     T{theme.number}
@@ -617,7 +617,7 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
                   onDebouncedChange={(v) => updateTheme(theme.id, { short_name: v })}
                   placeholder="Short"
                   className="h-7 text-sm"
-                  disabled={!isAdmin}
+                  disabled={!isCoordinator}
                 />
                 {/* Theme Name */}
                 <DebouncedInput
@@ -625,10 +625,10 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
                   onDebouncedChange={(v) => updateTheme(theme.id, { name: v })}
                   placeholder="Theme name"
                   className="h-7 text-sm"
-                  disabled={!isAdmin}
+                  disabled={!isCoordinator}
                 />
                 {/* Delete Button */}
-                {isAdmin && (
+                {isCoordinator && (
                   <button
                     onClick={() => {
                       if (confirm('Delete this theme? WPs using it will have no theme assigned.')) {
@@ -641,12 +641,12 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
                     <Trash2 className="w-4 h-4" />
                   </button>
                 )}
-                {!isAdmin && <div />}
+                {!isCoordinator && <div />}
               </div>
             ))}
 
             {/* Theme Actions */}
-            {isAdmin && (
+            {isCoordinator && (
               <div className="flex items-center gap-2 mt-2">
                 <Button
                   variant="outline"
@@ -697,14 +697,14 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
                 useThemes={useWpThemes}
                 onUpdate={handleUpdateWP}
                 onDelete={handleDeleteWP}
-                canEdit={isAdmin}
+                canEdit={isCoordinator}
               />
             ))}
           </SortableContext>
         </DndContext>
 
         {/* Actions */}
-        {isAdmin && (
+        {isCoordinator && (
           <div className="flex items-center gap-2 pt-2">
             <Button
               variant="outline"
@@ -738,7 +738,7 @@ export function WPManagementCard({ proposalId, isAdmin, isFullProposal = true }:
         />
 
         {/* Populate B3.1 Section (Full Proposals Only) */}
-        {isFullProposal && isAdmin && (
+        {isFullProposal && isCoordinator && (
           <>
             <div className="border-t pt-4 mt-4">
               <h4 className="text-sm font-semibold mb-3">Populate Part B3.1</h4>

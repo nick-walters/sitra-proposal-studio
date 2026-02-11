@@ -1491,6 +1491,12 @@ export type Database = {
       }
       participant_members: {
         Row: {
+          access_granted: boolean | null
+          access_granted_at: string | null
+          access_granted_by: string | null
+          access_granted_role: string | null
+          access_requested: boolean | null
+          access_requested_by: string | null
           created_at: string
           email: string | null
           full_name: string
@@ -1504,6 +1510,12 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          access_granted?: boolean | null
+          access_granted_at?: string | null
+          access_granted_by?: string | null
+          access_granted_role?: string | null
+          access_requested?: boolean | null
+          access_requested_by?: string | null
           created_at?: string
           email?: string | null
           full_name: string
@@ -1517,6 +1529,12 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          access_granted?: boolean | null
+          access_granted_at?: string | null
+          access_granted_by?: string | null
+          access_granted_role?: string | null
+          access_requested?: boolean | null
+          access_requested_by?: string | null
           created_at?: string
           email?: string | null
           full_name?: string
@@ -1702,6 +1720,12 @@ export type Database = {
           is_sme: boolean | null
           legal_entity_type: string | null
           logo_url: string | null
+          main_contact_access_granted: boolean | null
+          main_contact_access_granted_at: string | null
+          main_contact_access_granted_by: string | null
+          main_contact_access_granted_role: string | null
+          main_contact_access_requested: boolean | null
+          main_contact_access_requested_by: string | null
           main_contact_country: string | null
           main_contact_first_name: string | null
           main_contact_gender: string | null
@@ -1750,6 +1774,12 @@ export type Database = {
           is_sme?: boolean | null
           legal_entity_type?: string | null
           logo_url?: string | null
+          main_contact_access_granted?: boolean | null
+          main_contact_access_granted_at?: string | null
+          main_contact_access_granted_by?: string | null
+          main_contact_access_granted_role?: string | null
+          main_contact_access_requested?: boolean | null
+          main_contact_access_requested_by?: string | null
           main_contact_country?: string | null
           main_contact_first_name?: string | null
           main_contact_gender?: string | null
@@ -1798,6 +1828,12 @@ export type Database = {
           is_sme?: boolean | null
           legal_entity_type?: string | null
           logo_url?: string | null
+          main_contact_access_granted?: boolean | null
+          main_contact_access_granted_at?: string | null
+          main_contact_access_granted_by?: string | null
+          main_contact_access_granted_role?: string | null
+          main_contact_access_requested?: boolean | null
+          main_contact_access_requested_by?: string | null
           main_contact_country?: string | null
           main_contact_first_name?: string | null
           main_contact_gender?: string | null
@@ -3623,7 +3659,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "editor" | "viewer" | "owner"
+      app_role: "admin" | "editor" | "viewer" | "owner" | "coordinator"
       budget_type: "traditional" | "lump_sum"
       participant_type:
         | "beneficiary"
@@ -3763,7 +3799,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "editor", "viewer", "owner"],
+      app_role: ["admin", "editor", "viewer", "owner", "coordinator"],
       budget_type: ["traditional", "lump_sum"],
       participant_type: [
         "beneficiary",
