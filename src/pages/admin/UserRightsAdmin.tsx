@@ -357,8 +357,10 @@ export function UserRightsAdmin() {
                   <TableRow>
                     <TableHead>User</TableHead>
                     <TableHead>Email</TableHead>
-                    <TableHead>Proposal Roles</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                     <TableHead>Proposal</TableHead>
+                     <TableHead>Role</TableHead>
+                     <TableHead className="w-[50px]"></TableHead>
+                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -428,12 +430,24 @@ export function UserRightsAdmin() {
                         <TableCell className="text-muted-foreground">{u.email}</TableCell>
                         <TableCell>
                           {proposalRoles.length === 0 ? (
+                            <span className="text-muted-foreground text-sm">—</span>
+                          ) : (
+                            <div className="space-y-1">
+                              {proposalRoles.map(r => (
+                                <div key={r.id} className="h-7 flex items-center">
+                                  <span className="text-sm font-medium">{r.proposal_acronym || 'Unknown'}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {proposalRoles.length === 0 ? (
                             <span className="text-muted-foreground text-sm">No proposal roles</span>
                           ) : (
                             <div className="space-y-1">
                               {proposalRoles.map(r => (
-                                <div key={r.id} className="flex items-center gap-2">
-                                  <span className="text-sm font-medium min-w-[80px]">{r.proposal_acronym || 'Unknown'}</span>
+                                <div key={r.id} className="h-7 flex items-center">
                                   {canManageProposalRole(r.proposal_id) ? (
                                     <Select
                                       value={r.role}
@@ -451,6 +465,16 @@ export function UserRightsAdmin() {
                                   ) : (
                                     <Badge variant="outline" className="text-xs capitalize">{r.role}</Badge>
                                   )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {proposalRoles.length > 0 && (
+                            <div className="space-y-1">
+                              {proposalRoles.map(r => (
+                                <div key={r.id} className="h-7 flex items-center">
                                   {canManageProposalRole(r.proposal_id) && (
                                     <Button
                                       variant="ghost"
