@@ -6,6 +6,7 @@ import { WPPlanningQuestions } from '@/components/WPPlanningQuestions';
 import { WPEffortMatrix } from '@/components/WPEffortMatrix';
 import { WPDeliverablesTable } from '@/components/WPDeliverablesTable';
 import { WPRisksTable } from '@/components/WPRisksTable';
+import { WPMilestonesTable } from '@/components/WPMilestonesTable';
 import { CitationDialog } from '@/components/CitationDialog';
 import { InsertCrossReferenceDialog } from '@/components/InsertCrossReferenceDialog';
 import { InsertWPReferenceDialog } from '@/components/InsertWPReferenceDialog';
@@ -158,6 +159,10 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
     updateRisk,
     deleteRisk,
     reorderRisks,
+    addMilestone,
+    updateMilestone,
+    deleteMilestone,
+    reorderMilestones,
   } = useWPDraftEditor(wpId);
 
   // Fetch proposal's use_wp_themes flag
@@ -841,6 +846,18 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           onOutputsChange={(value) => updateField('outputs_question', value)}
           onBottlenecksChange={(value) => updateField('bottlenecks_question', value)}
           readOnly={readOnly}
+        />
+
+        {/* Milestones */}
+        <WPMilestonesTable
+          wpNumber={wpDraft.number}
+          milestones={wpDraft.milestones || []}
+          onMilestoneUpdate={updateMilestone}
+          onMilestoneAdd={addMilestone}
+          onMilestoneDelete={deleteMilestone}
+          onMilestoneReorder={reorderMilestones}
+          readOnly={readOnly}
+          projectDuration={projectDuration}
         />
 
         {/* Risks */}
