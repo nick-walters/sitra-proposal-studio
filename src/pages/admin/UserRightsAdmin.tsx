@@ -414,9 +414,9 @@ export function UserRightsAdmin() {
 
                                 if (globalRole) {
                                   return (
-                                    <Badge variant={isTargetOwner ? 'default' : 'secondary'} className="text-[10px] h-4 px-1.5 mt-0.5">
+                                    <div className="h-5 min-w-[70px] text-[10px] mt-0.5 px-1.5 py-0 rounded-full bg-secondary border border-border flex items-center capitalize">
                                       {globalRole.role}
-                                    </Badge>
+                                    </div>
                                   );
                                 }
 
