@@ -237,6 +237,12 @@ export function useProposalData(proposalId: string) {
         roleInProject: m.role_in_project || undefined,
         personMonths: m.person_months || undefined,
         isPrimaryContact: m.is_primary_contact || false,
+        accessRequested: m.access_requested || false,
+        accessRequestedBy: m.access_requested_by || undefined,
+        accessGranted: m.access_granted || false,
+        accessGrantedRole: m.access_granted_role || undefined,
+        accessGrantedBy: m.access_granted_by || undefined,
+        accessGrantedAt: m.access_granted_at || undefined,
       }))
     );
   }, [proposalId, user]);
@@ -580,6 +586,12 @@ export function useProposalData(proposalId: string) {
     if (updates.roleInProject !== undefined) dbUpdates.role_in_project = updates.roleInProject;
     if (updates.personMonths !== undefined) dbUpdates.person_months = updates.personMonths;
     if (updates.isPrimaryContact !== undefined) dbUpdates.is_primary_contact = updates.isPrimaryContact;
+    if (updates.accessRequested !== undefined) dbUpdates.access_requested = updates.accessRequested;
+    if (updates.accessRequestedBy !== undefined) dbUpdates.access_requested_by = updates.accessRequestedBy;
+    if (updates.accessGranted !== undefined) dbUpdates.access_granted = updates.accessGranted;
+    if (updates.accessGrantedRole !== undefined) dbUpdates.access_granted_role = updates.accessGrantedRole;
+    if (updates.accessGrantedBy !== undefined) dbUpdates.access_granted_by = updates.accessGrantedBy;
+    if (updates.accessGrantedAt !== undefined) dbUpdates.access_granted_at = updates.accessGrantedAt;
 
     const { error } = await supabase.from('participant_members').update(dbUpdates).eq('id', id);
 

@@ -143,40 +143,55 @@ export function UserRightsAdmin() {
     return coordinatedProposalIds.has(proposalId);
   };
 
-  const handleAddGlobalRole = async (targetUser: UserWithRoles, role: string) => {
+  const refreshUserRoles = async (targetUserId: string) => {
+    const { data: updatedRoles } = await supabase
+      .from('user_roles')
+      .select('id, role, proposal_id')
+      .eq('user_id', targetUserId);
+
+    const proposalMap = new Map<string, string>();
+    proposals.forEach(p => proposalMap.set(p.id, p.acronym));
+
+    setUsers(prev => prev.map(u =>
+      u.id === targetUserId
+        ? {
+          ...u, roles: (updatedRoles || []).map(r => ({
+            id: r.id,
+            role: r.role,
+            proposal_id: r.proposal_id,
+            proposal_acronym: r.proposal_id ? proposalMap.get(r.proposal_id) || null : null,
+          }))
+        }
+        : u
+    ));
+  };
+
+  const handleChangeGlobalRole = async (targetUser: UserWithRoles, existingRoleId: string | null, newValue: string) => {
     if (!isOwner) return;
     try {
-      const { error } = await supabase.from('user_roles').insert([{
-        user_id: targetUser.id,
-        role: role as 'owner' | 'admin',
-      }]);
-      if (error) throw error;
-
-      // Refresh roles
-      const { data: updatedRoles } = await supabase
-        .from('user_roles')
-        .select('id, role, proposal_id')
-        .eq('user_id', targetUser.id);
-
-      const proposalMap = new Map<string, string>();
-      proposals.forEach(p => proposalMap.set(p.id, p.acronym));
-
-      setUsers(prev => prev.map(u =>
-        u.id === targetUser.id
-          ? {
-            ...u, roles: (updatedRoles || []).map(r => ({
-              id: r.id,
-              role: r.role,
-              proposal_id: r.proposal_id,
-              proposal_acronym: r.proposal_id ? proposalMap.get(r.proposal_id) || null : null,
-            }))
-          }
-          : u
-      ));
-      toast.success(`Added global ${role} role to ${getDisplayName(targetUser)}`);
+      if (existingRoleId && newValue === 'none') {
+        // Delete role
+        const { error } = await supabase.from('user_roles').delete().eq('id', existingRoleId);
+        if (error) throw error;
+        toast.success(`Removed global role from ${getDisplayName(targetUser)}`);
+      } else if (existingRoleId) {
+        // Update existing role
+        const { error } = await supabase.from('user_roles').update({ role: newValue as 'owner' | 'admin' }).eq('id', existingRoleId);
+        if (error) throw error;
+        toast.success(`Updated ${getDisplayName(targetUser)} to ${newValue}`);
+      } else if (newValue !== 'none') {
+        // Insert new role
+        const { error } = await supabase.from('user_roles').insert([{
+          user_id: targetUser.id,
+          role: newValue as 'owner' | 'admin',
+        }]);
+        if (error) throw error;
+        toast.success(`Added global ${newValue} role to ${getDisplayName(targetUser)}`);
+      }
+      await refreshUserRoles(targetUser.id);
     } catch (error) {
-      console.error('Error adding global role:', error);
-      toast.error("Failed to add global role");
+      console.error('Error changing global role:', error);
+      toast.error("Failed to change global role");
     }
   };
 
@@ -372,37 +387,41 @@ export function UserRightsAdmin() {
                             )}
                             <div>
                               <span className="font-medium">{getDisplayName(u)}</span>
-                                {globalRoles.length > 0 && (
-                                <div className="flex gap-1 mt-0.5">
-                                  {globalRoles.map(r => (
-                                    <div key={r.id} className="flex items-center gap-0.5">
-                                      <Badge variant={r.role === 'owner' ? 'default' : 'secondary'} className="text-[10px] h-4 px-1.5">
-                                        {r.role}
-                                      </Badge>
-                                      {isOwner && r.role !== 'owner' && (
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-4 w-4"
-                                          onClick={() => handleRemoveRole(u, r.id, r.proposal_id)}
-                                        >
-                                          <Trash2 className="w-2.5 h-2.5 text-destructive" />
-                                        </Button>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                              {isOwner && !globalRoles.some(r => r.role === 'admin') && !globalRoles.some(r => r.role === 'owner') && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-5 text-[10px] px-1.5 text-muted-foreground mt-0.5"
-                                  onClick={() => handleAddGlobalRole(u, 'admin')}
-                                >
-                                  + Make Admin
-                                </Button>
-                              )}
+                              {(() => {
+                                const globalRole = globalRoles[0]; // At most one global role
+                                const currentGlobalValue = globalRole?.role || 'none';
+                                const isTargetOwner = currentGlobalValue === 'owner';
+                                const isSelf = u.id === user?.id;
+                                const canEditGlobal = isOwner && !isTargetOwner && !isSelf;
+
+                                if (canEditGlobal) {
+                                  return (
+                                    <Select
+                                      value={currentGlobalValue}
+                                      onValueChange={(v) => handleChangeGlobalRole(u, globalRole?.id || null, v)}
+                                    >
+                                      <SelectTrigger className="h-5 w-20 text-[10px] mt-0.5 border-none bg-transparent px-1" hideArrow>
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="none">None</SelectItem>
+                                        <SelectItem value="admin">Admin</SelectItem>
+                                        <SelectItem value="owner">Owner</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  );
+                                }
+
+                                if (globalRole) {
+                                  return (
+                                    <Badge variant={isTargetOwner ? 'default' : 'secondary'} className="text-[10px] h-4 px-1.5 mt-0.5">
+                                      {globalRole.role}
+                                    </Badge>
+                                  );
+                                }
+
+                                return null;
+                              })()}
                             </div>
                           </div>
                         </TableCell>
