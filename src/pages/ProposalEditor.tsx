@@ -21,7 +21,23 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DuplicateProposalDialog } from "@/components/DuplicateProposalDialog";
-import { Section, BudgetType, ProposalStatus, WORK_PROGRAMMES, DESTINATIONS } from "@/types/proposal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Section, BudgetType, ProposalStatus, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS } from "@/types/proposal";
 import type { WPSection, CaseSection } from "@/hooks/useProposalSections";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { format, differenceInDays } from "date-fns";
@@ -44,6 +60,10 @@ import {
   Copy,
   Users,
   BarChart3,
+  Trophy,
+  ThumbsDown,
+  ChevronDown,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePdfExport } from "@/hooks/usePdfExport";
@@ -74,6 +94,8 @@ export function ProposalEditor() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isDuplicateOpen, setIsDuplicateOpen] = useState(false);
   const [isAddParticipantOpen, setIsAddParticipantOpen] = useState(false);
+  const [isSubmitConfirmOpen, setIsSubmitConfirmOpen] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
   const { exportToPdf, exportProposalToPdf } = usePdfExport();
 
   // Fetch proposal data from database
@@ -286,6 +308,27 @@ export function ProposalEditor() {
 
   const handleUpdateStatus = async (status: ProposalStatus) => {
     await updateProposal({ status });
+  };
+
+  const handleStatusChangeRequest = (newStatus: ProposalStatus) => {
+    if (newStatus === 'submitted') {
+      setIsSubmitConfirmOpen(true);
+    } else {
+      handleConfirmedStatusChange(newStatus);
+    }
+  };
+
+  const handleConfirmedStatusChange = async (status: ProposalStatus) => {
+    setUpdatingStatus(true);
+    try {
+      await updateProposal({ status });
+      toast.success(`Status updated to ${PROPOSAL_STATUS_LABELS[status]}`);
+    } catch (error) {
+      toast.error('Failed to update status');
+    } finally {
+      setUpdatingStatus(false);
+      setIsSubmitConfirmOpen(false);
+    }
   };
 
   const handleExportPdf = async (includeWatermark: boolean = true) => {
@@ -975,51 +1018,88 @@ export function ProposalEditor() {
           statusInfo.alertBg
         )}>
           <StatusIcon className={cn("h-3.5 w-3.5", statusInfo.iconColor)} />
-          <AlertDescription className={cn("text-sm", statusInfo.iconColor)}>
-            {proposal.status === 'draft' && (
-              <>
-                <strong>{statusInfo.label}</strong> – this proposal is due by the deadline{' '}
-                {proposal.deadline ? format(new Date(proposal.deadline), 'dd/MM/yyyy') : 'not set'}
-                {statusInfo.days !== undefined && ` (${statusInfo.days} days remaining)`}.
-              </>
-            )}
-            {proposal.status === 'submitted' && (
-              <>
-                <strong>Under Evaluation</strong> – this proposal has been submitted and is under evaluation. 
-                Editing is disabled but you can view all sections.
-              </>
-            )}
-            {proposal.status === 'funded' && (
-              <span className="flex items-center gap-2 flex-wrap">
-                <span>
+          <AlertDescription className={cn("text-sm flex items-center gap-2 flex-wrap", statusInfo.iconColor)}>
+            <span className="flex-1">
+              {proposal.status === 'draft' && (
+                <>
+                  <strong>{statusInfo.label}</strong> – this proposal is due by the deadline{' '}
+                  {proposal.deadline ? format(new Date(proposal.deadline), 'dd/MM/yyyy') : 'not set'}
+                  {statusInfo.days !== undefined && ` (${statusInfo.days} days remaining)`}.
+                </>
+              )}
+              {proposal.status === 'submitted' && (
+                <>
+                  <strong>Under Evaluation</strong> – this proposal has been submitted and is under evaluation. 
+                  Editing is disabled but you can view all sections.
+                </>
+              )}
+              {proposal.status === 'funded' && (
+                <>
                   <strong>Funded</strong> – this proposal was successful! Editing is disabled but you can view all sections and export it as a PDF.
-                </span>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="gap-1.5 h-6 text-xs"
-                  onClick={() => setIsDuplicateOpen(true)}
-                >
-                  <Copy className="w-3 h-3" />
-                  Duplicate for resubmission
-                </Button>
-              </span>
-            )}
-            {proposal.status === 'not_funded' && (
-              <span className="flex items-center gap-2 flex-wrap">
-                <span>
+                </>
+              )}
+              {proposal.status === 'not_funded' && (
+                <>
                   <strong>Not funded</strong> – this proposal was unsuccessful. Editing is disabled but you can view all sections and export it as a PDF.
-                </span>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="gap-1.5 h-6 text-xs"
-                  onClick={() => setIsDuplicateOpen(true)}
-                >
-                  <Copy className="w-3 h-3" />
-                  Duplicate for resubmission
-                </Button>
-              </span>
+                </>
+              )}
+            </span>
+
+            {/* Duplicate button for funded/not_funded */}
+            {(proposal.status === 'funded' || proposal.status === 'not_funded') && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-1.5 h-6 text-xs"
+                onClick={() => setIsDuplicateOpen(true)}
+              >
+                <Copy className="w-3 h-3" />
+                Duplicate for resubmission
+              </Button>
+            )}
+
+            {/* Status change dropdown for coordinators/owners */}
+            {(isGlobalOwner || isCoordinator) && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 h-6 text-xs"
+                    disabled={updatingStatus}
+                  >
+                    {updatingStatus && <Loader2 className="w-3 h-3 animate-spin" />}
+                    Change status
+                    <ChevronDown className="w-3 h-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {proposal.status !== 'draft' && (
+                    <DropdownMenuItem onClick={() => handleStatusChangeRequest('draft')}>
+                      <FileText className="w-4 h-4 mr-2" />
+                      Draft
+                    </DropdownMenuItem>
+                  )}
+                  {proposal.status !== 'submitted' && (
+                    <DropdownMenuItem onClick={() => handleStatusChangeRequest('submitted')}>
+                      <Send className="w-4 h-4 mr-2" />
+                      Under Evaluation
+                    </DropdownMenuItem>
+                  )}
+                  {proposal.status !== 'funded' && (
+                    <DropdownMenuItem onClick={() => handleStatusChangeRequest('funded')}>
+                      <Trophy className="w-4 h-4 mr-2" />
+                      Funded
+                    </DropdownMenuItem>
+                  )}
+                  {proposal.status !== 'not_funded' && (
+                    <DropdownMenuItem onClick={() => handleStatusChangeRequest('not_funded')}>
+                      <ThumbsDown className="w-4 h-4 mr-2" />
+                      Not Funded
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </AlertDescription>
         </Alert>
@@ -1089,6 +1169,30 @@ export function ProposalEditor() {
           onDuplicate={handleDuplicateProposal}
         />
       )}
+
+      {/* Submission Confirmation Dialog */}
+      <AlertDialog open={isSubmitConfirmOpen} onOpenChange={setIsSubmitConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Submit proposal for evaluation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Changing the status to <strong>Under Evaluation</strong> will automatically downgrade all <strong>Editor</strong> roles on this proposal to <strong>Viewer</strong>. Editors will no longer be able to make changes.
+              <br /><br />
+              This action can be reversed by changing the status back to Draft.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleConfirmedStatusChange('submitted')}
+              disabled={updatingStatus}
+            >
+              {updatingStatus && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Confirm submission
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
