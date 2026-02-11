@@ -364,8 +364,8 @@ export function UserRightsAdmin() {
                      <TableHead className="font-bold">User</TableHead>
                      <TableHead className="font-bold">Email</TableHead>
                      <TableHead className="font-bold">Proposal</TableHead>
-                     <TableHead className="font-bold">Role</TableHead>
-                     <TableHead className="w-[50px]"></TableHead>
+                     <TableHead className="font-bold w-[130px]">Role</TableHead>
+                     <TableHead className="w-[40px]"></TableHead>
                      <TableHead className="text-right font-bold">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
