@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -7,7 +8,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Trash2, Link2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Plus, Trash2, Link2, BookOpen } from 'lucide-react';
 import { ParticipantDependency, LINK_TYPES } from '@/types/participantDetails';
 import { ParticipantSummary } from '@/types/proposal';
 import {
@@ -39,6 +47,7 @@ export function DependenciesSection({
   canEdit,
 }: DependenciesSectionProps) {
   const otherParticipants = participants.filter(p => p.id !== currentParticipantId);
+  const [guidelinesOpen, setGuidelinesOpen] = useState(false);
 
   const handleAddRow = () => {
     onAdd({
@@ -60,30 +69,48 @@ export function DependenciesSection({
             <p className="text-sm text-muted-foreground mt-2">
               Please indicate if there are dependencies with other participants of the proposal.
             </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Two participants (legal entities) are dependent on each other where there is a controlling relationship between them:
-            </p>
-            <ul className="text-sm text-muted-foreground mt-1 ml-4 list-disc space-y-1">
-              <li>A legal entity is under the same direct or indirect control as another legal entity; or</li>
-              <li>A legal entity directly or indirectly controls another legal entity; or</li>
-              <li>A legal entity is directly or indirectly controlled by another legal entity.</li>
-            </ul>
-            <p className="text-sm text-muted-foreground mt-2 font-medium">Control:</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Legal entity A controls legal entity B if:
-            </p>
-            <ul className="text-sm text-muted-foreground mt-1 ml-4 list-disc space-y-1">
-              <li>A, directly or indirectly, holds more than 50% of the nominal value of the issued share capital or a majority of the voting rights of the shareholders or associates of B, or</li>
-              <li>A, directly or indirectly, holds in fact or in law the decision-making powers in B.</li>
-            </ul>
-            <p className="text-sm text-muted-foreground mt-2 italic">
-              The following relationships between legal entities shall not in themselves be deemed to constitute controlling relationships:
-            </p>
-            <ol className="text-sm text-muted-foreground mt-1 ml-4 list-[lower-alpha] space-y-1 italic">
-              <li>the same public investment corporation, institutional investor or venture-capital company has a direct or indirect holding of more than 50% of the nominal value of the issued share capital or a majority of voting rights of the shareholders or associates;</li>
-              <li>the legal entities concerned are owned or supervised by the same public body.</li>
-            </ol>
           </div>
+          <Dialog open={guidelinesOpen} onOpenChange={setGuidelinesOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1.5 shrink-0">
+                <BookOpen className="w-4 h-4" />
+                Guidelines
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <BookOpen className="w-5 h-5" />
+                  Dependency Guidelines
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <p>
+                  Two participants (legal entities) are dependent on each other where there is a controlling relationship between them:
+                </p>
+                <ul className="ml-4 list-disc space-y-1">
+                  <li>A legal entity is under the same direct or indirect control as another legal entity; or</li>
+                  <li>A legal entity directly or indirectly controls another legal entity; or</li>
+                  <li>A legal entity is directly or indirectly controlled by another legal entity.</li>
+                </ul>
+                <p className="font-medium text-foreground">Control:</p>
+                <p>
+                  Legal entity A controls legal entity B if:
+                </p>
+                <ul className="ml-4 list-disc space-y-1">
+                  <li>A, directly or indirectly, holds more than 50% of the nominal value of the issued share capital or a majority of the voting rights of the shareholders or associates of B, or</li>
+                  <li>A, directly or indirectly, holds in fact or in law the decision-making powers in B.</li>
+                </ul>
+                <p className="italic">
+                  The following relationships between legal entities shall not in themselves be deemed to constitute controlling relationships:
+                </p>
+                <ol className="ml-4 list-[lower-alpha] space-y-1 italic">
+                  <li>the same public investment corporation, institutional investor or venture-capital company has a direct or indirect holding of more than 50% of the nominal value of the issued share capital or a majority of voting rights of the shareholders or associates;</li>
+                  <li>the legal entities concerned are owned or supervised by the same public body.</li>
+                </ol>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
