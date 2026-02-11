@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -68,24 +68,21 @@ export function CopyToResearcherDialog({
     identifierType: '',
   });
 
-  // Reset form when dialog opens with new data
-  const handleOpenChange = (newOpen: boolean) => {
-    if (newOpen) {
-      setForm({
-        title: '',
-        firstName: initialData.firstName,
-        lastName: initialData.lastName,
-        gender: '',
-        nationality: '',
-        email: initialData.email,
-        careerStage: '',
-        roleInProject: initialData.roleInProject,
-        referenceIdentifier: '',
-        identifierType: '',
-      });
-    }
-    onOpenChange(newOpen);
-  };
+  // Reset form whenever initialData changes (new CP selected)
+  useEffect(() => {
+    setForm({
+      title: '',
+      firstName: initialData.firstName,
+      lastName: initialData.lastName,
+      gender: '',
+      nationality: '',
+      email: initialData.email,
+      careerStage: '',
+      roleInProject: initialData.roleInProject,
+      referenceIdentifier: '',
+      identifierType: '',
+    });
+  }, [initialData.firstName, initialData.lastName, initialData.email, initialData.roleInProject]);
 
   const isValid =
     form.firstName.trim() &&
@@ -106,7 +103,7 @@ export function CopyToResearcherDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Copy to Researchers List</DialogTitle>

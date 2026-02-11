@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -89,6 +89,53 @@ export function ContactPersonsSection({
     phone: '',
     wantsPlatformAccess: 'no' as 'yes' | 'no',
   });
+
+  // Sync access status: check if roles still exist in backend
+  useEffect(() => {
+    if (!proposalId || !canGrant) return;
+
+    const syncAccessStatus = async () => {
+      const membersWithAccess = members.filter(m => m.accessGranted && m.email);
+      if (membersWithAccess.length === 0) return;
+
+      for (const member of membersWithAccess) {
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('email', member.email!.toLowerCase())
+            .maybeSingle();
+
+          if (profile) {
+            const { data: role } = await supabase
+              .from('user_roles')
+              .select('id, role')
+              .eq('user_id', profile.id)
+              .eq('proposal_id', proposalId)
+              .maybeSingle();
+
+            const { data: globalRole } = await supabase
+              .from('user_roles')
+              .select('id, role')
+              .eq('user_id', profile.id)
+              .is('proposal_id', null)
+              .maybeSingle();
+
+            const hasRole = role || (globalRole && ['owner', 'admin'].includes(globalRole.role));
+
+            if (!hasRole) {
+              onUpdateMember(member.id, { accessGranted: false, accessGrantedRole: undefined });
+            }
+          }
+        } catch (err) {
+          console.error('Error syncing access status:', err);
+        }
+      }
+    };
+
+    syncAccessStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [proposalId, canGrant]);
 
   const handlePersonSelect = (person: SelectedPerson | null) => {
     setSelectedPerson(person);
