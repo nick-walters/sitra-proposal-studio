@@ -284,6 +284,7 @@ export interface ParticipantMember {
   roleInProject?: string;
   personMonths?: number;
   isPrimaryContact: boolean;
+  wantsPlatformAccess?: boolean;
   accessRequested?: boolean;
   accessRequestedBy?: string;
   accessGranted?: boolean;

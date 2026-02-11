@@ -1508,6 +1508,7 @@ export type Database = {
           role_in_project: string | null
           updated_at: string
           user_id: string | null
+          wants_platform_access: boolean | null
         }
         Insert: {
           access_granted?: boolean | null
@@ -1527,6 +1528,7 @@ export type Database = {
           role_in_project?: string | null
           updated_at?: string
           user_id?: string | null
+          wants_platform_access?: boolean | null
         }
         Update: {
           access_granted?: boolean | null
@@ -1546,6 +1548,7 @@ export type Database = {
           role_in_project?: string | null
           updated_at?: string
           user_id?: string | null
+          wants_platform_access?: boolean | null
         }
         Relationships: [
           {

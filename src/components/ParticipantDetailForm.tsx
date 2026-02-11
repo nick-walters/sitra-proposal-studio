@@ -1,10 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import {
   Select,
@@ -16,16 +15,12 @@ import {
 import { Participant, ParticipantMember, ParticipantSummary, PARTICIPANT_TYPE_LABELS } from '@/types/proposal';
 import { SaveIndicator } from './SaveIndicator';
 import { CountrySelect } from './CountrySelect';
-import { PersonAutocomplete } from './PersonAutocomplete';
-import { User, Plus, Trash2 } from 'lucide-react';
-import { ContactAccessControl } from './participant/ContactAccessControl';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { User } from 'lucide-react';
 import { isEligibleForGEP } from '@/lib/countries';
 
 // Import new participant detail components
 import { useParticipantDetails } from '@/hooks/useParticipantDetails';
-import { MainContactSection } from './participant/MainContactSection';
+import { ContactPersonsSection } from './participant/ContactPersonsSection';
 import { DependenciesSection } from './participant/DependenciesSection';
 import { ResearchersTable } from './participant/ResearchersTable';
 import { OrganisationRolesSection } from './participant/OrganisationRolesSection';
@@ -53,8 +48,6 @@ interface ParticipantDetailFormProps {
   onDeleteMember: (id: string) => void;
   canEdit: boolean;
   canDelete: boolean;
-  /** Can the user flag contacts for access (editor+) */
-  canFlag?: boolean;
   /** Can the user grant access (coordinator/owner) */
   canGrant?: boolean;
   /** Proposal ID */
@@ -88,22 +81,12 @@ export function ParticipantDetailForm({
   onDeleteMember,
   canEdit,
   canDelete,
-  canFlag = false,
   canGrant = false,
   proposalId,
   proposalAcronym,
 }: ParticipantDetailFormProps) {
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [newMember, setNewMember] = useState({
-    fullName: '',
-    email: '',
-    roleInProject: '',
-    personMonths: 0,
-    isPrimaryContact: false,
-  });
-  const [selectedPerson, setSelectedPerson] = useState<SelectedPerson | null>(null);
-  const [showAddMember, setShowAddMember] = useState(false);
 
   // Use new participant details hook for extended data
   const {
@@ -160,71 +143,6 @@ export function ParticipantDetailForm({
     }, 500);
   };
 
-  const handleAddMember = async () => {
-    if (!newMember.fullName.trim()) {
-      toast.error('Please enter the member name');
-      return;
-    }
-
-    let personId = selectedPerson?.id || null;
-
-    // If no existing person was selected, create a new one in the people table
-    if (!personId) {
-      const { data: newPerson, error } = await supabase
-        .from('people')
-        .insert({
-          full_name: newMember.fullName.trim(),
-          email: newMember.email?.trim() || null,
-          default_role: newMember.roleInProject?.trim() || null,
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating person:', error);
-      } else {
-        personId = newPerson.id;
-      }
-    } else {
-      // Update the existing person's details in the central database
-      await supabase
-        .from('people')
-        .update({
-          full_name: newMember.fullName.trim(),
-          email: newMember.email?.trim() || null,
-          default_role: newMember.roleInProject?.trim() || null,
-        })
-        .eq('id', personId);
-    }
-
-    onAddMember({
-      ...newMember,
-      participantId: participant.id,
-      personId: personId,
-    });
-    setNewMember({
-      fullName: '',
-      email: '',
-      roleInProject: '',
-      personMonths: 0,
-      isPrimaryContact: false,
-    });
-    setSelectedPerson(null);
-    setShowAddMember(false);
-  };
-
-  // Handle person selection from autocomplete
-  const handlePersonSelect = (person: SelectedPerson | null) => {
-    setSelectedPerson(person);
-    if (person) {
-      setNewMember({
-        ...newMember,
-        fullName: person.full_name,
-        email: person.email || '',
-        roleInProject: person.default_role || '',
-      });
-    }
-  };
 
   return (
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
@@ -408,168 +326,21 @@ export function ParticipantDetailForm({
           canEdit={canEdit}
         />
 
-        {/* 3. Main Contact Person (Enhanced) */}
-        <MainContactSection
+        {/* 3. Contact persons (unified section) */}
+        <ContactPersonsSection
           participant={participant}
-          onUpdate={handleFieldUpdate}
+          members={members}
+          onAddMember={onAddMember}
+          onUpdateMember={onUpdateMember}
+          onDeleteMember={onDeleteMember}
+          onUpdateParticipant={(field, value) => handleFieldUpdate(field, value)}
           canEdit={canEdit}
-          canFlag={canFlag}
           canGrant={canGrant}
           proposalId={proposalId}
           proposalAcronym={proposalAcronym}
+          researchers={researchers}
+          onAddResearcher={addResearcher}
         />
-
-        {/* 4. Other Contact Persons / Team Members */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <User className="w-5 h-5" />
-                  Other contact persons
-                </CardTitle>
-                <CardDescription className="mt-1">
-                  Additional contacts from this organisation for the proposal
-                </CardDescription>
-              </div>
-              {canEdit && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowAddMember(!showAddMember)}
-                  className="gap-1"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Contact
-                </Button>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {showAddMember && (
-              <Card className="border-dashed">
-                <CardContent className="pt-4 space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label>First name *</Label>
-                      <Input
-                        value={newMember.fullName.split(' ')[0] || ''}
-                        onChange={(e) => {
-                          const lastName = newMember.fullName.split(' ').slice(1).join(' ');
-                          setNewMember({ ...newMember, fullName: `${e.target.value} ${lastName}`.trim() });
-                        }}
-                        placeholder="First name"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Last name *</Label>
-                      <Input
-                        value={newMember.fullName.split(' ').slice(1).join(' ') || ''}
-                        onChange={(e) => {
-                          const firstName = newMember.fullName.split(' ')[0] || '';
-                          setNewMember({ ...newMember, fullName: `${firstName} ${e.target.value}`.trim() });
-                        }}
-                        placeholder="Last name"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Email</Label>
-                      <Input
-                        type="email"
-                        value={newMember.email}
-                        onChange={(e) => setNewMember({ ...newMember, email: e.target.value })}
-                        placeholder="jane.smith@university.edu"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Phone</Label>
-                      <Input
-                        type="tel"
-                        value={newMember.roleInProject}
-                        onChange={(e) => setNewMember({ ...newMember, roleInProject: e.target.value })}
-                        placeholder="+358..."
-                      />
-                    </div>
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button variant="ghost" onClick={() => setShowAddMember(false)}>
-                      Cancel
-                    </Button>
-                    <Button onClick={handleAddMember}>
-                      Add Contact
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {members.length === 0 && !showAddMember ? (
-              <div className="text-center py-6 text-muted-foreground">
-                <User className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No other contacts added yet</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {members.map((member) => {
-                  const nameParts = member.fullName.split(' ');
-                  const firstName = nameParts[0] || '';
-                  const lastName = nameParts.slice(1).join(' ') || '';
-                  const initials = `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase();
-                  return (
-                    <div
-                      key={member.id}
-                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <span className="text-sm font-medium text-primary">
-                            {initials}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="font-medium">
-                            {firstName} {lastName}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {member.email || 'No email'}
-                            {member.roleInProject ? ` · ${member.roleInProject}` : ''}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        {proposalId && proposalAcronym && (
-                          <ContactAccessControl
-                            email={member.email}
-                            name={member.fullName}
-                            accessRequested={member.accessRequested || false}
-                            accessGranted={member.accessGranted || false}
-                            accessGrantedRole={member.accessGrantedRole}
-                            canFlag={canFlag}
-                            canGrant={canGrant}
-                            proposalId={proposalId}
-                            proposalAcronym={proposalAcronym}
-                            onFlagAccess={(val) => onUpdateMember(member.id, { accessRequested: val })}
-                            onAccessGranted={(role) => onUpdateMember(member.id, { accessGranted: true, accessGrantedRole: role })}
-                          />
-                        )}
-                        {canEdit && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-muted-foreground hover:text-destructive"
-                            onClick={() => onDeleteMember(member.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
 
         {/* 5. Researchers involved in the proposal */}
         <ResearchersTable

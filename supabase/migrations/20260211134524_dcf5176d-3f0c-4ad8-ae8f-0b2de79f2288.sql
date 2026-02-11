@@ -1,0 +1,1 @@
+ALTER TABLE public.participant_members ADD COLUMN IF NOT EXISTS wants_platform_access boolean DEFAULT false;

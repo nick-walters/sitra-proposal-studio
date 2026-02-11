@@ -237,6 +237,7 @@ export function useProposalData(proposalId: string) {
         roleInProject: m.role_in_project || undefined,
         personMonths: m.person_months || undefined,
         isPrimaryContact: m.is_primary_contact || false,
+        wantsPlatformAccess: m.wants_platform_access || false,
         accessRequested: m.access_requested || false,
         accessRequestedBy: m.access_requested_by || undefined,
         accessGranted: m.access_granted || false,
@@ -563,6 +564,7 @@ export function useProposalData(proposalId: string) {
         role_in_project: member.roleInProject,
         person_months: member.personMonths,
         is_primary_contact: member.isPrimaryContact,
+        wants_platform_access: member.wantsPlatformAccess || false,
         user_id: member.userId,
         person_id: member.personId,
       })
@@ -586,6 +588,7 @@ export function useProposalData(proposalId: string) {
     if (updates.roleInProject !== undefined) dbUpdates.role_in_project = updates.roleInProject;
     if (updates.personMonths !== undefined) dbUpdates.person_months = updates.personMonths;
     if (updates.isPrimaryContact !== undefined) dbUpdates.is_primary_contact = updates.isPrimaryContact;
+    if (updates.wantsPlatformAccess !== undefined) dbUpdates.wants_platform_access = updates.wantsPlatformAccess;
     if (updates.accessRequested !== undefined) dbUpdates.access_requested = updates.accessRequested;
     if (updates.accessRequestedBy !== undefined) dbUpdates.access_requested_by = updates.accessRequestedBy;
     if (updates.accessGranted !== undefined) dbUpdates.access_granted = updates.accessGranted;
