@@ -1,97 +1,50 @@
 
 
-## Fix: Proposal editors and global owners/admins unable to add participants
+## Fix: Editors unable to see participants (frontend data fetching issue)
+
+### Analysis
+
+The database security functions are confirmed correct -- `has_any_proposal_role` and `can_edit_proposal` both return TRUE for editors. The RLS policies are properly configured. The issue is on the **frontend**: the `useProposalData` hook may fetch participant data before the auth session is fully restored, and Supabase silently returns empty arrays (not errors) when RLS blocks unauthenticated requests.
 
 ### Root Cause
 
-The issue is **not in the frontend** -- it's in the **database security functions**. When a user tries to add a participant, the database RLS policy on the `participants` table calls `can_edit_proposal()`, which only checks for roles with a matching `proposal_id`. Global roles (owner/admin with `proposal_id = NULL`) are never matched because `NULL = 'some-uuid'` evaluates to NULL in SQL, not TRUE.
+In `useProposalData.ts`, the `fetchParticipants` callback only depends on `proposalId`, not on `user`. So when `user` changes (auth session restored), the `fetchParticipants` callback reference stays the same, and if it ran during the brief window before auth was ready, the empty result persists.
 
-The same problem exists in three core database functions:
-- `can_edit_proposal()` -- used for INSERT/UPDATE/DELETE on participants
-- `has_any_proposal_role()` -- used for SELECT on participants and many other tables
-- `is_proposal_admin()` -- used for admin-level operations
-
-### Why the frontend appears to work
-
-The frontend code in `useProposalData.ts` correctly fetches both global and proposal-specific roles and picks the highest-privilege one. So the UI shows the "Add Participant" button. But when the user clicks it and the INSERT query runs, the database rejects it because the RLS policy function doesn't account for global roles.
+Additionally, after a role change (admin to editor), the cached data in the component state is never invalidated -- the user must manually reload the page.
 
 ### Solution
 
-Update three database functions to also check for global roles (where `proposal_id IS NULL`):
+1. **Add `user` as a dependency to `fetchParticipants`** (and other fetch callbacks) so they re-run when the auth session is restored or changes
+2. **Add a session-ready guard** to prevent fetching before the Supabase session is available
+3. **Add console logging** for empty participant results to aid debugging
 
-**1. `can_edit_proposal`** -- Add a check for global owner/admin roles:
-```sql
-CREATE OR REPLACE FUNCTION public.can_edit_proposal(_user_id UUID, _proposal_id UUID)
-RETURNS BOOLEAN
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.user_roles
-    WHERE user_id = _user_id
-      AND (
-        (proposal_id = _proposal_id AND role IN ('owner', 'admin', 'editor'))
-        OR
-        (proposal_id IS NULL AND role IN ('owner', 'admin'))
-      )
-  )
-$$;
+### Technical Details
+
+**File: `src/hooks/useProposalData.ts`**
+
+- Add `user` to the dependency array of `fetchParticipants`, `fetchParticipantMembers`, and `fetchEthics` callbacks so they automatically re-run when auth state changes
+- Add a guard: if `!user`, skip the fetch (return early) -- this prevents unauthenticated queries that silently return empty
+- This ensures that when the auth session loads or when a role change causes a re-login, participants are properly refetched
+
+```typescript
+// Before (broken):
+const fetchParticipants = useCallback(async () => {
+  if (!proposalId) return;
+  // ... query runs potentially without auth
+}, [proposalId]);
+
+// After (fixed):
+const fetchParticipants = useCallback(async () => {
+  if (!proposalId || !user) return;
+  // ... query runs only when authenticated
+}, [proposalId, user]);
 ```
 
-**2. `has_any_proposal_role`** -- Add a check for global roles:
-```sql
-CREATE OR REPLACE FUNCTION public.has_any_proposal_role(_user_id UUID, _proposal_id UUID)
-RETURNS BOOLEAN
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.user_roles
-    WHERE user_id = _user_id
-      AND (
-        proposal_id = _proposal_id
-        OR
-        (proposal_id IS NULL AND role IN ('owner', 'admin'))
-      )
-  )
-$$;
-```
+Apply the same pattern to `fetchParticipantMembers` and `fetchEthics`.
 
-**3. `is_proposal_admin`** -- Add a check for global owner/admin:
-```sql
-CREATE OR REPLACE FUNCTION public.is_proposal_admin(_user_id UUID, _proposal_id UUID)
-RETURNS BOOLEAN
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.user_roles
-    WHERE user_id = _user_id
-      AND (
-        (proposal_id = _proposal_id AND role IN ('owner', 'admin'))
-        OR
-        (proposal_id IS NULL AND role IN ('owner', 'admin'))
-      )
-  )
-$$;
-```
+### Summary of Changes
 
-### What this fixes
-
-- Global owners and admins will be able to add/edit/delete participants on any proposal
-- Proposal-level editors will be able to add/edit participants (they already had `can_edit_proposal` matching their role, but only if stored with the correct `proposal_id`)
-- SELECT access will also work for global roles across all tables using `has_any_proposal_role`
-
-### Files changed
-
-| Change | Description |
-|--------|-------------|
-| Database migration (SQL) | Update 3 security functions to recognize global roles |
-| No frontend changes needed | The frontend already handles global roles correctly |
+| File | Change |
+|------|--------|
+| `src/hooks/useProposalData.ts` | Add `user` dependency and guard to `fetchParticipants`, `fetchParticipantMembers`, `fetchEthics` |
 
