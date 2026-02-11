@@ -26,6 +26,16 @@ import {
 } from '@/components/ui/tooltip';
 import { Plus, Trash2, Users, HelpCircle, Edit2, Check, X } from 'lucide-react';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   ParticipantResearcher,
   CAREER_STAGES,
   CONTACT_TITLES,
@@ -51,6 +61,7 @@ export function ResearchersTable({
 }: ResearchersTableProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
   const [newResearcher, setNewResearcher] = useState({
     title: '',
     firstName: '',
@@ -321,7 +332,7 @@ export function ResearchersTable({
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                          onClick={() => onDelete(researcher.id)}
+                          onClick={() => setDeleteConfirm({ id: researcher.id, name: `${researcher.firstName} ${researcher.lastName}` })}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -333,6 +344,32 @@ export function ResearchersTable({
             </Table>
           </div>
         )}
+
+        {/* Delete Researcher Confirmation */}
+        <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remove researcher?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to remove <strong>{deleteConfirm?.name}</strong> from the researchers list? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => {
+                  if (deleteConfirm) {
+                    onDelete(deleteConfirm.id);
+                    setDeleteConfirm(null);
+                  }
+                }}
+              >
+                Remove
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   );

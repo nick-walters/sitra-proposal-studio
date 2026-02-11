@@ -16,7 +16,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { User, Plus, Trash2, Crown, Copy, ShieldCheck, Loader2, Edit2, Check, X } from 'lucide-react';
+import { User, Plus, Trash2, Crown, Copy, ShieldCheck, ShieldOff, Loader2, Edit2, Check, X } from 'lucide-react';
 import { Participant, ParticipantMember } from '@/types/proposal';
 import { ParticipantResearcher } from '@/types/participantDetails';
 import { PersonAutocomplete } from '@/components/PersonAutocomplete';
@@ -24,6 +24,16 @@ import { MCPDetailFields } from './MCPDetailFields';
 import { CopyToResearcherDialog } from './CopyToResearcherDialog';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface SelectedPerson {
   id: string;
@@ -70,6 +80,7 @@ export function ContactPersonsSection({
   const [editForm, setEditForm] = useState({ firstName: '', lastName: '', email: '', phone: '', originalEmail: '', wantsPlatformAccess: undefined as 'yes' | 'no' | undefined });
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
   const [copyDialogData, setCopyDialogData] = useState<{ firstName: string; lastName: string; email: string; roleInProject: string } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
   const [newContact, setNewContact] = useState({
     firstName: '',
     lastName: '',
@@ -641,7 +652,7 @@ export function ContactPersonsSection({
                                       onClick={() => handleRevokeAccess(member)}
                                       disabled={isRevoking}
                                     >
-                                      {isRevoking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                                      {isRevoking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldOff className="w-3.5 h-3.5" />}
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>Revoke access</TooltipContent>
@@ -668,7 +679,7 @@ export function ContactPersonsSection({
                             variant="ghost"
                             size="icon"
                             className="text-muted-foreground hover:text-destructive h-7 w-7"
-                            onClick={() => onDeleteMember(member.id)}
+                            onClick={() => setDeleteConfirm({ id: member.id, name: member.fullName })}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -690,6 +701,32 @@ export function ContactPersonsSection({
             })}
           </div>
         )}
+
+        {/* Delete CP Confirmation */}
+        <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remove contact person?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to remove <strong>{deleteConfirm?.name}</strong> from the contact persons list? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => {
+                  if (deleteConfirm) {
+                    onDeleteMember(deleteConfirm.id);
+                    setDeleteConfirm(null);
+                  }
+                }}
+              >
+                Remove
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Copy to Researcher Dialog */}
         {copyDialogData && (
