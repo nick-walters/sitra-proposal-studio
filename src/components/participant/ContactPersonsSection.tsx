@@ -16,7 +16,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { User, Plus, Trash2, Star, Copy, ShieldCheck, Loader2 } from 'lucide-react';
+import { User, Plus, Trash2, Crown, Copy, ShieldCheck, Loader2 } from 'lucide-react';
 import { Participant, ParticipantMember } from '@/types/proposal';
 import { ParticipantResearcher } from '@/types/participantDetails';
 import { PersonAutocomplete } from '@/components/PersonAutocomplete';
@@ -194,17 +194,30 @@ export function ContactPersonsSection({
         .maybeSingle();
 
       if (existingProfile) {
-        // Check for existing role
+        // Check for existing proposal-specific role
         const { data: existingRole } = await supabase
           .from('user_roles')
-          .select('id')
+          .select('id, role')
           .eq('user_id', existingProfile.id)
           .eq('proposal_id', proposalId)
           .maybeSingle();
 
-        if (existingRole) {
-          toast.info(`${member.fullName} already has access`);
-          onUpdateMember(member.id, { accessGranted: true, accessGrantedRole: 'editor' });
+        // Check for global roles (owner/admin — proposal_id is null)
+        const { data: globalRole } = await supabase
+          .from('user_roles')
+          .select('id, role')
+          .eq('user_id', existingProfile.id)
+          .is('proposal_id', null)
+          .maybeSingle();
+
+        const higherRoles = ['coordinator', 'owner', 'admin'];
+        const existingHigher = existingRole && higherRoles.includes(existingRole.role);
+        const hasGlobal = globalRole && higherRoles.includes(globalRole.role);
+
+        if (existingRole || hasGlobal) {
+          const roleName = existingRole?.role || globalRole?.role || 'existing';
+          toast.info(`${member.fullName} already has ${roleName} access`);
+          onUpdateMember(member.id, { accessGranted: true, accessGrantedRole: existingRole?.role || globalRole?.role || 'editor' });
         } else {
           const { error } = await supabase.from('user_roles').insert([{
             user_id: existingProfile.id,
@@ -277,6 +290,7 @@ export function ContactPersonsSection({
       setRevokingId(null);
     }
   };
+  const hasMCP = members.some(m => m.isPrimaryContact);
 
   return (
     <Card>
@@ -415,8 +429,8 @@ export function ContactPersonsSection({
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
-                      {/* MCP toggle */}
-                      {canEdit && (
+                      {/* MCP toggle — only show if this member is MCP or no MCP exists */}
+                      {canEdit && (isMCP || !hasMCP) && (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
@@ -425,7 +439,7 @@ export function ContactPersonsSection({
                               className={`h-7 w-7 ${isMCP ? 'text-primary' : 'text-muted-foreground'}`}
                               onClick={() => handleSetMCP(member.id)}
                             >
-                              <Star className={`w-4 h-4 ${isMCP ? 'fill-primary' : ''}`} />
+                              <Crown className={`w-4 h-4 ${isMCP ? 'fill-primary' : ''}`} />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>{isMCP ? 'Remove as main contact' : 'Set as main contact person'}</TooltipContent>
