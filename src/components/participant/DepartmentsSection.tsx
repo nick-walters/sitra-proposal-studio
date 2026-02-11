@@ -358,10 +358,8 @@ export function DepartmentsSection({
         {!departmentsNotApplicable && (
           <>
             {departments.length === 0 && !loading ? (
-              <div className="text-center py-6 text-muted-foreground">
-                <Building2 className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <div className="text-center py-3 text-muted-foreground">
                 <p className="text-sm">No departments added yet</p>
-                <p className="text-xs mt-1">Add departments if different from the main organisation address</p>
               </div>
             ) : (
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
