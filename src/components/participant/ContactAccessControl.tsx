@@ -169,8 +169,8 @@ export function ContactAccessControl({
 
   return (
     <div className="flex items-center gap-1.5">
-      {/* Editor: Request access button */}
-      {canFlag && !canGrant && !accessRequested && (
+      {/* Any editor/coordinator/owner: Request access button (when no request yet and not already granted) */}
+      {canFlag && !accessRequested && !accessGranted && (
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -182,7 +182,7 @@ export function ContactAccessControl({
               <UserPlus className="w-3.5 h-3.5 text-muted-foreground" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Request platform access</TooltipContent>
+          <TooltipContent>Request platform access for this person</TooltipContent>
         </Tooltip>
       )}
 
@@ -194,7 +194,7 @@ export function ContactAccessControl({
             Access requested
           </Badge>
 
-          {/* Coordinator/Owner: Invite + Dismiss */}
+          {/* Coordinator/Owner: Invite (approve) + Dismiss (reject) */}
           {canGrant && email && (
             <>
               <InvitePopover />
@@ -214,7 +214,7 @@ export function ContactAccessControl({
             </>
           )}
 
-          {/* Editor: Cancel own request */}
+          {/* Non-granters (editors): Cancel own request */}
           {canFlag && !canGrant && (
             <Tooltip>
               <TooltipTrigger asChild>
