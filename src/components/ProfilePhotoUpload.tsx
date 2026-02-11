@@ -77,25 +77,14 @@ export function ProfilePhotoUpload({
 
   const CROP_SIZE = 200;
 
-  // Compute scaled width for current zoom — height derived from aspect ratio
-  const getScaledWidth = (z: number): number => {
-    if (naturalDims.width === 0 || naturalDims.height === 0) return 0;
-    const baseScale = CROP_SIZE / Math.min(naturalDims.width, naturalDims.height);
-    return naturalDims.width * baseScale * z;
-  };
-
-  const getScaledHeight = (z: number): number => {
-    if (naturalDims.width === 0 || naturalDims.height === 0) return 0;
-    const baseScale = CROP_SIZE / Math.min(naturalDims.width, naturalDims.height);
-    return naturalDims.height * baseScale * z;
-  };
+  // Base dimensions: shortest side = CROP_SIZE, computed once on image load
+  const baseWidth = naturalDims.width === 0 ? 0 : (naturalDims.width / Math.min(naturalDims.width, naturalDims.height)) * CROP_SIZE;
+  const baseHeight = naturalDims.height === 0 ? 0 : (naturalDims.height / Math.min(naturalDims.width, naturalDims.height)) * CROP_SIZE;
 
   // Constrain position so image always covers the crop circle
   const clampPosition = (pos: { x: number; y: number }, z: number) => {
-    const w = getScaledWidth(z);
-    const h = getScaledHeight(z);
-    const maxX = Math.max(0, (w - CROP_SIZE) / 2);
-    const maxY = Math.max(0, (h - CROP_SIZE) / 2);
+    const maxX = Math.max(0, (baseWidth * z - CROP_SIZE) / 2);
+    const maxY = Math.max(0, (baseHeight * z - CROP_SIZE) / 2);
     return {
       x: Math.min(maxX, Math.max(-maxX, pos.x)),
       y: Math.min(maxY, Math.max(-maxY, pos.y)),
@@ -319,24 +308,22 @@ export function ProfilePhotoUpload({
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
             >
-            {previewImage && naturalDims.width > 0 && (() => {
-                const w = getScaledWidth(zoom[0]);
-                const h = getScaledHeight(zoom[0]);
-                return (
+            {previewImage && naturalDims.width > 0 && (
                   <img
                     src={previewImage}
                     alt="Preview"
                     className="absolute select-none pointer-events-none"
                     style={{
-                      width: `${w}px`,
-                      height: `${h}px`,
-                      left: `${(CROP_SIZE - w) / 2 + position.x}px`,
-                      top: `${(CROP_SIZE - h) / 2 + position.y}px`,
+                      width: `${baseWidth}px`,
+                      height: `${baseHeight}px`,
+                      left: '50%',
+                      top: '50%',
+                      transformOrigin: 'center',
+                      transform: `translate(-50%, -50%) scale(${zoom[0]}) translate(${position.x / zoom[0]}px, ${position.y / zoom[0]}px)`,
                     }}
                     draggable={false}
                   />
-                );
-              })()}
+            )}
             </div>
 
             {/* Zoom slider */}
