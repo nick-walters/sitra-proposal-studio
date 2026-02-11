@@ -191,7 +191,22 @@ export function useProposalData(proposalId: string) {
         department: p.department || undefined,
         mainContactTitle: p.main_contact_title || undefined,
         mainContactPosition: p.main_contact_position || undefined,
+        mainContactFirstName: p.main_contact_first_name || undefined,
+        mainContactLastName: p.main_contact_last_name || undefined,
+        mainContactGender: p.main_contact_gender || undefined,
         mainContactPhone: p.main_contact_phone || undefined,
+        mainContactPhone2: p.main_contact_phone2 || undefined,
+        mainContactDepartment: p.main_contact_department || undefined,
+        mainContactDeptSameAsOrg: p.main_contact_dept_same_as_org ?? true,
+        mainContactStreet: p.main_contact_street || undefined,
+        mainContactTown: p.main_contact_town || undefined,
+        mainContactPostcode: p.main_contact_postcode || undefined,
+        mainContactCountry: p.main_contact_country || undefined,
+        mainContactWebsite: p.main_contact_website || undefined,
+        useOrganisationAddress: p.use_organisation_address ?? true,
+        mainContactAccessRequested: p.main_contact_access_requested || false,
+        mainContactAccessGranted: p.main_contact_access_granted || false,
+        mainContactAccessGrantedRole: p.main_contact_access_granted_role || undefined,
         hasGenderEqualityPlan: p.has_gender_equality_plan || undefined,
         dependencyDeclaration: p.dependency_declaration || undefined,
       }))
@@ -401,7 +416,22 @@ export function useProposalData(proposalId: string) {
     if (updates.department !== undefined) dbUpdates.department = updates.department;
     if (updates.mainContactTitle !== undefined) dbUpdates.main_contact_title = updates.mainContactTitle;
     if (updates.mainContactPosition !== undefined) dbUpdates.main_contact_position = updates.mainContactPosition;
+    if (updates.mainContactFirstName !== undefined) dbUpdates.main_contact_first_name = updates.mainContactFirstName;
+    if (updates.mainContactLastName !== undefined) dbUpdates.main_contact_last_name = updates.mainContactLastName;
+    if (updates.mainContactGender !== undefined) dbUpdates.main_contact_gender = updates.mainContactGender;
     if (updates.mainContactPhone !== undefined) dbUpdates.main_contact_phone = updates.mainContactPhone;
+    if (updates.mainContactPhone2 !== undefined) dbUpdates.main_contact_phone2 = updates.mainContactPhone2;
+    if (updates.mainContactDepartment !== undefined) dbUpdates.main_contact_department = updates.mainContactDepartment;
+    if (updates.mainContactDeptSameAsOrg !== undefined) dbUpdates.main_contact_dept_same_as_org = updates.mainContactDeptSameAsOrg;
+    if (updates.mainContactStreet !== undefined) dbUpdates.main_contact_street = updates.mainContactStreet;
+    if (updates.mainContactTown !== undefined) dbUpdates.main_contact_town = updates.mainContactTown;
+    if (updates.mainContactPostcode !== undefined) dbUpdates.main_contact_postcode = updates.mainContactPostcode;
+    if (updates.mainContactCountry !== undefined) dbUpdates.main_contact_country = updates.mainContactCountry;
+    if (updates.mainContactWebsite !== undefined) dbUpdates.main_contact_website = updates.mainContactWebsite;
+    if (updates.useOrganisationAddress !== undefined) dbUpdates.use_organisation_address = updates.useOrganisationAddress;
+    if (updates.mainContactAccessRequested !== undefined) dbUpdates.main_contact_access_requested = updates.mainContactAccessRequested;
+    if (updates.mainContactAccessGranted !== undefined) dbUpdates.main_contact_access_granted = updates.mainContactAccessGranted;
+    if (updates.mainContactAccessGrantedRole !== undefined) dbUpdates.main_contact_access_granted_role = updates.mainContactAccessGrantedRole;
     if (updates.hasGenderEqualityPlan !== undefined) dbUpdates.has_gender_equality_plan = updates.hasGenderEqualityPlan;
     if (updates.dependencyDeclaration !== undefined) dbUpdates.dependency_declaration = updates.dependencyDeclaration;
     if (updates.personnelCostRate !== undefined) dbUpdates.personnel_cost_rate = updates.personnelCostRate;

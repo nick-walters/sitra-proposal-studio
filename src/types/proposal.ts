@@ -242,7 +242,22 @@ export interface Participant {
   department?: string;
   mainContactTitle?: string;
   mainContactPosition?: string;
+  mainContactFirstName?: string;
+  mainContactLastName?: string;
+  mainContactGender?: string;
   mainContactPhone?: string;
+  mainContactPhone2?: string;
+  mainContactDepartment?: string;
+  mainContactDeptSameAsOrg?: boolean;
+  mainContactStreet?: string;
+  mainContactTown?: string;
+  mainContactPostcode?: string;
+  mainContactCountry?: string;
+  mainContactWebsite?: string;
+  useOrganisationAddress?: boolean;
+  mainContactAccessRequested?: boolean;
+  mainContactAccessGranted?: boolean;
+  mainContactAccessGrantedRole?: string;
   hasGenderEqualityPlan?: boolean;
   dependencyDeclaration?: string;
 }
