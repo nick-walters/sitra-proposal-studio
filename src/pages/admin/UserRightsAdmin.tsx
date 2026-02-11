@@ -287,13 +287,19 @@ export function UserRightsAdmin() {
     }
   };
 
+  const getSurname = (u: UserWithRoles) => {
+    if (u.last_name) return u.last_name;
+    const parts = (u.full_name || u.email).split(' ');
+    return parts.length > 1 ? parts[parts.length - 1] : parts[0];
+  };
+
   const filteredUsers = users.filter(u => {
     const q = searchQuery.toLowerCase();
     return u.email.toLowerCase().includes(q) ||
       u.full_name?.toLowerCase().includes(q) ||
       u.first_name?.toLowerCase().includes(q) ||
       u.last_name?.toLowerCase().includes(q);
-  });
+  }).sort((a, b) => getSurname(a).toLowerCase().localeCompare(getSurname(b).toLowerCase()));
 
   if (roleLoading) {
     return (
@@ -355,12 +361,12 @@ export function UserRightsAdmin() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Email</TableHead>
-                     <TableHead>Proposal</TableHead>
-                     <TableHead>Role</TableHead>
+                     <TableHead className="font-bold">User</TableHead>
+                     <TableHead className="font-bold">Email</TableHead>
+                     <TableHead className="font-bold">Proposal</TableHead>
+                     <TableHead className="font-bold">Role</TableHead>
                      <TableHead className="w-[50px]"></TableHead>
-                     <TableHead className="text-right">Actions</TableHead>
+                     <TableHead className="text-right font-bold">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
