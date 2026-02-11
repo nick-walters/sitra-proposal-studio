@@ -95,7 +95,7 @@ export function WPPlanningQuestions({
           question="What are the main inputs this WP needs from other WPs or external sources?"
           value={inputs}
           onChange={onInputsChange}
-          placeholder="e.g., Requirements from WP1, Data from external stakeholders..."
+          placeholder="e.g. Requirements from WP1, Data from external stakeholders..."
           readOnly={readOnly}
         />
 
@@ -105,7 +105,7 @@ export function WPPlanningQuestions({
           question="What are the main outputs this WP will produce that feed other WPs?"
           value={outputs}
           onChange={onOutputsChange}
-          placeholder="e.g., Design specifications for WP3, Validated models for WP4..."
+          placeholder="e.g. Design specifications for WP3, Validated models for WP4..."
           readOnly={readOnly}
         />
 
@@ -115,7 +115,7 @@ export function WPPlanningQuestions({
           question="What major bottlenecks could slow progress of the project's implementation if not completed on time?"
           value={bottlenecks}
           onChange={onBottlenecksChange}
-          placeholder="e.g., Ethical approval for data collection, Hardware procurement lead times..."
+          placeholder="e.g. Ethical approval for data collection, Hardware procurement lead times..."
           readOnly={readOnly}
         />
       </CardContent>
