@@ -29,13 +29,14 @@ export function TrackChangeTooltip({ editor, containerRef }: TrackChangeTooltipP
     const isInsertion = el.hasAttribute('data-track-insertion');
     const type = isInsertion ? 'insertion' : 'deletion';
 
-    // Find the author name from the editor's tracked changes
-    let authorName = 'Unknown';
-    if (editor) {
+    // Read authorName from DOM attribute as primary source, fall back to storage
+    let authorName = el.getAttribute('data-author-name') || '';
+    if (!authorName && editor) {
       const storage = (editor.storage as any).trackChanges;
       const change = storage?.changes?.find((c: any) => c.id === changeId);
       if (change) authorName = change.authorName;
     }
+    if (!authorName) authorName = 'Unknown';
 
     const rect = el.getBoundingClientRect();
     const containerRect = containerRef.current.getBoundingClientRect();
@@ -119,6 +120,7 @@ export function TrackChangeTooltip({ editor, containerRef }: TrackChangeTooltipP
         {tooltip.authorName} · {tooltip.type === 'insertion' ? 'inserted' : 'deleted'}
       </span>
       <button
+        onMouseDown={e => e.preventDefault()}
         onClick={handleAccept}
         className="p-0.5 rounded hover:bg-green-100 dark:hover:bg-green-900/30 text-green-600 dark:text-green-400 cursor-pointer"
         title="Accept change"
@@ -126,6 +128,7 @@ export function TrackChangeTooltip({ editor, containerRef }: TrackChangeTooltipP
         <Check className="w-3.5 h-3.5" />
       </button>
       <button
+        onMouseDown={e => e.preventDefault()}
         onClick={handleReject}
         className="p-0.5 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 cursor-pointer"
         title="Reject change"

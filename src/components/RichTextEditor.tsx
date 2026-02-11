@@ -1120,12 +1120,16 @@ export function useRichTextEditor({
       // Force re-render of decorations
       editor.view.dispatch(editor.state.tr);
     }
-    // Keep the onChangesUpdate callback in sync
+    // Keep all track change options in sync (author info + callbacks)
     const ext = editor.extensionManager.extensions.find(e => e.name === 'trackChanges');
     if (ext) {
       ext.options.onChangesUpdate = trackChanges?.onChangesUpdate;
+      ext.options.authorId = trackChanges?.authorId || '';
+      ext.options.authorName = trackChanges?.authorName || 'Anonymous';
+      ext.options.authorColor = trackChanges?.authorColor || '#3B82F6';
     }
-  }, [editor, trackChanges?.enabled, trackChanges?.onChangesUpdate]);
+  }, [editor, trackChanges?.enabled, trackChanges?.onChangesUpdate,
+      trackChanges?.authorId, trackChanges?.authorName, trackChanges?.authorColor]);
 
   // Scan document for existing track change marks on load
   useEffect(() => {
