@@ -669,7 +669,7 @@ export function ContactPersonsSection({
                           <>
                             {hasAccess ? (
                               <>
-                                {member.accessGrantedRole === 'editor' ? (
+                              {['editor', 'coordinator', 'owner', 'admin'].includes(member.accessGrantedRole || '') ? (
                                   <Badge className="gap-1 text-xs bg-green-100 text-green-800 border-green-300 hover:bg-green-100">
                                     <ShieldCheck className="w-3 h-3" />
                                     Has access
