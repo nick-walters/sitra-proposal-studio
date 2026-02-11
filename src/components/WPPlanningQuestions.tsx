@@ -1,7 +1,6 @@
-import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { WPSimpleEditor } from '@/components/WPSimpleEditor';
 import { HelpCircle } from 'lucide-react';
 
 interface WPPlanningQuestionsProps {
@@ -25,47 +24,17 @@ interface QuestionFieldProps {
 }
 
 function QuestionField({ id, label, question, value, onChange, placeholder, readOnly }: QuestionFieldProps) {
-  const [localValue, setLocalValue] = useState(value || '');
-  const [debounceTimeout, setDebounceTimeout] = useState<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    setLocalValue(value || '');
-  }, [value]);
-
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newValue = e.target.value;
-    setLocalValue(newValue);
-
-    if (debounceTimeout) {
-      clearTimeout(debounceTimeout);
-    }
-
-    const timeout = setTimeout(() => {
-      onChange(newValue);
-    }, 1000);
-
-    setDebounceTimeout(timeout);
-  }, [onChange, debounceTimeout]);
-
-  useEffect(() => {
-    return () => {
-      if (debounceTimeout) {
-        clearTimeout(debounceTimeout);
-      }
-    };
-  }, [debounceTimeout]);
-
   return (
     <div className="space-y-2">
       <Label htmlFor={id} className="text-xs font-medium">{label}</Label>
       <p className="text-xs text-muted-foreground">{question}</p>
-      <Textarea
-        id={id}
-        value={localValue}
-        onChange={handleChange}
+      <WPSimpleEditor
+        value={value || ''}
+        onChange={onChange}
         placeholder={placeholder}
-        className="min-h-[80px] resize-y"
         disabled={readOnly}
+        minHeight="80px"
+        hideToolbar={true}
       />
     </div>
   );
