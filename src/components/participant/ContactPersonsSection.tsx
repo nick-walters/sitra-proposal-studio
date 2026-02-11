@@ -81,6 +81,7 @@ export function ContactPersonsSection({
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
   const [copyDialogData, setCopyDialogData] = useState<{ firstName: string; lastName: string; email: string; roleInProject: string } | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+  const [unsetMCPConfirm, setUnsetMCPConfirm] = useState<string | null>(null);
   const [newContact, setNewContact] = useState({
     firstName: '',
     lastName: '',
@@ -176,6 +177,19 @@ export function ContactPersonsSection({
   };
 
   const handleSetMCP = (memberId: string) => {
+    const member = members.find(m => m.id === memberId);
+    const isCurrentlyMCP = member?.isPrimaryContact;
+
+    // If unsetting MCP, prompt confirmation
+    if (isCurrentlyMCP) {
+      setUnsetMCPConfirm(memberId);
+      return;
+    }
+
+    applyMCP(memberId);
+  };
+
+  const applyMCP = (memberId: string) => {
     // Unset previous MCP
     members.forEach((m) => {
       if (m.isPrimaryContact && m.id !== memberId) {
@@ -192,6 +206,16 @@ export function ContactPersonsSection({
       onUpdateParticipant('mainContactFirstName', parts[0] || '');
       onUpdateParticipant('mainContactLastName', parts.slice(1).join(' ') || '');
       onUpdateParticipant('contactEmail', member.email || '');
+    }
+
+    // If unsetting, clear MCP-specific fields
+    if (!newValue) {
+      onUpdateParticipant('mainContactFirstName', '');
+      onUpdateParticipant('mainContactLastName', '');
+      onUpdateParticipant('contactEmail', '');
+      onUpdateParticipant('mainContactPhone', '');
+      onUpdateParticipant('mainContactPosition', '');
+      onUpdateParticipant('mainContactDepartment', '');
     }
   };
 
@@ -765,7 +789,32 @@ export function ContactPersonsSection({
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* Copy to Researcher Dialog */}
+        {/* Unset MCP Confirmation */}
+        <AlertDialog open={!!unsetMCPConfirm} onOpenChange={(open) => !open && setUnsetMCPConfirm(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remove Main Contact Person role?</AlertDialogTitle>
+              <AlertDialogDescription>
+                The additional MCP details (phone, position, department) will be cleared and won't be stored. Are you sure you want to proceed?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => {
+                  if (unsetMCPConfirm) {
+                    applyMCP(unsetMCPConfirm);
+                    setUnsetMCPConfirm(null);
+                  }
+                }}
+              >
+                Remove MCP
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         {copyDialogData && (
           <CopyToResearcherDialog
             open={copyDialogOpen}
