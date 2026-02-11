@@ -152,7 +152,7 @@ export function useProposalData(proposalId: string) {
 
   // Fetch participants
   const fetchParticipants = useCallback(async () => {
-    if (!proposalId) return;
+    if (!proposalId || !user) return;
 
     const { data, error } = await supabase
       .from('participants')
@@ -196,11 +196,11 @@ export function useProposalData(proposalId: string) {
         dependencyDeclaration: p.dependency_declaration || undefined,
       }))
     );
-  }, [proposalId]);
+  }, [proposalId, user]);
 
   // Fetch participant members
   const fetchParticipantMembers = useCallback(async () => {
-    if (!proposalId) return;
+    if (!proposalId || !user) return;
 
     const { data, error } = await supabase
       .from('participant_members')
@@ -224,11 +224,11 @@ export function useProposalData(proposalId: string) {
         isPrimaryContact: m.is_primary_contact || false,
       }))
     );
-  }, [proposalId]);
+  }, [proposalId, user]);
 
   // Fetch ethics assessment
   const fetchEthics = useCallback(async () => {
-    if (!proposalId) return;
+    if (!proposalId || !user) return;
 
     const { data, error } = await supabase
       .from('ethics_assessment')
@@ -256,7 +256,7 @@ export function useProposalData(proposalId: string) {
       
       setEthics(ethicsData);
     }
-  }, [proposalId]);
+  }, [proposalId, user]);
 
   // Load all data
   useEffect(() => {
