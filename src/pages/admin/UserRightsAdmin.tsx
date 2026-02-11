@@ -404,7 +404,7 @@ export function UserRightsAdmin() {
                                         <SelectValue />
                                       </SelectTrigger>
                                       <SelectContent>
-                                        <SelectItem value="none">None</SelectItem>
+                                        <SelectItem value="none">Standard user</SelectItem>
                                         <SelectItem value="admin">Admin</SelectItem>
                                         <SelectItem value="owner">Owner</SelectItem>
                                       </SelectContent>
