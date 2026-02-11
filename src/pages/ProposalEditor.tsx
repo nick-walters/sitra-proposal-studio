@@ -450,6 +450,10 @@ export function ProposalEditor() {
                 onDeleteMember={deleteParticipantMember}
                 canEdit={canEditThisParticipant}
                 canDelete={canEdit}
+                canFlag={canEdit}
+                canGrant={isGlobalOwner || isCoordinator}
+                proposalId={id}
+                proposalAcronym={proposal?.acronym}
               />
             );
           }
@@ -522,6 +526,10 @@ export function ProposalEditor() {
                 onDeleteMember={deleteParticipantMember}
                 canEdit={canEditThisParticipant}
                 canDelete={canEdit}
+                canFlag={canEdit}
+                canGrant={isGlobalOwner || isCoordinator}
+                proposalId={id}
+                proposalAcronym={proposal?.acronym}
               />
             </div>
           );

@@ -33,10 +33,10 @@ interface InviteToProposalDialogProps {
   onMemberAdded: (member: Omit<ParticipantMember, 'id'>) => void;
 }
 
-type AccessLevel = 'admin' | 'editor' | 'viewer';
+type AccessLevel = 'coordinator' | 'editor' | 'viewer';
 
 const ACCESS_LEVEL_LABELS: Record<AccessLevel, string> = {
-  admin: 'Admin - Full editing access',
+  coordinator: 'Coordinator - Full proposal management',
   editor: 'Editor - Can edit content',
   viewer: 'Viewer - Read only',
 };

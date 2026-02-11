@@ -432,12 +432,32 @@ serve(async (req) => {
       await supabase.from('references').insert(referencesToInsert);
     }
 
-    // 14. Add user as collaborator with owner role on new proposal
-    await supabase.from('user_roles').insert({
-      user_id: user.id,
-      role: 'owner',
+    // 14. Copy coordinator roles from original (not editor/viewer)
+    const { data: originalRoles } = await supabase
+      .from('user_roles')
+      .select('user_id, role')
+      .eq('proposal_id', proposalId)
+      .in('role', ['coordinator', 'owner']);
+
+    const rolesToInsert = (originalRoles || []).map(r => ({
+      user_id: r.user_id,
+      role: 'coordinator' as const,
       proposal_id: newProposalId,
-    });
+    }));
+
+    // Ensure the duplicating user is a coordinator
+    const hasCurrentUser = rolesToInsert.some(r => r.user_id === user.id);
+    if (!hasCurrentUser) {
+      rolesToInsert.push({
+        user_id: user.id,
+        role: 'coordinator' as const,
+        proposal_id: newProposalId,
+      });
+    }
+
+    if (rolesToInsert.length > 0) {
+      await supabase.from('user_roles').insert(rolesToInsert);
+    }
 
     return new Response(
       JSON.stringify({ 

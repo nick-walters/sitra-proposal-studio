@@ -53,6 +53,7 @@ interface ProposalCollaboratorsPanelProps {
 
 const ROLE_ICONS: Record<string, typeof Crown> = {
   owner: Crown,
+  coordinator: ShieldCheck,
   admin: ShieldCheck,
   editor: Pencil,
   viewer: Eye,
@@ -60,6 +61,7 @@ const ROLE_ICONS: Record<string, typeof Crown> = {
 
 const ROLE_LABELS: Record<string, string> = {
   owner: 'Owner',
+  coordinator: 'Coordinator',
   admin: 'Admin',
   editor: 'Editor',
   viewer: 'Viewer',
@@ -78,7 +80,7 @@ export function ProposalCollaboratorsPanel({
 
   // Add form state
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState<'admin' | 'editor' | 'viewer'>('editor');
+  const [role, setRole] = useState<'coordinator' | 'editor' | 'viewer'>('editor');
   const [saving, setSaving] = useState(false);
   const [checkingEmail, setCheckingEmail] = useState(false);
   const [foundUser, setFoundUser] = useState<{ id: string; fullName: string | null } | null>(null);
@@ -197,7 +199,7 @@ export function ProposalCollaboratorsPanel({
     }
   };
 
-  const handleChangeRole = async (collab: Collaborator, newRole: 'admin' | 'editor' | 'viewer') => {
+  const handleChangeRole = async (collab: Collaborator, newRole: 'coordinator' | 'editor' | 'viewer') => {
     if (newRole === collab.role) return;
     const { error } = await supabase
       .from('user_roles')
@@ -300,12 +302,12 @@ export function ProposalCollaboratorsPanel({
                       <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
                     )}
                   </div>
-                  <Select value={role} onValueChange={(v) => setRole(v as 'admin' | 'editor' | 'viewer')}>
+                  <Select value={role} onValueChange={(v) => setRole(v as 'coordinator' | 'editor' | 'viewer')}>
                     <SelectTrigger className="w-28">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="coordinator">Coordinator</SelectItem>
                       <SelectItem value="editor">Editor</SelectItem>
                       <SelectItem value="viewer">Viewer</SelectItem>
                     </SelectContent>
@@ -375,14 +377,14 @@ export function ProposalCollaboratorsPanel({
                       {canManage && !isSelf ? (
                         <Select
                           value={collab.role}
-                          onValueChange={(v) => handleChangeRole(collab, v as 'admin' | 'editor' | 'viewer')}
+                          onValueChange={(v) => handleChangeRole(collab, v as 'coordinator' | 'editor' | 'viewer')}
                         >
                           <SelectTrigger className="h-6 w-24 text-xs gap-1 px-2">
                             <RoleIcon className="w-3 h-3 flex-shrink-0" />
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="coordinator">Coordinator</SelectItem>
                             <SelectItem value="editor">Editor</SelectItem>
                             <SelectItem value="viewer">Viewer</SelectItem>
                           </SelectContent>
