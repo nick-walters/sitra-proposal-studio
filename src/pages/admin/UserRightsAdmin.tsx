@@ -400,7 +400,7 @@ export function UserRightsAdmin() {
                                       value={currentGlobalValue}
                                       onValueChange={(v) => handleChangeGlobalRole(u, globalRole?.id || null, v)}
                                     >
-                                      <SelectTrigger className="h-5 w-20 text-[10px] mt-0.5 border-none bg-transparent px-1" hideArrow>
+                                      <SelectTrigger className="h-5 w-auto min-w-[70px] text-[10px] mt-0.5 px-1.5 py-0 rounded-full bg-secondary border-border cursor-pointer hover:bg-secondary/80">
                                         <SelectValue />
                                       </SelectTrigger>
                                       <SelectContent>
