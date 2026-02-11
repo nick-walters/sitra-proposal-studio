@@ -16,11 +16,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { User, Plus, Trash2, Crown, Copy, ShieldCheck, Loader2 } from 'lucide-react';
+import { User, Plus, Trash2, Crown, Copy, ShieldCheck, Loader2, Edit2, Check, X } from 'lucide-react';
 import { Participant, ParticipantMember } from '@/types/proposal';
 import { ParticipantResearcher } from '@/types/participantDetails';
 import { PersonAutocomplete } from '@/components/PersonAutocomplete';
 import { MCPDetailFields } from './MCPDetailFields';
+import { CopyToResearcherDialog } from './CopyToResearcherDialog';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -65,6 +66,10 @@ export function ContactPersonsSection({
   const [selectedPerson, setSelectedPerson] = useState<SelectedPerson | null>(null);
   const [grantingId, setGrantingId] = useState<string | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ firstName: '', lastName: '', email: '', phone: '' });
+  const [copyDialogOpen, setCopyDialogOpen] = useState(false);
+  const [copyDialogData, setCopyDialogData] = useState<{ firstName: string; lastName: string; email: string; roleInProject: string } | null>(null);
   const [newContact, setNewContact] = useState({
     firstName: '',
     lastName: '',
@@ -149,6 +154,44 @@ export function ContactPersonsSection({
     }
   };
 
+  const handleStartEdit = (member: ParticipantMember) => {
+    const parts = member.fullName.split(' ');
+    setEditingId(member.id);
+    setEditForm({
+      firstName: parts[0] || '',
+      lastName: parts.slice(1).join(' ') || '',
+      email: member.email || '',
+      phone: member.roleInProject || '',
+    });
+  };
+
+  const handleSaveEdit = (memberId: string) => {
+    if (!editForm.firstName.trim() || !editForm.lastName.trim() || !editForm.email.trim()) {
+      toast.error('First name, last name and email are required');
+      return;
+    }
+    const fullName = `${editForm.firstName.trim()} ${editForm.lastName.trim()}`;
+    onUpdateMember(memberId, {
+      fullName,
+      email: editForm.email.trim(),
+      roleInProject: editForm.phone.trim(),
+    });
+
+    // If this member is the MCP, sync to participant fields
+    const member = members.find(m => m.id === memberId);
+    if (member?.isPrimaryContact) {
+      onUpdateParticipant('mainContactFirstName', editForm.firstName.trim());
+      onUpdateParticipant('mainContactLastName', editForm.lastName.trim());
+      onUpdateParticipant('contactEmail', editForm.email.trim());
+    }
+
+    setEditingId(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+  };
+
   const handleCopyToResearchers = (member: ParticipantMember) => {
     const parts = member.fullName.split(' ');
     const firstName = parts[0] || '';
@@ -163,22 +206,18 @@ export function ContactPersonsSection({
       if (!proceed) return;
     }
 
-    onAddResearcher({
-      participantId: participant.id,
+    setCopyDialogData({
       firstName,
       lastName,
       email: member.email || '',
       roleInProject: member.roleInProject || '',
-      title: '',
-      gender: '',
-      nationality: '',
-      careerStage: '',
-      referenceIdentifier: '',
-      identifierType: '',
-      orderIndex: researchers.length,
     });
+    setCopyDialogOpen(true);
+  };
 
-    toast.success('Copied to researchers list');
+  const handleResearcherConfirm = (researcher: Omit<ParticipantResearcher, 'id' | 'createdAt' | 'updatedAt'>) => {
+    onAddResearcher(researcher);
+    toast.success('Added to researchers list');
   };
 
   const handleGrantAccess = async (member: ParticipantMember) => {
@@ -407,114 +446,181 @@ export function ContactPersonsSection({
               const hasAccess = member.accessGranted;
               const isGranting = grantingId === member.id;
               const isRevoking = revokingId === member.id;
+              const isEditing = editingId === member.id;
 
               return (
                 <div key={member.id}>
-                  <div className={`flex items-center justify-between p-3 rounded-lg ${isMCP ? 'bg-primary/5 border border-primary/20' : 'bg-muted/50'}`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isMCP ? 'bg-primary/20' : 'bg-primary/10'}`}>
-                        <span className="text-sm font-medium text-primary">{initials}</span>
+                  {isEditing ? (
+                    <div className={`p-3 rounded-lg space-y-3 ${isMCP ? 'bg-primary/5 border border-primary/20' : 'bg-muted/50'}`}>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">First name *</Label>
+                          <Input
+                            value={editForm.firstName}
+                            onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Last name *</Label>
+                          <Input
+                            value={editForm.lastName}
+                            onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Email *</Label>
+                          <Input
+                            type="email"
+                            value={editForm.email}
+                            onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Phone</Label>
+                          <Input
+                            type="tel"
+                            value={editForm.phone}
+                            onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                            className="h-8 text-sm"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium flex items-center gap-1.5">
-                          {firstName} {lastName}
-                          {isMCP && (
-                            <Badge variant="default" className="text-[10px] h-4 px-1.5">MCP</Badge>
-                          )}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {member.email || 'No email'}
-                          {member.roleInProject ? ` · ${member.roleInProject}` : ''}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {/* MCP toggle — only show if this member is MCP or no MCP exists */}
-                      {canEdit && (isMCP || !hasMCP) && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className={`h-7 w-7 ${isMCP ? 'text-primary' : 'text-muted-foreground'}`}
-                              onClick={() => handleSetMCP(member.id)}
-                            >
-                              <Crown className={`w-4 h-4 ${isMCP ? 'fill-primary' : ''}`} />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>{isMCP ? 'Remove as main contact' : 'Set as main contact person'}</TooltipContent>
-                        </Tooltip>
-                      )}
-
-                      {/* Copy to researchers */}
-                      {canEdit && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-muted-foreground"
-                              onClick={() => handleCopyToResearchers(member)}
-                            >
-                              <Copy className="w-3.5 h-3.5" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Copy to researchers list</TooltipContent>
-                        </Tooltip>
-                      )}
-
-                      {/* Access management (owners/coordinators only) */}
-                      {canGrant && wantsAccess && proposalId && proposalAcronym && (
-                        <>
-                          {hasAccess ? (
-                            <>
-                              <Badge variant="outline" className="gap-1 text-xs">
-                                <ShieldCheck className="w-3 h-3" />
-                                {member.accessGrantedRole === 'editor' ? 'Has access' : 'Invite sent'}
-                              </Badge>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                                    onClick={() => handleRevokeAccess(member)}
-                                    disabled={isRevoking}
-                                  >
-                                    {isRevoking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Revoke access</TooltipContent>
-                              </Tooltip>
-                            </>
-                          ) : (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 gap-1 text-xs"
-                              onClick={() => handleGrantAccess(member)}
-                              disabled={isGranting || !member.email}
-                            >
-                              {isGranting ? <Loader2 className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3 h-3" />}
-                              Give access
-                            </Button>
-                          )}
-                        </>
-                      )}
-
-                      {/* Delete */}
-                      {canEdit && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-muted-foreground hover:text-destructive h-7 w-7"
-                          onClick={() => onDeleteMember(member.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCancelEdit}>
+                          <X className="w-4 h-4" />
                         </Button>
-                      )}
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" onClick={() => handleSaveEdit(member.id)}>
+                          <Check className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className={`flex items-center justify-between p-3 rounded-lg ${isMCP ? 'bg-primary/5 border border-primary/20' : 'bg-muted/50'}`}>
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isMCP ? 'bg-primary/20' : 'bg-primary/10'}`}>
+                          <span className="text-sm font-medium text-primary">{initials}</span>
+                        </div>
+                        <div>
+                          <p className="font-medium flex items-center gap-1.5">
+                            {firstName} {lastName}
+                            {isMCP && (
+                              <Badge variant="default" className="text-[10px] h-4 px-1.5">MCP</Badge>
+                            )}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {member.email || 'No email'}
+                            {member.roleInProject ? ` · ${member.roleInProject}` : ''}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {/* Edit */}
+                        {canEdit && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-muted-foreground"
+                                onClick={() => handleStartEdit(member)}
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Edit contact</TooltipContent>
+                          </Tooltip>
+                        )}
+
+                        {/* MCP toggle — only show if this member is MCP or no MCP exists */}
+                        {canEdit && (isMCP || !hasMCP) && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className={`h-7 w-7 ${isMCP ? 'text-primary' : 'text-muted-foreground'}`}
+                                onClick={() => handleSetMCP(member.id)}
+                              >
+                                <Crown className={`w-4 h-4 ${isMCP ? 'fill-primary' : ''}`} />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{isMCP ? 'Remove as main contact' : 'Set as main contact person'}</TooltipContent>
+                          </Tooltip>
+                        )}
+
+                        {/* Copy to researchers */}
+                        {canEdit && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-muted-foreground"
+                                onClick={() => handleCopyToResearchers(member)}
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Copy to researchers list</TooltipContent>
+                          </Tooltip>
+                        )}
+
+                        {/* Access management (owners/coordinators only) */}
+                        {canGrant && wantsAccess && proposalId && proposalAcronym && (
+                          <>
+                            {hasAccess ? (
+                              <>
+                                <Badge variant="outline" className="gap-1 text-xs">
+                                  <ShieldCheck className="w-3 h-3" />
+                                  {member.accessGrantedRole === 'editor' ? 'Has access' : 'Invite sent'}
+                                </Badge>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                      onClick={() => handleRevokeAccess(member)}
+                                      disabled={isRevoking}
+                                    >
+                                      {isRevoking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Revoke access</TooltipContent>
+                                </Tooltip>
+                              </>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 gap-1 text-xs"
+                                onClick={() => handleGrantAccess(member)}
+                                disabled={isGranting || !member.email}
+                              >
+                                {isGranting ? <Loader2 className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3 h-3" />}
+                                Give access
+                              </Button>
+                            )}
+                          </>
+                        )}
+
+                        {/* Delete */}
+                        {canEdit && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-muted-foreground hover:text-destructive h-7 w-7"
+                            onClick={() => onDeleteMember(member.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* MCP expanded details */}
                   {isMCP && (
@@ -528,6 +634,18 @@ export function ContactPersonsSection({
               );
             })}
           </div>
+        )}
+
+        {/* Copy to Researcher Dialog */}
+        {copyDialogData && (
+          <CopyToResearcherDialog
+            open={copyDialogOpen}
+            onOpenChange={setCopyDialogOpen}
+            initialData={copyDialogData}
+            onConfirm={handleResearcherConfirm}
+            participantId={participant.id}
+            nextOrderIndex={researchers.length}
+          />
         )}
       </CardContent>
     </Card>
