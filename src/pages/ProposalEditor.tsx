@@ -483,10 +483,10 @@ export function ProposalEditor() {
                 });
               }}
               onUpdateParticipant={updateParticipant}
-              canInvite={isAdmin && canEdit}
-              canReorder={isAdmin && canEdit}
-              canAddParticipant={isAdmin && canEdit}
-              canEdit={isAdmin && canEdit}
+              canInvite={canEdit}
+              canReorder={canEdit}
+              canAddParticipant={canEdit}
+              canEdit={canEdit}
               wpLeadership={wpLeadership}
               caseLeadership={caseLeadership}
             />
