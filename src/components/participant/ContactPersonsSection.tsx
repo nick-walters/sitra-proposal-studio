@@ -313,7 +313,7 @@ export function ContactPersonsSection({
       firstName,
       lastName,
       email: member.email || '',
-      roleInProject: member.roleInProject || '',
+      roleInProject: '',
     });
     setCopyDialogOpen(true);
   };
@@ -539,7 +539,7 @@ export function ContactPersonsSection({
           </div>
         ) : (
           <div className="space-y-3">
-            {members.map((member) => {
+            {[...members].sort((a, b) => (b.isPrimaryContact ? 1 : 0) - (a.isPrimaryContact ? 1 : 0)).map((member) => {
               const nameParts = member.fullName.split(' ');
               const firstName = nameParts[0] || '';
               const lastName = nameParts.slice(1).join(' ') || '';
