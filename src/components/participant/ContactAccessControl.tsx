@@ -18,33 +18,22 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { UserPlus, ShieldCheck, Loader2, Flag, Check } from 'lucide-react';
+import { UserPlus, ShieldCheck, Loader2, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
 interface ContactAccessControlProps {
-  /** The contact person's email – required to grant access */
   email: string | null | undefined;
-  /** The contact person's name */
   name: string | null | undefined;
-  /** Whether this contact has been flagged for access */
   accessRequested: boolean;
-  /** Whether access has been granted */
   accessGranted: boolean;
-  /** Role granted (coordinator/editor/viewer) */
   accessGrantedRole: string | null | undefined;
-  /** Can the current user flag for access (editor+) */
   canFlag: boolean;
-  /** Can the current user grant access (coordinator/owner) */
   canGrant: boolean;
-  /** Proposal ID for role assignment */
   proposalId: string;
-  /** Proposal acronym for invitation */
   proposalAcronym: string;
-  /** Callback to update the access_requested field */
   onFlagAccess: (requested: boolean) => void;
-  /** Callback after access is granted */
   onAccessGranted: (role: string) => void;
 }
 
@@ -84,7 +73,6 @@ export function ContactAccessControl({
 
     setGranting(true);
     try {
-      // Check if user already exists
       const { data: existingProfile } = await supabase
         .from('profiles')
         .select('id')
@@ -92,7 +80,6 @@ export function ContactAccessControl({
         .maybeSingle();
 
       if (existingProfile) {
-        // User exists – check if already has access
         const { data: existingRole } = await supabase
           .from('user_roles')
           .select('id')
@@ -103,7 +90,6 @@ export function ContactAccessControl({
         if (existingRole) {
           toast.info(`${name || email} already has access to this proposal`);
         } else {
-          // Grant role
           const { error } = await supabase.from('user_roles').insert([{
             user_id: existingProfile.id,
             proposal_id: proposalId,
@@ -113,7 +99,6 @@ export function ContactAccessControl({
           toast.success(`${name || email} granted ${selectedRole} access`);
         }
       } else {
-        // Invite via edge function
         const { data: inviteResult, error: inviteError } = await supabase.functions.invoke('invite-user', {
           body: {
             email: email.toLowerCase(),
@@ -146,10 +131,46 @@ export function ContactAccessControl({
     }
   };
 
+  // Shared invite popover for both direct invite and approving requests
+  const InvitePopover = () => (
+    <Popover open={grantPopoverOpen} onOpenChange={setGrantPopoverOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
+          <UserPlus className="w-3 h-3" />
+          Invite
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 p-3" align="end">
+        <div className="space-y-3">
+          <p className="text-sm font-medium">Invite {name || email}</p>
+          <Select value={selectedRole} onValueChange={setSelectedRole}>
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="coordinator">Coordinator</SelectItem>
+              <SelectItem value="editor">Editor</SelectItem>
+              <SelectItem value="viewer">Viewer</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            size="sm"
+            className="w-full gap-1"
+            onClick={handleGrantAccess}
+            disabled={granting}
+          >
+            {granting ? <Loader2 className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3 h-3" />}
+            Confirm
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+
   return (
     <div className="flex items-center gap-1.5">
-      {/* Flag for access button (editor+) */}
-      {canFlag && !accessRequested && (
+      {/* Editor: Request access button */}
+      {canFlag && !canGrant && !accessRequested && (
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -158,59 +179,43 @@ export function ContactAccessControl({
               className="h-7 w-7"
               onClick={() => onFlagAccess(true)}
             >
-              <Flag className="w-3.5 h-3.5 text-muted-foreground" />
+              <UserPlus className="w-3.5 h-3.5 text-muted-foreground" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Flag for platform access</TooltipContent>
+          <TooltipContent>Request platform access</TooltipContent>
         </Tooltip>
       )}
 
-      {/* Flagged indicator */}
+      {/* Access requested badge + actions */}
       {accessRequested && !accessGranted && (
         <>
           <Badge variant="secondary" className="gap-1 text-xs">
-            <Flag className="w-3 h-3" />
+            <UserPlus className="w-3 h-3" />
             Access requested
           </Badge>
 
-          {/* Grant button (coordinator/owner only) */}
+          {/* Coordinator/Owner: Invite + Dismiss */}
           {canGrant && email && (
-            <Popover open={grantPopoverOpen} onOpenChange={setGrantPopoverOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
-                  <UserPlus className="w-3 h-3" />
-                  Grant
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-56 p-3" align="end">
-                <div className="space-y-3">
-                  <p className="text-sm font-medium">Grant access to {name || email}</p>
-                  <Select value={selectedRole} onValueChange={setSelectedRole}>
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="coordinator">Coordinator</SelectItem>
-                      <SelectItem value="editor">Editor</SelectItem>
-                      <SelectItem value="viewer">Viewer</SelectItem>
-                    </SelectContent>
-                  </Select>
+            <>
+              <InvitePopover />
+              <Tooltip>
+                <TooltipTrigger asChild>
                   <Button
-                    size="sm"
-                    className="w-full gap-1"
-                    onClick={handleGrantAccess}
-                    disabled={granting}
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => onFlagAccess(false)}
                   >
-                    {granting ? <Loader2 className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3 h-3" />}
-                    Confirm
+                    <X className="w-3 h-3 text-muted-foreground" />
                   </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
+                </TooltipTrigger>
+                <TooltipContent>Dismiss request</TooltipContent>
+              </Tooltip>
+            </>
           )}
 
-          {/* Unflag button */}
-          {canFlag && (
+          {/* Editor: Cancel own request */}
+          {canFlag && !canGrant && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -219,13 +224,18 @@ export function ContactAccessControl({
                   className="h-6 w-6"
                   onClick={() => onFlagAccess(false)}
                 >
-                  <span className="text-xs text-muted-foreground">✕</span>
+                  <X className="w-3 h-3 text-muted-foreground" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Remove flag</TooltipContent>
+              <TooltipContent>Cancel request</TooltipContent>
             </Tooltip>
           )}
         </>
+      )}
+
+      {/* Coordinator/Owner: Direct invite (no request needed) */}
+      {canGrant && !accessRequested && !accessGranted && email && (
+        <InvitePopover />
       )}
     </div>
   );

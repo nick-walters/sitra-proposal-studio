@@ -18,6 +18,7 @@ import { SaveIndicator } from './SaveIndicator';
 import { CountrySelect } from './CountrySelect';
 import { PersonAutocomplete } from './PersonAutocomplete';
 import { User, Plus, Trash2 } from 'lucide-react';
+import { ContactAccessControl } from './participant/ContactAccessControl';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { isEligibleForGEP } from '@/lib/countries';
@@ -535,16 +536,33 @@ export function ParticipantDetailForm({
                           </p>
                         </div>
                       </div>
-                      {canEdit && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-muted-foreground hover:text-destructive"
-                          onClick={() => onDeleteMember(member.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      )}
+                      <div className="flex items-center gap-1">
+                        {proposalId && proposalAcronym && (
+                          <ContactAccessControl
+                            email={member.email}
+                            name={member.fullName}
+                            accessRequested={member.accessRequested || false}
+                            accessGranted={member.accessGranted || false}
+                            accessGrantedRole={member.accessGrantedRole}
+                            canFlag={canFlag}
+                            canGrant={canGrant}
+                            proposalId={proposalId}
+                            proposalAcronym={proposalAcronym}
+                            onFlagAccess={(val) => onUpdateMember(member.id, { accessRequested: val })}
+                            onAccessGranted={(role) => onUpdateMember(member.id, { accessGranted: true, accessGrantedRole: role })}
+                          />
+                        )}
+                        {canEdit && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-muted-foreground hover:text-destructive"
+                            onClick={() => onDeleteMember(member.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   );
                 })}

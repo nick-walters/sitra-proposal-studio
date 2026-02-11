@@ -284,6 +284,12 @@ export interface ParticipantMember {
   roleInProject?: string;
   personMonths?: number;
   isPrimaryContact: boolean;
+  accessRequested?: boolean;
+  accessRequestedBy?: string;
+  accessGranted?: boolean;
+  accessGrantedRole?: string;
+  accessGrantedBy?: string;
+  accessGrantedAt?: string;
 }
 
 export interface Reference {
