@@ -50,23 +50,12 @@ export function AdminAvatarUpload({ userId, avatarUrl, initials, onAvatarChange 
 
   const CROP_SIZE = 200;
 
-  const getScaledWidth = (z: number): number => {
-    if (imgDims.width === 0 || imgDims.height === 0) return 0;
-    const baseScale = CROP_SIZE / Math.min(imgDims.width, imgDims.height);
-    return imgDims.width * baseScale * z;
-  };
-
-  const getScaledHeight = (z: number): number => {
-    if (imgDims.width === 0 || imgDims.height === 0) return 0;
-    const baseScale = CROP_SIZE / Math.min(imgDims.width, imgDims.height);
-    return imgDims.height * baseScale * z;
-  };
+  const baseWidth = imgDims.width === 0 ? 0 : (imgDims.width / Math.min(imgDims.width, imgDims.height)) * CROP_SIZE;
+  const baseHeight = imgDims.height === 0 ? 0 : (imgDims.height / Math.min(imgDims.width, imgDims.height)) * CROP_SIZE;
 
   const clampPosition = (pos: { x: number; y: number }, z: number) => {
-    const w = getScaledWidth(z);
-    const h = getScaledHeight(z);
-    const maxX = Math.max(0, (w - CROP_SIZE) / 2);
-    const maxY = Math.max(0, (h - CROP_SIZE) / 2);
+    const maxX = Math.max(0, (baseWidth * z - CROP_SIZE) / 2);
+    const maxY = Math.max(0, (baseHeight * z - CROP_SIZE) / 2);
     return {
       x: Math.min(maxX, Math.max(-maxX, pos.x)),
       y: Math.min(maxY, Math.max(-maxY, pos.y)),
@@ -174,25 +163,22 @@ export function AdminAvatarUpload({ userId, avatarUrl, initials, onAvatarChange 
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
             >
-              {previewImage && imgDims.width > 0 && (() => {
-                const w = getScaledWidth(zoom[0]);
-                const h = getScaledHeight(zoom[0]);
-                return (
+              {previewImage && imgDims.width > 0 && (
                   <img
                     src={previewImage}
                     alt="Preview"
                     className="absolute select-none pointer-events-none"
                     style={{
-                      width: `${w}px`,
-                      height: 'auto',
-                      aspectRatio: `${imgDims.width} / ${imgDims.height}`,
-                      left: `${(CROP_SIZE - w) / 2 + position.x}px`,
-                      top: `${(CROP_SIZE - h) / 2 + position.y}px`,
+                      width: `${baseWidth}px`,
+                      height: `${baseHeight}px`,
+                      left: '50%',
+                      top: '50%',
+                      transformOrigin: 'center',
+                      transform: `translate(-50%, -50%) scale(${zoom[0]}) translate(${position.x / zoom[0]}px, ${position.y / zoom[0]}px)`,
                     }}
                     draggable={false}
                   />
-                );
-              })()}
+              )}
             </div>
             <div className="space-y-2 px-4">
               <label className="text-sm text-muted-foreground">Zoom</label>
