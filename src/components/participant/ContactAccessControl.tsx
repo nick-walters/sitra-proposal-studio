@@ -140,14 +140,14 @@ export function ContactAccessControl({
           Invite
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-56 p-3" align="end">
+      <PopoverContent className="w-56 p-3 z-[10000]" align="end">
         <div className="space-y-3">
           <p className="text-sm font-medium">Invite {name || email}</p>
           <Select value={selectedRole} onValueChange={setSelectedRole}>
             <SelectTrigger className="h-8 text-xs">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[10001]">
               <SelectItem value="coordinator">Coordinator</SelectItem>
               <SelectItem value="editor">Editor</SelectItem>
               <SelectItem value="viewer">Viewer</SelectItem>
