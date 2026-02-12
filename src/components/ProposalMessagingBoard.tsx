@@ -451,6 +451,14 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
             >
               <Star className={cn("h-3.5 w-3.5", starredIds.has(msg.id) ? "fill-amber-400 text-amber-400" : "text-muted-foreground hover:text-amber-400")} />
             </button>
+            {canModify(msg) && (
+              <button
+                className="focus:outline-none"
+                onClick={() => toggleResolved.mutate({ id: msg.id, resolved: !(msg as any).is_resolved })}
+              >
+                <CheckCircle className={cn("h-3.5 w-3.5", (msg as any).is_resolved ? "text-green-600 fill-green-100 dark:text-green-400 dark:fill-green-900" : "text-muted-foreground hover:text-green-600")} />
+              </button>
+            )}
           </div>
           {isEditing ? (
             <div className="mt-1 flex gap-2">
@@ -488,10 +496,6 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
                   <DropdownMenuContent align="start">
                     <DropdownMenuItem onClick={() => { setEditingId(msg.id); setEditContent(msg.content); }}>
                       <Edit2 className="h-3.5 w-3.5 mr-2" /> Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => toggleResolved.mutate({ id: msg.id, resolved: !(msg as any).is_resolved })}>
-                      <CheckCircle className="h-3.5 w-3.5 mr-2" />
-                      {(msg as any).is_resolved ? 'Unresolve' : 'Mark resolved'}
                     </DropdownMenuItem>
                     <DropdownMenuItem className="text-destructive" onClick={() => deleteMessage.mutate(msg.id)}>
                       <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
