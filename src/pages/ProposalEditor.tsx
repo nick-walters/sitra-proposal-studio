@@ -16,6 +16,9 @@ import { WPManagementCard } from "@/components/WPManagementCard";
 import { ProposalCollaboratorsPanel } from "@/components/ProposalCollaboratorsPanel";
 import { CaseManagementCard } from "@/components/CaseManagementCard";
 import { WPProgressTracker } from "@/components/WPProgressTracker";
+import { ProposalMessagingBoard } from "@/components/ProposalMessagingBoard";
+import { ProposalTaskAllocator } from "@/components/ProposalTaskAllocator";
+import { ProposalProgressTracker } from "@/components/ProposalProgressTracker";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -432,6 +435,41 @@ export function ProposalEditor() {
       );
     }
 
+    // Proposal management tools
+    if (activeSection.id === 'messaging') {
+      return (
+        <div className="flex-1 overflow-y-auto">
+          <ProposalMessagingBoard proposalId={id || ''} isCoordinator={isCoordinator} />
+        </div>
+      );
+    }
+    if (activeSection.id === 'task-allocator') {
+      return (
+        <div className="flex-1 overflow-y-auto">
+          <ProposalTaskAllocator proposalId={id || ''} isCoordinator={isCoordinator} />
+        </div>
+      );
+    }
+    if (activeSection.id === 'progress-tracker') {
+      return (
+        <div className="flex-1 overflow-y-auto">
+          <ProposalProgressTracker
+            proposalId={id || ''}
+            isCoordinator={isCoordinator}
+            sections={[]}
+            onNavigateToWP={(wpId) => {
+              const wpSection = allSections
+                .flatMap(s => s.subsections || [])
+                .find(s => s.id === `wp-${wpId}`) as WPSection | undefined;
+              if (wpSection) {
+                setActiveSection(wpSection);
+              }
+            }}
+          />
+        </div>
+      );
+    }
+
     // Part A sections
     if (activeSection.isPartA) {
       // A1 - General Information (form-based) - matches "a1"
@@ -730,17 +768,6 @@ export function ProposalEditor() {
             isCoordinator={canEdit && isCoordinator}
             casesEnabled={proposal?.casesEnabled || false}
             onToggleCases={handleToggleCases}
-          />
-          <WPProgressTracker
-            proposalId={id || ''}
-            onNavigateToWP={(wpId) => {
-              const wpSection = allSections
-                .flatMap(s => s.subsections || [])
-                .find(s => s.id === `wp-${wpId}`) as WPSection | undefined;
-              if (wpSection) {
-                setActiveSection(wpSection);
-              }
-            }}
           />
         </div>
       );
