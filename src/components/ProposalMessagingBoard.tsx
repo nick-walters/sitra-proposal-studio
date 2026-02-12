@@ -50,7 +50,7 @@ interface Profile {
   avatar_url: string | null;
 }
 
-const PRIORITY_LABELS = ['No priority', 'Medium priority', 'High priority'] as const;
+const PRIORITY_LABELS = ['No priority', 'Low priority', 'Medium priority', 'High priority'] as const;
 
 export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMessagingBoardProps) {
   const { user } = useAuth();
@@ -175,7 +175,7 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
           author_id: user!.id,
           content,
           visibility,
-          is_high_priority: priorityLevel >= 2,
+          is_high_priority: priorityLevel >= 3,
           priority_level: priorityLevel,
         } as any)
         .select()
@@ -212,7 +212,7 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
     mutationFn: async ({ id, priorityLevel }: { id: string; priorityLevel: number }) => {
       const { error } = await supabase
         .from('proposal_messages')
-        .update({ priority_level: priorityLevel, is_high_priority: priorityLevel >= 2 } as any)
+        .update({ priority_level: priorityLevel, is_high_priority: priorityLevel >= 3 } as any)
         .eq('id', id);
       if (error) throw error;
     },
@@ -261,7 +261,7 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
     },
   });
 
-  const cyclePriority = (current: number) => (current + 1) % 3;
+  const cyclePriority = (current: number) => (current + 1) % 4;
 
   const handleSendNew = () => {
     if (!newMessage.trim()) return;
@@ -310,14 +310,21 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
     }
     if (level === 1) {
       return (
+        <Button variant="outline" size={size} className="h-8 border-green-500 bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-950 dark:text-green-400 dark:border-green-700" onClick={onClick}>
+          <Flag className="h-3.5 w-3.5 mr-1" /> Low
+        </Button>
+      );
+    }
+    if (level === 2) {
+      return (
         <Button variant="outline" size={size} className="h-8 border-amber-400 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-700" onClick={onClick}>
-          <Flag className="h-3.5 w-3.5 mr-1" /> Medium
+          <Flag className="h-3.5 w-3.5 mr-0.5" /><Flag className="h-3.5 w-3.5 mr-1" /> Medium
         </Button>
       );
     }
     return (
       <Button variant="destructive" size={size} className="h-8" onClick={onClick}>
-        <Flag className="h-3.5 w-3.5 mr-0.5" /><Flag className="h-3.5 w-3.5 mr-1" /> High
+        <Flag className="h-3.5 w-3.5 mr-0.5" /><Flag className="h-3.5 w-3.5 mr-0.5" /><Flag className="h-3.5 w-3.5 mr-1" /> High
       </Button>
     );
   };
@@ -325,15 +332,22 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
   const PriorityBadge = ({ level }: { level: number }) => {
     if (level === 1) {
       return (
-        <Badge className="text-[10px] px-1.5 py-0 h-4 bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900 dark:text-amber-300">
-          <Flag className="h-2.5 w-2.5 mr-0.5" /> Medium
+        <Badge className="text-[10px] px-1.5 py-0 h-4 bg-green-100 text-green-800 border-green-300 dark:bg-green-900 dark:text-green-300">
+          <Flag className="h-2.5 w-2.5 mr-0.5" /> Low
         </Badge>
       );
     }
     if (level === 2) {
       return (
+        <Badge className="text-[10px] px-1.5 py-0 h-4 bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900 dark:text-amber-300">
+          <Flag className="h-2.5 w-2.5 mr-0.5" /><Flag className="h-2.5 w-2.5 mr-0.5" /> Medium
+        </Badge>
+      );
+    }
+    if (level === 3) {
+      return (
         <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">
-          <Flag className="h-2.5 w-2.5 mr-0.5" /><Flag className="h-2.5 w-2.5 mr-0.5" /> High
+          <Flag className="h-2.5 w-2.5 mr-0.5" /><Flag className="h-2.5 w-2.5 mr-0.5" /><Flag className="h-2.5 w-2.5 mr-0.5" /> High
         </Badge>
       );
     }
@@ -344,7 +358,7 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
     const profile = getProfile(msg.author_id);
     const initials = profile?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?';
     const isEditing = editingId === msg.id;
-    const priorityLevel = (msg as any).priority_level ?? (msg.is_high_priority ? 2 : 0);
+    const priorityLevel = (msg as any).priority_level ?? (msg.is_high_priority ? 3 : 0);
 
     return (
       <div key={msg.id} className={cn("flex gap-3 py-3", isReply && "pl-8", isThreadResolved && "opacity-50")}>
@@ -534,12 +548,13 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
             const isExpanded = expandedThreads.has(thread.id);
             const replyCount = thread.replies.length;
             const isResolved = (thread as any).is_resolved;
-            const priorityLevel = (thread as any).priority_level ?? (thread.is_high_priority ? 2 : 0);
+            const priorityLevel = (thread as any).priority_level ?? (thread.is_high_priority ? 3 : 0);
             return (
               <Card key={thread.id} className={cn(
                 thread.is_pinned && "border-primary/30 bg-primary/5",
-                priorityLevel === 2 && !thread.is_pinned && "border-destructive/30",
-                priorityLevel === 1 && !thread.is_pinned && "border-amber-400/30",
+                priorityLevel === 3 && !thread.is_pinned && "border-destructive/30",
+                priorityLevel === 2 && !thread.is_pinned && "border-amber-400/30",
+                priorityLevel === 1 && !thread.is_pinned && "border-green-500/30",
                 isResolved && "opacity-60"
               )}>
                 <CardContent className="pt-3 pb-2">
