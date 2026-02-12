@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select';
 import {
   MessageSquare, Send, Search, Pin, Flag, Trash2, Edit2, ChevronDown, ChevronRight,
-  Eye, EyeOff, X, Check, MoreHorizontal, Reply, CheckCircle,
+  Eye, EyeOff, X, Check, MoreHorizontal, Reply, CheckCircle, Star,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -65,6 +65,7 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [expandedThreads, setExpandedThreads] = useState<Set<string>>(new Set());
+  const [filterStarred, setFilterStarred] = useState(false);
 
   // Fetch proposal members
   const { data: members = [] } = useQuery({
@@ -102,7 +103,21 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
     enabled: !!proposalId,
   });
 
-  // Realtime subscription
+  // Fetch user's starred messages
+  const { data: starredIds = new Set<string>() } = useQuery({
+    queryKey: ['message-stars', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('message_stars')
+        .select('message_id')
+        .eq('user_id', user!.id);
+      if (error) throw error;
+      return new Set((data || []).map(s => s.message_id));
+    },
+    enabled: !!user?.id,
+  });
+
+
   useEffect(() => {
     if (!proposalId) return;
     const channel = supabase
@@ -144,6 +159,9 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
       });
       filtered = filtered.filter(t => matchingIds.has(t.id));
     }
+    if (filterStarred) {
+      filtered = filtered.filter(t => starredIds.has(t.id));
+    }
 
     filtered.sort((a, b) => {
       if (a.is_pinned && !b.is_pinned) return -1;
@@ -157,7 +175,7 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
         new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       ),
     }));
-  }, [messages, searchQuery]);
+  }, [messages, searchQuery, filterStarred, starredIds]);
 
   const profileMap = useMemo(() => new Map(members.map(m => [m.id, m])), [members]);
   const getProfile = (userId: string) => profileMap.get(userId);
@@ -258,6 +276,28 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['proposal-messages', proposalId] });
+    },
+  });
+
+  const toggleStar = useMutation({
+    mutationFn: async (messageId: string) => {
+      const isStarred = starredIds.has(messageId);
+      if (isStarred) {
+        const { error } = await supabase
+          .from('message_stars')
+          .delete()
+          .eq('message_id', messageId)
+          .eq('user_id', user!.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('message_stars')
+          .insert({ message_id: messageId, user_id: user!.id });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['message-stars', user?.id] });
     },
   });
 
@@ -384,10 +424,6 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
             <span className="text-xs text-muted-foreground">
               {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
             </span>
-            <PriorityBadge level={priorityLevel} canEdit={canEditPriority} onCycle={() => {
-              const next = cyclePriority(priorityLevel);
-              updatePriority.mutate({ id: msg.id, priorityLevel: next });
-            }} />
             {msg.is_pinned && (
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
                 <Pin className="h-2.5 w-2.5 mr-0.5" /> Pinned
@@ -402,6 +438,20 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-muted text-muted-foreground">
                 <CheckCircle className="h-2.5 w-2.5 mr-0.5" /> Resolved
               </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <PriorityBadge level={priorityLevel} canEdit={canEditPriority} onCycle={() => {
+              const next = cyclePriority(priorityLevel);
+              updatePriority.mutate({ id: msg.id, priorityLevel: next });
+            }} />
+            {!isReply && (
+              <button
+                className="focus:outline-none"
+                onClick={() => toggleStar.mutate(msg.id)}
+              >
+                <Star className={cn("h-3.5 w-3.5", starredIds.has(msg.id) ? "fill-amber-400 text-amber-400" : "text-muted-foreground hover:text-amber-400")} />
+              </button>
             )}
           </div>
           {isEditing ? (
@@ -484,15 +534,25 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
         <p className="text-muted-foreground text-sm">Discuss and coordinate with your proposal team</p>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search messages..."
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          className="pl-9"
-        />
+      {/* Search & Filter */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search messages..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Button
+          variant={filterStarred ? 'default' : 'outline'}
+          size="sm"
+          className="h-9"
+          onClick={() => setFilterStarred(prev => !prev)}
+        >
+          <Star className={cn("h-4 w-4 mr-1", filterStarred && "fill-current")} /> Starred
+        </Button>
       </div>
 
       {/* Compose */}
