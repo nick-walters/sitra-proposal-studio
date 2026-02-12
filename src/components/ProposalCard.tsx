@@ -257,7 +257,7 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
           </div>
 
           {/* Right column: Action buttons and dates */}
-          <div className="flex flex-col gap-1 flex-shrink-0 w-[5.5rem] items-stretch">
+          <div className="flex flex-col gap-1 flex-shrink-0 w-[9rem] items-stretch">
             {proposal.topicUrl && (
               <Button 
                 variant="outline" 
