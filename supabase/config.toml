@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.deadline-reminders]
 verify_jwt = false
+
+[functions.generate-impact-pathway]
+verify_jwt = false
