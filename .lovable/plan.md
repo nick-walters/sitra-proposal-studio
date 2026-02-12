@@ -1,68 +1,101 @@
 
 
-# Fix Track Changes: Individual Accept/Reject and Anonymous Author
+# Fix: Auth Session Validation and Dashboard Error Recovery
 
-## Problems Identified
+## Problem
 
-### 1. Author shows as "Anonymous"
-The `authorId`, `authorName`, and `authorColor` are only set once during editor initialization via `TrackChanges.configure(...)` in the `useEditor` hook. The `useEffect` that syncs track changes state (line 1113-1128 of `RichTextEditor.tsx`) only syncs `enabled` and `onChangesUpdate` -- it never updates `authorId`, `authorName`, or `authorColor` on the extension options.
+When a user's access is revoked and re-granted, their browser may hold a stale JWT session. The current `useAuth` hook trusts the locally-cached session without server-side validation. This causes:
 
-So if the user data hasn't fully loaded when the editor first mounts, the defaults (`'Anonymous'`, `''`, `'#3B82F6'`) are baked into the extension and every mark it creates uses those values permanently.
+- The user appears logged in but all database queries return empty results
+- The dashboard shows "no proposals" instead of prompting re-authentication
+- No error feedback tells the user what is wrong
 
-### 2. Individual accept/reject doesn't work
-The `acceptChange` and `rejectChange` commands read `authorId`/`authorName`/`authorColor` from `extension.options`, which are stale for the same reason above. But more critically, the commands themselves appear structurally correct. The likely root cause is that the extension options (including `authorId`, `authorName`, `authorColor`) are stale references, meaning the `appendTransaction` plugin is also reading stale values. This doesn't directly explain the individual failure, but there could be a secondary issue where the tooltip click causes the editor to blur or the command fails silently.
+## Solution
 
-To fix this robustly, I'll add `onMouseDown={e => e.preventDefault()}` on tooltip buttons to prevent focus steal, and add diagnostic logging.
+### 1. Add server-side session validation in `useAuth`
 
-## Changes
+After calling `getSession()`, also call `getUser()` to verify the JWT is actually valid with the auth server. If `getUser()` fails, force a sign-out and clear cached state.
 
-### File: `src/components/RichTextEditor.tsx`
+**File: `src/hooks/useAuth.tsx`**
 
-**Sync all track change author options, not just `enabled`:**
+- After `getSession()` returns a session, call `supabase.auth.getUser()` to validate server-side
+- If `getUser()` returns an error (e.g., `user_not_found`), call `signOut()` to clear all cached state
+- This ensures stale sessions are detected immediately on page load
 
-Update the existing `useEffect` (lines 1113-1128) to also sync `authorId`, `authorName`, and `authorColor` on both `ext.options` and `ext.storage` whenever they change. This ensures the `appendTransaction` plugin always reads the current user's identity.
+### 2. Add error detection in Dashboard proposal fetch
 
-Add `trackChanges?.authorId`, `trackChanges?.authorName`, `trackChanges?.authorColor` to the dependency array.
+**File: `src/pages/Dashboard.tsx`**
 
-### File: `src/components/TrackChangeTooltip.tsx`
+- After the proposals query returns, check if an empty result might indicate an auth problem
+- Call `supabase.auth.getUser()` as a health check when proposals come back empty
+- If the health check fails, force sign-out and redirect to login with a toast message explaining the session expired
+- This acts as a safety net if the `useAuth` validation hasn't completed yet
 
-**Prevent focus stealing and improve reliability:**
+### 3. Handle `onAuthStateChange` token refresh failures
 
-- Add `onMouseDown={e => e.preventDefault()}` to both accept/reject buttons so clicking them doesn't cause the editor to lose focus or trigger unwanted ProseMirror transactions.
-- Read `authorName` directly from the DOM element's `data-author-name` attribute as a fallback, since the storage `changes` array might not always be in sync with the DOM.
+**File: `src/hooks/useAuth.tsx`**
 
-### File: `src/components/DocumentEditor.tsx`
-
-**No changes needed** -- it already passes the correct user metadata. The issue is downstream in `RichTextEditor.tsx` not syncing those values after initialization.
+- Listen for the `TOKEN_REFRESHED` event -- if refresh fails and fires `SIGNED_OUT`, the existing code already handles this
+- Add handling for the `USER_UPDATED` event to re-validate
 
 ## Technical Details
 
-The core fix is in `RichTextEditor.tsx`:
+### useAuth.tsx changes
 
 ```typescript
 useEffect(() => {
-  if (!editor) return;
-  trackChangesRef.current = trackChanges;
-  const storage = (editor.storage as any).trackChanges;
-  if (storage && storage.enabled !== trackChanges?.enabled) {
-    storage.enabled = trackChanges?.enabled || false;
-    editor.view.dispatch(editor.state.tr);
-  }
-  const ext = editor.extensionManager.extensions.find(e => e.name === 'trackChanges');
-  if (ext) {
-    ext.options.onChangesUpdate = trackChanges?.onChangesUpdate;
-    ext.options.authorId = trackChanges?.authorId || '';
-    ext.options.authorName = trackChanges?.authorName || 'Anonymous';
-    ext.options.authorColor = trackChanges?.authorColor || '#3B82F6';
-  }
-}, [editor, trackChanges?.enabled, trackChanges?.onChangesUpdate,
-    trackChanges?.authorId, trackChanges?.authorName, trackChanges?.authorColor]);
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    (event, session) => {
+      updateAuthState(session);
+    }
+  );
+
+  // Check for existing session, then validate server-side
+  supabase.auth.getSession().then(async ({ data: { session } }) => {
+    if (session) {
+      // Validate the session is actually valid server-side
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) {
+        // Session is stale/invalid -- force sign out
+        console.warn('Session invalid, signing out:', error?.message);
+        sessionStorage.removeItem('auth-user');
+        await supabase.auth.signOut();
+        updateAuthState(null);
+        return;
+      }
+    }
+    updateAuthState(session);
+  });
+
+  return () => subscription.unsubscribe();
+}, [updateAuthState]);
 ```
 
-And in `TrackChangeTooltip.tsx`, adding `onMouseDown` prevention and reading author from DOM:
+### Dashboard.tsx changes
 
 ```typescript
-// Read authorName from DOM attribute as primary source
-let authorName = el.getAttribute('data-author-name') || 'Unknown';
+// Inside fetchProposals, after receiving empty results:
+if ((data || []).length === 0) {
+  // Verify auth is still valid -- empty results could mean stale session
+  const { error: authError } = await supabase.auth.getUser();
+  if (authError) {
+    sessionStorage.removeItem('auth-user');
+    toast.error('Your session has expired. Please log in again.');
+    await supabase.auth.signOut();
+    return;
+  }
+}
 ```
+
+## Files Changed
+
+| File | Change |
+|------|--------|
+| `src/hooks/useAuth.tsx` | Add server-side session validation after `getSession()` |
+| `src/pages/Dashboard.tsx` | Add auth health check when proposals query returns empty |
+
+## Risk Assessment
+
+- **Low risk**: The `getUser()` call adds one extra network request on page load, but only when a session exists
+- The sign-out fallback is safe -- worst case, a user with a genuinely valid session but zero proposals gets an unnecessary sign-out (mitigated by only checking when results are empty AND `getUser()` fails)
 
