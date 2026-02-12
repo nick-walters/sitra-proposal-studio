@@ -257,12 +257,12 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
           </div>
 
           {/* Right column: Action buttons and dates */}
-          <div className="flex flex-col gap-1 flex-shrink-0">
+          <div className="flex flex-col gap-1 flex-shrink-0 w-[5.5rem] items-stretch">
             {proposal.topicUrl && (
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="h-6 px-2 gap-1 text-[10px]"
+                className="h-6 w-full px-2 gap-1 text-[10px]"
                 onClick={(e) => {
                   e.stopPropagation();
                   window.open(proposal.topicUrl, '_blank');
@@ -272,7 +272,7 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
                 <ExternalLink className="w-2.5 h-2.5" />
               </Button>
             )}
-            <Button size="sm" className="h-6 min-w-[3.5rem] px-2 gap-1 text-[10px] bg-foreground text-background hover:bg-foreground/90">
+            <Button size="sm" className="h-6 w-full px-2 gap-1 text-[10px] bg-foreground text-background hover:bg-foreground/90">
               {isDraft ? 'Edit' : 'View'}
               <ArrowRight className="w-2.5 h-2.5" />
             </Button>
