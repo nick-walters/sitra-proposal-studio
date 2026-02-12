@@ -434,7 +434,7 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
                 <EyeOff className="h-2.5 w-2.5 mr-0.5" /> Private
               </Badge>
             )}
-            {!isReply && (msg as any).is_resolved && (
+            {(msg as any).is_resolved && (
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-muted text-muted-foreground">
                 <CheckCircle className="h-2.5 w-2.5 mr-0.5" /> Resolved
               </Badge>
@@ -445,14 +445,12 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
               const next = cyclePriority(priorityLevel);
               updatePriority.mutate({ id: msg.id, priorityLevel: next });
             }} />
-            {!isReply && (
-              <button
-                className="focus:outline-none"
-                onClick={() => toggleStar.mutate(msg.id)}
-              >
-                <Star className={cn("h-3.5 w-3.5", starredIds.has(msg.id) ? "fill-amber-400 text-amber-400" : "text-muted-foreground hover:text-amber-400")} />
-              </button>
-            )}
+            <button
+              className="focus:outline-none"
+              onClick={() => toggleStar.mutate(msg.id)}
+            >
+              <Star className={cn("h-3.5 w-3.5", starredIds.has(msg.id) ? "fill-amber-400 text-amber-400" : "text-muted-foreground hover:text-amber-400")} />
+            </button>
           </div>
           {isEditing ? (
             <div className="mt-1 flex gap-2">
@@ -476,12 +474,10 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
           )}
           {!isEditing && (
             <div className="flex items-center gap-1 mt-1">
-              {!isReply && (
-                <Button variant="ghost" size="sm" className="h-6 text-xs px-2"
-                  onClick={() => { setReplyingTo(msg.id); toggleThread(msg.id); }}>
-                  <Reply className="h-3 w-3 mr-1" /> Reply
-                </Button>
-              )}
+              <Button variant="ghost" size="sm" className="h-6 text-xs px-2"
+                onClick={() => { setReplyingTo(msg.parent_id || msg.id); toggleThread(msg.parent_id || msg.id); }}>
+                <Reply className="h-3 w-3 mr-1" /> Reply
+              </Button>
               {canModify(msg) && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -493,12 +489,10 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
                     <DropdownMenuItem onClick={() => { setEditingId(msg.id); setEditContent(msg.content); }}>
                       <Edit2 className="h-3.5 w-3.5 mr-2" /> Edit
                     </DropdownMenuItem>
-                    {!isReply && (
-                      <DropdownMenuItem onClick={() => toggleResolved.mutate({ id: msg.id, resolved: !(msg as any).is_resolved })}>
-                        <CheckCircle className="h-3.5 w-3.5 mr-2" />
-                        {(msg as any).is_resolved ? 'Unresolve' : 'Mark resolved'}
-                      </DropdownMenuItem>
-                    )}
+                    <DropdownMenuItem onClick={() => toggleResolved.mutate({ id: msg.id, resolved: !(msg as any).is_resolved })}>
+                      <CheckCircle className="h-3.5 w-3.5 mr-2" />
+                      {(msg as any).is_resolved ? 'Unresolve' : 'Mark resolved'}
+                    </DropdownMenuItem>
                     <DropdownMenuItem className="text-destructive" onClick={() => deleteMessage.mutate(msg.id)}>
                       <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
                     </DropdownMenuItem>
