@@ -1190,6 +1190,35 @@ export type Database = {
           },
         ]
       }
+      message_stars: {
+        Row: {
+          created_at: string
+          id: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_stars_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
