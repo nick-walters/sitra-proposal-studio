@@ -3865,6 +3865,10 @@ export type Database = {
         Returns: number
       }
       is_global_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_message_recipient: {
+        Args: { _message_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_owner: { Args: { _user_id: string }; Returns: boolean }
       is_proposal_admin: {
         Args: { _proposal_id: string; _user_id: string }
