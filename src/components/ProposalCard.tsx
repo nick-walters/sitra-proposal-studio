@@ -191,7 +191,7 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
                 <ExternalLink className="w-2 h-2" />
               </Button>
             )}
-            <Button size="sm" className="h-5 px-2 gap-0.5 text-[9px] bg-foreground text-background hover:bg-foreground/90">
+            <Button size="sm" className="h-5 min-w-[3rem] px-2 gap-0.5 text-[9px] bg-foreground text-background hover:bg-foreground/90">
               {isDraft ? 'Edit' : 'View'}
               <ArrowRight className="w-2 h-2" />
             </Button>
@@ -272,7 +272,7 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
                 <ExternalLink className="w-2.5 h-2.5" />
               </Button>
             )}
-            <Button size="sm" className="h-6 px-2 gap-1 text-[10px] bg-foreground text-background hover:bg-foreground/90">
+            <Button size="sm" className="h-6 min-w-[3.5rem] px-2 gap-1 text-[10px] bg-foreground text-background hover:bg-foreground/90">
               {isDraft ? 'Edit' : 'View'}
               <ArrowRight className="w-2.5 h-2.5" />
             </Button>
