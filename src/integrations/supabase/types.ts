@@ -1977,6 +1977,127 @@ export type Database = {
         }
         Relationships: []
       }
+      proposal_message_recipients: {
+        Row: {
+          id: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_message_recipients_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_messages: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          id: string
+          is_high_priority: boolean
+          is_pinned: boolean
+          parent_id: string | null
+          proposal_id: string
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          author_id: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_high_priority?: boolean
+          is_pinned?: boolean
+          parent_id?: string | null
+          proposal_id: string
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_high_priority?: boolean
+          is_pinned?: boolean
+          parent_id?: string | null
+          proposal_id?: string
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_messages_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_messages_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_progress: {
+        Row: {
+          id: string
+          notes: string | null
+          progress_percent: number
+          proposal_id: string
+          section_id: string
+          section_label: string
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          id?: string
+          notes?: string | null
+          progress_percent?: number
+          proposal_id: string
+          section_id: string
+          section_label?: string
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          id?: string
+          notes?: string | null
+          progress_percent?: number
+          proposal_id?: string
+          section_id?: string
+          section_label?: string
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_progress_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposal_section_guidelines: {
         Row: {
           content: string
@@ -2027,6 +2148,85 @@ export type Database = {
             columns: ["source_guideline_id"]
             isOneToOne: false
             referencedRelation: "section_guidelines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_task_assignees: {
+        Row: {
+          id: string
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_task_assignees_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_tasks: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          end_date: string | null
+          id: string
+          order_index: number
+          proposal_id: string
+          responsible_user_id: string | null
+          start_date: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          order_index?: number
+          proposal_id: string
+          responsible_user_id?: string | null
+          start_date?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          order_index?: number
+          proposal_id?: string
+          responsible_user_id?: string | null
+          start_date?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_tasks_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
             referencedColumns: ["id"]
           },
         ]

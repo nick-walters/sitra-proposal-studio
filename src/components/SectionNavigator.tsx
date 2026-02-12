@@ -1,5 +1,5 @@
 import { Section, Participant } from "@/types/proposal";
-import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Layers, Building2, Info, Euro, Lightbulb, Target, Settings, FlaskConical, ShieldCheck, HelpCircle } from "lucide-react";
+import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Layers, Building2, Info, Euro, Lightbulb, Target, Settings, FlaskConical, ShieldCheck, HelpCircle, MessageSquare, ListTodo, Briefcase } from "lucide-react";
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
@@ -108,18 +108,18 @@ function SectionItem({
   // Part B subsections need extra indentation to align under parent B1/B2/B3 text (past the icon)
   const extraIndent = isPartBSubsection ? 12 : 0;
   
-  // Check if this is a collapsible heading (Part A, Part B, B1, B2)
+  // Check if this is a collapsible heading (Part A, Part B, B1, B2, Proposal management)
   // Note: A2 is NOT a collapsible heading - it should navigate to ParticipantListView
   // Note: WP Drafts is NOT a collapsible heading - it should navigate to WP Manager/Tracker
   const isCollapsibleHeading = hasSubsections && (
     section.id === 'part-a' || 
     section.id === 'part-b' || 
     section.id === 'b1' || 
-    section.id === 'b2'
+    section.id === 'b2' ||
+    section.id === 'proposal-management'
   );
 
-  // Check if this is a top-level bold item (Part A, Part B, Figures, WP Progress Tracker, WP Drafts, Case Drafts)
-  // Match both ID-based and number-based checks for database sections
+  // Check if this is a top-level bold item
   const isTopLevelBold = 
     section.id === 'part-a' || 
     section.number === 'Part A' ||
@@ -129,7 +129,8 @@ function SectionItem({
     section.title === 'Figures' ||
     section.id === 'wp-progress-tracker' ||
     section.id === 'wp-drafts' ||
-    section.id === 'case-drafts';
+    section.id === 'case-drafts' ||
+    section.id === 'proposal-management';
   
   // Note: Guideline icons removed from navigation hover to reduce visual clutter
 
@@ -189,7 +190,15 @@ function SectionItem({
       >
         {/* Left-side icons */}
         {/* Left-side icons */}
-        {section.id === 'a1' || section.number === 'A1' ? (
+        {section.id === 'proposal-management' ? (
+          <Briefcase className="w-4 h-4 text-muted-foreground shrink-0" />
+        ) : section.id === 'messaging' ? (
+          <MessageSquare className="w-4 h-4 text-muted-foreground shrink-0" />
+        ) : section.id === 'task-allocator' ? (
+          <ListTodo className="w-4 h-4 text-muted-foreground shrink-0" />
+        ) : section.id === 'progress-tracker' ? (
+          <BarChart3 className="w-4 h-4 text-muted-foreground shrink-0" />
+        ) : section.id === 'a1' || section.number === 'A1' ? (
           <Info className="w-4 h-4 text-muted-foreground shrink-0" />
         ) : section.id === 'a2' || section.number === 'A2' ? (
           <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
