@@ -8,19 +8,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
   MessageSquare, Send, Search, Pin, Flag, Trash2, Edit2, ChevronDown, ChevronRight,
-  Eye, EyeOff, X, Check, MoreHorizontal, Reply,
+  Eye, EyeOff, X, Check, MoreHorizontal, Reply, CheckCircle,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { format, formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -39,6 +37,8 @@ interface Message {
   visibility: string;
   is_high_priority: boolean;
   is_pinned: boolean;
+  priority_level: number;
+  is_resolved: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -50,6 +50,8 @@ interface Profile {
   avatar_url: string | null;
 }
 
+const PRIORITY_LABELS = ['No priority', 'Medium priority', 'High priority'] as const;
+
 export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMessagingBoardProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -57,14 +59,14 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
   const [newMessage, setNewMessage] = useState('');
   const [newVisibility, setNewVisibility] = useState<'all' | 'private'>('all');
   const [taggedUserIds, setTaggedUserIds] = useState<string[]>([]);
-  const [isHighPriority, setIsHighPriority] = useState(false);
+  const [newPriority, setNewPriority] = useState(0);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [expandedThreads, setExpandedThreads] = useState<Set<string>>(new Set());
 
-  // Fetch proposal members (users with roles)
+  // Fetch proposal members
   const { data: members = [] } = useQuery({
     queryKey: ['proposal-members', proposalId],
     queryFn: async () => {
@@ -100,22 +102,6 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
     enabled: !!proposalId,
   });
 
-  // Fetch recipients for private messages
-  const { data: recipients = [] } = useQuery({
-    queryKey: ['proposal-message-recipients', proposalId],
-    queryFn: async () => {
-      const msgIds = messages.filter(m => m.visibility === 'private').map(m => m.id);
-      if (msgIds.length === 0) return [];
-      const { data, error } = await supabase
-        .from('proposal_message_recipients')
-        .select('*')
-        .in('message_id', msgIds);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: messages.length > 0,
-  });
-
   // Realtime subscription
   useEffect(() => {
     if (!proposalId) return;
@@ -141,14 +127,12 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
       childMap.set(m.parent_id!, arr);
     });
 
-    // Get last reply date for sorting
     const getLastReplyDate = (threadId: string) => {
       const replies = childMap.get(threadId) || [];
       if (replies.length === 0) return new Date(topLevel.find(t => t.id === threadId)?.created_at || 0);
       return new Date(replies[replies.length - 1].created_at);
     };
 
-    // Filter by search
     let filtered = topLevel;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -161,7 +145,6 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
       filtered = filtered.filter(t => matchingIds.has(t.id));
     }
 
-    // Sort: pinned first, then by last reply date desc
     filtered.sort((a, b) => {
       if (a.is_pinned && !b.is_pinned) return -1;
       if (!a.is_pinned && b.is_pinned) return 1;
@@ -170,20 +153,19 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
 
     return filtered.map(t => ({
       ...t,
-      replies: (childMap.get(t.id) || []).sort((a, b) => 
+      replies: (childMap.get(t.id) || []).sort((a, b) =>
         new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       ),
     }));
   }, [messages, searchQuery]);
 
   const profileMap = useMemo(() => new Map(members.map(m => [m.id, m])), [members]);
-
   const getProfile = (userId: string) => profileMap.get(userId);
 
   // Mutations
   const sendMessage = useMutation({
-    mutationFn: async ({ content, parentId, visibility, priority, tagged }: {
-      content: string; parentId?: string; visibility: string; priority: boolean; tagged: string[];
+    mutationFn: async ({ content, parentId, visibility, priorityLevel, tagged }: {
+      content: string; parentId?: string; visibility: string; priorityLevel: number; tagged: string[];
     }) => {
       const { data, error } = await supabase
         .from('proposal_messages')
@@ -193,12 +175,12 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
           author_id: user!.id,
           content,
           visibility,
-          is_high_priority: priority,
-        })
+          is_high_priority: priorityLevel >= 2,
+          priority_level: priorityLevel,
+        } as any)
         .select()
         .single();
       if (error) throw error;
-      // Insert recipients for private messages
       if (visibility === 'private' && tagged.length > 0) {
         const { error: rErr } = await supabase
           .from('proposal_message_recipients')
@@ -223,6 +205,32 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['proposal-messages', proposalId] });
       setEditingId(null);
+    },
+  });
+
+  const updatePriority = useMutation({
+    mutationFn: async ({ id, priorityLevel }: { id: string; priorityLevel: number }) => {
+      const { error } = await supabase
+        .from('proposal_messages')
+        .update({ priority_level: priorityLevel, is_high_priority: priorityLevel >= 2 } as any)
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['proposal-messages', proposalId] });
+    },
+  });
+
+  const toggleResolved = useMutation({
+    mutationFn: async ({ id, resolved }: { id: string; resolved: boolean }) => {
+      const { error } = await supabase
+        .from('proposal_messages')
+        .update({ is_resolved: resolved } as any)
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['proposal-messages', proposalId] });
     },
   });
 
@@ -253,16 +261,18 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
     },
   });
 
+  const cyclePriority = (current: number) => (current + 1) % 3;
+
   const handleSendNew = () => {
     if (!newMessage.trim()) return;
     sendMessage.mutate({
       content: newMessage.trim(),
       visibility: newVisibility,
-      priority: isHighPriority,
+      priorityLevel: newPriority,
       tagged: taggedUserIds,
     });
     setNewMessage('');
-    setIsHighPriority(false);
+    setNewPriority(0);
     setNewVisibility('all');
     setTaggedUserIds([]);
   };
@@ -273,7 +283,7 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
       content: replyContent.trim(),
       parentId,
       visibility: 'all',
-      priority: false,
+      priorityLevel: 0,
       tagged: [],
     });
     setReplyContent('');
@@ -290,13 +300,54 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
     });
   };
 
-  const renderMessage = (msg: Message, isReply = false) => {
+  const PriorityButton = ({ level, onClick, size = 'sm' }: { level: number; onClick: () => void; size?: 'sm' | 'default' }) => {
+    if (level === 0) {
+      return (
+        <Button variant="outline" size={size} className="h-8" onClick={onClick}>
+          <Flag className="h-3.5 w-3.5 mr-1 text-muted-foreground" /> Priority
+        </Button>
+      );
+    }
+    if (level === 1) {
+      return (
+        <Button variant="outline" size={size} className="h-8 border-amber-400 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-700" onClick={onClick}>
+          <Flag className="h-3.5 w-3.5 mr-1" /> Medium
+        </Button>
+      );
+    }
+    return (
+      <Button variant="destructive" size={size} className="h-8" onClick={onClick}>
+        <Flag className="h-3.5 w-3.5 mr-0.5" /><Flag className="h-3.5 w-3.5 mr-1" /> High
+      </Button>
+    );
+  };
+
+  const PriorityBadge = ({ level }: { level: number }) => {
+    if (level === 1) {
+      return (
+        <Badge className="text-[10px] px-1.5 py-0 h-4 bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900 dark:text-amber-300">
+          <Flag className="h-2.5 w-2.5 mr-0.5" /> Medium
+        </Badge>
+      );
+    }
+    if (level === 2) {
+      return (
+        <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">
+          <Flag className="h-2.5 w-2.5 mr-0.5" /><Flag className="h-2.5 w-2.5 mr-0.5" /> High
+        </Badge>
+      );
+    }
+    return null;
+  };
+
+  const renderMessage = (msg: Message, isReply = false, isThreadResolved = false) => {
     const profile = getProfile(msg.author_id);
     const initials = profile?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?';
     const isEditing = editingId === msg.id;
+    const priorityLevel = (msg as any).priority_level ?? (msg.is_high_priority ? 2 : 0);
 
     return (
-      <div key={msg.id} className={cn("flex gap-3 py-3", isReply && "pl-8")}>
+      <div key={msg.id} className={cn("flex gap-3 py-3", isReply && "pl-8", isThreadResolved && "opacity-50")}>
         <Avatar className="h-8 w-8 shrink-0">
           <AvatarImage src={profile?.avatar_url || undefined} />
           <AvatarFallback className="text-xs">{initials}</AvatarFallback>
@@ -307,11 +358,7 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
             <span className="text-xs text-muted-foreground">
               {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
             </span>
-            {msg.is_high_priority && (
-              <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">
-                <Flag className="h-2.5 w-2.5 mr-0.5" /> Priority
-              </Badge>
-            )}
+            <PriorityBadge level={priorityLevel} />
             {msg.is_pinned && (
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
                 <Pin className="h-2.5 w-2.5 mr-0.5" /> Pinned
@@ -320,6 +367,11 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
             {msg.visibility === 'private' && (
               <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
                 <EyeOff className="h-2.5 w-2.5 mr-0.5" /> Private
+              </Badge>
+            )}
+            {!isReply && (msg as any).is_resolved && (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-muted text-muted-foreground">
+                <CheckCircle className="h-2.5 w-2.5 mr-0.5" /> Resolved
               </Badge>
             )}
           </div>
@@ -343,7 +395,6 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
           ) : (
             <p className="text-sm mt-0.5 whitespace-pre-wrap">{msg.content}</p>
           )}
-          {/* Reply / actions */}
           {!isEditing && (
             <div className="flex items-center gap-1 mt-1">
               {!isReply && (
@@ -363,6 +414,19 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
                     <DropdownMenuItem onClick={() => { setEditingId(msg.id); setEditContent(msg.content); }}>
                       <Edit2 className="h-3.5 w-3.5 mr-2" /> Edit
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => {
+                      const next = cyclePriority(priorityLevel);
+                      updatePriority.mutate({ id: msg.id, priorityLevel: next });
+                    }}>
+                      <Flag className="h-3.5 w-3.5 mr-2" />
+                      {PRIORITY_LABELS[cyclePriority(priorityLevel)]}
+                    </DropdownMenuItem>
+                    {!isReply && (
+                      <DropdownMenuItem onClick={() => toggleResolved.mutate({ id: msg.id, resolved: !(msg as any).is_resolved })}>
+                        <CheckCircle className="h-3.5 w-3.5 mr-2" />
+                        {(msg as any).is_resolved ? 'Unresolve' : 'Mark resolved'}
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem className="text-destructive" onClick={() => deleteMessage.mutate(msg.id)}>
                       <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
                     </DropdownMenuItem>
@@ -445,14 +509,7 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
                 ))}
               </div>
             )}
-            <Button
-              variant={isHighPriority ? 'destructive' : 'outline'}
-              size="sm"
-              className="h-8"
-              onClick={() => setIsHighPriority(!isHighPriority)}
-            >
-              <Flag className="h-3.5 w-3.5 mr-1" /> Priority
-            </Button>
+            <PriorityButton level={newPriority} onClick={() => setNewPriority(cyclePriority(newPriority))} />
             <div className="ml-auto">
               <Button size="sm" onClick={handleSendNew} disabled={!newMessage.trim() || sendMessage.isPending}>
                 <Send className="h-3.5 w-3.5 mr-1" /> Send
@@ -476,13 +533,17 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
           {threads.map(thread => {
             const isExpanded = expandedThreads.has(thread.id);
             const replyCount = thread.replies.length;
+            const isResolved = (thread as any).is_resolved;
+            const priorityLevel = (thread as any).priority_level ?? (thread.is_high_priority ? 2 : 0);
             return (
               <Card key={thread.id} className={cn(
                 thread.is_pinned && "border-primary/30 bg-primary/5",
-                thread.is_high_priority && !thread.is_pinned && "border-destructive/30"
+                priorityLevel === 2 && !thread.is_pinned && "border-destructive/30",
+                priorityLevel === 1 && !thread.is_pinned && "border-amber-400/30",
+                isResolved && "opacity-60"
               )}>
                 <CardContent className="pt-3 pb-2">
-                  {renderMessage(thread)}
+                  {renderMessage(thread, false, isResolved)}
                   {replyCount > 0 && (
                     <button
                       className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground ml-11 mt-1"
@@ -494,7 +555,7 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
                   )}
                   {isExpanded && (
                     <div className="border-l-2 border-muted ml-4 mt-1">
-                      {thread.replies.map(r => renderMessage(r, true))}
+                      {thread.replies.map(r => renderMessage(r, true, isResolved))}
                     </div>
                   )}
                   {replyingTo === thread.id && (

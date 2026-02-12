@@ -2011,7 +2011,9 @@ export type Database = {
           id: string
           is_high_priority: boolean
           is_pinned: boolean
+          is_resolved: boolean
           parent_id: string | null
+          priority_level: number
           proposal_id: string
           updated_at: string
           visibility: string
@@ -2023,7 +2025,9 @@ export type Database = {
           id?: string
           is_high_priority?: boolean
           is_pinned?: boolean
+          is_resolved?: boolean
           parent_id?: string | null
+          priority_level?: number
           proposal_id: string
           updated_at?: string
           visibility?: string
@@ -2035,7 +2039,9 @@ export type Database = {
           id?: string
           is_high_priority?: boolean
           is_pinned?: boolean
+          is_resolved?: boolean
           parent_id?: string | null
+          priority_level?: number
           proposal_id?: string
           updated_at?: string
           visibility?: string
