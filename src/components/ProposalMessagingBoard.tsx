@@ -329,25 +329,36 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
     );
   };
 
-  const PriorityBadge = ({ level }: { level: number }) => {
+  const PriorityBadge = ({ level, canEdit, onCycle }: { level: number; canEdit?: boolean; onCycle?: () => void }) => {
+    const base = "text-[10px] px-1.5 py-0 h-4";
+    const clickable = canEdit ? "cursor-pointer hover:opacity-80" : "";
+    const handleClick = canEdit && onCycle ? onCycle : undefined;
+
     if (level === 1) {
       return (
-        <Badge className="text-[10px] px-1.5 py-0 h-4 bg-green-100 text-green-800 border-green-300 dark:bg-green-900 dark:text-green-300">
+        <Badge className={cn(base, "bg-green-100 text-green-800 border-green-300 dark:bg-green-900 dark:text-green-300", clickable)} onClick={handleClick}>
           <Flag className="h-2.5 w-2.5 mr-0.5" /> Low
         </Badge>
       );
     }
     if (level === 2) {
       return (
-        <Badge className="text-[10px] px-1.5 py-0 h-4 bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900 dark:text-amber-300">
+        <Badge className={cn(base, "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900 dark:text-amber-300", clickable)} onClick={handleClick}>
           <Flag className="h-2.5 w-2.5 mr-0.5" /><Flag className="h-2.5 w-2.5 mr-0.5" /> Medium
         </Badge>
       );
     }
     if (level === 3) {
       return (
-        <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">
+        <Badge variant="destructive" className={cn(base, clickable)} onClick={handleClick}>
           <Flag className="h-2.5 w-2.5 mr-0.5" /><Flag className="h-2.5 w-2.5 mr-0.5" /><Flag className="h-2.5 w-2.5 mr-0.5" /> High
+        </Badge>
+      );
+    }
+    if (level === 0 && canEdit) {
+      return (
+        <Badge variant="outline" className={cn(base, "text-muted-foreground cursor-pointer hover:opacity-80")} onClick={handleClick}>
+          <Flag className="h-2.5 w-2.5 mr-0.5" /> Set priority
         </Badge>
       );
     }
@@ -359,6 +370,7 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
     const initials = profile?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?';
     const isEditing = editingId === msg.id;
     const priorityLevel = (msg as any).priority_level ?? (msg.is_high_priority ? 3 : 0);
+    const canEditPriority = canModify(msg);
 
     return (
       <div key={msg.id} className={cn("flex gap-3 py-3", isReply && "pl-8", isThreadResolved && "opacity-50")}>
@@ -372,7 +384,10 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
             <span className="text-xs text-muted-foreground">
               {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
             </span>
-            <PriorityBadge level={priorityLevel} />
+            <PriorityBadge level={priorityLevel} canEdit={canEditPriority} onCycle={() => {
+              const next = cyclePriority(priorityLevel);
+              updatePriority.mutate({ id: msg.id, priorityLevel: next });
+            }} />
             {msg.is_pinned && (
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
                 <Pin className="h-2.5 w-2.5 mr-0.5" /> Pinned
