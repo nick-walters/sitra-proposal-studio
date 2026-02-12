@@ -17,8 +17,11 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
-import { Plus, ListTodo, Trash2, Edit2 } from 'lucide-react';
-import { format, differenceInDays, eachWeekOfInterval, startOfWeek, endOfWeek, isWithinInterval, addDays } from 'date-fns';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Plus, ListTodo, Trash2, Edit2, CalendarIcon } from 'lucide-react';
+import { format, differenceInDays, eachWeekOfInterval, startOfWeek, endOfWeek, isWithinInterval, addDays, parseISO } from 'date-fns';
+import type { DateRange } from 'react-day-picker';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -411,15 +414,39 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
               <Label>Description</Label>
               <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Optional description" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Start Date</Label>
-                <Input type="date" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} />
-              </div>
-              <div>
-                <Label>End Date</Label>
-                <Input type="date" value={form.end_date} onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))} />
-              </div>
+            <div>
+              <Label>Duration</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !form.start_date && !form.end_date && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {form.start_date && form.end_date
+                      ? `${format(parseISO(form.start_date), 'MMM d, yyyy')} – ${format(parseISO(form.end_date), 'MMM d, yyyy')}`
+                      : form.start_date
+                        ? `${format(parseISO(form.start_date), 'MMM d, yyyy')} – ...`
+                        : 'Select date range'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="range"
+                    selected={
+                      form.start_date || form.end_date
+                        ? { from: form.start_date ? parseISO(form.start_date) : undefined, to: form.end_date ? parseISO(form.end_date) : undefined } as DateRange
+                        : undefined
+                    }
+                    onSelect={(range: DateRange | undefined) => {
+                      setForm(f => ({
+                        ...f,
+                        start_date: range?.from ? format(range.from, 'yyyy-MM-dd') : '',
+                        end_date: range?.to ? format(range.to, 'yyyy-MM-dd') : '',
+                      }));
+                    }}
+                    numberOfMonths={2}
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
             <div>
               <Label>Responsible Person</Label>
