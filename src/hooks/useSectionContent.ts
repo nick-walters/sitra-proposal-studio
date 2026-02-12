@@ -58,11 +58,12 @@ function syncSaveContent(contentId: string, content: string, userId: string) {
 }
 
 /**
- * Perform a synchronous POST to insert a version via XHR — used in unmount.
+ * Perform a synchronous POST to insert a version via RPC — used in unmount.
+ * Calls the atomic insert_section_version function to avoid race conditions.
  */
-function syncSaveVersion(proposalId: string, sectionId: string, content: string, userId: string, versionNumber: number) {
+function syncSaveVersion(proposalId: string, sectionId: string, content: string, userId: string) {
   try {
-    const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/section_versions`;
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/insert_section_version`;
     const xhr = new XMLHttpRequest();
     xhr.open('POST', url, false); // synchronous
     xhr.setRequestHeader('Content-Type', 'application/json');
@@ -70,12 +71,11 @@ function syncSaveVersion(proposalId: string, sectionId: string, content: string,
     xhr.setRequestHeader('Authorization', `Bearer ${getAuthToken()}`);
     xhr.setRequestHeader('Prefer', 'return=minimal');
     xhr.send(JSON.stringify({
-      proposal_id: proposalId,
-      section_id: sectionId,
-      content,
-      created_by: userId,
-      version_number: versionNumber,
-      is_auto_save: true,
+      p_proposal_id: proposalId,
+      p_section_id: sectionId,
+      p_content: content,
+      p_created_by: userId,
+      p_is_auto_save: true,
     }));
   } catch (e) {
     console.error('[useSectionContent] syncSaveVersion failed:', e);
@@ -115,32 +115,18 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
     if (now - lastVersionTimeRef.current < VERSION_MIN_INTERVAL) return;
 
     try {
-      const { data: existingVersions } = await supabase
-        .from('section_versions')
-        .select('version_number')
-        .eq('proposal_id', proposalId)
-        .eq('section_id', sectionId)
-        .order('version_number', { ascending: false })
-        .limit(1);
-
-      const nextVersion = (existingVersions?.[0]?.version_number || 0) + 1;
-
-      const { error } = await supabase
-        .from('section_versions')
-        .insert({
-          proposal_id: proposalId,
-          section_id: sectionId,
-          content: contentToSave,
-          created_by: user.id,
-          version_number: nextVersion,
-          is_auto_save: true,
-        });
+      const { data, error } = await supabase.rpc('insert_section_version', {
+        p_proposal_id: proposalId,
+        p_section_id: sectionId,
+        p_content: contentToSave,
+        p_created_by: user.id,
+      });
 
       if (error) throw error;
 
       lastVersionContentRef.current = contentToSave;
       lastVersionTimeRef.current = now;
-      lastVersionNumberRef.current = nextVersion;
+      lastVersionNumberRef.current = data as number;
     } catch (error) {
       console.error('[useSectionContent] Error saving version:', error);
     }
@@ -257,22 +243,19 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
             .eq('section_id', sectionId);
 
           if (count === 0) {
-            // No versions yet — create baseline
+            // No versions yet — create baseline via atomic RPC
             const userId = data.last_edited_by || '';
             if (userId) {
-              await supabase
-                .from('section_versions')
-                .insert({
-                  proposal_id: proposalId,
-                  section_id: sectionId,
-                  content: data.content,
-                  created_by: userId,
-                  version_number: 1,
-                  is_auto_save: true,
-                });
+              const { data: verNum } = await supabase.rpc('insert_section_version', {
+                p_proposal_id: proposalId,
+                p_section_id: sectionId,
+                p_content: data.content,
+                p_created_by: userId,
+                p_is_auto_save: true,
+              });
               lastVersionContentRef.current = data.content;
               lastVersionTimeRef.current = Date.now();
-              lastVersionNumberRef.current = 1;
+              lastVersionNumberRef.current = (verNum as number) || 1;
             }
           }
         }
@@ -415,7 +398,7 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
         syncSaveContent(contentIdRef.current, pendingContentRef.current, user.id);
       }
 
-      // Save a version if content changed since last version
+      // Save a version if content changed since last version (atomic RPC)
       const currentContent = pendingContentRef.current ?? contentRef.current;
       if (
         currentContent &&
@@ -423,8 +406,7 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
         currentContent.trim() &&
         user?.id
       ) {
-        const nextVersion = lastVersionNumberRef.current + 1;
-        syncSaveVersion(proposalId, sectionId, currentContent, user.id, nextVersion);
+        syncSaveVersion(proposalId, sectionId, currentContent, user.id);
       }
     };
   }, [proposalId, sectionId, user?.id]);

@@ -3654,6 +3654,16 @@ export type Database = {
         }
         Returns: boolean
       }
+      insert_section_version: {
+        Args: {
+          p_content: string
+          p_created_by: string
+          p_is_auto_save?: boolean
+          p_proposal_id: string
+          p_section_id: string
+        }
+        Returns: number
+      }
       is_global_admin: { Args: { _user_id: string }; Returns: boolean }
       is_owner: { Args: { _user_id: string }; Returns: boolean }
       is_proposal_admin: {

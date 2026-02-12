@@ -73,7 +73,14 @@ export function SectionVersionHistoryDialog({
 
       if (error) throw error;
 
-      setVersions(data || []);
+      // Deduplicate by version_number, keeping the latest entry
+      const seen = new Map<number, typeof data[0]>();
+      for (const v of (data || [])) {
+        if (!seen.has(v.version_number)) {
+          seen.set(v.version_number, v);
+        }
+      }
+      setVersions(Array.from(seen.values()));
 
       // Load profile names for creators
       const creatorIds = [...new Set(data?.map(v => v.created_by).filter(Boolean))];
