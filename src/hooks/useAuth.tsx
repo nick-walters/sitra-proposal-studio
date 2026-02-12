@@ -46,8 +46,19 @@ export function useAuth() {
       }
     );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // THEN check for existing session and validate server-side
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session) {
+        // Validate the session is actually valid server-side
+        const { error } = await supabase.auth.getUser();
+        if (error) {
+          console.warn('Session invalid, signing out:', error.message);
+          sessionStorage.removeItem('auth-user');
+          await supabase.auth.signOut();
+          updateAuthState(null);
+          return;
+        }
+      }
       updateAuthState(session);
     });
 

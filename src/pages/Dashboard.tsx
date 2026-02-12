@@ -286,6 +286,17 @@ export function Dashboard() {
         members: [],
       }));
 
+      // If no proposals returned, verify auth is still valid (stale JWT safety net)
+      if (transformedProposals.length === 0) {
+        const { error: authError } = await supabase.auth.getUser();
+        if (authError) {
+          sessionStorage.removeItem('auth-user');
+          toast.error('Your session has expired. Please log in again.');
+          await supabase.auth.signOut();
+          return;
+        }
+      }
+
       setProposals(transformedProposals);
     } catch (error: any) {
       // Don't show error toast for abort errors
