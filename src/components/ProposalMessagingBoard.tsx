@@ -59,7 +59,7 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
   const [newMessage, setNewMessage] = useState('');
   const [newVisibility, setNewVisibility] = useState<'all' | 'private'>('all');
   const [taggedUserIds, setTaggedUserIds] = useState<string[]>([]);
-  const [newPriority, setNewPriority] = useState(0);
+  const [newPriority, setNewPriority] = useState(1);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -261,7 +261,7 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
     },
   });
 
-  const cyclePriority = (current: number) => (current + 1) % 4;
+  const cyclePriority = (current: number) => (current % 3) + 1;
 
   const handleSendNew = () => {
     if (!newMessage.trim()) return;
@@ -272,7 +272,7 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
       tagged: taggedUserIds,
     });
     setNewMessage('');
-    setNewPriority(0);
+    setNewPriority(1);
     setNewVisibility('all');
     setTaggedUserIds([]);
   };
