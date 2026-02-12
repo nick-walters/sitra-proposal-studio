@@ -330,9 +330,9 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
   };
 
   const PriorityBadge = ({ level, canEdit, onCycle }: { level: number; canEdit?: boolean; onCycle?: () => void }) => {
-    const base = "text-[10px] px-1.5 py-0 h-4";
+    const base = "text-[10px] px-1.5 py-0 h-4 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0";
     const clickable = canEdit ? "cursor-pointer hover:opacity-80" : "";
-    const handleClick = canEdit && onCycle ? onCycle : undefined;
+    const handleClick = canEdit && onCycle ? (e: React.MouseEvent) => { (e.target as HTMLElement).blur(); onCycle(); } : undefined;
 
     if (level === 1) {
       return (
@@ -442,13 +442,6 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
                   <DropdownMenuContent align="start">
                     <DropdownMenuItem onClick={() => { setEditingId(msg.id); setEditContent(msg.content); }}>
                       <Edit2 className="h-3.5 w-3.5 mr-2" /> Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => {
-                      const next = cyclePriority(priorityLevel);
-                      updatePriority.mutate({ id: msg.id, priorityLevel: next });
-                    }}>
-                      <Flag className="h-3.5 w-3.5 mr-2" />
-                      {PRIORITY_LABELS[cyclePriority(priorityLevel)]}
                     </DropdownMenuItem>
                     {!isReply && (
                       <DropdownMenuItem onClick={() => toggleResolved.mutate({ id: msg.id, resolved: !(msg as any).is_resolved })}>
