@@ -1,105 +1,147 @@
+# Proposal Management Section
 
+## Overview
 
-# Fix: Duplicate Version Numbers and Multi-User Version Conflicts
+Add a new **"Proposal management"** section at the top of the left navigation panel (before Part A) containing three tool pages: Messaging Board, Task Allocator, and Progress Tracker.
 
-## Problem
+## Navigation Structure
 
-The version history system creates duplicate `version_number` entries for the same section. For example, section `b1-1` has **7 copies** of "Version 1" and multiple copies of versions 2, 4, and 5. This happens because:
+The left sidebar will show:
 
-1. **Race condition**: The async `saveVersion()`, the periodic interval, and the sync XHR `syncSaveVersion()` on unmount all independently query for the latest version number and insert -- without any database-level protection against duplicates
-2. **No unique constraint**: There's no unique index on `(proposal_id, section_id, version_number)`, so the database happily accepts duplicates
-
-## Solution
-
-### Step 1: Database migration -- add a unique constraint
-
-Add a unique constraint on `(proposal_id, section_id, version_number)` to prevent duplicates at the database level. First, clean up existing duplicates by keeping only the most recent entry for each version number.
-
-```sql
--- Delete duplicate versions, keeping the latest by created_at
-DELETE FROM section_versions a
-USING section_versions b
-WHERE a.proposal_id = b.proposal_id
-  AND a.section_id = b.section_id
-  AND a.version_number = b.version_number
-  AND a.created_at < b.created_at;
-
--- Add unique constraint
-ALTER TABLE section_versions
-ADD CONSTRAINT section_versions_unique_version
-UNIQUE (proposal_id, section_id, version_number);
+```text
+Proposal management  (bold heading, collapsible, not a page)
+  ├── Message board
+  ├── Tasks
+  └── Progress
+Part A
+  ...
+Part B
+  ...
 ```
 
-### Step 2: Create a database function for safe version insertion
+## 1. Messaging Board
 
-Create a `SECURITY DEFINER` function that atomically gets the next version number and inserts, avoiding the read-then-write race condition.
+### Database Tables
 
-```sql
-CREATE OR REPLACE FUNCTION public.insert_section_version(
-  p_proposal_id uuid,
-  p_section_id text,
-  p_content text,
-  p_created_by uuid,
-  p_is_auto_save boolean DEFAULT true
-) RETURNS integer
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $$
-DECLARE
-  next_ver integer;
-BEGIN
-  SELECT COALESCE(MAX(version_number), 0) + 1
-  INTO next_ver
-  FROM section_versions
-  WHERE proposal_id = p_proposal_id
-    AND section_id = p_section_id
-  FOR UPDATE;
+`**proposal_messages**`
 
-  INSERT INTO section_versions (proposal_id, section_id, content, created_by, version_number, is_auto_save)
-  VALUES (p_proposal_id, p_section_id, p_content, p_created_by, next_ver, p_is_auto_save);
+- `id` (uuid, PK)
+- `proposal_id` (uuid, FK to proposals)
+- `parent_id` (uuid, nullable, FK to self for threading)
+- `author_id` (uuid, references auth.users)
+- `content` (text)
+- `visibility` (text, default 'all' -- 'all' or 'private')
+- `is_high_priority` (boolean, default false)
+- `is_pinned` (boolean, default false)
+- `created_at`, `updated_at` (timestamptz)
 
-  RETURN next_ver;
-END;
-$$;
-```
+`**proposal_message_recipients**` (for private visibility tagging)
 
-### Step 3: Update `useSectionContent.ts` -- use the RPC function
+- `id` (uuid, PK)
+- `message_id` (uuid, FK to proposal_messages)
+- `user_id` (uuid, references auth.users)
 
-**Replace the async `saveVersion` callback** to call the new RPC function instead of doing a manual SELECT + INSERT:
+### Features
 
-```typescript
-const { data, error } = await supabase.rpc('insert_section_version', {
-  p_proposal_id: proposalId,
-  p_section_id: sectionId,
-  p_content: contentToSave,
-  p_created_by: user.id,
-});
-if (!error && data) {
-  lastVersionContentRef.current = contentToSave;
-  lastVersionTimeRef.current = now;
-  lastVersionNumberRef.current = data;
-}
-```
+- Thread-based messaging: top-level messages start threads, replies nest underneath
+- Visibility toggle: default "All" or tag specific people to make it private
+- Tagged users selected from all users with proposal access (via `user_roles`)
+- High priority flag, pinning (coordinators/owners), edit/delete (author + coordinators)
+- Reverse date order by last reply; pinned threads always on top
+- Text search across messages
+- Realtime updates via Supabase channel
 
-**Replace the sync XHR `syncSaveVersion`** to also use the RPC endpoint (via POST to `/rest/v1/rpc/insert_section_version`) instead of directly inserting with a guessed version number.
+### RLS
 
-**Remove the baseline version creation** in the fetch effect (lines ~260-275) and replace it with an RPC call too, since it also does an unprotected INSERT.
+- Read: user has any role on the proposal AND (visibility = 'all' OR user is author OR user is in recipients)
+- Write: user has any role on the proposal
+- Update/Delete: user is author OR coordinator/owner on the proposal
 
-### Step 4: Deduplicate version display in `SectionVersionHistoryDialog.tsx`
+## 2. Task Allocator
 
-As a safety net, group versions by `version_number` in the dialog query, ordering by `created_at DESC` and using `DISTINCT ON` -- or simply add client-side deduplication until all old duplicates are cleaned up.
+Built as a Monday.com-style project management timeline (no "Gantt" terminology in the UI).
 
-## Files Changed
+### Database Tables
 
-| File | Change |
-|------|--------|
-| Migration (SQL) | Clean duplicates, add unique constraint, create `insert_section_version` RPC |
-| `src/hooks/useSectionContent.ts` | Replace manual SELECT+INSERT with `supabase.rpc('insert_section_version')` in all 3 paths (async, sync XHR, baseline creation) |
-| `src/components/SectionVersionHistoryDialog.tsx` | Add client-side dedup as safety net |
+`**proposal_tasks**`
 
-## Risk Assessment
+- `id` (uuid, PK)
+- `proposal_id` (uuid, FK to proposals)
+- `title` (text)
+- `description` (text, nullable)
+- `responsible_user_id` (uuid, references auth.users)
+- `start_date` (date)
+- `end_date` (date)
+- `status` (text, default 'not_started' -- 'not_started', 'in_progress', 'completed', 'blocked')
+- `order_index` (integer)
+- `created_by` (uuid, references auth.users)
+- `created_at`, `updated_at` (timestamptz)
 
-- **Low risk**: The unique constraint + RPC approach is a standard pattern for sequence generation
-- The sync XHR on unmount calling an RPC endpoint works the same as a direct POST -- same auth headers, same synchronous behavior
-- Existing version history UI continues to work; duplicates are cleaned up in migration
+`**proposal_task_assignees**` (multiple assignees per task)
+
+- `id` (uuid, PK)
+- `task_id` (uuid, FK to proposal_tasks)
+- `user_id` (uuid, references auth.users)
+
+### Features
+
+- Timeline view with horizontal bars on a date axis (Monday.com-style)
+- Task list on the left, timeline bars on the right
+- Each task: title, responsible person (highlighted), additional assignees, start/end dates, status badge
+- Clear due date display
+- Status colour coding: Not Started (grey), In Progress (blue), Completed (green), Blocked (red)
+- Only coordinators/owners can create/edit/delete tasks
+- All proposal members can view
+
+### RLS
+
+- Read: user has any role on the proposal
+- Write/Update/Delete: user is coordinator/owner on the proposal
+
+## 3. Progress Tracker (Expanded)
+
+### Database Table
+
+`**proposal_progress**`
+
+- `id` (uuid, PK)
+- `proposal_id` (uuid, FK to proposals)
+- `section_id` (text)
+- `section_label` (text)
+- `progress_percent` (integer, 0-100)
+- `notes` (text, nullable)
+- `updated_by` (uuid, references auth.users)
+- `updated_at` (timestamptz)
+- Unique constraint on (proposal_id, section_id)
+
+### Features
+
+- Moves the existing WP Progress Tracker here (removed from WP Drafts page)
+- Adds section-level progress for all Part A and Part B sections
+- Coordinators can manually set progress percentage via inline slider
+- Optional notes per section
+- Overall proposal progress as weighted average
+- WP progress auto-calculated (existing logic preserved)
+
+### RLS
+
+- Read: user has any role on the proposal
+- Write/Update: user is coordinator/owner on the proposal
+
+## Technical Implementation
+
+### Files to Create
+
+- `src/components/ProposalMessagingBoard.tsx` -- messaging UI with threads, search, compose
+- `src/components/ProposalTaskAllocator.tsx` -- Monday.com-style timeline view
+- `src/components/ProposalProgressTracker.tsx` -- expanded progress tracker incorporating WP progress
+
+### Files to Modify
+
+- `src/hooks/useProposalSections.ts` -- insert "Proposal management" parent with 3 children before Part A
+- `src/components/SectionNavigator.tsx` -- add icons (MessageSquare, ListTodo, BarChart3) and bold styling for the new heading; add it to collapsible heading logic
+- `src/pages/ProposalEditor.tsx` -- add render cases for `messaging`, `task-allocator`, `progress-tracker`; remove `WPProgressTracker` from the `wp-drafts` block
+
+### Database Migration
+
+Single migration creating all 5 tables with RLS policies, enabling realtime on `proposal_messages`, and adding update triggers for `updated_at` columns.
