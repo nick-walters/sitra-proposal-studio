@@ -97,7 +97,8 @@ export function generateParticipantLogoPath(
 }
 
 /**
- * Uploads a file to the proposal-files bucket with proper organization
+ * Uploads a file to the proposal-files bucket with proper organization.
+ * Returns a signed URL (1 hour expiry) since the bucket is private.
  */
 export async function uploadProposalFile(
   file: File | Blob,
@@ -119,11 +120,39 @@ export async function uploadProposalFile(
       return { url: null, error: uploadError };
     }
 
-    const { data: { publicUrl } } = supabase.storage
+    // Use signed URL since bucket is private
+    const { data, error: signError } = await supabase.storage
       .from('proposal-files')
-      .getPublicUrl(filePath);
+      .createSignedUrl(filePath, 3600); // 1 hour
 
-    return { url: publicUrl, error: null };
+    if (signError || !data?.signedUrl) {
+      return { url: null, error: signError || new Error('Failed to create signed URL') };
+    }
+
+    return { url: data.signedUrl, error: null };
+  } catch (error) {
+    return { url: null, error: error as Error };
+  }
+}
+
+/**
+ * Gets a signed URL for a file in the proposal-files bucket.
+ * Use this to refresh expired URLs or convert stored file paths to accessible URLs.
+ */
+export async function getProposalFileSignedUrl(
+  filePath: string,
+  expiresIn: number = 3600
+): Promise<{ url: string | null; error: Error | null }> {
+  try {
+    const { data, error } = await supabase.storage
+      .from('proposal-files')
+      .createSignedUrl(filePath, expiresIn);
+
+    if (error || !data?.signedUrl) {
+      return { url: null, error: error || new Error('Failed to create signed URL') };
+    }
+
+    return { url: data.signedUrl, error: null };
   } catch (error) {
     return { url: null, error: error as Error };
   }
