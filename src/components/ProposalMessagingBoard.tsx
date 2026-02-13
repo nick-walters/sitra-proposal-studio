@@ -548,7 +548,7 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
           className="h-9"
           onClick={() => setFilterStarred(prev => !prev)}
         >
-          <Star className={cn("h-4 w-4 mr-1", filterStarred && "fill-current")} /> Starred
+          <Star className={cn("h-4 w-4 mr-1", filterStarred && "fill-current")} /> Filter for starred messages and replies
         </Button>
       </div>
 
