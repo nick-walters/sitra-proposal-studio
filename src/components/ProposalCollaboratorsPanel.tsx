@@ -107,7 +107,7 @@ export function ProposalCollaboratorsPanel({
     // Fetch profiles for these users
     const userIds = data.map(r => r.user_id);
     const { data: profiles } = await supabase
-      .from('profiles')
+      .from('profiles_basic')
       .select('id, email, full_name, avatar_url')
       .in('id', userIds);
 
@@ -142,7 +142,7 @@ export function ProposalCollaboratorsPanel({
     const timeout = setTimeout(async () => {
       setCheckingEmail(true);
       const { data } = await supabase
-        .from('profiles')
+        .from('profiles_basic')
         .select('id, full_name')
         .eq('email', email.toLowerCase())
         .maybeSingle();

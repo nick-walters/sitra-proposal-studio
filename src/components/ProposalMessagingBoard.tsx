@@ -79,7 +79,7 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
       const userIds = [...new Set((data || []).map(r => r.user_id))];
       if (userIds.length === 0) return [];
       const { data: profiles, error: pErr } = await supabase
-        .from('profiles')
+        .from('profiles_basic')
         .select('id, full_name, email, avatar_url')
         .in('id', userIds);
       if (pErr) throw pErr;

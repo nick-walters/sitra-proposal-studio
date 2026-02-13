@@ -47,7 +47,7 @@ export function DirectChatDialog({ open, onOpenChange, userId }: DirectChatDialo
 
     async function fetchUser() {
       const { data } = await supabase
-        .from('profiles')
+        .from('profiles_basic')
         .select('id, full_name, first_name, last_name, organisation, avatar_url')
         .eq('id', userId)
         .maybeSingle();

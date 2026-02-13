@@ -359,7 +359,7 @@ export function CommentsSidebar({
         if (roles && roles.length > 0) {
           const userIds = roles.map(r => r.user_id);
           const { data: profiles, error: profilesError } = await supabase
-            .from('profiles')
+            .from('profiles_basic')
             .select('id, full_name, email, avatar_url')
             .in('id', userIds);
 

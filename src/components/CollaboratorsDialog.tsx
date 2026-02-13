@@ -47,7 +47,7 @@ export function CollaboratorsDialog({ open, onOpenChange, onStartChat }: Collabo
       setLoadingCollaborators(true);
       try {
         const { data, error } = await supabase
-          .from('profiles')
+          .from('profiles_basic')
           .select('id, email, first_name, last_name, full_name, organisation, avatar_url');
 
         if (error) {

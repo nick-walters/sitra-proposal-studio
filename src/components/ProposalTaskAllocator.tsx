@@ -75,7 +75,7 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
       const { data } = await supabase.from('user_roles').select('user_id').eq('proposal_id', proposalId);
       const userIds = [...new Set((data || []).map(r => r.user_id))];
       if (userIds.length === 0) return [];
-      const { data: profiles } = await supabase.from('profiles').select('id, full_name, email, avatar_url').in('id', userIds);
+      const { data: profiles } = await supabase.from('profiles_basic').select('id, full_name, email, avatar_url').in('id', userIds);
       return (profiles || []) as Profile[];
     },
     enabled: !!proposalId,
