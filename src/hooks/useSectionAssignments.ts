@@ -65,7 +65,7 @@ export function useSectionAssignments(proposalId: string | null) {
     
     if (userIds.length > 0) {
       const { data: profiles } = await supabase
-        .from('profiles')
+        .from('profiles_basic')
         .select('id, full_name, avatar_url')
         .in('id', userIds);
       

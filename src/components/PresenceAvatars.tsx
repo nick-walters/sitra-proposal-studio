@@ -4,6 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { UserProfileDialog } from "./UserProfileDialog";
 import { Badge } from "@/components/ui/badge";
 import { Building2, Mail, Phone, MapPin } from "lucide-react";
+import type { ProposalRoleTier } from "@/hooks/useProposalRole";
 
 export interface PresenceUser {
   id: string;
@@ -22,9 +23,12 @@ export interface PresenceUser {
 interface PresenceAvatarsProps {
   users: PresenceUser[];
   maxVisible?: number;
+  /** Current user's role tier — controls what info is shown about others */
+  roleTier?: ProposalRoleTier;
 }
 
-export function PresenceAvatars({ users, maxVisible = 4 }: PresenceAvatarsProps) {
+
+export function PresenceAvatars({ users, maxVisible = 4, roleTier = 'editor' }: PresenceAvatarsProps) {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
 
@@ -54,6 +58,21 @@ export function PresenceAvatars({ users, maxVisible = 4 }: PresenceAvatarsProps)
   };
 
   if (users.length === 0) return null;
+
+  const isViewer = roleTier === 'viewer';
+  const isEditor = roleTier === 'editor';
+
+  // Viewers: show names only, no avatars
+  if (isViewer) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground">
+          {users.map(u => getDisplayName(u)).join(', ')}
+          {' '}editing
+        </span>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -94,7 +113,7 @@ export function PresenceAvatars({ users, maxVisible = 4 }: PresenceAvatarsProps)
                     </div>
                   </div>
 
-                  {/* Contact info */}
+                  {/* Contact info — hidden for editors (they see name, email, org, photo) */}
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Mail className="w-3.5 h-3.5" />
@@ -111,14 +130,15 @@ export function PresenceAvatars({ users, maxVisible = 4 }: PresenceAvatarsProps)
                       </div>
                     )}
                     
-                    {user.phone_number && (
+                    {/* Phone and address only for coordinators */}
+                    {!isEditor && user.phone_number && (
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Phone className="w-3.5 h-3.5" />
                         <span>{user.phone_number}</span>
                       </div>
                     )}
                     
-                    {(user.address || user.country) && (
+                    {!isEditor && (user.address || user.country) && (
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <MapPin className="w-3.5 h-3.5" />
                         <span className="truncate">
@@ -128,13 +148,15 @@ export function PresenceAvatars({ users, maxVisible = 4 }: PresenceAvatarsProps)
                     )}
                   </div>
 
-                  {/* View full profile button */}
-                  <button
-                    className="w-full text-center text-sm text-primary hover:underline pt-2 border-t"
-                    onClick={() => handleViewProfile(user.id)}
-                  >
-                    View full profile
-                  </button>
+                  {/* View full profile button — only for coordinators */}
+                  {!isEditor && (
+                    <button
+                      className="w-full text-center text-sm text-primary hover:underline pt-2 border-t"
+                      onClick={() => handleViewProfile(user.id)}
+                    >
+                      View full profile
+                    </button>
+                  )}
                 </div>
               </PopoverContent>
             </Popover>

@@ -90,7 +90,7 @@ export function useSectionProgress(proposalId: string | null, currentUserId?: st
       
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
-          .from('profiles')
+          .from('profiles_basic')
           .select('id, full_name, avatar_url, email')
           .in('id', userIds);
         
@@ -126,7 +126,7 @@ export function useSectionProgress(proposalId: string | null, currentUserId?: st
       let lastEditedByMap = new Map<string, string>();
       if (lastEditedByIds.length > 0) {
         const { data: editorsProfiles } = await supabase
-          .from('profiles')
+          .from('profiles_basic')
           .select('id, full_name')
           .in('id', lastEditedByIds);
         

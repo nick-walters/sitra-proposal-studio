@@ -87,7 +87,7 @@ export function useSectionLocking({ proposalId, sectionId }: UseSectionLockingPr
           // Fetch the name of the user who locked it
           if (data.locked_by) {
             const { data: profileData } = await supabase
-              .from('profiles')
+              .from('profiles_basic')
               .select('full_name, first_name, last_name')
               .eq('id', data.locked_by)
               .maybeSingle();

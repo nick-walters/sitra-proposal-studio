@@ -2691,6 +2691,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "section_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_basic"
+            referencedColumns: ["id"]
+          },
         ]
       }
       section_content: {
@@ -2866,6 +2873,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "section_tracked_changes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_basic"
             referencedColumns: ["id"]
           },
           {
@@ -3857,7 +3871,36 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      profiles_basic: {
+        Row: {
+          avatar_url: string | null
+          email: string | null
+          first_name: string | null
+          full_name: string | null
+          id: string | null
+          last_name: string | null
+          organisation: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          email?: string | null
+          first_name?: string | null
+          full_name?: string | null
+          id?: string | null
+          last_name?: string | null
+          organisation?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          email?: string | null
+          first_name?: string | null
+          full_name?: string | null
+          id?: string | null
+          last_name?: string | null
+          organisation?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       can_edit_proposal: {

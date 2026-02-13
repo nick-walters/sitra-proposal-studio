@@ -72,7 +72,7 @@ export function VersionHistoryDialog({
       const creatorIds = [...new Set(data?.map(v => v.created_by).filter(Boolean))];
       if (creatorIds.length > 0) {
         const { data: profileData } = await supabase
-          .from('profiles')
+          .from('profiles_basic')
           .select('id, full_name')
           .in('id', creatorIds);
         

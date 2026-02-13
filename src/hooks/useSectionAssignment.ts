@@ -100,7 +100,7 @@ export function useSectionAssignment({ proposalId, sectionId }: UseSectionAssign
         // Fetch assignee profile
         if (sectionData.assigned_to) {
           const { data: assigneeProfile } = await supabase
-            .from('profiles')
+            .from('profiles_basic')
             .select('first_name, last_name, email, avatar_url')
             .eq('id', sectionData.assigned_to)
             .single();
@@ -115,7 +115,7 @@ export function useSectionAssignment({ proposalId, sectionId }: UseSectionAssign
         // Fetch assigner profile
         if (sectionData.assigned_by) {
           const { data: assignerProfile } = await supabase
-            .from('profiles')
+            .from('profiles_basic')
             .select('first_name, last_name, email')
             .eq('id', sectionData.assigned_by)
             .single();
@@ -165,7 +165,7 @@ export function useSectionAssignment({ proposalId, sectionId }: UseSectionAssign
 
       // Fetch profiles for these users
       const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
+        .from('profiles_basic')
         .select('id, first_name, last_name, email, avatar_url, organisation')
         .in('id', userIds);
 
