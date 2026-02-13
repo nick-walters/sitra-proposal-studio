@@ -160,7 +160,11 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
       filtered = filtered.filter(t => matchingIds.has(t.id));
     }
     if (filterStarred) {
-      filtered = filtered.filter(t => starredIds.has(t.id));
+      filtered = filtered.filter(t => {
+        if (starredIds.has(t.id)) return true;
+        const replies = childMap.get(t.id) || [];
+        return replies.some(r => starredIds.has(r.id));
+      });
     }
 
     filtered.sort((a, b) => {
@@ -606,7 +610,8 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
       ) : (
         <div className="space-y-2">
           {threads.map(thread => {
-            const isExpanded = expandedThreads.has(thread.id);
+            const hasStarredReply = filterStarred && thread.replies.some(r => starredIds.has(r.id));
+            const isExpanded = expandedThreads.has(thread.id) || hasStarredReply;
             const replyCount = thread.replies.length;
             const isResolved = (thread as any).is_resolved;
             const priorityLevel = (thread as any).priority_level ?? (thread.is_high_priority ? 3 : 1);
