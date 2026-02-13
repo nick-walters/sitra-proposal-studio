@@ -24,7 +24,7 @@ export function useProfileCompletion(): ProfileStatus {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('first_name, last_name, organisation, country_code, phone_number, address, postcode, city, country')
+        .select('first_name, last_name, organisation, country_code, phone_number, address, postcode, city, country, gdpr_consented_at')
         .eq('id', user.id)
         .single();
 
@@ -51,7 +51,10 @@ export function useProfileCompletion(): ProfileStatus {
         (field) => field !== null && field !== undefined && String(field).trim() !== ''
       );
 
-      setIsComplete(allFieldsFilled);
+      // Also require GDPR consent
+      const hasGdprConsent = !!(data as any).gdpr_consented_at;
+
+      setIsComplete(allFieldsFilled && hasGdprConsent);
     } catch (error) {
       console.error('Error checking profile completion:', error);
       setIsComplete(true);
