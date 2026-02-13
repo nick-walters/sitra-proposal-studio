@@ -30,7 +30,7 @@ export default function Index() {
     {
       icon: FileText,
       title: "Structured Templates",
-      description: "Pre-built templates following Horizon Europe Part B requirements for RIA, IA, and CSA proposals.",
+      description: "Pre-built templates following Part B requirements for RIA, IA, and CSA proposals.",
     },
     {
       icon: Users,
@@ -71,11 +71,11 @@ export default function Index() {
             </div>
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6 animate-fade-in">
               <Star className="w-4 h-4" />
-              A Sitra internal tool for Horizon Europe
+              A Sitra internal tool for funding proposals
             </div>
 
             <p className="text-lg sm:text-xl text-muted-foreground mb-8 animate-slide-up max-w-2xl mx-auto">
-              Sitra's collaborative platform for co-developing Horizon Europe funding proposals
+              Sitra's collaborative platform for co-developing funding proposals
               with consortium partners. Real-time editing, change tracking, and publication-ready exports.
             </p>
 
@@ -144,7 +144,7 @@ export default function Index() {
                 Publication-Ready Formatting
               </h2>
               <p className="text-lg text-muted-foreground mb-6">
-                Our platform automatically applies all Horizon Europe document formatting requirements,
+                Our platform automatically applies all required document formatting,
                 so you can focus on content.
               </p>
               <ul className="space-y-4">
@@ -193,7 +193,7 @@ export default function Index() {
             Ready to Start Your Proposal?
           </h2>
           <p className="text-lg opacity-90 mb-8 max-w-2xl mx-auto">
-            Access Sitra Proposal Studio to collaborate with your consortium partners on Horizon Europe proposals.
+            Access Sitra Proposal Studio to collaborate with your consortium partners on funding proposals.
           </p>
           <Button
             size="xl"

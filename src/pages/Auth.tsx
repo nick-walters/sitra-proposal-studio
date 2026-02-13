@@ -306,7 +306,7 @@ export default function Auth() {
         <div className="text-center mb-8">
           <img src={sitraLogo} alt="Sitra Proposal Studio" className="h-12 mx-auto mb-4" />
           <p className="text-muted-foreground mt-1">
-            Sitra's collaborative platform for Horizon Europe proposals
+            Sitra's collaborative platform for funding proposals
           </p>
         </div>
 
