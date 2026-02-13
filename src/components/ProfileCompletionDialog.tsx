@@ -399,12 +399,14 @@ export function ProfileCompletionDialog({
               <p className="text-xs text-muted-foreground leading-relaxed">
                 By using this platform, your personal information (name, email, phone number, address, and organisation) 
                 will be visible to other users involved in proposals you participate in. This is necessary for the 
-                collaborative preparation of Horizon Europe proposals.
+                collaborative preparation of funding proposals.
               </p>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 You also agree to treat other participants' personal information as confidential and to process it 
-                in accordance with the General Data Protection Regulation (GDPR). You will not use others' 
-                personal data for purposes unrelated to proposal preparation.
+                in accordance with the{' '}
+                <a href="https://eur-lex.europa.eu/eli/reg/2016/679/oj/eng" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80">
+                  General Data Protection Regulation (GDPR)
+                </a>. You will not use others' personal data for purposes unrelated to proposal preparation.
               </p>
               <div className="flex items-start gap-2 pt-1">
                 <Checkbox
