@@ -419,46 +419,48 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
           <AvatarFallback className="text-xs">{initials}</AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-medium text-sm">{profile?.full_name || profile?.email || 'Unknown'}</span>
-            <span className="text-xs text-muted-foreground">
-              {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
-            </span>
-            {msg.is_pinned && (
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
-                <Pin className="h-2.5 w-2.5 mr-0.5" /> Pinned
-              </Badge>
-            )}
-            {msg.visibility === 'private' && (
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
-                <EyeOff className="h-2.5 w-2.5 mr-0.5" /> Private
-              </Badge>
-            )}
-            {(msg as any).is_resolved && (
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-muted text-muted-foreground">
-                <CheckCircle className="h-2.5 w-2.5 mr-0.5" /> Resolved
-              </Badge>
-            )}
-          </div>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <PriorityBadge level={priorityLevel} canEdit={canEditPriority} onCycle={() => {
-              const next = cyclePriority(priorityLevel);
-              updatePriority.mutate({ id: msg.id, priorityLevel: next });
-            }} />
-            <button
-              className="focus:outline-none"
-              onClick={() => toggleStar.mutate(msg.id)}
-            >
-              <Star className={cn("h-3.5 w-3.5", starredIds.has(msg.id) ? "fill-amber-400 text-amber-400" : "text-muted-foreground hover:text-amber-400")} />
-            </button>
-            {canModify(msg) && (
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 sm:gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-medium text-sm">{profile?.full_name || profile?.email || 'Unknown'}</span>
+              <span className="text-xs text-muted-foreground">
+                {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
+              </span>
+              {msg.is_pinned && (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                  <Pin className="h-2.5 w-2.5 mr-0.5" /> Pinned
+                </Badge>
+              )}
+              {msg.visibility === 'private' && (
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
+                  <EyeOff className="h-2.5 w-2.5 mr-0.5" /> Private
+                </Badge>
+              )}
+              {(msg as any).is_resolved && (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-muted text-muted-foreground">
+                  <CheckCircle className="h-2.5 w-2.5 mr-0.5" /> Resolved
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <PriorityBadge level={priorityLevel} canEdit={canEditPriority} onCycle={() => {
+                const next = cyclePriority(priorityLevel);
+                updatePriority.mutate({ id: msg.id, priorityLevel: next });
+              }} />
               <button
                 className="focus:outline-none"
-                onClick={() => toggleResolved.mutate({ id: msg.id, resolved: !(msg as any).is_resolved })}
+                onClick={() => toggleStar.mutate(msg.id)}
               >
-                <CheckCircle className={cn("h-3.5 w-3.5", (msg as any).is_resolved ? "text-green-600 fill-green-100 dark:text-green-400 dark:fill-green-900" : "text-muted-foreground hover:text-green-600")} />
+                <Star className={cn("h-4.5 w-4.5", starredIds.has(msg.id) ? "fill-amber-400 text-amber-400" : "text-muted-foreground hover:text-amber-400")} />
               </button>
-            )}
+              {canModify(msg) && (
+                <button
+                  className="focus:outline-none"
+                  onClick={() => toggleResolved.mutate({ id: msg.id, resolved: !(msg as any).is_resolved })}
+                >
+                  <CheckCircle className={cn("h-4.5 w-4.5", (msg as any).is_resolved ? "text-green-600 fill-green-100 dark:text-green-400 dark:fill-green-900" : "text-muted-foreground hover:text-green-600")} />
+                </button>
+              )}
+            </div>
           </div>
           {isEditing ? (
             <div className="mt-1 flex gap-2">
