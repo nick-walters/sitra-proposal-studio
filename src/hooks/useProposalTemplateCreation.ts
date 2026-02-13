@@ -187,6 +187,26 @@ export function useProposalTemplateCreation() {
         }
       }
 
+      // 6. Create baseline Version 1 for every editable subsection
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser) {
+        for (const section of sourceSections || []) {
+          // Only create baselines for sections with an editor (i.e. editable subsections)
+          if (section.editor_type) {
+            const newSectionId = sectionIdMap.get(section.id);
+            if (newSectionId) {
+              await supabase.rpc('insert_section_version', {
+                p_proposal_id: proposalId,
+                p_section_id: newSectionId,
+                p_content: '',
+                p_created_by: currentUser.id,
+                p_is_auto_save: false,
+              });
+            }
+          }
+        }
+      }
+
       return { success: true, proposalTemplate };
 
     } catch (error) {
