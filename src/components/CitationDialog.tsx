@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Search, CheckCircle2, AlertCircle, BookOpen, Library, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import DOMPurify from "dompurify";
 import { CitationLibrary } from "./CitationLibrary";
 import { ProposalReference } from "@/hooks/useProposalReferences";
 
@@ -245,7 +246,7 @@ export function CitationDialog({
                 <div className="pt-2 border-t border-border">
                   <Label className="text-xs text-muted-foreground">Formatted Citation:</Label>
                   <p className="text-xs mt-1 p-2 bg-muted rounded" 
-                     dangerouslySetInnerHTML={{ __html: formattedCitation.replace(/\*([^*]+)\*/g, '<em>$1</em>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>') }} 
+                     dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formattedCitation.replace(/\*([^*]+)\*/g, '<em>$1</em>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>'), { ALLOWED_TAGS: ['em', 'strong'] }) }} 
                   />
                 </div>
 

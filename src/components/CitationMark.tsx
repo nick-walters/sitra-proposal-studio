@@ -1,6 +1,7 @@
 import { Mark, mergeAttributes } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
+import DOMPurify from 'dompurify';
 
 export interface CitationMarkOptions {
   getReference: (citationNumber: number) => { citation: string } | undefined;
@@ -78,7 +79,7 @@ export function createCitationTooltipPlugin(
       .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
       .replace(/\*([^*]+)\*/g, '<em>$1</em>');
 
-    tooltip.innerHTML = formattedContent;
+    tooltip.innerHTML = DOMPurify.sanitize(formattedContent, { ALLOWED_TAGS: ['em', 'strong'] });
     tooltip.style.display = 'block';
     
     // Position tooltip above the citation

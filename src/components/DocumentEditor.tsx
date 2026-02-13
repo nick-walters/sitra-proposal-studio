@@ -1,4 +1,5 @@
 import { Section } from "@/types/proposal";
+import DOMPurify from "dompurify";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sparkles, BookOpen, Route, History, Info, Image, Link2, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search, GitCompare, Keyboard, Wand2, FileCode, SplitSquareHorizontal, Layers, Building2, FlaskConical, Check } from "lucide-react";
@@ -983,8 +984,8 @@ export function DocumentEditor({
                   <div className="space-y-1">
                     {footnotes.map((fn) => (
                       <p key={fn.number} className="text-[8pt] text-muted-foreground" 
-                         dangerouslySetInnerHTML={{ 
-                           __html: `<sup>${fn.number}</sup> ${fn.citation.replace(/\*([^*]+)\*/g, '<em>$1</em>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')}` 
+                       dangerouslySetInnerHTML={{ 
+                           __html: DOMPurify.sanitize(`<sup>${fn.number}</sup> ${fn.citation.replace(/\*([^*]+)\*/g, '<em>$1</em>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')}`, { ALLOWED_TAGS: ['em', 'strong', 'sup'] }) 
                          }} 
                       />
                     ))}
