@@ -323,7 +323,7 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
       content: replyContent.trim(),
       parentId,
       visibility: 'all',
-      priorityLevel: 0,
+      priorityLevel: 1,
       tagged: [],
     });
     setReplyContent('');
@@ -395,13 +395,6 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
         </Badge>
       );
     }
-    if (level === 0 && canEdit) {
-      return (
-        <Badge variant="outline" className={cn(base, "text-muted-foreground cursor-pointer hover:opacity-80")} onClick={handleClick}>
-          <Flag className="h-3 w-3 mr-0.5" /> Set priority
-        </Badge>
-      );
-    }
     return null;
   };
 
@@ -409,7 +402,7 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
     const profile = getProfile(msg.author_id);
     const initials = profile?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?';
     const isEditing = editingId === msg.id;
-    const priorityLevel = (msg as any).priority_level ?? (msg.is_high_priority ? 3 : 0);
+    const priorityLevel = (msg as any).priority_level ?? (msg.is_high_priority ? 3 : 1);
     const canEditPriority = canModify(msg);
 
     return (
@@ -616,7 +609,7 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
             const isExpanded = expandedThreads.has(thread.id);
             const replyCount = thread.replies.length;
             const isResolved = (thread as any).is_resolved;
-            const priorityLevel = (thread as any).priority_level ?? (thread.is_high_priority ? 3 : 0);
+            const priorityLevel = (thread as any).priority_level ?? (thread.is_high_priority ? 3 : 1);
             return (
               <Card key={thread.id} className={cn(
                 thread.is_pinned && "border-primary/30 bg-primary/5",
