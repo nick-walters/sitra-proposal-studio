@@ -370,35 +370,35 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
   };
 
   const PriorityBadge = ({ level, canEdit, onCycle }: { level: number; canEdit?: boolean; onCycle?: () => void }) => {
-    const base = "text-[10px] px-1.5 py-0 h-4 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0";
+    const base = "text-[11px] px-1.5 py-0 h-5 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0";
     const clickable = canEdit ? "cursor-pointer hover:opacity-80" : "";
     const handleClick = canEdit && onCycle ? (e: React.MouseEvent) => { (e.target as HTMLElement).blur(); onCycle(); } : undefined;
 
     if (level === 1) {
       return (
         <Badge className={cn(base, "bg-green-100 text-green-800 border-green-300 dark:bg-green-900 dark:text-green-300", clickable)} onClick={handleClick}>
-          <Flag className="h-2.5 w-2.5 mr-0.5" /> Low
+          <Flag className="h-3 w-3 mr-0.5" /> Low
         </Badge>
       );
     }
     if (level === 2) {
       return (
         <Badge className={cn(base, "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900 dark:text-amber-300", clickable)} onClick={handleClick}>
-          <Flag className="h-2.5 w-2.5 mr-0.5" /><Flag className="h-2.5 w-2.5 mr-0.5" /> Medium
+          <Flag className="h-3 w-3 mr-0.5" /><Flag className="h-3 w-3 mr-0.5" /> Medium
         </Badge>
       );
     }
     if (level === 3) {
       return (
         <Badge variant="destructive" className={cn(base, clickable)} onClick={handleClick}>
-          <Flag className="h-2.5 w-2.5 mr-0.5" /><Flag className="h-2.5 w-2.5 mr-0.5" /><Flag className="h-2.5 w-2.5 mr-0.5" /> High
+          <Flag className="h-3 w-3 mr-0.5" /><Flag className="h-3 w-3 mr-0.5" /><Flag className="h-3 w-3 mr-0.5" /> High
         </Badge>
       );
     }
     if (level === 0 && canEdit) {
       return (
         <Badge variant="outline" className={cn(base, "text-muted-foreground cursor-pointer hover:opacity-80")} onClick={handleClick}>
-          <Flag className="h-2.5 w-2.5 mr-0.5" /> Set priority
+          <Flag className="h-3 w-3 mr-0.5" /> Set priority
         </Badge>
       );
     }
@@ -450,14 +450,14 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
                 className="focus:outline-none"
                 onClick={() => toggleStar.mutate(msg.id)}
               >
-                <Star className={cn("h-4.5 w-4.5", starredIds.has(msg.id) ? "fill-amber-400 text-amber-400" : "text-muted-foreground hover:text-amber-400")} />
+                <Star className={cn("h-4 w-4", starredIds.has(msg.id) ? "fill-amber-400 text-amber-400" : "text-muted-foreground hover:text-amber-400")} />
               </button>
               {canModify(msg) && (
                 <button
                   className="focus:outline-none"
                   onClick={() => toggleResolved.mutate({ id: msg.id, resolved: !(msg as any).is_resolved })}
                 >
-                  <CheckCircle className={cn("h-4.5 w-4.5", (msg as any).is_resolved ? "text-green-600 fill-green-100 dark:text-green-400 dark:fill-green-900" : "text-muted-foreground hover:text-green-600")} />
+                  <CheckCircle className={cn("h-4 w-4", (msg as any).is_resolved ? "text-green-600 fill-green-100 dark:text-green-400 dark:fill-green-900" : "text-muted-foreground hover:text-green-600")} />
                 </button>
               )}
             </div>
