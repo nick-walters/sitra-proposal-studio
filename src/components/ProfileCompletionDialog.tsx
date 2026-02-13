@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Save, AlertCircle, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -39,6 +40,7 @@ export function ProfileCompletionDialog({
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [gdprConsented, setGdprConsented] = useState(false);
   const [errors, setErrors] = useState<ProfileErrors>({});
   const [profile, setProfile] = useState({
     first_name: '',
@@ -72,6 +74,7 @@ export function ProfileCompletionDialog({
       if (error) throw error;
 
       setAvatarUrl(data.avatar_url);
+      setGdprConsented(!!(data as any).gdpr_consented_at);
       setProfile({
         first_name: data.first_name || '',
         last_name: data.last_name || '',
@@ -132,6 +135,10 @@ export function ProfileCompletionDialog({
       toast.error('Please fill in all required fields');
       return;
     }
+    if (!gdprConsented) {
+      toast.error('Please accept the data sharing policy to continue');
+      return;
+    }
 
     setSaving(true);
     try {
@@ -150,7 +157,8 @@ export function ProfileCompletionDialog({
           postcode: profile.postcode.trim(),
           city: profile.city.trim(),
           country: profile.country,
-        })
+          ...(gdprConsented ? { gdpr_consented_at: new Date().toISOString() } : {}),
+        } as any)
         .eq('id', userId);
 
       if (error) throw error;
@@ -385,9 +393,35 @@ export function ProfileCompletionDialog({
               </div>
             </div>
 
+            {/* GDPR Consent */}
+            <div className="border rounded-lg p-4 bg-muted/30 space-y-3 mt-2">
+              <h4 className="text-sm font-semibold">Data Sharing Policy</h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                By using this platform, your personal information (name, email, phone number, address, and organisation) 
+                will be visible to other users involved in proposals you participate in. This is necessary for the 
+                collaborative preparation of Horizon Europe proposals.
+              </p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                You also agree to treat other participants' personal information as confidential and to process it 
+                in accordance with the General Data Protection Regulation (GDPR). You will not use others' 
+                personal data for purposes unrelated to proposal preparation.
+              </p>
+              <div className="flex items-start gap-2 pt-1">
+                <Checkbox
+                  id="gdpr-consent"
+                  checked={gdprConsented}
+                  onCheckedChange={(checked) => setGdprConsented(checked === true)}
+                  className="mt-0.5"
+                />
+                <Label htmlFor="gdpr-consent" className="text-sm leading-snug cursor-pointer">
+                  I understand and accept the data sharing policy <span className="text-destructive">*</span>
+                </Label>
+              </div>
+            </div>
+
             <Button 
               onClick={handleSave} 
-              disabled={saving}
+              disabled={saving || !gdprConsented}
               className="w-full mt-2"
               size="lg"
             >

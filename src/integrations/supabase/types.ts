@@ -1943,6 +1943,7 @@ export type Database = {
           facebook: string | null
           first_name: string | null
           full_name: string | null
+          gdpr_consented_at: string | null
           id: string
           instagram: string | null
           last_name: string | null
@@ -1968,6 +1969,7 @@ export type Database = {
           facebook?: string | null
           first_name?: string | null
           full_name?: string | null
+          gdpr_consented_at?: string | null
           id: string
           instagram?: string | null
           last_name?: string | null
@@ -1993,6 +1995,7 @@ export type Database = {
           facebook?: string | null
           first_name?: string | null
           full_name?: string | null
+          gdpr_consented_at?: string | null
           id?: string
           instagram?: string | null
           last_name?: string | null
