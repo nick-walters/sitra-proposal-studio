@@ -321,7 +321,7 @@ export function GanttChartFigure({
               </div>
             </div>
             {/* Grid column with outer border */}
-            <div style={{ border: `1px solid ${borderDark}` }}>
+            <div style={{ border: `1px solid ${borderDark}`, width: timelineWidth, flexShrink: 0 }}>
               {/* Reporting Period Row */}
               <div className="flex">
                 {reportingPeriods.map((rp, rpIdx) => {
