@@ -50,6 +50,7 @@ interface ProposalData {
   usesFstp?: boolean;
   casesEnabled?: boolean;
   casesType?: string;
+  reportingPeriods?: { number: number; startMonth: number; endMonth: number }[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -108,6 +109,7 @@ export function useProposalData(proposalId: string) {
         usesFstp: data.uses_fstp || false,
         casesEnabled: (data as any).cases_enabled || false,
         casesType: (data as any).cases_type || undefined,
+        reportingPeriods: (data as any).reporting_periods || undefined,
         createdAt: new Date(data.created_at),
         updatedAt: new Date(data.updated_at),
       });
@@ -318,6 +320,7 @@ export function useProposalData(proposalId: string) {
     if (updates.status !== undefined) dbUpdates.status = updates.status;
     if (updates.expectedProjects !== undefined) dbUpdates.expected_projects = updates.expectedProjects;
     if (updates.usesFstp !== undefined) dbUpdates.uses_fstp = updates.usesFstp;
+    if (updates.reportingPeriods !== undefined) dbUpdates.reporting_periods = updates.reportingPeriods;
 
     const { error } = await supabase
       .from('proposals')

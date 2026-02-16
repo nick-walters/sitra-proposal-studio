@@ -61,6 +61,20 @@ export function GanttChartFigure({
 }: GanttChartFigureProps) {
   const chartRef = useRef<HTMLDivElement>(null);
 
+  // Fetch proposal-level reporting periods
+  const { data: proposalData } = useQuery({
+    queryKey: ['proposal-rp', proposalId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('proposals')
+        .select('duration, reporting_periods')
+        .eq('id', proposalId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
   // Fetch wp_drafts with their tasks, deliverables, and milestones dynamically
   const { data: wpDraftsData } = useQuery({
     queryKey: ['wp-drafts-gantt', proposalId],
@@ -94,7 +108,6 @@ export function GanttChartFigure({
       if (delError) throw delError;
       if (msError) throw msError;
 
-      // Filter tasks/deliverables to only those belonging to fetched WPs
       const wpIds = new Set(wps!.map(wp => wp.id));
       const filteredTasks = (tasks || []).filter(t => wpIds.has(t.wp_draft_id));
       const filteredDeliverables = (deliverables || []).filter(d => wpIds.has(d.wp_draft_id));
@@ -148,13 +161,26 @@ export function GanttChartFigure({
     return { workPackages, milestones: msMapped };
   }, [wpDraftsData]);
 
-  const projectDuration = content?.projectDuration || 36;
+  const projectDuration = proposalData?.duration || content?.projectDuration || 36;
   const workPackages = dynamicData.workPackages;
   const milestones = dynamicData.milestones;
-  const reportingPeriods = content?.reportingPeriods || [
-    { number: 1, startMonth: 1, endMonth: 18 },
-    { number: 2, startMonth: 19, endMonth: 36 },
-  ];
+  
+  // Use proposal-level reporting periods, fall back to content, then default
+  const reportingPeriods = useMemo(() => {
+    const rpData = (proposalData?.reporting_periods as any[]) || content?.reportingPeriods;
+    if (rpData && rpData.length > 0) return rpData;
+    // Default: 18-month periods
+    const periods: { number: number; startMonth: number; endMonth: number }[] = [];
+    let start = 1;
+    let num = 1;
+    while (start <= projectDuration) {
+      const end = Math.min(start + 17, projectDuration);
+      periods.push({ number: num, startMonth: start, endMonth: end });
+      start = end + 1;
+      num++;
+    }
+    return periods;
+  }, [proposalData?.reporting_periods, content?.reportingPeriods, projectDuration]);
 
   const months = Array.from({ length: projectDuration }, (_, i) => i + 1);
   
@@ -177,23 +203,17 @@ export function GanttChartFigure({
     onContentChange({
       ...content,
       projectDuration: duration,
-      reportingPeriods: duration <= 24 
-        ? [{ number: 1, startMonth: 1, endMonth: duration }]
-        : [
-            { number: 1, startMonth: 1, endMonth: Math.floor(duration / 2) },
-            { number: 2, startMonth: Math.floor(duration / 2) + 1, endMonth: duration },
-          ],
     });
   };
 
-  const cellWidth = 14;
+  const cellWidth = 11;
   const labelWidth = 220;
 
   // Border color helpers
-  const borderLight = '#d4d4d4';   // very light grey - between months
-  const borderQuarter = '#999999'; // mid grey - between quarters (every 3 months)
-  const borderYear = '#000000';    // black - between years
-  const borderDark = '#000000';    // dark border for header rows
+  const borderLight = '#d4d4d4';
+  const borderQuarter = '#999999';
+  const borderYear = '#000000';
+  const borderDark = '#000000';
 
   const getMonthRightBorder = (month: number) => {
     if (month % 12 === 0) return borderYear;
@@ -201,7 +221,6 @@ export function GanttChartFigure({
     return borderLight;
   };
 
-  // For filled cells: only show quarter and year borders, not light monthly borders
   const getFilledCellRightBorder = (month: number, color: string) => {
     if (month % 12 === 0) return `1px solid ${borderYear}`;
     if (month % 3 === 0) return `1px solid ${borderQuarter}`;
@@ -210,6 +229,13 @@ export function GanttChartFigure({
 
   const headerLabelStyle = "font-bold italic";
   const fontStyle: React.CSSProperties = { fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' };
+
+  // Truncate task name without trailing space before ellipsis
+  const truncateTaskName = (name: string, maxLen = 28) => {
+    if (!name || name.length <= maxLen) return name;
+    const trimmed = name.substring(0, maxLen).trimEnd();
+    return trimmed + '...';
+  };
 
   return (
     <div className={canEdit ? "space-y-4" : ""}>
@@ -325,11 +351,11 @@ export function GanttChartFigure({
             ))}
           </div>
 
-          {/* Month Row */}
+          {/* Month Row - rotated numbers */}
           <div className="flex" style={{ borderLeft: `1px solid ${borderDark}` }}>
             <div 
               className={`shrink-0 flex items-center justify-end ${headerLabelStyle}`}
-              style={{ width: labelWidth, height: 18, padding: '0 0.85pt', borderRight: `1px solid ${borderDark}`, borderBottom: `1px solid ${borderDark}` }}
+              style={{ width: labelWidth, height: 28, padding: '0 0.85pt', borderRight: `1px solid ${borderDark}`, borderBottom: `1px solid ${borderDark}` }}
             >
               Month
             </div>
@@ -337,10 +363,12 @@ export function GanttChartFigure({
               {months.map(m => (
                 <div
                   key={m}
-                  className="text-center flex items-center justify-center"
-                  style={{ width: cellWidth, height: 18, borderRight: `1px solid ${getMonthRightBorder(m)}`, borderBottom: `1px solid ${borderDark}`, fontSize: '8pt' }}
+                  className="flex items-center justify-center"
+                  style={{ width: cellWidth, height: 28, borderRight: `1px solid ${getMonthRightBorder(m)}`, borderBottom: `1px solid ${borderDark}` }}
                 >
-                  {m}
+                  <span style={{ fontSize: '7pt', writingMode: 'vertical-rl', transform: 'rotate(180deg)', lineHeight: 1 }}>
+                    {m}
+                  </span>
                 </div>
               ))}
             </div>
@@ -366,7 +394,7 @@ export function GanttChartFigure({
                     {ms.length > 0 && (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span className="font-bold" style={{ fontSize: '8pt' }}>
+                          <span className="font-bold" style={{ fontSize: '7pt' }}>
                             {ms.map(mil => mil.number).join('|')}
                           </span>
                         </TooltipTrigger>
@@ -385,17 +413,15 @@ export function GanttChartFigure({
             </div>
           </div>
 
-          {/* Spacer row after header */}
-          <div style={{ height: 4, borderLeft: `1px solid ${borderDark}`, borderRight: `1px solid ${borderDark}` }} />
+          {/* Spacer row after header - no left/right borders */}
+          <div style={{ height: 4 }} />
 
           {/* Work Packages and Tasks */}
           {workPackages.map((wp, wpIdx) => {
             const wpColor = wp.color || '#2563EB';
             const taskColor = lightenColor(wpColor, 40);
-            const wpColorLight = lightenColor(wpColor, 50);
             const hasTimedTasks = wp.tasks.length > 0;
             
-            // Collect all tasks (timed + untimed) to determine last row for black bottom border
             const untimedTasks = (wpDraftsData?.tasks || [])
               .filter(t => t.wp_draft_id === wpDraftsData?.wps.find(w => w.number === wp.number)?.id)
               .filter(t => t.start_month == null || t.end_month == null);
@@ -403,39 +429,37 @@ export function GanttChartFigure({
             
             return (
               <div key={wp.number}>
-                {/* Spacer row between WPs */}
+                {/* Spacer row between WPs - no left/right borders */}
                 {wpIdx > 0 && (
-                  <div style={{ height: 4, borderLeft: `1px solid ${borderDark}`, borderRight: `1px solid ${borderDark}` }} />
+                  <div style={{ height: 4 }} />
                 )}
 
-                {/* WP Header Row - title spans full width, light color for non-active months */}
-                <div className="flex relative" style={{ borderLeft: `1px solid ${borderDark}` }}>
-                  {/* Background cells for the timeline area */}
+                {/* WP Header Row - fully filled with WP color, borders in WP color */}
+                <div className="flex relative" style={{ borderLeft: `1px solid ${wpColor}`, borderTop: `1px solid ${wpColor}` }}>
                   <div 
                     className="shrink-0"
                     style={{ width: labelWidth, height: 18, backgroundColor: wpColor, borderRight: `1px solid ${wpColor}`, borderBottom: `1px solid ${wpColor}` }}
                   />
                   <div className="flex">
-                    {months.map(m => {
-                      const isInWP = hasTimedTasks && m >= wp.startMonth && m <= wp.endMonth;
-                      return (
-                        <div
-                          key={m}
-                          style={{ 
-                            width: cellWidth, 
-                            height: 18,
-                            backgroundColor: isInWP ? wpColor : wpColorLight,
-                            borderRight: `1px solid ${wpColor}`,
-                            borderBottom: `1px solid ${wpColor}`,
-                          }}
-                        />
-                      );
-                    })}
+                    {months.map(m => (
+                      <div
+                        key={m}
+                        style={{ 
+                          width: cellWidth, 
+                          height: 18,
+                          backgroundColor: wpColor,
+                          borderRight: `1px solid ${wpColor}`,
+                          borderBottom: `1px solid ${wpColor}`,
+                        }}
+                      />
+                    ))}
                   </div>
+                  {/* Right border in WP color */}
+                  <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 0, borderRight: `1px solid ${wpColor}` }} />
                   {/* Overlay title spanning the full row */}
                   <div 
                     className="absolute inset-0 flex items-center font-bold text-white truncate"
-                    style={{ padding: '0 0.85pt', pointerEvents: 'none' }}
+                    style={{ padding: '0 2px', pointerEvents: 'none' }}
                   >
                     WP{wp.number}: {wp.title || wp.shortName}
                   </div>
@@ -449,10 +473,10 @@ export function GanttChartFigure({
                     <div key={task.id} className="flex" style={{ borderLeft: `1px solid ${borderDark}` }}>
                       <div 
                         className="shrink-0 truncate flex items-center"
-                        style={{ width: labelWidth, height: 18, padding: '0 0.85pt', borderRight: `1px solid ${borderDark}`, borderBottom: bottomBorder }}
+                        style={{ width: labelWidth, height: 18, padding: '0 2px', borderRight: `1px solid ${borderDark}`, borderBottom: bottomBorder }}
                       >
-                        <span className="font-medium mr-1">T{task.wpNumber}.{task.taskNumber}:</span>
-                        <span className="truncate">{task.name || '(untitled)'}</span>
+                        <span className="font-medium mr-1" style={{ whiteSpace: 'nowrap' }}>T{task.wpNumber}.{task.taskNumber}:</span>
+                        <span className="truncate">{truncateTaskName(task.name) || '(untitled)'}</span>
                       </div>
                       <div className="flex">
                         {months.map(m => {
@@ -476,7 +500,7 @@ export function GanttChartFigure({
                                   <TooltipTrigger asChild>
                                     <span 
                                       className="font-bold"
-                                      style={{ fontSize: '7pt', color: isInTask ? getContrastingTextColor(taskColor) : undefined }}
+                                      style={{ fontSize: '6pt', color: isInTask ? getContrastingTextColor(taskColor) : undefined }}
                                     >
                                       {deliverable.number}
                                     </span>
@@ -495,7 +519,7 @@ export function GanttChartFigure({
                   );
                 })}
 
-                {/* Also show tasks without timing as empty rows */}
+                {/* Untimed task rows */}
                 {untimedTasks.map((task, utIdx) => {
                   const isLastRow = utIdx === untimedTasks.length - 1;
                   const bottomBorder = isLastRow ? `1px solid ${borderDark}` : `1px solid ${borderLight}`;
@@ -503,10 +527,10 @@ export function GanttChartFigure({
                     <div key={task.id} className="flex" style={{ borderLeft: `1px solid ${borderDark}` }}>
                       <div 
                         className="shrink-0 truncate flex items-center"
-                        style={{ width: labelWidth, height: 18, padding: '0 0.85pt', borderRight: `1px solid ${borderDark}`, borderBottom: bottomBorder }}
+                        style={{ width: labelWidth, height: 18, padding: '0 2px', borderRight: `1px solid ${borderDark}`, borderBottom: bottomBorder }}
                       >
-                        <span className="font-medium mr-1">T{wp.number}.{task.number}:</span>
-                        <span className="truncate text-muted-foreground">{task.title || '(untitled)'}</span>
+                        <span className="font-medium mr-1" style={{ whiteSpace: 'nowrap' }}>T{wp.number}.{task.number}:</span>
+                        <span className="truncate text-muted-foreground">{truncateTaskName(task.title) || '(untitled)'}</span>
                       </div>
                       <div className="flex">
                         {months.map(m => (
