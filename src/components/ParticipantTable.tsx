@@ -276,10 +276,7 @@ function SortableParticipantRow({
               <Tooltip key={`case-${c.caseNumber}`}>
                 <TooltipTrigger asChild>
                   <span
-                    className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold cursor-default text-white"
-                    style={{
-                      backgroundColor: c.color,
-                    }}
+                    className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold cursor-default text-black bg-white border-[1.5px] border-black"
                   >
                     {c.prefix}{c.caseNumber}
                   </span>

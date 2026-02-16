@@ -241,8 +241,8 @@ function SectionItem({
           </span>
         ) : isCaseSection && caseColor ? (
           <span 
-            className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap ml-5"
-            style={{ backgroundColor: caseColor, color: '#ffffff' }}
+            className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap ml-5 border-[1.5px] border-black"
+            style={{ backgroundColor: '#ffffff', color: '#000000' }}
           >
             {caseSection.number}: {caseSection.title}
           </span>
@@ -438,8 +438,9 @@ function SectionItem({
                             isSubActive && "ring-2 ring-primary ring-offset-1"
                           )}
                           style={{ 
-                            backgroundColor: isWP ? wpSub.wpColor : isCase ? caseSub.caseColor : '#000000',
-                            color: '#ffffff' 
+                            backgroundColor: isWP ? wpSub.wpColor : isCase ? '#ffffff' : '#000000',
+                            color: isCase ? '#000000' : '#ffffff',
+                            border: isCase ? '1.5px solid #000000' : undefined,
                           }}
                           onClick={() => onSectionClick(subsection)}
                         >
