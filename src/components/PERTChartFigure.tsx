@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Download, Network, Move, Plus, Trash2, ArrowRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getContrastingTextColor } from '@/lib/wpColors';
+
 import { toast } from 'sonner';
 
 interface WPNode {
@@ -159,33 +159,67 @@ export function PERTChartFigure({
     }));
   }, [wpDrafts, nodePositions]);
 
+  // Helper to compute arrow between two nodes
+  const computeArrow = useCallback((fromNode: WPNode, toNode: WPNode) => {
+    const nodeWidth = 120;
+    const nodeHeight = 50;
+    
+    const fromCenterX = fromNode.x + nodeWidth / 2;
+    const fromCenterY = fromNode.y + nodeHeight / 2;
+    const toCenterX = toNode.x + nodeWidth / 2;
+    const toCenterY = toNode.y + nodeHeight / 2;
+
+    const dx = toCenterX - fromCenterX;
+    const dy = toCenterY - fromCenterY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist === 0) return null;
+
+    // Use rectangle intersection for precise edge contact
+    const halfW = nodeWidth / 2;
+    const halfH = nodeHeight / 2;
+
+    const getEdgePoint = (cx: number, cy: number, adx: number, ady: number) => {
+      const absDx = Math.abs(adx);
+      const absDy = Math.abs(ady);
+      let scale: number;
+      if (absDx * halfH > absDy * halfW) {
+        scale = halfW / absDx;
+      } else {
+        scale = halfH / absDy;
+      }
+      return { x: cx + adx * scale, y: cy + ady * scale };
+    };
+
+    const from = getEdgePoint(fromCenterX, fromCenterY, dx / dist, dy / dist);
+    const to = getEdgePoint(toCenterX, toCenterY, -dx / dist, -dy / dist);
+
+    return { fromX: from.x, fromY: from.y, toX: to.x, toY: to.y };
+  }, []);
+
   // Calculate arrow paths
   const arrows = useMemo(() => {
     return dependencies.map((dep) => {
       const fromNode = nodes.find((n) => n.id === dep.fromWpId);
       const toNode = nodes.find((n) => n.id === dep.toWpId);
       if (!fromNode || !toNode) return null;
-
-      const nodeWidth = 120;
-      const nodeHeight = 50;
-      
-      const fromCenterX = fromNode.x + nodeWidth / 2;
-      const fromCenterY = fromNode.y + nodeHeight / 2;
-      const toCenterX = toNode.x + nodeWidth / 2;
-      const toCenterY = toNode.y + nodeHeight / 2;
-
-      const dx = toCenterX - fromCenterX;
-      const dy = toCenterY - fromCenterY;
-      const angle = Math.atan2(dy, dx);
-
-      const fromX = fromCenterX + Math.cos(angle) * (nodeWidth / 2);
-      const fromY = fromCenterY + Math.sin(angle) * (nodeHeight / 2);
-      const toX = toCenterX - Math.cos(angle) * (nodeWidth / 2 + 10);
-      const toY = toCenterY - Math.sin(angle) * (nodeHeight / 2 + 10);
-
-      return { id: dep.id, fromX, fromY, toX, toY };
+      const pts = computeArrow(fromNode, toNode);
+      if (!pts) return null;
+      return { id: dep.id, ...pts };
     }).filter(Boolean);
-  }, [dependencies, nodes]);
+  }, [dependencies, nodes, computeArrow]);
+
+  // Preview arrow for selected dropdowns
+  const previewArrow = useMemo(() => {
+    if (!fromWp || !toWp || fromWp === toWp) return null;
+    const fromNode = nodes.find((n) => n.id === fromWp);
+    const toNode = nodes.find((n) => n.id === toWp);
+    if (!fromNode || !toNode) return null;
+    // Don't show preview if this dependency already exists
+    if (dependencies.some(d => d.fromWpId === fromWp && d.toWpId === toWp)) return null;
+    const pts = computeArrow(fromNode, toNode);
+    if (!pts) return null;
+    return { id: 'preview', ...pts };
+  }, [fromWp, toWp, nodes, dependencies, computeArrow]);
 
   // Handle drag
   const handleMouseDown = useCallback((e: React.MouseEvent, nodeId: string) => {
@@ -272,8 +306,18 @@ export function PERTChartFigure({
               />
             ))}
 
+            {/* Preview arrow */}
+            {previewArrow && (
+              <line
+                x1={previewArrow.fromX} y1={previewArrow.fromY}
+                x2={previewArrow.toX} y2={previewArrow.toY}
+                stroke="currentColor" strokeWidth="2" strokeDasharray="6 3"
+                className="text-muted-foreground/50"
+                markerEnd="url(#arrowhead)"
+              />
+            )}
+
             {nodes.map((node) => {
-              const textColor = getContrastingTextColor(node.color);
               return (
                 <Tooltip key={node.id}>
                   <TooltipTrigger asChild>
@@ -284,10 +328,10 @@ export function PERTChartFigure({
                     >
                       <rect width={120} height={50} rx={8} ry={8} fill={node.color}
                         stroke={draggingNode === node.id ? 'hsl(var(--primary))' : 'transparent'} strokeWidth={2} className="transition-all" />
-                      <text x={60} y={20} textAnchor="middle" fill={textColor} fontSize={12} fontWeight="bold">
+                      <text x={60} y={20} textAnchor="middle" fill="#FFFFFF" fontSize={12} fontWeight="bold">
                         WP{node.number}
                       </text>
-                      <text x={60} y={38} textAnchor="middle" fill={textColor} fontSize={11} opacity={0.9}>
+                      <text x={60} y={38} textAnchor="middle" fill="#FFFFFF" fontSize={11} opacity={0.9}>
                         {node.shortName.length > 12 ? node.shortName.substring(0, 11) + '…' : node.shortName}
                       </text>
                     </g>
