@@ -327,7 +327,7 @@ function EditableHeaderText({
       ref={ref}
       contentEditable
       suppressContentEditableWarning
-      className={cn("outline-none", className)}
+      className={cn("outline-none font-['Times_New_Roman',Times,serif] text-[11pt]", className)}
       onBlur={handleBlur}
     >
       {value}
