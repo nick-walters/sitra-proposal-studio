@@ -72,11 +72,11 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
       <table className={`${tableStyles} w-full border-collapse`}>
         <thead>
           <tr>
-            <th className={headerCellStyles}>No.</th>
+            <th className={`${headerCellStyles} whitespace-nowrap`}>No.</th>
             <th className={headerCellStyles}>Work package title</th>
-            <th className={`${headerCellStyles} w-[120px]`}>Lead</th>
-            <th className={`${headerCellStyles} w-[80px]`}>Person months</th>
-            <th className={`${headerCellStyles} w-[90px]`}>Duration</th>
+            <th className={`${headerCellStyles} whitespace-nowrap`}>Lead</th>
+            <th className={`${headerCellStyles} whitespace-nowrap`}>Person months</th>
+            <th className={`${headerCellStyles} whitespace-nowrap`}>Duration</th>
           </tr>
         </thead>
         <tbody>
@@ -94,7 +94,7 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
 
             return (
               <tr key={wp.id}>
-                <td className={cellStyles}>
+                <td className={`${cellStyles} whitespace-nowrap`}>
                   <span
                     className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-white text-[9pt] font-bold whitespace-nowrap"
                     style={{ backgroundColor: wp.color || '#666', lineHeight: 1 }}
@@ -105,7 +105,7 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
                 <td className={cellStyles}>
                   {title && shortName !== title ? title : (shortName !== `WP${wp.number}` ? title || '' : `Work Package ${wp.number}`)}
                 </td>
-                <td className={cellStyles}>
+                <td className={`${cellStyles} whitespace-nowrap`}>
                   {lead ? (
                     <span
                       className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9pt] font-bold italic whitespace-nowrap"
@@ -116,7 +116,7 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
                   ) : '—'}
                 </td>
                 <td
-                  className={editableCellStyles}
+                  className={`${editableCellStyles} whitespace-nowrap`}
                   onClick={() => !isEditingPM && startEdit(wp.id, 'pm', String(displayPM))}
                 >
                   {isEditingPM ? (
@@ -134,7 +134,7 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
                   )}
                 </td>
                 <td
-                  className={editableCellStyles}
+                  className={`${editableCellStyles} whitespace-nowrap`}
                   onClick={() => !isEditingDur && startEdit(wp.id, 'duration', String(displayDuration))}
                 >
                   {isEditingDur ? (
