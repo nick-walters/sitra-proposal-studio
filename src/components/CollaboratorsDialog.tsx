@@ -82,18 +82,7 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
         .eq('user_id', user.id)
         .limit(5);
 
-      if (roles && roles.some(r => r.role === 'owner' || r.role === 'admin')) {
-        setCanInvite(true);
-        return;
-      }
-
-      const { data: createdProposals } = await supabase
-        .from('proposals')
-        .select('id')
-        .eq('created_by', user.id)
-        .limit(1);
-
-      setCanInvite(!!(createdProposals && createdProposals.length > 0));
+      setCanInvite(!!(roles && roles.some(r => r.role === 'owner' || r.role === 'admin')));
     }
 
     if (open) {
