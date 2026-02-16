@@ -54,6 +54,7 @@ import { WritingAssistantDialog } from "./WritingAssistantDialog";
 import { SnippetsDialog } from "./SnippetsDialog";
 import { SplitViewPanel } from "./SplitViewPanel";
 import { B31DeliverablesTable, B31MilestonesTable, B31RisksTable } from "./B31TablesEditor";
+import { B31SectionContent } from "./B31SectionContent";
 import { TrackChange } from "@/extensions/TrackChanges";
 import { usePageEstimate } from "@/hooks/usePageEstimate";
 import { EditorZoomBar } from "./EditorZoomBar";
@@ -966,16 +967,9 @@ export function DocumentEditor({
                 </div>
               )}
 
-              {/* Interactive B3.1 Tables - Deliverables, Milestones and Risks */}
+              {/* B3.1 Section Content - auto-populated figures, tables, and structured content */}
               {(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') && (
-                <div className="b31-tables-container space-y-4 [&_p]:!my-0 mt-[20px]">
-                  <B31DeliverablesTable proposalId={proposalId} />
-                  <B31MilestonesTable proposalId={proposalId} />
-                  <B31RisksTable proposalId={proposalId} />
-                  <p className="text-muted-foreground text-sm italic mt-4">
-                    Additional content for this section can be added in the editor above.
-                  </p>
-                </div>
+                <B31SectionContent proposalId={proposalId} />
               )}
 
               {/* Footnotes */}

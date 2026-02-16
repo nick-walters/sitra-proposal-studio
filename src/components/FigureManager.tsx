@@ -629,30 +629,50 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
                   </div>
                   <div className="space-y-2">
                     <Label>Figure Type</Label>
-                    <div className="grid gap-2">
-                      {FIGURE_TYPES.map((type) => (
+                     <div className="grid gap-2">
+                      {FIGURE_TYPES.map((type) => {
+                        // Check if PERT or Gantt already exists
+                        const alreadyExists = 
+                          (type.id === 'pert' && figures.some(f => f.figureType === 'pert')) ||
+                          (type.id === 'gantt' && figures.some(f => f.figureType === 'gantt'));
+                        
+                        return (
                         <button
                           key={type.id}
                           type="button"
+                          disabled={alreadyExists}
                           className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-colors ${
-                            newFigureType === type.id
+                            alreadyExists
+                              ? 'border-border opacity-50 cursor-not-allowed'
+                              : newFigureType === type.id
                               ? 'border-primary bg-primary/5'
                               : 'border-border hover:bg-muted'
                           }`}
-                          onClick={() => {
+                           onClick={() => {
                             setNewFigureType(type.id);
                             setSelectedFile(null);
                             setPreviewUrl(null);
                             setGeneratedImageUrl(null);
+                            // Auto-fill title and section for PERT/Gantt
+                            if (type.id === 'pert') {
+                              setNewFigureTitle('PERT chart');
+                              setNewFigureSection('3.1');
+                            } else if (type.id === 'gantt') {
+                              setNewFigureTitle('Gantt chart');
+                              setNewFigureSection('3.1');
+                            }
                           }}
                         >
                           <type.icon className="w-5 h-5 text-muted-foreground" />
                           <div>
                             <p className="font-medium text-sm">{type.label}</p>
-                            <p className="text-xs text-muted-foreground">{type.description}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {alreadyExists ? 'Already created' : type.description}
+                            </p>
                           </div>
                         </button>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                   
