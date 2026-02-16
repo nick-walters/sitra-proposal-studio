@@ -664,7 +664,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
     <div>
       <div className="flex items-center justify-between">
         <p className={`${tableStyles} italic`}>
-          <span className="font-bold italic">Table 3.1c.</span> Deliverables
+          <span className="font-bold italic">Table 3.1.c.</span> Deliverables
         </p>
         {isAdminOrOwner && (
           <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs h-6 px-2 py-0">
@@ -915,7 +915,7 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
     <div>
       <div className="flex items-center justify-between">
         <p className={`${tableStyles} italic`}>
-          <span className="font-bold italic">Table 3.1d.</span> Milestones
+          <span className="font-bold italic">Table 3.1.d.</span> Milestones
         </p>
         {isAdminOrOwner && (
           <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs h-6 px-2 py-0">
@@ -1103,7 +1103,7 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
     <div>
       <div className="flex items-center justify-between">
         <p className={`${tableStyles} italic flex items-center gap-1 flex-wrap`}>
-          <span className="font-bold italic">Table 3.1e.</span> Critical risks (<span className="font-bold">i.</span> likelihood; <span className="font-bold">ii.</span> severity; <RiskBadge level="L" /> = low, <RiskBadge level="M" /> = medium, <RiskBadge level="H" /> = high)
+          <span className="font-bold italic">Table 3.1.e.</span> Critical risks (<span className="font-bold">i.</span> likelihood; <span className="font-bold">ii.</span> severity; <RiskBadge level="L" /> = low, <RiskBadge level="M" /> = medium, <RiskBadge level="H" /> = high)
         </p>
         {isAdminOrOwner && (
           <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs h-6 px-2 py-0">
