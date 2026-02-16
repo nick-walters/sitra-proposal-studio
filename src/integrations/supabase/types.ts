@@ -340,46 +340,70 @@ export type Database = {
       }
       case_drafts: {
         Row: {
+          background_context: string | null
           case_type: string
           color: string
           created_at: string
           custom_type_name: string | null
           description: string | null
+          expected_outcomes: string | null
+          heading_background: string | null
+          heading_outcomes: string | null
+          heading_replicability: string | null
+          heading_solutions: string | null
           id: string
           lead_participant_id: string | null
           number: number
           order_index: number
           proposal_id: string
+          proposed_solutions: string | null
+          replicability: string | null
           short_name: string | null
           title: string | null
           updated_at: string
         }
         Insert: {
+          background_context?: string | null
           case_type?: string
           color?: string
           created_at?: string
           custom_type_name?: string | null
           description?: string | null
+          expected_outcomes?: string | null
+          heading_background?: string | null
+          heading_outcomes?: string | null
+          heading_replicability?: string | null
+          heading_solutions?: string | null
           id?: string
           lead_participant_id?: string | null
           number: number
           order_index?: number
           proposal_id: string
+          proposed_solutions?: string | null
+          replicability?: string | null
           short_name?: string | null
           title?: string | null
           updated_at?: string
         }
         Update: {
+          background_context?: string | null
           case_type?: string
           color?: string
           created_at?: string
           custom_type_name?: string | null
           description?: string | null
+          expected_outcomes?: string | null
+          heading_background?: string | null
+          heading_outcomes?: string | null
+          heading_replicability?: string | null
+          heading_solutions?: string | null
           id?: string
           lead_participant_id?: string | null
           number?: number
           order_index?: number
           proposal_id?: string
+          proposed_solutions?: string | null
+          replicability?: string | null
           short_name?: string | null
           title?: string | null
           updated_at?: string

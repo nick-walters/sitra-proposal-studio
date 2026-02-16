@@ -15,6 +15,7 @@ import { WPDraftEditor } from "@/components/WPDraftEditor";
 import { WPManagementCard } from "@/components/WPManagementCard";
 
 import { CaseManagementCard } from "@/components/CaseManagementCard";
+import { CaseDraftEditor } from "@/components/CaseDraftEditor";
 import { WPProgressTracker } from "@/components/WPProgressTracker";
 import { ProposalMessagingBoard } from "@/components/ProposalMessagingBoard";
 import { ProposalTaskAllocator } from "@/components/ProposalTaskAllocator";
@@ -774,15 +775,17 @@ export function ProposalEditor() {
     }
 
 
-    // Individual Case Draft (case-{uuid}) - placeholder for now
+    // Individual Case Draft (case-{uuid})
     const caseSection = activeSection as CaseSection;
     if (activeSection.id.startsWith('case-') && caseSection.caseId) {
       return (
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="text-center py-12 text-muted-foreground">
-            <h3 className="text-lg font-medium mb-2">Case: {caseSection.title}</h3>
-            <p className="text-sm">Case draft editor coming soon.</p>
-          </div>
+        <div className="flex-1 overflow-y-auto">
+          <CaseDraftEditor
+            caseId={caseSection.caseId}
+            proposalId={id || ''}
+            canEdit={canEdit}
+            isCoordinator={isCoordinator}
+          />
         </div>
       );
     }
