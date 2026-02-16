@@ -767,6 +767,17 @@ export function GeneralInfoForm({
                     )}
                   </div>
                 </div>
+
+                {/* Reporting Periods - below duration */}
+                {userCanEditOverview && editedProposal && (
+                  <ReportingPeriodsEditor
+                    proposal={editedProposal}
+                    onUpdate={(rps) => {
+                      setEditedProposal({ ...editedProposal, reportingPeriods: rps });
+                      onUpdateProposal({ reportingPeriods: rps });
+                    }}
+                  />
+                )}
               </div>
 
               <div className="flex-shrink-0">
@@ -1432,16 +1443,6 @@ export function GeneralInfoForm({
           </CardContent>
         </Card>
 
-        {/* Reporting Periods Card - Coordinator/Admin/Owner only */}
-        {userCanEditOverview && editedProposal && (
-          <ReportingPeriodsEditor
-            proposal={editedProposal}
-            onUpdate={(rps) => {
-              setEditedProposal({ ...editedProposal, reportingPeriods: rps });
-              onUpdateProposal({ reportingPeriods: rps });
-            }}
-          />
-        )}
 
         {/* Delete Proposal - Admins/Owners Only */}
         {isCoordinator && (
