@@ -345,56 +345,63 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
   };
 
   const PriorityButton = ({ level, onClick, size = 'sm' }: { level: number; onClick: () => void; size?: 'sm' | 'default' }) => {
-    if (level === 0) {
+    const [hovered, setHovered] = useState(false);
+    const displayLevel = hovered ? cyclePriority(level) : level;
+    const hoverHandlers = { onMouseEnter: () => setHovered(true), onMouseLeave: () => setHovered(false) };
+
+    if (displayLevel === 0) {
       return (
-        <Button variant="outline" size={size} className="h-8" onClick={onClick}>
+        <Button variant="outline" size={size} className="h-8" onClick={onClick} {...hoverHandlers}>
           <Flag className="h-3.5 w-3.5 mr-1 text-muted-foreground" /> Priority
         </Button>
       );
     }
-    if (level === 1) {
+    if (displayLevel === 1) {
       return (
-        <Button variant="outline" size={size} className="h-8 border-green-500 bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-950 dark:text-green-400 dark:border-green-700" onClick={onClick}>
+        <Button variant="outline" size={size} className="h-8 border-green-500 bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400 dark:border-green-700" onClick={onClick} {...hoverHandlers}>
           <Flag className="h-3.5 w-3.5 mr-1" /> Low
         </Button>
       );
     }
-    if (level === 2) {
+    if (displayLevel === 2) {
       return (
-        <Button variant="outline" size={size} className="h-8 border-amber-400 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-700" onClick={onClick}>
+        <Button variant="outline" size={size} className="h-8 border-amber-400 bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-700" onClick={onClick} {...hoverHandlers}>
           <Flag className="h-3.5 w-3.5 mr-0.5" /><Flag className="h-3.5 w-3.5 mr-1" /> Medium
         </Button>
       );
     }
     return (
-      <Button variant="destructive" size={size} className="h-8" onClick={onClick}>
+      <Button variant="destructive" size={size} className="h-8" onClick={onClick} {...hoverHandlers}>
         <Flag className="h-3.5 w-3.5 mr-0.5" /><Flag className="h-3.5 w-3.5 mr-0.5" /><Flag className="h-3.5 w-3.5 mr-1" /> High
       </Button>
     );
   };
 
   const PriorityBadge = ({ level, canEdit, onCycle }: { level: number; canEdit?: boolean; onCycle?: () => void }) => {
+    const [hovered, setHovered] = useState(false);
+    const displayLevel = canEdit && hovered ? cyclePriority(level) : level;
     const base = "text-[11px] px-1.5 py-0 h-5 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0";
-    const clickable = canEdit ? "cursor-pointer hover:opacity-80" : "";
+    const clickable = canEdit ? "cursor-pointer" : "";
     const handleClick = canEdit && onCycle ? (e: React.MouseEvent) => { (e.target as HTMLElement).blur(); onCycle(); } : undefined;
+    const hoverHandlers = canEdit ? { onMouseEnter: () => setHovered(true), onMouseLeave: () => setHovered(false) } : {};
 
-    if (level === 1) {
+    if (displayLevel === 1) {
       return (
-        <Badge className={cn(base, "bg-green-100 text-green-800 border-green-300 dark:bg-green-900 dark:text-green-300", clickable)} onClick={handleClick}>
+        <Badge className={cn(base, "bg-green-100 text-green-800 border-green-300 dark:bg-green-900 dark:text-green-300", clickable)} onClick={handleClick} {...hoverHandlers}>
           <Flag className="h-3 w-3 mr-0.5" /> Low
         </Badge>
       );
     }
-    if (level === 2) {
+    if (displayLevel === 2) {
       return (
-        <Badge className={cn(base, "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900 dark:text-amber-300", clickable)} onClick={handleClick}>
+        <Badge className={cn(base, "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900 dark:text-amber-300", clickable)} onClick={handleClick} {...hoverHandlers}>
           <Flag className="h-3 w-3 mr-0.5" /><Flag className="h-3 w-3 mr-0.5" /> Medium
         </Badge>
       );
     }
-    if (level === 3) {
+    if (displayLevel === 3) {
       return (
-        <Badge variant="destructive" className={cn(base, clickable)} onClick={handleClick}>
+        <Badge variant="destructive" className={cn(base, clickable)} onClick={handleClick} {...hoverHandlers}>
           <Flag className="h-3 w-3 mr-0.5" /><Flag className="h-3 w-3 mr-0.5" /><Flag className="h-3 w-3 mr-0.5" /> High
         </Badge>
       );
