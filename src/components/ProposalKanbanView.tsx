@@ -2,7 +2,7 @@ import { Proposal, WORK_PROGRAMMES, DESTINATIONS } from "@/types/proposal";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileText, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink, AlertTriangle, PartyPopper, Calendar } from "lucide-react";
+import { FileText, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink, AlertTriangle, Trophy, Calendar } from "lucide-react";
 import { format, differenceInDays, addMonths } from "date-fns";
 
 // Calculate estimated decision date based on submission stage
@@ -72,7 +72,7 @@ const getSubmittedStatusInfo = (status: string) => {
   } else if (status === 'funded') {
     return {
       label: 'Funded',
-      icon: PartyPopper,
+      icon: Trophy,
       className: 'bg-white text-green-600 border border-green-500/30',
       sortOrder: 2 // Funded in middle
     };
@@ -130,7 +130,7 @@ export function ProposalKanbanView({ proposals, onProposalClick, topicIcons }: P
 
   const submittedSections = [
     { key: 'submitted', label: 'Under evaluation', proposals: getSubmittedByStatus('submitted'), icon: Send, color: 'text-orange-600', bgColor: 'bg-orange-500/10' },
-    { key: 'funded', label: 'Funded', proposals: getSubmittedByStatus('funded'), icon: PartyPopper, color: 'text-green-600', bgColor: 'bg-green-500/10' },
+    { key: 'funded', label: 'Funded', proposals: getSubmittedByStatus('funded'), icon: Trophy, color: 'text-green-600', bgColor: 'bg-green-500/10' },
     { key: 'not_funded', label: 'Not funded', proposals: getSubmittedByStatus('not_funded'), icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-500/10' },
   ];
 

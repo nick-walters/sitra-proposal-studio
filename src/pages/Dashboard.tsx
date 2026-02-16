@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Proposal, ProposalType, ProposalStatus, BudgetType, SubmissionStage, HORIZON_EUROPE_SECTIONS, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS, getDestinationsForWorkProgramme } from "@/types/proposal";
-import { Plus, Search, LayoutGrid, List, X, Filter, Leaf, Brain, Zap, Wheat, Shield, Apple, Atom, HeartPulse, Table2, Columns3, AlertTriangle, Clock, CheckCircle2, Send, PartyPopper, XCircle } from "lucide-react";
+import { Plus, Search, LayoutGrid, List, X, Filter, Leaf, Brain, Zap, Wheat, Shield, Apple, Atom, HeartPulse, Table2, Columns3, AlertTriangle, Clock, CheckCircle2, Send, Trophy, XCircle } from "lucide-react";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -726,7 +726,7 @@ export function Dashboard() {
                                     : 'bg-white text-green-600 border-green-500/30 hover:bg-green-50'
                                 }`}
                               >
-                                <PartyPopper className="w-3 h-3" />
+                                <Trophy className="w-3 h-3" />
                                 <span className="font-bold">{fundedCount}</span>
                                 <span>Funded</span>
                               </button>

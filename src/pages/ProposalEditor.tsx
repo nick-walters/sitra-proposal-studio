@@ -57,7 +57,7 @@ import {
   AlertTriangle,
   Clock,
   CheckCircle2,
-  PartyPopper,
+  
   XCircle,
   Send,
   Copy,
@@ -882,7 +882,7 @@ export function ProposalEditor() {
     } else if (status === 'funded') {
       return {
         label: 'Funded',
-        icon: PartyPopper,
+        icon: Trophy,
         className: 'bg-white text-green-600 border border-green-500/30',
         iconColor: 'text-green-600',
         alertBg: 'bg-green-500/10 border-b-green-500'
@@ -1032,7 +1032,7 @@ export function ProposalEditor() {
           "rounded-none border-x-0 border-t-0 border-b-2 py-1.5 [&>svg]:top-2",
           statusInfo.alertBg
         )}>
-          <StatusIcon className={cn("h-3.5 w-3.5", statusInfo.iconColor)} />
+          <StatusIcon className="h-3.5 w-3.5" />
           <AlertDescription className={cn("text-sm flex items-center gap-2 flex-wrap", statusInfo.iconColor)}>
             <span className="flex-1">
               {proposal.status === 'draft' && (
