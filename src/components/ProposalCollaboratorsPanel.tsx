@@ -24,11 +24,10 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Users, UserPlus, Loader2, Info, Trash2, Crown, ShieldCheck, Pencil, Eye, MessageCircle } from 'lucide-react';
+import { Users, UserPlus, Loader2, Info, Trash2, Crown, ShieldCheck, Pencil, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { DirectChatDialog } from '@/components/DirectChatDialog';
 
 interface Collaborator {
   id: string; // user_roles.id
@@ -76,7 +75,7 @@ export function ProposalCollaboratorsPanel({
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [chatUserId, setChatUserId] = useState<string | null>(null);
+  
 
   // Add form state
   const [email, setEmail] = useState('');
@@ -395,21 +394,6 @@ export function ProposalCollaboratorsPanel({
                           {ROLE_LABELS[collab.role] || collab.role}
                         </Badge>
                       )}
-                      {!isSelf && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                              onClick={() => setChatUserId(collab.userId)}
-                            >
-                              <MessageCircle className="w-3 h-3" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Send message</TooltipContent>
-                        </Tooltip>
-                      )}
                       {canManage && !isSelf && (
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -440,13 +424,6 @@ export function ProposalCollaboratorsPanel({
         </DialogContent>
       </Dialog>
 
-      {chatUserId && (
-        <DirectChatDialog
-          open={!!chatUserId}
-          onOpenChange={(open) => !open && setChatUserId(null)}
-          userId={chatUserId}
-        />
-      )}
     </>
   );
 }
