@@ -512,7 +512,7 @@ export function GanttChartFigure({
                                         zIndex: 10,
                                       }}
                                     >
-                                      {deliverable.number}
+                                      {deliverable.number.replace(/^D/, '')}
                                     </span>
                                   </TooltipTrigger>
                                   <TooltipContent>
