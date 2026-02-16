@@ -4,8 +4,8 @@ import type { B31WPData, B31Participant } from '@/hooks/useB31SectionData';
 import { useQueryClient } from '@tanstack/react-query';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
-const cellStyles = "border border-black px-0.5 py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-top text-left";
-const headerCellStyles = "border border-black px-0.5 py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight font-bold text-white bg-black text-left";
+const cellStyles = "border border-black px-0.5 py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle text-left";
+const headerCellStyles = "border border-black px-0.5 py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight font-bold text-white bg-black text-left align-middle";
 const editableCellStyles = `${cellStyles} cursor-text hover:bg-muted/30`;
 
 interface Props {
