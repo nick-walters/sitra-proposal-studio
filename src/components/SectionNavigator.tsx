@@ -434,7 +434,7 @@ function SectionItem({
                       <TooltipTrigger asChild>
                         <button
                           className={cn(
-                            "inline-flex items-center justify-start w-fit px-2 py-0.5 rounded-full text-xs font-bold truncate cursor-pointer transition-all max-w-full",
+                            "inline-flex items-center justify-start w-fit px-1.5 py-0.5 rounded-full text-[9pt] font-bold italic truncate cursor-pointer transition-all max-w-full",
                             isSubActive && "ring-2 ring-primary ring-offset-1"
                           )}
                           style={{ 
