@@ -72,7 +72,8 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
       <table className={`${tableStyles} w-full border-collapse`}>
         <thead>
           <tr>
-            <th className={headerCellStyles}>Work package</th>
+            <th className={headerCellStyles}>No.</th>
+            <th className={headerCellStyles}>Work package title</th>
             <th className={`${headerCellStyles} w-[120px]`}>Lead</th>
             <th className={`${headerCellStyles} w-[80px]`}>Person months</th>
             <th className={`${headerCellStyles} w-[90px]`}>Duration</th>
@@ -94,8 +95,15 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
             return (
               <tr key={wp.id}>
                 <td className={cellStyles}>
-                  <span className="font-bold">WP{wp.number}: {wp.short_name || `WP${wp.number}`}</span>
-                  {title && shortName !== title && ` – ${title}`}
+                  <span
+                    className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-white text-[9pt] font-bold whitespace-nowrap"
+                    style={{ backgroundColor: wp.color || '#666', lineHeight: 1 }}
+                  >
+                    WP{wp.number}: {shortName}
+                  </span>
+                </td>
+                <td className={cellStyles}>
+                  {title && shortName !== title ? title : (shortName !== `WP${wp.number}` ? title || '' : `Work Package ${wp.number}`)}
                 </td>
                 <td className={cellStyles}>
                   {lead ? (
