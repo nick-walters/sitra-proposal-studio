@@ -955,10 +955,10 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
           <Table className={tableStyles}>
             <TableHeader>
               <TableRow className="bg-black text-white hover:bg-black">
-                <TableHead className={`${headerCellStyles} text-white font-bold w-[35%]`}>Milestone</TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold w-[84px]`}>WPs</TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold w-[40px]`}>Due</TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold`}>Means of verification</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold whitespace-nowrap`}>Milestone</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold whitespace-nowrap`}>WPs</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold whitespace-nowrap`}>Due</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold w-full`}>Means of verification</TableHead>
               </TableRow>
             </TableHeader>
             <SortableContext items={milestones.map(m => m.id)} strategy={verticalListSortingStrategy}>
