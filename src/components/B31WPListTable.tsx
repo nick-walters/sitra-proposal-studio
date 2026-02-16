@@ -94,7 +94,7 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
 
             return (
               <tr key={wp.id}>
-                <td className={`${cellStyles} whitespace-nowrap py-0.5`}>
+                <td className={`${cellStyles} whitespace-nowrap`}>
                   <span
                     className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-white text-[9pt] font-bold whitespace-nowrap"
                     style={{ backgroundColor: wp.color || '#666', lineHeight: 1 }}
@@ -105,7 +105,7 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
                 <td className={cellStyles}>
                   {title && shortName !== title ? title : (shortName !== `WP${wp.number}` ? title || '' : `Work Package ${wp.number}`)}
                 </td>
-                <td className={`${cellStyles} whitespace-nowrap py-0.5`}>
+                <td className={`${cellStyles} whitespace-nowrap`}>
                   {lead ? (
                     <span
                       className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9pt] font-bold italic whitespace-nowrap"
