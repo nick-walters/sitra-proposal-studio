@@ -273,60 +273,62 @@ export function PERTChartFigure({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold flex items-center gap-2">
-          <Network className="w-4 h-4" />
-          Figure {figureNumber}. PERT Chart
-        </h3>
-        <div className="flex items-center gap-2">
-          {canEdit && (
+    <div className={canEdit ? "space-y-4" : ""}>
+      {canEdit && (
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-semibold flex items-center gap-2">
+            <Network className="w-4 h-4" />
+            Figure {figureNumber}. PERT Chart
+          </h3>
+          <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground flex items-center gap-1">
               <Move className="w-3 h-3" />
               Drag nodes to reposition
             </span>
-          )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
-                <Download className="w-3 h-3" />
-                Export
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => {
-                if (chartRef.current) {
-                  exportAsPng(chartRef.current, `PERT-Chart-Figure-${figureNumber}`);
-                  toast.success('PNG downloaded');
-                }
-              }}>
-                <Image className="w-4 h-4 mr-2" />
-                Download as PNG
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => {
-                const exportData: PERTExportData = {
-                  nodes: nodes.map(n => ({ id: n.id, number: n.number, shortName: n.shortName, color: n.color, x: n.x, y: n.y })),
-                  arrows: dependencies.map(d => ({ fromNodeId: d.fromWpId, toNodeId: d.toWpId, direction: d.direction })),
-                  svgWidth,
-                  svgHeight,
-                };
-                exportPERTAsPptx(exportData, `PERT-Chart-Figure-${figureNumber}`);
-                toast.success('PPTX downloaded');
-              }}>
-                <FileDown className="w-4 h-4 mr-2" />
-                Download as PPTX
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
+                  <Download className="w-3 h-3" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => {
+                  if (chartRef.current) {
+                    exportAsPng(chartRef.current, `PERT-Chart-Figure-${figureNumber}`);
+                    toast.success('PNG downloaded');
+                  }
+                }}>
+                  <Image className="w-4 h-4 mr-2" />
+                  Download as PNG
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {
+                  const exportData: PERTExportData = {
+                    nodes: nodes.map(n => ({ id: n.id, number: n.number, shortName: n.shortName, color: n.color, x: n.x, y: n.y })),
+                    arrows: dependencies.map(d => ({ fromNodeId: d.fromWpId, toNodeId: d.toWpId, direction: d.direction })),
+                    svgWidth,
+                    svgHeight,
+                  };
+                  exportPERTAsPptx(exportData, `PERT-Chart-Figure-${figureNumber}`);
+                  toast.success('PPTX downloaded');
+                }}>
+                  <FileDown className="w-4 h-4 mr-2" />
+                  Download as PPTX
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-      </div>
+      )}
 
       <TooltipProvider>
-        <div ref={chartRef} className="border rounded-lg bg-background overflow-auto">
+        <div ref={chartRef} className={canEdit ? "border rounded-lg bg-background overflow-auto" : "overflow-auto"}>
           <svg
             ref={svgRef}
-            width={svgWidth}
+            width={canEdit ? svgWidth : '100%'}
             height={svgHeight}
+            viewBox={canEdit ? undefined : `0 0 ${svgWidth} ${svgHeight}`}
+            preserveAspectRatio={canEdit ? undefined : 'xMidYMid meet'}
             className="select-none"
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
@@ -386,25 +388,27 @@ export function PERTChartFigure({
         </div>
       </TooltipProvider>
 
-      {/* Legend */}
-      <div className="flex items-center gap-4 text-xs text-muted-foreground border-t pt-2">
-        <span className="font-semibold">Legend:</span>
-        <div className="flex items-center gap-1">
-          <div className="w-6 h-4 bg-primary/20 rounded" />
-          <span>Work Package</span>
+      {/* Legend - only in edit mode */}
+      {canEdit && (
+        <div className="flex items-center gap-4 text-xs text-muted-foreground border-t pt-2">
+          <span className="font-semibold">Legend:</span>
+          <div className="flex items-center gap-1">
+            <div className="w-6 h-4 bg-primary/20 rounded" />
+            <span>Work Package</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <svg width="24" height="10">
+              <line x1="0" y1="5" x2="18" y2="5" stroke="currentColor" strokeWidth="2" markerEnd="url(#arrowhead-legend)" />
+              <defs>
+                <marker id="arrowhead-legend" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
+                  <polygon points="0 0, 6 2, 0 4" fill="currentColor" />
+                </marker>
+              </defs>
+            </svg>
+            <span>Dependency</span>
+          </div>
         </div>
-        <div className="flex items-center gap-1">
-          <svg width="24" height="10">
-            <line x1="0" y1="5" x2="18" y2="5" stroke="currentColor" strokeWidth="2" markerEnd="url(#arrowhead-legend)" />
-            <defs>
-              <marker id="arrowhead-legend" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
-                <polygon points="0 0, 6 2, 0 4" fill="currentColor" />
-              </marker>
-            </defs>
-          </svg>
-          <span>Dependency</span>
-        </div>
-      </div>
+      )}
 
       {/* Dependency Manager */}
       {canEdit && (
