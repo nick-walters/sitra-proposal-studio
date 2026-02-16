@@ -463,8 +463,8 @@ export function GanttChartFigure({
                           // Sort by month
                           bubbles.sort((a, b) => a.month - b.month);
 
-                          // Estimate bubble width in px (roughly 7px per char + 6px padding at 9pt)
-                          const estimateBubbleWidth = (label: string) => Math.max(12, label.length * 7 + 6);
+                          // Estimate bubble width in px (char width ~5.5px at 9pt + 6px horizontal padding + 2px border)
+                          const estimateBubbleWidth = (label: string) => Math.max(10, label.length * 5.5 + 8);
                           
                           // Compute positions: center of each bubble's month cell
                           const positioned = bubbles.map(b => ({
