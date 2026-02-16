@@ -321,7 +321,7 @@ export function GanttChartFigure({
               </div>
             </div>
             {/* Grid column with outer border */}
-            <div style={{ border: `0.5px solid ${borderDark}` }}>
+            <div style={{ border: `1px solid ${borderDark}` }}>
               {/* Reporting Period Row */}
               <div className="flex">
                 {reportingPeriods.map((rp, rpIdx) => {
@@ -330,7 +330,7 @@ export function GanttChartFigure({
                     <div
                       key={rp.number}
                       className="text-center font-bold flex items-center justify-center"
-                      style={{ width: periodMonths * cellWidth, height: 18, borderLeft: rpIdx > 0 ? `0.5px solid ${borderDark}` : undefined }}
+                      style={{ width: periodMonths * cellWidth, height: 18, borderLeft: rpIdx > 0 ? `1px solid ${borderDark}` : undefined }}
                     >
                       {rp.number}
                     </div>
@@ -338,19 +338,19 @@ export function GanttChartFigure({
                 })}
               </div>
               {/* Year Row */}
-              <div className="flex" style={{ borderTop: `0.5px solid ${borderDark}` }}>
+              <div className="flex" style={{ borderTop: `1px solid ${borderDark}` }}>
                 {years.map((yr, yrIdx) => (
                   <div
                     key={yr.year}
                     className="text-center font-bold flex items-center justify-center"
-                    style={{ width: yr.months.length * cellWidth, height: 18, borderLeft: yrIdx > 0 ? `0.5px solid ${borderDark}` : undefined }}
+                    style={{ width: yr.months.length * cellWidth, height: 18, borderLeft: yrIdx > 0 ? `1px solid ${borderDark}` : undefined }}
                   >
                     {yr.year}
                   </div>
                 ))}
               </div>
               {/* Month Row - quarterly groups */}
-              <div className="flex" style={{ borderTop: `0.5px solid ${borderDark}` }}>
+              <div className="flex" style={{ borderTop: `1px solid ${borderDark}` }}>
                 {Array.from({ length: Math.ceil(projectDuration / 3) }, (_, qi) => {
                   const startM = qi * 3 + 1;
                   const endM = Math.min(qi * 3 + 3, projectDuration);
