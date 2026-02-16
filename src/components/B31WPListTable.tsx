@@ -109,7 +109,7 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
                 </td>
                 <td
                   className={editableCellStyles}
-                  onDoubleClick={() => startEdit(wp.id, 'pm', String(displayPM))}
+                  onClick={() => !isEditingPM && startEdit(wp.id, 'pm', String(displayPM))}
                 >
                   {isEditingPM ? (
                     <input
@@ -127,7 +127,7 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
                 </td>
                 <td
                   className={editableCellStyles}
-                  onDoubleClick={() => startEdit(wp.id, 'duration', String(displayDuration))}
+                  onClick={() => !isEditingDur && startEdit(wp.id, 'duration', String(displayDuration))}
                 >
                   {isEditingDur ? (
                     <input
