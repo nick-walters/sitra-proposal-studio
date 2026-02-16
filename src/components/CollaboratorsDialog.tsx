@@ -293,8 +293,8 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
   };
 
   const handleRemoveFromProposal = async (collab: ProposalCollaborator) => {
-    if (collab.userId === user?.id) {
-      toast.error("You can't remove yourself");
+    const isSelf = collab.userId === user?.id;
+    if (isSelf && !window.confirm('Are you sure you want to revoke your own access to this proposal?')) {
       return;
     }
     const { error } = await supabase.from('user_roles').delete().eq('id', collab.id);
@@ -564,7 +564,7 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
                                 </div>
                                 <span className="text-xs text-muted-foreground truncate block">{collab.email}</span>
                               </div>
-                              {canManageProposal && !isSelf ? (
+                              {canManageProposal ? (
                                 <Select
                                   value={collab.role}
                                   onValueChange={(v) => handleChangeRole(collab, v as 'coordinator' | 'editor' | 'viewer')}
@@ -585,7 +585,7 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
                                   {ROLE_LABELS[collab.role] || collab.role}
                                 </Badge>
                               )}
-                              {canManageProposal && !isSelf && (
+                              {canManageProposal && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button
@@ -597,7 +597,7 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
                                       <Trash2 className="w-3 h-3 text-destructive" />
                                     </Button>
                                   </TooltipTrigger>
-                                  <TooltipContent>Remove access</TooltipContent>
+                                  <TooltipContent>{isSelf ? 'Revoke your access' : 'Remove access'}</TooltipContent>
                                 </Tooltip>
                               )}
                             </div>
