@@ -330,57 +330,50 @@ function ReportingPeriodsEditor({ proposal, onUpdate }: {
   const canAdd = totalCovered < duration;
 
   return (
-    <Card>
-      <CardHeader className="pb-2 pt-4">
-        <CardTitle className="flex items-center gap-2 text-sm">
-          <Clock className="w-4 h-4" />
-          Reporting periods
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="space-y-2">
-          {rps.map((rp, idx) => {
-            const len = rp.endMonth - rp.startMonth + 1;
-            const maxLen = Math.min(18, duration - rp.startMonth + 1);
-            return (
-              <div key={idx} className="flex items-center gap-3">
-                <span className="text-sm font-medium w-12">RP{rp.number}</span>
-                <span className="text-xs text-muted-foreground w-28">
-                  M{rp.startMonth}–M{rp.endMonth}
-                </span>
-                <Select
-                  value={String(len)}
-                  onValueChange={(v) => handleLengthChange(idx, Number(v))}
-                >
-                  <SelectTrigger className="w-32 h-7 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: maxLen }, (_, i) => i + 1).map((m) => (
-                      <SelectItem key={m} value={String(m)}>{m} month{m !== 1 ? 's' : ''}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {rps.length > 1 && (
-                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleRemoveRP(idx)}>
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-        <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={handleAddRP}>
-          <Plus className="w-3 h-3" />
-          Add reporting period
-        </Button>
-        {totalCovered < duration && (
-          <p className="text-xs text-warning">
-            Reporting periods cover {totalCovered} of {duration} months. Add more to cover the full duration.
-          </p>
-        )}
-      </CardContent>
-    </Card>
+    <div className="space-y-3">
+      <label className="text-xs text-muted-foreground mb-0.5 block">Reporting periods</label>
+      <div className="space-y-2">
+        {rps.map((rp, idx) => {
+          const len = rp.endMonth - rp.startMonth + 1;
+          const maxLen = Math.min(18, duration - rp.startMonth + 1);
+          return (
+            <div key={idx} className="flex items-center gap-3">
+              <span className="text-sm font-medium w-12">RP{rp.number}</span>
+              <span className="text-xs text-muted-foreground w-28">
+                M{rp.startMonth}–M{rp.endMonth}
+              </span>
+              <Select
+                value={String(len)}
+                onValueChange={(v) => handleLengthChange(idx, Number(v))}
+              >
+                <SelectTrigger className="w-32 h-7 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: maxLen }, (_, i) => i + 1).map((m) => (
+                    <SelectItem key={m} value={String(m)}>{m} month{m !== 1 ? 's' : ''}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {rps.length > 1 && (
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleRemoveRP(idx)}>
+                  <Trash2 className="w-3 h-3" />
+                </Button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={handleAddRP}>
+        <Plus className="w-3 h-3" />
+        Add reporting period
+      </Button>
+      {totalCovered < duration && (
+        <p className="text-xs text-warning">
+          Reporting periods cover {totalCovered} of {duration} months. Add more to cover the full duration.
+        </p>
+      )}
+    </div>
   );
 }
 
