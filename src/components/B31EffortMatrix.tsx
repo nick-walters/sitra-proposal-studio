@@ -3,6 +3,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getContrastingTextColor } from '@/lib/wpColors';
 import type { B31WPData, B31Participant } from '@/hooks/useB31SectionData';
+import { useUserRole } from '@/hooks/useUserRole';
+import { useColumnResize } from '@/hooks/useColumnResize';
+import { ColumnResizer } from '@/components/ColumnResizer';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles = "px-1 py-0.5 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle";
@@ -17,12 +20,13 @@ interface Props {
 
 export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
   const queryClient = useQueryClient();
+  const { isAdminOrOwner } = useUserRole();
+  const { colWidths, tableRef, handleColResizeStart } = useColumnResize();
   const [editingCell, setEditingCell] = useState<{ participantId: string; wpId: string } | null>(null);
   const [editValue, setEditValue] = useState('');
 
   // Build effort matrix: participant -> wp -> person months
   const matrix = new Map<string, Map<string, number>>();
-  // Also track which effort entries exist per participant per WP for editing
   const effortEntries = new Map<string, Map<string, { taskId: string; effortPM: number }[]>>();
   
   participants.forEach(p => {
@@ -46,7 +50,6 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
     });
   });
 
-  // Check if there's any data to show
   let hasData = false;
   matrix.forEach(pMap => { if (pMap.size > 0) hasData = true; });
 
@@ -105,28 +108,32 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
 
   if (wpData.length === 0 || participants.length === 0 || !hasData) return null;
 
+  // Total column count: 1 (participant) + wpData.length (WPs) + 1 (total)
+  const totalCols = wpData.length + 2;
+
   return (
     <div>
       <p className={`${tableStyles} italic mb-0`}>
         <span className="font-bold italic">Table 3.1.f.</span> Person months per participant per work package
       </p>
-      <table className={`${tableStyles} border-collapse`} style={{ width: 'auto' }}>
+      <table className={`${tableStyles} border-collapse`} style={{ width: 'auto', tableLayout: colWidths.length > 0 ? 'fixed' : 'auto' }} ref={tableRef}>
         <thead>
           <tr>
-            <th className={headerCellStyles} style={{ textAlign: 'left', border: 'none', fontWeight: 'bold' }}>
+            <th className={`${headerCellStyles} relative`} style={{ textAlign: 'left', border: 'none', fontWeight: 'bold', ...(colWidths.length > 0 ? { width: colWidths[0] } : {}) }}>
               Participant
+              {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
             </th>
-            {wpData.map(wp => {
+            {wpData.map((wp, i) => {
               const wpColor = wp.color || '#2563EB';
-              const textColor = getContrastingTextColor(wpColor);
               return (
-                <th key={wp.id} className={headerCellStyles} style={{ border: 'none' }}>
+                <th key={wp.id} className={`${headerCellStyles} relative`} style={{ border: 'none', ...(colWidths.length > 0 ? { width: colWidths[i + 1] } : {}) }}>
                   <span
                     className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[11pt] font-bold whitespace-nowrap"
                     style={{ backgroundColor: wpColor, color: '#FFFFFF', lineHeight: 1 }}
                   >
                     WP{wp.number}
                   </span>
+                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(i + 1)} />}
                 </th>
               );
             })}
