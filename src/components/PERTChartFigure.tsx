@@ -152,8 +152,8 @@ export function PERTChartFigure({
     const nodeHeight = 60;
     const hGap = 80;
     const vGap = 60;
-    const startX = 100;
-    const startY = 80;
+    const startX = 10;
+    const startY = 10;
 
     const positions: Record<string, { x: number; y: number }> = {};
     wpDrafts.forEach((wp, index) => {
@@ -321,7 +321,7 @@ export function PERTChartFigure({
       </div>
 
       <TooltipProvider>
-        <div ref={chartRef} className="border rounded-lg bg-background overflow-auto">
+        <div ref={chartRef} className="border rounded-lg bg-background overflow-auto p-0">
           <svg
             ref={svgRef}
             width={svgWidth}
