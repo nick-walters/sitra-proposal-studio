@@ -287,8 +287,8 @@ export function GanttChartFigure({
           {/* Reporting Period Row */}
           <div className="flex" style={{ borderTop: `1px solid ${borderDark}`, borderLeft: `1px solid ${borderDark}` }}>
             <div 
-              className={`shrink-0 flex items-center justify-end pr-1 ${headerLabelStyle}`}
-              style={{ width: labelWidth, height: 18, borderRight: `1px solid ${borderDark}`, borderBottom: `1px solid ${borderDark}` }}
+              className={`shrink-0 flex items-center justify-end ${headerLabelStyle}`}
+              style={{ width: labelWidth, height: 18, padding: '0 0.85pt', borderRight: `1px solid ${borderDark}`, borderBottom: `1px solid ${borderDark}` }}
             >
               Reporting period
             </div>
@@ -309,8 +309,8 @@ export function GanttChartFigure({
           {/* Year Row */}
           <div className="flex" style={{ borderLeft: `1px solid ${borderDark}` }}>
             <div 
-              className={`shrink-0 flex items-center justify-end pr-1 ${headerLabelStyle}`}
-              style={{ width: labelWidth, height: 18, borderRight: `1px solid ${borderDark}`, borderBottom: `1px solid ${borderDark}` }}
+              className={`shrink-0 flex items-center justify-end ${headerLabelStyle}`}
+              style={{ width: labelWidth, height: 18, padding: '0 0.85pt', borderRight: `1px solid ${borderDark}`, borderBottom: `1px solid ${borderDark}` }}
             >
               Year
             </div>
@@ -328,8 +328,8 @@ export function GanttChartFigure({
           {/* Month Row */}
           <div className="flex" style={{ borderLeft: `1px solid ${borderDark}` }}>
             <div 
-              className={`shrink-0 flex items-center justify-end pr-1 ${headerLabelStyle}`}
-              style={{ width: labelWidth, height: 18, borderRight: `1px solid ${borderDark}`, borderBottom: `1px solid ${borderDark}` }}
+              className={`shrink-0 flex items-center justify-end ${headerLabelStyle}`}
+              style={{ width: labelWidth, height: 18, padding: '0 0.85pt', borderRight: `1px solid ${borderDark}`, borderBottom: `1px solid ${borderDark}` }}
             >
               Month
             </div>
@@ -349,8 +349,8 @@ export function GanttChartFigure({
           {/* Milestones Row */}
           <div className="flex" style={{ borderLeft: `1px solid ${borderDark}` }}>
             <div 
-              className={`shrink-0 flex items-center justify-end pr-1 ${headerLabelStyle}`}
-              style={{ width: labelWidth, height: 18, borderRight: `1px solid ${borderDark}`, borderBottom: `1px solid ${borderDark}` }}
+              className={`shrink-0 flex items-center justify-end ${headerLabelStyle}`}
+              style={{ width: labelWidth, height: 18, padding: '0 0.85pt', borderRight: `1px solid ${borderDark}`, borderBottom: `1px solid ${borderDark}` }}
             >
               Milestone
             </div>
@@ -392,7 +392,14 @@ export function GanttChartFigure({
           {workPackages.map((wp, wpIdx) => {
             const wpColor = wp.color || '#2563EB';
             const taskColor = lightenColor(wpColor, 40);
+            const wpColorLight = lightenColor(wpColor, 50);
             const hasTimedTasks = wp.tasks.length > 0;
+            
+            // Collect all tasks (timed + untimed) to determine last row for black bottom border
+            const untimedTasks = (wpDraftsData?.tasks || [])
+              .filter(t => t.wp_draft_id === wpDraftsData?.wps.find(w => w.number === wp.number)?.id)
+              .filter(t => t.start_month == null || t.end_month == null);
+            const totalRows = wp.tasks.length + untimedTasks.length;
             
             return (
               <div key={wp.number}>
@@ -401,14 +408,13 @@ export function GanttChartFigure({
                   <div style={{ height: 4, borderLeft: `1px solid ${borderDark}`, borderRight: `1px solid ${borderDark}` }} />
                 )}
 
-                {/* WP Header Row */}
-                <div className="flex" style={{ borderLeft: `1px solid ${borderDark}` }}>
+                {/* WP Header Row - title spans full width, light color for non-active months */}
+                <div className="flex relative" style={{ borderLeft: `1px solid ${borderDark}` }}>
+                  {/* Background cells for the timeline area */}
                   <div 
-                    className="shrink-0 font-bold truncate flex items-center px-1 text-white"
-                    style={{ width: labelWidth, height: 18, backgroundColor: wpColor, borderRight: `1px solid ${borderDark}`, borderBottom: `1px solid ${borderLight}` }}
-                  >
-                    WP{wp.number}: {wp.title || wp.shortName}
-                  </div>
+                    className="shrink-0"
+                    style={{ width: labelWidth, height: 18, backgroundColor: wpColor, borderRight: `1px solid ${wpColor}`, borderBottom: `1px solid ${wpColor}` }}
+                  />
                   <div className="flex">
                     {months.map(m => {
                       const isInWP = hasTimedTasks && m >= wp.startMonth && m <= wp.endMonth;
@@ -418,75 +424,86 @@ export function GanttChartFigure({
                           style={{ 
                             width: cellWidth, 
                             height: 18,
-                            backgroundColor: isInWP ? wpColor : undefined,
-                            borderRight: isInWP ? getFilledCellRightBorder(m, wpColor) : `1px solid ${getMonthRightBorder(m)}`,
-                            borderBottom: `1px solid ${borderLight}`,
+                            backgroundColor: isInWP ? wpColor : wpColorLight,
+                            borderRight: `1px solid ${wpColor}`,
+                            borderBottom: `1px solid ${wpColor}`,
                           }}
                         />
                       );
                     })}
                   </div>
+                  {/* Overlay title spanning the full row */}
+                  <div 
+                    className="absolute inset-0 flex items-center font-bold text-white truncate"
+                    style={{ padding: '0 0.85pt', pointerEvents: 'none' }}
+                  >
+                    WP{wp.number}: {wp.title || wp.shortName}
+                  </div>
                 </div>
 
                 {/* Task Rows */}
-                {wp.tasks.map((task) => (
-                  <div key={task.id} className="flex" style={{ borderLeft: `1px solid ${borderDark}` }}>
-                    <div 
-                      className="shrink-0 truncate flex items-center px-1"
-                      style={{ width: labelWidth, height: 18, borderRight: `1px solid ${borderDark}`, borderBottom: `1px solid ${borderLight}` }}
-                    >
-                      <span className="font-medium mr-1">T{task.wpNumber}.{task.taskNumber}:</span>
-                      <span className="truncate">{task.name || '(untitled)'}</span>
-                    </div>
-                    <div className="flex">
-                      {months.map(m => {
-                        const isInTask = m >= task.startMonth && m <= task.endMonth;
-                        const deliverable = task.deliverables?.find(d => d.month === m);
-                        
-                        return (
-                          <div
-                            key={m}
-                            className="flex items-center justify-center"
-                            style={{ 
-                              width: cellWidth, 
-                              height: 18,
-                              backgroundColor: isInTask ? taskColor : undefined,
-                              borderRight: isInTask ? getFilledCellRightBorder(m, taskColor) : `1px solid ${getMonthRightBorder(m)}`,
-                              borderBottom: `1px solid ${borderLight}`,
-                            }}
-                          >
-                            {deliverable && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span 
-                                    className="font-bold"
-                                    style={{ fontSize: '7pt', color: isInTask ? getContrastingTextColor(taskColor) : undefined }}
-                                  >
-                                    {deliverable.number}
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="text-xs font-medium">Deliverable D{deliverable.number}</p>
-                                  <p className="text-xs text-muted-foreground">Month {m}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-
-                {/* Also show tasks without timing as empty rows */}
-                {wpDraftsData?.tasks
-                  .filter(t => t.wp_draft_id === wpDraftsData.wps.find(w => w.number === wp.number)?.id)
-                  .filter(t => t.start_month == null || t.end_month == null)
-                  .map(task => (
+                {wp.tasks.map((task, taskIdx) => {
+                  const isLastRow = untimedTasks.length === 0 && taskIdx === wp.tasks.length - 1;
+                  const bottomBorder = isLastRow ? `1px solid ${borderDark}` : `1px solid ${borderLight}`;
+                  return (
                     <div key={task.id} className="flex" style={{ borderLeft: `1px solid ${borderDark}` }}>
                       <div 
-                        className="shrink-0 truncate flex items-center px-1"
-                        style={{ width: labelWidth, height: 18, borderRight: `1px solid ${borderDark}`, borderBottom: `1px solid ${borderLight}` }}
+                        className="shrink-0 truncate flex items-center"
+                        style={{ width: labelWidth, height: 18, padding: '0 0.85pt', borderRight: `1px solid ${borderDark}`, borderBottom: bottomBorder }}
+                      >
+                        <span className="font-medium mr-1">T{task.wpNumber}.{task.taskNumber}:</span>
+                        <span className="truncate">{task.name || '(untitled)'}</span>
+                      </div>
+                      <div className="flex">
+                        {months.map(m => {
+                          const isInTask = m >= task.startMonth && m <= task.endMonth;
+                          const deliverable = task.deliverables?.find(d => d.month === m);
+                          
+                          return (
+                            <div
+                              key={m}
+                              className="flex items-center justify-center"
+                              style={{ 
+                                width: cellWidth, 
+                                height: 18,
+                                backgroundColor: isInTask ? taskColor : undefined,
+                                borderRight: isInTask ? getFilledCellRightBorder(m, taskColor) : `1px solid ${getMonthRightBorder(m)}`,
+                                borderBottom: bottomBorder,
+                              }}
+                            >
+                              {deliverable && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span 
+                                      className="font-bold"
+                                      style={{ fontSize: '7pt', color: isInTask ? getContrastingTextColor(taskColor) : undefined }}
+                                    >
+                                      {deliverable.number}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="text-xs font-medium">Deliverable D{deliverable.number}</p>
+                                    <p className="text-xs text-muted-foreground">Month {m}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Also show tasks without timing as empty rows */}
+                {untimedTasks.map((task, utIdx) => {
+                  const isLastRow = utIdx === untimedTasks.length - 1;
+                  const bottomBorder = isLastRow ? `1px solid ${borderDark}` : `1px solid ${borderLight}`;
+                  return (
+                    <div key={task.id} className="flex" style={{ borderLeft: `1px solid ${borderDark}` }}>
+                      <div 
+                        className="shrink-0 truncate flex items-center"
+                        style={{ width: labelWidth, height: 18, padding: '0 0.85pt', borderRight: `1px solid ${borderDark}`, borderBottom: bottomBorder }}
                       >
                         <span className="font-medium mr-1">T{wp.number}.{task.number}:</span>
                         <span className="truncate text-muted-foreground">{task.title || '(untitled)'}</span>
@@ -499,14 +516,14 @@ export function GanttChartFigure({
                               width: cellWidth, 
                               height: 18,
                               borderRight: `1px solid ${getMonthRightBorder(m)}`,
-                              borderBottom: `1px solid ${borderLight}`,
+                              borderBottom: bottomBorder,
                             }}
                           />
                         ))}
                       </div>
                     </div>
-                  ))
-                }
+                  );
+                })}
               </div>
             );
           })}
