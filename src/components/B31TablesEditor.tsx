@@ -302,8 +302,8 @@ function MonthSelect({
 function WPBubble({ wp, onRemove }: { wp: WorkPackage; onRemove?: () => void }) {
   return (
     <span 
-      className="inline-flex items-center justify-center gap-0.5 px-1.5 rounded-full text-white text-[9pt] font-bold whitespace-nowrap"
-      style={{ backgroundColor: wp.color || '#666', lineHeight: 1, verticalAlign: 'middle' }}
+      className="inline-flex items-center justify-center gap-0.5 px-1.5 rounded-full text-white text-[9pt] font-bold whitespace-nowrap relative"
+      style={{ backgroundColor: wp.color || '#666', lineHeight: 1, verticalAlign: 'middle', top: '-2pt' }}
     >
       WP{wp.number}
       {onRemove && (
@@ -770,8 +770,8 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                           <SelectValue placeholder="-">
                             {del.lead_participant_id ? (
                               <span
-                                className="inline-flex items-center justify-center px-1.5 rounded-full text-[9pt] font-bold italic text-white whitespace-nowrap"
-                                style={{ backgroundColor: '#000', lineHeight: 1, verticalAlign: 'middle' }}
+                                className="inline-flex items-center justify-center px-1.5 rounded-full text-[9pt] font-bold italic text-white whitespace-nowrap relative"
+                                style={{ backgroundColor: '#000', lineHeight: 1, verticalAlign: 'middle', top: '-2pt' }}
                               >
                                 {participants.find(p => p.id === del.lead_participant_id)?.organisation_short_name || '-'}
                               </span>
