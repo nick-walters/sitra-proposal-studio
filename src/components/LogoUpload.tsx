@@ -147,7 +147,7 @@ export function LogoUpload({
   const acronymColor = getAcronymColor(proposalAcronym);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex gap-2 items-start">
       {/* Logo Preview */}
       <div className="relative w-28 h-28 rounded-xl border bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
         {currentUrl ? (
@@ -180,9 +180,9 @@ export function LogoUpload({
         )}
       </div>
 
-      {/* Upload Controls - stacked vertically: Generate, then Upload */}
+      {/* Upload Controls - stacked vertically to the right of the logo */}
       {!disabled && (
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5 pt-0.5">
           {/* Hidden file input */}
           <input
             ref={fileInputRef}
@@ -193,7 +193,7 @@ export function LogoUpload({
             disabled={isUploading}
           />
 
-          {/* AI Generation - first */}
+          {/* AI Generation */}
           <Button
             variant="outline"
             size="sm"
@@ -209,7 +209,7 @@ export function LogoUpload({
             Generate
           </Button>
 
-          {/* File Upload - second */}
+          {/* File Upload */}
           <Button
             variant="outline"
             size="sm"
@@ -225,7 +225,7 @@ export function LogoUpload({
             Upload
           </Button>
 
-          {/* Download button - only show if there's a logo */}
+          {/* Download button */}
           {currentUrl && (
             <Button
               variant="outline"
