@@ -15,7 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { InlineGuideline } from "./GuidelineBox";
 import { PartAGuidelinesDialog } from "./PartAGuidelinesDialog";
 import { LogoUpload } from "./LogoUpload";
-import { WPDependencySelector } from "./WPDependencySelector";
+
 import { Section, Proposal, Participant, ParticipantMember, WORK_PROGRAMMES, DESTINATIONS, getDestinationsForWorkProgramme } from "@/types/proposal";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -1319,13 +1319,6 @@ export function GeneralInfoForm({
           </CardContent>
         </Card>
 
-        {/* WP Dependencies for PERT Chart (Full Proposals Only) */}
-        {proposal?.submissionStage !== 'stage_1' && (
-          <WPDependencySelector
-            proposalId={proposalId}
-            isCoordinator={isCoordinator}
-          />
-        )}
 
         {/* Delete Proposal - Admins/Owners Only */}
         {isCoordinator && (
