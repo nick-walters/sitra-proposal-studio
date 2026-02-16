@@ -471,7 +471,7 @@ export function GanttChartFigure({
           })}
 
           {/* Legend */}
-          <div className="flex items-center gap-4 mt-3 px-1 text-[8px] text-muted-foreground border-t pt-2">
+          <div className="flex items-center gap-4 mt-1 px-1 text-[8px] text-muted-foreground border-t pt-1">
             <span className="font-semibold">Legend:</span>
             <div className="flex items-center gap-1">
               <div className="w-3 h-2 bg-primary/30 border border-primary/50" />

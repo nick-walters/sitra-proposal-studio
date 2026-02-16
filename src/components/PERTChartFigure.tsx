@@ -153,8 +153,8 @@ export function PERTChartFigure({
     const nodeHeight = 60;
     const hGap = 80;
     const vGap = 60;
-    const startX = 100;
-    const startY = 80;
+    const startX = 20;
+    const startY = 20;
 
     const positions: Record<string, { x: number; y: number }> = {};
     wpDrafts.forEach((wp, index) => {
@@ -259,8 +259,16 @@ export function PERTChartFigure({
 
   const handleMouseUp = useCallback(() => { setDraggingNode(null); }, []);
 
-  const svgWidth = Math.max(800, ...nodes.map((n) => n.x + 150));
-  const svgHeight = Math.max(400, ...nodes.map((n) => n.y + 100));
+  const nodeW = 120;
+  const nodeH = 50;
+  const minX = Math.min(...nodes.map(n => n.x));
+  const minY = Math.min(...nodes.map(n => n.y));
+  const maxX = Math.max(...nodes.map(n => n.x + nodeW));
+  const maxY = Math.max(...nodes.map(n => n.y + nodeH));
+  const pad = canEdit ? 30 : 5;
+  const svgWidth = canEdit ? Math.max(800, maxX + pad) : (maxX - minX + pad * 2);
+  const svgHeight = canEdit ? Math.max(400, maxY + pad) : (maxY - minY + pad * 2);
+  const viewBoxStr = canEdit ? `0 0 ${svgWidth} ${svgHeight}` : `${minX - pad} ${minY - pad} ${svgWidth} ${svgHeight}`;
 
   const getWpLabel = (wpId: string) => {
     const wp = wpDrafts.find((w) => w.id === wpId);
@@ -325,10 +333,10 @@ export function PERTChartFigure({
         <div ref={chartRef} className={canEdit ? "border rounded-lg bg-background overflow-auto" : "overflow-auto"}>
           <svg
             ref={svgRef}
-            width={canEdit ? svgWidth : '100%'}
-            height={svgHeight}
-            viewBox={canEdit ? undefined : `0 0 ${svgWidth} ${svgHeight}`}
-            preserveAspectRatio={canEdit ? undefined : 'xMidYMid meet'}
+            width="100%"
+            height={canEdit ? svgHeight : undefined}
+            viewBox={viewBoxStr}
+            preserveAspectRatio="xMidYMid meet"
             className="select-none"
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
