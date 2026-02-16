@@ -57,7 +57,7 @@ export function FigureEditor({
               className="max-w-full h-auto mx-auto"
             />
           </div>
-          <p className="text-sm text-muted-foreground text-center">
+          <p className="text-sm text-muted-foreground text-left">
             <em><strong>Figure {figure.figureNumber}.</strong> {caption || title}</em>
           </p>
         </div>

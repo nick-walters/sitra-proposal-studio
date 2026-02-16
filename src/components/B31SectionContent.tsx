@@ -51,7 +51,7 @@ export function B31SectionContent({ proposalId }: Props) {
             onContentChange={() => {}}
             canEdit={false}
           />
-          <p className={`${tableStyles} italic text-center mt-1`}>
+          <p className={`${tableStyles} italic mt-1`}>
             <span className="font-bold italic">Figure 3.1.a.</span> {pertFigure.caption || pertFigure.title}
           </p>
         </div>
@@ -71,7 +71,7 @@ export function B31SectionContent({ proposalId }: Props) {
             onContentChange={() => {}}
             canEdit={false}
           />
-          <p className={`${tableStyles} italic text-center mt-1`}>
+          <p className={`${tableStyles} italic mt-1`}>
             <span className="font-bold italic">Figure 3.1.b.</span> {ganttFigure.caption || ganttFigure.title}
           </p>
         </div>
