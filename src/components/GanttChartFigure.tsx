@@ -312,13 +312,13 @@ export function GanttChartFigure({
             >
               Reporting period
             </div>
-            {reportingPeriods.map((rp) => {
+            {reportingPeriods.map((rp, rpIdx) => {
               const periodMonths = rp.endMonth - rp.startMonth + 1;
               return (
                 <div
                   key={rp.number}
                   className="text-center font-bold flex items-center justify-center"
-                  style={{ width: periodMonths * cellWidth, height: 18 }}
+                  style={{ width: periodMonths * cellWidth, height: 18, borderTop: `1px solid ${borderDark}`, borderBottom: `1px solid ${borderDark}`, borderLeft: rpIdx === 0 ? `1px solid ${borderDark}` : undefined, borderRight: `1px solid ${borderDark}` }}
                 >
                   {rp.number}
                 </div>
@@ -334,11 +334,11 @@ export function GanttChartFigure({
             >
               Year
             </div>
-            {years.map(yr => (
+            {years.map((yr, yrIdx) => (
               <div
                 key={yr.year}
                 className="text-center font-bold flex items-center justify-center"
-                style={{ width: yr.months.length * cellWidth, height: 18 }}
+                style={{ width: yr.months.length * cellWidth, height: 18, borderTop: `1px solid ${borderDark}`, borderBottom: `1px solid ${borderDark}`, borderLeft: yrIdx === 0 ? `1px solid ${borderDark}` : undefined, borderRight: `1px solid ${borderDark}` }}
               >
                 {yr.year}
               </div>
@@ -353,12 +353,12 @@ export function GanttChartFigure({
             >
               Month
             </div>
-            <div className="flex">
+            <div className="flex" style={{ border: `1px solid ${borderDark}` }}>
               {months.map(m => (
                 <div
                   key={m}
                   className="flex items-center justify-center"
-                  style={{ width: cellWidth, height: 28 }}
+                  style={{ width: cellWidth, height: 28, borderRight: `1px solid ${getMonthRightBorder(m)}` }}
                 >
                   <span style={{ fontSize: '7pt', writingMode: 'vertical-rl', transform: 'rotate(180deg)', lineHeight: 1 }}>
                     {m}
@@ -376,14 +376,14 @@ export function GanttChartFigure({
             >
               Milestone
             </div>
-            <div className="flex">
+            <div className="flex" style={{ border: `1px solid ${borderDark}` }}>
               {months.map(m => {
                 const ms = getMilestonesForMonth(m);
                 return (
                   <div
                     key={m}
                     className="flex items-center justify-center"
-                    style={{ width: cellWidth, height: 18 }}
+                    style={{ width: cellWidth, height: 18, borderRight: `1px solid ${getMonthRightBorder(m)}` }}
                   >
                     {ms.length > 0 && (
                       <Tooltip>
