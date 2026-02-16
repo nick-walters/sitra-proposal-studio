@@ -60,47 +60,59 @@ export function GanttChartFigure({
   canEdit,
 }: GanttChartFigureProps) {
   const chartRef = useRef<HTMLDivElement>(null);
-  // Fetch wp_drafts with their tasks
+
+  // Fetch wp_drafts with their tasks, deliverables, and milestones dynamically
   const { data: wpDraftsData } = useQuery({
     queryKey: ['wp-drafts-gantt', proposalId],
     queryFn: async () => {
-      const { data: wps, error: wpError } = await supabase
-        .from('wp_drafts')
-        .select('id, number, short_name, title, color')
-        .eq('proposal_id', proposalId)
-        .order('order_index');
+      const [
+        { data: wps, error: wpError },
+        { data: tasks, error: taskError },
+        { data: deliverables, error: delError },
+        { data: msData, error: msError },
+      ] = await Promise.all([
+        supabase
+          .from('wp_drafts')
+          .select('id, number, short_name, title, color')
+          .eq('proposal_id', proposalId)
+          .order('order_index'),
+        supabase
+          .from('wp_draft_tasks')
+          .select('id, wp_draft_id, number, title, start_month, end_month')
+          .order('order_index'),
+        supabase
+          .from('wp_draft_deliverables')
+          .select('id, wp_draft_id, number, due_month'),
+        supabase
+          .from('b31_milestones')
+          .select('id, number, name, due_month')
+          .eq('proposal_id', proposalId)
+          .order('number'),
+      ]);
       if (wpError) throw wpError;
-
-      // Fetch tasks for each WP
-      const { data: tasks, error: taskError } = await supabase
-        .from('wp_draft_tasks')
-        .select('id, wp_draft_id, number, title, start_month, end_month')
-        .in('wp_draft_id', wps.map(wp => wp.id))
-        .order('order_index');
       if (taskError) throw taskError;
-
-      // Fetch deliverables
-      const { data: deliverables, error: delError } = await supabase
-        .from('wp_draft_deliverables')
-        .select('id, wp_draft_id, number, due_month')
-        .in('wp_draft_id', wps.map(wp => wp.id));
       if (delError) throw delError;
+      if (msError) throw msError;
 
-      return { wps, tasks, deliverables };
+      // Filter tasks/deliverables to only those belonging to fetched WPs
+      const wpIds = new Set(wps!.map(wp => wp.id));
+      const filteredTasks = (tasks || []).filter(t => wpIds.has(t.wp_draft_id));
+      const filteredDeliverables = (deliverables || []).filter(d => wpIds.has(d.wp_draft_id));
+
+      return { wps: wps!, tasks: filteredTasks, deliverables: filteredDeliverables, milestones: msData || [] };
     },
   });
 
-  // Build work packages from wp_drafts data
-  useEffect(() => {
-    if (!wpDraftsData || content?.workPackages?.length) return;
+  // Always compute work packages and milestones dynamically from DB
+  const dynamicData = useMemo(() => {
+    if (!wpDraftsData) return { workPackages: [] as WorkPackage[], milestones: [] as Milestone[] };
 
-    const { wps, tasks, deliverables } = wpDraftsData;
+    const { wps, tasks, deliverables, milestones: msRows } = wpDraftsData;
 
     const workPackages: WorkPackage[] = wps.map((wp) => {
       const wpTasks = tasks.filter(t => t.wp_draft_id === wp.id);
       const wpDeliverables = deliverables.filter(d => d.wp_draft_id === wp.id);
 
-      // Calculate WP timing from tasks
       const taskStartMonths = wpTasks.filter(t => t.start_month).map(t => t.start_month!);
       const taskEndMonths = wpTasks.filter(t => t.end_month).map(t => t.end_month!);
       const startMonth = taskStartMonths.length > 0 ? Math.min(...taskStartMonths) : 1;
@@ -121,26 +133,22 @@ export function GanttChartFigure({
           startMonth: t.start_month || 1,
           endMonth: t.end_month || 36,
           deliverables: wpDeliverables
-            .filter(d => d.due_month && d.due_month >= (t.start_month || 1) && d.due_month <= (t.end_month || 36))
+            .filter(d => d.due_month != null)
             .map(d => ({ number: `${wp.number}.${d.number}`, month: d.due_month! })),
         })),
       };
     });
 
-    onContentChange({
-      projectDuration: 36,
-      workPackages,
-      milestones: [],
-      reportingPeriods: [
-        { number: 1, startMonth: 1, endMonth: 18 },
-        { number: 2, startMonth: 19, endMonth: 36 },
-      ],
-    });
-  }, [wpDraftsData, content, onContentChange]);
+    const msMapped: Milestone[] = msRows
+      .filter(m => m.due_month != null)
+      .map(m => ({ id: m.id, number: m.number, name: m.name, month: m.due_month! }));
+
+    return { workPackages, milestones: msMapped };
+  }, [wpDraftsData]);
 
   const projectDuration = content?.projectDuration || 36;
-  const workPackages = content?.workPackages || [];
-  const milestones = content?.milestones || [];
+  const workPackages = dynamicData.workPackages;
+  const milestones = dynamicData.milestones;
   const reportingPeriods = content?.reportingPeriods || [
     { number: 1, startMonth: 1, endMonth: 18 },
     { number: 2, startMonth: 19, endMonth: 36 },
