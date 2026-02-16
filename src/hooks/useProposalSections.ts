@@ -444,20 +444,12 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       },
     };
 
-    // WP drafts section: WP items directly listed (themes only affect colors, not navigation structure)
-    const wpDraftsSection: Section = {
+    // Combined WPs & cases section
+    const wpAndCasesSection: Section = {
       id: 'wp-drafts',
       number: '',
-      title: 'WP drafts',
-      subsections: wpDraftSections,
-    };
-
-    // Define the Case drafts section with Case subsections (only if there are cases)
-    const caseDraftsSection: Section = {
-      id: 'case-drafts',
-      number: '',
-      title: 'Case drafts',
-      subsections: caseDraftSections,
+      title: 'WPs & cases',
+      subsections: [...wpDraftSections, ...caseDraftSections],
     };
 
     if (hasTemplateSections && templateSections.length > 0) {
@@ -474,14 +466,9 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       // Build result: Proposal Management, Part A, Part B, then WP Drafts, then Case Drafts, then Figures
       const result = [proposalManagementSection, ...partASections, ...partBSections];
       
-      // Add WP Drafts as standalone top-level section
-      if (wpDraftSections.length > 0) {
-        result.push(wpDraftsSection);
-      }
-      
-      // Add Case Drafts as standalone top-level section (after WP Drafts)
-      if (caseDraftSections.length > 0) {
-        result.push(caseDraftsSection);
+      // Add combined WPs & cases section if there are any WP or case drafts
+      if (wpDraftSections.length > 0 || caseDraftSections.length > 0) {
+        result.push(wpAndCasesSection);
       }
       
       // Add Figures as standalone top-level section (after Case Drafts)
@@ -493,14 +480,9 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     // Fallback to hardcoded sections
     const fallbackSections = [proposalManagementSection, ...PART_A_SECTIONS, ...HORIZON_EUROPE_SECTIONS];
     
-    // Add WP Drafts as standalone top-level section
-    if (wpDraftSections.length > 0) {
-      fallbackSections.push(wpDraftsSection);
-    }
-    
-    // Add Case Drafts as standalone top-level section (after WP Drafts)
-    if (caseDraftSections.length > 0) {
-      fallbackSections.push(caseDraftsSection);
+    // Add combined WPs & cases section
+    if (wpDraftSections.length > 0 || caseDraftSections.length > 0) {
+      fallbackSections.push(wpAndCasesSection);
     }
     
     // Add Figures as standalone top-level section (after Case Drafts)
