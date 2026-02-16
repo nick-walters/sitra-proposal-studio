@@ -399,7 +399,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
 
                 {/* WP leader & duration row - editable leader */}
                 <tr>
-                  <td colSpan={2} className={`${cellStyles}`} style={{ borderColor: wp.color }}>
+                  <td colSpan={2} className={`${cellStyles} whitespace-nowrap`} style={{ borderColor: wp.color, width: '1%' }}>
                     <div className="flex items-center flex-wrap">
                       <span className="italic font-bold">WP leader:&nbsp;</span>
                       <LeaderPicker
@@ -476,7 +476,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
 
                       {/* Task metadata row: leader | partners | timing */}
                       <tr>
-                        <td className={`${cellStyles}`} style={{ borderColor: wp.color }}>
+                        <td className={`${cellStyles} whitespace-nowrap`} style={{ borderColor: wp.color, width: '1%' }}>
                           <div className="flex items-center flex-wrap">
                             <span className="italic font-bold">Task leader:&nbsp;</span>
                             <LeaderPicker
