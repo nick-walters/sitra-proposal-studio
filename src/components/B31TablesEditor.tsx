@@ -955,10 +955,10 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
           <Table className={tableStyles}>
             <TableHeader>
               <TableRow className="bg-black text-white hover:bg-black">
-                <TableHead className={`${headerCellStyles} text-white font-bold whitespace-nowrap`}>Milestone</TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold whitespace-nowrap`}>WPs</TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold whitespace-nowrap`}>Due</TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold w-full`}>Means of verification</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold`}>Milestone</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold`} style={{ width: '1%', whiteSpace: 'nowrap' }}>WPs</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold`} style={{ width: '1%', whiteSpace: 'nowrap' }}>Due</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold`}>Means of verification</TableHead>
               </TableRow>
             </TableHeader>
             <SortableContext items={milestones.map(m => m.id)} strategy={verticalListSortingStrategy}>
@@ -977,14 +977,14 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className={bubbleCellStyles}>
+                    <TableCell className={bubbleCellStyles} style={{ width: '1%', whiteSpace: 'nowrap' }}>
                       <MultiWPSelector
                         value={ms.wps}
                         onChange={(val) => updateMilestone.mutate({ id: ms.id, wps: val })}
                         workPackages={workPackages}
                       />
                     </TableCell>
-                    <TableCell className={cellStyles}>
+                    <TableCell className={cellStyles} style={{ width: '1%', whiteSpace: 'nowrap' }}>
                       <MonthSelect
                         value={ms.due_month}
                         onChange={(val) => updateMilestone.mutate({ id: ms.id, due_month: val })}
