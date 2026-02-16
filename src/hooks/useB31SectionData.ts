@@ -11,6 +11,8 @@ export interface B31WPData {
   color: string;
   objectives: string | null;
   methodology: string | null;
+  manual_person_months: number | null;
+  manual_duration: string | null;
   tasks: {
     id: string;
     number: number;
@@ -69,7 +71,7 @@ export function useB31SectionData(proposalId: string) {
         supabase
           .from('wp_drafts')
           .select(`
-            id, number, title, short_name, lead_participant_id, objectives, methodology,
+            id, number, title, short_name, lead_participant_id, objectives, methodology, manual_person_months, manual_duration,
             tasks:wp_draft_tasks(
               id, number, title, description, lead_participant_id, start_month, end_month,
               effort:wp_draft_task_effort(participant_id, person_months),
