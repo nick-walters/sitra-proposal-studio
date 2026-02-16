@@ -74,7 +74,7 @@ export function B31SectionContent({ proposalId }: Props) {
             canEdit={false}
           />
           <p className={`${tableStyles} italic mt-1`}>
-            <span className="font-bold italic">Figure 3.1.b.</span> Gantt chart, showing WP, task, deliverable <span style={{ display: 'inline-block', width: '1.2em', height: '1em', border: '1px solid #16a34a', borderRadius: '9999px', verticalAlign: 'middle' }} /> &amp; milestone <span style={{ display: 'inline-block', width: '1.2em', height: '1em', border: '1px solid #dc2626', borderRadius: '9999px', verticalAlign: 'middle' }} /> timings
+            <span className="font-bold italic">Figure 3.1.b.</span> Gantt chart, showing WP, task, deliverable <span style={{ display: 'inline-block', width: '1.2em', height: '1em', border: '1px solid #16a34a', borderRadius: '9999px', verticalAlign: 'baseline', position: 'relative', top: '-0.15em' }} /> &amp; milestone <span style={{ display: 'inline-block', width: '1.2em', height: '1em', border: '1px solid #dc2626', borderRadius: '9999px', verticalAlign: 'baseline', position: 'relative', top: '-0.15em' }} /> timings
           </p>
           <div className="mt-2 print:hidden flex gap-2">
             <DeliverableTaskMappingDialog proposalId={proposalId} />
