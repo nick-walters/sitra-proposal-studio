@@ -69,14 +69,21 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
       <p className={`${tableStyles} italic mb-0`}>
         <span className="font-bold italic">Table 3.1.a.</span> List of work packages
       </p>
-      <table className={`${tableStyles} w-full border-collapse`}>
+      <table className={`${tableStyles} w-full border-collapse table-fixed`}>
+        <colgroup>
+          <col style={{ width: 'auto' }} />
+          <col />
+          <col style={{ width: 'auto' }} />
+          <col style={{ width: '50px' }} />
+          <col style={{ width: '70px' }} />
+        </colgroup>
         <thead>
           <tr>
-            <th className={headerCellStyles}>No.</th>
+            <th className={`${headerCellStyles} whitespace-nowrap`}>No.</th>
             <th className={headerCellStyles}>Work package title</th>
-            <th className={`${headerCellStyles} w-[120px]`}>Lead</th>
-            <th className={`${headerCellStyles} w-[80px]`}>Person months</th>
-            <th className={`${headerCellStyles} w-[90px]`}>Duration</th>
+            <th className={`${headerCellStyles} whitespace-nowrap`}>Lead</th>
+            <th className={`${headerCellStyles} whitespace-nowrap`}>Person months</th>
+            <th className={`${headerCellStyles} whitespace-nowrap`}>Duration</th>
           </tr>
         </thead>
         <tbody>
