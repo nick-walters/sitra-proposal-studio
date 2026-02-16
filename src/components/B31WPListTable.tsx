@@ -72,7 +72,7 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
       <table className={`${tableStyles} w-full border-collapse`}>
         <thead>
           <tr>
-            <th className={`${headerCellStyles} whitespace-nowrap`}>No.</th>
+            <th className={`${headerCellStyles} whitespace-nowrap`}>No. &amp; short name</th>
             <th className={headerCellStyles}>Work package title</th>
             <th className={`${headerCellStyles} whitespace-nowrap`}>Lead</th>
             <th className={`${headerCellStyles} whitespace-nowrap`}>Person months</th>
