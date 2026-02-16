@@ -20,7 +20,7 @@ export function DeliverableTaskMappingDialog({ proposalId }: DeliverableTaskMapp
       const [{ data: wps }, { data: tasks }, { data: deliverables }] = await Promise.all([
         supabase.from('wp_drafts').select('id, number, short_name, title').eq('proposal_id', proposalId).order('order_index'),
         supabase.from('wp_draft_tasks').select('id, wp_draft_id, number, title, start_month, end_month'),
-        supabase.from('wp_draft_deliverables').select('id, wp_draft_id, number, title, task_id, due_month'),
+        supabase.from('b31_deliverables').select('id, number, name, wp_number, task_id, due_month').eq('proposal_id', proposalId).order('order_index'),
       ]);
       return { wps: wps || [], tasks: tasks || [], deliverables: deliverables || [] };
     },
@@ -30,7 +30,7 @@ export function DeliverableTaskMappingDialog({ proposalId }: DeliverableTaskMapp
   const updateMutation = useMutation({
     mutationFn: async ({ deliverableId, taskId }: { deliverableId: string; taskId: string | null }) => {
       const { error } = await supabase
-        .from('wp_draft_deliverables')
+        .from('b31_deliverables')
         .update({ task_id: taskId })
         .eq('id', deliverableId);
       if (error) throw error;
@@ -54,11 +54,15 @@ export function DeliverableTaskMappingDialog({ proposalId }: DeliverableTaskMapp
 
   const groupedDeliverables = useMemo(() => {
     if (!data) return [];
-    return data.wps.map(wp => ({
-      wp,
-      deliverables: data.deliverables.filter(d => d.wp_draft_id === wp.id),
-      tasks: data.tasks.filter(t => t.wp_draft_id === wp.id),
-    })).filter(g => g.deliverables.length > 0);
+    return data.wps.map(wp => {
+      // Only show deliverables that have meaningful content (name filled in)
+      const wpDeliverables = data.deliverables
+        .filter(d => d.wp_number === wp.number && d.name && d.name.trim() !== '');
+      // Only show tasks that have meaningful content (title filled in)
+      const wpTasks = (data.tasks || [])
+        .filter(t => t.wp_draft_id === wp.id && t.title && t.title.trim() !== '');
+      return { wp, deliverables: wpDeliverables, tasks: wpTasks };
+    }).filter(g => g.deliverables.length > 0);
   }, [data]);
 
   return (
@@ -81,7 +85,7 @@ export function DeliverableTaskMappingDialog({ proposalId }: DeliverableTaskMapp
                 {deliverables.map(del => (
                   <div key={del.id} className="flex items-start gap-2">
                     <div className="text-sm shrink-0 min-w-0 flex-1">
-                      <span className="font-medium">D{wp.number}.{del.number}: {del.title || '(untitled)'}</span>
+                      <span className="font-medium">D{del.wp_number}.{del.number}: {del.name}</span>
                       {del.due_month != null && <span className="text-muted-foreground"> (M{del.due_month})</span>}
                     </div>
                     <Select
