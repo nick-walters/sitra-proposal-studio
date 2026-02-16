@@ -71,6 +71,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePdfExport } from "@/hooks/usePdfExport";
+import { useDocxExport } from "@/hooks/useDocxExport";
+import type { ExportFormat } from "@/components/ExportDialog";
 import { useCollaborativeCursors } from "@/hooks/useCollaborativeCursors";
 import { useProposalData } from "@/hooks/useProposalData";
 import { useProposalSections } from "@/hooks/useProposalSections";
@@ -101,6 +103,7 @@ export function ProposalEditor() {
   const [isSubmitConfirmOpen, setIsSubmitConfirmOpen] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const { exportToPdf, exportProposalToPdf } = usePdfExport();
+  const { exportProposalToDocx } = useDocxExport();
 
   // Fetch proposal data from database
   const {
@@ -335,7 +338,7 @@ export function ProposalEditor() {
     }
   };
 
-  const handleExportPdf = async (includeWatermark: boolean = true) => {
+  const handleExport = async (format: ExportFormat, includeWatermark: boolean) => {
     if (!proposal) return;
     
     // Fetch section contents
@@ -343,7 +346,7 @@ export function ProposalEditor() {
       ({ supabase }) => supabase.from('section_content').select('*').eq('proposal_id', id)
     );
 
-    exportProposalToPdf({
+    const exportData = {
       proposal: {
         ...proposal,
         members: [],
@@ -356,11 +359,14 @@ export function ProposalEditor() {
       })),
       sections: allSections,
       participants: participants,
-    }, { includeWatermark });
-  };
+    };
 
-  const handleExportPdfWithWatermark = () => handleExportPdf(true);
-  const handleExportPdfNoWatermark = () => handleExportPdf(false);
+    if (format === 'docx') {
+      exportProposalToDocx(exportData, { includeWatermark });
+    } else {
+      exportProposalToPdf(exportData, { includeWatermark });
+    }
+  };
 
   const handleDuplicateProposal = async (newAcronym: string, newTitle: string) => {
     if (!proposal || !id) return;
@@ -494,7 +500,7 @@ export function ProposalEditor() {
                 amount: b.amount,
                 participantId: b.participantId,
               }))}
-              onExportPdf={handleExportPdf}
+              onExport={handleExport}
             />
           </div>
         );
