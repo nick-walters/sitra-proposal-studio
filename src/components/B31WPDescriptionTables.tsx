@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,6 +8,7 @@ import type { B31WPData, B31Participant } from '@/hooks/useB31SectionData';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles = "border px-0.5 py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-top";
+const editableCellStyles = `${cellStyles} cursor-text hover:bg-muted/30`;
 
 interface Props {
   wpData: B31WPData[];
@@ -256,9 +257,49 @@ function SpacerRow() {
   );
 }
 
+/* ── Inline editable text cell ── */
+function EditableText({
+  value,
+  onSave,
+  placeholder,
+  className,
+}: {
+  value: string;
+  onSave: (newValue: string) => void;
+  placeholder?: string;
+  className?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const savedRef = useRef(value);
+
+  const handleBlur = useCallback(() => {
+    const current = ref.current?.innerHTML || '';
+    if (current !== savedRef.current) {
+      savedRef.current = current;
+      onSave(current);
+    }
+  }, [onSave]);
+
+  return (
+    <div
+      ref={ref}
+      contentEditable
+      suppressContentEditableWarning
+      className={cn(
+        "outline-none min-h-[1.2em] font-['Times_New_Roman',Times,serif] text-[11pt]",
+        !value && 'text-muted-foreground italic',
+        className,
+      )}
+      onBlur={handleBlur}
+      dangerouslySetInnerHTML={{ __html: value || placeholder || '' }}
+    />
+  );
+}
+
 /* ── Main component ── */
 export function B31WPDescriptionTables({ wpData, participants, proposalId }: Props) {
-  const populatedWPs = wpData.filter(wp => wp.objectives || (wp.tasks && wp.tasks.length > 0));
+  const queryClient = useQueryClient();
+  const populatedWPs = wpData;
 
   if (populatedWPs.length === 0) return null;
 
@@ -301,11 +342,16 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
 
                 {/* Objectives */}
                 <tr>
-                  <td colSpan={3} className={cellStyles} style={{ borderColor: wp.color }}>
+                  <td colSpan={3} className={editableCellStyles} style={{ borderColor: wp.color }}>
                     <span className="font-bold italic">Objectives: </span>
-                    {wp.objectives ? (
-                      <span dangerouslySetInnerHTML={{ __html: wp.objectives }} />
-                    ) : null}
+                    <EditableText
+                      value={wp.objectives || ''}
+                      placeholder="Enter objectives..."
+                      onSave={async (val) => {
+                        await supabase.from('wp_drafts').update({ objectives: val }).eq('id', wp.id);
+                        queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
+                      }}
+                    />
                   </td>
                 </tr>
 
@@ -363,16 +409,22 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                       </tr>
 
                       {/* Task description row */}
-                      {task.description && (
-                        <tr>
-                          <td
-                            colSpan={3}
-                            className={cellStyles}
-                            style={{ borderColor: wp.color }}
-                            dangerouslySetInnerHTML={{ __html: task.description }}
+                      <tr>
+                        <td
+                          colSpan={3}
+                          className={editableCellStyles}
+                          style={{ borderColor: wp.color }}
+                        >
+                          <EditableText
+                            value={task.description || ''}
+                            placeholder="Enter task description..."
+                            onSave={async (val) => {
+                              await supabase.from('wp_draft_tasks').update({ description: val }).eq('id', task.id);
+                              queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
+                            }}
                           />
-                        </tr>
-                      )}
+                        </td>
+                      </tr>
                     </React.Fragment>
                   );
                 })}
