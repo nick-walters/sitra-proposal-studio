@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+
 import { Label } from '@/components/ui/label';
 import { GanttChartFigure } from '@/components/GanttChartFigure';
 import { PERTChartFigure } from '@/components/PERTChartFigure';
@@ -152,11 +152,10 @@ export function FigureEditor({
             </div>
             <div className="space-y-2">
               <Label htmlFor="caption">Caption</Label>
-              <Textarea
+              <Input
                 id="caption"
                 value={caption}
-                placeholder="No caption set. Edit the caption in Part B templates."
-                rows={2}
+                placeholder="No caption set. Edit in Part B templates."
                 disabled
                 className="bg-muted/50"
               />
