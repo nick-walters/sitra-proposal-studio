@@ -521,21 +521,23 @@ function SortableTableRow({
           <GripVertical className="h-4 w-4 text-muted-foreground" />
         </div>
       )}
-      {/* Delete button - positioned in right page margin, close to table */}
+      {/* Delete button - positioned in right page margin, vertically centered */}
       {onDelete && (
-        <div 
-          className="absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-          style={{ right: '-20px' }}
-        >
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-5 w-5 text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={onDelete}
+        <td className="p-0 border-0 w-0 relative">
+          <div 
+            className="absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+            style={{ left: '4px' }}
           >
-            <Trash2 className="h-3 w-3" />
-          </Button>
-        </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5 text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={onDelete}
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </div>
+        </td>
       )}
     </TableRow>
   );
