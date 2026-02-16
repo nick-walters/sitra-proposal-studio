@@ -207,6 +207,48 @@ export function useProposalTemplateCreation() {
         }
       }
 
+      // 7. Auto-create PERT and Gantt figures for full proposals
+      if (submissionStage === 'full') {
+        // Find the B3.1 section (section_number '3.1' or section_tag 'b3_1')
+        const b31Section = (sourceSections || []).find(
+          s => s.section_number === '3.1' || s.section_tag === 'b3_1'
+        );
+        const b31SectionId = b31Section ? (sectionIdMap.get(b31Section.id) || '3.1') : '3.1';
+
+        // Check if PERT/Gantt already exist (shouldn't for new proposals, but be safe)
+        const { data: existingFigures } = await supabase
+          .from('figures')
+          .select('figure_type')
+          .eq('proposal_id', proposalId)
+          .in('figure_type', ['pert', 'gantt']);
+
+        const existingTypes = new Set((existingFigures || []).map(f => f.figure_type));
+
+        if (!existingTypes.has('pert')) {
+          await supabase.from('figures').insert({
+            proposal_id: proposalId,
+            figure_number: '3.1.a',
+            section_id: b31SectionId,
+            title: 'PERT chart',
+            figure_type: 'pert',
+            content: null,
+            order_index: 0,
+          });
+        }
+
+        if (!existingTypes.has('gantt')) {
+          await supabase.from('figures').insert({
+            proposal_id: proposalId,
+            figure_number: '3.1.b',
+            section_id: b31SectionId,
+            title: 'Gantt chart, showing WP, task, deliverable & milestone timings',
+            figure_type: 'gantt',
+            content: null,
+            order_index: 1,
+          });
+        }
+      }
+
       return { success: true, proposalTemplate };
 
     } catch (error) {
