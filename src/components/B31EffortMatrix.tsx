@@ -113,13 +113,8 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
       <table className={`${tableStyles} w-full border-collapse`}>
         <thead>
           <tr>
-            <th className={headerCellStyles} style={{ textAlign: 'left', border: 'none' }}>
-              <span
-                className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[11pt] font-bold whitespace-nowrap"
-                style={{ backgroundColor: '#000000', color: '#FFFFFF', lineHeight: 1 }}
-              >
-                Participant
-              </span>
+            <th className={headerCellStyles} style={{ textAlign: 'left', border: 'none', fontWeight: 'bold' }}>
+              Participant
             </th>
             {wpData.map(wp => {
               const wpColor = wp.color || '#2563EB';
@@ -135,7 +130,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                 </th>
               );
             })}
-            <th className={headerCellStyles} style={{ border: 'none', fontWeight: 'bold', fontStyle: 'italic' }}>Total</th>
+            <th className={headerCellStyles} style={{ border: 'none', fontWeight: 'bold' }}>Total</th>
           </tr>
         </thead>
         <tbody>
