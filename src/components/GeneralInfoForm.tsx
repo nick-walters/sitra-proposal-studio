@@ -344,7 +344,7 @@ function ReportingPeriodsEditor({ proposal, onUpdate }: {
             const maxLen = Math.min(18, duration - rp.startMonth + 1);
             return (
               <div key={idx} className="flex items-center gap-3">
-                <span className="text-sm font-medium w-12">RP {rp.number}</span>
+                <span className="text-sm font-medium w-12">RP{rp.number}</span>
                 <span className="text-xs text-muted-foreground w-28">
                   M{rp.startMonth}–M{rp.endMonth}
                 </span>
@@ -370,12 +370,10 @@ function ReportingPeriodsEditor({ proposal, onUpdate }: {
             );
           })}
         </div>
-        {canAdd && (
-          <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={handleAddRP}>
-            <Plus className="w-3 h-3" />
-            Add reporting period
-          </Button>
-        )}
+        <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={handleAddRP}>
+          <Plus className="w-3 h-3" />
+          Add reporting period
+        </Button>
         {totalCovered < duration && (
           <p className="text-xs text-warning">
             Reporting periods cover {totalCovered} of {duration} months. Add more to cover the full duration.
