@@ -15,14 +15,14 @@ interface Props {
   proposalId: string;
 }
 
-/* ── Participant bubble ── */
-function ParticipantBubble({ participant, color }: { participant: B31Participant; color: string }) {
+/* ── Participant bubble (always black, no numbering) ── */
+function ParticipantBubble({ participant }: { participant: B31Participant }) {
   return (
     <span
-      className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9pt] font-bold whitespace-nowrap"
-      style={{ backgroundColor: color, color: '#FFFFFF' }}
+      className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9pt] font-bold italic whitespace-nowrap"
+      style={{ backgroundColor: '#000000', color: '#FFFFFF' }}
     >
-      {participant.participant_number}. {participant.organisation_short_name || participant.organisation_name}
+      {participant.organisation_short_name || participant.organisation_name}
     </span>
   );
 }
@@ -32,13 +32,11 @@ function LeaderPicker({
   taskId,
   currentLeaderId,
   participants,
-  color,
   proposalId,
 }: {
   taskId: string;
   currentLeaderId: string | null;
   participants: B31Participant[];
-  color: string;
   proposalId: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -56,7 +54,7 @@ function LeaderPicker({
       <PopoverTrigger asChild>
         <button className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80">
           {leader ? (
-            <ParticipantBubble participant={leader} color={color} />
+            <ParticipantBubble participant={leader} />
           ) : (
             <span className="text-muted-foreground text-[9pt] italic">Select…</span>
           )}
@@ -98,22 +96,26 @@ function PartnersPicker({
   taskId,
   selectedIds,
   participants,
-  color,
   proposalId,
+  leaderId,
 }: {
   taskId: string;
   selectedIds: string[];
   participants: B31Participant[];
-  color: string;
   proposalId: string;
+  leaderId: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
 
+  // Filter out the task leader from partners
+  const filteredSelectedIds = selectedIds.filter(id => id !== leaderId);
+  const availableParticipants = participants.filter(p => p.id !== leaderId);
+
   const toggle = async (pid: string) => {
-    const next = selectedIds.includes(pid)
-      ? selectedIds.filter(id => id !== pid)
-      : [...selectedIds, pid];
+    const next = filteredSelectedIds.includes(pid)
+      ? filteredSelectedIds.filter(id => id !== pid)
+      : [...filteredSelectedIds, pid];
     await supabase.from('wp_draft_task_participants').delete().eq('task_id', taskId);
     if (next.length > 0) {
       await supabase
@@ -123,7 +125,7 @@ function PartnersPicker({
     queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
   };
 
-  const selected = participants.filter(p => selectedIds.includes(p.id));
+  const selected = availableParticipants.filter(p => filteredSelectedIds.includes(p.id));
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -131,7 +133,7 @@ function PartnersPicker({
         <button className="inline-flex items-center gap-1 flex-wrap cursor-pointer hover:opacity-80">
           {selected.length > 0 ? (
             selected.map(p => (
-              <ParticipantBubble key={p.id} participant={p} color={color} />
+              <ParticipantBubble key={p.id} participant={p} />
             ))
           ) : (
             <span className="text-muted-foreground text-[9pt] italic">Select…</span>
@@ -141,8 +143,8 @@ function PartnersPicker({
       </PopoverTrigger>
       <PopoverContent className="w-[220px] p-0" align="start">
         <div className="max-h-[200px] overflow-y-auto">
-          {participants.map(p => {
-            const isSelected = selectedIds.includes(p.id);
+          {availableParticipants.map(p => {
+            const isSelected = filteredSelectedIds.includes(p.id);
             return (
               <button
                 key={p.id}
@@ -339,7 +341,6 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                             taskId={task.id}
                             currentLeaderId={task.lead_participant_id}
                             participants={participants}
-                            color={wp.color}
                             proposalId={proposalId}
                           />
                         </td>
@@ -349,8 +350,8 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                             taskId={task.id}
                             selectedIds={partnerIds}
                             participants={participants}
-                            color={wp.color}
                             proposalId={proposalId}
+                            leaderId={task.lead_participant_id}
                           />
                         </td>
                         <td className={`${cellStyles} whitespace-nowrap`}>
