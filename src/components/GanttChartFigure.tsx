@@ -180,14 +180,14 @@ export function GanttChartFigure({
   const labelWidth = 180;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold flex items-center gap-2">
-          <BarChart3 className="w-4 h-4" />
-          Figure {figureNumber}. Gantt Chart
-        </h3>
-        <div className="flex items-center gap-2">
-          {canEdit && (
+    <div className={canEdit ? "space-y-4" : ""}>
+      {canEdit && (
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-semibold flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            Figure {figureNumber}. Gantt Chart
+          </h3>
+          <div className="flex items-center gap-2">
             <Select 
               value={String(projectDuration)} 
               onValueChange={(v) => handleDurationChange(Number(v))}
@@ -202,53 +202,53 @@ export function GanttChartFigure({
                 <SelectItem value="60">60 months</SelectItem>
               </SelectContent>
             </Select>
-          )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
-                <Download className="w-3 h-3" />
-                Export
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => {
-                if (chartRef.current) {
-                  exportAsPng(chartRef.current, `Gantt-Chart-Figure-${figureNumber}`);
-                  toast.success('PNG downloaded');
-                }
-              }}>
-                <Image className="w-4 h-4 mr-2" />
-                Download as PNG
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => {
-                const exportData: GanttExportData = {
-                  projectDuration,
-                  workPackages: workPackages.map(wp => ({
-                    number: wp.number,
-                    shortName: wp.shortName,
-                    color: wp.color,
-                    startMonth: wp.startMonth,
-                    endMonth: wp.endMonth,
-                    tasks: wp.tasks.map(t => ({
-                      wpNumber: t.wpNumber,
-                      taskNumber: t.taskNumber,
-                      name: t.name,
-                      startMonth: t.startMonth,
-                      endMonth: t.endMonth,
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
+                  <Download className="w-3 h-3" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => {
+                  if (chartRef.current) {
+                    exportAsPng(chartRef.current, `Gantt-Chart-Figure-${figureNumber}`);
+                    toast.success('PNG downloaded');
+                  }
+                }}>
+                  <Image className="w-4 h-4 mr-2" />
+                  Download as PNG
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {
+                  const exportData: GanttExportData = {
+                    projectDuration,
+                    workPackages: workPackages.map(wp => ({
+                      number: wp.number,
+                      shortName: wp.shortName,
+                      color: wp.color,
+                      startMonth: wp.startMonth,
+                      endMonth: wp.endMonth,
+                      tasks: wp.tasks.map(t => ({
+                        wpNumber: t.wpNumber,
+                        taskNumber: t.taskNumber,
+                        name: t.name,
+                        startMonth: t.startMonth,
+                        endMonth: t.endMonth,
+                      })),
                     })),
-                  })),
-                  milestones: milestones.map(m => ({ number: m.number, name: m.name, month: m.month })),
-                };
-                exportGanttAsPptx(exportData, `Gantt-Chart-Figure-${figureNumber}`);
-                toast.success('PPTX downloaded');
-              }}>
-                <FileDown className="w-4 h-4 mr-2" />
-                Download as PPTX
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                    milestones: milestones.map(m => ({ number: m.number, name: m.name, month: m.month })),
+                  };
+                  exportGanttAsPptx(exportData, `Gantt-Chart-Figure-${figureNumber}`);
+                  toast.success('PPTX downloaded');
+                }}>
+                  <FileDown className="w-4 h-4 mr-2" />
+                  Download as PPTX
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-      </div>
+      )}
 
       <TooltipProvider>
         <div ref={chartRef} className="min-w-max text-[9px] font-serif overflow-x-auto" style={{ fontFamily: 'Times New Roman, serif' }}>
