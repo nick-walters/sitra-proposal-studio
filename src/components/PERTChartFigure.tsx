@@ -334,20 +334,19 @@ export function PERTChartFigure({
           >
             <defs>
               <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                <polygon points="0 0, 10 3.5, 0 7" fill="currentColor" className="text-muted-foreground" />
+                <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
               </marker>
               <marker id="arrowhead-start" markerWidth="10" markerHeight="7" refX="1" refY="3.5" orient="auto-start-reverse">
-                <polygon points="10 0, 0 3.5, 10 7" fill="currentColor" className="text-muted-foreground" />
+                <polygon points="10 0, 0 3.5, 10 7" fill="#64748b" />
               </marker>
             </defs>
 
             {arrows.map((arrow) => arrow && (
               <line
-                key={arrow.id}
+                key={`${arrow.id}-${arrow.direction}`}
                 x1={arrow.fromX} y1={arrow.fromY}
                 x2={arrow.toX} y2={arrow.toY}
-                stroke="currentColor" strokeWidth="2"
-                className="text-muted-foreground"
+                stroke="#64748b" strokeWidth="2"
                 markerEnd={arrow.direction !== 'reverse' ? 'url(#arrowhead)' : undefined}
                 markerStart={arrow.direction === 'reverse' || arrow.direction === 'bidirectional' ? 'url(#arrowhead-start)' : undefined}
               />
