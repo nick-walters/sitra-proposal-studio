@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import type { B31WPData, B31Participant } from '@/hooks/useB31SectionData';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
-const cellStyles = "border border-black px-1 py-0.5 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-top";
+const cellStyles = "border border-black px-0.5 py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-top";
 
 interface Props {
   wpData: B31WPData[];
@@ -272,7 +272,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                 <tr>
                   <td
                     colSpan={3}
-                    className="px-1 py-1 font-bold text-[11pt] font-['Times_New_Roman',Times,serif]"
+                    className="px-0.5 py-0 font-bold text-[11pt] font-['Times_New_Roman',Times,serif]"
                     style={{
                       backgroundColor: wp.color,
                       color: '#FFFFFF',
@@ -318,7 +318,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                       <tr>
                         <td
                           colSpan={3}
-                          className="px-1 py-0.5 font-bold text-[11pt] font-['Times_New_Roman',Times,serif]"
+                          className="px-0.5 py-0 font-bold text-[11pt] font-['Times_New_Roman',Times,serif]"
                           style={{
                             backgroundColor: wp.color,
                             color: '#FFFFFF',
