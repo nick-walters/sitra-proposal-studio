@@ -20,8 +20,8 @@ interface Props {
 function ParticipantBubble({ participant }: { participant: B31Participant }) {
   return (
     <span
-      className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9pt] font-bold italic whitespace-nowrap"
-      style={{ backgroundColor: '#000000', color: '#FFFFFF' }}
+      className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9pt] font-bold italic whitespace-nowrap align-middle"
+      style={{ backgroundColor: '#000000', color: '#FFFFFF', lineHeight: 1 }}
     >
       {participant.organisation_short_name || participant.organisation_name}
     </span>
