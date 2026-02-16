@@ -283,7 +283,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                 <tr>
                   <td
                     colSpan={3}
-                    className="px-0.5 py-0 font-bold text-[11pt] font-['Times_New_Roman',Times,serif]"
+                    className="px-0.5 py-0 font-bold text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight"
                     style={{
                       backgroundColor: wp.color,
                       color: '#FFFFFF',
@@ -330,7 +330,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                       <tr>
                         <td
                           colSpan={3}
-                          className="px-0.5 py-0 font-bold text-[11pt] font-['Times_New_Roman',Times,serif]"
+                          className="px-0.5 py-0 font-bold text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight"
                           style={{
                             backgroundColor: wp.color,
                             color: '#FFFFFF',
