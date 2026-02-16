@@ -19,8 +19,8 @@ export function DeliverableTaskMappingDialog({ proposalId }: DeliverableTaskMapp
     queryFn: async () => {
       const [{ data: wps }, { data: tasks }, { data: deliverables }] = await Promise.all([
         supabase.from('wp_drafts').select('id, number, short_name, title').eq('proposal_id', proposalId).order('order_index'),
-        supabase.from('wp_draft_tasks').select('id, wp_draft_id, number, title'),
-        supabase.from('wp_draft_deliverables').select('id, wp_draft_id, number, title, task_id'),
+        supabase.from('wp_draft_tasks').select('id, wp_draft_id, number, title, start_month, end_month'),
+        supabase.from('wp_draft_deliverables').select('id, wp_draft_id, number, title, task_id, due_month'),
       ]);
       return { wps: wps || [], tasks: tasks || [], deliverables: deliverables || [] };
     },
@@ -68,8 +68,11 @@ export function DeliverableTaskMappingDialog({ proposalId }: DeliverableTaskMapp
               <h4 className="text-sm font-semibold mb-2">WP{wp.number}: {wp.title || wp.short_name}</h4>
               <div className="space-y-2 pl-2">
                 {deliverables.map(del => (
-                  <div key={del.id} className="flex items-center gap-2">
-                    <span className="text-sm font-medium shrink-0 w-16">D{wp.number}.{del.number}</span>
+                  <div key={del.id} className="flex items-start gap-2">
+                    <div className="text-sm shrink-0 min-w-0 flex-1">
+                      <span className="font-medium">D{wp.number}.{del.number}: {del.title || '(untitled)'}</span>
+                      {del.due_month != null && <span className="text-muted-foreground"> (M{del.due_month})</span>}
+                    </div>
                     <Select
                       value={del.task_id || '__none__'}
                       onValueChange={(v) => updateMutation.mutate({
@@ -77,14 +80,14 @@ export function DeliverableTaskMappingDialog({ proposalId }: DeliverableTaskMapp
                         taskId: v === '__none__' ? null : v,
                       })}
                     >
-                      <SelectTrigger className="h-7 text-xs flex-1">
+                      <SelectTrigger className="h-7 text-xs w-[220px] shrink-0">
                         <SelectValue placeholder="Unassigned" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="__none__">Unassigned</SelectItem>
                         {tasks.map(t => (
                           <SelectItem key={t.id} value={t.id}>
-                            T{wp.number}.{t.number}: {t.title || '(untitled)'}
+                            T{wp.number}.{t.number}: {t.title || '(untitled)'}{t.start_month != null && t.end_month != null ? ` (M${t.start_month}–M${t.end_month})` : ''}
                           </SelectItem>
                         ))}
                       </SelectContent>
