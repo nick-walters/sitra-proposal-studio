@@ -52,9 +52,6 @@ export function PERTChartFigure({
   const queryClient = useQueryClient();
   const [draggingNode, setDraggingNode] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [fromWp, setFromWp] = useState<string>('');
-  const [toWp, setToWp] = useState<string>('');
-  const [direction, setDirection] = useState<DependencyDirection>('forward');
 
   // Fetch WP drafts
   const { data: wpDrafts = [] } = useQuery({
@@ -91,35 +88,26 @@ export function PERTChartFigure({
   // Add dependency mutation
   const addMutation = useMutation({
     mutationFn: async () => {
-      if (!fromWp || !toWp) return;
-      if (fromWp === toWp) throw new Error('A WP cannot depend on itself');
-      const exists = dependencies.some(d => d.fromWpId === fromWp && d.toWpId === toWp);
-      if (exists) throw new Error('This dependency already exists');
-
       const { error } = await supabase.from('wp_dependencies').insert({
         proposal_id: proposalId,
-        from_wp_id: fromWp,
-        to_wp_id: toWp,
-        direction,
+        from_wp_id: wpDrafts[0]?.id || '',
+        to_wp_id: wpDrafts[1]?.id || wpDrafts[0]?.id || '',
+        direction: 'forward',
       });
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wp-dependencies-pert', proposalId] });
-      setFromWp('');
-      setToWp('');
-      setDirection('forward');
-      toast.success('Dependency added');
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : 'Failed to add dependency');
     },
   });
 
-  // Update dependency direction mutation
-  const updateDirectionMutation = useMutation({
-    mutationFn: async ({ id, newDirection }: { id: string; newDirection: DependencyDirection }) => {
-      const { error } = await supabase.from('wp_dependencies').update({ direction: newDirection }).eq('id', id);
+  // Update dependency mutation (any field)
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: { from_wp_id?: string; to_wp_id?: string; direction?: string } }) => {
+      const { error } = await supabase.from('wp_dependencies').update(updates).eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -228,18 +216,6 @@ export function PERTChartFigure({
     }).filter(Boolean);
   }, [dependencies, nodes, computeArrow]);
 
-  // Preview arrow for selected dropdowns
-  const previewArrow = useMemo(() => {
-    if (!fromWp || !toWp || fromWp === toWp) return null;
-    const fromNode = nodes.find((n) => n.id === fromWp);
-    const toNode = nodes.find((n) => n.id === toWp);
-    if (!fromNode || !toNode) return null;
-    // Don't show preview if this dependency already exists
-    if (dependencies.some(d => d.fromWpId === fromWp && d.toWpId === toWp)) return null;
-    const pts = computeArrow(fromNode, toNode);
-    if (!pts) return null;
-    return { id: 'preview', ...pts };
-  }, [fromWp, toWp, nodes, dependencies, computeArrow]);
 
   // Handle drag
   const handleMouseDown = useCallback((e: React.MouseEvent, nodeId: string) => {
@@ -358,17 +334,6 @@ export function PERTChartFigure({
               />
             ))}
 
-            {/* Preview arrow */}
-            {previewArrow && (
-              <line
-                x1={previewArrow.fromX} y1={previewArrow.fromY}
-                x2={previewArrow.toX} y2={previewArrow.toY}
-                stroke="currentColor" strokeWidth="2" strokeDasharray="6 3"
-                className="text-muted-foreground/50"
-                markerEnd={direction !== 'reverse' ? 'url(#arrowhead)' : undefined}
-                markerStart={direction === 'reverse' ? 'url(#arrowhead)' : direction === 'bidirectional' ? 'url(#arrowhead-start)' : undefined}
-              />
-            )}
 
             {nodes.map((node) => {
               return (
@@ -430,15 +395,28 @@ export function PERTChartFigure({
             Manage Dependencies
           </h4>
 
-          {/* Existing dependencies list */}
+          {/* Dependencies list - each row is fully editable */}
           {dependencies.length > 0 && (
             <div className="space-y-1.5">
               {dependencies.map((dep) => (
                 <div key={dep.id} className="flex items-center gap-2 text-sm bg-muted/50 px-3 py-1.5 rounded">
-                  <span className="w-2.5 h-2.5 rounded" style={{ backgroundColor: getWpColor(dep.fromWpId) }} />
-                  <span className="font-medium">{getWpLabel(dep.fromWpId)}</span>
-                  <Select value={dep.direction} onValueChange={(v) => updateDirectionMutation.mutate({ id: dep.id, newDirection: v as DependencyDirection })}>
-                    <SelectTrigger className="w-10 h-6 px-1 border-none bg-transparent justify-center [&>svg]:hidden">
+                  <Select value={dep.fromWpId} onValueChange={(v) => updateMutation.mutate({ id: dep.id, updates: { from_wp_id: v } })}>
+                    <SelectTrigger className="flex-1 h-7 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {wpDrafts.map((wp) => (
+                        <SelectItem key={wp.id} value={wp.id}>
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded" style={{ backgroundColor: wp.color }} />
+                            WP{wp.number}{wp.short_name ? `: ${wp.short_name}` : ''}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={dep.direction} onValueChange={(v) => updateMutation.mutate({ id: dep.id, updates: { direction: v } })}>
+                    <SelectTrigger className="w-10 h-7 px-1 justify-center [&>svg]:hidden">
                       <SelectValue>
                         {dep.direction === 'forward' && <ArrowRight className="w-3.5 h-3.5 text-muted-foreground" />}
                         {dep.direction === 'reverse' && <ArrowLeft className="w-3.5 h-3.5 text-muted-foreground" />}
@@ -451,11 +429,24 @@ export function PERTChartFigure({
                       <SelectItem value="bidirectional"><ArrowLeftRight className="w-4 h-4" /></SelectItem>
                     </SelectContent>
                   </Select>
-                  <span className="w-2.5 h-2.5 rounded" style={{ backgroundColor: getWpColor(dep.toWpId) }} />
-                  <span className="font-medium">{getWpLabel(dep.toWpId)}</span>
+                  <Select value={dep.toWpId} onValueChange={(v) => updateMutation.mutate({ id: dep.id, updates: { to_wp_id: v } })}>
+                    <SelectTrigger className="flex-1 h-7 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {wpDrafts.map((wp) => (
+                        <SelectItem key={wp.id} value={wp.id}>
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded" style={{ backgroundColor: wp.color }} />
+                            WP{wp.number}{wp.short_name ? `: ${wp.short_name}` : ''}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Button
                     variant="ghost" size="sm"
-                    className="ml-auto h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                    className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive shrink-0"
                     onClick={() => deleteMutation.mutate(dep.id)}
                   >
                     <Trash2 className="w-3 h-3" />
@@ -465,56 +456,17 @@ export function PERTChartFigure({
             </div>
           )}
 
-          {/* Add new dependency */}
-          <div className="flex items-center gap-2 pt-1 border-t">
-            <Select value={fromWp} onValueChange={setFromWp}>
-              <SelectTrigger className="flex-1 h-8 text-sm">
-                <SelectValue placeholder="From WP..." />
-              </SelectTrigger>
-              <SelectContent>
-                {wpDrafts.map((wp) => (
-                  <SelectItem key={wp.id} value={wp.id}>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded" style={{ backgroundColor: wp.color }} />
-                      WP{wp.number}{wp.short_name ? `: ${wp.short_name}` : ''}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={direction} onValueChange={(v) => setDirection(v as DependencyDirection)}>
-              <SelectTrigger className="w-10 h-8 px-1 justify-center [&>svg]:hidden">
-                <SelectValue>
-                  {direction === 'forward' && <ArrowRight className="w-4 h-4" />}
-                  {direction === 'reverse' && <ArrowLeft className="w-4 h-4" />}
-                  {direction === 'bidirectional' && <ArrowLeftRight className="w-4 h-4" />}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent className="min-w-0 w-auto">
-                <SelectItem value="forward"><ArrowRight className="w-4 h-4" /></SelectItem>
-                <SelectItem value="reverse"><ArrowLeft className="w-4 h-4" /></SelectItem>
-                <SelectItem value="bidirectional"><ArrowLeftRight className="w-4 h-4" /></SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={toWp} onValueChange={setToWp}>
-              <SelectTrigger className="flex-1 h-8 text-sm">
-                <SelectValue placeholder="To WP..." />
-              </SelectTrigger>
-              <SelectContent>
-                {wpDrafts.map((wp) => (
-                  <SelectItem key={wp.id} value={wp.id}>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded" style={{ backgroundColor: wp.color }} />
-                      WP{wp.number}{wp.short_name ? `: ${wp.short_name}` : ''}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button size="sm" className="h-8" onClick={() => addMutation.mutate()} disabled={!fromWp || !toWp || addMutation.isPending}>
-              <Plus className="w-4 h-4" />
-            </Button>
-          </div>
+          {/* Add new dependency button */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full h-8 text-xs gap-1"
+            onClick={() => addMutation.mutate()}
+            disabled={addMutation.isPending || wpDrafts.length < 2}
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add dependency
+          </Button>
         </div>
       )}
     </div>
