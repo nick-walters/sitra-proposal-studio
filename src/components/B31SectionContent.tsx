@@ -72,7 +72,7 @@ export function B31SectionContent({ proposalId }: Props) {
             canEdit={false}
           />
           <p className={`${tableStyles} italic mt-1`}>
-            <span className="font-bold italic">Figure 3.1.b.</span> {ganttFigure.caption || ganttFigure.title}
+            <span className="font-bold italic">Figure 3.1.b.</span> Gantt chart, showing WP, task, deliverable &amp; milestone timings
           </p>
         </div>
       ) : (
