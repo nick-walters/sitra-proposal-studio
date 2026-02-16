@@ -16,7 +16,7 @@ interface Props {
   proposalId: string;
 }
 
-/* ── Participant bubble (always black, no numbering) ── */
+/* ── Participant bubble ── */
 function ParticipantBubble({ participant }: { participant: B31Participant }) {
   return (
     <span
@@ -28,14 +28,16 @@ function ParticipantBubble({ participant }: { participant: B31Participant }) {
   );
 }
 
-/* ── Single-select participant picker (task leader) ── */
+/* ── Single-select participant picker ── */
 function LeaderPicker({
-  taskId,
+  entityId,
+  entityTable,
   currentLeaderId,
   participants,
   proposalId,
 }: {
-  taskId: string;
+  entityId: string;
+  entityTable: 'wp_drafts' | 'wp_draft_tasks';
   currentLeaderId: string | null;
   participants: B31Participant[];
   proposalId: string;
@@ -46,7 +48,7 @@ function LeaderPicker({
 
   const select = async (pid: string) => {
     setOpen(false);
-    await supabase.from('wp_draft_tasks').update({ lead_participant_id: pid }).eq('id', taskId);
+    await supabase.from(entityTable).update({ lead_participant_id: pid }).eq('id', entityId);
     queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
   };
 
@@ -109,7 +111,6 @@ function PartnersPicker({
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  // Filter out the task leader from partners
   const filteredSelectedIds = selectedIds.filter(id => id !== leaderId);
   const availableParticipants = participants.filter(p => p.id !== leaderId);
 
@@ -296,12 +297,56 @@ function EditableText({
   );
 }
 
+/* ── Inline editable plain text (for headers) ── */
+function EditableHeaderText({
+  value,
+  onSave,
+  className,
+}: {
+  value: string;
+  onSave: (newValue: string) => void;
+  className?: string;
+}) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const savedRef = useRef(value);
+
+  const handleBlur = useCallback(() => {
+    const current = ref.current?.textContent || '';
+    if (current !== savedRef.current) {
+      savedRef.current = current;
+      onSave(current);
+    }
+  }, [onSave]);
+
+  return (
+    <span
+      ref={ref}
+      contentEditable
+      suppressContentEditableWarning
+      className={cn("outline-none", className)}
+      onBlur={handleBlur}
+    >
+      {value}
+    </span>
+  );
+}
+
 /* ── Main component ── */
 export function B31WPDescriptionTables({ wpData, participants, proposalId }: Props) {
   const queryClient = useQueryClient();
   const populatedWPs = wpData;
 
   if (populatedWPs.length === 0) return null;
+
+  const saveWPField = async (wpId: string, field: string, value: string) => {
+    await supabase.from('wp_drafts').update({ [field]: value || null }).eq('id', wpId);
+    queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
+  };
+
+  const saveTaskField = async (taskId: string, field: string, value: string) => {
+    await supabase.from('wp_draft_tasks').update({ [field]: value || null }).eq('id', taskId);
+    queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
+  };
 
   return (
     <div>
@@ -320,7 +365,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
               style={{ borderLeft: `3pt solid ${wp.color}` }}
             >
               <tbody>
-                {/* WP Header row */}
+                {/* WP Header row - editable title */}
                 <tr>
                   <td
                     colSpan={3}
@@ -333,19 +378,33 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                       lineHeight: 1.2,
                     }}
                   >
-                    WP{wp.number}: {shortName} – {title}
+                    WP{wp.number}:&nbsp;
+                    <EditableHeaderText
+                      value={shortName}
+                      onSave={(val) => saveWPField(wp.id, 'short_name', val)}
+                      className="text-white"
+                    />
+                    &nbsp;–&nbsp;
+                    <EditableHeaderText
+                      value={title}
+                      onSave={(val) => saveWPField(wp.id, 'title', val)}
+                      className="text-white"
+                    />
                   </td>
                 </tr>
 
-                {/* WP leader & duration row */}
+                {/* WP leader & duration row - editable leader */}
                 <tr>
                   <td colSpan={2} className={`${cellStyles}`} style={{ borderColor: wp.color }}>
                     <div className="flex items-center flex-wrap">
                       <span className="italic font-bold">WP leader:&nbsp;</span>
-                      {(() => {
-                        const leader = participants.find(p => p.id === wp.lead_participant_id);
-                        return leader ? <ParticipantBubble participant={leader} /> : <span className="text-muted-foreground text-[9pt] italic">Not set</span>;
-                      })()}
+                      <LeaderPicker
+                        entityId={wp.id}
+                        entityTable="wp_drafts"
+                        currentLeaderId={wp.lead_participant_id}
+                        participants={participants}
+                        proposalId={proposalId}
+                      />
                     </div>
                   </td>
                   <td className={`${cellStyles} whitespace-nowrap`} style={{ borderColor: wp.color }}>
@@ -388,7 +447,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                       {/* Spacer */}
                       <SpacerRow />
 
-                      {/* Task header row */}
+                      {/* Task header row - editable title */}
                       <tr>
                         <td
                           colSpan={3}
@@ -401,7 +460,12 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                             lineHeight: 1.2,
                           }}
                         >
-                          T{wp.number}.{task.number}: {task.title || `Task ${task.number}`}
+                          T{wp.number}.{task.number}:&nbsp;
+                          <EditableHeaderText
+                            value={task.title || `Task ${task.number}`}
+                            onSave={(val) => saveTaskField(task.id, 'title', val)}
+                            className="text-white"
+                          />
                         </td>
                       </tr>
 
@@ -411,7 +475,8 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                           <div className="flex items-center flex-wrap">
                             <span className="italic font-bold">Task leader:&nbsp;</span>
                             <LeaderPicker
-                              taskId={task.id}
+                              entityId={task.id}
+                              entityTable="wp_draft_tasks"
                               currentLeaderId={task.lead_participant_id}
                               participants={participants}
                               proposalId={proposalId}

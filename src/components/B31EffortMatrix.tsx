@@ -1,20 +1,33 @@
+import { useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import type { B31WPData, B31Participant } from '@/hooks/useB31SectionData';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles = "border border-black px-1 py-0.5 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center";
 const headerCellStyles = "border border-black px-1 py-0.5 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight font-bold text-white bg-black text-center";
+const editableCellStyles = `${cellStyles} cursor-text hover:bg-muted/30`;
 
 interface Props {
   wpData: B31WPData[];
   participants: B31Participant[];
+  proposalId?: string;
 }
 
-export function B31EffortMatrix({ wpData, participants }: Props) {
-  if (wpData.length === 0 || participants.length === 0) return null;
+export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
+  const queryClient = useQueryClient();
+  const [editingCell, setEditingCell] = useState<{ participantId: string; wpId: string } | null>(null);
+  const [editValue, setEditValue] = useState('');
 
   // Build effort matrix: participant -> wp -> person months
   const matrix = new Map<string, Map<string, number>>();
-  participants.forEach(p => matrix.set(p.id, new Map()));
+  // Also track which effort entries exist per participant per WP for editing
+  const effortEntries = new Map<string, Map<string, { taskId: string; effortPM: number }[]>>();
+  
+  participants.forEach(p => {
+    matrix.set(p.id, new Map());
+    effortEntries.set(p.id, new Map());
+  });
 
   wpData.forEach(wp => {
     wp.tasks.forEach(task => {
@@ -23,14 +36,73 @@ export function B31EffortMatrix({ wpData, participants }: Props) {
         if (pMap) {
           pMap.set(wp.id, (pMap.get(wp.id) || 0) + (e.person_months || 0));
         }
+        const eMap = effortEntries.get(e.participant_id);
+        if (eMap) {
+          if (!eMap.has(wp.id)) eMap.set(wp.id, []);
+          eMap.get(wp.id)!.push({ taskId: task.id, effortPM: e.person_months || 0 });
+        }
       });
     });
   });
 
-  // Check if there's any effort data at all
+  // Check if there's any data to show
   let hasData = false;
   matrix.forEach(pMap => { if (pMap.size > 0) hasData = true; });
-  if (!hasData) return null;
+
+  const startEdit = (participantId: string, wpId: string, currentValue: number) => {
+    setEditingCell({ participantId, wpId });
+    setEditValue(currentValue > 0 ? String(currentValue) : '');
+  };
+
+  const saveEdit = useCallback(async () => {
+    if (!editingCell || !proposalId) return;
+    const { participantId, wpId } = editingCell;
+    const newTotal = parseFloat(editValue) || 0;
+    const entries = effortEntries.get(participantId)?.get(wpId) || [];
+    const currentTotal = matrix.get(participantId)?.get(wpId) || 0;
+
+    if (entries.length === 0 && newTotal > 0) {
+      const wp = wpData.find(w => w.id === wpId);
+      if (wp && wp.tasks.length > 0) {
+        await supabase.from('wp_draft_task_effort').insert({
+          task_id: wp.tasks[0].id,
+          participant_id: participantId,
+          person_months: newTotal,
+        });
+      }
+    } else if (entries.length === 1) {
+      await supabase
+        .from('wp_draft_task_effort')
+        .update({ person_months: newTotal })
+        .eq('task_id', entries[0].taskId)
+        .eq('participant_id', participantId);
+    } else if (entries.length > 1 && currentTotal > 0) {
+      const scale = newTotal / currentTotal;
+      for (const entry of entries) {
+        await supabase
+          .from('wp_draft_task_effort')
+          .update({ person_months: Math.round(entry.effortPM * scale * 100) / 100 })
+          .eq('task_id', entry.taskId)
+          .eq('participant_id', participantId);
+      }
+    } else if (entries.length > 1 && currentTotal === 0 && newTotal > 0) {
+      await supabase
+        .from('wp_draft_task_effort')
+        .update({ person_months: newTotal })
+        .eq('task_id', entries[0].taskId)
+        .eq('participant_id', participantId);
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
+    setEditingCell(null);
+  }, [editingCell, editValue, proposalId, queryClient, effortEntries, matrix, wpData]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') { e.preventDefault(); saveEdit(); }
+    if (e.key === 'Escape') setEditingCell(null);
+  };
+
+  if (wpData.length === 0 || participants.length === 0 || !hasData) return null;
 
   return (
     <div>
@@ -56,11 +128,32 @@ export function B31EffortMatrix({ wpData, participants }: Props) {
                 <td className={`${cellStyles} text-left font-bold`}>
                   {p.participant_number}. {p.organisation_short_name || p.organisation_name}
                 </td>
-                {wpData.map(wp => (
-                  <td key={wp.id} className={cellStyles}>
-                    {pMap.get(wp.id) || '—'}
-                  </td>
-                ))}
+                {wpData.map(wp => {
+                  const val = pMap.get(wp.id) || 0;
+                  const isEditing = editingCell?.participantId === p.id && editingCell?.wpId === wp.id;
+                  return (
+                    <td
+                      key={wp.id}
+                      className={editableCellStyles}
+                      onClick={() => !isEditing && startEdit(p.id, wp.id, val)}
+                    >
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          className="w-full bg-transparent outline-none border-none p-0 m-0 font-['Times_New_Roman',Times,serif] text-[11pt] text-center"
+                          value={editValue}
+                          onChange={e => setEditValue(e.target.value)}
+                          onBlur={saveEdit}
+                          onKeyDown={handleKeyDown}
+                          autoFocus
+                          style={{ minWidth: '30px' }}
+                        />
+                      ) : (
+                        val || '—'
+                      )}
+                    </td>
+                  );
+                })}
                 <td className={`${cellStyles} font-bold`}>{rowTotal || '—'}</td>
               </tr>
             );

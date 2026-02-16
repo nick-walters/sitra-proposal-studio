@@ -100,16 +100,17 @@ export function B31SectionContent({ proposalId }: Props) {
       <B31RisksTable proposalId={proposalId} />
 
       {/* Table 3.1.f – Effort matrix */}
-      <B31EffortMatrix wpData={wpData} participants={participants} />
+      <B31EffortMatrix wpData={wpData} participants={participants} proposalId={proposalId} />
 
       {/* Table 3.1.g – Subcontracting (conditional) */}
-      <B31SubcontractingTable items={subcontractingItems} participants={participants} />
+      <B31SubcontractingTable items={subcontractingItems} participants={participants} proposalId={proposalId} />
 
       {/* Table 3.1.h – Equipment (conditional) */}
       <B31EquipmentTable
         equipmentItems={equipmentItems}
         participants={participants}
         personnelCostByParticipant={personnelCostByParticipant}
+        proposalId={proposalId}
       />
     </div>
   );

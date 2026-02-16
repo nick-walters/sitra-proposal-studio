@@ -2,6 +2,9 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { B31WPData, B31Participant } from '@/hooks/useB31SectionData';
 import { useQueryClient } from '@tanstack/react-query';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles = "border border-black px-0.5 py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle text-left";
@@ -14,12 +17,126 @@ interface Props {
   proposalId?: string;
 }
 
+/* Inline editable text cell */
+function InlineEdit({
+  value,
+  onSave,
+  className = '',
+}: {
+  value: string;
+  onSave: (val: string) => void;
+  className?: string;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [editValue, setEditValue] = useState(value);
+
+  const startEdit = () => {
+    setEditValue(value);
+    setEditing(true);
+  };
+
+  const save = () => {
+    setEditing(false);
+    if (editValue !== value) onSave(editValue);
+  };
+
+  if (editing) {
+    return (
+      <input
+        type="text"
+        className={`bg-transparent outline-none border-none p-0 m-0 font-['Times_New_Roman',Times,serif] text-[11pt] w-full ${className}`}
+        value={editValue}
+        onChange={e => setEditValue(e.target.value)}
+        onBlur={save}
+        onKeyDown={e => {
+          if (e.key === 'Enter') { e.preventDefault(); save(); }
+          if (e.key === 'Escape') setEditing(false);
+        }}
+        autoFocus
+      />
+    );
+  }
+
+  return (
+    <span className={`cursor-text hover:bg-muted/30 ${className}`} onClick={startEdit}>
+      {value || '—'}
+    </span>
+  );
+}
+
+/* Participant picker for WP lead */
+function LeadPicker({
+  wpId,
+  currentLeaderId,
+  participants,
+  proposalId,
+}: {
+  wpId: string;
+  currentLeaderId: string | null;
+  participants: B31Participant[];
+  proposalId: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const leader = participants.find(p => p.id === currentLeaderId);
+
+  const select = async (pid: string) => {
+    setOpen(false);
+    await supabase.from('wp_drafts').update({ lead_participant_id: pid }).eq('id', wpId);
+    queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button className="inline-flex items-center gap-0.5 cursor-pointer hover:opacity-80">
+          {leader ? (
+            <span
+              className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9pt] font-bold italic whitespace-nowrap align-middle"
+              style={{ backgroundColor: '#000000', color: '#FFFFFF', lineHeight: 1 }}
+            >
+              {leader.participant_number}. {leader.organisation_short_name || leader.organisation_name}
+            </span>
+          ) : (
+            <span className="text-muted-foreground text-[9pt] italic">Select…</span>
+          )}
+          <ChevronsUpDown className="h-3 w-3 opacity-50 shrink-0" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[220px] p-0" align="start">
+        <div className="max-h-[200px] overflow-y-auto">
+          {participants.map(p => (
+            <button
+              key={p.id}
+              className={cn(
+                'flex items-center gap-2 w-full px-2 py-1.5 text-sm hover:bg-accent cursor-pointer',
+                p.id === currentLeaderId && 'bg-accent',
+              )}
+              onClick={() => select(p.id)}
+            >
+              <div
+                className={cn(
+                  'flex h-4 w-4 items-center justify-center rounded-full border',
+                  p.id === currentLeaderId ? 'bg-primary border-primary' : 'border-muted-foreground',
+                )}
+              >
+                {p.id === currentLeaderId && <Check className="h-3 w-3 text-primary-foreground" />}
+              </div>
+              <span className="truncate">
+                {p.participant_number}. {p.organisation_short_name || p.organisation_name}
+              </span>
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export function B31WPListTable({ wpData, participants, proposalId }: Props) {
   const queryClient = useQueryClient();
   const [editingCell, setEditingCell] = useState<{ wpId: string; field: 'pm' | 'duration' } | null>(null);
   const [editValue, setEditValue] = useState('');
-
-  const getParticipant = (id: string | null) => participants.find(p => p.id === id);
 
   const getComputedDuration = (wp: B31WPData) => {
     const months = wp.tasks.flatMap(t => [t.start_month, t.end_month]).filter((m): m is number => m != null);
@@ -62,6 +179,12 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
     if (e.key === 'Escape') setEditingCell(null);
   };
 
+  const saveWPField = async (wpId: string, field: string, value: string) => {
+    if (!proposalId) return;
+    await supabase.from('wp_drafts').update({ [field]: value || null }).eq('id', wpId);
+    queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
+  };
+
   if (wpData.length === 0) return null;
 
   return (
@@ -81,7 +204,6 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
         </thead>
         <tbody>
           {wpData.map(wp => {
-            const lead = getParticipant(wp.lead_participant_id);
             const computedPM = getComputedPM(wp);
             const computedDuration = getComputedDuration(wp);
             const displayPM = wp.manual_person_months != null ? wp.manual_person_months : (computedPM > 0 ? computedPM : '');
@@ -94,25 +216,36 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
 
             return (
               <tr key={wp.id}>
-                <td className={`${cellStyles} whitespace-nowrap leading-[0]`}>
+                {/* Editable short name */}
+                <td className={`${editableCellStyles} whitespace-nowrap leading-[0]`}>
                   <span
                     className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-white text-[9pt] font-bold whitespace-nowrap align-middle"
                     style={{ backgroundColor: wp.color || '#666', lineHeight: 1 }}
                   >
-                    WP{wp.number}: {shortName}
+                    WP{wp.number}:&nbsp;
+                    <InlineEdit
+                      value={shortName}
+                      onSave={(val) => saveWPField(wp.id, 'short_name', val)}
+                      className="text-white text-[9pt] font-bold"
+                    />
                   </span>
                 </td>
-                <td className={cellStyles}>
-                  {title && shortName !== title ? title : (shortName !== `WP${wp.number}` ? title || '' : `Work Package ${wp.number}`)}
+                {/* Editable title */}
+                <td className={editableCellStyles}>
+                  <InlineEdit
+                    value={title}
+                    onSave={(val) => saveWPField(wp.id, 'title', val)}
+                  />
                 </td>
-                <td className={`${cellStyles} whitespace-nowrap leading-[0]`}>
-                  {lead ? (
-                     <span
-                      className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9pt] font-bold italic whitespace-nowrap align-middle"
-                      style={{ backgroundColor: '#000000', color: '#FFFFFF', lineHeight: 1 }}
-                    >
-                      {lead.participant_number}. {lead.organisation_short_name || lead.organisation_name}
-                    </span>
+                {/* Editable lead */}
+                <td className={`${editableCellStyles} whitespace-nowrap leading-[0]`}>
+                  {proposalId ? (
+                    <LeadPicker
+                      wpId={wp.id}
+                      currentLeaderId={wp.lead_participant_id}
+                      participants={participants}
+                      proposalId={proposalId}
+                    />
                   ) : '—'}
                 </td>
                 <td
