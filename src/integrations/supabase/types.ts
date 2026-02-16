@@ -26,6 +26,7 @@ export type Database = {
           number: string
           order_index: number
           proposal_id: string
+          task_id: string | null
           type: string | null
           updated_at: string
           wp_number: number | null
@@ -41,6 +42,7 @@ export type Database = {
           number: string
           order_index?: number
           proposal_id: string
+          task_id?: string | null
           type?: string | null
           updated_at?: string
           wp_number?: number | null
@@ -56,6 +58,7 @@ export type Database = {
           number?: string
           order_index?: number
           proposal_id?: string
+          task_id?: string | null
           type?: string | null
           updated_at?: string
           wp_number?: number | null
@@ -73,6 +76,13 @@ export type Database = {
             columns: ["proposal_id"]
             isOneToOne: false
             referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "b31_deliverables_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "wp_draft_tasks"
             referencedColumns: ["id"]
           },
         ]

@@ -99,8 +99,9 @@ export function GanttChartFigure({
           .select('id, wp_draft_id, number, title, start_month, end_month')
           .order('order_index'),
         supabase
-          .from('wp_draft_deliverables')
-          .select('id, wp_draft_id, number, due_month, task_id'),
+          .from('b31_deliverables')
+          .select('id, wp_number, number, due_month, task_id')
+          .eq('proposal_id', proposalId),
         supabase
           .from('b31_milestones')
           .select('id, number, name, due_month')
@@ -114,9 +115,8 @@ export function GanttChartFigure({
 
       const wpIds = new Set(wps!.map(wp => wp.id));
       const filteredTasks = (tasks || []).filter(t => wpIds.has(t.wp_draft_id));
-      const filteredDeliverables = (deliverables || []).filter(d => wpIds.has(d.wp_draft_id));
 
-      return { wps: wps!, tasks: filteredTasks, deliverables: filteredDeliverables, milestones: msData || [] };
+      return { wps: wps!, tasks: filteredTasks, deliverables: deliverables || [], milestones: msData || [] };
     },
   });
 
@@ -127,7 +127,7 @@ export function GanttChartFigure({
 
     const workPackages: WorkPackage[] = wps.map((wp) => {
       const wpTasks = tasks.filter(t => t.wp_draft_id === wp.id);
-      const wpDeliverables = deliverables.filter(d => d.wp_draft_id === wp.id);
+      const wpDeliverables = deliverables.filter(d => d.wp_number === wp.number);
 
       const taskStartMonths = wpTasks.filter(t => t.start_month != null).map(t => t.start_month!);
       const taskEndMonths = wpTasks.filter(t => t.end_month != null).map(t => t.end_month!);
@@ -152,7 +152,7 @@ export function GanttChartFigure({
             endMonth: t.end_month!,
             deliverables: wpDeliverables
               .filter(d => d.task_id === t.id && d.due_month != null)
-              .map(d => ({ number: `${wp.number}.${d.number}`, month: d.due_month! })),
+              .map(d => ({ number: d.number, month: d.due_month! })),
           })),
       };
     });
