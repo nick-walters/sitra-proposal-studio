@@ -1001,17 +1001,15 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
               <TableBody>
                 {milestones.map((ms) => (
                   <SortableTableRow key={ms.id} id={ms.id} canDrag={isAdminOrOwner} onDelete={() => deleteMilestone.mutate(ms.id)}>
-                    <TableCell className={cellStyles}>
-                      <div>
-                        <span className="font-bold font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">MS{ms.number}:&nbsp;</span>
-                        <span className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">
-                          <EditableTextInline
-                            value={ms.name}
-                            onChange={(val) => updateMilestone.mutate({ id: ms.id, name: val })}
-                            placeholder="Milestone name"
-                          />
-                        </span>
-                      </div>
+                    <TableCell className={cellStyles} style={{ lineHeight: 1.2 }}>
+                      <span className="font-bold font-['Times_New_Roman',Times,serif] text-[11pt]" style={{ lineHeight: 1.2 }}>MS{ms.number}:&nbsp;</span>
+                      <span className="font-['Times_New_Roman',Times,serif] text-[11pt]" style={{ lineHeight: 1.2 }}>
+                        <EditableTextInline
+                          value={ms.name}
+                          onChange={(val) => updateMilestone.mutate({ id: ms.id, name: val })}
+                          placeholder="Milestone name"
+                        />
+                      </span>
                     </TableCell>
                     <TableCell className={bubbleCellStyles}>
                       <MultiWPSelector
