@@ -773,17 +773,6 @@ export function ProposalEditor() {
       );
     }
 
-    // Case Drafts container section - shows placeholder for now
-    if (activeSection.id === 'case-drafts') {
-      return (
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="text-center py-12 text-muted-foreground">
-            <h3 className="text-lg font-medium mb-2">Case Drafts</h3>
-            <p className="text-sm">Select a case from the left panel to view its details.</p>
-          </div>
-        </div>
-      );
-    }
 
     // Individual Case Draft (case-{uuid}) - placeholder for now
     const caseSection = activeSection as CaseSection;

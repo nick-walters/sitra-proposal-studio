@@ -129,7 +129,6 @@ function SectionItem({
     section.title === 'Figures' ||
     section.id === 'wp-progress-tracker' ||
     section.id === 'wp-drafts' ||
-    section.id === 'case-drafts' ||
     section.id === 'proposal-management';
   
   // Note: Guideline icons removed from navigation hover to reduce visual clutter
@@ -219,8 +218,6 @@ function SectionItem({
             <BarChart3 className="w-4 h-4 text-muted-foreground shrink-0" />
           ) : section.id === 'wp-drafts' ? (
             <Layers className="w-4 h-4 text-muted-foreground shrink-0" />
-          ) : section.id === 'case-drafts' ? (
-            <FlaskConical className="w-4 h-4 text-muted-foreground shrink-0" />
           ) : section.id === 'figures' || section.title === 'Figures' ? (
             null
           ) : isWPSection && wpColor ? (
