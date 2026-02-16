@@ -466,7 +466,7 @@ export function GanttChartFigure({
                   const isLastRow = untimedTasks.length === 0 && taskIdx === wp.tasks.length - 1;
                   const bottomBorder = isLastRow ? `1px solid ${borderDark}` : `1px solid ${borderLight}`;
                   return (
-                    <div key={task.id} className="flex" style={{ borderLeft: `1px solid ${borderDark}` }}>
+                    <div key={task.id} className="flex" style={{ borderLeft: `1px solid ${borderDark}`, position: 'relative' }}>
                       <div 
                         className="shrink-0 flex items-center overflow-hidden"
                         style={{ width: labelWidth, height: 18, padding: '0 2px', borderRight: `1px solid ${borderDark}`, borderBottom: bottomBorder }}
@@ -474,7 +474,7 @@ export function GanttChartFigure({
                         <span className="font-medium shrink-0 mr-1" style={{ whiteSpace: 'nowrap' }}>T{task.wpNumber}.{task.taskNumber}:</span>
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.name}</span>
                       </div>
-                      <div className="flex">
+                      <div className="flex" style={{ position: 'relative' }}>
                         {months.map(m => {
                           const isInTask = m >= task.startMonth && m <= task.endMonth;
                           const deliverable = task.deliverables?.find(d => d.month === m);
@@ -489,6 +489,7 @@ export function GanttChartFigure({
                                 backgroundColor: isInTask ? taskColor : undefined,
                                 borderRight: isInTask ? getFilledCellRightBorder(m) : `1px solid ${getMonthRightBorder(m)}`,
                                 borderBottom: bottomBorder,
+                                position: 'relative',
                               }}
                             >
                               {deliverable && (
@@ -496,9 +497,23 @@ export function GanttChartFigure({
                                   <TooltipTrigger asChild>
                                     <span 
                                       className="font-bold"
-                                      style={{ fontSize: '6pt', color: isInTask ? getContrastingTextColor(taskColor) : undefined }}
+                                      style={{
+                                        position: 'absolute',
+                                        top: -10,
+                                        left: '50%',
+                                        transform: 'translateX(-50%)',
+                                        fontSize: '11pt',
+                                        lineHeight: 1,
+                                        backgroundColor: '#ffffff',
+                                        color: '#000000',
+                                        border: '1px solid #000000',
+                                        borderRadius: '9999px',
+                                        padding: '0 4px',
+                                        whiteSpace: 'nowrap',
+                                        zIndex: 10,
+                                      }}
                                     >
-                                      {deliverable.number}
+                                      D{deliverable.number}
                                     </span>
                                   </TooltipTrigger>
                                   <TooltipContent>
