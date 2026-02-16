@@ -8,6 +8,7 @@ import { B31SubcontractingTable } from './B31SubcontractingTable';
 import { B31EquipmentTable } from './B31EquipmentTable';
 import { PERTChartFigure } from './PERTChartFigure';
 import { GanttChartFigure } from './GanttChartFigure';
+import { DeliverableTaskMappingDialog } from './DeliverableTaskMappingDialog';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 
@@ -74,6 +75,9 @@ export function B31SectionContent({ proposalId }: Props) {
           <p className={`${tableStyles} italic mt-1`}>
             <span className="font-bold italic">Figure 3.1.b.</span> Gantt chart, showing WP, task, deliverable &amp; milestone timings
           </p>
+          <div className="mt-2 print:hidden">
+            <DeliverableTaskMappingDialog proposalId={proposalId} />
+          </div>
         </div>
       ) : (
         <p className="text-muted-foreground text-sm italic">
