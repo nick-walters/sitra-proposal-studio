@@ -215,26 +215,15 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
                           )}
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-1"
-                            onClick={() => window.location.href = `mailto:${collab.email}`}
-                          >
-                            <Mail className="w-4 h-4" />
-                            Send email
-                          </Button>
-                          {collab.phone_number && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => window.location.href = `tel:${collab.phone_number}`}
-                            >
-                              <Phone className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1"
+                          onClick={() => window.location.href = `mailto:${collab.email}`}
+                        >
+                          <Mail className="w-4 h-4" />
+                          Send email
+                        </Button>
                       </div>
                     ))}
                   </div>
