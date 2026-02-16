@@ -283,13 +283,13 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                 <tr>
                   <td
                     colSpan={3}
-                    className="px-0.5 py-0 font-bold text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight"
+                    className="border px-0.5 font-bold text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight text-white"
                     style={{
                       backgroundColor: wp.color,
-                      color: '#FFFFFF',
                       borderColor: wp.color,
-                      borderStyle: 'solid',
-                      borderWidth: '1px',
+                      paddingTop: 0,
+                      paddingBottom: 0,
+                      lineHeight: 1.2,
                     }}
                   >
                     WP{wp.number}: {shortName} – {title}
@@ -330,13 +330,13 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                       <tr>
                         <td
                           colSpan={3}
-                          className="px-0.5 py-0 font-bold text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight"
+                          className="border px-0.5 font-bold text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight text-white"
                           style={{
                             backgroundColor: wp.color,
-                            color: '#FFFFFF',
                             borderColor: wp.color,
-                            borderStyle: 'solid',
-                            borderWidth: '1px',
+                            paddingTop: 0,
+                            paddingBottom: 0,
+                            lineHeight: 1.2,
                           }}
                         >
                           T{wp.number}.{task.number}: {task.title || `Task ${task.number}`}
