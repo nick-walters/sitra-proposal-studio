@@ -5,6 +5,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useUserRole } from '@/hooks/useUserRole';
+import { useColumnResize } from '@/hooks/useColumnResize';
+import { ColumnResizer } from '@/components/ColumnResizer';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles = "border border-black px-0.5 py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle text-left";
@@ -135,6 +138,8 @@ function LeadPicker({
 
 export function B31WPListTable({ wpData, participants, proposalId }: Props) {
   const queryClient = useQueryClient();
+  const { isAdminOrOwner } = useUserRole();
+  const { colWidths, tableRef, handleColResizeStart } = useColumnResize();
   const [editingCell, setEditingCell] = useState<{ wpId: string; field: 'pm' | 'duration' } | null>(null);
   const [editValue, setEditValue] = useState('');
 
@@ -192,14 +197,26 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
       <p className={`${tableStyles} italic mb-0`}>
         <span className="font-bold italic">Table 3.1.a.</span> List of work packages
       </p>
-      <table className={`${tableStyles} w-full border-collapse`}>
+      <table className={`${tableStyles} w-full border-collapse`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto' }} ref={tableRef}>
         <thead>
           <tr>
-            <th className={`${headerCellStyles} whitespace-nowrap`}>No. &amp; short name</th>
-            <th className={headerCellStyles}>Work package title</th>
-            <th className={`${headerCellStyles} whitespace-nowrap`}>Lead</th>
-            <th className={`${headerCellStyles} whitespace-nowrap`}>Person months</th>
-            <th className={`${headerCellStyles} whitespace-nowrap`}>Duration</th>
+            <th className={`${headerCellStyles} whitespace-nowrap relative`} style={colWidths.length > 0 ? { width: colWidths[0] } : undefined}>
+              No. &amp; short name
+              {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
+            </th>
+            <th className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[1] } : undefined}>
+              Work package title
+              {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
+            </th>
+            <th className={`${headerCellStyles} whitespace-nowrap relative`} style={colWidths.length > 0 ? { width: colWidths[2] } : undefined}>
+              Lead
+              {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(2)} />}
+            </th>
+            <th className={`${headerCellStyles} whitespace-nowrap relative`} style={colWidths.length > 0 ? { width: colWidths[3] } : undefined}>
+              Person months
+              {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(3)} />}
+            </th>
+            <th className={`${headerCellStyles} whitespace-nowrap`} style={colWidths.length > 0 ? { width: colWidths[4] } : undefined}>Duration</th>
           </tr>
         </thead>
         <tbody>
@@ -216,7 +233,6 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
 
             return (
               <tr key={wp.id}>
-                {/* Editable short name */}
                 <td className={`${editableCellStyles} whitespace-nowrap leading-[0]`}>
                   <span
                     className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-white text-[9pt] font-bold whitespace-nowrap align-middle"
@@ -230,14 +246,12 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
                     />
                   </span>
                 </td>
-                {/* Editable title */}
                 <td className={editableCellStyles}>
                   <InlineEdit
                     value={title}
                     onSave={(val) => saveWPField(wp.id, 'title', val)}
                   />
                 </td>
-                {/* Editable lead */}
                 <td className={`${editableCellStyles} whitespace-nowrap leading-[0]`}>
                   {proposalId ? (
                     <LeadPicker

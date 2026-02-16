@@ -3,6 +3,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { B31BudgetItem, B31Participant } from '@/hooks/useB31SectionData';
 import { formatCurrency, parseFormattedNumber } from '@/lib/formatNumber';
+import { useUserRole } from '@/hooks/useUserRole';
+import { useColumnResize } from '@/hooks/useColumnResize';
+import { ColumnResizer } from '@/components/ColumnResizer';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles = "border border-black px-1 py-0.5 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-top";
@@ -18,15 +21,10 @@ interface Props {
 
 export function B31EquipmentTable({ equipmentItems, participants, personnelCostByParticipant, proposalId }: Props) {
   const queryClient = useQueryClient();
+  const { isAdminOrOwner } = useUserRole();
+  const { colWidths, tableRef, handleColResizeStart } = useColumnResize();
   const [editingCell, setEditingCell] = useState<{ id: string; field: string } | null>(null);
   const [editValue, setEditValue] = useState('');
-
-  const qualifyingItems = equipmentItems.filter(item => {
-    const personnelCost = personnelCostByParticipant.get(item.participant_id) || 0;
-    return personnelCost > 0 && item.amount > personnelCost * 0.15;
-  });
-
-  if (qualifyingItems.length === 0) return null;
 
   const getName = (id: string) => {
     const p = participants.find(p => p.id === id);
@@ -59,17 +57,33 @@ export function B31EquipmentTable({ equipmentItems, participants, personnelCostB
     if (e.key === 'Escape') setEditingCell(null);
   };
 
+  const qualifyingItems = equipmentItems.filter(item => {
+    const personnelCost = personnelCostByParticipant.get(item.participant_id) || 0;
+    return personnelCost > 0 && item.amount > personnelCost * 0.15;
+  });
+
+  if (qualifyingItems.length === 0) return null;
+
   return (
     <div>
       <p className={`${tableStyles} italic mb-0`}>
         <span className="font-bold italic">Table 3.1.h.</span> Equipment purchase cost justifications
       </p>
-      <table className={`${tableStyles} w-full border-collapse`}>
+      <table className={`${tableStyles} w-full border-collapse`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto' }} ref={tableRef}>
         <thead>
           <tr>
-            <th className={headerCellStyles}>Participant</th>
-            <th className={headerCellStyles}>Equipment description</th>
-            <th className={`${headerCellStyles} w-[120px] text-right`}>Amount</th>
+            <th className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[0] } : undefined}>
+              Participant
+              {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
+            </th>
+            <th className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[1] } : undefined}>
+              Equipment description
+              {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
+            </th>
+            <th className={`${headerCellStyles} text-right relative`} style={colWidths.length > 0 ? { width: colWidths[2] } : { width: '120px' }}>
+              Amount
+              {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(2)} />}
+            </th>
             <th className={headerCellStyles}>Justification</th>
           </tr>
         </thead>
