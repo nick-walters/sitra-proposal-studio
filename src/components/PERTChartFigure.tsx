@@ -149,12 +149,12 @@ export function PERTChartFigure({
   // Calculate default positions in a grid layout
   const defaultPositions = useMemo(() => {
     const cols = 3;
-    const nodeWidth = 120;
-    const nodeHeight = 60;
-    const hGap = 80;
-    const vGap = 30;
-    const startX = 20;
-    const startY = 20;
+    const nodeWidth = 84;
+    const nodeHeight = 42;
+    const hGap = 56;
+    const vGap = 20;
+    const startX = 14;
+    const startY = 14;
 
     const positions: Record<string, { x: number; y: number }> = {};
     wpDrafts.forEach((wp, index) => {
@@ -188,8 +188,8 @@ export function PERTChartFigure({
 
   // Helper to compute arrow between two nodes
   const computeArrow = useCallback((fromNode: WPNode, toNode: WPNode) => {
-    const nodeWidth = 120;
-    const nodeHeight = 50;
+    const nodeWidth = 84;
+    const nodeHeight = 35;
     
     const fromCenterX = fromNode.x + nodeWidth / 2;
     const fromCenterY = fromNode.y + nodeHeight / 2;
@@ -259,8 +259,8 @@ export function PERTChartFigure({
 
   const handleMouseUp = useCallback(() => { setDraggingNode(null); }, []);
 
-  const nodeW = 120;
-  const nodeH = 50;
+  const nodeW = 84;
+  const nodeH = 35;
   const minX = Math.min(...nodes.map(n => n.x));
   const minY = Math.min(...nodes.map(n => n.y));
   const maxX = Math.max(...nodes.map(n => n.x + nodeW));
@@ -338,7 +338,7 @@ export function PERTChartFigure({
             viewBox={viewBoxStr}
             preserveAspectRatio="xMidYMid meet"
             className="select-none"
-            style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '14.67px' }}
+            style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '10px' }}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
@@ -362,13 +362,13 @@ export function PERTChartFigure({
                       className={canEdit ? 'cursor-grab active:cursor-grabbing' : ''}
                       onMouseDown={(e) => handleMouseDown(e, node.id)}
                     >
-                      <rect width={120} height={50} rx={8} ry={8} fill={node.color}
-                        stroke={draggingNode === node.id ? 'hsl(var(--primary))' : 'transparent'} strokeWidth={2} className="transition-all" />
-                      <text x={60} y={20} textAnchor="middle" fill="#FFFFFF" fontSize="14.67" fontWeight="bold">
+                      <rect width={84} height={35} rx={6} ry={6} fill={node.color}
+                        stroke={draggingNode === node.id ? 'hsl(var(--primary))' : 'transparent'} strokeWidth={1.5} className="transition-all" />
+                      <text x={42} y={14} textAnchor="middle" fill="#FFFFFF" fontSize="10" fontWeight="bold">
                         WP{node.number}
                       </text>
-                      <text x={60} y={38} textAnchor="middle" fill="#FFFFFF" fontSize="14.67" opacity={0.9}>
-                        {node.shortName.length > 12 ? node.shortName.substring(0, 11) + '…' : node.shortName}
+                      <text x={42} y={27} textAnchor="middle" fill="#FFFFFF" fontSize="10" opacity={0.9}>
+                        {node.shortName.length > 10 ? node.shortName.substring(0, 9) + '…' : node.shortName}
                       </text>
                     </g>
                   </TooltipTrigger>
