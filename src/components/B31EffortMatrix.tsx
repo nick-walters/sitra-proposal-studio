@@ -5,7 +5,7 @@ import { getContrastingTextColor } from '@/lib/wpColors';
 import type { B31WPData, B31Participant } from '@/hooks/useB31SectionData';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
-const cellStyles = "border border-black px-1 py-0.5 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle";
+const cellStyles = "px-1 py-0.5 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle";
 const headerCellStyles = "px-1 py-0.5 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle";
 const editableCellStyles = `${cellStyles} cursor-text hover:bg-muted/30`;
 
