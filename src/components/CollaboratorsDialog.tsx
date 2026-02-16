@@ -10,9 +10,10 @@ import { UserProfileDialog } from "@/components/UserProfileDialog";
 import { ProposalMultiSelect } from "@/components/ProposalMultiSelect";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Mail, Phone, Building2, Search, Users, UserPlus } from "lucide-react";
+import { Mail, Building2, Search, Users, UserPlus, Phone } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useParams } from "react-router-dom";
 
 interface Collaborator {
   id: string;
@@ -25,6 +26,11 @@ interface Collaborator {
   phone_number: string | null;
 }
 
+interface OnlineUser {
+  id: string;
+  name: string;
+}
+
 interface CollaboratorsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -32,6 +38,7 @@ interface CollaboratorsDialogProps {
 
 export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogProps) {
   const { user } = useAuth();
+  const { id: proposalId } = useParams<{ id: string }>();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -40,6 +47,42 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
   const [canInvite, setCanInvite] = useState(false);
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   const [loadingCollaborators, setLoadingCollaborators] = useState(true);
+  const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
+
+  // Subscribe to realtime presence for the current proposal
+  useEffect(() => {
+    if (!open || !proposalId || !user) {
+      setOnlineUsers([]);
+      return;
+    }
+
+    // Listen on the same presence channel used by useCollaborativeCursors
+    const channel = supabase.channel(`proposal:${proposalId}:cursors`, {
+      config: {
+        presence: {},
+      },
+    });
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const users: OnlineUser[] = [];
+        for (const [, presences] of Object.entries(state)) {
+          const presence = presences[0] as unknown as { id: string; name: string };
+          if (presence.id && presence.id !== user.id) {
+            users.push({ id: presence.id, name: presence.name });
+          }
+        }
+        setOnlineUsers(users);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [open, proposalId, user]);
+
+  const onlineUserIds = new Set(onlineUsers.map(u => u.id));
 
   // Fetch real collaborators from profiles table
   useEffect(() => {
@@ -164,57 +207,70 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {filteredUsers.map((collab) => (
-                      <div
-                        key={collab.id}
-                        className="flex items-center gap-4 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-                      >
-                        <Avatar 
-                          className="w-12 h-12 cursor-pointer hover:ring-2 hover:ring-primary transition-all"
-                          onClick={() => handleViewProfile(collab.id)}
+                    {filteredUsers.map((collab) => {
+                      const isOnline = onlineUserIds.has(collab.id);
+                      return (
+                        <div
+                          key={collab.id}
+                          className="flex items-center gap-4 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
                         >
-                          <AvatarImage src={collab.avatar_url || undefined} />
-                          <AvatarFallback>{getInitials(collab)}</AvatarFallback>
-                        </Avatar>
-
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span 
-                              className="font-medium cursor-pointer hover:text-primary transition-colors"
+                          <div className="relative">
+                            <Avatar 
+                              className="w-12 h-12 cursor-pointer hover:ring-2 hover:ring-primary transition-all"
                               onClick={() => handleViewProfile(collab.id)}
                             >
-                              {getDisplayName(collab)}
-                            </span>
+                              <AvatarImage src={collab.avatar_url || undefined} />
+                              <AvatarFallback>{getInitials(collab)}</AvatarFallback>
+                            </Avatar>
+                            {isOnline && (
+                              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-card" />
+                            )}
                           </div>
-                          {collab.organisation && (
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Building2 className="w-3 h-3" />
-                              {collab.organisation}
-                            </div>
-                          )}
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Mail className="w-3 h-3" />
-                            {collab.email}
-                          </div>
-                          {collab.phone_number && (
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Phone className="w-3 h-3" />
-                              {collab.phone_number}
-                            </div>
-                          )}
-                        </div>
 
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="gap-1"
-                          onClick={() => window.location.href = `mailto:${collab.email}`}
-                        >
-                          <Mail className="w-4 h-4" />
-                          Send email
-                        </Button>
-                      </div>
-                    ))}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span 
+                                className="font-medium cursor-pointer hover:text-primary transition-colors"
+                                onClick={() => handleViewProfile(collab.id)}
+                              >
+                                {getDisplayName(collab)}
+                              </span>
+                              {isOnline && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-green-50 text-green-700 border-green-300 dark:bg-green-950 dark:text-green-400 dark:border-green-700">
+                                  Online
+                                </Badge>
+                              )}
+                            </div>
+                            {collab.organisation && (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Building2 className="w-3 h-3" />
+                                {collab.organisation}
+                              </div>
+                            )}
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Mail className="w-3 h-3" />
+                              {collab.email}
+                            </div>
+                            {collab.phone_number && (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Phone className="w-3 h-3" />
+                                {collab.phone_number}
+                              </div>
+                            )}
+                          </div>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1"
+                            onClick={() => window.location.href = `mailto:${collab.email}`}
+                          >
+                            <Mail className="w-4 h-4" />
+                            Send email
+                          </Button>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </ScrollArea>
