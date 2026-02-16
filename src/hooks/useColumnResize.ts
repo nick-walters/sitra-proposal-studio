@@ -35,7 +35,11 @@ export function useColumnResize(deps: any[] = []) {
       const { index: colIdx, startX, startWidths } = resizingRef.current;
       const delta = ev.clientX - startX;
       const newWidths = [...startWidths];
-      newWidths[colIdx] = Math.max(40, startWidths[colIdx] + delta);
+      const proposed = Math.max(40, startWidths[colIdx] + delta);
+      // Clamp so total widths don't exceed the table's container
+      const containerWidth = tableRef.current?.parentElement?.clientWidth ?? Infinity;
+      const otherWidths = newWidths.reduce((sum, w, i) => i === colIdx ? sum : sum + w, 0);
+      newWidths[colIdx] = Math.min(proposed, Math.max(40, containerWidth - otherWidths));
       setColWidths(newWidths);
     };
 
