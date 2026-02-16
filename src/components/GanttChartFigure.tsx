@@ -1,11 +1,14 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Download, BarChart3, Plus, Trash2 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Download, BarChart3, Plus, Trash2, Image, FileDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { getContrastingTextColor, lightenColor } from '@/lib/wpColors';
+import { exportAsPng, exportAsPptx } from '@/lib/figureExport';
+import { toast } from 'sonner';
 
 interface Task {
   id: string;
@@ -56,6 +59,7 @@ export function GanttChartFigure({
   onContentChange,
   canEdit,
 }: GanttChartFigureProps) {
+  const chartRef = useRef<HTMLDivElement>(null);
   // Fetch wp_drafts with their tasks
   const { data: wpDraftsData } = useQuery({
     queryKey: ['wp-drafts-gantt', proposalId],
@@ -199,15 +203,39 @@ export function GanttChartFigure({
               </SelectContent>
             </Select>
           )}
-          <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
-            <Download className="w-3 h-3" />
-            Export
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
+                <Download className="w-3 h-3" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => {
+                if (chartRef.current) {
+                  exportAsPng(chartRef.current, `Gantt-Chart-Figure-${figureNumber}`);
+                  toast.success('PNG downloaded');
+                }
+              }}>
+                <Image className="w-4 h-4 mr-2" />
+                Download as PNG
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                if (chartRef.current) {
+                  exportAsPptx(chartRef.current, `Gantt-Chart-Figure-${figureNumber}`);
+                  toast.success('PPTX downloaded');
+                }
+              }}>
+                <FileDown className="w-4 h-4 mr-2" />
+                Download as PPTX
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
       <TooltipProvider>
-        <div className="min-w-max text-[9px] font-serif overflow-x-auto" style={{ fontFamily: 'Times New Roman, serif' }}>
+        <div ref={chartRef} className="min-w-max text-[9px] font-serif overflow-x-auto" style={{ fontFamily: 'Times New Roman, serif' }}>
           {/* Reporting Period Row */}
           <div className="flex border-t border-l">
             <div 

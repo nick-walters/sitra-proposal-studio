@@ -2,10 +2,11 @@ import { useState, useMemo, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Network, Move, Plus, Trash2, ArrowRight } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Download, Network, Move, Plus, Trash2, ArrowRight, Image, FileDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-
+import { exportAsPng, exportAsPptx } from '@/lib/figureExport';
 import { toast } from 'sonner';
 
 interface WPNode {
@@ -44,6 +45,7 @@ export function PERTChartFigure({
   canEdit,
 }: PERTChartFigureProps) {
   const svgRef = useRef<SVGSVGElement>(null);
+  const chartRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const [draggingNode, setDraggingNode] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -271,15 +273,39 @@ export function PERTChartFigure({
               Drag nodes to reposition
             </span>
           )}
-          <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
-            <Download className="w-3 h-3" />
-            Export
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
+                <Download className="w-3 h-3" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => {
+                if (chartRef.current) {
+                  exportAsPng(chartRef.current, `PERT-Chart-Figure-${figureNumber}`);
+                  toast.success('PNG downloaded');
+                }
+              }}>
+                <Image className="w-4 h-4 mr-2" />
+                Download as PNG
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                if (chartRef.current) {
+                  exportAsPptx(chartRef.current, `PERT-Chart-Figure-${figureNumber}`);
+                  toast.success('PPTX downloaded');
+                }
+              }}>
+                <FileDown className="w-4 h-4 mr-2" />
+                Download as PPTX
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
       <TooltipProvider>
-        <div className="border rounded-lg bg-background overflow-auto">
+        <div ref={chartRef} className="border rounded-lg bg-background overflow-auto">
           <svg
             ref={svgRef}
             width={svgWidth}
