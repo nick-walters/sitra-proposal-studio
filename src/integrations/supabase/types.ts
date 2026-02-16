@@ -3793,6 +3793,8 @@ export type Database = {
           id: string
           inputs_question: string | null
           lead_participant_id: string | null
+          manual_duration: string | null
+          manual_person_months: number | null
           methodology: string | null
           number: number
           objectives: string | null
@@ -3811,6 +3813,8 @@ export type Database = {
           id?: string
           inputs_question?: string | null
           lead_participant_id?: string | null
+          manual_duration?: string | null
+          manual_person_months?: number | null
           methodology?: string | null
           number: number
           objectives?: string | null
@@ -3829,6 +3833,8 @@ export type Database = {
           id?: string
           inputs_question?: string | null
           lead_participant_id?: string | null
+          manual_duration?: string | null
+          manual_person_months?: number | null
           methodology?: string | null
           number?: number
           objectives?: string | null

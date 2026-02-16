@@ -39,7 +39,7 @@ export function B31SectionContent({ proposalId }: Props) {
   return (
     <div className="b31-tables-container space-y-4 [&_p]:!my-0 mt-[20px]">
       {/* Table 3.1.a – List of work packages */}
-      <B31WPListTable wpData={wpData} participants={participants} />
+      <B31WPListTable wpData={wpData} participants={participants} proposalId={proposalId} />
 
       {/* Figure 3.1.a – PERT chart */}
       {pertFigure ? (
