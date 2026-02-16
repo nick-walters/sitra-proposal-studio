@@ -35,8 +35,19 @@ export function DeliverableTaskMappingDialog({ proposalId }: DeliverableTaskMapp
         .eq('id', deliverableId);
       if (error) throw error;
     },
+    onMutate: async ({ deliverableId, taskId }) => {
+      await queryClient.cancelQueries({ queryKey: ['deliverable-task-mapping', proposalId] });
+      queryClient.setQueryData(['deliverable-task-mapping', proposalId], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          deliverables: old.deliverables.map((d: any) =>
+            d.id === deliverableId ? { ...d, task_id: taskId } : d
+          ),
+        };
+      });
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['deliverable-task-mapping', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] });
     },
   });
