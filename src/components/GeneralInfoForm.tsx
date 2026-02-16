@@ -711,18 +711,19 @@ export function GeneralInfoForm({
           </CardHeader>
           <CardContent>
             <div className="flex gap-6 items-start">
-              <div className="flex-1 space-y-3">
+              <div className="flex-1 min-w-0 space-y-3">
                 <div>
                   <label className="text-xs text-muted-foreground mb-0.5 block">Title</label>
                   {isEditing && editedProposal ? (
-                    <Input
+                    <Textarea
                       value={editedProposal.title}
                       onChange={(e) => setEditedProposal({ ...editedProposal, title: e.target.value })}
-                      className="text-sm font-semibold h-8"
+                      className="text-sm font-semibold resize-none max-w-lg"
                       placeholder="Full proposal title"
+                      rows={3}
                     />
                   ) : (
-                    <h2 className="text-sm font-semibold text-foreground" style={{ fontFamily: 'Arial, sans-serif' }}>{proposal?.title}</h2>
+                    <h2 className="text-sm font-semibold text-foreground max-w-lg" style={{ fontFamily: 'Arial, sans-serif' }}>{proposal?.title}</h2>
                   )}
                   <InlineGuideline className="mt-1">
                     Max 200 characters (with spaces). Must be understandable for non-specialists.
@@ -746,17 +747,19 @@ export function GeneralInfoForm({
 
               <div className="flex-shrink-0">
                 <label className="text-xs text-muted-foreground mb-1 block">Project logo</label>
-                {isEditing && editedProposal ? (
-                  <LogoUpload
-                    currentUrl={editedProposal.logoUrl || null}
-                    proposalId={proposalId}
-                    proposalAcronym={editedProposal.acronym}
-                    proposalTitle={editedProposal.title}
-                    onUpload={handleLogoChange}
-                  />
-                ) : (
-                  <AcronymLogo logoUrl={proposal?.logoUrl} acronym={proposal?.acronym || 'P'} />
-                )}
+                <div className="flex gap-2 items-start">
+                  {isEditing && editedProposal ? (
+                    <LogoUpload
+                      currentUrl={editedProposal.logoUrl || null}
+                      proposalId={proposalId}
+                      proposalAcronym={editedProposal.acronym}
+                      proposalTitle={editedProposal.title}
+                      onUpload={handleLogoChange}
+                    />
+                  ) : (
+                    <AcronymLogo logoUrl={proposal?.logoUrl} acronym={proposal?.acronym || 'P'} />
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>
