@@ -318,7 +318,7 @@ export function GanttChartFigure({
                 <div
                   key={rp.number}
                   className="text-center font-bold flex items-center justify-center"
-                  style={{ width: periodMonths * cellWidth, height: 18, borderTop: `1px solid ${borderDark}`, borderBottom: `1px solid ${borderDark}`, borderLeft: rpIdx === 0 ? `1px solid ${borderDark}` : undefined, borderRight: `1px solid ${borderDark}` }}
+                  style={{ width: periodMonths * cellWidth, height: 18, borderTop: `0.5px solid ${borderDark}`, borderBottom: `0.5px solid ${borderDark}`, borderLeft: rpIdx === 0 ? `0.5px solid ${borderDark}` : undefined, borderRight: `0.5px solid ${borderDark}` }}
                 >
                   {rp.number}
                 </div>
@@ -338,7 +338,7 @@ export function GanttChartFigure({
               <div
                 key={yr.year}
                 className="text-center font-bold flex items-center justify-center"
-                style={{ width: yr.months.length * cellWidth, height: 18, borderTop: `1px solid ${borderDark}`, borderBottom: `1px solid ${borderDark}`, borderLeft: yrIdx === 0 ? `1px solid ${borderDark}` : undefined, borderRight: `1px solid ${borderDark}` }}
+                style={{ width: yr.months.length * cellWidth, height: 18, borderTop: `0.5px solid ${borderDark}`, borderBottom: `0.5px solid ${borderDark}`, borderLeft: yrIdx === 0 ? `0.5px solid ${borderDark}` : undefined, borderRight: `0.5px solid ${borderDark}` }}
               >
                 {yr.year}
               </div>
@@ -353,7 +353,7 @@ export function GanttChartFigure({
             >
               Month
             </div>
-            <div className="flex" style={{ border: `1px solid ${borderDark}` }}>
+            <div className="flex" style={{ border: `0.5px solid ${borderDark}` }}>
               {Array.from({ length: Math.ceil(projectDuration / 3) }, (_, qi) => {
                 const startM = qi * 3 + 1;
                 const endM = Math.min(qi * 3 + 3, projectDuration);
@@ -379,7 +379,7 @@ export function GanttChartFigure({
             >
               Milestone
             </div>
-            <div className="flex" style={{ border: `1px solid ${borderDark}` }}>
+            <div className="flex" style={{ border: `0.5px solid ${borderDark}` }}>
               {months.map(m => {
                 const ms = getMilestonesForMonth(m);
                 return (
