@@ -360,11 +360,14 @@ export function GanttChartFigure({
                 const startM = qi * 3 + 1;
                 const endM = Math.min(qi * 3 + 3, projectDuration);
                 const count = endM - startM + 1;
+                const isLastQuarter = qi >= Math.ceil(projectDuration / 3) - 1;
+                const isYearBoundary = endM % 12 === 0;
+                const rightBorderColor = isLastQuarter ? undefined : (isYearBoundary ? borderDark : borderQuarter);
                 return (
                   <div
                     key={qi}
                     className="flex items-center justify-center"
-                    style={{ width: cellWidth * count, height: 18, padding: 0, borderRight: qi < Math.ceil(projectDuration / 3) - 1 ? `1px solid ${borderQuarter}` : undefined }}
+                    style={{ width: cellWidth * count, height: 18, padding: 0, borderRight: rightBorderColor ? `1px solid ${rightBorderColor}` : undefined }}
                   >
                     <span style={{ fontSize: '11pt' }}>{startM}–{endM}</span>
                   </div>
