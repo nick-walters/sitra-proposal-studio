@@ -58,34 +58,39 @@ const SITRA_CASE_TIPS = [
 interface SubsectionConfig {
   key: 'background_context' | 'proposed_solutions' | 'expected_outcomes' | 'replicability';
   headingKey: 'heading_background' | 'heading_solutions' | 'heading_outcomes' | 'heading_replicability';
+  guidelineKey: 'guideline_background' | 'guideline_solutions' | 'guideline_outcomes' | 'guideline_replicability';
   defaultHeading: string;
-  guideline: string;
+  defaultGuideline: string;
 }
 
 const SUBSECTIONS: SubsectionConfig[] = [
   {
     key: 'background_context',
     headingKey: 'heading_background',
+    guidelineKey: 'guideline_background',
     defaultHeading: 'Background context',
-    guideline: 'Describe the specific setting, stakeholders, and challenges that motivate this case. Explain what makes this context relevant to the project objectives.',
+    defaultGuideline: 'Describe the specific setting, stakeholders, and challenges that motivate this case. Explain what makes this context relevant to the project objectives.',
   },
   {
     key: 'proposed_solutions',
     headingKey: 'heading_solutions',
+    guidelineKey: 'guideline_solutions',
     defaultHeading: 'Proposed solutions',
-    guideline: 'Outline the solutions or interventions to be developed and tested in this case. Describe interactions with relevant WPs and how each contributes to this case.',
+    defaultGuideline: 'Outline the solutions or interventions to be developed and tested in this case. Describe interactions with relevant WPs and how each contributes to this case.',
   },
   {
     key: 'expected_outcomes',
     headingKey: 'heading_outcomes',
+    guidelineKey: 'guideline_outcomes',
     defaultHeading: 'Expected outcomes',
-    guideline: 'Specify the measurable results expected from this case, including KPIs and success criteria.',
+    defaultGuideline: 'Specify the measurable results expected from this case, including KPIs and success criteria.',
   },
   {
     key: 'replicability',
     headingKey: 'heading_replicability',
+    guidelineKey: 'guideline_replicability',
     defaultHeading: 'Replicability',
-    guideline: 'Explain how lessons and solutions from this case can be transferred to other contexts, sectors, or geographies.',
+    defaultGuideline: 'Explain how lessons and solutions from this case can be transferred to other contexts, sectors, or geographies.',
   },
 ];
 
@@ -425,6 +430,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit, isCoordinator }: 
         {/* Subsections */}
         {SUBSECTIONS.map((sub) => {
           const heading = (caseDraft as any)[sub.headingKey] || sub.defaultHeading;
+          const guideline = (caseDraft as any)[sub.guidelineKey] || sub.defaultGuideline;
           const content = (caseDraft as any)[sub.key] || '';
 
           return (
@@ -446,9 +452,17 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit, isCoordinator }: 
               </CardHeader>
               <CardContent className="space-y-2 px-3 pb-3 pt-0">
                 <div className="rounded-md border border-border bg-muted/30 p-2">
-                  <p className="text-xs text-muted-foreground italic">
-                    {sub.guideline}
-                  </p>
+                  {isCoordinator ? (
+                    <DebouncedInput
+                      value={guideline}
+                      onDebouncedChange={(v) => updateField(sub.guidelineKey, v)}
+                      className="h-auto text-xs text-muted-foreground italic border-dashed bg-transparent min-h-[1.5rem]"
+                    />
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">
+                      {guideline}
+                    </p>
+                  )}
                 </div>
                 <WPSimpleEditor
                   value={content}

@@ -347,6 +347,10 @@ export type Database = {
           custom_type_name: string | null
           description: string | null
           expected_outcomes: string | null
+          guideline_background: string | null
+          guideline_outcomes: string | null
+          guideline_replicability: string | null
+          guideline_solutions: string | null
           heading_background: string | null
           heading_outcomes: string | null
           heading_replicability: string | null
@@ -370,6 +374,10 @@ export type Database = {
           custom_type_name?: string | null
           description?: string | null
           expected_outcomes?: string | null
+          guideline_background?: string | null
+          guideline_outcomes?: string | null
+          guideline_replicability?: string | null
+          guideline_solutions?: string | null
           heading_background?: string | null
           heading_outcomes?: string | null
           heading_replicability?: string | null
@@ -393,6 +401,10 @@ export type Database = {
           custom_type_name?: string | null
           description?: string | null
           expected_outcomes?: string | null
+          guideline_background?: string | null
+          guideline_outcomes?: string | null
+          guideline_replicability?: string | null
+          guideline_solutions?: string | null
           heading_background?: string | null
           heading_outcomes?: string | null
           heading_replicability?: string | null
