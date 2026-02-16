@@ -345,26 +345,29 @@ export function GanttChartFigure({
             ))}
           </div>
 
-          {/* Month Row - rotated numbers, no borders on heading label */}
+          {/* Month Row - quarterly groups */}
           <div className="flex">
             <div 
               className={`shrink-0 flex items-center justify-end ${headerLabelStyle}`}
-              style={{ width: labelWidth, height: 28, padding: '0 2px' }}
+              style={{ width: labelWidth, height: 18, padding: '0 2px' }}
             >
               Month
             </div>
             <div className="flex" style={{ border: `1px solid ${borderDark}` }}>
-              {months.map(m => (
-                <div
-                  key={m}
-                  className="flex items-center justify-center"
-                  style={{ width: cellWidth, height: 28, borderRight: `1px solid ${getMonthRightBorder(m)}` }}
-                >
-                  <span style={{ fontSize: '7pt', writingMode: 'vertical-rl', transform: 'rotate(180deg)', lineHeight: 1 }}>
-                    {m}
-                  </span>
-                </div>
-              ))}
+              {Array.from({ length: Math.ceil(projectDuration / 3) }, (_, qi) => {
+                const startM = qi * 3 + 1;
+                const endM = Math.min(qi * 3 + 3, projectDuration);
+                const count = endM - startM + 1;
+                return (
+                  <div
+                    key={qi}
+                    className="flex items-center justify-center"
+                    style={{ width: cellWidth * count, height: 18, borderRight: qi < Math.ceil(projectDuration / 3) - 1 ? `1px solid ${borderQuarter}` : undefined }}
+                  >
+                    <span style={{ fontSize: '7pt' }}>{startM}–{endM}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
