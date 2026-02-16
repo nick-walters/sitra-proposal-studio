@@ -113,29 +113,31 @@ export function GanttChartFigure({
       const wpTasks = tasks.filter(t => t.wp_draft_id === wp.id);
       const wpDeliverables = deliverables.filter(d => d.wp_draft_id === wp.id);
 
-      const taskStartMonths = wpTasks.filter(t => t.start_month).map(t => t.start_month!);
-      const taskEndMonths = wpTasks.filter(t => t.end_month).map(t => t.end_month!);
-      const startMonth = taskStartMonths.length > 0 ? Math.min(...taskStartMonths) : 1;
-      const endMonth = taskEndMonths.length > 0 ? Math.max(...taskEndMonths) : 36;
+      const taskStartMonths = wpTasks.filter(t => t.start_month != null).map(t => t.start_month!);
+      const taskEndMonths = wpTasks.filter(t => t.end_month != null).map(t => t.end_month!);
+      const startMonth = taskStartMonths.length > 0 ? Math.min(...taskStartMonths) : null;
+      const endMonth = taskEndMonths.length > 0 ? Math.max(...taskEndMonths) : null;
 
       return {
         number: wp.number,
         shortName: wp.short_name || `WP${wp.number}`,
         title: wp.title || '',
-        startMonth,
-        endMonth,
+        startMonth: startMonth ?? 1,
+        endMonth: endMonth ?? 1,
         color: wp.color,
-        tasks: wpTasks.map(t => ({
-          id: t.id,
-          wpNumber: wp.number,
-          taskNumber: t.number,
-          name: t.title || '',
-          startMonth: t.start_month || 1,
-          endMonth: t.end_month || 36,
-          deliverables: wpDeliverables
-            .filter(d => d.due_month != null)
-            .map(d => ({ number: `${wp.number}.${d.number}`, month: d.due_month! })),
-        })),
+        tasks: wpTasks
+          .filter(t => t.start_month != null && t.end_month != null)
+          .map(t => ({
+            id: t.id,
+            wpNumber: wp.number,
+            taskNumber: t.number,
+            name: t.title || '',
+            startMonth: t.start_month!,
+            endMonth: t.end_month!,
+            deliverables: wpDeliverables
+              .filter(d => d.due_month != null)
+              .map(d => ({ number: `${wp.number}.${d.number}`, month: d.due_month! })),
+          })),
       };
     });
 
