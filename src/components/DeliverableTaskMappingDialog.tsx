@@ -85,7 +85,7 @@ export function DeliverableTaskMappingDialog({ proposalId }: DeliverableTaskMapp
                 {deliverables.map(del => (
                   <div key={del.id} className="flex items-start gap-2">
                     <div className="text-sm shrink-0 min-w-0 flex-1">
-                      <span className="font-medium">D{del.wp_number}.{del.number}: {del.name}</span>
+                      <span className="font-medium">{del.number}: {del.name}</span>
                       {del.due_month != null && <span className="text-muted-foreground"> (M{del.due_month})</span>}
                     </div>
                     <Select
