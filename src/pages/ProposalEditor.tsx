@@ -1032,7 +1032,7 @@ export function ProposalEditor() {
           "rounded-none border-x-0 border-t-0 border-b-2 py-1.5 [&>svg]:top-2",
           statusInfo.alertBg
         )}>
-          <StatusIcon className="h-3.5 w-3.5" />
+          <StatusIcon className={cn("h-3.5 w-3.5", statusInfo.iconColor)} />
           <AlertDescription className={cn("text-sm flex items-center gap-2 flex-wrap", statusInfo.iconColor)}>
             <span className="flex-1">
               {proposal.status === 'draft' && (
