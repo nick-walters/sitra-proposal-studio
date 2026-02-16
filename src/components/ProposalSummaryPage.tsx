@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -263,32 +264,8 @@ export function ProposalSummaryPage({
                   ) : (
                     <p className="text-sm font-semibold">{proposal.acronym}</p>
                   )}
-                </div>
-
-                {/* Project Duration */}
-                <div>
-                  <label className="text-xs text-muted-foreground mb-0.5 block">Project duration (months)</label>
-                  {isEditing ? (
-                    <Select
-                      value={editedProposal.duration?.toString() || ''}
-                      onValueChange={(v) => setEditedProposal({ ...editedProposal, duration: parseInt(v) })}
-                    >
-                      <SelectTrigger className="w-32 h-8 text-sm">
-                        <SelectValue placeholder="Select" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Array.from({ length: 72 }, (_, i) => i + 1).map((months) => (
-                          <SelectItem key={months} value={months.toString()}>
-                            {months}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <p className="text-sm font-medium">{proposal.duration ? `${proposal.duration}` : '–'}</p>
-                  )}
-                </div>
               </div>
+            </div>
 
               {/* Right column: Logo */}
               <div className="flex-shrink-0">
@@ -308,6 +285,40 @@ export function ProposalSummaryPage({
                   />
                 )}
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Duration */}
+        <Card>
+          <CardHeader className="pb-3 pt-4">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Clock className="w-4 h-4" />
+              Duration
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div>
+              <label className="text-xs text-muted-foreground mb-0.5 block">Project duration (months)</label>
+              {isEditing ? (
+                <Select
+                  value={editedProposal.duration?.toString() || ''}
+                  onValueChange={(v) => setEditedProposal({ ...editedProposal, duration: parseInt(v) })}
+                >
+                  <SelectTrigger className="w-32 h-8 text-sm">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 72 }, (_, i) => i + 1).map((months) => (
+                      <SelectItem key={months} value={months.toString()}>
+                        {months}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="text-sm font-medium">{proposal.duration ? `${proposal.duration}` : '–'}</p>
+              )}
             </div>
           </CardContent>
         </Card>
