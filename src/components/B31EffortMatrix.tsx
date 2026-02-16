@@ -1,11 +1,12 @@
 import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { getContrastingTextColor } from '@/lib/wpColors';
 import type { B31WPData, B31Participant } from '@/hooks/useB31SectionData';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
-const cellStyles = "border border-black px-1 py-0.5 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center";
-const headerCellStyles = "border border-black px-1 py-0.5 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight font-bold text-white bg-black text-center";
+const cellStyles = "border border-black px-1 py-0.5 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle";
+const headerCellStyles = "px-1 py-0.5 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle";
 const editableCellStyles = `${cellStyles} cursor-text hover:bg-muted/30`;
 
 interface Props {
@@ -112,11 +113,29 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
       <table className={`${tableStyles} w-full border-collapse`}>
         <thead>
           <tr>
-            <th className={headerCellStyles} style={{ textAlign: 'left' }}>Participant</th>
-            {wpData.map(wp => (
-              <th key={wp.id} className={headerCellStyles}>WP{wp.number}</th>
-            ))}
-            <th className={headerCellStyles}>Total</th>
+            <th className={headerCellStyles} style={{ textAlign: 'left', border: 'none' }}>
+              <span
+                className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9pt] font-bold italic whitespace-nowrap"
+                style={{ backgroundColor: '#000000', color: '#FFFFFF', lineHeight: 1 }}
+              >
+                Participant
+              </span>
+            </th>
+            {wpData.map(wp => {
+              const wpColor = wp.color || '#2563EB';
+              const textColor = getContrastingTextColor(wpColor);
+              return (
+                <th key={wp.id} className={headerCellStyles} style={{ border: 'none' }}>
+                  <span
+                    className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9pt] font-bold italic whitespace-nowrap"
+                    style={{ backgroundColor: wpColor, color: textColor, lineHeight: 1 }}
+                  >
+                    WP{wp.number}
+                  </span>
+                </th>
+              );
+            })}
+            <th className={headerCellStyles} style={{ border: 'none', fontWeight: 'bold', fontStyle: 'italic' }}>Total</th>
           </tr>
         </thead>
         <tbody>
@@ -126,7 +145,12 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
             return (
               <tr key={p.id}>
                 <td className={`${cellStyles} font-bold`} style={{ textAlign: 'left' }}>
-                  {p.participant_number}. {p.organisation_short_name || p.organisation_name}
+                  <span
+                    className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9pt] font-bold italic whitespace-nowrap"
+                    style={{ backgroundColor: '#000000', color: '#FFFFFF', lineHeight: 1 }}
+                  >
+                    {p.organisation_short_name || p.organisation_name}
+                  </span>
                 </td>
                 {wpData.map(wp => {
                   const val = pMap.get(wp.id) || 0;
