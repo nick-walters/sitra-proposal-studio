@@ -241,21 +241,7 @@ export function GanttChartFigure({
             <BarChart3 className="w-4 h-4" />
             Figure {figureNumber}. Gantt Chart
           </h3>
-          <div className="flex items-center gap-2">
-            <Select 
-              value={String(projectDuration)} 
-              onValueChange={(v) => handleDurationChange(Number(v))}
-            >
-              <SelectTrigger className="w-24 h-7 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="24">24 months</SelectItem>
-                <SelectItem value="36">36 months</SelectItem>
-                <SelectItem value="48">48 months</SelectItem>
-                <SelectItem value="60">60 months</SelectItem>
-              </SelectContent>
-            </Select>
+           <div className="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
