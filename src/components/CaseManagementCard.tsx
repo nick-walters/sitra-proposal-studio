@@ -469,7 +469,7 @@ export function CaseManagementCard({
       <CardHeader className="pb-2 pt-4">
         <CardTitle className="flex items-center gap-2 text-base">
           <FlaskConical className="w-5 h-5" />
-          Case management
+          Case manager
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
