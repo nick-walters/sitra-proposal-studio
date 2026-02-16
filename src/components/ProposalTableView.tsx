@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Proposal, WORK_PROGRAMMES, DESTINATIONS } from "@/types/proposal";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Calendar, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink, AlertTriangle, PartyPopper, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Calendar, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink, AlertTriangle, Trophy, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { format, differenceInDays, addMonths } from "date-fns";
 
 // Calculate estimated decision date based on submission stage
@@ -72,7 +72,7 @@ const getCombinedStatusInfo = (proposal: Proposal) => {
   } else if (status === 'funded') {
     return {
       label: 'Funded',
-      icon: PartyPopper,
+      icon: Trophy,
       className: 'bg-white text-green-600 border border-green-500/30',
       sortOrder: 6
     };
