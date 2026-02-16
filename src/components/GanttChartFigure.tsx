@@ -217,14 +217,14 @@ export function GanttChartFigure({
   const borderYear = '#000000';
   const borderDark = '#000000';
 
-  const getMonthRightBorder = (month: number) => {
-    if (month % 12 === 0) return borderYear;
+  const getMonthRightBorder = (month: number, yearColor?: string) => {
+    if (month % 12 === 0) return yearColor || borderYear;
     if (month % 3 === 0) return borderQuarter;
     return borderLight;
   };
 
-  const getFilledCellRightBorder = (month: number) => {
-    if (month % 12 === 0) return `1px solid ${borderYear}`;
+  const getFilledCellRightBorder = (month: number, yearColor?: string) => {
+    if (month % 12 === 0) return `1px solid ${yearColor || borderYear}`;
     if (month % 3 === 0) return `1px solid ${borderQuarter}`;
     return 'none';
   };
@@ -446,7 +446,7 @@ export function GanttChartFigure({
                                 width: cellWidth, 
                                 height: 18,
                                 backgroundColor: isInTask ? taskColor : undefined,
-                                borderRight: isInTask ? getFilledCellRightBorder(m) : `1px solid ${getMonthRightBorder(m)}`,
+                                borderRight: isInTask ? getFilledCellRightBorder(m, wpColor) : `1px solid ${getMonthRightBorder(m, wpColor)}`,
                                 borderBottom: bottomBorder,
                               }}
                             />
@@ -562,7 +562,7 @@ export function GanttChartFigure({
                             style={{ 
                               width: cellWidth, 
                               height: 18,
-                              borderRight: `1px solid ${getMonthRightBorder(m)}`,
+                              borderRight: `1px solid ${getMonthRightBorder(m, wpColor)}`,
                               borderBottom: bottomBorder,
                             }}
                           />
