@@ -22,7 +22,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SaveIndicator } from "./SaveIndicator";
-import { Loader2, FileText, Target, Euro, Calendar as CalendarIcon, ExternalLink, Download, Trash2, RefreshCw, FileDown, CheckCircle2 } from "lucide-react";
+import { Loader2, FileText, Target, Euro, Calendar as CalendarIcon, ExternalLink, Download, Trash2, RefreshCw, FileDown, CheckCircle2, Plus, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -257,6 +257,132 @@ function AcronymLogo({ logoUrl, acronym }: { logoUrl?: string; acronym: string }
         </div>
       )}
     </div>
+  );
+}
+// Helper to compute default reporting periods for a given duration
+function computeDefaultReportingPeriods(duration: number): { number: number; startMonth: number; endMonth: number }[] {
+  const periods: { number: number; startMonth: number; endMonth: number }[] = [];
+  let start = 1;
+  let num = 1;
+  while (start <= duration) {
+    const remaining = duration - start + 1;
+    const len = remaining > 18 ? 18 : remaining;
+    periods.push({ number: num, startMonth: start, endMonth: start + len - 1 });
+    start += len;
+    num++;
+  }
+  return periods;
+}
+
+function ReportingPeriodsEditor({ proposal, onUpdate }: { 
+  proposal: { duration?: number; reportingPeriods?: { number: number; startMonth: number; endMonth: number }[] };
+  onUpdate: (rps: { number: number; startMonth: number; endMonth: number }[]) => void;
+}) {
+  const duration = proposal.duration || 36;
+  const rps = proposal.reportingPeriods && proposal.reportingPeriods.length > 0 
+    ? proposal.reportingPeriods 
+    : computeDefaultReportingPeriods(duration);
+
+  const handleLengthChange = (index: number, newLength: number) => {
+    const updated = [...rps];
+    updated[index] = { ...updated[index], endMonth: updated[index].startMonth + newLength - 1 };
+    // Recalculate subsequent RPs
+    for (let i = index + 1; i < updated.length; i++) {
+      const prevEnd = updated[i - 1].endMonth;
+      const oldLen = updated[i].endMonth - updated[i].startMonth + 1;
+      updated[i] = { ...updated[i], startMonth: prevEnd + 1, endMonth: prevEnd + oldLen };
+    }
+    // Clamp last RP to duration
+    const last = updated[updated.length - 1];
+    if (last.endMonth > duration) {
+      updated[updated.length - 1] = { ...last, endMonth: duration };
+    }
+    // Remove RPs that start after duration
+    const filtered = updated.filter(rp => rp.startMonth <= duration).map((rp, i) => ({ ...rp, number: i + 1 }));
+    onUpdate(filtered);
+  };
+
+  const handleAddRP = () => {
+    const lastEnd = rps.length > 0 ? rps[rps.length - 1].endMonth : 0;
+    if (lastEnd >= duration) return;
+    const remaining = duration - lastEnd;
+    const len = Math.min(18, remaining);
+    const newRps = [...rps, { number: rps.length + 1, startMonth: lastEnd + 1, endMonth: lastEnd + len }];
+    onUpdate(newRps);
+  };
+
+  const handleRemoveRP = (index: number) => {
+    if (rps.length <= 1) return;
+    const updated = rps.filter((_, i) => i !== index).map((rp, i) => ({ ...rp, number: i + 1 }));
+    // Recalculate start months
+    for (let i = 1; i < updated.length; i++) {
+      const len = updated[i].endMonth - updated[i].startMonth + 1;
+      updated[i] = { ...updated[i], startMonth: updated[i - 1].endMonth + 1, endMonth: updated[i - 1].endMonth + len };
+    }
+    const last = updated[updated.length - 1];
+    if (last.endMonth > duration) {
+      updated[updated.length - 1] = { ...last, endMonth: duration };
+    }
+    onUpdate(updated);
+  };
+
+  const totalCovered = rps.length > 0 ? rps[rps.length - 1].endMonth : 0;
+  const canAdd = totalCovered < duration;
+
+  return (
+    <Card>
+      <CardHeader className="pb-2 pt-4">
+        <CardTitle className="flex items-center gap-2 text-sm">
+          <Clock className="w-4 h-4" />
+          Reporting periods
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="space-y-2">
+          {rps.map((rp, idx) => {
+            const len = rp.endMonth - rp.startMonth + 1;
+            const maxLen = Math.min(18, duration - rp.startMonth + 1);
+            return (
+              <div key={idx} className="flex items-center gap-3">
+                <span className="text-sm font-medium w-12">RP {rp.number}</span>
+                <span className="text-xs text-muted-foreground w-28">
+                  M{rp.startMonth}–M{rp.endMonth}
+                </span>
+                <Select
+                  value={String(len)}
+                  onValueChange={(v) => handleLengthChange(idx, Number(v))}
+                >
+                  <SelectTrigger className="w-32 h-7 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: maxLen }, (_, i) => i + 1).map((m) => (
+                      <SelectItem key={m} value={String(m)}>{m} month{m !== 1 ? 's' : ''}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {rps.length > 1 && (
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleRemoveRP(idx)}>
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        {canAdd && (
+          <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={handleAddRP}>
+            <Plus className="w-3 h-3" />
+            Add reporting period
+          </Button>
+        )}
+        {totalCovered < duration && (
+          <p className="text-xs text-warning">
+            Reporting periods cover {totalCovered} of {duration} months. Add more to cover the full duration.
+          </p>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -1306,6 +1432,16 @@ export function GeneralInfoForm({
           </CardContent>
         </Card>
 
+        {/* Reporting Periods Card - Coordinator/Admin/Owner only */}
+        {userCanEditOverview && editedProposal && (
+          <ReportingPeriodsEditor
+            proposal={editedProposal}
+            onUpdate={(rps) => {
+              setEditedProposal({ ...editedProposal, reportingPeriods: rps });
+              onUpdateProposal({ reportingPeriods: rps });
+            }}
+          />
+        )}
 
         {/* Delete Proposal - Admins/Owners Only */}
         {isCoordinator && (

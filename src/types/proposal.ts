@@ -214,6 +214,7 @@ export interface Proposal {
   decisionDate?: Date;
   expectedProjects?: string;
   usesFstp?: boolean;
+  reportingPeriods?: { number: number; startMonth: number; endMonth: number }[];
 }
 
 export interface Participant {
