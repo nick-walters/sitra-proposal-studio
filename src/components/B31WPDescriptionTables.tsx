@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import type { B31WPData, B31Participant } from '@/hooks/useB31SectionData';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
-const cellStyles = "border border-black px-0.5 py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-top";
+const cellStyles = "border px-0.5 py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-top";
 
 interface Props {
   wpData: B31WPData[];
@@ -303,7 +303,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                 {wp.objectives && (
                   <>
                     <tr>
-                      <td colSpan={3} className={`${cellStyles} font-bold`}>
+                      <td colSpan={3} className={`${cellStyles} font-bold`} style={{ borderColor: wp.color }}>
                         Objectives
                       </td>
                     </tr>
@@ -311,6 +311,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                       <td
                         colSpan={3}
                         className={cellStyles}
+                        style={{ borderColor: wp.color }}
                         dangerouslySetInnerHTML={{ __html: wp.objectives }}
                       />
                     </tr>
@@ -344,7 +345,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
 
                       {/* Task metadata row: leader | partners | timing */}
                       <tr>
-                        <td className={`${cellStyles}`}>
+                        <td className={`${cellStyles}`} style={{ borderColor: wp.color }}>
                           <span className="italic font-bold">Task leader: </span>
                           <LeaderPicker
                             taskId={task.id}
@@ -353,7 +354,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                             proposalId={proposalId}
                           />
                         </td>
-                        <td className={`${cellStyles}`}>
+                        <td className={`${cellStyles}`} style={{ borderColor: wp.color }}>
                           <span className="italic font-bold">Partners: </span>
                           <PartnersPicker
                             taskId={task.id}
@@ -363,7 +364,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                             leaderId={task.lead_participant_id}
                           />
                         </td>
-                        <td className={`${cellStyles} whitespace-nowrap`}>
+                        <td className={`${cellStyles} whitespace-nowrap`} style={{ borderColor: wp.color }}>
                           <MonthPicker taskId={task.id} field="start_month" value={task.start_month} proposalId={proposalId} maxMonth={task.end_month} />
                           –
                           <MonthPicker taskId={task.id} field="end_month" value={task.end_month} proposalId={proposalId} minMonth={task.start_month} />
@@ -376,6 +377,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                           <td
                             colSpan={3}
                             className={cellStyles}
+                            style={{ borderColor: wp.color }}
                             dangerouslySetInnerHTML={{ __html: task.description }}
                           />
                         </tr>
