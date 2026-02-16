@@ -18,6 +18,7 @@ interface Task {
   startMonth: number;
   endMonth: number;
   deliverables?: { number: string; month: number }[];
+  milestones?: { number: number; name: string; month: number }[];
 }
 
 interface Milestone {
@@ -104,7 +105,7 @@ export function GanttChartFigure({
           .eq('proposal_id', proposalId),
         supabase
           .from('b31_milestones')
-          .select('id, number, name, due_month')
+          .select('id, number, name, due_month, task_id')
           .eq('proposal_id', proposalId)
           .order('number'),
       ]);
@@ -153,6 +154,9 @@ export function GanttChartFigure({
             deliverables: wpDeliverables
               .filter(d => d.task_id === t.id && d.due_month != null)
               .map(d => ({ number: d.number, month: d.due_month! })),
+            milestones: msRows
+              .filter(m => m.task_id === t.id && m.due_month != null)
+              .map(m => ({ number: m.number, name: m.name, month: m.due_month! })),
           })),
       };
     });
@@ -196,9 +200,6 @@ export function GanttChartFigure({
     return yrs;
   }, [projectDuration, months]);
 
-  const getMilestonesForMonth = (month: number) => {
-    return milestones.filter(m => m.month === month);
-  };
 
   const handleDurationChange = (duration: number) => {
     onContentChange({ ...content, projectDuration: duration });
@@ -372,44 +373,6 @@ export function GanttChartFigure({
             </div>
           </div>
 
-          {/* Milestones Row - no borders on heading label */}
-          <div className="flex">
-            <div 
-              className={`shrink-0 flex items-center justify-end ${headerLabelStyle}`}
-              style={{ width: labelWidth, height: 18, padding: '0 2px' }}
-            >
-              Milestone
-            </div>
-            <div className="flex" style={{ border: `0.5px solid ${borderDark}` }}>
-              {months.map(m => {
-                const ms = getMilestonesForMonth(m);
-                return (
-                  <div
-                    key={m}
-                    className="flex items-center justify-center"
-                    style={{ width: cellWidth, height: 18, borderRight: `1px solid ${getMonthRightBorder(m)}` }}
-                  >
-                    {ms.length > 0 && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="font-bold" style={{ fontSize: '7pt' }}>
-                            {ms.map(mil => mil.number).join('|')}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {ms.map(mil => (
-                            <div key={mil.id} className="text-xs">
-                              <span className="font-semibold">MS{mil.number}:</span> {mil.name}
-                            </div>
-                          ))}
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
 
           {/* Slim spacer after header - non-editable */}
           <div style={{ height: 2 }} aria-hidden="true" />
@@ -477,6 +440,7 @@ export function GanttChartFigure({
                         {months.map(m => {
                           const isInTask = m >= task.startMonth && m <= task.endMonth;
                           const deliverable = task.deliverables?.find(d => d.month === m);
+                          const milestone = task.milestones?.find(ms => ms.month === m);
                           
                           return (
                             <div
@@ -517,6 +481,36 @@ export function GanttChartFigure({
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     <p className="text-xs font-medium">Deliverable D{deliverable.number}</p>
+                                    <p className="text-xs text-muted-foreground">Month {m}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                              {milestone && !deliverable && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span 
+                                      className="font-bold"
+                                      style={{
+                                        position: 'absolute',
+                                        top: '50%',
+                                        left: '50%',
+                                        transform: 'translate(-50%, -50%)',
+                                        fontSize: '9pt',
+                                        lineHeight: 1,
+                                        backgroundColor: '#ffffff',
+                                        color: '#dc2626',
+                                        border: '1px solid #dc2626',
+                                        borderRadius: '9999px',
+                                        padding: '0 3px',
+                                        whiteSpace: 'nowrap',
+                                        zIndex: 10,
+                                      }}
+                                    >
+                                      {milestone.number}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="text-xs font-medium">MS{milestone.number}: {milestone.name}</p>
                                     <p className="text-xs text-muted-foreground">Month {m}</p>
                                   </TooltipContent>
                                 </Tooltip>
