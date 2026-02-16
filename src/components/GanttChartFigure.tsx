@@ -306,73 +306,69 @@ export function GanttChartFigure({
 
       <TooltipProvider>
         <div ref={chartRef} className="overflow-hidden" style={fontStyle}>
-          {/* Reporting Period Row - no borders on heading label */}
+          {/* Header block: RP, Year, Month rows with unified outer border */}
           <div className="flex">
-            <div 
-              className={`shrink-0 flex items-center justify-end ${headerLabelStyle}`}
-              style={{ width: labelWidth, height: 18, padding: '0 2px' }}
-            >
-              Reporting period
-            </div>
-            {reportingPeriods.map((rp, rpIdx) => {
-              const periodMonths = rp.endMonth - rp.startMonth + 1;
-              return (
-                <div
-                  key={rp.number}
-                  className="text-center font-bold flex items-center justify-center"
-                  style={{ width: periodMonths * cellWidth, height: 18, borderTop: `0.5px solid ${borderDark}`, borderBottom: `0.5px solid ${borderDark}`, borderLeft: rpIdx === 0 ? `0.5px solid ${borderDark}` : undefined, borderRight: `0.5px solid ${borderDark}` }}
-                >
-                  {rp.number}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Year Row - no borders on heading label */}
-          <div className="flex">
-            <div 
-              className={`shrink-0 flex items-center justify-end ${headerLabelStyle}`}
-              style={{ width: labelWidth, height: 18, padding: '0 2px' }}
-            >
-              Year
-            </div>
-            {years.map((yr, yrIdx) => (
-              <div
-                key={yr.year}
-                className="text-center font-bold flex items-center justify-center"
-                style={{ width: yr.months.length * cellWidth, height: 18, borderTop: `0.5px solid ${borderDark}`, borderBottom: `0.5px solid ${borderDark}`, borderLeft: yrIdx === 0 ? `0.5px solid ${borderDark}` : undefined, borderRight: `0.5px solid ${borderDark}` }}
-              >
-                {yr.year}
+            {/* Labels column */}
+            <div className="shrink-0" style={{ width: labelWidth }}>
+              <div className={`flex items-center justify-end ${headerLabelStyle}`} style={{ height: 18, padding: '0 2px' }}>
+                Reporting period
               </div>
-            ))}
-          </div>
-
-          {/* Month Row - quarterly groups */}
-          <div className="flex">
-            <div 
-              className={`shrink-0 flex items-center justify-end ${headerLabelStyle}`}
-              style={{ width: labelWidth, height: 18, padding: '0 2px' }}
-            >
-              Month
+              <div className={`flex items-center justify-end ${headerLabelStyle}`} style={{ height: 18, padding: '0 2px' }}>
+                Year
+              </div>
+              <div className={`flex items-center justify-end ${headerLabelStyle}`} style={{ height: 18, padding: '0 2px' }}>
+                Month
+              </div>
             </div>
-            <div className="flex" style={{ border: `0.5px solid ${borderDark}` }}>
-              {Array.from({ length: Math.ceil(projectDuration / 3) }, (_, qi) => {
-                const startM = qi * 3 + 1;
-                const endM = Math.min(qi * 3 + 3, projectDuration);
-                const count = endM - startM + 1;
-                const isLastQuarter = qi >= Math.ceil(projectDuration / 3) - 1;
-                const isYearBoundary = endM % 12 === 0;
-                const rightBorderColor = isLastQuarter ? undefined : (isYearBoundary ? borderDark : borderQuarter);
-                return (
+            {/* Grid column with outer border */}
+            <div style={{ border: `0.5px solid ${borderDark}` }}>
+              {/* Reporting Period Row */}
+              <div className="flex">
+                {reportingPeriods.map((rp, rpIdx) => {
+                  const periodMonths = rp.endMonth - rp.startMonth + 1;
+                  return (
+                    <div
+                      key={rp.number}
+                      className="text-center font-bold flex items-center justify-center"
+                      style={{ width: periodMonths * cellWidth, height: 18, borderLeft: rpIdx > 0 ? `0.5px solid ${borderDark}` : undefined }}
+                    >
+                      {rp.number}
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Year Row */}
+              <div className="flex" style={{ borderTop: `0.5px solid ${borderDark}` }}>
+                {years.map((yr, yrIdx) => (
                   <div
-                    key={qi}
-                    className="flex items-center justify-center"
-                    style={{ width: cellWidth * count, height: 18, padding: 0, borderRight: rightBorderColor ? `1px solid ${rightBorderColor}` : undefined }}
+                    key={yr.year}
+                    className="text-center font-bold flex items-center justify-center"
+                    style={{ width: yr.months.length * cellWidth, height: 18, borderLeft: yrIdx > 0 ? `0.5px solid ${borderDark}` : undefined }}
                   >
-                    <span style={{ fontSize: '11pt' }}>{startM}–{endM}</span>
+                    {yr.year}
                   </div>
-                );
-              })}
+                ))}
+              </div>
+              {/* Month Row - quarterly groups */}
+              <div className="flex" style={{ borderTop: `0.5px solid ${borderDark}` }}>
+                {Array.from({ length: Math.ceil(projectDuration / 3) }, (_, qi) => {
+                  const startM = qi * 3 + 1;
+                  const endM = Math.min(qi * 3 + 3, projectDuration);
+                  const count = endM - startM + 1;
+                  const isLastQuarter = qi >= Math.ceil(projectDuration / 3) - 1;
+                  const isYearBoundary = endM % 12 === 0;
+                  const rightBorderColor = isLastQuarter ? undefined : (isYearBoundary ? borderDark : borderQuarter);
+                  return (
+                    <div
+                      key={qi}
+                      className="flex items-center justify-center"
+                      style={{ width: cellWidth * count, height: 18, padding: 0, borderRight: rightBorderColor ? `1px solid ${rightBorderColor}` : undefined }}
+                    >
+                      <span style={{ fontSize: '11pt' }}>{startM}–{endM}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
