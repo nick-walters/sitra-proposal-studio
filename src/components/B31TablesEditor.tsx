@@ -525,21 +525,19 @@ function SortableTableRow({
       )}
       {/* Delete button - positioned in right page margin, vertically centered */}
       {onDelete && (
-        <td className="p-0 border-0 w-0 relative">
-          <div 
-            className="absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-            style={{ left: '4px' }}
+        <div 
+          className="absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+          style={{ right: '-24px' }}
+        >
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-5 w-5 text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={onDelete}
           >
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-5 w-5 text-destructive hover:text-destructive hover:bg-destructive/10"
-              onClick={onDelete}
-            >
-              <Trash2 className="h-3 w-3" />
-            </Button>
-          </div>
-        </td>
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </div>
       )}
     </TableRow>
   );
@@ -699,7 +697,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
       </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <B31TableWrapper>
-          <Table className={tableStyles} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto' }} ref={tableRef}>
+          <Table className={`${tableStyles} w-full`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto' }} ref={tableRef}>
             <TableHeader>
               <TableRow className="bg-black text-white hover:bg-black">
                 <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[0] } : undefined}>
