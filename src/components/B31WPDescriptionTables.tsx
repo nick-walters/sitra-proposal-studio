@@ -276,7 +276,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
             {idx > 0 && <div style={{ height: '1.5em' }} />}
             <table
               className={`${tableStyles} w-full border-collapse`}
-              style={{ borderLeft: `3pt solid ${wp.color}` }}
+              style={{ borderLeft: `1px solid ${wp.color}` }}
             >
               <tbody>
                 {/* WP Header row */}
