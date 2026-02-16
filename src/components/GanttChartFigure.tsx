@@ -437,87 +437,107 @@ export function GanttChartFigure({
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.name}</span>
                       </div>
                       <div className="flex" style={{ position: 'relative' }}>
+                        {/* Render month cells */}
                         {months.map(m => {
                           const isInTask = m >= task.startMonth && m <= task.endMonth;
-                          const deliverable = task.deliverables?.find(d => d.month === m);
-                          const milestone = task.milestones?.find(ms => ms.month === m);
-                          
                           return (
                             <div
                               key={m}
-                              className="flex items-center justify-center"
                               style={{ 
                                 width: cellWidth, 
                                 height: 18,
                                 backgroundColor: isInTask ? taskColor : undefined,
                                 borderRight: isInTask ? getFilledCellRightBorder(m) : `1px solid ${getMonthRightBorder(m)}`,
                                 borderBottom: bottomBorder,
-                                position: 'relative',
                               }}
-                            >
-                              {deliverable && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span 
-                                      className="font-bold"
-                                      style={{
-                                        position: 'absolute',
-                                        top: '50%',
-                                        left: '50%',
-                                        transform: 'translate(-50%, -50%)',
-                                        fontSize: '9pt',
-                                        lineHeight: 1,
-                                        backgroundColor: '#ffffff',
-                                        color: '#16a34a',
-                                        border: '1px solid #16a34a',
-                                        borderRadius: '9999px',
-                                        padding: '0 3px',
-                                        whiteSpace: 'nowrap',
-                                        zIndex: 10,
-                                      }}
-                                    >
-                                      {deliverable.number.replace(/^D/, '')}
-                                    </span>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="text-xs font-medium">Deliverable D{deliverable.number}</p>
-                                    <p className="text-xs text-muted-foreground">Month {m}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              )}
-                              {milestone && !deliverable && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span 
-                                      className="font-bold"
-                                      style={{
-                                        position: 'absolute',
-                                        top: '50%',
-                                        left: '50%',
-                                        transform: 'translate(-50%, -50%)',
-                                        fontSize: '9pt',
-                                        lineHeight: 1,
-                                        backgroundColor: '#ffffff',
-                                        color: '#dc2626',
-                                        border: '1px solid #dc2626',
-                                        borderRadius: '9999px',
-                                        padding: '0 3px',
-                                        whiteSpace: 'nowrap',
-                                        zIndex: 10,
-                                      }}
-                                    >
-                                      {milestone.number}
-                                    </span>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="text-xs font-medium">MS{milestone.number}: {milestone.name}</p>
-                                    <p className="text-xs text-muted-foreground">Month {m}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              )}
-                            </div>
+                            />
                           );
                         })}
+                        {/* Render bubbles with collision avoidance */}
+                        {(() => {
+                          // Collect all bubbles for this task
+                          const bubbles: { month: number; label: string; color: string; tooltipTitle: string; type: 'del' | 'ms' }[] = [];
+                          task.deliverables?.forEach(d => bubbles.push({ month: d.month, label: d.number.replace(/^D/, ''), color: '#16a34a', tooltipTitle: `Deliverable D${d.number}`, type: 'del' }));
+                          task.milestones?.forEach(ms => bubbles.push({ month: ms.month, label: String(ms.number), color: '#dc2626', tooltipTitle: `MS${ms.number}: ${ms.name}`, type: 'ms' }));
+                          if (bubbles.length === 0) return null;
+
+                          // Sort by month
+                          bubbles.sort((a, b) => a.month - b.month);
+
+                          // Estimate bubble width in px (roughly 7px per char + 6px padding at 9pt)
+                          const estimateBubbleWidth = (label: string) => Math.max(12, label.length * 7 + 6);
+                          
+                          // Compute positions: center of each bubble's month cell
+                          const positioned = bubbles.map(b => ({
+                            ...b,
+                            centerX: (b.month - 1) * cellWidth + cellWidth / 2,
+                            width: estimateBubbleWidth(b.label),
+                          }));
+
+                          // Resolve overlaps: group bubbles that would overlap and spread them
+                          for (let i = 1; i < positioned.length; i++) {
+                            const prev = positioned[i - 1];
+                            const curr = positioned[i];
+                            const minGap = (prev.width + curr.width) / 2 + 2;
+                            if (curr.centerX - prev.centerX < minGap) {
+                              // Find the full cluster
+                              let clusterStart = i - 1;
+                              let clusterEnd = i;
+                              while (clusterEnd + 1 < positioned.length) {
+                                const next = positioned[clusterEnd + 1];
+                                const last = positioned[clusterEnd];
+                                const gap = (last.width + next.width) / 2 + 2;
+                                if (next.centerX - last.centerX < gap) {
+                                  clusterEnd++;
+                                } else break;
+                              }
+                              // Spread cluster evenly around their midpoint
+                              const clusterItems = positioned.slice(clusterStart, clusterEnd + 1);
+                              const midX = (clusterItems[0].centerX + clusterItems[clusterItems.length - 1].centerX) / 2;
+                              const totalWidth = clusterItems.reduce((sum, item, idx) => {
+                                if (idx === 0) return item.width;
+                                return sum + 2 + item.width;
+                              }, 0);
+                              let x = midX - totalWidth / 2;
+                              for (let j = clusterStart; j <= clusterEnd; j++) {
+                                positioned[j].centerX = x + positioned[j].width / 2;
+                                x += positioned[j].width + 2;
+                              }
+                              i = clusterEnd;
+                            }
+                          }
+
+                          return positioned.map((b, idx) => (
+                            <Tooltip key={`${b.type}-${idx}`}>
+                              <TooltipTrigger asChild>
+                                <span
+                                  className="font-bold"
+                                  style={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: b.centerX,
+                                    transform: 'translate(-50%, -50%)',
+                                    fontSize: '9pt',
+                                    lineHeight: 1,
+                                    backgroundColor: '#ffffff',
+                                    color: b.color,
+                                    border: `1px solid ${b.color}`,
+                                    borderRadius: '9999px',
+                                    padding: '0 3px',
+                                    whiteSpace: 'nowrap',
+                                    zIndex: 10,
+                                  }}
+                                >
+                                  {b.label}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="text-xs font-medium">{b.tooltipTitle}</p>
+                                <p className="text-xs text-muted-foreground">Month {b.month}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ));
+                        })()}
                       </div>
                     </div>
                   );
