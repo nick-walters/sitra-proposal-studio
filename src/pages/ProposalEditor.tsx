@@ -13,7 +13,7 @@ import { FigureManager } from "@/components/FigureManager";
 import { SectionProgressDashboard } from "@/components/SectionProgressDashboard";
 import { WPDraftEditor } from "@/components/WPDraftEditor";
 import { WPManagementCard } from "@/components/WPManagementCard";
-import { ProposalCollaboratorsPanel } from "@/components/ProposalCollaboratorsPanel";
+
 import { CaseManagementCard } from "@/components/CaseManagementCard";
 import { WPProgressTracker } from "@/components/WPProgressTracker";
 import { ProposalMessagingBoard } from "@/components/ProposalMessagingBoard";
@@ -1153,13 +1153,6 @@ export function ProposalEditor() {
               collaborators={collaborators}
             />
           </div>
-
-          {/* Collaborators - fixed at bottom */}
-          <ProposalCollaboratorsPanel
-            proposalId={id || ''}
-            canManage={isGlobalOwner || isCoordinator}
-            onlineCollaborators={collaborators}
-          />
         </aside>
 
         {/* Collapse Toggle */}
