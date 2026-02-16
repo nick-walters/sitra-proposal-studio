@@ -82,7 +82,7 @@ export function B31SectionContent({ proposalId }: Props) {
       <B31WPListTable wpData={wpData} participants={participants} />
 
       {/* Table 3.1.b – Work package descriptions */}
-      <B31WPDescriptionTables wpData={wpData} participants={participants} />
+      <B31WPDescriptionTables wpData={wpData} participants={participants} proposalId={proposalId} />
 
       {/* Table 3.1.c – Deliverables */}
       <B31DeliverablesTable proposalId={proposalId} />
