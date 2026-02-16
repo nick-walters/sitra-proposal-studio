@@ -180,10 +180,10 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
                     className="cursor-pointer hover:bg-muted/50"
                     onClick={() => onNavigateToWP?.(wp.wpId)}
                   >
-                    <TableCell className="py-1.5">
+                    <TableCell className="py-1.5 leading-[0]">
                       <span 
-                        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap"
-                        style={{ backgroundColor: getEffectiveColor(wp.wpId, wp.color), color: '#ffffff' }}
+                        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap align-middle"
+                        style={{ backgroundColor: getEffectiveColor(wp.wpId, wp.color), color: '#ffffff', lineHeight: 1 }}
                       >
                         WP{wp.wpNumber}{wp.shortName ? `: ${wp.shortName}` : ''}
                       </span>

@@ -107,8 +107,8 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
                 </td>
                 <td className={`${cellStyles} whitespace-nowrap leading-[0]`}>
                   {lead ? (
-                    <span
-                      className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9pt] font-bold italic whitespace-nowrap"
+                     <span
+                      className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9pt] font-bold italic whitespace-nowrap align-middle"
                       style={{ backgroundColor: '#000000', color: '#FFFFFF', lineHeight: 1 }}
                     >
                       {lead.participant_number}. {lead.organisation_short_name || lead.organisation_name}
