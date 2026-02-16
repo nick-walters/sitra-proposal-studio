@@ -110,7 +110,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
       <p className={`${tableStyles} italic mb-0`}>
         <span className="font-bold italic">Table 3.1.f.</span> Person months per participant per work package
       </p>
-      <table className={`${tableStyles} w-full border-collapse`}>
+      <table className={`${tableStyles} border-collapse`} style={{ width: 'auto' }}>
         <thead>
           <tr>
             <th className={headerCellStyles} style={{ textAlign: 'left', border: 'none', fontWeight: 'bold' }}>
