@@ -10,10 +10,23 @@ import { UserProfileDialog } from "@/components/UserProfileDialog";
 import { ProposalMultiSelect } from "@/components/ProposalMultiSelect";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Mail, Building2, Search, Users, UserPlus, Phone } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Mail, Building2, Search, Users, UserPlus, Phone, Crown, ShieldCheck, Pencil, Eye, Loader2, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useParams } from "react-router-dom";
+import { toast } from "sonner";
 
 interface Collaborator {
   id: string;
@@ -31,6 +44,31 @@ interface OnlineUser {
   name: string;
 }
 
+interface ProposalCollaborator {
+  id: string; // user_roles.id
+  userId: string;
+  email: string;
+  fullName: string | null;
+  role: string;
+  avatarUrl: string | null;
+}
+
+const ROLE_ICONS: Record<string, typeof Crown> = {
+  owner: Crown,
+  coordinator: ShieldCheck,
+  admin: ShieldCheck,
+  editor: Pencil,
+  viewer: Eye,
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  owner: 'Owner',
+  coordinator: 'Coordinator',
+  admin: 'Admin',
+  editor: 'Editor',
+  viewer: 'Viewer',
+};
+
 interface CollaboratorsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -45,9 +83,19 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
   const [inviteEmail, setInviteEmail] = useState('');
   const [selectedProposalIds, setSelectedProposalIds] = useState<string[]>([]);
   const [canInvite, setCanInvite] = useState(false);
+  const [canManageProposal, setCanManageProposal] = useState(false);
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   const [loadingCollaborators, setLoadingCollaborators] = useState(true);
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
+
+  // Proposal access management state
+  const [proposalCollaborators, setProposalCollaborators] = useState<ProposalCollaborator[]>([]);
+  const [loadingProposalCollabs, setLoadingProposalCollabs] = useState(false);
+  const [addEmail, setAddEmail] = useState('');
+  const [addRole, setAddRole] = useState<'coordinator' | 'editor' | 'viewer'>('editor');
+  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [foundUser, setFoundUser] = useState<{ id: string; fullName: string | null } | null>(null);
+  const [saving, setSaving] = useState(false);
 
   // Subscribe to realtime presence for the current proposal
   useEffect(() => {
@@ -56,7 +104,6 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
       return;
     }
 
-    // Listen on the same presence channel used by useCollaborativeCursors
     const channel = supabase.channel(`proposal:${proposalId}:cursors`, {
       config: {
         presence: {},
@@ -111,27 +158,167 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
     }
   }, [open]);
 
-  // Check if user can invite
+  // Check permissions
   useEffect(() => {
-    async function checkInvitePermission() {
+    async function checkPermissions() {
       if (!user) {
         setCanInvite(false);
+        setCanManageProposal(false);
         return;
       }
 
       const { data: roles } = await supabase
         .from('user_roles')
-        .select('role')
+        .select('role, proposal_id')
         .eq('user_id', user.id)
-        .limit(5);
+        .limit(50);
 
-      setCanInvite(!!(roles && roles.some(r => r.role === 'owner' || r.role === 'admin')));
+      const isGlobalOwnerOrAdmin = !!(roles && roles.some(r => 
+        (r.role === 'owner' || r.role === 'admin') && !r.proposal_id
+      ));
+      setCanInvite(isGlobalOwnerOrAdmin);
+
+      if (proposalId) {
+        const isProposalAdmin = !!(roles && roles.some(r =>
+          (r.proposal_id === proposalId && ['owner', 'admin', 'coordinator'].includes(r.role)) ||
+          (!r.proposal_id && ['owner', 'admin'].includes(r.role))
+        ));
+        setCanManageProposal(isProposalAdmin);
+      } else {
+        setCanManageProposal(false);
+      }
     }
 
     if (open) {
-      checkInvitePermission();
+      checkPermissions();
     }
-  }, [user, open]);
+  }, [user, open, proposalId]);
+
+  // Fetch proposal collaborators
+  const fetchProposalCollaborators = async () => {
+    if (!proposalId) return;
+    setLoadingProposalCollabs(true);
+    const { data, error } = await supabase
+      .from('user_roles')
+      .select('id, user_id, role')
+      .eq('proposal_id', proposalId);
+
+    if (error) {
+      console.error('Error fetching proposal collaborators:', error);
+      setLoadingProposalCollabs(false);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      setProposalCollaborators([]);
+      setLoadingProposalCollabs(false);
+      return;
+    }
+
+    const userIds = data.map(r => r.user_id);
+    const { data: profiles } = await supabase
+      .from('profiles_basic')
+      .select('id, email, full_name, avatar_url')
+      .in('id', userIds);
+
+    const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+
+    setProposalCollaborators(
+      data.map(r => {
+        const profile = profileMap.get(r.user_id);
+        return {
+          id: r.id,
+          userId: r.user_id,
+          email: profile?.email || '',
+          fullName: profile?.full_name || null,
+          role: r.role,
+          avatarUrl: profile?.avatar_url || null,
+        };
+      })
+    );
+    setLoadingProposalCollabs(false);
+  };
+
+  useEffect(() => {
+    if (open && proposalId) {
+      fetchProposalCollaborators();
+    }
+  }, [open, proposalId]);
+
+  // Check email when typing for add collaborator
+  useEffect(() => {
+    if (!addEmail || !addEmail.includes('@')) {
+      setFoundUser(null);
+      return;
+    }
+    const timeout = setTimeout(async () => {
+      setCheckingEmail(true);
+      const { data } = await supabase
+        .from('profiles_basic')
+        .select('id, full_name')
+        .eq('email', addEmail.toLowerCase())
+        .maybeSingle();
+      setFoundUser(data ? { id: data.id, fullName: data.full_name } : null);
+      setCheckingEmail(false);
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [addEmail]);
+
+  const handleAddToProposal = async () => {
+    if (!foundUser || !proposalId) return;
+
+    const existing = proposalCollaborators.find(c => c.userId === foundUser.id);
+    if (existing) {
+      toast.info(`${foundUser.fullName || addEmail} already has ${ROLE_LABELS[existing.role]} access`);
+      return;
+    }
+
+    setSaving(true);
+    const { error } = await supabase.from('user_roles').insert([{
+      user_id: foundUser.id,
+      proposal_id: proposalId,
+      role: addRole,
+    }]);
+
+    if (error) {
+      toast.error('Failed to add collaborator');
+    } else {
+      toast.success(`${foundUser.fullName || addEmail} added as ${ROLE_LABELS[addRole]}`);
+      setAddEmail('');
+      setAddRole('editor');
+      setFoundUser(null);
+      fetchProposalCollaborators();
+    }
+    setSaving(false);
+  };
+
+  const handleRemoveFromProposal = async (collab: ProposalCollaborator) => {
+    if (collab.userId === user?.id) {
+      toast.error("You can't remove yourself");
+      return;
+    }
+    const { error } = await supabase.from('user_roles').delete().eq('id', collab.id);
+    if (error) {
+      toast.error('Failed to remove collaborator');
+    } else {
+      toast.success(`${collab.fullName || collab.email} removed`);
+      fetchProposalCollaborators();
+    }
+  };
+
+  const handleChangeRole = async (collab: ProposalCollaborator, newRole: 'coordinator' | 'editor' | 'viewer') => {
+    if (newRole === collab.role) return;
+    const { error } = await supabase
+      .from('user_roles')
+      .update({ role: newRole })
+      .eq('id', collab.id);
+    if (error) {
+      toast.error('Failed to update role');
+    } else {
+      toast.success(`${collab.fullName || collab.email} is now ${ROLE_LABELS[newRole]}`);
+      fetchProposalCollaborators();
+    }
+  };
 
   const getDisplayName = (c: Collaborator) => {
     if (c.first_name && c.last_name) return `${c.first_name} ${c.last_name}`;
@@ -162,6 +349,12 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
     setIsProfileOpen(true);
   };
 
+  // Determine tabs
+  const showManageTab = !!proposalId;
+  const tabCount = 1 + (showManageTab ? 1 : 0) + (canInvite ? 1 : 0);
+
+  const tabGridClass = tabCount === 3 ? 'grid-cols-3' : tabCount === 2 ? 'grid-cols-2' : 'grid-cols-1';
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -177,8 +370,9 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
           </DialogHeader>
 
           <Tabs defaultValue="team" className="mt-4">
-            <TabsList className={`grid w-full ${canInvite ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            <TabsList className={`grid w-full ${tabGridClass}`}>
               <TabsTrigger value="team">Team Members</TabsTrigger>
+              {showManageTab && <TabsTrigger value="manage">Manage Access</TabsTrigger>}
               {canInvite && <TabsTrigger value="invite">Invite New</TabsTrigger>}
             </TabsList>
 
@@ -275,6 +469,146 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
                 )}
               </ScrollArea>
             </TabsContent>
+
+            {/* Manage Access Tab - visible when on a proposal page */}
+            {showManageTab && (
+              <TabsContent value="manage" className="space-y-4">
+                <div className="space-y-4 py-2">
+                  {/* Add new collaborator - only for those who can manage */}
+                  {canManageProposal && (
+                    <div className="space-y-3 pb-4 border-b border-border">
+                      <Label className="text-sm font-medium">Add collaborator to this proposal</Label>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Input
+                            type="email"
+                            value={addEmail}
+                            onChange={(e) => setAddEmail(e.target.value)}
+                            placeholder="email@example.com"
+                            className="pr-8"
+                          />
+                          {checkingEmail && (
+                            <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
+                          )}
+                        </div>
+                        <Select value={addRole} onValueChange={(v) => setAddRole(v as 'coordinator' | 'editor' | 'viewer')}>
+                          <SelectTrigger className="w-28">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="coordinator">Coordinator</SelectItem>
+                            <SelectItem value="editor">Editor</SelectItem>
+                            <SelectItem value="viewer">Viewer</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {foundUser && (
+                        <p className="text-xs text-green-600 dark:text-green-400">✓ {foundUser.fullName || 'User found'}</p>
+                      )}
+                      {addEmail && addEmail.includes('@') && !checkingEmail && !foundUser && (
+                        <p className="text-xs text-destructive">User not found — they need to sign up first</p>
+                      )}
+                      <Button
+                        size="sm"
+                        onClick={handleAddToProposal}
+                        disabled={saving || !foundUser}
+                        className="gap-1.5"
+                      >
+                        {saving && <Loader2 className="w-3 h-3 animate-spin" />}
+                        <UserPlus className="w-3.5 h-3.5" />
+                        Add
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Current proposal collaborators list */}
+                  <ScrollArea className="h-[300px]">
+                    <div className="space-y-2">
+                      {loadingProposalCollabs ? (
+                        <div className="flex items-center justify-center py-4">
+                          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : proposalCollaborators.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">No collaborators on this proposal</p>
+                      ) : (
+                        proposalCollaborators.map((collab) => {
+                          const RoleIcon = ROLE_ICONS[collab.role] || Eye;
+                          const isOnline = onlineUserIds.has(collab.userId);
+                          const isSelf = collab.userId === user?.id;
+
+                          return (
+                            <div key={collab.id} className="flex items-center gap-2 py-1.5 group">
+                              <div className="relative flex-shrink-0">
+                                <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
+                                  <span className="text-xs font-medium text-primary">
+                                    {(collab.fullName || collab.email)
+                                      .split(' ')
+                                      .map(n => n[0])
+                                      .join('')
+                                      .toUpperCase()
+                                      .slice(0, 2)}
+                                  </span>
+                                </div>
+                                {isOnline && (
+                                  <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-green-500 border border-card" />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-sm font-medium truncate">
+                                    {collab.fullName || collab.email}
+                                  </span>
+                                  {isSelf && (
+                                    <span className="text-xs text-muted-foreground">(you)</span>
+                                  )}
+                                </div>
+                                <span className="text-xs text-muted-foreground truncate block">{collab.email}</span>
+                              </div>
+                              {canManageProposal && !isSelf ? (
+                                <Select
+                                  value={collab.role}
+                                  onValueChange={(v) => handleChangeRole(collab, v as 'coordinator' | 'editor' | 'viewer')}
+                                >
+                                  <SelectTrigger className="h-6 w-24 text-xs gap-1 px-2">
+                                    <RoleIcon className="w-3 h-3 flex-shrink-0" />
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="coordinator">Coordinator</SelectItem>
+                                    <SelectItem value="editor">Editor</SelectItem>
+                                    <SelectItem value="viewer">Viewer</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                <Badge variant="outline" className="gap-1 text-xs flex-shrink-0">
+                                  <RoleIcon className="w-3 h-3" />
+                                  {ROLE_LABELS[collab.role] || collab.role}
+                                </Badge>
+                              )}
+                              {canManageProposal && !isSelf && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                                      onClick={() => handleRemoveFromProposal(collab)}
+                                    >
+                                      <Trash2 className="w-3 h-3 text-destructive" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Remove access</TooltipContent>
+                                </Tooltip>
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </ScrollArea>
+                </div>
+              </TabsContent>
+            )}
 
             {canInvite && (
               <TabsContent value="invite" className="space-y-6">
