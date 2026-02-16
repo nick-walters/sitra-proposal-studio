@@ -340,11 +340,13 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                 {/* WP leader & duration row */}
                 <tr>
                   <td className={`${cellStyles}`} style={{ borderColor: wp.color }}>
-                    <span className="italic font-bold">WP leader: </span>
-                    {(() => {
-                      const leader = participants.find(p => p.id === wp.lead_participant_id);
-                      return leader ? <ParticipantBubble participant={leader} /> : <span className="text-muted-foreground text-[9pt] italic">Not set</span>;
-                    })()}
+                    <div className="flex items-center flex-wrap">
+                      <span className="italic font-bold">WP leader:&nbsp;</span>
+                      {(() => {
+                        const leader = participants.find(p => p.id === wp.lead_participant_id);
+                        return leader ? <ParticipantBubble participant={leader} /> : <span className="text-muted-foreground text-[9pt] italic">Not set</span>;
+                      })()}
+                    </div>
                   </td>
                   <td colSpan={2} className={`${cellStyles}`} style={{ borderColor: wp.color }}>
                     <span className="italic font-bold">Duration: </span>
@@ -407,23 +409,27 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                       {/* Task metadata row: leader | partners | timing */}
                       <tr>
                         <td className={`${cellStyles}`} style={{ borderColor: wp.color }}>
-                          <span className="italic font-bold">Task leader: </span>
-                          <LeaderPicker
-                            taskId={task.id}
-                            currentLeaderId={task.lead_participant_id}
-                            participants={participants}
-                            proposalId={proposalId}
-                          />
+                          <div className="flex items-center flex-wrap">
+                            <span className="italic font-bold">Task leader:&nbsp;</span>
+                            <LeaderPicker
+                              taskId={task.id}
+                              currentLeaderId={task.lead_participant_id}
+                              participants={participants}
+                              proposalId={proposalId}
+                            />
+                          </div>
                         </td>
                         <td className={`${cellStyles}`} style={{ borderColor: wp.color }}>
-                          <span className="italic font-bold">Partners: </span>
-                          <PartnersPicker
-                            taskId={task.id}
-                            selectedIds={partnerIds}
-                            participants={participants}
-                            proposalId={proposalId}
-                            leaderId={task.lead_participant_id}
-                          />
+                          <div className="flex items-center flex-wrap">
+                            <span className="italic font-bold">Partners:&nbsp;</span>
+                            <PartnersPicker
+                              taskId={task.id}
+                              selectedIds={partnerIds}
+                              participants={participants}
+                              proposalId={proposalId}
+                              leaderId={task.lead_participant_id}
+                            />
+                          </div>
                         </td>
                         <td className={`${cellStyles} whitespace-nowrap`} style={{ borderColor: wp.color }}>
                           <MonthPicker taskId={task.id} field="start_month" value={task.start_month} proposalId={proposalId} maxMonth={task.end_month} />
