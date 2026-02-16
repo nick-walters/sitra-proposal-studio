@@ -340,6 +340,20 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
   const queryClient = useQueryClient();
   const populatedWPs = wpData;
 
+  // Compute min-width for leader columns: "Task leader: " label + longest bubble + chevron
+  const leaderColMinWidth = React.useMemo(() => {
+    const longestName = participants.reduce((max, p) => {
+      const name = p.organisation_short_name || p.organisation_name || '';
+      return name.length > max.length ? name : max;
+    }, '');
+    // "Task leader: " at 11pt Times ~78px; bubble: ~6.5px/char at 9pt + 12px padding + 2px border; chevron ~16px; cell padding ~4px
+    const labelWidth = 78;
+    const bubbleWidth = Math.ceil(longestName.length * 6.5) + 14;
+    const chevronWidth = 16;
+    const cellPadding = 4;
+    return labelWidth + bubbleWidth + chevronWidth + cellPadding;
+  }, [participants]);
+
   if (populatedWPs.length === 0) return null;
 
   const saveWPField = async (wpId: string, field: string, value: string) => {
@@ -399,7 +413,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
 
                 {/* WP leader & duration row - editable leader */}
                 <tr>
-                  <td colSpan={2} className={`${cellStyles} whitespace-nowrap`} style={{ borderColor: wp.color, width: '1%' }}>
+                  <td colSpan={2} className={`${cellStyles} whitespace-nowrap`} style={{ borderColor: wp.color, width: leaderColMinWidth, minWidth: leaderColMinWidth }}>
                     <div className="flex items-center flex-wrap">
                       <span className="italic font-bold">WP leader:&nbsp;</span>
                       <LeaderPicker
@@ -476,7 +490,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
 
                       {/* Task metadata row: leader | partners | timing */}
                       <tr>
-                        <td className={`${cellStyles} whitespace-nowrap`} style={{ borderColor: wp.color, width: '1%' }}>
+                        <td className={`${cellStyles} whitespace-nowrap`} style={{ borderColor: wp.color, width: leaderColMinWidth, minWidth: leaderColMinWidth }}>
                           <div className="flex items-center flex-wrap">
                             <span className="italic font-bold">Task leader:&nbsp;</span>
                             <LeaderPicker
