@@ -223,7 +223,7 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
                             onClick={() => window.location.href = `mailto:${collab.email}`}
                           >
                             <Mail className="w-4 h-4" />
-                            Email
+                            Send email
                           </Button>
                           {collab.phone_number && (
                             <Button
