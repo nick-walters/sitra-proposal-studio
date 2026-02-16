@@ -135,9 +135,9 @@ const disseminationLevels = [
 ];
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
-const cellStyles = "border border-black px-0.5 py-0 h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
-const bubbleCellStyles = "border border-black px-0.5 py-0 h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-none";
-const headerCellStyles = "border border-black px-0.5 py-0 h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
+const cellStyles = "border border-black !px-0.5 !py-0 !p-0 px-0.5 h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
+const bubbleCellStyles = "border border-black !px-0.5 !py-0 !p-0 px-0.5 h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-none";
+const headerCellStyles = "border border-black !px-0.5 !py-0 !p-0 px-0.5 h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
 
 // Inline editable text that expands to multiple lines - with debounced save
 function EditableText({ 
@@ -730,24 +730,22 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
               <TableBody>
                 {deliverables.map((del) => (
                   <SortableTableRow key={del.id} id={del.id} canDrag={isAdminOrOwner} onDelete={() => deleteDeliverable.mutate(del.id)}>
-                    <TableCell className={cellStyles}>
-                      <div>
-                        <span className="font-bold font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">
-                          <EditableTextInline
-                            value={del.number}
-                            onChange={(val) => updateDeliverable.mutate({ id: del.id, number: val })}
-                            placeholder="D#.#"
-                          />
-                        </span>
-                        <span className="font-bold font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">:&nbsp;</span>
-                        <span className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight">
-                          <EditableTextInline
-                            value={del.name}
-                            onChange={(val) => updateDeliverable.mutate({ id: del.id, name: val })}
-                            placeholder="Deliverable name"
-                          />
-                        </span>
-                      </div>
+                    <TableCell className={cellStyles} style={{ lineHeight: 1.2 }}>
+                      <span className="font-bold font-['Times_New_Roman',Times,serif] text-[11pt]" style={{ lineHeight: 1.2 }}>
+                        <EditableTextInline
+                          value={del.number}
+                          onChange={(val) => updateDeliverable.mutate({ id: del.id, number: val })}
+                          placeholder="D#.#"
+                        />
+                      </span>
+                      <span className="font-bold font-['Times_New_Roman',Times,serif] text-[11pt]" style={{ lineHeight: 1.2 }}>:&nbsp;</span>
+                      <span className="font-['Times_New_Roman',Times,serif] text-[11pt]" style={{ lineHeight: 1.2 }}>
+                        <EditableTextInline
+                          value={del.name}
+                          onChange={(val) => updateDeliverable.mutate({ id: del.id, name: val })}
+                          placeholder="Deliverable name"
+                        />
+                      </span>
                     </TableCell>
                     <TableCell className={bubbleCellStyles}>
                       <SingleWPSelector
@@ -768,7 +766,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                         value={del.lead_participant_id || ''} 
                         onValueChange={(v) => updateDeliverable.mutate({ id: del.id, lead_participant_id: v || null })}
                       >
-                        <SelectTrigger hideArrow className="h-auto px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex items-center">
+                        <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex items-center">
                           <SelectValue placeholder="-">
                             {del.lead_participant_id ? (
                               <span
