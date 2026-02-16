@@ -133,9 +133,9 @@ const disseminationLevels = [
 ];
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
-const cellStyles = "border border-black px-0.5 py-px h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-none";
-const bubbleCellStyles = "border border-black px-0.5 py-px h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-[0]";
-const headerCellStyles = "border border-black px-0.5 py-px h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-none";
+const cellStyles = "border border-black px-0.5 py-0 h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
+const bubbleCellStyles = "border border-black px-0.5 py-0 h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt]";
+const headerCellStyles = "border border-black px-0.5 py-0 h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
 
 // Inline editable text that expands to multiple lines - with debounced save
 function EditableText({ 
@@ -300,8 +300,8 @@ function MonthSelect({
 function WPBubble({ wp, onRemove }: { wp: WorkPackage; onRemove?: () => void }) {
   return (
     <span 
-      className="inline-flex items-center justify-center gap-0.5 px-1.5 py-0.5 rounded-full text-white text-[9pt] font-bold whitespace-nowrap align-middle"
-      style={{ backgroundColor: wp.color || '#666', lineHeight: 1, verticalAlign: 'middle' }}
+      className="inline-flex items-center justify-center gap-0.5 px-1.5 rounded-full text-white text-[9pt] font-bold whitespace-nowrap"
+      style={{ backgroundColor: wp.color || '#666', lineHeight: '1.4', verticalAlign: 'middle' }}
     >
       WP{wp.number}
       {onRemove && (
@@ -333,7 +333,7 @@ function SingleWPSelector({
       value={value?.toString() || ''} 
       onValueChange={(v) => onChange(v ? parseInt(v) : null)}
     >
-      <SelectTrigger hideArrow className="h-auto py-0.5 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex items-center overflow-visible">
+      <SelectTrigger hideArrow className="h-auto py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex items-center overflow-visible">
         <SelectValue placeholder="-">
           {selectedWP ? <WPBubble wp={selectedWP} /> : <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">-</span>}
         </SelectValue>
@@ -751,8 +751,8 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                           <SelectValue placeholder="-">
                             {del.lead_participant_id ? (
                               <span
-                                className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[9pt] font-bold italic text-white whitespace-nowrap align-middle"
-                                style={{ backgroundColor: '#000', lineHeight: 1, verticalAlign: 'middle' }}
+                                className="inline-flex items-center justify-center px-1.5 rounded-full text-[9pt] font-bold italic text-white whitespace-nowrap"
+                                style={{ backgroundColor: '#000', lineHeight: '1.4', verticalAlign: 'middle' }}
                               >
                                 {participants.find(p => p.id === del.lead_participant_id)?.organisation_short_name || '-'}
                               </span>
