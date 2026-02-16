@@ -109,7 +109,7 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
                   {lead ? (
                     <span
                       className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9pt] font-bold italic whitespace-nowrap"
-                      style={{ backgroundColor: '#000000', color: '#FFFFFF' }}
+                      style={{ backgroundColor: '#000000', color: '#FFFFFF', lineHeight: 1 }}
                     >
                       {lead.participant_number}. {lead.organisation_short_name || lead.organisation_name}
                     </span>
