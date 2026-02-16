@@ -67,7 +67,7 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
   return (
     <div>
       <p className={`${tableStyles} italic mb-0`}>
-        <span className="font-bold italic">Table 3.1.a.</span> Work packages
+        <span className="font-bold italic">Table 3.1.a.</span> List of work packages
       </p>
       <table className={`${tableStyles} w-full border-collapse`}>
         <thead>
