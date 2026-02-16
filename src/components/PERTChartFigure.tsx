@@ -333,21 +333,22 @@ export function PERTChartFigure({
         <div ref={chartRef} className={canEdit ? "border rounded-lg bg-background overflow-auto" : "overflow-auto"}>
           <svg
             ref={svgRef}
-            width="100%"
+            width={canEdit ? svgWidth : '18cm'}
             height={canEdit ? svgHeight : undefined}
             viewBox={viewBoxStr}
             preserveAspectRatio="xMidYMid meet"
             className="select-none"
+            style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
           >
              <defs>
-              <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
-                <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
+              <marker id="arrowhead" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto">
+                <polygon points="0 0, 6 2.5, 0 5" fill="#64748b" />
               </marker>
-              <marker id="arrowhead-start" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
-                <polygon points="10 0, 0 3.5, 10 7" fill="#64748b" />
+              <marker id="arrowhead-start" markerWidth="6" markerHeight="5" refX="0" refY="2.5" orient="auto">
+                <polygon points="6 0, 0 2.5, 6 5" fill="#64748b" />
               </marker>
             </defs>
 
@@ -363,10 +364,10 @@ export function PERTChartFigure({
                     >
                       <rect width={120} height={50} rx={8} ry={8} fill={node.color}
                         stroke={draggingNode === node.id ? 'hsl(var(--primary))' : 'transparent'} strokeWidth={2} className="transition-all" />
-                      <text x={60} y={20} textAnchor="middle" fill="#FFFFFF" fontSize={12} fontWeight="bold">
+                      <text x={60} y={20} textAnchor="middle" fill="#FFFFFF" fontSize="11pt" fontWeight="bold">
                         WP{node.number}
                       </text>
-                      <text x={60} y={38} textAnchor="middle" fill="#FFFFFF" fontSize={11} opacity={0.9}>
+                      <text x={60} y={38} textAnchor="middle" fill="#FFFFFF" fontSize="11pt" opacity={0.9}>
                         {node.shortName.length > 12 ? node.shortName.substring(0, 11) + '…' : node.shortName}
                       </text>
                     </g>
@@ -387,7 +388,7 @@ export function PERTChartFigure({
                 key={`${arrow.id}-${arrow.direction}`}
                 x1={arrow.fromX} y1={arrow.fromY}
                 x2={arrow.toX} y2={arrow.toY}
-                stroke="#64748b" strokeWidth="2"
+                stroke="#64748b" strokeWidth="1"
                 markerEnd={arrow.direction !== 'reverse' ? 'url(#arrowhead)' : undefined}
                 markerStart={arrow.direction === 'reverse' || arrow.direction === 'bidirectional' ? 'url(#arrowhead-start)' : undefined}
               />
