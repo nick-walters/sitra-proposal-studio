@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Download, Network, Move, Plus, Trash2, ArrowRight, Image, FileDown } from 'lucide-react';
+import { Download, Network, Move, Plus, Trash2, ArrowRight, ArrowLeft, ArrowLeftRight, Image, FileDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { exportAsPng, exportAsPptx } from '@/lib/figureExport';
@@ -23,7 +23,10 @@ interface Dependency {
   id: string;
   fromWpId: string;
   toWpId: string;
+  direction: 'forward' | 'reverse' | 'bidirectional';
 }
+
+type DependencyDirection = Dependency['direction'];
 
 interface PERTContent {
   nodePositions?: Record<string, { x: number; y: number }>;
@@ -51,6 +54,7 @@ export function PERTChartFigure({
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [fromWp, setFromWp] = useState<string>('');
   const [toWp, setToWp] = useState<string>('');
+  const [direction, setDirection] = useState<DependencyDirection>('forward');
 
   // Fetch WP drafts
   const { data: wpDrafts = [] } = useQuery({
@@ -72,13 +76,14 @@ export function PERTChartFigure({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('wp_dependencies')
-        .select('id, from_wp_id, to_wp_id')
+        .select('id, from_wp_id, to_wp_id, direction')
         .eq('proposal_id', proposalId);
       if (error) throw error;
       return data.map((d) => ({
         id: d.id,
         fromWpId: d.from_wp_id,
         toWpId: d.to_wp_id,
+        direction: (d.direction || 'forward') as DependencyDirection,
       })) as Dependency[];
     },
   });
@@ -95,6 +100,7 @@ export function PERTChartFigure({
         proposal_id: proposalId,
         from_wp_id: fromWp,
         to_wp_id: toWp,
+        direction,
       });
       if (error) throw error;
     },
@@ -102,10 +108,22 @@ export function PERTChartFigure({
       queryClient.invalidateQueries({ queryKey: ['wp-dependencies-pert', proposalId] });
       setFromWp('');
       setToWp('');
+      setDirection('forward');
       toast.success('Dependency added');
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : 'Failed to add dependency');
+    },
+  });
+
+  // Update dependency direction mutation
+  const updateDirectionMutation = useMutation({
+    mutationFn: async ({ id, newDirection }: { id: string; newDirection: DependencyDirection }) => {
+      const { error } = await supabase.from('wp_dependencies').update({ direction: newDirection }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wp-dependencies-pert', proposalId] });
     },
   });
 
@@ -206,7 +224,7 @@ export function PERTChartFigure({
       if (!fromNode || !toNode) return null;
       const pts = computeArrow(fromNode, toNode);
       if (!pts) return null;
-      return { id: dep.id, ...pts };
+      return { id: dep.id, direction: dep.direction, ...pts };
     }).filter(Boolean);
   }, [dependencies, nodes, computeArrow]);
 
@@ -319,6 +337,9 @@ export function PERTChartFigure({
               <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
                 <polygon points="0 0, 10 3.5, 0 7" fill="currentColor" className="text-muted-foreground" />
               </marker>
+              <marker id="arrowhead-start" markerWidth="10" markerHeight="7" refX="1" refY="3.5" orient="auto-start-reverse">
+                <polygon points="10 0, 0 3.5, 10 7" fill="currentColor" className="text-muted-foreground" />
+              </marker>
             </defs>
 
             {arrows.map((arrow) => arrow && (
@@ -328,7 +349,8 @@ export function PERTChartFigure({
                 x2={arrow.toX} y2={arrow.toY}
                 stroke="currentColor" strokeWidth="2"
                 className="text-muted-foreground"
-                markerEnd="url(#arrowhead)"
+                markerEnd={arrow.direction !== 'reverse' ? 'url(#arrowhead)' : undefined}
+                markerStart={arrow.direction === 'reverse' ? 'url(#arrowhead)' : arrow.direction === 'bidirectional' ? 'url(#arrowhead-start)' : undefined}
               />
             ))}
 
@@ -339,7 +361,8 @@ export function PERTChartFigure({
                 x2={previewArrow.toX} y2={previewArrow.toY}
                 stroke="currentColor" strokeWidth="2" strokeDasharray="6 3"
                 className="text-muted-foreground/50"
-                markerEnd="url(#arrowhead)"
+                markerEnd={direction !== 'reverse' ? 'url(#arrowhead)' : undefined}
+                markerStart={direction === 'reverse' ? 'url(#arrowhead)' : direction === 'bidirectional' ? 'url(#arrowhead-start)' : undefined}
               />
             )}
 
@@ -410,7 +433,20 @@ export function PERTChartFigure({
                 <div key={dep.id} className="flex items-center gap-2 text-sm bg-muted/50 px-3 py-1.5 rounded">
                   <span className="w-2.5 h-2.5 rounded" style={{ backgroundColor: getWpColor(dep.fromWpId) }} />
                   <span className="font-medium">{getWpLabel(dep.fromWpId)}</span>
-                  <ArrowRight className="w-3.5 h-3.5 text-muted-foreground" />
+                  <Select value={dep.direction} onValueChange={(v) => updateDirectionMutation.mutate({ id: dep.id, newDirection: v as DependencyDirection })}>
+                    <SelectTrigger className="w-10 h-6 px-1 border-none bg-transparent justify-center [&>svg]:hidden">
+                      <SelectValue>
+                        {dep.direction === 'forward' && <ArrowRight className="w-3.5 h-3.5 text-muted-foreground" />}
+                        {dep.direction === 'reverse' && <ArrowLeft className="w-3.5 h-3.5 text-muted-foreground" />}
+                        {dep.direction === 'bidirectional' && <ArrowLeftRight className="w-3.5 h-3.5 text-muted-foreground" />}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="min-w-0 w-auto">
+                      <SelectItem value="forward"><ArrowRight className="w-4 h-4" /></SelectItem>
+                      <SelectItem value="reverse"><ArrowLeft className="w-4 h-4" /></SelectItem>
+                      <SelectItem value="bidirectional"><ArrowLeftRight className="w-4 h-4" /></SelectItem>
+                    </SelectContent>
+                  </Select>
                   <span className="w-2.5 h-2.5 rounded" style={{ backgroundColor: getWpColor(dep.toWpId) }} />
                   <span className="font-medium">{getWpLabel(dep.toWpId)}</span>
                   <Button
@@ -442,7 +478,20 @@ export function PERTChartFigure({
                 ))}
               </SelectContent>
             </Select>
-            <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
+            <Select value={direction} onValueChange={(v) => setDirection(v as DependencyDirection)}>
+              <SelectTrigger className="w-10 h-8 px-1 justify-center [&>svg]:hidden">
+                <SelectValue>
+                  {direction === 'forward' && <ArrowRight className="w-4 h-4" />}
+                  {direction === 'reverse' && <ArrowLeft className="w-4 h-4" />}
+                  {direction === 'bidirectional' && <ArrowLeftRight className="w-4 h-4" />}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="min-w-0 w-auto">
+                <SelectItem value="forward"><ArrowRight className="w-4 h-4" /></SelectItem>
+                <SelectItem value="reverse"><ArrowLeft className="w-4 h-4" /></SelectItem>
+                <SelectItem value="bidirectional"><ArrowLeftRight className="w-4 h-4" /></SelectItem>
+              </SelectContent>
+            </Select>
             <Select value={toWp} onValueChange={setToWp}>
               <SelectTrigger className="flex-1 h-8 text-sm">
                 <SelectValue placeholder="To WP..." />

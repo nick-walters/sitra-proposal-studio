@@ -3411,6 +3411,7 @@ export type Database = {
       wp_dependencies: {
         Row: {
           created_at: string
+          direction: string
           from_wp_id: string
           id: string
           proposal_id: string
@@ -3418,6 +3419,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          direction?: string
           from_wp_id: string
           id?: string
           proposal_id: string
@@ -3425,6 +3427,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          direction?: string
           from_wp_id?: string
           id?: string
           proposal_id?: string
