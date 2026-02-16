@@ -300,23 +300,14 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                 <SpacerRow />
 
                 {/* Objectives */}
-                {wp.objectives && (
-                  <>
-                    <tr>
-                      <td colSpan={3} className={`${cellStyles} font-bold`} style={{ borderColor: wp.color }}>
-                        Objectives
-                      </td>
-                    </tr>
-                    <tr>
-                      <td
-                        colSpan={3}
-                        className={cellStyles}
-                        style={{ borderColor: wp.color }}
-                        dangerouslySetInnerHTML={{ __html: wp.objectives }}
-                      />
-                    </tr>
-                  </>
-                )}
+                <tr>
+                  <td colSpan={3} className={cellStyles} style={{ borderColor: wp.color }}>
+                    <span className="font-bold italic">Objectives: </span>
+                    {wp.objectives ? (
+                      <span dangerouslySetInnerHTML={{ __html: wp.objectives }} />
+                    ) : null}
+                  </td>
+                </tr>
 
                 {/* Tasks */}
                 {wp.tasks.map(task => {
