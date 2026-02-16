@@ -80,16 +80,16 @@ function getCasePrefix(caseType: string, customTypeName: string | null): string 
 interface SortableCaseRowProps {
   caseItem: CaseDraft;
   participants: ParticipantSummary[];
+  casePrefix: string;
   onUpdate: (id: string, updates: Partial<CaseDraft>) => void;
   onDelete: (id: string) => void;
   canEdit: boolean;
 }
 
-function SortableCaseRow({ caseItem, participants, onUpdate, onDelete, canEdit }: SortableCaseRowProps) {
+function SortableCaseRow({ caseItem, participants, casePrefix, onUpdate, onDelete, canEdit }: SortableCaseRowProps) {
   const [leadOpen, setLeadOpen] = useState(false);
   const [localShortName, setLocalShortName] = useState(caseItem.short_name || '');
   const [localTitle, setLocalTitle] = useState(caseItem.title || '');
-  const [localCustomName, setLocalCustomName] = useState(caseItem.custom_type_name || '');
   const isFocused = useRef(false);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -97,9 +97,8 @@ function SortableCaseRow({ caseItem, participants, onUpdate, onDelete, canEdit }
     if (!isFocused.current) {
       setLocalShortName(caseItem.short_name || '');
       setLocalTitle(caseItem.title || '');
-      setLocalCustomName(caseItem.custom_type_name || '');
     }
-  }, [caseItem.short_name, caseItem.title, caseItem.custom_type_name]);
+  }, [caseItem.short_name, caseItem.title]);
 
   const debouncedUpdate = (id: string, updates: Partial<CaseDraft>) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -122,14 +121,12 @@ function SortableCaseRow({ caseItem, participants, onUpdate, onDelete, canEdit }
   };
 
   const selectedLead = participants.find((p) => p.id === caseItem.lead_participant_id);
-  const prefix = getCasePrefix(caseItem.case_type, caseItem.custom_type_name);
-  const isOtherType = caseItem.case_type === 'other';
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`grid grid-cols-[24px_50px_70px_50px_90px_1fr_80px_20px] gap-1.5 items-center py-1 border-b ${
+      className={`grid grid-cols-[24px_50px_90px_1fr_80px_20px] gap-1.5 items-center py-1 border-b ${
         isDragging ? 'bg-muted shadow-lg' : ''
       }`}
     >
@@ -150,46 +147,8 @@ function SortableCaseRow({ caseItem, participants, onUpdate, onDelete, canEdit }
       <Badge
         className="rounded-full font-bold justify-center text-xs h-6 border-[1.5px] border-black text-black bg-white"
       >
-        {prefix}{caseItem.number}
+        {casePrefix}{caseItem.number}
       </Badge>
-
-      {/* Type Selector */}
-      <Select 
-        value={caseItem.case_type} 
-        onValueChange={(value) => onUpdate(caseItem.id, { case_type: value })}
-        disabled={!canEdit}
-      >
-        <SelectTrigger className="h-7 text-xs px-2">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {CASE_TYPES.map((type) => (
-            <SelectItem key={type.value} value={type.value} className="text-xs">
-              {type.prefix} - {type.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      {/* Custom Abbreviation (only for "other" type) */}
-      {isOtherType ? (
-        <Input
-          value={localCustomName}
-          onChange={(e) => {
-            const v = e.target.value.slice(0, 4);
-            setLocalCustomName(v);
-            debouncedUpdate(caseItem.id, { custom_type_name: v });
-          }}
-          onFocus={() => { isFocused.current = true; }}
-          onBlur={() => { isFocused.current = false; }}
-          placeholder="Abbr"
-          className="h-7 text-xs uppercase"
-          maxLength={4}
-          disabled={!canEdit}
-        />
-      ) : (
-        <div />
-      )}
 
       {/* Short Name */}
       <Input
@@ -438,6 +397,24 @@ export function CaseManagementCard({
     },
   });
 
+  // Derive proposal-level case type from first case (all cases share the same type)
+  const proposalCaseType = caseDrafts.length > 0 ? caseDrafts[0].case_type : 'case_study';
+  const proposalCustomName = caseDrafts.length > 0 ? caseDrafts[0].custom_type_name : null;
+  const casePrefix = getCasePrefix(proposalCaseType, proposalCustomName);
+
+  const handleCaseTypeChange = useCallback((newType: string) => {
+    // Update all cases to the new type
+    caseDrafts.forEach(c => {
+      updateCaseMutation.mutate({ id: c.id, updates: { case_type: newType } });
+    });
+  }, [caseDrafts, updateCaseMutation]);
+
+  const handleCustomNameChange = useCallback((name: string) => {
+    caseDrafts.forEach(c => {
+      updateCaseMutation.mutate({ id: c.id, updates: { custom_type_name: name } });
+    });
+  }, [caseDrafts, updateCaseMutation]);
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -499,12 +476,41 @@ export function CaseManagementCard({
               </div>
             ) : (
               <>
+                {/* Proposal-level type selector */}
+                <div className="flex items-center gap-2 mb-2">
+                  <Label className="text-sm text-muted-foreground shrink-0">Type:</Label>
+                  <Select 
+                    value={proposalCaseType} 
+                    onValueChange={handleCaseTypeChange}
+                    disabled={!isCoordinator}
+                  >
+                    <SelectTrigger className="h-7 text-xs w-40">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CASE_TYPES.map((type) => (
+                        <SelectItem key={type.value} value={type.value} className="text-xs">
+                          {type.prefix} – {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {proposalCaseType === 'other' && (
+                    <Input
+                      value={proposalCustomName || ''}
+                      onChange={(e) => handleCustomNameChange(e.target.value.slice(0, 4))}
+                      placeholder="Abbr"
+                      className="h-7 text-xs uppercase w-20"
+                      maxLength={4}
+                      disabled={!isCoordinator}
+                    />
+                  )}
+                </div>
+
                 {/* Table Header */}
-                <div className="grid grid-cols-[24px_50px_70px_50px_90px_1fr_80px_20px] gap-1.5 text-xs font-medium text-muted-foreground border-b pb-1">
+                <div className="grid grid-cols-[24px_50px_90px_1fr_80px_20px] gap-1.5 text-xs font-medium text-muted-foreground border-b pb-1">
                   <div />
                   <div className="text-center">№</div>
-                  <div>Type</div>
-                  <div>Abbr</div>
                   <div>Short Name</div>
                   <div>Title</div>
                   <div>Lead</div>
@@ -523,6 +529,7 @@ export function CaseManagementCard({
                         key={caseItem.id}
                         caseItem={caseItem}
                         participants={participants}
+                        casePrefix={casePrefix}
                         onUpdate={handleUpdateCase}
                         onDelete={handleDeleteCase}
                         canEdit={isCoordinator}
@@ -537,7 +544,7 @@ export function CaseManagementCard({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => addCaseMutation.mutate('case_study')}
+                      onClick={() => addCaseMutation.mutate(proposalCaseType)}
                       disabled={addCaseMutation.isPending}
                     >
                       <Plus className="w-4 h-4 mr-1" />
