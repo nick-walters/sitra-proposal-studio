@@ -339,7 +339,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
 
                 {/* WP leader & duration row */}
                 <tr>
-                  <td className={`${cellStyles}`} style={{ borderColor: wp.color }}>
+                  <td colSpan={2} className={`${cellStyles}`} style={{ borderColor: wp.color }}>
                     <div className="flex items-center flex-wrap">
                       <span className="italic font-bold">WP leader:&nbsp;</span>
                       {(() => {
@@ -348,17 +348,16 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                       })()}
                     </div>
                   </td>
-                  <td colSpan={2} className={`${cellStyles}`} style={{ borderColor: wp.color }}>
-                    <span className="italic font-bold">Duration: </span>
+                  <td className={`${cellStyles} whitespace-nowrap`} style={{ borderColor: wp.color }}>
                     {(() => {
                       const starts = wp.tasks.map(t => t.start_month).filter((m): m is number => m != null);
                       const ends = wp.tasks.map(t => t.end_month).filter((m): m is number => m != null);
                       if (starts.length > 0 && ends.length > 0) {
                         const minStart = Math.min(...starts);
                         const maxEnd = Math.max(...ends);
-                        return <span>M{String(minStart).padStart(2, '0')} – M{String(maxEnd).padStart(2, '0')}</span>;
+                        return <span>M{String(minStart).padStart(2, '0')}–M{String(maxEnd).padStart(2, '0')}</span>;
                       }
-                      return <span className="text-muted-foreground text-[9pt] italic">No task timing set</span>;
+                      return <span className="text-muted-foreground text-[9pt] italic">—</span>;
                     })()}
                   </td>
                 </tr>
