@@ -115,7 +115,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
           <tr>
             <th className={headerCellStyles} style={{ textAlign: 'left', border: 'none' }}>
               <span
-                className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9pt] font-bold italic whitespace-nowrap"
+                className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[11pt] font-bold whitespace-nowrap"
                 style={{ backgroundColor: '#000000', color: '#FFFFFF', lineHeight: 1 }}
               >
                 Participant
@@ -127,8 +127,8 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
               return (
                 <th key={wp.id} className={headerCellStyles} style={{ border: 'none' }}>
                   <span
-                    className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9pt] font-bold italic whitespace-nowrap"
-                    style={{ backgroundColor: wpColor, color: textColor, lineHeight: 1 }}
+                    className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[11pt] font-bold whitespace-nowrap"
+                    style={{ backgroundColor: wpColor, color: '#FFFFFF', lineHeight: 1 }}
                   >
                     WP{wp.number}
                   </span>
@@ -146,7 +146,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
               <tr key={p.id}>
                 <td className={`${cellStyles} font-bold`} style={{ textAlign: 'left' }}>
                   <span
-                    className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9pt] font-bold italic whitespace-nowrap"
+                    className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[11pt] font-bold whitespace-nowrap"
                     style={{ backgroundColor: '#000000', color: '#FFFFFF', lineHeight: 1 }}
                   >
                     {p.organisation_short_name || p.organisation_name}
