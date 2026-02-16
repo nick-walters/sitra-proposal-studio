@@ -425,12 +425,12 @@ export function GanttChartFigure({
                 {/* Task Rows */}
                 {wp.tasks.map((task, taskIdx) => {
                   const isLastRow = untimedTasks.length === 0 && taskIdx === wp.tasks.length - 1;
-                  const bottomBorder = isLastRow ? `1px solid ${borderDark}` : `1px solid ${borderLight}`;
+                  const bottomBorder = isLastRow ? `1px solid ${wpColor}` : `1px solid ${borderLight}`;
                   return (
-                    <div key={task.id} className="flex" style={{ borderLeft: `1px solid ${borderDark}`, position: 'relative' }}>
+                    <div key={task.id} className="flex" style={{ borderLeft: `1px solid ${wpColor}`, position: 'relative' }}>
                       <div 
                         className="shrink-0 flex items-center overflow-hidden"
-                        style={{ width: labelWidth, height: 18, padding: '0 2px', borderRight: `1px solid ${borderDark}`, borderBottom: bottomBorder }}
+                        style={{ width: labelWidth, height: 18, padding: '0 2px', borderRight: `1px solid ${wpColor}`, borderBottom: bottomBorder }}
                       >
                         <span className="font-medium shrink-0 mr-1" style={{ whiteSpace: 'nowrap' }}>T{task.wpNumber}.{task.taskNumber}:</span>
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.name}</span>
@@ -545,12 +545,12 @@ export function GanttChartFigure({
                 {/* Untimed task rows */}
                 {untimedTasks.map((task, utIdx) => {
                   const isLastRow = utIdx === untimedTasks.length - 1;
-                  const bottomBorder = isLastRow ? `1px solid ${borderDark}` : `1px solid ${borderLight}`;
+                  const bottomBorder = isLastRow ? `1px solid ${wpColor}` : `1px solid ${borderLight}`;
                   return (
-                    <div key={task.id} className="flex" style={{ borderLeft: `1px solid ${borderDark}` }}>
+                    <div key={task.id} className="flex" style={{ borderLeft: `1px solid ${wpColor}` }}>
                       <div 
                         className="shrink-0 flex items-center overflow-hidden"
-                        style={{ width: labelWidth, height: 18, padding: '0 2px', borderRight: `1px solid ${borderDark}`, borderBottom: bottomBorder }}
+                        style={{ width: labelWidth, height: 18, padding: '0 2px', borderRight: `1px solid ${wpColor}`, borderBottom: bottomBorder }}
                       >
                         <span className="font-medium shrink-0 mr-1" style={{ whiteSpace: 'nowrap' }}>T{wp.number}.{task.number}:</span>
                         <span className="text-muted-foreground" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</span>
