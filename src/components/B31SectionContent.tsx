@@ -38,6 +38,9 @@ export function B31SectionContent({ proposalId }: Props) {
 
   return (
     <div className="b31-tables-container space-y-4 [&_p]:!my-0 mt-[20px]">
+      {/* Table 3.1.a – List of work packages */}
+      <B31WPListTable wpData={wpData} participants={participants} />
+
       {/* Figure 3.1.a – PERT chart */}
       {pertFigure ? (
         <div>
@@ -77,9 +80,6 @@ export function B31SectionContent({ proposalId }: Props) {
           Gantt chart will appear here once created in Figures
         </p>
       )}
-
-      {/* Table 3.1.a – List of work packages */}
-      <B31WPListTable wpData={wpData} participants={participants} />
 
       {/* Table 3.1.b – Work package descriptions */}
       <B31WPDescriptionTables wpData={wpData} participants={participants} proposalId={proposalId} />
