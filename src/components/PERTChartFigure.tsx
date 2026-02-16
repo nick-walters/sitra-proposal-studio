@@ -114,8 +114,9 @@ export function PERTChartFigure({
   // Update dependency mutation (any field)
   const updateMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: { from_wp_id?: string; to_wp_id?: string; direction?: string } }) => {
-      const { error } = await supabase.from('wp_dependencies').update(updates).eq('id', id);
+      const { data, error } = await supabase.from('wp_dependencies').update(updates).eq('id', id).select().single();
       if (error) throw error;
+      return data;
     },
     onMutate: async ({ id, updates }) => {
       await queryClient.cancelQueries({ queryKey: ['wp-dependencies-pert', proposalId] });
@@ -348,7 +349,7 @@ export function PERTChartFigure({
                 stroke="currentColor" strokeWidth="2"
                 className="text-muted-foreground"
                 markerEnd={arrow.direction !== 'reverse' ? 'url(#arrowhead)' : undefined}
-                markerStart={arrow.direction === 'reverse' ? 'url(#arrowhead)' : arrow.direction === 'bidirectional' ? 'url(#arrowhead-start)' : undefined}
+                markerStart={arrow.direction === 'reverse' || arrow.direction === 'bidirectional' ? 'url(#arrowhead-start)' : undefined}
               />
             ))}
 
