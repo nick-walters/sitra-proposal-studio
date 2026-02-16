@@ -720,7 +720,10 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                   Diss.
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(4)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold`} style={colWidths.length > 0 ? { width: colWidths[5] } : { width: '40px' }}>Due</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[5] } : { width: '40px' }}>
+                  Due
+                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(5)} />}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <SortableContext items={deliverables.map(d => d.id)} strategy={verticalListSortingStrategy}>
@@ -988,7 +991,10 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
                   Due
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(2)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold`}>Means of verification</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[3] } : undefined}>
+                  Means of verification
+                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(3)} />}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <SortableContext items={milestones.map(m => m.id)} strategy={verticalListSortingStrategy}>
@@ -1190,7 +1196,10 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
                   WPs
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(3)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold`}>Mitigation & adaptation measures</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[4] } : undefined}>
+                  Mitigation &amp; adaptation measures
+                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(4)} />}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <SortableContext items={risks.map(r => r.id)} strategy={verticalListSortingStrategy}>
