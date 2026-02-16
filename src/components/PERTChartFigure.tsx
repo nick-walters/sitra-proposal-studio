@@ -67,6 +67,19 @@ export function PERTChartFigure({
     },
   });
 
+  // Fetch deliverables per WP for bubble display
+  const { data: wpDeliverables = [] } = useQuery({
+    queryKey: ['wp-deliverables-pert', proposalId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('wp_draft_deliverables')
+        .select('id, wp_draft_id, number, due_month')
+        .order('number');
+      if (error) throw error;
+      return data;
+    },
+  });
+
   // Fetch dependencies
   const { data: dependencies = [] } = useQuery({
     queryKey: ['wp-dependencies-pert', proposalId],
@@ -265,10 +278,11 @@ export function PERTChartFigure({
   const minY = Math.min(...nodes.map(n => n.y));
   const maxX = Math.max(...nodes.map(n => n.x + nodeW));
   const maxY = Math.max(...nodes.map(n => n.y + nodeH));
-  const pad = canEdit ? 30 : 5;
-  const svgWidth = canEdit ? Math.max(800, maxX + pad) : (maxX - minX + pad * 2);
-  const svgHeight = canEdit ? Math.max(400, maxY + pad) : (maxY - minY + pad * 2);
-  const viewBoxStr = canEdit ? `0 0 ${svgWidth} ${svgHeight}` : `${minX - pad} ${minY - pad} ${svgWidth} ${svgHeight}`;
+  const padSide = canEdit ? 30 : 5;
+  const padTop = canEdit ? 30 : 18; // extra top padding for deliverable bubbles
+  const svgWidth = canEdit ? Math.max(800, maxX + padSide) : (maxX - minX + padSide * 2);
+  const svgHeight = canEdit ? Math.max(400, maxY + padSide) : (maxY - minY + padTop + padSide);
+  const viewBoxStr = canEdit ? `0 0 ${svgWidth} ${svgHeight}` : `${minX - padSide} ${minY - padTop} ${svgWidth} ${svgHeight}`;
 
   const getWpLabel = (wpId: string) => {
     const wp = wpDrafts.find((w) => w.id === wpId);
@@ -352,8 +366,14 @@ export function PERTChartFigure({
               </marker>
             </defs>
 
-            {/* Render nodes first (below arrows) */}
+            {/* Render nodes with deliverable bubbles */}
             {nodes.map((node) => {
+              const nodeDeliverables = wpDeliverables
+                .filter(d => d.wp_draft_id === node.id)
+                .sort((a, b) => (a.number || 0) - (b.number || 0));
+              const wpDraft = wpDrafts.find(w => w.id === node.id);
+              const wpNum = wpDraft?.number ?? node.number;
+
               return (
                 <Tooltip key={node.id}>
                   <TooltipTrigger asChild>
@@ -362,6 +382,33 @@ export function PERTChartFigure({
                       className={canEdit ? 'cursor-grab active:cursor-grabbing' : ''}
                       onMouseDown={(e) => handleMouseDown(e, node.id)}
                     >
+                      {/* Deliverable bubbles floating above the node */}
+                      {nodeDeliverables.length > 0 && (
+                        <g>
+                          {nodeDeliverables.map((del, idx) => {
+                            const label = `D${wpNum}.${del.number}`;
+                            const bubbleW = label.length * 5.5 + 8;
+                            const totalW = nodeDeliverables.reduce((sum, d) => {
+                              const l = `D${wpNum}.${d.number}`;
+                              return sum + l.length * 5.5 + 8 + 3;
+                            }, -3);
+                            const startX = 42 - totalW / 2;
+                            let offsetX = 0;
+                            for (let i = 0; i < idx; i++) {
+                              const prevLabel = `D${wpNum}.${nodeDeliverables[i].number}`;
+                              offsetX += prevLabel.length * 5.5 + 8 + 3;
+                            }
+                            return (
+                              <g key={del.id} transform={`translate(${startX + offsetX}, ${-14})`}>
+                                <rect width={bubbleW} height={12} rx={6} fill="white" stroke="black" strokeWidth={0.7} />
+                                <text x={bubbleW / 2} y={8.5} textAnchor="middle" fontSize="7" fontWeight="bold" fill="black">
+                                  {label}
+                                </text>
+                              </g>
+                            );
+                          })}
+                        </g>
+                      )}
                       <rect width={84} height={35} rx={6} ry={6} fill={node.color}
                         stroke={draggingNode === node.id ? 'hsl(var(--primary))' : 'transparent'} strokeWidth={1.5} className="transition-all" />
                       <text x={42} y={14} textAnchor="middle" fill="#FFFFFF" fontSize="10" fontWeight="bold">
@@ -376,6 +423,11 @@ export function PERTChartFigure({
                     <div className="text-sm">
                       <p className="font-semibold">WP{node.number}: {node.shortName}</p>
                       {node.title && <p className="text-xs text-muted-foreground">{node.title}</p>}
+                      {nodeDeliverables.length > 0 && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {nodeDeliverables.map(d => `D${wpNum}.${d.number}`).join(', ')}
+                        </div>
+                      )}
                     </div>
                   </TooltipContent>
                 </Tooltip>

@@ -230,12 +230,6 @@ export function GanttChartFigure({
   const headerLabelStyle = "font-bold italic";
   const fontStyle: React.CSSProperties = { fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', width: TOTAL_WIDTH_PX };
 
-  // Truncate task name without trailing space before ellipsis
-  const truncateTaskName = (name: string, maxLen = 28) => {
-    if (!name || name.length <= maxLen) return name;
-    const trimmed = name.substring(0, maxLen).trimEnd();
-    return trimmed + '...';
-  };
 
   return (
     <div className={canEdit ? "space-y-4" : ""}>
@@ -469,11 +463,11 @@ export function GanttChartFigure({
                   return (
                     <div key={task.id} className="flex" style={{ borderLeft: `1px solid ${borderDark}` }}>
                       <div 
-                        className="shrink-0 truncate flex items-center"
+                        className="shrink-0 flex items-center overflow-hidden"
                         style={{ width: labelWidth, height: 18, padding: '0 2px', borderRight: `1px solid ${borderDark}`, borderBottom: bottomBorder }}
                       >
-                        <span className="font-medium mr-1" style={{ whiteSpace: 'nowrap' }}>T{task.wpNumber}.{task.taskNumber}:</span>
-                        <span className="truncate">{truncateTaskName(task.name)}</span>
+                        <span className="font-medium shrink-0 mr-1" style={{ whiteSpace: 'nowrap' }}>T{task.wpNumber}.{task.taskNumber}:</span>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.name}</span>
                       </div>
                       <div className="flex">
                         {months.map(m => {
@@ -523,11 +517,11 @@ export function GanttChartFigure({
                   return (
                     <div key={task.id} className="flex" style={{ borderLeft: `1px solid ${borderDark}` }}>
                       <div 
-                        className="shrink-0 truncate flex items-center"
+                        className="shrink-0 flex items-center overflow-hidden"
                         style={{ width: labelWidth, height: 18, padding: '0 2px', borderRight: `1px solid ${borderDark}`, borderBottom: bottomBorder }}
                       >
-                        <span className="font-medium mr-1" style={{ whiteSpace: 'nowrap' }}>T{wp.number}.{task.number}:</span>
-                        <span className="truncate text-muted-foreground">{truncateTaskName(task.title)}</span>
+                        <span className="font-medium shrink-0 mr-1" style={{ whiteSpace: 'nowrap' }}>T{wp.number}.{task.number}:</span>
+                        <span className="text-muted-foreground" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</span>
                       </div>
                       <div className="flex">
                         {months.map(m => (
