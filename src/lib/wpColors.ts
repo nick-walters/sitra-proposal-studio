@@ -103,7 +103,9 @@ export function hexToHSLString(hex: string): string {
 export function lightenColor(hex: string, percent: number): string {
   const { h, s, l } = hexToHSL(hex);
   const newL = Math.min(100, l + percent);
-  return `hsl(${h}, ${s}%, ${newL}%)`;
+  // Desaturate proportionally to produce pastels instead of garish tints
+  const newS = Math.max(0, s * (1 - percent / 100));
+  return `hsl(${h}, ${newS}%, ${newL}%)`;
 }
 
 /**
