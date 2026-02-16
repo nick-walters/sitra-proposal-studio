@@ -112,7 +112,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
       <table className={`${tableStyles} w-full border-collapse`}>
         <thead>
           <tr>
-            <th className={`${headerCellStyles} text-left`}>Participant</th>
+            <th className={headerCellStyles} style={{ textAlign: 'left' }}>Participant</th>
             {wpData.map(wp => (
               <th key={wp.id} className={headerCellStyles}>WP{wp.number}</th>
             ))}
@@ -125,7 +125,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
             const rowTotal = wpData.reduce((sum, wp) => sum + (pMap.get(wp.id) || 0), 0);
             return (
               <tr key={p.id}>
-                <td className={`${cellStyles} text-left font-bold`}>
+                <td className={`${cellStyles} font-bold`} style={{ textAlign: 'left' }}>
                   {p.participant_number}. {p.organisation_short_name || p.organisation_name}
                 </td>
                 {wpData.map(wp => {
@@ -160,7 +160,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
           })}
           {/* Total row */}
           <tr>
-            <td className={`${cellStyles} text-left font-bold`}>Total</td>
+            <td className={`${cellStyles} font-bold`} style={{ textAlign: 'left' }}>Total</td>
             {wpData.map(wp => {
               const colTotal = participants.reduce((sum, p) => sum + (matrix.get(p.id)!.get(wp.id) || 0), 0);
               return <td key={wp.id} className={`${cellStyles} font-bold`}>{colTotal || '—'}</td>;
