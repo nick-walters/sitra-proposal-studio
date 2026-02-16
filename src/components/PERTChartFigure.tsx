@@ -152,7 +152,7 @@ export function PERTChartFigure({
     const nodeWidth = 120;
     const nodeHeight = 60;
     const hGap = 80;
-    const vGap = 60;
+    const vGap = 30;
     const startX = 20;
     const startY = 20;
 
@@ -338,7 +338,7 @@ export function PERTChartFigure({
             viewBox={viewBoxStr}
             preserveAspectRatio="xMidYMid meet"
             className="select-none"
-            style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
+            style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '14.67px' }}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
@@ -364,10 +364,10 @@ export function PERTChartFigure({
                     >
                       <rect width={120} height={50} rx={8} ry={8} fill={node.color}
                         stroke={draggingNode === node.id ? 'hsl(var(--primary))' : 'transparent'} strokeWidth={2} className="transition-all" />
-                      <text x={60} y={20} textAnchor="middle" fill="#FFFFFF" fontSize="11pt" fontWeight="bold">
+                      <text x={60} y={20} textAnchor="middle" fill="#FFFFFF" fontSize="14.67" fontWeight="bold">
                         WP{node.number}
                       </text>
-                      <text x={60} y={38} textAnchor="middle" fill="#FFFFFF" fontSize="11pt" opacity={0.9}>
+                      <text x={60} y={38} textAnchor="middle" fill="#FFFFFF" fontSize="14.67" opacity={0.9}>
                         {node.shortName.length > 12 ? node.shortName.substring(0, 11) + '…' : node.shortName}
                       </text>
                     </g>
