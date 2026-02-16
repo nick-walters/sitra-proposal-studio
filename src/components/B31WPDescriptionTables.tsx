@@ -264,11 +264,13 @@ function EditableText({
   onSave,
   placeholder,
   className,
+  inline,
 }: {
   value: string;
   onSave: (newValue: string) => void;
   placeholder?: string;
   className?: string;
+  inline?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const savedRef = useRef(value);
@@ -281,9 +283,11 @@ function EditableText({
     }
   }, [onSave]);
 
+  const Tag = inline ? 'span' : 'div';
+
   return (
-    <div
-      ref={ref}
+    <Tag
+      ref={ref as any}
       contentEditable
       suppressContentEditableWarning
       className={cn(
@@ -429,6 +433,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                   <td colSpan={3} className={editableCellStyles} style={{ borderColor: wp.color }}>
                     <span className="font-bold italic">Objectives: </span>
                     <EditableText
+                      inline
                       value={wp.objectives || ''}
                       placeholder="Enter objectives..."
                       onSave={async (val) => {
