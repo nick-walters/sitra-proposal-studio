@@ -411,7 +411,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                       />
                     </div>
                   </td>
-                  <td className={`${cellStyles} whitespace-nowrap`} style={{ borderColor: wp.color }}>
+                  <td className={`${cellStyles} whitespace-nowrap`} style={{ borderColor: wp.color, width: '1%' }}>
                     {(() => {
                       const starts = wp.tasks.map(t => t.start_month).filter((m): m is number => m != null);
                       const ends = wp.tasks.map(t => t.end_month).filter((m): m is number => m != null);
@@ -500,7 +500,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                             />
                           </div>
                         </td>
-                        <td className={`${cellStyles} whitespace-nowrap`} style={{ borderColor: wp.color }}>
+                        <td className={`${cellStyles} whitespace-nowrap`} style={{ borderColor: wp.color, width: '1%' }}>
                           <MonthPicker taskId={task.id} field="start_month" value={task.start_month} proposalId={proposalId} maxMonth={task.end_month} />
                           –
                           <MonthPicker taskId={task.id} field="end_month" value={task.end_month} proposalId={proposalId} minMonth={task.start_month} />
