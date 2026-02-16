@@ -112,10 +112,7 @@ export function InsertCaseReferenceDialog({
                   )}
                 >
                   <Badge
-                    className="shrink-0 rounded-full font-bold text-white w-12 justify-center"
-                    style={{
-                      backgroundColor: caseItem.color,
-                    }}
+                    className="shrink-0 rounded-full font-bold w-12 justify-center border-[1.5px] border-black text-black bg-white"
                   >
                     {getCasePrefix(caseItem.case_type)}{caseItem.number}
                   </Badge>

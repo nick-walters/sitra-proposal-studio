@@ -148,8 +148,7 @@ function SortableCaseRow({ caseItem, participants, onUpdate, onDelete, canEdit }
 
       {/* Case Number Badge */}
       <Badge
-        className="rounded-full font-bold text-white justify-center text-xs h-6"
-        style={{ backgroundColor: caseItem.color }}
+        className="rounded-full font-bold justify-center text-xs h-6 border-[1.5px] border-black text-black bg-white"
       >
         {prefix}{caseItem.number}
       </Badge>

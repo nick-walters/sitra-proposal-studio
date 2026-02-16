@@ -141,8 +141,6 @@ export const CaseReferenceMark = Mark.create<CaseReferenceOptions>({
   },
 
   renderHTML({ HTMLAttributes }) {
-    const color = HTMLAttributes['data-case-color'] || '#7C3AED';
-
     return [
       'span',
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
@@ -152,8 +150,9 @@ export const CaseReferenceMark = Mark.create<CaseReferenceOptions>({
         'style': `
           display: inline-flex;
           align-items: center;
-          background-color: ${color};
-          color: #ffffff;
+          background-color: #ffffff;
+          color: #000000;
+          border: 1.5px solid #000000;
           padding: 0 0.4rem;
           border-radius: 9999px;
           font-size: 9pt;
@@ -164,7 +163,7 @@ export const CaseReferenceMark = Mark.create<CaseReferenceOptions>({
           user-select: none;
         `,
       }),
-      0, // Use 0 to render the actual text content, not duplicate it
+      0,
     ];
   },
 
