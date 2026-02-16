@@ -1029,10 +1029,11 @@ export function ProposalEditor() {
       {/* Status alert - color coded like dashboard */}
       {proposal && (
         <Alert className={cn(
-          "rounded-none border-x-0 border-t-0 border-b-2 py-1.5 [&>svg]:top-2",
-          statusInfo.alertBg
+          "rounded-none border-x-0 border-t-0 border-b-2 py-1.5 [&>svg]:top-2 [&>svg]:text-inherit",
+          statusInfo.alertBg,
+          statusInfo.iconColor
         )}>
-          <StatusIcon className={cn("h-3.5 w-3.5", statusInfo.iconColor)} />
+          <StatusIcon className="h-3.5 w-3.5" />
           <AlertDescription className={cn("text-sm flex items-center gap-2 flex-wrap", statusInfo.iconColor)}>
             <span className="flex-1">
               {proposal.status === 'draft' && (
