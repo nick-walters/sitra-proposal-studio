@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import type { B31WPData, B31Participant } from '@/hooks/useB31SectionData';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
-const cellStyles = "border px-0.5 py-0.5 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle";
+const cellStyles = "border px-0.5 py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle";
 const editableCellStyles = `${cellStyles} cursor-text hover:bg-muted/30`;
 
 interface Props {
