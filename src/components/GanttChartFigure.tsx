@@ -228,7 +228,7 @@ export function GanttChartFigure({
   };
 
   const headerLabelStyle = "font-bold italic";
-  const fontStyle: React.CSSProperties = { fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', width: TOTAL_WIDTH_PX };
+  const fontStyle: React.CSSProperties = { fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', width: '18cm', maxWidth: '100%', boxSizing: 'border-box' };
 
 
   return (
@@ -303,7 +303,7 @@ export function GanttChartFigure({
       )}
 
       <TooltipProvider>
-        <div ref={chartRef} className="overflow-x-auto" style={fontStyle}>
+        <div ref={chartRef} className="overflow-hidden" style={fontStyle}>
           {/* Reporting Period Row - no borders on heading label */}
           <div className="flex">
             <div 
