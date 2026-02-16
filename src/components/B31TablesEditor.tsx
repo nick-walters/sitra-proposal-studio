@@ -299,11 +299,11 @@ function MonthSelect({
 }
 
 // WP Bubble component - pill shape matching cross-reference style
-function WPBubble({ wp, onRemove }: { wp: WorkPackage; onRemove?: () => void }) {
+function WPBubble({ wp, onRemove, topOffset = '-2pt' }: { wp: WorkPackage; onRemove?: () => void; topOffset?: string }) {
   return (
     <span 
       className="inline-flex items-center justify-center gap-0.5 px-1.5 rounded-full text-white text-[9pt] font-bold whitespace-nowrap relative"
-      style={{ backgroundColor: wp.color || '#666', lineHeight: 1, verticalAlign: 'middle', top: '-2pt' }}
+      style={{ backgroundColor: wp.color || '#666', lineHeight: 1, verticalAlign: 'middle', top: topOffset }}
     >
       WP{wp.number}
       {onRemove && (
@@ -386,7 +386,7 @@ function MultiWPSelector({
         <button className="flex flex-wrap gap-0.5 items-center min-h-[1.2em] text-left">
           {selectedWPs.length > 0 ? (
             selectedWPs.map(wp => (
-              <WPBubble key={wp.id} wp={wp} />
+              <WPBubble key={wp.id} wp={wp} topOffset="-1pt" />
             ))
           ) : (
             <span className="font-['Times_New_Roman',Times,serif] text-[11pt] text-muted-foreground">-</span>
