@@ -3880,6 +3880,7 @@ export type Database = {
           id: string | null
           last_name: string | null
           organisation: string | null
+          phone_number: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -3889,6 +3890,7 @@ export type Database = {
           id?: string | null
           last_name?: string | null
           organisation?: string | null
+          phone_number?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -3898,6 +3900,7 @@ export type Database = {
           id?: string | null
           last_name?: string | null
           organisation?: string | null
+          phone_number?: string | null
         }
         Relationships: []
       }

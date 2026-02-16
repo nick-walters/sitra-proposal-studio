@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { UserAvatarMenu } from "@/components/UserAvatarMenu";
 import { CollaboratorsDialog } from "@/components/CollaboratorsDialog";
-import { DirectChatDialog } from "@/components/DirectChatDialog";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { Users, Database } from "lucide-react";
 import sitraLogo from "@/assets/sitra-proposal-studio-logo.png";
@@ -14,12 +13,6 @@ export function Header() {
   const { user, signOut } = useAuth();
   const { isOwner, hasAnyCoordinatorRole, isGlobalAdmin } = useUserRole();
   const [isCollaboratorsOpen, setIsCollaboratorsOpen] = useState(false);
-  const [chatUserId, setChatUserId] = useState<string | null>(null);
-
-  const handleStartChat = (userId: string) => {
-    setIsCollaboratorsOpen(false);
-    setChatUserId(userId);
-  };
 
   return (
     <>
@@ -77,15 +70,7 @@ export function Header() {
       <CollaboratorsDialog 
         open={isCollaboratorsOpen} 
         onOpenChange={setIsCollaboratorsOpen}
-        onStartChat={handleStartChat}
       />
-      {chatUserId && (
-        <DirectChatDialog
-          open={!!chatUserId}
-          onOpenChange={(open) => !open && setChatUserId(null)}
-          userId={chatUserId}
-        />
-      )}
     </>
   );
 }

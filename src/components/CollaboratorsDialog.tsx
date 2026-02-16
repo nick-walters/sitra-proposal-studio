@@ -10,7 +10,7 @@ import { UserProfileDialog } from "@/components/UserProfileDialog";
 import { ProposalMultiSelect } from "@/components/ProposalMultiSelect";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MessageCircle, Mail, Phone, Building2, Search, Users, UserPlus } from "lucide-react";
+import { Mail, Phone, Building2, Search, Users, UserPlus } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -22,15 +22,15 @@ interface Collaborator {
   full_name: string | null;
   organisation: string | null;
   avatar_url: string | null;
+  phone_number: string | null;
 }
 
 interface CollaboratorsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onStartChat?: (userId: string) => void;
 }
 
-export function CollaboratorsDialog({ open, onOpenChange, onStartChat }: CollaboratorsDialogProps) {
+export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogProps) {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -48,7 +48,7 @@ export function CollaboratorsDialog({ open, onOpenChange, onStartChat }: Collabo
       try {
         const { data, error } = await supabase
           .from('profiles_basic')
-          .select('id, email, first_name, last_name, full_name, organisation, avatar_url');
+          .select('id, email, first_name, last_name, full_name, organisation, avatar_url, phone_number');
 
         if (error) {
           console.error('Error fetching collaborators:', error);
@@ -130,10 +130,6 @@ export function CollaboratorsDialog({ open, onOpenChange, onStartChat }: Collabo
     setIsProfileOpen(true);
   };
 
-  const handleStartChat = (userId: string) => {
-    onStartChat?.(userId);
-  };
-
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -144,7 +140,7 @@ export function CollaboratorsDialog({ open, onOpenChange, onStartChat }: Collabo
               Collaborators
             </DialogTitle>
             <DialogDescription>
-              View team members and start conversations
+              View team members and contact details
             </DialogDescription>
           </DialogHeader>
 
@@ -211,6 +207,12 @@ export function CollaboratorsDialog({ open, onOpenChange, onStartChat }: Collabo
                             <Mail className="w-3 h-3" />
                             {collab.email}
                           </div>
+                          {collab.phone_number && (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Phone className="w-3 h-3" />
+                              {collab.phone_number}
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -218,18 +220,20 @@ export function CollaboratorsDialog({ open, onOpenChange, onStartChat }: Collabo
                             variant="outline"
                             size="sm"
                             className="gap-1"
-                            onClick={() => handleStartChat(collab.id)}
-                          >
-                            <MessageCircle className="w-4 h-4" />
-                            Chat
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
                             onClick={() => window.location.href = `mailto:${collab.email}`}
                           >
                             <Mail className="w-4 h-4" />
+                            Email
                           </Button>
+                          {collab.phone_number && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => window.location.href = `tel:${collab.phone_number}`}
+                            >
+                              <Phone className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
                       </div>
                     ))}
