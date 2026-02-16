@@ -304,7 +304,7 @@ function SortableTaskCard({
               <SelectValue placeholder="Select" />
             </SelectTrigger>
             <SelectContent>
-              {monthOptions.map((m) => (
+              {monthOptions.filter(m => task.end_month == null || m <= task.end_month).map((m) => (
                 <SelectItem key={m} value={m.toString()}>M{m.toString().padStart(2, '0')}</SelectItem>
               ))}
             </SelectContent>
@@ -319,7 +319,7 @@ function SortableTaskCard({
               <SelectValue placeholder="Select" />
             </SelectTrigger>
             <SelectContent>
-              {monthOptions.map((m) => (
+              {monthOptions.filter(m => task.start_month == null || m >= task.start_month).map((m) => (
                 <SelectItem key={m} value={m.toString()}>M{m.toString().padStart(2, '0')}</SelectItem>
               ))}
             </SelectContent>

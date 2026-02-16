@@ -180,11 +180,15 @@ function MonthPicker({
   field,
   value,
   proposalId,
+  minMonth,
+  maxMonth,
 }: {
   taskId: string;
   field: 'start_month' | 'end_month';
   value: number | null;
   proposalId: string;
+  minMonth?: number | null;
+  maxMonth?: number | null;
 }) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -206,18 +210,23 @@ function MonthPicker({
       </PopoverTrigger>
       <PopoverContent className="w-[120px] p-0" align="start">
         <div className="max-h-[200px] overflow-y-auto">
-          {months.map(m => (
-            <button
-              key={m}
-              className={cn(
-                'w-full px-2 py-1 text-sm hover:bg-accent cursor-pointer text-left',
-                m === value && 'bg-accent font-bold',
-              )}
-              onClick={() => select(m)}
-            >
-              M{String(m).padStart(2, '0')}
-            </button>
-          ))}
+          {months.map(m => {
+            const disabled = (minMonth != null && m < minMonth) || (maxMonth != null && m > maxMonth);
+            return (
+              <button
+                key={m}
+                className={cn(
+                  'w-full px-2 py-1 text-sm hover:bg-accent cursor-pointer text-left',
+                  m === value && 'bg-accent font-bold',
+                  disabled && 'opacity-30 cursor-not-allowed hover:bg-transparent',
+                )}
+                onClick={() => !disabled && select(m)}
+                disabled={disabled}
+              >
+                M{String(m).padStart(2, '0')}
+              </button>
+            );
+          })}
         </div>
       </PopoverContent>
     </Popover>
@@ -355,9 +364,9 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                           />
                         </td>
                         <td className={`${cellStyles} whitespace-nowrap`}>
-                          <MonthPicker taskId={task.id} field="start_month" value={task.start_month} proposalId={proposalId} />
+                          <MonthPicker taskId={task.id} field="start_month" value={task.start_month} proposalId={proposalId} maxMonth={task.end_month} />
                           –
-                          <MonthPicker taskId={task.id} field="end_month" value={task.end_month} proposalId={proposalId} />
+                          <MonthPicker taskId={task.id} field="end_month" value={task.end_month} proposalId={proposalId} minMonth={task.start_month} />
                         </td>
                       </tr>
 
