@@ -593,7 +593,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
         .from('b31_deliverables')
         .insert({ 
           proposal_id: proposalId, 
-          number: `D${nextIndex + 1}.1`,
+          number: 'DX.X',
           name: '', 
           description: '',
           order_index: nextIndex
@@ -614,13 +614,31 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['b31-deliverables', proposalId] }),
   });
 
+  // Recalculate deliverable sub-numbers within each WP based on due_month order
+  const recalculateDeliverableNumbers = (dels: Deliverable[]): { id: string; number: string; order_index: number }[] => {
+    // Group by WP number
+    const byWP = new Map<number | null, Deliverable[]>();
+    dels.forEach(d => {
+      const key = d.wp_number;
+      if (!byWP.has(key)) byWP.set(key, []);
+      byWP.get(key)!.push(d);
+    });
+
+    // Within each WP group, sort by due_month to assign sub-numbers
+    const updates: { id: string; number: string; order_index: number }[] = [];
+    dels.forEach((del, index) => {
+      const wpGroup = byWP.get(del.wp_number) || [];
+      const sortedGroup = [...wpGroup].sort((a, b) => (a.due_month ?? 999) - (b.due_month ?? 999));
+      const subIndex = sortedGroup.findIndex(d => d.id === del.id) + 1;
+      const wpNum = del.wp_number != null ? del.wp_number : 'X';
+      updates.push({ id: del.id, number: `D${wpNum}.${subIndex}`, order_index: index });
+    });
+    return updates;
+  };
+
   const reorderDeliverables = useMutation({
     mutationFn: async (newOrder: Deliverable[]) => {
-      const updates = newOrder.map((del, index) => ({
-        id: del.id,
-        order_index: index,
-        number: `D${del.wp_number || 1}.${index + 1}`
-      }));
+      const updates = recalculateDeliverableNumbers(newOrder);
       
       for (const update of updates) {
         const { error } = await supabase
@@ -711,7 +729,14 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                     <TableCell className={bubbleCellStyles}>
                       <SingleWPSelector
                         value={del.wp_number}
-                        onChange={(val) => updateDeliverable.mutate({ id: del.id, wp_number: val })}
+                        onChange={(val) => {
+                          // When WP changes, update wp_number and recalculate the deliverable number
+                          const wpNum = val != null ? val : 'X';
+                          // Count existing deliverables in the target WP to determine sub-number
+                          const existingInWP = deliverables.filter(d => d.wp_number === val && d.id !== del.id);
+                          const subNum = existingInWP.length + 1;
+                          updateDeliverable.mutate({ id: del.id, wp_number: val, number: `D${wpNum}.${subNum}` });
+                        }}
                         workPackages={workPackages}
                       />
                     </TableCell>
