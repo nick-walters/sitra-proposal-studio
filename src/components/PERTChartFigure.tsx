@@ -85,24 +85,31 @@ export function PERTChartFigure({
     },
   });
 
-  // Add dependency mutation
-  const addMutation = useMutation({
-    mutationFn: async () => {
+  // Track newly added (incomplete) dependencies
+  const [incompleteDeps, setIncompleteDeps] = useState<Array<{ tempId: string; fromWpId: string; toWpId: string; direction: DependencyDirection }>>([]);
+
+  // Add a new empty row locally
+  const handleAddEmptyRow = useCallback(() => {
+    setIncompleteDeps(prev => [...prev, { tempId: crypto.randomUUID(), fromWpId: '', toWpId: '', direction: 'forward' }]);
+  }, []);
+
+  // Save an incomplete dep to the database once both WPs are selected
+  const saveIncompleteDep = useCallback(async (tempId: string, fromWpId: string, toWpId: string, direction: DependencyDirection) => {
+    if (!fromWpId || !toWpId) return;
+    try {
       const { error } = await supabase.from('wp_dependencies').insert({
         proposal_id: proposalId,
-        from_wp_id: wpDrafts[0]?.id || '',
-        to_wp_id: wpDrafts[1]?.id || wpDrafts[0]?.id || '',
-        direction: 'forward',
+        from_wp_id: fromWpId,
+        to_wp_id: toWpId,
+        direction,
       });
       if (error) throw error;
-    },
-    onSuccess: () => {
+      setIncompleteDeps(prev => prev.filter(d => d.tempId !== tempId));
       queryClient.invalidateQueries({ queryKey: ['wp-dependencies-pert', proposalId] });
-    },
-    onError: (error) => {
+    } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to add dependency');
-    },
-  });
+    }
+  }, [proposalId, queryClient]);
 
   // Update dependency mutation (any field)
   const updateMutation = useMutation({
@@ -456,13 +463,81 @@ export function PERTChartFigure({
             </div>
           )}
 
+          {/* Incomplete (unsaved) dependency rows */}
+          {incompleteDeps.map((dep) => (
+            <div key={dep.tempId} className="flex items-center gap-2 text-sm bg-muted/50 px-3 py-1.5 rounded">
+              <Select value={dep.fromWpId || undefined} onValueChange={(v) => {
+                const updated = { ...dep, fromWpId: v };
+                setIncompleteDeps(prev => prev.map(d => d.tempId === dep.tempId ? updated : d));
+                if (v && updated.toWpId) saveIncompleteDep(dep.tempId, v, updated.toWpId, updated.direction);
+              }}>
+                <SelectTrigger className="flex-1 h-7 text-sm">
+                  <SelectValue placeholder="Select WP…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {wpDrafts.map((wp) => (
+                    <SelectItem key={wp.id} value={wp.id}>
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded" style={{ backgroundColor: wp.color }} />
+                        WP{wp.number}{wp.short_name ? `: ${wp.short_name}` : ''}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={dep.direction} onValueChange={(v) => {
+                const updated = { ...dep, direction: v as DependencyDirection };
+                setIncompleteDeps(prev => prev.map(d => d.tempId === dep.tempId ? updated : d));
+              }}>
+                <SelectTrigger className="w-10 h-7 px-1 justify-center [&>svg]:hidden">
+                  <SelectValue>
+                    {dep.direction === 'forward' && <ArrowRight className="w-3.5 h-3.5 text-muted-foreground" />}
+                    {dep.direction === 'reverse' && <ArrowLeft className="w-3.5 h-3.5 text-muted-foreground" />}
+                    {dep.direction === 'bidirectional' && <ArrowLeftRight className="w-3.5 h-3.5 text-muted-foreground" />}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="min-w-0 w-auto">
+                  <SelectItem value="forward"><ArrowRight className="w-4 h-4" /></SelectItem>
+                  <SelectItem value="reverse"><ArrowLeft className="w-4 h-4" /></SelectItem>
+                  <SelectItem value="bidirectional"><ArrowLeftRight className="w-4 h-4" /></SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={dep.toWpId || undefined} onValueChange={(v) => {
+                const updated = { ...dep, toWpId: v };
+                setIncompleteDeps(prev => prev.map(d => d.tempId === dep.tempId ? updated : d));
+                if (updated.fromWpId && v) saveIncompleteDep(dep.tempId, updated.fromWpId, v, updated.direction);
+              }}>
+                <SelectTrigger className="flex-1 h-7 text-sm">
+                  <SelectValue placeholder="Select WP…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {wpDrafts.map((wp) => (
+                    <SelectItem key={wp.id} value={wp.id}>
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded" style={{ backgroundColor: wp.color }} />
+                        WP{wp.number}{wp.short_name ? `: ${wp.short_name}` : ''}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="ghost" size="sm"
+                className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive shrink-0"
+                onClick={() => setIncompleteDeps(prev => prev.filter(d => d.tempId !== dep.tempId))}
+              >
+                <Trash2 className="w-3 h-3" />
+              </Button>
+            </div>
+          ))}
+
           {/* Add new dependency button */}
           <Button
             variant="outline"
             size="sm"
             className="w-full h-8 text-xs gap-1"
-            onClick={() => addMutation.mutate()}
-            disabled={addMutation.isPending || wpDrafts.length < 2}
+            onClick={handleAddEmptyRow}
+            disabled={wpDrafts.length < 2}
           >
             <Plus className="w-3.5 h-3.5" />
             Add dependency
