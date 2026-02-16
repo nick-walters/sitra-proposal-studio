@@ -117,7 +117,18 @@ export function PERTChartFigure({
       const { error } = await supabase.from('wp_dependencies').update(updates).eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onMutate: async ({ id, updates }) => {
+      await queryClient.cancelQueries({ queryKey: ['wp-dependencies-pert', proposalId] });
+      const previous = queryClient.getQueryData(['wp-dependencies-pert', proposalId]);
+      queryClient.setQueryData(['wp-dependencies-pert', proposalId], (old: Dependency[] | undefined) =>
+        old?.map(d => d.id === id ? { ...d, ...(updates.from_wp_id ? { fromWpId: updates.from_wp_id } : {}), ...(updates.to_wp_id ? { toWpId: updates.to_wp_id } : {}), ...(updates.direction ? { direction: updates.direction as DependencyDirection } : {}) } : d)
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(['wp-dependencies-pert', proposalId], context.previous);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['wp-dependencies-pert', proposalId] });
     },
   });
