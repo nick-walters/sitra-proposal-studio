@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { GanttChartFigure } from '@/components/GanttChartFigure';
+import { PERTChartFigure } from '@/components/PERTChartFigure';
 import { ArrowLeft, Save, Trash2, Image } from 'lucide-react';
 
 interface Figure {
@@ -67,6 +68,16 @@ export function FigureEditor({
       case 'gantt':
         return (
           <GanttChartFigure
+            figureNumber={figure.figureNumber}
+            proposalId={proposalId}
+            content={figure.content}
+            onContentChange={(content) => onUpdate({ content })}
+            canEdit={canEdit}
+          />
+        );
+      case 'pert':
+        return (
+          <PERTChartFigure
             figureNumber={figure.figureNumber}
             proposalId={proposalId}
             content={figure.content}
