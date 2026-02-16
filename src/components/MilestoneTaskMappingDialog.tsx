@@ -75,7 +75,7 @@ export function MilestoneTaskMappingDialog({ proposalId }: MilestoneTaskMappingD
           Assign Milestones to Tasks
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg max-h-[70vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[70vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Assign Milestones to Tasks</DialogTitle>
         </DialogHeader>
@@ -93,7 +93,7 @@ export function MilestoneTaskMappingDialog({ proposalId }: MilestoneTaskMappingD
                   taskId: v === '__none__' ? null : v,
                 })}
               >
-                <SelectTrigger className="h-7 text-xs w-[220px] shrink-0">
+                <SelectTrigger className="h-7 text-xs w-[320px] shrink-0 [&>span]:text-left [&>span]:truncate">
                   <SelectValue placeholder="Unassigned" />
                 </SelectTrigger>
                 <SelectContent>

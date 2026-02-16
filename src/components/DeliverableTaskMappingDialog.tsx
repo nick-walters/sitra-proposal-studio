@@ -73,7 +73,7 @@ export function DeliverableTaskMappingDialog({ proposalId }: DeliverableTaskMapp
           Assign Deliverables to Tasks
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg max-h-[70vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[70vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Assign Deliverables to Tasks</DialogTitle>
         </DialogHeader>
@@ -95,7 +95,7 @@ export function DeliverableTaskMappingDialog({ proposalId }: DeliverableTaskMapp
                         taskId: v === '__none__' ? null : v,
                       })}
                     >
-                      <SelectTrigger className="h-7 text-xs w-[220px] shrink-0">
+                      <SelectTrigger className="h-7 text-xs w-[320px] shrink-0 [&>span]:text-left [&>span]:truncate">
                         <SelectValue placeholder="Unassigned" />
                       </SelectTrigger>
                       <SelectContent>
