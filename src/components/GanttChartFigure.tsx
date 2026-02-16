@@ -477,7 +477,7 @@ export function GanttChartFigure({
                           for (let i = 1; i < positioned.length; i++) {
                             const prev = positioned[i - 1];
                             const curr = positioned[i];
-                            const minGap = (prev.width + curr.width) / 2 + 1;
+                            const minGap = (prev.width + curr.width) / 2 + 0.67;
                             if (curr.centerX - prev.centerX < minGap) {
                               // Find the full cluster
                               let clusterStart = i - 1;
@@ -485,7 +485,7 @@ export function GanttChartFigure({
                               while (clusterEnd + 1 < positioned.length) {
                                 const next = positioned[clusterEnd + 1];
                                 const last = positioned[clusterEnd];
-                                const gap = (last.width + next.width) / 2 + 1;
+                                const gap = (last.width + next.width) / 2 + 0.67;
                                 if (next.centerX - last.centerX < gap) {
                                   clusterEnd++;
                                 } else break;
@@ -495,12 +495,12 @@ export function GanttChartFigure({
                               const midX = (clusterItems[0].centerX + clusterItems[clusterItems.length - 1].centerX) / 2;
                               const totalWidth = clusterItems.reduce((sum, item, idx) => {
                                 if (idx === 0) return item.width;
-                                return sum + 1 + item.width;
+                                return sum + 0.67 + item.width;
                               }, 0);
                               let x = midX - totalWidth / 2;
                               for (let j = clusterStart; j <= clusterEnd; j++) {
                                 positioned[j].centerX = x + positioned[j].width / 2;
-                                x += positioned[j].width + 1;
+                                x += positioned[j].width + 0.67;
                               }
                               i = clusterEnd;
                             }
