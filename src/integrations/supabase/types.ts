@@ -3470,6 +3470,7 @@ export type Database = {
           number: number
           order_index: number
           responsible_participant_id: string | null
+          task_id: string | null
           title: string | null
           type: string | null
           updated_at: string
@@ -3484,6 +3485,7 @@ export type Database = {
           number: number
           order_index?: number
           responsible_participant_id?: string | null
+          task_id?: string | null
           title?: string | null
           type?: string | null
           updated_at?: string
@@ -3498,6 +3500,7 @@ export type Database = {
           number?: number
           order_index?: number
           responsible_participant_id?: string | null
+          task_id?: string | null
           title?: string | null
           type?: string | null
           updated_at?: string
@@ -3509,6 +3512,13 @@ export type Database = {
             columns: ["responsible_participant_id"]
             isOneToOne: false
             referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wp_draft_deliverables_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "wp_draft_tasks"
             referencedColumns: ["id"]
           },
           {

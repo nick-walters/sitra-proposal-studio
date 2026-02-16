@@ -100,7 +100,7 @@ export function GanttChartFigure({
           .order('order_index'),
         supabase
           .from('wp_draft_deliverables')
-          .select('id, wp_draft_id, number, due_month'),
+          .select('id, wp_draft_id, number, due_month, task_id'),
         supabase
           .from('b31_milestones')
           .select('id, number, name, due_month')
@@ -151,7 +151,7 @@ export function GanttChartFigure({
             startMonth: t.start_month!,
             endMonth: t.end_month!,
             deliverables: wpDeliverables
-              .filter(d => d.due_month != null)
+              .filter(d => d.task_id === t.id && d.due_month != null)
               .map(d => ({ number: `${wp.number}.${d.number}`, month: d.due_month! })),
           })),
       };
@@ -498,21 +498,21 @@ export function GanttChartFigure({
                                       className="font-bold"
                                       style={{
                                         position: 'absolute',
-                                        top: -10,
+                                        top: '50%',
                                         left: '50%',
-                                        transform: 'translateX(-50%)',
-                                        fontSize: '11pt',
+                                        transform: 'translate(-50%, -50%)',
+                                        fontSize: '9pt',
                                         lineHeight: 1,
                                         backgroundColor: '#ffffff',
                                         color: '#000000',
                                         border: '1px solid #000000',
                                         borderRadius: '9999px',
-                                        padding: '0 4px',
+                                        padding: '0 3px',
                                         whiteSpace: 'nowrap',
                                         zIndex: 10,
                                       }}
                                     >
-                                      D{deliverable.number}
+                                      {deliverable.number}
                                     </span>
                                   </TooltipTrigger>
                                   <TooltipContent>
