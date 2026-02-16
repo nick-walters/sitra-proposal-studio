@@ -552,6 +552,17 @@ function B31TableWrapper({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Column resize handle – draggable right-edge grip for table headers
+function ColumnResizer({ onMouseDown }: { onMouseDown: (e: React.MouseEvent) => void }) {
+  return (
+    <div
+      onMouseDown={onMouseDown}
+      className="absolute right-0 top-0 bottom-0 w-[5px] cursor-col-resize z-10 hover:bg-white/30 active:bg-white/50"
+      style={{ touchAction: 'none' }}
+    />
+  );
+}
+
 // ========== DELIVERABLES TABLE (3.1c) ==========
 export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
   const queryClient = useQueryClient();
@@ -938,6 +949,50 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
     reorderMilestones.mutate(sorted);
   };
 
+  // Column resizing state
+  const [colWidths, setColWidths] = useState<number[]>([]);
+  const tableRef = useRef<HTMLTableElement>(null);
+  const resizingRef = useRef<{ index: number; startX: number; startWidths: number[] } | null>(null);
+
+  // Initialize column widths from actual rendered widths on first render
+  useEffect(() => {
+    if (colWidths.length === 0 && tableRef.current) {
+      const headerCells = tableRef.current.querySelectorAll('thead th');
+      if (headerCells.length > 0) {
+        const widths = Array.from(headerCells).map(cell => (cell as HTMLElement).offsetWidth);
+        setColWidths(widths);
+      }
+    }
+  }, [milestones, colWidths.length]);
+
+  const handleColResizeStart = (index: number) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    const currentWidths = colWidths.length > 0 ? [...colWidths] : (() => {
+      const headerCells = tableRef.current?.querySelectorAll('thead th');
+      return headerCells ? Array.from(headerCells).map(cell => (cell as HTMLElement).offsetWidth) : [];
+    })();
+    resizingRef.current = { index, startX: e.clientX, startWidths: currentWidths };
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!resizingRef.current) return;
+      const { index: colIdx, startX, startWidths } = resizingRef.current;
+      const delta = ev.clientX - startX;
+      const newWidths = [...startWidths];
+      // Minimum width of 40px
+      newWidths[colIdx] = Math.max(40, startWidths[colIdx] + delta);
+      setColWidths(newWidths);
+    };
+
+    const onMouseUp = () => {
+      resizingRef.current = null;
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between">
@@ -952,12 +1007,21 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
       </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <B31TableWrapper>
-          <Table className={tableStyles}>
+          <Table className={tableStyles} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto' }} ref={tableRef}>
             <TableHeader>
               <TableRow className="bg-black text-white hover:bg-black">
-                <TableHead className={`${headerCellStyles} text-white font-bold`}>Milestone</TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold`} style={{ width: '1%', whiteSpace: 'nowrap' }}>WPs</TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold`} style={{ width: '1%', whiteSpace: 'nowrap' }}>Due</TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[0] } : undefined}>
+                  Milestone
+                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
+                </TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[1] } : { whiteSpace: 'nowrap' }}>
+                  WPs
+                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
+                </TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[2] } : { whiteSpace: 'nowrap' }}>
+                  Due
+                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(2)} />}
+                </TableHead>
                 <TableHead className={`${headerCellStyles} text-white font-bold`}>Means of verification</TableHead>
               </TableRow>
             </TableHeader>
@@ -977,14 +1041,14 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className={bubbleCellStyles} style={{ width: '1%', whiteSpace: 'nowrap' }}>
+                    <TableCell className={bubbleCellStyles}>
                       <MultiWPSelector
                         value={ms.wps}
                         onChange={(val) => updateMilestone.mutate({ id: ms.id, wps: val })}
                         workPackages={workPackages}
                       />
                     </TableCell>
-                    <TableCell className={cellStyles} style={{ width: '1%', whiteSpace: 'nowrap' }}>
+                    <TableCell className={cellStyles}>
                       <MonthSelect
                         value={ms.due_month}
                         onChange={(val) => updateMilestone.mutate({ id: ms.id, due_month: val })}
