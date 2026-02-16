@@ -7,7 +7,7 @@ import { Download, BarChart3, Plus, Trash2, Image, FileDown } from 'lucide-react
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { getContrastingTextColor, lightenColor } from '@/lib/wpColors';
-import { exportAsPng, exportAsPptx } from '@/lib/figureExport';
+import { exportAsPng, exportGanttAsPptx, type GanttExportData } from '@/lib/figureExport';
 import { toast } from 'sonner';
 
 interface Task {
@@ -221,10 +221,26 @@ export function GanttChartFigure({
                 Download as PNG
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => {
-                if (chartRef.current) {
-                  exportAsPptx(chartRef.current, `Gantt-Chart-Figure-${figureNumber}`);
-                  toast.success('PPTX downloaded');
-                }
+                const exportData: GanttExportData = {
+                  projectDuration,
+                  workPackages: workPackages.map(wp => ({
+                    number: wp.number,
+                    shortName: wp.shortName,
+                    color: wp.color,
+                    startMonth: wp.startMonth,
+                    endMonth: wp.endMonth,
+                    tasks: wp.tasks.map(t => ({
+                      wpNumber: t.wpNumber,
+                      taskNumber: t.taskNumber,
+                      name: t.name,
+                      startMonth: t.startMonth,
+                      endMonth: t.endMonth,
+                    })),
+                  })),
+                  milestones: milestones.map(m => ({ number: m.number, name: m.name, month: m.month })),
+                };
+                exportGanttAsPptx(exportData, `Gantt-Chart-Figure-${figureNumber}`);
+                toast.success('PPTX downloaded');
               }}>
                 <FileDown className="w-4 h-4 mr-2" />
                 Download as PPTX
