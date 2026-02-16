@@ -204,9 +204,8 @@ export function GanttChartFigure({
     onContentChange({ ...content, projectDuration: duration });
   };
 
-  // Calculate cell width: quarter labels need ~30px at 11pt, so each month cell = ~10px min
-  const quarterCells = Math.ceil(projectDuration / 3);
-  const minQuarterWidth = 30; // enough for "10–12" at 11pt
+  // Calculate cell width: quarter labels need ~40px at 11pt with zero padding
+  const minQuarterWidth = 40;
   const cellWidth = Math.max(MIN_CELL_WIDTH, Math.ceil(minQuarterWidth / 3));
   const timelineWidth = cellWidth * projectDuration;
   const labelWidth = TOTAL_WIDTH_PX - timelineWidth;
@@ -364,7 +363,7 @@ export function GanttChartFigure({
                   <div
                     key={qi}
                     className="flex items-center justify-center"
-                    style={{ width: cellWidth * count, height: 18, borderRight: qi < Math.ceil(projectDuration / 3) - 1 ? `1px solid ${borderQuarter}` : undefined }}
+                    style={{ width: cellWidth * count, height: 18, padding: 0, borderRight: qi < Math.ceil(projectDuration / 3) - 1 ? `1px solid ${borderQuarter}` : undefined }}
                   >
                     <span style={{ fontSize: '11pt' }}>{startM}–{endM}</span>
                   </div>
