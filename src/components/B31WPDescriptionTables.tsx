@@ -61,7 +61,7 @@ function LeaderPicker({
   const content = leader ? (
     <ParticipantBubble participant={leader} showCrown={showCrown} />
   ) : (
-    <span className="text-muted-foreground text-[9pt] italic">Select WP/task leader</span>
+    <span className="text-muted-foreground text-[9pt] italic">{entityTable === 'wp_drafts' ? 'Select WP leader' : 'Select task leader'}</span>
   );
 
   return (
