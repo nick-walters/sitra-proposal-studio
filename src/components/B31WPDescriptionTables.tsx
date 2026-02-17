@@ -464,7 +464,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
           <div key={wp.id}>
             <div style={{ height: '0.5em' }} />
             <table
-              className={`${tableStyles} w-full border-collapse`}
+              className={`${tableStyles} w-full border-collapse [&_tr:last-child_td]:border-b-0`}
               style={{ borderLeft: `3pt solid ${wp.color}` }}
             >
               <tbody>
