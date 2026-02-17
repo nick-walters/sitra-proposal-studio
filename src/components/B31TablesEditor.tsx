@@ -109,9 +109,9 @@ const monthOptions = Array.from({ length: 72 }, (_, i) => ({
 
 // Risk level options with colors and sort order
 const riskLevelOptions = [
-  { value: 'H', label: 'High', color: 'bg-red-500', order: 0 },
-  { value: 'M', label: 'Medium', color: 'bg-amber-500', order: 1 },
-  { value: 'L', label: 'Low', color: 'bg-green-500', order: 2 },
+  { value: 'H', label: 'High', borderColor: 'border-red-500', textColor: 'text-red-500', order: 0 },
+  { value: 'M', label: 'Medium', borderColor: 'border-amber-500', textColor: 'text-amber-500', order: 1 },
+  { value: 'L', label: 'Low', borderColor: 'border-green-500', textColor: 'text-green-500', order: 2 },
 ];
 
 // Deliverable types
@@ -428,7 +428,7 @@ function RiskBadge({ level }: { level: 'L' | 'M' | 'H' }) {
   
   return (
     <span 
-      className={`inline-flex items-center justify-center rounded-full text-white text-[9pt] font-bold not-italic ${option.color}`}
+      className={`inline-flex items-center justify-center rounded-full bg-white border ${option.borderColor} ${option.textColor} text-[9pt] font-bold not-italic`}
       style={{ width: '18px', height: '18px', minWidth: '18px', minHeight: '18px' }}
     >
       {level}
