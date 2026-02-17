@@ -738,14 +738,14 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                         return (
                           <>
                             <span
-                              className="inline-flex items-center justify-center rounded-full font-bold font-['Times_New_Roman',Times,serif] text-[9pt] mr-1 align-middle"
+                              className="inline-flex items-center justify-center px-1.5 rounded-full font-bold text-[9pt] mr-1 whitespace-nowrap relative"
                               style={{
                                 backgroundColor: '#fff',
                                 color: wpColor,
                                 border: `1.5px solid ${wpColor}`,
-                                padding: '0 3px',
-                                lineHeight: 1.2,
-                                whiteSpace: 'nowrap',
+                                lineHeight: 1,
+                                verticalAlign: 'middle',
+                                top: '-2pt',
                               }}
                             >
                               <EditableTextInline
