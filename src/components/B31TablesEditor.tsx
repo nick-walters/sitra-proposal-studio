@@ -306,7 +306,7 @@ function WPBubble({ wp, onRemove, topOffset = '-2pt' }: { wp: WorkPackage; onRem
   return (
     <span 
       className="inline-flex items-center justify-center gap-0.5 px-1.5 rounded-full text-white text-[9pt] font-bold whitespace-nowrap relative"
-      style={{ backgroundColor: wp.color || '#666', lineHeight: 1, verticalAlign: 'middle', top: topOffset, paddingTop: '1px', paddingBottom: '1px' }}
+      style={{ backgroundColor: wp.color || '#666', lineHeight: 1, verticalAlign: 'middle', top: topOffset, paddingTop: '2px', paddingBottom: '2px' }}
     >
       WP{wp.number}
       {onRemove && (
@@ -703,7 +703,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
           <Table className={`${tableStyles} w-full [&_th]:border-0 [&_td]:border-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto' }} ref={tableRef}>
             <TableHeader>
               <TableRow className="bg-black text-white hover:bg-black">
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[0] } : { width: '55px' }) }}>
+                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[0] } : { width: '1%', whiteSpace: 'nowrap' }) }}>
                   No.
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
                 </TableHead>
