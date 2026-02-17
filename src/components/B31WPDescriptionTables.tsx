@@ -553,7 +553,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                           <div className="flex items-center gap-1">
                             <span
                               className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-                              style={{ backgroundColor: '#fff', color: wp.color, border: `1.5px solid ${wp.color}`, fontSize: '11pt', lineHeight: 1, padding: '1px 4px', fontFamily: "'Times New Roman', Times, serif" }}
+                              style={{ backgroundColor: '#fff', color: wp.color, border: `1.5px solid ${wp.color}`, fontSize: '9pt', lineHeight: 1, padding: '1px 4px' }}
                             >
                               T{wp.number}.{task.number}
                             </span>
