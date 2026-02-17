@@ -1214,10 +1214,10 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
   const autoFitColumns = useCallback(() => {
     const table = tableRef.current;
     if (!table) return;
-    const widths = computeAutoFitWidths(table);
-    if (widths) {
-      setColWidths(widths);
-      saveWidths(widths);
+    const result = computeAutoFitWidths(table);
+    if (result) {
+      setColWidths(result.widths);
+      saveWidths(result.widths);
     }
   }, [tableRef, setColWidths, saveWidths]);
 
@@ -1243,7 +1243,7 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
       </p>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <B31TableWrapper>
-          <Table className={`${tableStyles} [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse', width: colWidths.length > 0 ? `${colWidths.reduce((s, w) => s + w, 0)}px` : '100%' }} ref={tableRef}>
+          <Table className={`${tableStyles} [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse', width: colWidths.length > 0 ? `max(${colWidths.reduce((s, w) => s + w, 0)}px, 100%)` : '100%' }} ref={tableRef}>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
                 <TableHead className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[0] } : { width: '25%' }}>

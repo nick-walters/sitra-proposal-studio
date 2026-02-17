@@ -3,8 +3,13 @@
  * Measures natural content widths, then distributes available container width
  * so that compact columns (bubbles, badges) keep their natural size while
  * text-heavy columns share the remaining space.
+ *
+ * Returns { widths, fillContainer }:
+ * - widths: pixel widths per column
+ * - fillContainer: true if the table should use 100% width (content wraps),
+ *   false if it can be narrower (everything fits without wrapping)
  */
-export function computeAutoFitWidths(table: HTMLTableElement): number[] | null {
+export function computeAutoFitWidths(table: HTMLTableElement): { widths: number[]; fillContainer: boolean } | null {
   const prevLayout = table.style.tableLayout;
   const prevWidth = table.style.width;
 
@@ -26,7 +31,6 @@ export function computeAutoFitWidths(table: HTMLTableElement): number[] | null {
   const headerCells = table.querySelectorAll('thead th');
   const numCols = headerCells.length;
   if (numCols === 0) {
-    // Restore and bail
     table.style.tableLayout = prevLayout;
     table.style.width = prevWidth;
     allCells.forEach((cell, i) => {
@@ -55,18 +59,18 @@ export function computeAutoFitWidths(table: HTMLTableElement): number[] | null {
   const containerWidth = table.parentElement?.clientWidth ?? table.offsetWidth;
   const totalMinWidth = minWidths.reduce((s, w) => s + w, 0);
 
-  // Classify columns: "compact" columns (< 120px natural width, e.g. bubbles,
-  // badges, short numbers) keep their natural size. Remaining space is
-  // distributed proportionally among "flex" columns (text-heavy).
   const COMPACT_THRESHOLD = 120;
   let finalWidths: number[];
+  let fillContainer: boolean;
 
   if (totalMinWidth <= containerWidth) {
-    // Everything fits without wrapping — use exact natural widths (no expansion)
+    // Everything fits without wrapping — use exact natural widths (narrower table OK)
     finalWidths = [...minWidths];
+    fillContainer = false;
   } else {
-    // Content overflows — compact columns keep their natural width,
-    // flex columns share the remaining space proportionally.
+    // Content overflows — fill full container width.
+    // Compact columns keep their natural width, flex columns share the rest.
+    fillContainer = true;
     const compactTotal = minWidths.reduce(
       (s, w) => s + (w < COMPACT_THRESHOLD ? w : 0),
       0
@@ -99,5 +103,5 @@ export function computeAutoFitWidths(table: HTMLTableElement): number[] | null {
     (cell as HTMLElement).style.width = savedStyles[i];
   });
 
-  return finalWidths.map(w => Math.round(w));
+  return { widths: finalWidths.map(w => Math.round(w)), fillContainer };
 }

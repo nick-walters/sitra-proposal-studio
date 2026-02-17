@@ -113,10 +113,10 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
   const autoFitColumns = useCallback(() => {
     const table = tableRef.current;
     if (!table) return;
-    const widths = computeAutoFitWidths(table);
-    if (widths) {
-      setColWidths(widths);
-      saveWidths(widths);
+    const result = computeAutoFitWidths(table);
+    if (result) {
+      setColWidths(result.widths);
+      saveWidths(result.widths);
     }
   }, [tableRef, setColWidths, saveWidths]);
 
@@ -134,7 +134,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
       <p className={`${tableStyles} italic mb-0`}>
         <span className="font-bold italic">Table 3.1.f.</span> Person months per participant per work package
       </p>
-      <table className={`${tableStyles} border-collapse [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', width: colWidths.length > 0 ? `${colWidths.reduce((s, w) => s + w, 0)}px` : '100%' }} ref={tableRef}>
+      <table className={`${tableStyles} border-collapse [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', width: colWidths.length > 0 ? `max(${colWidths.reduce((s, w) => s + w, 0)}px, 100%)` : '100%' }} ref={tableRef}>
         <thead>
           <tr>
             <th className={`${headerCellStyles} relative`} style={{ textAlign: 'left', fontWeight: 'bold', ...(colWidths.length > 0 ? { width: colWidths[0] } : {}) }}>
