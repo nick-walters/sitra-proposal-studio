@@ -574,7 +574,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
   const { data: workPackages = [] } = useWorkPackages(proposalId);
   const { data: participants = [] } = useParticipants(proposalId);
   const { isAdminOrOwner, loading: roleLoading } = useUserRole();
-  const { colWidths, tableRef, handleColResizeStart } = useColumnResize({ proposalId, tableKey: 'deliverables', canResize: isAdminOrOwner });
+  const { colWidths, setColWidths, tableRef, handleColResizeStart, saveWidths } = useColumnResize({ proposalId, tableKey: 'deliverables', canResize: isAdminOrOwner });
   
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -697,6 +697,16 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
     reorderDeliverables.mutate(sorted);
   };
 
+  const autoFitColumns = useCallback(() => {
+    const table = tableRef.current;
+    if (!table) return;
+    const widths = computeAutoFitFull(table);
+    if (widths) {
+      setColWidths(widths);
+      saveWidths(widths);
+    }
+  }, [tableRef, setColWidths, saveWidths]);
+
   return (
     <div>
       <div className="print:hidden flex justify-end gap-1 mb-1">
@@ -704,9 +714,14 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
           <Plus className="h-3 w-3 mr-1" /> Add deliverable
         </Button>
         {isAdminOrOwner && (
-          <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs h-6 px-2 py-0">
-            <ArrowUpDown className="h-3 w-3 mr-1" /> Auto-reorder
-          </Button>
+          <>
+            <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs h-6 px-2 py-0">
+              <ArrowUpDown className="h-3 w-3 mr-1" /> Auto-reorder
+            </Button>
+            <Button variant="outline" size="sm" onClick={autoFitColumns} className="text-xs h-6 px-2 py-0">
+              <Columns3 className="h-3 w-3 mr-1" /> Auto-resize columns
+            </Button>
+          </>
         )}
       </div>
       <p className={`${tableStyles} italic`}>
@@ -714,7 +729,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
       </p>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <B31TableWrapper>
-          <Table className={`${tableStyles} w-full [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse' }} ref={tableRef}>
+          <Table className={`${tableStyles} [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse', width: colWidths.length > 0 ? `max(${colWidths.reduce((s, w) => s + w, 0)}px, 100%)` : '100%' }} ref={tableRef}>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
                 <TableHead className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[0] } : { width: '40px', whiteSpace: 'nowrap' }) }}>
@@ -996,7 +1011,40 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
   };
 
   // Column resizing
-  const { colWidths, tableRef, handleColResizeStart } = useColumnResize({ proposalId, tableKey: 'milestones', canResize: isAdminOrOwner });
+  const { colWidths, setColWidths, tableRef, handleColResizeStart, saveWidths } = useColumnResize({ proposalId, tableKey: 'milestones', canResize: isAdminOrOwner });
+
+  const autoFitColumns = useCallback(() => {
+    const table = tableRef.current;
+    if (!table) return;
+
+    // Check if any milestone has 3+ WPs — if so, cap the WPs column (index 2)
+    const hasThreeOrMoreWPs = milestones.some(m => {
+      const wpList = m.wps?.split(',').filter(Boolean) || [];
+      return wpList.length >= 3;
+    });
+
+    let colCaps: Record<number, number> | undefined;
+    if (hasThreeOrMoreWPs) {
+      const wpCells = table.querySelectorAll('tbody tr td:nth-child(3)');
+      let maxTwoBubbleWidth = 84;
+      wpCells.forEach(cell => {
+        const bubbles = cell.querySelectorAll('span.rounded-full');
+        if (bubbles.length >= 2) {
+          const b1 = (bubbles[0] as HTMLElement).offsetWidth;
+          const b2 = (bubbles[1] as HTMLElement).offsetWidth;
+          const gap = 4;
+          maxTwoBubbleWidth = Math.max(maxTwoBubbleWidth, b1 + b2 + gap + 4);
+        }
+      });
+      colCaps = { 2: maxTwoBubbleWidth };
+    }
+
+    const widths = computeAutoFitFull(table, colCaps);
+    if (widths) {
+      setColWidths(widths);
+      saveWidths(widths);
+    }
+  }, [tableRef, setColWidths, saveWidths, milestones]);
 
   return (
     <div>
@@ -1005,9 +1053,14 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
           <Plus className="h-3 w-3 mr-1" /> Add milestone
         </Button>
         {isAdminOrOwner && (
-          <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs h-6 px-2 py-0">
-            <ArrowUpDown className="h-3 w-3 mr-1" /> Auto-reorder
-          </Button>
+          <>
+            <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs h-6 px-2 py-0">
+              <ArrowUpDown className="h-3 w-3 mr-1" /> Auto-reorder
+            </Button>
+            <Button variant="outline" size="sm" onClick={autoFitColumns} className="text-xs h-6 px-2 py-0">
+              <Columns3 className="h-3 w-3 mr-1" /> Auto-resize columns
+            </Button>
+          </>
         )}
       </div>
       <p className={`${tableStyles} italic`}>
@@ -1015,7 +1068,7 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
       </p>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <B31TableWrapper>
-          <Table className={`${tableStyles} w-full [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse' }} ref={tableRef}>
+          <Table className={`${tableStyles} [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse', width: colWidths.length > 0 ? `max(${colWidths.reduce((s, w) => s + w, 0)}px, 100%)` : '100%' }} ref={tableRef}>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
                 <TableHead className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[0] } : { width: '45px', whiteSpace: 'nowrap' }) }}>
