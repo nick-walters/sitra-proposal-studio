@@ -1226,11 +1226,11 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
                   Risk
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[1] } : { width: '24px' }}>
+                <TableHead className={`${headerCellStyles} text-white font-bold relative text-center`} style={colWidths.length > 0 ? { width: colWidths[1] } : { width: '24px' }}>
                   i.
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[2] } : { width: '24px' }}>
+                <TableHead className={`${headerCellStyles} text-white font-bold relative text-center`} style={colWidths.length > 0 ? { width: colWidths[2] } : { width: '24px' }}>
                   ii.
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(2)} />}
                 </TableHead>
