@@ -205,7 +205,7 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
             </TableHead>
             <TableHead className={`${cellStyles} whitespace-nowrap relative text-white font-bold`} style={colWidths.length > 0 ? { width: colWidths[1] } : undefined}>
-              Lead
+              WP leader
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
             </TableHead>
             <TableHead className={`${cellStyles} whitespace-nowrap relative text-white font-bold`} style={colWidths.length > 0 ? { width: colWidths[2] } : undefined}>
