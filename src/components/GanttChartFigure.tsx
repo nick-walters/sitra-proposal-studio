@@ -64,7 +64,8 @@ export function GanttChartFigure({
   content,
   onContentChange,
   canEdit,
-}: GanttChartFigureProps) {
+  headerActions,
+}: GanttChartFigureProps & { headerActions?: React.ReactNode }) {
   const chartRef = useRef<HTMLDivElement>(null);
 
   // Fetch proposal-level reporting periods
@@ -295,7 +296,12 @@ export function GanttChartFigure({
           {/* Header block: RP, Year, Month rows with unified outer border */}
           <div className="flex">
             {/* Labels column */}
-            <div className="shrink-0" style={{ width: labelWidth }}>
+            <div className="shrink-0 flex flex-col" style={{ width: labelWidth }}>
+              {headerActions && (
+                <div className="print:hidden flex flex-col gap-0.5 mb-0.5">
+                  {headerActions}
+                </div>
+              )}
               <div className={`flex items-center justify-end ${headerLabelStyle}`} style={{ height: 18, padding: '0 2px' }}>
                 Reporting period
               </div>

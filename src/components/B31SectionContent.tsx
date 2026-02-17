@@ -66,16 +66,18 @@ export function B31SectionContent({ proposalId }: Props) {
       {/* Figure 3.1.b – Gantt chart */}
       {ganttFigure ? (
         <div>
-          <div className="mb-1 print:hidden flex gap-2">
-            <DeliverableTaskMappingDialog proposalId={proposalId} />
-            <MilestoneTaskMappingDialog proposalId={proposalId} />
-          </div>
           <GanttChartFigure
             proposalId={proposalId}
             figureNumber={ganttFigure.figure_number}
             content={ganttFigure.content as any}
             onContentChange={() => {}}
             canEdit={false}
+            headerActions={
+              <>
+                <DeliverableTaskMappingDialog proposalId={proposalId} />
+                <MilestoneTaskMappingDialog proposalId={proposalId} />
+              </>
+            }
           />
           <p className={`${tableStyles} italic mt-1`}>
             <span className="font-bold italic">Figure 3.1.b.</span> Gantt chart, showing timings of WPs{' '}
