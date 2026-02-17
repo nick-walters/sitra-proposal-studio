@@ -1051,13 +1051,11 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
                       </span>
                     </TableCell>
                     <TableCell className={cellStyles} style={{ lineHeight: 1.2 }}>
-                      <span className="font-['Times_New_Roman',Times,serif] text-[11pt]" style={{ lineHeight: 1.2 }}>
-                        <EditableTextInline
-                          value={ms.name}
-                          onChange={(val) => updateMilestone.mutate({ id: ms.id, name: val })}
-                          placeholder="Milestone name"
-                        />
-                      </span>
+                      <EditableTextInline
+                        value={ms.name}
+                        onChange={(val) => updateMilestone.mutate({ id: ms.id, name: val })}
+                        placeholder="Milestone name"
+                      />
                     </TableCell>
                     <TableCell className={bubbleCellStyles}>
                       <MultiWPSelector
