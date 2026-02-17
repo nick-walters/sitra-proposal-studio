@@ -74,7 +74,9 @@ export function B31SectionContent({ proposalId }: Props) {
             canEdit={false}
           />
           <p className={`${tableStyles} italic mt-1`}>
-            <span className="font-bold italic">Figure 3.1.b.</span> Gantt chart, showing timings of WPs, tasks, deliverables{' '}
+            <span className="font-bold italic">Figure 3.1.b.</span> Gantt chart, showing timings of WPs, tasks{' '}
+            <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', position: 'relative', top: '-1px', border: '1px solid #000000', borderRadius: '9999px', padding: '0 3px', fontSize: '9pt', fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#000000', backgroundColor: '#ffffff' }}>TX.X</span>
+            {', '}deliverables{' '}
             <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', position: 'relative', top: '-1px', border: '1px solid #000000', borderRadius: '9999px', padding: '0 3px', fontSize: '9pt', fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#000000', backgroundColor: '#ffffff' }}>DX.X</span>
             {' '}&amp; milestones{' '}
             <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', position: 'relative', top: '-1px', border: '1px solid #dc2626', borderRadius: '9999px', padding: '0 3px', fontSize: '9pt', fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#dc2626', backgroundColor: '#ffffff' }}>MSX</span>
