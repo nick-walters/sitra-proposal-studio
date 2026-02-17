@@ -139,7 +139,7 @@ const disseminationLevels = [
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles = "!px-[1pt] !py-0 px-[1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
-const bubbleCellStyles = "!px-[1pt] !py-0 px-[1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-none overflow-visible";
+const bubbleCellStyles = "!px-[1pt] !py-[1px] px-[1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-none overflow-visible";
 const headerCellStyles = "!px-[1pt] !py-0 px-[1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight font-bold";
 
 // Inline editable text that expands to multiple lines - with debounced save
@@ -268,8 +268,8 @@ function EditableTextInline({
       onFocus={() => { isFocused.current = true; }}
       onBlur={() => { isFocused.current = false; }}
       data-placeholder={placeholder}
-      className={`outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground leading-tight ${inheritFont ? '' : "font-['Times_New_Roman',Times,serif] text-[11pt]"}`}
-      style={{ display: 'inline', ...(inheritFont ? { fontFamily: 'inherit', fontSize: 'inherit' } : {}) }}
+      className={`outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground ${inheritFont ? '' : "font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight"}`}
+      style={{ display: 'inline', lineHeight: 1, ...(inheritFont ? { fontFamily: 'inherit', fontSize: 'inherit' } : {}) }}
       
     >
       {value}
@@ -343,7 +343,7 @@ function SingleWPSelector({
       value={value?.toString() || ''} 
       onValueChange={(v) => onChange(v ? parseInt(v) : null)}
     >
-      <SelectTrigger hideArrow className="h-auto py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex items-center overflow-visible">
+      <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex items-center overflow-visible">
         <SelectValue placeholder="-">
           {selectedWP ? <WPBubble wp={selectedWP} /> : <span className="font-['Times_New_Roman',Times,serif] text-[11pt]">-</span>}
         </SelectValue>
@@ -810,6 +810,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                               verticalAlign: 'baseline',
                               padding: '0px 5px',
                               width: 'fit-content',
+                              height: 'fit-content',
                             }}
                           >
                             <EditableTextInline
