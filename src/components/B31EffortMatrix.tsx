@@ -125,23 +125,10 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
   return (
     <div>
       {isAdminOrOwner && (
-        <div className="flex justify-end mb-0.5">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={autoFitColumns}
-                className="h-6 px-1.5 gap-1 text-muted-foreground hover:text-foreground text-xs"
-              >
-                <Columns3 size={14} />
-                Auto-resize columns
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left">
-              <p>Auto-fit column widths</p>
-            </TooltipContent>
-          </Tooltip>
+        <div className="print:hidden flex justify-end gap-1 mb-1">
+          <Button variant="outline" size="sm" onClick={autoFitColumns} className="text-xs h-6 px-2 py-0">
+            <Columns3 className="h-3 w-3 mr-1" /> Auto-resize columns
+          </Button>
         </div>
       )}
       <p className={`${tableStyles} italic mb-0`}>

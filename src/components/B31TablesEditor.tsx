@@ -693,14 +693,14 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
   return (
     <div>
       <div className="print:hidden flex justify-end gap-1 mb-1">
+        <Button variant="outline" size="sm" onClick={() => addDeliverable.mutate()} className="text-xs h-6 px-2 py-0">
+          <Plus className="h-3 w-3 mr-1" /> Add deliverable
+        </Button>
         {isAdminOrOwner && (
           <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs h-6 px-2 py-0">
             <ArrowUpDown className="h-3 w-3 mr-1" /> Auto-reorder
           </Button>
         )}
-        <Button variant="outline" size="sm" onClick={() => addDeliverable.mutate()} className="text-xs h-6 px-2 py-0">
-          <Plus className="h-3 w-3 mr-1" /> Add deliverable
-        </Button>
       </div>
       <p className={`${tableStyles} italic`}>
         <span className="font-bold italic">Table 3.1.c.</span> Deliverables, including the partner responsible, type, dissemination level &amp; month due
@@ -994,14 +994,14 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
   return (
     <div>
       <div className="print:hidden flex justify-end gap-1 mb-1">
+        <Button variant="outline" size="sm" onClick={() => addMilestone.mutate()} className="text-xs h-6 px-2 py-0">
+          <Plus className="h-3 w-3 mr-1" /> Add milestone
+        </Button>
         {isAdminOrOwner && (
           <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs h-6 px-2 py-0">
             <ArrowUpDown className="h-3 w-3 mr-1" /> Auto-reorder
           </Button>
         )}
-        <Button variant="outline" size="sm" onClick={() => addMilestone.mutate()} className="text-xs h-6 px-2 py-0">
-          <Plus className="h-3 w-3 mr-1" /> Add milestone
-        </Button>
       </div>
       <p className={`${tableStyles} italic`}>
         <span className="font-bold italic">Table 3.1.d.</span> Milestones
@@ -1223,27 +1223,19 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
   return (
     <div>
       <div className="print:hidden flex justify-end gap-1 mb-1">
-        {isAdminOrOwner && (
-          <>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" onClick={autoFitColumns} className="h-6 px-1.5 gap-1 text-muted-foreground hover:text-foreground text-xs">
-                  <Columns3 size={14} />
-                  Auto-resize columns
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="left">
-                <p>Auto-fit column widths</p>
-              </TooltipContent>
-            </Tooltip>
-            <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs h-6 px-2 py-0">
-              <ArrowUpDown className="h-3 w-3 mr-1" /> Auto-reorder
-            </Button>
-          </>
-        )}
         <Button variant="outline" size="sm" onClick={() => addRisk.mutate()} className="text-xs h-6 px-2 py-0">
           <Plus className="h-3 w-3 mr-1" /> Add risk
         </Button>
+        {isAdminOrOwner && (
+          <>
+            <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs h-6 px-2 py-0">
+              <ArrowUpDown className="h-3 w-3 mr-1" /> Auto-reorder
+            </Button>
+            <Button variant="outline" size="sm" onClick={autoFitColumns} className="text-xs h-6 px-2 py-0">
+              <Columns3 className="h-3 w-3 mr-1" /> Auto-resize columns
+            </Button>
+          </>
+        )}
       </div>
       <p className={`${tableStyles} italic flex items-center gap-1 flex-wrap`}>
         <span className="font-bold italic">Table 3.1.e.</span> Critical risks (<span className="font-bold">i.</span> likelihood; <span className="font-bold">ii.</span> severity; <RiskBadge level="L" /> = low, <RiskBadge level="M" /> = medium, <RiskBadge level="H" /> = high)
