@@ -1109,8 +1109,8 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
                         className="inline-flex items-center justify-center px-1 rounded-full font-bold font-['Times_New_Roman',Times,serif] text-[9pt] whitespace-nowrap relative"
                         style={{
                           backgroundColor: '#fff',
-                          color: '#dc2626',
-                          border: '1.5px solid #dc2626',
+                          color: '#000000',
+                          border: '1.5px solid #000000',
                           lineHeight: 1,
                           verticalAlign: 'middle',
                           top: 'calc(-1pt + 0.5px)',
