@@ -497,7 +497,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
 
                 {/* WP leader + duration row */}
                 <tr>
-                  <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle px-0.5 py-0" style={{ border: 'none' }}>
+                  <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0" style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }}>
                     <div className="flex items-center flex-wrap gap-0.5">
                       <LeaderPicker
                         entityId={wp.id}
@@ -509,7 +509,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                       />
                     </div>
                   </td>
-                  <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle whitespace-nowrap text-right px-0.5 py-0" style={{ border: 'none', width: '75px' }}>
+                  <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle whitespace-nowrap text-right py-0" style={{ border: 'none', width: '75px', paddingLeft: '6px', paddingRight: '6px' }}>
                     <span className="font-bold text-[11pt] font-['Times_New_Roman',Times,serif] whitespace-nowrap" style={{ color: '#000000' }}>
                       {monthRange || <span className="text-muted-foreground italic font-normal">—</span>}
                     </span>
