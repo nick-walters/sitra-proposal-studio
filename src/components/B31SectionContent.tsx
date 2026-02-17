@@ -75,7 +75,7 @@ export function B31SectionContent({ proposalId }: Props) {
           />
           <p className={`${tableStyles} italic mt-1`}>
             <span className="font-bold italic">Figure 3.1.b.</span> Gantt chart, showing timings of WPs{' '}
-            <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', position: 'relative', top: '-1px', borderRadius: '9999px', padding: '0 3px', fontSize: '9pt', fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#ffffff', backgroundColor: '#4a90d9' }}>WPX</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', position: 'relative', top: '-1px', border: '1px solid #000000', borderRadius: '9999px', padding: '0 3px', fontSize: '9pt', fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#ffffff', backgroundColor: '#000000' }}>WPX</span>
             {', '}tasks{' '}
             <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', position: 'relative', top: '-1px', border: '1px solid #000000', borderRadius: '9999px', padding: '0 3px', fontSize: '9pt', fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#000000', backgroundColor: '#ffffff' }}>TX.X</span>
             {', '}deliverables{' '}
