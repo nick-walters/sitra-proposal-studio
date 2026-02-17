@@ -465,12 +465,8 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
             <div style={{ height: '0.5em' }} />
             <table
               className={`${tableStyles} w-full border-collapse`}
-              style={{ borderLeft: `3pt solid ${wp.color}`, tableLayout: 'fixed' }}
+              style={{ borderLeft: `3pt solid ${wp.color}` }}
             >
-              <colgroup>
-                <col />
-                <col style={{ width: '80px' }} />
-              </colgroup>
               <tbody>
                 {/* Header row 1: WP number + short name | WP leader bubble with crown */}
                 <tr>
@@ -499,7 +495,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                       paddingTop: 0,
                       paddingBottom: 0,
                       lineHeight: 1.2,
-                      
+                      width: '80px',
                     }}
                   >
                     <LeaderPicker
@@ -540,6 +536,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                       paddingTop: 0,
                       paddingBottom: 0,
                       lineHeight: 1.2,
+                      width: '80px',
                     }}
                   >
                     {monthRange || <span className="opacity-70">—</span>}
@@ -616,7 +613,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                             />
                           </div>
                         </td>
-                        <td className={`${cellStyles} whitespace-nowrap`} style={{ borderColor: wp.color }}>
+                        <td className={`${cellStyles} whitespace-nowrap`} style={{ borderColor: wp.color, width: '80px' }}>
                           <MonthRangePicker taskId={task.id} startMonth={task.start_month} endMonth={task.end_month} proposalId={proposalId} />
                         </td>
                       </tr>
