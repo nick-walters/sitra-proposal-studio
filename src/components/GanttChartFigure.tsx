@@ -596,7 +596,7 @@ style={{ width: labelWidth - 38, height: 18, padding: '0 2px', borderRight: `1px
 
                 {/* Bottom border under months columns only */}
                 <div className="flex">
-                  <div className="shrink-0" style={{ width: labelWidth - 1 }} />
+                  <div className="shrink-0" style={{ width: labelWidth }} />
                   <div style={{ width: months.length * cellWidth + 1, height: 0, borderBottom: `1px solid ${wpColor}` }} />
                 </div>
               </div>
