@@ -149,10 +149,10 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
             {wpData.map((wp, i) => {
               const wpColor = wp.color || '#2563EB';
               return (
-                <th key={wp.id} className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[i + 1] } : {}) }}>
+                 <th key={wp.id} className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[i + 1] } : {}) }}>
                   <span
-                    className="inline-flex items-center rounded-full px-1.5 text-[9pt] font-bold whitespace-nowrap"
-                    style={{ backgroundColor: wpColor, color: '#FFFFFF', lineHeight: 1, paddingTop: '2px', paddingBottom: '2px' }}
+                    className="inline-flex items-center rounded-full font-bold whitespace-nowrap"
+                    style={{ backgroundColor: wpColor, color: '#FFFFFF', border: `1.5px solid ${wpColor}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
                   >
                     WP{wp.number}
                   </span>
@@ -171,8 +171,8 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
               <tr key={p.id}>
                 <td className="px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle border-y border-gray-200" style={{ textAlign: 'left' }}>
                   <span
-                    className="inline-flex items-center rounded-full px-1.5 text-[9pt] font-bold italic whitespace-nowrap"
-                    style={{ backgroundColor: '#000000', color: '#FFFFFF', lineHeight: 1, paddingTop: '2px', paddingBottom: '2px' }}
+                    className="inline-flex items-center rounded-full font-bold italic whitespace-nowrap"
+                    style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'italic', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
                   >
                     {p.participant_number}. {p.organisation_short_name || p.organisation_name}
                   </span>

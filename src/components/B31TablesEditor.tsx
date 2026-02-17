@@ -139,7 +139,7 @@ const disseminationLevels = [
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles = "!px-[1pt] !py-0 px-[1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
-const bubbleCellStyles = "!px-[1pt] !py-0 px-[1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-none";
+const bubbleCellStyles = "!px-[1pt] !py-0 px-[1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-none overflow-visible";
 const headerCellStyles = "!px-[1pt] !py-0 px-[1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight font-bold";
 
 // Inline editable text that expands to multiple lines - with debounced save
@@ -307,11 +307,11 @@ function MonthSelect({
 }
 
 // WP Bubble component - pill shape matching cross-reference style
-function WPBubble({ wp, onRemove, topOffset = '-2pt' }: { wp: WorkPackage; onRemove?: () => void; topOffset?: string }) {
+function WPBubble({ wp, onRemove }: { wp: WorkPackage; onRemove?: () => void }) {
   return (
     <span 
-      className="inline-flex items-center justify-center gap-0.5 rounded-full text-white font-bold whitespace-nowrap relative"
-      style={{ backgroundColor: wp.color || '#666', border: `1.5px solid ${wp.color || '#666'}`, color: '#ffffff', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', position: 'relative', top: topOffset }}
+      className="inline-flex items-center justify-center gap-0.5 rounded-full text-white font-bold whitespace-nowrap"
+      style={{ backgroundColor: wp.color || '#666', border: `1.5px solid ${wp.color || '#666'}`, color: '#ffffff', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
     >
       WP{wp.number}
       {onRemove && (
@@ -371,12 +371,10 @@ function MultiWPSelector({
   value, 
   onChange, 
   workPackages,
-  topOffset = '-1pt',
 }: { 
   value: string; // comma-separated WP numbers
   onChange: (val: string) => void;
   workPackages: WorkPackage[];
-  topOffset?: string;
 }) {
   const selectedNumbers = value ? value.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n)) : [];
   const selectedWPs = workPackages.filter(wp => selectedNumbers.includes(wp.number));
@@ -396,7 +394,7 @@ function MultiWPSelector({
         <button className="flex flex-wrap gap-0.5 items-center min-h-[1.2em] text-left">
           {selectedWPs.length > 0 ? (
             selectedWPs.map(wp => (
-              <WPBubble key={wp.id} wp={wp} topOffset={topOffset} />
+              <WPBubble key={wp.id} wp={wp} />
             ))
           ) : (
             <span className="font-['Times_New_Roman',Times,serif] text-[11pt] text-muted-foreground">-</span>
@@ -852,7 +850,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                         value={del.lead_participant_id || ''} 
                         onValueChange={(v) => updateDeliverable.mutate({ id: del.id, lead_participant_id: v || null })}
                       >
-                        <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex items-center">
+                        <SelectTrigger hideArrow className="h-auto min-h-0 py-0 px-0 border-0 bg-transparent focus:ring-0 w-auto inline-flex items-center overflow-visible">
                           <SelectValue placeholder="-">
                             {del.lead_participant_id ? (
                               <span
@@ -1138,7 +1136,6 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
                         value={ms.wps}
                         onChange={(val) => updateMilestone.mutate({ id: ms.id, wps: val })}
                         workPackages={workPackages}
-                        topOffset="calc(-1pt + 0.5px)"
                       />
                     </TableCell>
                     <TableCell className={cellStyles}>
@@ -1400,7 +1397,6 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
                         value={risk.wps}
                         onChange={(val) => updateRisk.mutate({ id: risk.id, wps: val })}
                         workPackages={workPackages}
-                        topOffset="calc(-1pt + 1.5px)"
                       />
                     </TableCell>
                     <TableCell className={cellStyles}>
