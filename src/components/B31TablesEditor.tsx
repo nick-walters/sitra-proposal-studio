@@ -742,7 +742,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                         className="inline-flex items-center rounded-full font-['Times_New_Roman',Times,serif] text-[9pt] align-middle"
                         style={{
                           backgroundColor: '#fff',
-                          color: '#000',
+                          color: wpColor,
                           border: `1.5px solid ${wpColor}`,
                           padding: '0 5px',
                           lineHeight: 1.3,
