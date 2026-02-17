@@ -124,6 +124,12 @@ export function computeAutoFitSmart(
   }
 
   cleanup();
+
+  // Ensure all cells are vertically centered
+  table.querySelectorAll('th, td').forEach(cell => {
+    (cell as HTMLElement).style.verticalAlign = 'middle';
+  });
+
   return finalWidths.map(w => Math.round(w));
 }
 
