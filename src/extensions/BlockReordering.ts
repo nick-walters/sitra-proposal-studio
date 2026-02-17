@@ -128,7 +128,7 @@ export const BlockReordering = Extension.create({
         
         // Get current block position
         const $from = selection.$from;
-        let blockPos = $from.before($from.depth === 0 ? 1 : $from.depth);
+        let blockPos = $from.depth >= 1 ? $from.before(1) : $from.before($from.depth === 0 ? 1 : $from.depth);
         
         // Find the block at current position
         const currentBlock = findBlockRange(doc, blockPos);
@@ -174,7 +174,7 @@ export const BlockReordering = Extension.create({
         
         // Get current block position
         const $from = selection.$from;
-        let blockPos = $from.before($from.depth === 0 ? 1 : $from.depth);
+        let blockPos = $from.depth >= 1 ? $from.before(1) : $from.before($from.depth === 0 ? 1 : $from.depth);
         
         // Find the block at current position
         const currentBlock = findBlockRange(doc, blockPos);

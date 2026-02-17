@@ -683,7 +683,7 @@
   background: hsl(var(--muted));
   border: 1px solid hsl(var(--border));
   border-radius: 4px;
-  color: hsl(var(--muted-foreground));
+  color: hsl(var(--destructive));
   transition: all 0.15s ease;
 }
 

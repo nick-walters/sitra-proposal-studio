@@ -238,7 +238,13 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
               // Find the block at this position
               try {
                 const $pos = view.state.doc.resolve(pos.pos);
-                let blockPos = $pos.before($pos.depth === 0 ? 1 : $pos.depth);
+                // Walk up to find the top-level block (depth 1)
+                let blockPos: number;
+                if ($pos.depth >= 1) {
+                  blockPos = $pos.before(1);
+                } else {
+                  blockPos = $pos.before($pos.depth === 0 ? 1 : $pos.depth);
+                }
                 
                 const blockRange = findBlockRange(view.state.doc, blockPos);
                 if (!blockRange) {
@@ -311,7 +317,7 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
 
               try {
                 const $pos = view.state.doc.resolve(pos.pos);
-                let blockPos = $pos.before($pos.depth === 0 ? 1 : $pos.depth);
+                let blockPos = $pos.depth >= 1 ? $pos.before(1) : $pos.before($pos.depth === 0 ? 1 : $pos.depth);
                 
                 const targetBlock = findBlockRange(view.state.doc, blockPos);
                 if (!targetBlock) {
@@ -383,7 +389,7 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
               try {
                 const { state } = view;
                 const $pos = state.doc.resolve(pos.pos);
-                let targetBlockPos = $pos.before($pos.depth === 0 ? 1 : $pos.depth);
+                let targetBlockPos = $pos.depth >= 1 ? $pos.before(1) : $pos.before($pos.depth === 0 ? 1 : $pos.depth);
                 
                 const targetBlock = findBlockRange(state.doc, targetBlockPos);
                 if (!targetBlock || !isReorderableBlock(targetBlock.node)) {
