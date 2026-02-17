@@ -1356,7 +1356,7 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
                         value={risk.wps}
                         onChange={(val) => updateRisk.mutate({ id: risk.id, wps: val })}
                         workPackages={workPackages}
-                        topOffset="calc(-1pt + 1px)"
+                        topOffset="calc(-1pt + 1.5px)"
                       />
                     </TableCell>
                     <TableCell className={cellStyles}>
