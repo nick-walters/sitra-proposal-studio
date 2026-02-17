@@ -751,7 +751,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                               border: `1.5px solid ${wpColor}`,
                               lineHeight: 1,
                               verticalAlign: 'middle',
-                              top: '-1pt',
+                              top: '-2pt',
                               width: 'fit-content',
                             }}
                           >
