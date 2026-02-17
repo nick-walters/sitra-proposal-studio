@@ -191,54 +191,97 @@ function PartnersPicker({
   );
 }
 
-/* ── Month picker ── */
-function MonthPicker({
+/* ── Month range picker ── */
+function MonthRangePicker({
   taskId,
-  field,
-  value,
+  startMonth,
+  endMonth,
   proposalId,
-  minMonth,
-  maxMonth,
 }: {
   taskId: string;
-  field: 'start_month' | 'end_month';
-  value: number | null;
+  startMonth: number | null;
+  endMonth: number | null;
   proposalId: string;
-  minMonth?: number | null;
-  maxMonth?: number | null;
 }) {
   const [open, setOpen] = useState(false);
+  const [selecting, setSelecting] = useState<'start' | 'end' | null>(null);
+  const [localStart, setLocalStart] = useState(startMonth);
+  const [localEnd, setLocalEnd] = useState(endMonth);
   const queryClient = useQueryClient();
-
-  const select = async (m: number) => {
-    setOpen(false);
-    await supabase.from('wp_draft_tasks').update({ [field]: m }).eq('id', taskId);
-    queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
-  };
 
   const months = Array.from({ length: 60 }, (_, i) => i + 1);
 
+  const save = async (start: number | null, end: number | null) => {
+    await supabase.from('wp_draft_tasks').update({ start_month: start, end_month: end }).eq('id', taskId);
+    queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
+  };
+
+  const handleClick = (m: number) => {
+    if (selecting === 'start' || !selecting) {
+      setLocalStart(m);
+      if (localEnd != null && m > localEnd) {
+        setLocalEnd(null);
+      }
+      setSelecting('end');
+    } else {
+      if (m < (localStart ?? 1)) {
+        // clicked before start, reset
+        setLocalStart(m);
+        setSelecting('end');
+      } else {
+        setLocalEnd(m);
+        setSelecting(null);
+        save(localStart, m);
+        setOpen(false);
+      }
+    }
+  };
+
+  const handleOpen = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (isOpen) {
+      setLocalStart(startMonth);
+      setLocalEnd(endMonth);
+      setSelecting('start');
+    }
+  };
+
+  const formatMonth = (m: number | null) => m != null ? `M${String(m).padStart(2, '0')}` : null;
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpen}>
       <PopoverTrigger asChild>
         <button className="cursor-pointer hover:opacity-80 font-['Times_New_Roman',Times,serif] text-[11pt]">
-          {value != null ? `M${String(value).padStart(2, '0')}` : <span className="text-muted-foreground italic">M??</span>}
+          {startMonth != null && endMonth != null ? (
+            <>{formatMonth(startMonth)}–{formatMonth(endMonth)}</>
+          ) : startMonth != null ? (
+            <>{formatMonth(startMonth)}–<span className="text-muted-foreground italic">M??</span></>
+          ) : (
+            <span className="text-muted-foreground italic">Select range</span>
+          )}
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-[120px] p-0" align="start">
-        <div className="max-h-[200px] overflow-y-auto">
+      <PopoverContent className="w-[280px] p-2" align="start">
+        <div className="text-xs text-muted-foreground mb-1.5 font-medium">
+          {selecting === 'start' ? 'Select start month' : selecting === 'end' ? 'Select end month' : 'Select start month'}
+        </div>
+        <div className="grid grid-cols-6 gap-0.5">
           {months.map(m => {
-            const disabled = (minMonth != null && m < minMonth) || (maxMonth != null && m > maxMonth);
+            const isStart = m === localStart;
+            const isEnd = m === localEnd;
+            const isInRange = localStart != null && localEnd != null && m >= localStart && m <= localEnd;
+            const isPartialRange = selecting === 'end' && localStart != null && localEnd == null && m >= localStart;
             return (
               <button
                 key={m}
                 className={cn(
-                  'w-full px-2 py-1 text-sm hover:bg-accent cursor-pointer text-left',
-                  m === value && 'bg-accent font-bold',
-                  disabled && 'opacity-30 cursor-not-allowed hover:bg-transparent',
+                  'px-1 py-0.5 text-xs rounded cursor-pointer text-center',
+                  (isStart || isEnd) && 'bg-primary text-primary-foreground font-bold',
+                  !isStart && !isEnd && isInRange && 'bg-primary/20',
+                  !isStart && !isEnd && !isInRange && isPartialRange && 'bg-primary/10',
+                  !isStart && !isEnd && !isInRange && !isPartialRange && 'hover:bg-accent',
                 )}
-                onClick={() => !disabled && select(m)}
-                disabled={disabled}
+                onClick={() => handleClick(m)}
               >
                 M{String(m).padStart(2, '0')}
               </button>
@@ -556,9 +599,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                           </div>
                         </td>
                         <td className={`${cellStyles} whitespace-nowrap`} style={{ borderColor: wp.color, width: '1%' }}>
-                          <MonthPicker taskId={task.id} field="start_month" value={task.start_month} proposalId={proposalId} maxMonth={task.end_month} />
-                          –
-                          <MonthPicker taskId={task.id} field="end_month" value={task.end_month} proposalId={proposalId} minMonth={task.start_month} />
+                          <MonthRangePicker taskId={task.id} startMonth={task.start_month} endMonth={task.end_month} proposalId={proposalId} />
                         </td>
                       </tr>
 
