@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { computeAutoFitNarrow } from '@/lib/autoFitColumns';
+import { computeAutoFitSmart } from '@/lib/autoFitColumns';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getContrastingTextColor } from '@/lib/wpColors';
@@ -113,7 +113,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
   const autoFitColumns = useCallback(() => {
     const table = tableRef.current;
     if (!table) return;
-    const widths = computeAutoFitNarrow(table);
+    const widths = computeAutoFitSmart(table);
     if (widths) {
       setColWidths(widths);
       saveWidths(widths);
