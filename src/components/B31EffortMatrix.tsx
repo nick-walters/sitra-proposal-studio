@@ -151,7 +151,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                     className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[11pt] font-bold whitespace-nowrap"
                     style={{ backgroundColor: '#000000', color: '#FFFFFF', lineHeight: 1 }}
                   >
-                    {p.organisation_short_name || p.organisation_name}
+                    {p.participant_number}. {p.organisation_short_name || p.organisation_name}
                   </span>
                 </td>
                 {wpData.map(wp => {
