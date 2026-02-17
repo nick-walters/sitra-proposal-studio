@@ -895,6 +895,7 @@ export function DocumentEditor({
           onOpenParticipantRefDialog={() => setIsParticipantRefOpen(true)}
           isPartB={section && !section.isPartA}
           isReadOnly={isEffectivelyReadOnly}
+          hideTableInsert={section?.number === 'B3.1'}
         />
       </div>
 

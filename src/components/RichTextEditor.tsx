@@ -183,6 +183,7 @@ export function FormattingToolbar({
   onOpenParticipantRefDialog,
   isPartB = false,
   isReadOnly = false,
+  hideTableInsert = false,
 }: { 
   editor: Editor | null;
   sectionNumber?: string;
@@ -195,6 +196,7 @@ export function FormattingToolbar({
   onOpenParticipantRefDialog?: () => void;
   isPartB?: boolean;
   isReadOnly?: boolean;
+  hideTableInsert?: boolean;
 }) {
   const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
   const [isCropOpen, setIsCropOpen] = useState(false);
@@ -533,7 +535,7 @@ export function FormattingToolbar({
         <Separator orientation="vertical" className="h-5 mx-1.5" />
 
         {/* Table */}
-        {!isInTable ? (
+        {!isInTable && !hideTableInsert && (
           <Popover open={tablePopoverOpen} onOpenChange={setTablePopoverOpen}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -556,7 +558,8 @@ export function FormattingToolbar({
               <TableSizeSelector onSelect={insertTable} />
             </PopoverContent>
           </Popover>
-        ) : (
+        )}
+        {isInTable && (
           <DropdownMenu>
             <Tooltip>
               <TooltipTrigger asChild>

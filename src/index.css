@@ -508,11 +508,7 @@
   background-color: transparent !important;
   color: black !important;
   font-weight: bold !important;
-  font-size: 11pt !important;
-  white-space: nowrap;
-  font-family: "Times New Roman", Times, serif !important;
-  padding: 1px 4px !important;
-  border-bottom: 1.5px solid black !important;
+  border-bottom: 1.5px solid #000000 !important;
 }
 
 .ProseMirror table td {
