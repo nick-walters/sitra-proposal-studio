@@ -466,52 +466,53 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
             <div style={{ height: '0.5em' }} />
             <table
               className={`${tableStyles} w-full border-collapse`}
-              style={{ borderLeft: `3pt solid ${wp.color}` }}
             >
               <tbody>
-                {/* WP Header: bubble with WP number/short name + title, leader & duration outside */}
+                {/* WP Header: pill bubble spanning full width */}
                 <tr>
                   <td
                     colSpan={2}
                     className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight"
                     style={{ padding: '0 2px', border: 'none' }}
                   >
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className="inline-flex flex-col rounded-md px-2 py-0.5 font-bold text-white text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight flex-1 min-w-0"
-                        style={{ backgroundColor: wp.color }}
-                      >
-                        <span>
-                          WP{wp.number}:&nbsp;
-                          <EditableHeaderText
-                            value={shortName}
-                            onSave={(val) => saveWPField(wp.id, 'short_name', val)}
-                            className="text-white"
-                          />
-                        </span>
-                        <span>
-                          <EditableHeaderText
-                            value={title}
-                            onSave={(val) => saveWPField(wp.id, 'title', val)}
-                            className="text-white"
-                          />
-                        </span>
-                      </span>
-                      <span className="flex flex-col items-end gap-0.5 flex-shrink-0">
-                        <LeaderPicker
-                          entityId={wp.id}
-                          entityTable="wp_drafts"
-                          currentLeaderId={wp.lead_participant_id}
-                          participants={participants}
-                          proposalId={proposalId}
-                          showCrown
-                          arrowPosition="left"
-                        />
-                        <span className="font-bold text-[11pt] font-['Times_New_Roman',Times,serif] whitespace-nowrap" style={{ color: '#000000' }}>
-                          {monthRange || <span className="text-muted-foreground italic font-normal">—</span>}
-                        </span>
-                      </span>
+                    <span
+                      className="inline-flex items-center rounded-full px-3 py-0.5 font-bold text-white text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight w-full"
+                      style={{ backgroundColor: wp.color }}
+                    >
+                      WP{wp.number}:&nbsp;
+                      <EditableHeaderText
+                        value={shortName}
+                        onSave={(val) => saveWPField(wp.id, 'short_name', val)}
+                        className="text-white"
+                      />
+                      &nbsp;–&nbsp;
+                      <EditableHeaderText
+                        value={title}
+                        onSave={(val) => saveWPField(wp.id, 'title', val)}
+                        className="text-white"
+                      />
+                    </span>
+                  </td>
+                </tr>
+
+                {/* WP leader + duration row */}
+                <tr>
+                  <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle px-0.5 py-0" style={{ border: 'none' }}>
+                    <div className="flex items-center flex-wrap gap-0.5">
+                      <LeaderPicker
+                        entityId={wp.id}
+                        entityTable="wp_drafts"
+                        currentLeaderId={wp.lead_participant_id}
+                        participants={participants}
+                        proposalId={proposalId}
+                        showCrown
+                      />
                     </div>
+                  </td>
+                  <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle whitespace-nowrap text-right px-0.5 py-0" style={{ border: 'none', width: '75px' }}>
+                    <span className="font-bold text-[11pt] font-['Times_New_Roman',Times,serif] whitespace-nowrap" style={{ color: '#000000' }}>
+                      {monthRange || <span className="text-muted-foreground italic font-normal">—</span>}
+                    </span>
                   </td>
                 </tr>
 
@@ -550,7 +551,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                           style={{ padding: '0 2px', border: 'none' }}
                         >
                           <span
-                            className="inline-flex items-center rounded-md px-2 py-0.5 font-bold text-white text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight w-full"
+                            className="inline-flex items-center rounded-full px-3 py-0.5 font-bold text-white text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight w-full"
                             style={{ backgroundColor: wp.color }}
                           >
                             T{wp.number}.{task.number}:&nbsp;
