@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -25,7 +25,8 @@ import {
 } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, ChevronDown, GripVertical, ArrowUpDown } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, GripVertical, ArrowUpDown, Columns3 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -1097,7 +1098,7 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
   const queryClient = useQueryClient();
   const { data: workPackages = [] } = useWorkPackages(proposalId);
   const { isAdminOrOwner } = useUserRole();
-  const { colWidths, tableRef, handleColResizeStart } = useColumnResize({ proposalId, tableKey: 'risks', canResize: isAdminOrOwner });
+  const { colWidths, setColWidths, tableRef, handleColResizeStart, saveWidths } = useColumnResize({ proposalId, tableKey: 'risks', canResize: isAdminOrOwner });
   
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -1208,13 +1209,86 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
     reorderRisks.mutate(sorted);
   };
 
+  const autoFitColumns = useCallback(() => {
+    const table = tableRef.current;
+    if (!table) return;
+
+    const prevLayout = table.style.tableLayout;
+    const prevWidth = table.style.width;
+    table.style.tableLayout = 'auto';
+    table.style.width = 'auto';
+
+    const allCells = table.querySelectorAll('th, td');
+    const savedStyles: string[] = [];
+    allCells.forEach((cell, i) => {
+      const el = cell as HTMLElement;
+      savedStyles[i] = el.style.width;
+      el.style.width = '';
+      el.style.whiteSpace = 'nowrap';
+    });
+
+    table.offsetHeight;
+    const headerCells = table.querySelectorAll('thead th');
+    const numCols = headerCells.length;
+    const minWidths = new Array(numCols).fill(0);
+
+    table.querySelectorAll('tr').forEach(row => {
+      const cells = row.querySelectorAll('th, td');
+      cells.forEach((cell, colIdx) => {
+        if (colIdx < numCols) {
+          minWidths[colIdx] = Math.max(minWidths[colIdx], (cell as HTMLElement).offsetWidth);
+        }
+      });
+    });
+
+    allCells.forEach((cell) => {
+      (cell as HTMLElement).style.whiteSpace = '';
+    });
+
+    const containerWidth = table.parentElement?.clientWidth ?? table.offsetWidth;
+    const totalMinWidth = minWidths.reduce((s, w) => s + w, 0);
+
+    let finalWidths: number[];
+    if (totalMinWidth <= containerWidth) {
+      finalWidths = [...minWidths];
+    } else {
+      const scale = containerWidth / totalMinWidth;
+      finalWidths = minWidths.map(w => Math.max(40, Math.floor(w * scale)));
+      const diff = containerWidth - finalWidths.reduce((s, w) => s + w, 0);
+      if (diff !== 0) finalWidths[0] += diff;
+    }
+
+    table.style.tableLayout = prevLayout;
+    table.style.width = prevWidth;
+    allCells.forEach((cell, i) => {
+      (cell as HTMLElement).style.width = savedStyles[i];
+    });
+
+    finalWidths = finalWidths.map(w => Math.round(w));
+    setColWidths(finalWidths);
+    saveWidths(finalWidths);
+  }, [tableRef, setColWidths, saveWidths]);
+
   return (
     <div>
       <div className="print:hidden flex justify-end gap-1 mb-1">
         {isAdminOrOwner && (
-          <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs h-6 px-2 py-0">
-            <ArrowUpDown className="h-3 w-3 mr-1" /> Auto-reorder
-          </Button>
+          <>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" onClick={autoFitColumns} className="h-6 px-1.5 gap-1 text-muted-foreground hover:text-foreground text-xs">
+                  <Columns3 size={14} />
+                  Auto-resize columns
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                <p>Auto-fit column widths</p>
+              </TooltipContent>
+            </Tooltip>
+            <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs h-6 px-2 py-0">
+              <ArrowUpDown className="h-3 w-3 mr-1" /> Auto-reorder
+            </Button>
+          </>
         )}
         <Button variant="outline" size="sm" onClick={() => addRisk.mutate()} className="text-xs h-6 px-2 py-0">
           <Plus className="h-3 w-3 mr-1" /> Add risk
@@ -1225,7 +1299,7 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
       </p>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <B31TableWrapper>
-          <Table className={`${tableStyles} w-full [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse' }} ref={tableRef}>
+          <Table className={`${tableStyles} [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse', width: colWidths.length > 0 ? `${colWidths.reduce((s, w) => s + w, 0)}px` : '100%' }} ref={tableRef}>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
                 <TableHead className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[0] } : { width: '25%' }}>
