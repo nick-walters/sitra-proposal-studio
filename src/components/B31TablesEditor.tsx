@@ -757,14 +757,12 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                             placeholder="D#.#"
                           />
                         </span>
-                        <span className="font-bold" style={{ color: wpColor }}>:&nbsp;</span>
-                        <span style={{ color: '#000' }}>
-                          <EditableTextInline
-                            value={del.name}
-                            onChange={(val) => updateDeliverable.mutate({ id: del.id, name: val })}
-                            placeholder="Deliverable name"
-                          />
-                        </span>
+                        <span className="font-bold">:&nbsp;</span>
+                        <EditableTextInline
+                          value={del.name}
+                          onChange={(val) => updateDeliverable.mutate({ id: del.id, name: val })}
+                          placeholder="Deliverable name"
+                        />
                       </span>
                     </TableCell>
                     <TableCell className={bubbleCellStyles} style={{ borderLeft: 'none', borderRight: 'none' }}>
