@@ -8,15 +8,18 @@ export function computeAutoFitNarrow(table: HTMLTableElement): number[] | null {
   if (!minWidths) return null;
 
   const totalMinWidth = minWidths.reduce((s, w) => s + w, 0);
+  // Add small buffer to each column to prevent edge-case wrapping
+  const buffered = minWidths.map(w => w + 2);
+  const totalBuffered = buffered.reduce((s, w) => s + w, 0);
   let finalWidths: number[];
 
-  if (totalMinWidth <= containerWidth) {
-    // Everything fits — use exact natural widths
-    finalWidths = [...minWidths];
+  if (totalBuffered <= containerWidth) {
+    // Everything fits — use buffered natural widths
+    finalWidths = [...buffered];
   } else {
     // Proportional scale-down
-    const scale = containerWidth / totalMinWidth;
-    finalWidths = minWidths.map(w => Math.max(40, Math.floor(w * scale)));
+    const scale = containerWidth / totalBuffered;
+    finalWidths = buffered.map(w => Math.max(40, Math.floor(w * scale)));
     const diff = containerWidth - finalWidths.reduce((s, w) => s + w, 0);
     if (diff !== 0) finalWidths[0] += diff;
   }
