@@ -139,7 +139,7 @@ function LeadPicker({
 export function B31WPListTable({ wpData, participants, proposalId }: Props) {
   const queryClient = useQueryClient();
   const { isAdminOrOwner } = useUserRole();
-  const { colWidths, tableRef, handleColResizeStart } = useColumnResize();
+  const { colWidths, tableRef, handleColResizeStart } = useColumnResize({ proposalId, tableKey: 'wp-list', canResize: isAdminOrOwner });
   const [editingCell, setEditingCell] = useState<{ wpId: string; field: 'pm' | 'duration' } | null>(null);
   const [editValue, setEditValue] = useState('');
 

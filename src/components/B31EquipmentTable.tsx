@@ -22,7 +22,7 @@ interface Props {
 export function B31EquipmentTable({ equipmentItems, participants, personnelCostByParticipant, proposalId }: Props) {
   const queryClient = useQueryClient();
   const { isAdminOrOwner } = useUserRole();
-  const { colWidths, tableRef, handleColResizeStart } = useColumnResize();
+  const { colWidths, tableRef, handleColResizeStart } = useColumnResize({ proposalId, tableKey: 'equipment', canResize: isAdminOrOwner });
   const [editingCell, setEditingCell] = useState<{ id: string; field: string } | null>(null);
   const [editValue, setEditValue] = useState('');
 

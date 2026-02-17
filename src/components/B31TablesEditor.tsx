@@ -563,7 +563,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
   const { data: workPackages = [] } = useWorkPackages(proposalId);
   const { data: participants = [] } = useParticipants(proposalId);
   const { isAdminOrOwner, loading: roleLoading } = useUserRole();
-  const { colWidths, tableRef, handleColResizeStart } = useColumnResize();
+  const { colWidths, tableRef, handleColResizeStart } = useColumnResize({ proposalId, tableKey: 'deliverables', canResize: isAdminOrOwner });
   
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -985,7 +985,7 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
   };
 
   // Column resizing
-  const { colWidths, tableRef, handleColResizeStart } = useColumnResize([milestones]);
+  const { colWidths, tableRef, handleColResizeStart } = useColumnResize({ proposalId, tableKey: 'milestones', canResize: isAdminOrOwner });
 
   return (
     <div>
@@ -1075,7 +1075,7 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
   const queryClient = useQueryClient();
   const { data: workPackages = [] } = useWorkPackages(proposalId);
   const { isAdminOrOwner } = useUserRole();
-  const { colWidths, tableRef, handleColResizeStart } = useColumnResize();
+  const { colWidths, tableRef, handleColResizeStart } = useColumnResize({ proposalId, tableKey: 'risks', canResize: isAdminOrOwner });
   
   const sensors = useSensors(
     useSensor(PointerSensor),
