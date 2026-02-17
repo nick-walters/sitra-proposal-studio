@@ -8,10 +8,10 @@ import { cn } from '@/lib/utils';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
-const cellStyles = "border border-black px-0.5 py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle text-left";
-const headerCellStyles = "border border-black px-0.5 py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight font-bold text-white bg-black text-left align-middle";
+const cellStyles = "!px-0.5 !py-0 !p-0 px-0.5 h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
 const editableCellStyles = `${cellStyles} cursor-text hover:bg-muted/30`;
 
 interface Props {
@@ -197,29 +197,29 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
       <p className={`${tableStyles} italic mb-0`}>
         <span className="font-bold italic">Table 3.1.a.</span> List of work packages
       </p>
-      <table className={`${tableStyles} w-full border-collapse`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto' }} ref={tableRef}>
-        <thead>
-          <tr>
-            <th className={`${headerCellStyles} whitespace-nowrap relative`} style={colWidths.length > 0 ? { width: colWidths[0] } : undefined}>
+      <Table className={`${tableStyles} w-full [&_th]:border-0 [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse' }} ref={tableRef}>
+        <TableHeader>
+          <TableRow className="bg-black text-white hover:bg-black">
+            <TableHead className={`${cellStyles} whitespace-nowrap relative text-white font-bold`} style={colWidths.length > 0 ? { width: colWidths[0] } : undefined}>
               No. &amp; short name
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
-            </th>
-            <th className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[1] } : undefined}>
+            </TableHead>
+            <TableHead className={`${cellStyles} relative text-white font-bold`} style={colWidths.length > 0 ? { width: colWidths[1] } : undefined}>
               Work package title
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
-            </th>
-            <th className={`${headerCellStyles} whitespace-nowrap relative`} style={colWidths.length > 0 ? { width: colWidths[2] } : undefined}>
+            </TableHead>
+            <TableHead className={`${cellStyles} whitespace-nowrap relative text-white font-bold`} style={colWidths.length > 0 ? { width: colWidths[2] } : undefined}>
               Lead
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(2)} />}
-            </th>
-            <th className={`${headerCellStyles} whitespace-nowrap relative`} style={colWidths.length > 0 ? { width: colWidths[3] } : undefined}>
+            </TableHead>
+            <TableHead className={`${cellStyles} whitespace-nowrap relative text-white font-bold`} style={colWidths.length > 0 ? { width: colWidths[3] } : undefined}>
               Person months
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(3)} />}
-            </th>
-            <th className={`${headerCellStyles} whitespace-nowrap`} style={colWidths.length > 0 ? { width: colWidths[4] } : undefined}>Duration</th>
-          </tr>
-        </thead>
-        <tbody>
+            </TableHead>
+            <TableHead className={`${cellStyles} whitespace-nowrap text-white font-bold`} style={colWidths.length > 0 ? { width: colWidths[4] } : undefined}>Duration</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {wpData.map(wp => {
             const computedPM = getComputedPM(wp);
             const computedDuration = getComputedDuration(wp);
@@ -232,8 +232,8 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
             const isEditingDur = editingCell?.wpId === wp.id && editingCell.field === 'duration';
 
             return (
-              <tr key={wp.id}>
-                <td className={`${editableCellStyles} whitespace-nowrap leading-[0]`}>
+              <TableRow key={wp.id}>
+                <TableCell className={`${editableCellStyles} whitespace-nowrap leading-[0]`}>
                   <span
                     className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-white text-[9pt] font-bold whitespace-nowrap align-middle"
                     style={{ backgroundColor: wp.color || '#666', lineHeight: 1 }}
@@ -245,14 +245,14 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
                       className="text-white text-[9pt] font-bold"
                     />
                   </span>
-                </td>
-                <td className={editableCellStyles}>
+                </TableCell>
+                <TableCell className={editableCellStyles}>
                   <InlineEdit
                     value={title}
                     onSave={(val) => saveWPField(wp.id, 'title', val)}
                   />
-                </td>
-                <td className={`${editableCellStyles} whitespace-nowrap leading-[0]`}>
+                </TableCell>
+                <TableCell className={`${editableCellStyles} whitespace-nowrap leading-[0]`}>
                   {proposalId ? (
                     <LeadPicker
                       wpId={wp.id}
@@ -261,8 +261,8 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
                       proposalId={proposalId}
                     />
                   ) : '—'}
-                </td>
-                <td
+                </TableCell>
+                <TableCell
                   className={`${editableCellStyles} whitespace-nowrap`}
                   onClick={() => !isEditingPM && startEdit(wp.id, 'pm', String(displayPM))}
                 >
@@ -279,8 +279,8 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
                   ) : (
                     displayPM || '—'
                   )}
-                </td>
-                <td
+                </TableCell>
+                <TableCell
                   className={`${editableCellStyles} whitespace-nowrap`}
                   onClick={() => !isEditingDur && startEdit(wp.id, 'duration', String(displayDuration))}
                 >
@@ -297,12 +297,12 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
                   ) : (
                     displayDuration || '—'
                   )}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             );
           })}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }
