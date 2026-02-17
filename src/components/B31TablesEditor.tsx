@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { computeAutoFitNarrow, computeAutoFitFull } from '@/lib/autoFitColumns';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
@@ -523,36 +523,64 @@ function SortableTableRow({
     opacity: isDragging ? 0.5 : 1,
   };
 
+  // position:relative doesn't work on <tr> in most browsers, so we inject
+  // the drag-handle into the first <td> and the delete button into the last <td>.
+  const childArray = React.Children.toArray(children);
+
+  const enhanced = childArray.map((child, index) => {
+    if (!React.isValidElement(child)) return child;
+
+    // Inject drag handle into first cell
+    if (index === 0 && canDrag) {
+      return React.cloneElement(child as React.ReactElement<any>, {
+        style: { ...(child as React.ReactElement<any>).props.style, position: 'relative' as const },
+        children: (
+          <>
+            <div 
+              className="absolute top-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity z-10"
+              style={{ left: '-20px' }}
+              {...attributes} 
+              {...listeners}
+            >
+              <GripVertical className="h-4 w-4 text-muted-foreground" />
+            </div>
+            {(child as React.ReactElement<any>).props.children}
+          </>
+        ),
+      });
+    }
+
+    // Inject delete button into last cell
+    if (index === childArray.length - 1 && onDelete) {
+      return React.cloneElement(child as React.ReactElement<any>, {
+        style: { ...(child as React.ReactElement<any>).props.style, position: 'relative' as const },
+        children: (
+          <>
+            {(child as React.ReactElement<any>).props.children}
+            <div 
+              className="absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+              style={{ right: '-24px' }}
+            >
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-5 w-5 text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={onDelete}
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
+          </>
+        ),
+      });
+    }
+
+    return child;
+  });
+
   return (
-    <TableRow ref={setNodeRef} style={style} className="hover:bg-muted/50 group relative">
-      {children}
-      {/* Drag handle - positioned in left page margin, close to table */}
-      {canDrag && (
-        <div 
-          className="absolute top-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity z-10"
-          style={{ left: '-20px' }}
-          {...attributes} 
-          {...listeners}
-        >
-          <GripVertical className="h-4 w-4 text-muted-foreground" />
-        </div>
-      )}
-      {/* Delete button - positioned in right page margin, vertically centered */}
-      {onDelete && (
-        <div 
-          className="absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-          style={{ right: '-24px' }}
-        >
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-5 w-5 text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={onDelete}
-          >
-            <Trash2 className="h-3 w-3" />
-          </Button>
-        </div>
-      )}
+    <TableRow ref={setNodeRef} style={style} className="hover:bg-muted/50 group">
+      {enhanced}
     </TableRow>
   );
 }
