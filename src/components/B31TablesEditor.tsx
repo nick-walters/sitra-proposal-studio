@@ -700,15 +700,15 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
           <Table className={`${tableStyles} w-full`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto' }} ref={tableRef}>
             <TableHeader>
               <TableRow className="bg-black text-white hover:bg-black">
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[0] } : undefined}>
+                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[0] } : {}), borderRight: 'none' }}>
                   Deliverable
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative border-l-0`} style={colWidths.length > 0 ? { width: colWidths[1] } : { width: '40px' }}>
+                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[1] } : { width: '40px' }), borderLeft: 'none', borderRight: 'none' }}>
                   WP
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative border-l-0`} style={colWidths.length > 0 ? { width: colWidths[2] } : { width: '60px' }}>
+                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[2] } : { width: '60px' }), borderLeft: 'none' }}>
                   Lead
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(2)} />}
                 </TableHead>
@@ -730,7 +730,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
               <TableBody>
                 {deliverables.map((del) => (
                   <SortableTableRow key={del.id} id={del.id} canDrag={isAdminOrOwner} onDelete={() => deleteDeliverable.mutate(del.id)}>
-                    <TableCell className={cellStyles} style={{ lineHeight: 1.2 }}>
+                    <TableCell className={cellStyles} style={{ lineHeight: 1.2, borderRight: 'none' }}>
                       <span className="font-bold font-['Times_New_Roman',Times,serif] text-[11pt]" style={{ lineHeight: 1.2 }}>
                         <EditableTextInline
                           value={del.number}
@@ -747,7 +747,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                         />
                       </span>
                     </TableCell>
-                    <TableCell className={`${bubbleCellStyles} border-l-0`}>
+                    <TableCell className={bubbleCellStyles} style={{ borderLeft: 'none', borderRight: 'none' }}>
                       <SingleWPSelector
                         value={del.wp_number}
                         onChange={(val) => {
@@ -761,7 +761,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                         workPackages={workPackages}
                       />
                     </TableCell>
-                    <TableCell className={`${bubbleCellStyles} border-l-0`}>
+                    <TableCell className={bubbleCellStyles} style={{ borderLeft: 'none' }}>
                       <Select 
                         value={del.lead_participant_id || ''} 
                         onValueChange={(v) => updateDeliverable.mutate({ id: del.id, lead_participant_id: v || null })}
