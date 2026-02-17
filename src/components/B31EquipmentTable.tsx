@@ -69,7 +69,7 @@ export function B31EquipmentTable({ equipmentItems, participants, personnelCostB
       <p className={`${tableStyles} italic mb-0`}>
         <span className="font-bold italic">Table 3.1.h.</span> Equipment purchase cost justifications
       </p>
-      <table className={`${tableStyles} w-full border-collapse [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0 [&_thead]:border-b [&_thead]:border-black`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto' }} ref={tableRef}>
+      <table className={`${tableStyles} w-full border-collapse [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto' }} ref={tableRef}>
         <thead>
           <tr>
             <th className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[0] } : undefined}>
