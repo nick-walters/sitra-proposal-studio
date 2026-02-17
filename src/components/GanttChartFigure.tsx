@@ -410,7 +410,7 @@ export function GanttChartFigure({
                         className="shrink-0 flex items-center overflow-hidden"
 style={{ width: labelWidth - 38, height: 18, padding: '0 2px', borderRight: `1px solid ${wpColor}` }}
                       >
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.name}</span>
+                        <span className="font-bold" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.name}</span>
                       </div>
                       <div className="flex" style={{ position: 'relative', marginRight: MARGIN_GAP }}>
                         {/* Render month cells - no horizontal borders */}
@@ -576,7 +576,7 @@ style={{ width: labelWidth - 38, height: 18, padding: '0 2px', borderRight: `1px
                         className="shrink-0 flex items-center overflow-hidden"
                         style={{ width: labelWidth - 38, height: 18, padding: '0 2px', borderRight: `1px solid ${wpColor}` }}
                       >
-                        <span className="text-muted-foreground" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</span>
+                        <span className="text-muted-foreground font-bold" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</span>
                       </div>
                       <div className="flex" style={{ marginRight: MARGIN_GAP }}>
                         {months.map(m => (
