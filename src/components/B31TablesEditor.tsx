@@ -690,7 +690,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
     <div>
       <div className="flex items-center justify-between">
         <p className={`${tableStyles} italic`}>
-          <span className="font-bold italic">Table 3.1.c.</span> Deliverables
+          <span className="font-bold italic">Table 3.1.c.</span> Deliverables, including the partner responsible, type, dissemination level &amp; month due
         </p>
         {isAdminOrOwner && (
           <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs h-6 px-2 py-0">
