@@ -37,6 +37,7 @@ function LeaderPicker({
   participants,
   proposalId,
   showCrown = false,
+  arrowPosition = 'right',
 }: {
   entityId: string;
   entityTable: 'wp_drafts' | 'wp_draft_tasks';
@@ -44,6 +45,7 @@ function LeaderPicker({
   participants: B31Participant[];
   proposalId: string;
   showCrown?: boolean;
+  arrowPosition?: 'left' | 'right';
 }) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -55,16 +57,18 @@ function LeaderPicker({
     queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
   };
 
+  const arrow = <ChevronsUpDown className="h-3 w-3 opacity-50 shrink-0" />;
+  const content = leader ? (
+    <ParticipantBubble participant={leader} showCrown={showCrown} />
+  ) : (
+    <span className="text-muted-foreground text-[9pt] italic">Select WP/task leader</span>
+  );
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80">
-          <ChevronsUpDown className="h-3 w-3 opacity-50 shrink-0" />
-          {leader ? (
-            <ParticipantBubble participant={leader} showCrown={showCrown} />
-          ) : (
-            <span className="text-muted-foreground text-[9pt] italic">Select WP/task leader</span>
-          )}
+          {arrowPosition === 'left' ? <>{arrow}{content}</> : <>{content}{arrow}</>}
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-[220px] p-0" align="start">
@@ -443,6 +447,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                       participants={participants}
                       proposalId={proposalId}
                       showCrown
+                      arrowPosition="left"
                     />
                   </td>
                 </tr>
