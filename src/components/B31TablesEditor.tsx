@@ -1032,7 +1032,7 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
               <TableBody>
                 {milestones.map((ms) => (
                   <SortableTableRow key={ms.id} id={ms.id} canDrag={isAdminOrOwner} onDelete={() => deleteMilestone.mutate(ms.id)}>
-                    <TableCell className={cellStyles} style={{ lineHeight: 1.2, whiteSpace: 'nowrap', width: '50px' }}>
+                    <TableCell className={cellStyles} style={{ lineHeight: 1.2, whiteSpace: 'nowrap', width: '46px' }}>
                       <span
                         className="inline-flex items-center justify-center px-1 rounded-full font-bold font-['Times_New_Roman',Times,serif] text-[9pt] whitespace-nowrap relative"
                         style={{
@@ -1043,6 +1043,8 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
                           verticalAlign: 'middle',
                           top: 'calc(-1pt + 0.5px)',
                           width: 'fit-content',
+                          paddingTop: '2px',
+                          paddingBottom: '2px',
                         }}
                       >
                         MS{ms.number}
