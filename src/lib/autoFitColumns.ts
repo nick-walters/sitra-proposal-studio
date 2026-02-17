@@ -62,25 +62,8 @@ export function computeAutoFitWidths(table: HTMLTableElement): number[] | null {
   let finalWidths: number[];
 
   if (totalMinWidth <= containerWidth) {
-    // Everything fits without wrapping — distribute remaining space to flex columns
-    const extraSpace = containerWidth - totalMinWidth;
-    const flexIndices = minWidths
-      .map((w, i) => (w >= COMPACT_THRESHOLD ? i : -1))
-      .filter(i => i >= 0);
-
-    if (flexIndices.length === 0) {
-      // All columns are compact — distribute evenly
-      const perCol = extraSpace / numCols;
-      finalWidths = minWidths.map(w => w + perCol);
-    } else {
-      const totalFlexWidth = flexIndices.reduce((s, i) => s + minWidths[i], 0);
-      finalWidths = minWidths.map((w, i) => {
-        if (flexIndices.includes(i) && totalFlexWidth > 0) {
-          return w + extraSpace * (w / totalFlexWidth);
-        }
-        return w;
-      });
-    }
+    // Everything fits without wrapping — use exact natural widths (no expansion)
+    finalWidths = [...minWidths];
   } else {
     // Content overflows — compact columns keep their natural width,
     // flex columns share the remaining space proportionally.
