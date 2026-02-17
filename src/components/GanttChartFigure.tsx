@@ -392,7 +392,7 @@ export function GanttChartFigure({
                 {/* Task Rows */}
                 {wp.tasks.map((task, taskIdx) => {
                   return (
-                    <div key={task.id} className="flex" style={{ position: 'relative' }}>
+                    <div key={task.id} className="flex" style={{ position: 'relative', paddingLeft: 2 }}>
                       {/* Task number bubble */}
                       <div 
                         className="shrink-0 flex items-center justify-center"
