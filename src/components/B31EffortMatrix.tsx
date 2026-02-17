@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { computeAutoFitWidths } from '@/lib/autoFitColumns';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getContrastingTextColor } from '@/lib/wpColors';
@@ -112,70 +113,11 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
   const autoFitColumns = useCallback(() => {
     const table = tableRef.current;
     if (!table) return;
-
-    // Save current styles
-    const prevLayout = table.style.tableLayout;
-    const prevWidth = table.style.width;
-
-    // Temporarily switch to auto layout with auto width so columns shrink to content
-    table.style.tableLayout = 'auto';
-    table.style.width = 'auto';
-
-    const allCells = table.querySelectorAll('th, td');
-    const savedStyles: string[] = [];
-    allCells.forEach((cell, i) => {
-      const el = cell as HTMLElement;
-      savedStyles[i] = el.style.width;
-      el.style.width = '';
-      el.style.whiteSpace = 'nowrap';
-    });
-
-    // Force reflow and measure minimum no-wrap widths per column
-    table.offsetHeight;
-    const headerCells = table.querySelectorAll('thead th');
-    const numCols = headerCells.length;
-    const minWidths = new Array(numCols).fill(0);
-
-    const rows = table.querySelectorAll('tr');
-    rows.forEach(row => {
-      const cells = row.querySelectorAll('th, td');
-      cells.forEach((cell, colIdx) => {
-        if (colIdx < numCols) {
-          minWidths[colIdx] = Math.max(minWidths[colIdx], (cell as HTMLElement).offsetWidth);
-        }
-      });
-    });
-
-    // Restore whitespace
-    allCells.forEach((cell) => {
-      (cell as HTMLElement).style.whiteSpace = '';
-    });
-
-    const containerWidth = table.parentElement?.clientWidth ?? table.offsetWidth;
-    const totalMinWidth = minWidths.reduce((s, w) => s + w, 0);
-
-    let finalWidths: number[];
-    if (totalMinWidth <= containerWidth) {
-      // Everything fits — use exact min widths, table will be narrower than container
-      finalWidths = [...minWidths];
-    } else {
-      // Need to wrap — distribute proportionally
-      const scale = containerWidth / totalMinWidth;
-      finalWidths = minWidths.map(w => Math.max(40, Math.floor(w * scale)));
-      const diff = containerWidth - finalWidths.reduce((s, w) => s + w, 0);
-      if (diff !== 0) finalWidths[0] += diff;
+    const widths = computeAutoFitWidths(table);
+    if (widths) {
+      setColWidths(widths);
+      saveWidths(widths);
     }
-
-    // Restore table styles
-    table.style.tableLayout = prevLayout;
-    table.style.width = prevWidth;
-    allCells.forEach((cell, i) => {
-      (cell as HTMLElement).style.width = savedStyles[i];
-    });
-
-    finalWidths = finalWidths.map(w => Math.round(w));
-    setColWidths(finalWidths);
-    saveWidths(finalWidths);
   }, [tableRef, setColWidths, saveWidths]);
 
   if (wpData.length === 0 || participants.length === 0 || !hasData) return null;
