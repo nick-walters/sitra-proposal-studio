@@ -66,6 +66,14 @@ interface PopulateOptions {
   includeCostJustifications?: boolean;
 }
 
+/**
+ * Replace " and " with " & " in titles for compact display
+ */
+function compactAnd(text: string | null | undefined): string {
+  if (!text) return '';
+  return text.replace(/ and /gi, ' & ');
+}
+
 // Common table styles for Horizon Europe compliance
 // 0.03pt cell padding = ~0.04px, using 1px for visibility in editor
 const tableStyle = `width: 100%; border-collapse: collapse; margin: 0; font-family: 'Times New Roman', Times, serif; font-size: 11pt;`;
@@ -172,7 +180,7 @@ function generateWorkPackageOverviewTable(
 
       html += `<tr>
         <td style="${cellStyle}">WP${wp.number}</td>
-        <td style="${cellStyle}">${wp.title || wp.short_name || 'Untitled'}</td>
+        <td style="${cellStyle}">${compactAnd(wp.title) || compactAnd(wp.short_name) || 'Untitled'}</td>
         <td style="${cellStyle}">${getParticipantName(wp.lead_participant_id, participants)}</td>
         <td style="${cellStyle}">${wpStartMonth !== null ? wpStartMonth : '—'}</td>
         <td style="${cellStyle}">${wpEndMonth !== null ? wpEndMonth : '—'}</td>
@@ -250,7 +258,7 @@ function generateWPDescriptionTables(
         .map(p => getParticipantName(p.participant_id, participants))
         .join(', ') || '—';
       
-      taskDescriptions += `<p style="margin: 6pt 0;"><strong>Task ${wp.number}.${task.number}: ${task.title || 'Untitled'}</strong> [${getParticipantName(task.lead_participant_id, participants)}; ${taskParticipants}]</p>`;
+      taskDescriptions += `<p style="margin: 6pt 0;"><strong>Task ${wp.number}.${task.number}: ${compactAnd(task.title) || 'Untitled'}</strong> [${getParticipantName(task.lead_participant_id, participants)}; ${taskParticipants}]</p>`;
       if (task.description) {
         taskDescriptions += task.description;
       }
@@ -272,7 +280,7 @@ function generateWPDescriptionTables(
         </tr>
         <tr>
           <td style="${cellStyle} font-weight: bold;">Work package title</td>
-          <td style="${cellStyle}">${wp.title || wp.short_name || 'Untitled'}</td>
+          <td style="${cellStyle}">${compactAnd(wp.title) || compactAnd(wp.short_name) || 'Untitled'}</td>
         </tr>
         <tr>
           <td style="${cellStyle} font-weight: bold;">Participant number</td>
@@ -345,7 +353,7 @@ function generateDeliverablesTable(
   } else {
     for (const d of allDeliverables) {
       // Merged column: "DX.X: Descriptive deliverable title"
-      const deliverableTitle = `${d.fullNumber}: ${d.title || 'Untitled'}`;
+      const deliverableTitle = `${d.fullNumber}: ${compactAnd(d.title) || 'Untitled'}`;
       
       html += `<tr>
         <td style="${cellStyle}">${deliverableTitle}</td>
