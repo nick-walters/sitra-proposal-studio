@@ -93,18 +93,12 @@ export function computeAutoFitSmart(
     }
   }
 
-  // If not fullWidth and everything fits naturally narrow, use natural widths
+  // If not fullWidth, cap text columns at their natural no-wrap width
+  // so the table doesn't stretch wider than necessary
   if (!fullWidth) {
-    const naturalTotal = colTypes.reduce(
-      (sum, t, i) => sum + (t !== 'text' ? colFixedWidths[i] : minWidths[i] + 2),
-      0
-    );
-    if (naturalTotal <= containerWidth) {
-      // Use compact natural widths for text columns too
-      for (let i = 0; i < numCols; i++) {
-        if (colTypes[i] === 'text') {
-          finalWidths[i] = minWidths[i] + 2;
-        }
+    for (let i = 0; i < numCols; i++) {
+      if (colTypes[i] === 'text') {
+        finalWidths[i] = Math.min(finalWidths[i], minWidths[i] + 2);
       }
     }
   }
