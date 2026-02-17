@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Check, ChevronsUpDown } from 'lucide-react';
+import { Check, ChevronsUpDown, Crown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -17,36 +17,39 @@ interface Props {
 }
 
 /* ── Participant bubble ── */
-function ParticipantBubble({ participant }: { participant: B31Participant }) {
+function ParticipantBubble({ participant, showCrown = false }: { participant: B31Participant; showCrown?: boolean }) {
   return (
     <span
       className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9pt] font-bold italic whitespace-nowrap align-middle"
       style={{ backgroundColor: '#000000', color: '#FFFFFF', lineHeight: 1 }}
     >
+      {showCrown && <Crown className="h-2.5 w-2.5 mr-0.5 fill-white" strokeWidth={0} />}
       {participant.organisation_short_name || participant.organisation_name}
     </span>
   );
 }
 
-/* ── Single-select participant picker ── */
+/* ── Single-select participant picker (with deselect support) ── */
 function LeaderPicker({
   entityId,
   entityTable,
   currentLeaderId,
   participants,
   proposalId,
+  showCrown = false,
 }: {
   entityId: string;
   entityTable: 'wp_drafts' | 'wp_draft_tasks';
   currentLeaderId: string | null;
   participants: B31Participant[];
   proposalId: string;
+  showCrown?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
   const leader = participants.find(p => p.id === currentLeaderId);
 
-  const select = async (pid: string) => {
+  const select = async (pid: string | null) => {
     setOpen(false);
     await supabase.from(entityTable).update({ lead_participant_id: pid }).eq('id', entityId);
     queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
@@ -57,7 +60,7 @@ function LeaderPicker({
       <PopoverTrigger asChild>
         <button className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80">
           {leader ? (
-            <ParticipantBubble participant={leader} />
+            <ParticipantBubble participant={leader} showCrown={showCrown} />
           ) : (
             <span className="text-muted-foreground text-[9pt] italic">Select…</span>
           )}
@@ -66,6 +69,14 @@ function LeaderPicker({
       </PopoverTrigger>
       <PopoverContent className="w-[220px] p-0" align="start">
         <div className="max-h-[200px] overflow-y-auto">
+          {currentLeaderId && (
+            <button
+              className="flex items-center gap-2 w-full px-2 py-1.5 text-sm hover:bg-accent cursor-pointer text-muted-foreground italic"
+              onClick={() => select(null)}
+            >
+              Clear selection
+            </button>
+          )}
           {participants.map(p => (
             <button
               key={p.id}
@@ -335,24 +346,23 @@ function EditableHeaderText({
   );
 }
 
+/* ── Caption crown bubble ── */
+function CaptionBubble({ showCrown = false }: { showCrown?: boolean }) {
+  return (
+    <span
+      className="inline-flex items-center rounded-full px-1.5 text-[9pt] font-bold whitespace-nowrap align-middle relative"
+      style={{ backgroundColor: '#000000', color: '#FFFFFF', lineHeight: 1, top: '-1pt' }}
+    >
+      {showCrown && <Crown className="h-2.5 w-2.5 fill-white" strokeWidth={0} />}
+      {!showCrown && <span style={{ width: '10px', display: 'inline-block' }}>&nbsp;</span>}
+    </span>
+  );
+}
+
 /* ── Main component ── */
 export function B31WPDescriptionTables({ wpData, participants, proposalId }: Props) {
   const queryClient = useQueryClient();
   const populatedWPs = wpData;
-
-  // Compute min-width for leader columns: "Task leader: " label + longest bubble + chevron
-  const leaderColMinWidth = React.useMemo(() => {
-    const longestName = participants.reduce((max, p) => {
-      const name = p.organisation_short_name || p.organisation_name || '';
-      return name.length > max.length ? name : max;
-    }, '');
-    // "Task leader: " at 11pt Times ~78px; bubble: ~6.5px/char at 9pt + 12px padding + 2px border; chevron ~16px; cell padding ~4px
-    const labelWidth = 78;
-    const bubbleWidth = Math.ceil(longestName.length * 6.5) + 14;
-    const chevronWidth = 16;
-    const cellPadding = 4;
-    return labelWidth + bubbleWidth + chevronWidth + cellPadding;
-  }, [participants]);
 
   if (populatedWPs.length === 0) return null;
 
@@ -369,11 +379,24 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
   return (
     <div>
       <p className={`${tableStyles} italic mb-0`}>
-        <span className="font-bold italic">Table 3.1.b.</span> Work package descriptions
+        <span className="font-bold italic">Table 3.1.b.</span>{' '}
+        WP descriptions, including objectives, task (T) descriptions, task leaders{' '}
+        <CaptionBubble showCrown />{' '}
+        &amp; other participants{' '}
+        <CaptionBubble />{' '}
+        &amp; start month &amp; end month
       </p>
       {populatedWPs.map((wp, idx) => {
         const shortName = wp.short_name || wp.title || `WP${wp.number}`;
         const title = wp.title || `Work Package ${wp.number}`;
+        const wpLeader = participants.find(p => p.id === wp.lead_participant_id);
+
+        // Compute month range from tasks
+        const starts = wp.tasks.map(t => t.start_month).filter((m): m is number => m != null);
+        const ends = wp.tasks.map(t => t.end_month).filter((m): m is number => m != null);
+        const monthRange = starts.length > 0 && ends.length > 0
+          ? `M${String(Math.min(...starts)).padStart(2, '0')}–M${String(Math.max(...ends)).padStart(2, '0')}`
+          : null;
 
         return (
           <div key={wp.id}>
@@ -383,10 +406,9 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
               style={{ borderLeft: `3pt solid ${wp.color}` }}
             >
               <tbody>
-                {/* WP Header row - editable title */}
+                {/* Header row 1: WP number + short name | month range */}
                 <tr>
                   <td
-                    colSpan={3}
                     className="border px-0.5 font-bold text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight text-white"
                     style={{
                       backgroundColor: wp.color,
@@ -402,40 +424,59 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                       onSave={(val) => saveWPField(wp.id, 'short_name', val)}
                       className="text-white"
                     />
-                    &nbsp;–&nbsp;
+                  </td>
+                  <td
+                    className="border px-0.5 font-bold text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight text-white text-right whitespace-nowrap"
+                    style={{
+                      backgroundColor: wp.color,
+                      borderColor: wp.color,
+                      paddingTop: 0,
+                      paddingBottom: 0,
+                      lineHeight: 1.2,
+                      width: '1%',
+                    }}
+                  >
+                    {monthRange || <span className="opacity-70">—</span>}
+                  </td>
+                </tr>
+
+                {/* Header row 2: WP title | WP leader bubble with crown */}
+                <tr>
+                  <td
+                    className="border px-0.5 font-bold text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight text-white"
+                    style={{
+                      backgroundColor: wp.color,
+                      borderColor: wp.color,
+                      paddingTop: 0,
+                      paddingBottom: 0,
+                      lineHeight: 1.2,
+                    }}
+                  >
                     <EditableHeaderText
                       value={title}
                       onSave={(val) => saveWPField(wp.id, 'title', val)}
                       className="text-white"
                     />
                   </td>
-                </tr>
-
-                {/* WP leader & duration row - editable leader */}
-                <tr>
-                  <td colSpan={2} className={`${cellStyles} whitespace-nowrap`} style={{ borderColor: wp.color, width: leaderColMinWidth, minWidth: leaderColMinWidth }}>
-                    <div className="flex items-center flex-wrap">
-                      <span className="italic font-bold">WP leader:&nbsp;</span>
-                      <LeaderPicker
-                        entityId={wp.id}
-                        entityTable="wp_drafts"
-                        currentLeaderId={wp.lead_participant_id}
-                        participants={participants}
-                        proposalId={proposalId}
-                      />
-                    </div>
-                  </td>
-                  <td className={`${cellStyles} whitespace-nowrap`} style={{ borderColor: wp.color, width: '1%' }}>
-                    {(() => {
-                      const starts = wp.tasks.map(t => t.start_month).filter((m): m is number => m != null);
-                      const ends = wp.tasks.map(t => t.end_month).filter((m): m is number => m != null);
-                      if (starts.length > 0 && ends.length > 0) {
-                        const minStart = Math.min(...starts);
-                        const maxEnd = Math.max(...ends);
-                        return <span>M{String(minStart).padStart(2, '0')}–M{String(maxEnd).padStart(2, '0')}</span>;
-                      }
-                      return <span className="text-muted-foreground text-[9pt] italic">—</span>;
-                    })()}
+                  <td
+                    className="border px-0.5 font-bold text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight text-white text-right whitespace-nowrap"
+                    style={{
+                      backgroundColor: wp.color,
+                      borderColor: wp.color,
+                      paddingTop: 0,
+                      paddingBottom: 0,
+                      lineHeight: 1.2,
+                      width: '1%',
+                    }}
+                  >
+                    <LeaderPicker
+                      entityId={wp.id}
+                      entityTable="wp_drafts"
+                      currentLeaderId={wp.lead_participant_id}
+                      participants={participants}
+                      proposalId={proposalId}
+                      showCrown
+                    />
                   </td>
                 </tr>
 
@@ -444,7 +485,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
 
                 {/* Objectives */}
                 <tr>
-                  <td colSpan={3} className={editableCellStyles} style={{ borderColor: wp.color }}>
+                  <td colSpan={2} className={editableCellStyles} style={{ borderColor: wp.color }}>
                     <span className="font-bold italic">Objectives: </span>
                     <EditableText
                       inline
@@ -469,7 +510,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                       {/* Task header row - editable title */}
                       <tr>
                         <td
-                          colSpan={3}
+                          colSpan={2}
                           className="border px-0.5 font-bold text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight text-white"
                           style={{
                             backgroundColor: wp.color,
@@ -488,23 +529,18 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                         </td>
                       </tr>
 
-                      {/* Task metadata row: leader | partners | timing */}
+                      {/* Task metadata row: leader + partners merged | timing */}
                       <tr>
-                        <td className={`${cellStyles} whitespace-nowrap`} style={{ borderColor: wp.color, width: leaderColMinWidth, minWidth: leaderColMinWidth }}>
-                          <div className="flex items-center flex-wrap">
-                            <span className="italic font-bold">Task leader:&nbsp;</span>
+                        <td className={`${cellStyles}`} style={{ borderColor: wp.color }}>
+                          <div className="flex items-center flex-wrap gap-0.5">
                             <LeaderPicker
                               entityId={task.id}
                               entityTable="wp_draft_tasks"
                               currentLeaderId={task.lead_participant_id}
                               participants={participants}
                               proposalId={proposalId}
+                              showCrown
                             />
-                          </div>
-                        </td>
-                        <td className={`${cellStyles}`} style={{ borderColor: wp.color }}>
-                          <div className="flex items-center flex-wrap">
-                            <span className="italic font-bold">Partners:&nbsp;</span>
                             <PartnersPicker
                               taskId={task.id}
                               selectedIds={partnerIds}
@@ -524,7 +560,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                       {/* Task description row */}
                       <tr>
                         <td
-                          colSpan={3}
+                          colSpan={2}
                           className={editableCellStyles}
                           style={{ borderColor: wp.color }}
                         >
