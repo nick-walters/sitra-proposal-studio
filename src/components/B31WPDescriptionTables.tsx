@@ -409,15 +409,26 @@ function EditableHeaderText({
   );
 }
 
-/* ── Caption crown bubble ── */
-function CaptionBubble({ showCrown = false }: { showCrown?: boolean }) {
+/* ── Caption bubble helpers ── */
+function CaptionParticipantBubble({ showCrown = false }: { showCrown?: boolean }) {
   return (
     <span
       className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-      style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 3px', minWidth: 20 }}
+      style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', height: 'fit-content' }}
     >
       {showCrown && <Crown className="h-2.5 w-2.5 fill-white" strokeWidth={0} />}
-      {!showCrown && <span>&nbsp;</span>}
+      {!showCrown && <span style={{ display: 'inline-block', width: 10 }}>&nbsp;</span>}
+    </span>
+  );
+}
+
+function CaptionTaskBubble() {
+  return (
+    <span
+      className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
+      style={{ backgroundColor: '#ffffff', color: '#000000', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', height: 'fit-content' }}
+    >
+      <span style={{ display: 'inline-block', width: 10 }}>&nbsp;</span>
     </span>
   );
 }
@@ -446,7 +457,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
         tableKey="table-3.1.b"
         label="Table 3.1.b."
         defaultCaption="WP descriptions, including objectives, task (T) descriptions, task/WP leaders"
-        suffix={<><CaptionBubble showCrown /> &amp; other participants <CaptionBubble /> &amp; start &amp; end month</>}
+        suffix={<>task <CaptionTaskBubble /> descriptions, task/WP leaders <CaptionParticipantBubble showCrown /> &amp; other participants <CaptionParticipantBubble /> &amp; start &amp; end month</>}
         className="mb-0"
       />
       {populatedWPs.map((wp, idx) => {
