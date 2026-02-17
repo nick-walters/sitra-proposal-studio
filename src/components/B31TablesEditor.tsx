@@ -1220,12 +1220,38 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
   const autoFitColumns = useCallback(() => {
     const table = tableRef.current;
     if (!table) return;
-    const widths = computeAutoFitFull(table);
+
+    // Check if any risk has 3+ WPs — if so, cap the WPs column (index 3)
+    // to the width of ~2 bubbles side by side
+    const hasThreeOrMoreWPs = risks.some(r => {
+      const wpList = r.wps?.split(',').filter(Boolean) || [];
+      return wpList.length >= 3;
+    });
+
+    let colCaps: Record<number, number> | undefined;
+    if (hasThreeOrMoreWPs) {
+      // Measure actual bubble width from the DOM
+      const wpCells = table.querySelectorAll('tbody tr td:nth-child(4)');
+      let maxTwoBubbleWidth = 84; // fallback
+      wpCells.forEach(cell => {
+        const bubbles = cell.querySelectorAll('span.rounded-full');
+        if (bubbles.length >= 2) {
+          // Width of first two bubbles + gap
+          const b1 = (bubbles[0] as HTMLElement).offsetWidth;
+          const b2 = (bubbles[1] as HTMLElement).offsetWidth;
+          const gap = 4; // flex gap
+          maxTwoBubbleWidth = Math.max(maxTwoBubbleWidth, b1 + b2 + gap + 4); // +4 for padding
+        }
+      });
+      colCaps = { 3: maxTwoBubbleWidth };
+    }
+
+    const widths = computeAutoFitFull(table, colCaps);
     if (widths) {
       setColWidths(widths);
       saveWidths(widths);
     }
-  }, [tableRef, setColWidths, saveWidths]);
+  }, [tableRef, setColWidths, saveWidths, risks]);
 
   return (
     <div>
