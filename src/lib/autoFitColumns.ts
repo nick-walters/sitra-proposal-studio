@@ -30,24 +30,41 @@ export function computeAutoFitNarrow(table: HTMLTableElement): number[] | null {
  * Compact columns (bubbles, badges, short values) keep their natural size;
  * remaining space is distributed proportionally among text-heavy columns.
  * Used for tables like 3.1.e where full-width is preferred.
+ *
+ * @param colMaxWidths - Optional map of colIndex → max pixel width.
+ *   If a column's natural width exceeds this cap, it is fixed at the cap value
+ *   and treated as compact (not flexed).
  */
-export function computeAutoFitFull(table: HTMLTableElement): number[] | null {
+export function computeAutoFitFull(
+  table: HTMLTableElement,
+  colMaxWidths?: Record<number, number>
+): number[] | null {
   const { minWidths, containerWidth, cleanup } = measureColumnWidths(table);
   if (!minWidths) return null;
 
+  // Apply column caps
+  const cappedWidths = minWidths.map((w, i) => {
+    const cap = colMaxWidths?.[i];
+    return cap != null && w > cap ? cap : w;
+  });
+
   const COMPACT_THRESHOLD = 120;
-  const compactTotal = minWidths.reduce(
-    (s, w) => s + (w < COMPACT_THRESHOLD ? w : 0),
+  // A column is compact if it's naturally small OR was capped
+  const isCompact = (w: number, i: number) =>
+    w < COMPACT_THRESHOLD || (colMaxWidths?.[i] != null && minWidths[i] > colMaxWidths[i]);
+
+  const compactTotal = cappedWidths.reduce(
+    (s, w, i) => s + (isCompact(w, i) ? w : 0),
     0
   );
-  const flexIndices = minWidths
-    .map((w, i) => (w >= COMPACT_THRESHOLD ? i : -1))
+  const flexIndices = cappedWidths
+    .map((w, i) => (!isCompact(w, i) ? i : -1))
     .filter(i => i >= 0);
   const remainingSpace = Math.max(0, containerWidth - compactTotal);
-  const totalFlexMin = flexIndices.reduce((s, i) => s + minWidths[i], 0);
+  const totalFlexMin = flexIndices.reduce((s, i) => s + cappedWidths[i], 0);
 
-  let finalWidths = minWidths.map((w, i) => {
-    if (w < COMPACT_THRESHOLD) return w;
+  let finalWidths = cappedWidths.map((w, i) => {
+    if (isCompact(w, i)) return w;
     if (totalFlexMin > 0) {
       return Math.max(60, remainingSpace * (w / totalFlexMin));
     }
