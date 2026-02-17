@@ -1001,24 +1001,28 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
       </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <B31TableWrapper>
-          <Table className={`${tableStyles} w-full`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto' }} ref={tableRef}>
+          <Table className={`${tableStyles} w-full [&_th]:border-0 [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse' }} ref={tableRef}>
             <TableHeader>
               <TableRow className="bg-black text-white hover:bg-black">
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[0] } : undefined}>
-                  Milestone
+                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[0] } : { width: '50px', whiteSpace: 'nowrap' }) }}>
+                  No.
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[1] } : { whiteSpace: 'nowrap' }}>
-                  WPs
+                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[1] } : undefined}>
+                  Milestone name
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[2] } : { whiteSpace: 'nowrap' }}>
-                  Due
+                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[2] } : { width: '40px', whiteSpace: 'nowrap' }) }}>
+                  WPs
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(2)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[3] } : undefined}>
-                  Means of verification
+                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[3] } : { width: '40px', whiteSpace: 'nowrap' }) }}>
+                  Due
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(3)} />}
+                </TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[4] } : undefined}>
+                  Means of verification
+                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(4)} />}
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -1026,8 +1030,23 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
               <TableBody>
                 {milestones.map((ms) => (
                   <SortableTableRow key={ms.id} id={ms.id} canDrag={isAdminOrOwner} onDelete={() => deleteMilestone.mutate(ms.id)}>
+                    <TableCell className={cellStyles} style={{ lineHeight: 1.2, whiteSpace: 'nowrap', width: '50px' }}>
+                      <span
+                        className="inline-flex items-center justify-center px-1 rounded-full font-bold font-['Times_New_Roman',Times,serif] text-[9pt] whitespace-nowrap relative"
+                        style={{
+                          backgroundColor: '#fff',
+                          color: '#dc2626',
+                          border: '1.5px solid #dc2626',
+                          lineHeight: 1,
+                          verticalAlign: 'middle',
+                          top: 'calc(-1pt + 0.5px)',
+                          width: 'fit-content',
+                        }}
+                      >
+                        MS{ms.number}
+                      </span>
+                    </TableCell>
                     <TableCell className={cellStyles} style={{ lineHeight: 1.2 }}>
-                      <span className="font-bold font-['Times_New_Roman',Times,serif] text-[11pt]" style={{ lineHeight: 1.2 }}>MS{ms.number}:&nbsp;</span>
                       <span className="font-['Times_New_Roman',Times,serif] text-[11pt]" style={{ lineHeight: 1.2 }}>
                         <EditableTextInline
                           value={ms.name}
