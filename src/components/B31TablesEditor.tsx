@@ -731,21 +731,39 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                 {deliverables.map((del) => (
                   <SortableTableRow key={del.id} id={del.id} canDrag={isAdminOrOwner} onDelete={() => deleteDeliverable.mutate(del.id)}>
                     <TableCell className={cellStyles} style={{ lineHeight: 1.2, borderRight: 'none' }}>
-                      <span className="font-bold font-['Times_New_Roman',Times,serif] text-[11pt]" style={{ lineHeight: 1.2 }}>
-                        <EditableTextInline
-                          value={del.number}
-                          onChange={(val) => updateDeliverable.mutate({ id: del.id, number: val })}
-                          placeholder="D#.#"
-                        />
-                      </span>
-                      <span className="font-bold font-['Times_New_Roman',Times,serif] text-[11pt]" style={{ lineHeight: 1.2 }}>:&nbsp;</span>
-                      <span className="font-['Times_New_Roman',Times,serif] text-[11pt]" style={{ lineHeight: 1.2 }}>
-                        <EditableTextInline
-                          value={del.name}
-                          onChange={(val) => updateDeliverable.mutate({ id: del.id, name: val })}
-                          placeholder="Deliverable name"
-                        />
-                      </span>
+                      {(() => {
+                        const wpColor = del.wp_number != null 
+                          ? workPackages.find(wp => wp.number === del.wp_number)?.color || '#000'
+                          : '#000';
+                        return (
+                          <>
+                            <span
+                              className="inline-flex items-center justify-center rounded-full font-bold font-['Times_New_Roman',Times,serif] text-[9pt] mr-1 align-middle"
+                              style={{
+                                backgroundColor: '#fff',
+                                color: wpColor,
+                                border: `1.5px solid ${wpColor}`,
+                                padding: '0 3px',
+                                lineHeight: 1.2,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              <EditableTextInline
+                                value={del.number}
+                                onChange={(val) => updateDeliverable.mutate({ id: del.id, number: val })}
+                                placeholder="D#.#"
+                              />
+                            </span>
+                            <span className="font-['Times_New_Roman',Times,serif] text-[11pt]" style={{ lineHeight: 1.2 }}>
+                              <EditableTextInline
+                                value={del.name}
+                                onChange={(val) => updateDeliverable.mutate({ id: del.id, name: val })}
+                                placeholder="Deliverable name"
+                              />
+                            </span>
+                          </>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell className={bubbleCellStyles} style={{ borderLeft: 'none', borderRight: 'none' }}>
                       <SingleWPSelector

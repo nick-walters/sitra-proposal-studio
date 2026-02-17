@@ -443,7 +443,7 @@ export function GanttChartFigure({
                         {(() => {
                           // Collect all bubbles for this task
                           const bubbles: { month: number; label: string; color: string; tooltipTitle: string; type: 'del' | 'ms' }[] = [];
-                          task.deliverables?.forEach(d => bubbles.push({ month: d.month, label: d.number.replace(/^D/, ''), color: '#16a34a', tooltipTitle: `Deliverable D${d.number}`, type: 'del' }));
+                          task.deliverables?.forEach(d => bubbles.push({ month: d.month, label: `D${d.number.replace(/^D/, '')}`, color: wpColor, tooltipTitle: `Deliverable D${d.number}`, type: 'del' }));
                           task.milestones?.forEach(ms => bubbles.push({ month: ms.month, label: String(ms.number), color: '#dc2626', tooltipTitle: `MS${ms.number}: ${ms.name}`, type: 'ms' }));
                           if (bubbles.length === 0) return null;
 
