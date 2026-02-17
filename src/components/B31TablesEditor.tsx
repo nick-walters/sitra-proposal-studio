@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { computeAutoFitWidths } from '@/lib/autoFitColumns';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -1212,61 +1213,11 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
   const autoFitColumns = useCallback(() => {
     const table = tableRef.current;
     if (!table) return;
-
-    const prevLayout = table.style.tableLayout;
-    const prevWidth = table.style.width;
-    table.style.tableLayout = 'auto';
-    table.style.width = 'auto';
-
-    const allCells = table.querySelectorAll('th, td');
-    const savedStyles: string[] = [];
-    allCells.forEach((cell, i) => {
-      const el = cell as HTMLElement;
-      savedStyles[i] = el.style.width;
-      el.style.width = '';
-      el.style.whiteSpace = 'nowrap';
-    });
-
-    table.offsetHeight;
-    const headerCells = table.querySelectorAll('thead th');
-    const numCols = headerCells.length;
-    const minWidths = new Array(numCols).fill(0);
-
-    table.querySelectorAll('tr').forEach(row => {
-      const cells = row.querySelectorAll('th, td');
-      cells.forEach((cell, colIdx) => {
-        if (colIdx < numCols) {
-          minWidths[colIdx] = Math.max(minWidths[colIdx], (cell as HTMLElement).offsetWidth);
-        }
-      });
-    });
-
-    allCells.forEach((cell) => {
-      (cell as HTMLElement).style.whiteSpace = '';
-    });
-
-    const containerWidth = table.parentElement?.clientWidth ?? table.offsetWidth;
-    const totalMinWidth = minWidths.reduce((s, w) => s + w, 0);
-
-    let finalWidths: number[];
-    if (totalMinWidth <= containerWidth) {
-      finalWidths = [...minWidths];
-    } else {
-      const scale = containerWidth / totalMinWidth;
-      finalWidths = minWidths.map(w => Math.max(40, Math.floor(w * scale)));
-      const diff = containerWidth - finalWidths.reduce((s, w) => s + w, 0);
-      if (diff !== 0) finalWidths[0] += diff;
+    const widths = computeAutoFitWidths(table);
+    if (widths) {
+      setColWidths(widths);
+      saveWidths(widths);
     }
-
-    table.style.tableLayout = prevLayout;
-    table.style.width = prevWidth;
-    allCells.forEach((cell, i) => {
-      (cell as HTMLElement).style.width = savedStyles[i];
-    });
-
-    finalWidths = finalWidths.map(w => Math.round(w));
-    setColWidths(finalWidths);
-    saveWidths(finalWidths);
   }, [tableRef, setColWidths, saveWidths]);
 
   return (
