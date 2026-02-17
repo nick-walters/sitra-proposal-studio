@@ -446,7 +446,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
         <CaptionBubble showCrown />{' '}
         &amp; other participants{' '}
         <CaptionBubble />{' '}
-        &amp; start month &amp; end month
+        &amp; start &amp; end month
       </p>
       {populatedWPs.map((wp, idx) => {
         const shortName = wp.short_name || wp.title || `WP${wp.number}`;
