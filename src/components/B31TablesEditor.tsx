@@ -365,11 +365,13 @@ function SingleWPSelector({
 function MultiWPSelector({ 
   value, 
   onChange, 
-  workPackages 
+  workPackages,
+  topOffset = '-1pt',
 }: { 
   value: string; // comma-separated WP numbers
   onChange: (val: string) => void;
   workPackages: WorkPackage[];
+  topOffset?: string;
 }) {
   const selectedNumbers = value ? value.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n)) : [];
   const selectedWPs = workPackages.filter(wp => selectedNumbers.includes(wp.number));
@@ -389,7 +391,7 @@ function MultiWPSelector({
         <button className="flex flex-wrap gap-0.5 items-center min-h-[1.2em] text-left">
           {selectedWPs.length > 0 ? (
             selectedWPs.map(wp => (
-              <WPBubble key={wp.id} wp={wp} topOffset="-1pt" />
+              <WPBubble key={wp.id} wp={wp} topOffset={topOffset} />
             ))
           ) : (
             <span className="font-['Times_New_Roman',Times,serif] text-[11pt] text-muted-foreground">-</span>
@@ -1300,6 +1302,7 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
                         value={risk.wps}
                         onChange={(val) => updateRisk.mutate({ id: risk.id, wps: val })}
                         workPackages={workPackages}
+                        topOffset="calc(-1pt + 1px)"
                       />
                     </TableCell>
                     <TableCell className={cellStyles}>
