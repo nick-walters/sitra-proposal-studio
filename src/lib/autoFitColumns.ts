@@ -29,15 +29,14 @@ export function computeAutoFitSmart(
 
   for (let col = 0; col < numCols; col++) {
     let hasBubbleRow = false;
-    let allCompact = true;
+    let allBodyCompact = true;
     let maxChars = 0;
     let maxTwoBubbleWidth = 0;
 
-    // Check header text too
+    // Check header text for char count (but don't use it for compact classification)
     if (headerCells[col]) {
       const headerText = (headerCells[col] as HTMLElement).textContent?.trim() || '';
       maxChars = Math.max(maxChars, headerText.length);
-      if (headerText.length > COMPACT_CHAR_LIMIT) allCompact = false;
     }
 
     rows.forEach(row => {
@@ -57,15 +56,16 @@ export function computeAutoFitSmart(
 
       const text = cell.textContent?.trim() || '';
       maxChars = Math.max(maxChars, text.length);
+      // Compact classification based on body cells only
       if (text.length > COMPACT_CHAR_LIMIT && bubbles.length === 0) {
-        allCompact = false;
+        allBodyCompact = false;
       }
     });
 
     if (hasBubbleRow) {
       colTypes[col] = 'bubble';
       colFixedWidths[col] = maxTwoBubbleWidth > 0 ? maxTwoBubbleWidth : minWidths[col];
-    } else if (allCompact) {
+    } else if (allBodyCompact) {
       colTypes[col] = 'compact';
       colFixedWidths[col] = minWidths[col] + 2; // small buffer
     } else {
