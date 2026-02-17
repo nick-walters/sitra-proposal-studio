@@ -1,58 +1,110 @@
 
+# Unified Bubble System Across Part B
 
-## Rewrite Auto-Resize Column Logic
+## Goal
+Create a single, consistent bubble specification used everywhere in the proposal: tables, text cross-references, Gantt, WP descriptions, and captions.
 
-The current approach measures the DOM "no-wrap" width of each column, which is unreliable for text-heavy columns (textareas, long titles) because their natural unwrapped width can be enormous, distorting proportions. Your proposed character-count-based approach is much more robust.
+## Bubble Specification
 
-### New Algorithm
+### Universal Properties (all bubble types)
+- Font: 11pt Times New Roman, bold
+- Shape: pill (rounded-full)
+- Fixed height with minimal vertical padding (just enough to not clip text)
+- Must not increase line spacing when used inline in text
+- `vertical-align: baseline` and `line-height: 1` to prevent pushing lines apart
 
-The new `computeAutoFitSmart` function will replace both `computeAutoFitNarrow` and `computeAutoFitFull` with a single unified algorithm:
+### Bubble Types
 
-1. **Detect bubble columns**: Scan each column's cells for bubble elements (`.rounded-full` spans). If any cell has 2+ bubbles, fix that column's width to the measured width of two bubbles side-by-side (plus padding).
+| Type | Fill | Border | Text colour | Font style | Content |
+|------|------|--------|-------------|------------|---------|
+| WP | WP colour | WP colour | White | Bold | "WPX" (or "WPX: ShortName" / "WPX: ShortName - Title" where already used) |
+| Participant | Black | Black | White | Bold italic | Short name. Crown icon for WP/task leaders. Participant number only in tables where already shown |
+| Task | White | WP colour (1.5px) | WP colour | Bold | "TX.X" |
+| Deliverable | White | WP colour (1.5px) | WP colour | Bold | "DX.X" |
+| Milestone | White | Black (1.5px) | Black | Bold | "MSX" |
+| Risk (L/M/H) | White | Level colour (1.5px) | Level colour | Bold | "L" / "M" / "H" |
 
-2. **Detect compact columns**: For remaining columns, check if every cell contains only a single short word or bubble (no cell text exceeds ~10 characters). These get their natural no-wrap width (measured from the DOM as today).
+### Caption bubbles
+Same parameters as their corresponding type (participant caption bubbles use black fill, crown where indicated).
 
-3. **Measure max character count for text columns**: For each remaining "text" column, find the cell with the longest text content (`textContent.trim().length`). Record this max character count per column.
+---
 
-4. **Distribute remaining width proportionally**: Subtract the fixed and compact column widths from the container width. Divide the remaining space proportionally based on each text column's max character count.
+## Technical Changes
 
-5. **Handle overflow**: If total fixed+compact exceeds container, scale everything down proportionally (same as current fallback).
+### 1. Create shared bubble utility (new file)
+**File: `src/lib/bubbleStyles.ts`**
 
-### Changes
+Export a set of functions that return consistent inline style objects and class strings for each bubble type:
+- `wpBubbleStyles(color)` -- fill + border = WP colour, white text
+- `participantBubbleStyles()` -- fill + border = black, white italic text
+- `taskBubbleStyles(wpColor)` -- white fill, WP colour border + text
+- `deliverableBubbleStyles(wpColor)` -- white fill, WP colour border + text
+- `milestoneBubbleStyles()` -- white fill, black border + text
+- `riskBubbleStyles(levelColor)` -- white fill, level colour border + text
 
-**`src/lib/autoFitColumns.ts`**
-- Add new exported function `computeAutoFitSmart(table: HTMLTableElement, options?: { fullWidth?: boolean })`.
-- `fullWidth: true` (for 3.1.e) ensures the table fills the container; `fullWidth: false` (for 3.1.c, d, f, g, h) allows the table to be narrower than the container.
-- The function implements the 4-step algorithm above.
-- Keep `measureColumnWidths` for measuring compact/bubble columns' natural widths.
-- Deprecate or remove `computeAutoFitNarrow` and `computeAutoFitFull`.
+Each returns `{ className, style }` with:
+- `font-family: Times New Roman`, `font-size: 11pt`, `font-weight: bold`
+- `border-radius: 9999px`, `white-space: nowrap`
+- `display: inline-flex`, `align-items: center`
+- `line-height: 1`, `vertical-align: baseline`
+- Minimal padding: `padding: 0px 5px`
+- For italic types: `font-style: italic`
 
-**`src/components/B31TablesEditor.tsx`**
-- Table 3.1.c (Deliverables): Replace `computeAutoFitNarrow` call with `computeAutoFitSmart(table)`.
-- Table 3.1.d (Milestones): Replace `computeAutoFitNarrow` call with `computeAutoFitSmart(table)`.
-- Table 3.1.e (Risks): Replace `computeAutoFitFull` call with `computeAutoFitSmart(table, { fullWidth: true })`. Remove the inline bubble-measuring logic (now handled inside the function).
+### 2. Update `src/extensions/WPReferenceMark.ts`
+- Change font-size from `9pt` to `11pt`
+- Add `border: 1.5px solid ${color}` (same as background colour)
+- Keep `vertical-align: baseline` to prevent line height inflation
+- Add `font-family: 'Times New Roman', Times, serif`
 
-**`src/components/B31EffortMatrix.tsx`**
-- Replace `computeAutoFitNarrow` call with `computeAutoFitSmart(table)` (effort matrix is all compact/numeric columns, so it will naturally stay narrow).
+### 3. Update `src/extensions/ParticipantReferenceMark.ts`
+- Change font-size from `9pt` to `11pt`
+- Add `font-style: italic`
+- Add `border: 1.5px solid #000000`
+- Add `font-family: 'Times New Roman', Times, serif`
 
-### Technical Details
+### 4. Update `src/components/B31TablesEditor.tsx`
+- **WPBubble**: Change font from `9pt` to `11pt`, add `border` matching bg colour, add `font-family`
+- **RiskBadge**: Change font from `9pt` to `11pt`, keep white bg + coloured border/text
+- **Participant bubbles** (deliverables table, line ~856): Change to `11pt`, add border `1.5px solid #000`, italic
+- **Deliverable number bubble** (line ~803): Change to `11pt`
+- **Milestone bubble** (line ~1108): Change to `11pt`
 
-```text
-For each column:
-  1. Has 2+ bubbles in any cell?
-     YES -> fixed width = measured 2-bubble width
-  2. All cells <= ~10 chars and no multi-line content?
-     YES -> compact width = measured no-wrap width
-  3. Otherwise -> "text" column
-     -> maxChars = max(textContent.length) across all cells
+### 5. Update `src/components/B31WPDescriptionTables.tsx`
+- **ParticipantBubble**: Change from `9pt` to `11pt`, add `border: 1.5px solid #000`
+- **CaptionBubble**: Change from `9pt` to `11pt`, adjust dimensions to fit 11pt text
+- **Task bubbles** (line ~554-556): Change from `9pt` to `11pt`
+- **WP header bubble** already at `11pt` -- add explicit `border` matching bg colour
 
-Available space = containerWidth - sum(fixed) - sum(compact)
-Each text column width = available * (maxChars / totalMaxChars)
+### 6. Update `src/components/GanttChartFigure.tsx`
+- **Task number bubbles** (lines ~401-403, ~567-569): Change from `9pt` to `11pt`
+- **WP header bubble**: Add `border` matching bg colour, ensure `font-family: Times New Roman`
+- **Deliverable/milestone indicator bubbles** (line ~496-512): Change from `9pt` to `11pt`
 
-If fullWidth=false and sum(all) < containerWidth:
-  use natural widths (don't stretch)
-If fullWidth=true:
-  always fill container
+### 7. Update `src/components/WPDraftEditor.tsx`
+- **WP reference spans** (line ~267-288): Add `border` matching bg colour, add `font-family: Times New Roman`, ensure `11pt` (already set)
+
+### 8. Add CSS rule in `src/index.css`
+Add a rule to prevent inline bubbles from affecting line height in document content:
+```css
+.wp-reference-badge,
+.participant-reference-badge {
+  line-height: 1 !important;
+  vertical-align: baseline !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
 ```
 
-This approach is content-aware rather than pixel-aware, making it robust against textarea sizing quirks and producing proportional results that match human expectations.
+### 9. Update PDF export (`src/hooks/usePdfExport.ts` and `src/hooks/useDocxExport.ts`)
+Ensure any bubble rendering in exports follows the same 11pt Times New Roman bold specification.
+
+## Files to modify
+1. `src/lib/bubbleStyles.ts` (new)
+2. `src/extensions/WPReferenceMark.ts`
+3. `src/extensions/ParticipantReferenceMark.ts`
+4. `src/components/B31TablesEditor.tsx`
+5. `src/components/B31WPDescriptionTables.tsx`
+6. `src/components/GanttChartFigure.tsx`
+7. `src/components/WPDraftEditor.tsx`
+8. `src/index.css`
+9. PDF/DOCX export hooks (if bubble rendering exists there)
