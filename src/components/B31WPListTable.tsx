@@ -11,6 +11,7 @@ import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { EditableCaption } from '@/components/EditableCaption';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles = "!px-[1pt] !py-0 px-[1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
@@ -213,9 +214,13 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
           </Button>
         </div>
       )}
-      <p className={`${tableStyles} italic mb-0`}>
-        <span className="font-bold italic">Table 3.1.a.</span> List of work packages
-      </p>
+      <EditableCaption
+        proposalId={proposalId}
+        tableKey="table-3.1.a"
+        label="Table 3.1.a."
+        defaultCaption="List of work packages"
+        className="mb-0"
+      />
       <Table className={`${tableStyles} [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', width: colWidths.length > 0 ? `${colWidths.reduce((s, w) => s + w, 0)}px` : '100%', borderCollapse: 'collapse' }} ref={tableRef}>
         <TableHeader>
           <TableRow className="hover:bg-transparent">

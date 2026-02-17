@@ -2991,6 +2991,41 @@ export type Database = {
           },
         ]
       }
+      table_captions: {
+        Row: {
+          caption: string
+          id: string
+          proposal_id: string
+          table_key: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          caption: string
+          id?: string
+          proposal_id: string
+          table_key: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          caption?: string
+          id?: string
+          proposal_id?: string
+          table_key?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "table_captions_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       table_column_widths: {
         Row: {
           column_widths: Json

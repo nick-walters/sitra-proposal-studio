@@ -10,6 +10,7 @@ import { ColumnResizer } from '@/components/ColumnResizer';
 import { Columns3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { EditableCaption } from '@/components/EditableCaption';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles = "px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle";
@@ -131,9 +132,13 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
           </Button>
         </div>
       )}
-      <p className={`${tableStyles} italic mb-0`}>
-        <span className="font-bold italic">Table 3.1.f.</span> Person months per participant per work package
-      </p>
+      <EditableCaption
+        proposalId={proposalId}
+        tableKey="table-3.1.f"
+        label="Table 3.1.f."
+        defaultCaption="Person months per participant per work package"
+        className="mb-0"
+      />
       <table className={`${tableStyles} border-collapse [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', width: colWidths.length > 0 ? `${colWidths.reduce((s, w) => s + w, 0)}px` : '100%' }} ref={tableRef}>
         <thead>
           <tr>
