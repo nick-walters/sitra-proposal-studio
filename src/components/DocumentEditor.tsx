@@ -128,8 +128,18 @@ export function DocumentEditor({
     getNextCitationNumber 
   } = useProposalReferences(proposalId);
   
-  // Track changes persistence hook
-  const [trackChangesEnabled, setTrackChangesEnabled] = useState(true);
+  // Track changes persistence hook — remember last setting per user, default ON
+  const [trackChangesEnabled, setTrackChangesEnabled] = useState(() => {
+    if (!user?.id) return true;
+    const stored = localStorage.getItem(`track-changes-${user.id}`);
+    return stored !== null ? stored === 'true' : true;
+  });
+  const handleSetTrackChangesEnabled = useCallback((enabled: boolean) => {
+    setTrackChangesEnabled(enabled);
+    if (user?.id) {
+      localStorage.setItem(`track-changes-${user.id}`, String(enabled));
+    }
+  }, [user?.id]);
   const [zoomLevel, setZoomLevel] = useState(100);
   const {
     changes: trackedChanges,
@@ -1066,7 +1076,7 @@ export function DocumentEditor({
                     <TrackChangesToolbar
                       editor={editor}
                       enabled={trackChangesEnabled}
-                      onToggle={setTrackChangesEnabled}
+                      onToggle={handleSetTrackChangesEnabled}
                       changes={trackedChanges}
                     />
                   </div>
