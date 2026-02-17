@@ -384,7 +384,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
     <div>
       <p className={`${tableStyles} italic mb-0`}>
         <span className="font-bold italic">Table 3.1.b.</span>{' '}
-        WP descriptions, including objectives, task (T) descriptions, task leaders{' '}
+        WP descriptions, including objectives, task (T) descriptions, task/WP leaders{' '}
         <CaptionBubble showCrown />{' '}
         &amp; other participants{' '}
         <CaptionBubble />{' '}
