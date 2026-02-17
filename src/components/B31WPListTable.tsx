@@ -200,23 +200,19 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
       <Table className={`${tableStyles} w-full [&_th]:border-0 [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse' }} ref={tableRef}>
         <TableHeader>
           <TableRow className="bg-black text-white hover:bg-black">
-            <TableHead className={`${cellStyles} whitespace-nowrap relative text-white font-bold`} style={colWidths.length > 0 ? { width: colWidths[0] } : undefined}>
-              No. &amp; short name
+            <TableHead className={`${cellStyles} relative text-white font-bold`} style={colWidths.length > 0 ? { width: colWidths[0] } : undefined}>
+              Work package
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
             </TableHead>
-            <TableHead className={`${cellStyles} relative text-white font-bold`} style={colWidths.length > 0 ? { width: colWidths[1] } : undefined}>
-              Work package title
+            <TableHead className={`${cellStyles} whitespace-nowrap relative text-white font-bold`} style={colWidths.length > 0 ? { width: colWidths[1] } : undefined}>
+              Lead
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
             </TableHead>
             <TableHead className={`${cellStyles} whitespace-nowrap relative text-white font-bold`} style={colWidths.length > 0 ? { width: colWidths[2] } : undefined}>
-              Lead
+              Person months
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(2)} />}
             </TableHead>
-            <TableHead className={`${cellStyles} whitespace-nowrap relative text-white font-bold`} style={colWidths.length > 0 ? { width: colWidths[3] } : undefined}>
-              Person months
-              {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(3)} />}
-            </TableHead>
-            <TableHead className={`${cellStyles} whitespace-nowrap text-white font-bold`} style={colWidths.length > 0 ? { width: colWidths[4] } : undefined}>Duration</TableHead>
+            <TableHead className={`${cellStyles} whitespace-nowrap text-white font-bold`} style={colWidths.length > 0 ? { width: colWidths[3] } : undefined}>Duration</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -233,24 +229,18 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
 
             return (
               <TableRow key={wp.id}>
-                <TableCell className={`${editableCellStyles} whitespace-nowrap leading-[0]`}>
+                <TableCell className={`${editableCellStyles} leading-[0]`}>
                   <span
-                    className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-white text-[9pt] font-bold whitespace-nowrap align-middle"
+                    className="inline-flex items-center px-1.5 py-0.5 rounded-full text-white text-[9pt] font-bold whitespace-nowrap align-middle"
                     style={{ backgroundColor: wp.color || '#666', lineHeight: 1 }}
                   >
-                    WP{wp.number}:&nbsp;
+                    WP{wp.number}: {shortName} –{' '}
                     <InlineEdit
-                      value={shortName}
-                      onSave={(val) => saveWPField(wp.id, 'short_name', val)}
+                      value={title}
+                      onSave={(val) => saveWPField(wp.id, 'title', val)}
                       className="text-white text-[9pt] font-bold"
                     />
                   </span>
-                </TableCell>
-                <TableCell className={editableCellStyles}>
-                  <InlineEdit
-                    value={title}
-                    onSave={(val) => saveWPField(wp.id, 'title', val)}
-                  />
                 </TableCell>
                 <TableCell className={`${editableCellStyles} whitespace-nowrap leading-[0]`}>
                   {proposalId ? (
