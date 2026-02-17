@@ -170,14 +170,9 @@ function EditableText({
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
-    // Reset height, measure scrollHeight, then apply
+    // Reset height, measure scrollHeight, then apply exact fit
     el.style.height = '0';
-    const sh = el.scrollHeight;
-    // Compute line height to snap to exact line multiples (avoids fractional extra space)
-    const computed = window.getComputedStyle(el);
-    const lh = parseFloat(computed.lineHeight) || parseFloat(computed.fontSize) * 1.2;
-    const lines = Math.max(1, Math.round(sh / lh));
-    el.style.height = (lines * lh) + 'px';
+    el.style.height = el.scrollHeight + 'px';
   }, [localValue]);
   
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
