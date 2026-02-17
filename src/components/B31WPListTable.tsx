@@ -1,14 +1,16 @@
 import { useState, useCallback } from 'react';
+import { computeAutoFitSmart } from '@/lib/autoFitColumns';
 import { supabase } from '@/integrations/supabase/client';
 import type { B31WPData, B31Participant } from '@/hooks/useB31SectionData';
 import { useQueryClient } from '@tanstack/react-query';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Check, ChevronsUpDown } from 'lucide-react';
+import { Check, ChevronsUpDown, Columns3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles = "!px-[1pt] !py-0 px-[1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
@@ -139,7 +141,7 @@ function LeadPicker({
 export function B31WPListTable({ wpData, participants, proposalId }: Props) {
   const queryClient = useQueryClient();
   const { isAdminOrOwner } = useUserRole();
-  const { colWidths, tableRef, handleColResizeStart } = useColumnResize({ proposalId, tableKey: 'wp-list', canResize: isAdminOrOwner });
+  const { colWidths, setColWidths, tableRef, handleColResizeStart, saveWidths } = useColumnResize({ proposalId, tableKey: 'wp-list', canResize: isAdminOrOwner });
   const [editingCell, setEditingCell] = useState<{ wpId: string; field: 'pm' | 'duration' } | null>(null);
   const [editValue, setEditValue] = useState('');
 
@@ -190,10 +192,27 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
     queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
   };
 
+  const autoFitColumns = useCallback(() => {
+    const table = tableRef.current;
+    if (!table) return;
+    const widths = computeAutoFitSmart(table);
+    if (widths) {
+      setColWidths(widths);
+      saveWidths(widths);
+    }
+  }, [tableRef, setColWidths, saveWidths]);
+
   if (wpData.length === 0) return null;
 
   return (
     <div>
+      {isAdminOrOwner && (
+        <div className="print:hidden flex justify-end gap-1 mb-1">
+          <Button variant="outline" size="sm" onClick={autoFitColumns} className="text-xs h-6 px-2 py-0">
+            <Columns3 className="h-3 w-3 mr-1" /> Auto-resize columns
+          </Button>
+        </div>
+      )}
       <p className={`${tableStyles} italic mb-0`}>
         <span className="font-bold italic">Table 3.1.a.</span> List of work packages
       </p>
