@@ -594,7 +594,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
 
                       {/* Task metadata row: leader + partners merged | timing */}
                       <tr>
-                        <td className={`${cellStyles}`} style={{ borderColor: wp.color }}>
+                        <td className={`${cellStyles}`} style={{ borderColor: wp.color, borderRight: 'none' }}>
                           <div className="flex items-center flex-wrap gap-0.5">
                             <LeaderPicker
                               entityId={task.id}
@@ -613,7 +613,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                             />
                           </div>
                         </td>
-                        <td className={`${cellStyles} whitespace-nowrap text-right`} style={{ borderColor: wp.color, width: '75px' }}>
+                        <td className={`${cellStyles} whitespace-nowrap text-right`} style={{ borderColor: wp.color, borderLeft: 'none', width: '75px' }}>
                           <MonthRangePicker taskId={task.id} startMonth={task.start_month} endMonth={task.end_month} proposalId={proposalId} />
                         </td>
                       </tr>
