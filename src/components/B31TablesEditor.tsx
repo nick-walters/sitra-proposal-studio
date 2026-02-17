@@ -213,11 +213,13 @@ function EditableText({
 function EditableTextInline({ 
   value, 
   onChange, 
-  placeholder
+  placeholder,
+  inheritFont = false,
 }: { 
   value: string; 
   onChange: (val: string) => void;
   placeholder?: string;
+  inheritFont?: boolean;
 }) {
   const [localValue, setLocalValue] = useState(value);
   const spanRef = useRef<HTMLSpanElement>(null);
@@ -261,7 +263,7 @@ function EditableTextInline({
       onFocus={() => { isFocused.current = true; }}
       onBlur={() => { isFocused.current = false; }}
       data-placeholder={placeholder}
-      className="outline-none min-w-[50px] empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight"
+      className={`outline-none min-w-[50px] empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground leading-tight ${inheritFont ? 'font-inherit text-inherit' : "font-['Times_New_Roman',Times,serif] text-[11pt]"}`}
       style={{ display: 'inline' }}
     >
       {value}
@@ -752,6 +754,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                                 value={del.number}
                                 onChange={(val) => updateDeliverable.mutate({ id: del.id, number: val })}
                                 placeholder="D#.#"
+                                inheritFont
                               />
                             </span>
                             <span className="font-['Times_New_Roman',Times,serif] text-[11pt]" style={{ lineHeight: 1.2 }}>
