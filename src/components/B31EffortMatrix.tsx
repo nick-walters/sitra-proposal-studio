@@ -11,8 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
-const cellStyles = "px-[0.1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle";
-const headerCellStyles = "px-[0.1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle";
+const cellStyles = "px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle";
+const headerCellStyles = "px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle";
 const editableCellStyles = `${cellStyles} cursor-text hover:bg-muted/30`;
 
 interface Props {
@@ -235,7 +235,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
             const rowTotal = wpData.reduce((sum, wp) => sum + (pMap.get(wp.id) || 0), 0);
             return (
               <tr key={p.id}>
-                <td className="px-[0.1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle border-y border-gray-200" style={{ textAlign: 'left' }}>
+                <td className="px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle border-y border-gray-200" style={{ textAlign: 'left' }}>
                   <span
                     className="inline-flex items-center rounded-full px-1.5 text-[9pt] font-bold italic whitespace-nowrap"
                     style={{ backgroundColor: '#000000', color: '#FFFFFF', lineHeight: 1, paddingTop: '2px', paddingBottom: '2px' }}
@@ -275,7 +275,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
           })}
           {/* Total row */}
           <tr>
-            <td className="px-[0.1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle font-bold border-y border-gray-200" style={{ textAlign: 'left' }}>Total</td>
+            <td className="px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle font-bold border-y border-gray-200" style={{ textAlign: 'left' }}>Total</td>
             {wpData.map(wp => {
               const colTotal = participants.reduce((sum, p) => sum + (matrix.get(p.id)!.get(wp.id) || 0), 0);
               return <td key={wp.id} className={`${cellStyles} font-bold`}>{colTotal || '—'}</td>;
