@@ -521,7 +521,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
 
                 {/* Objectives */}
                 <tr>
-                  <td colSpan={2} className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle px-0.5 py-0" style={{ border: 'none' }}>
+                  <td colSpan={2} className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0" style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }}>
                     <span className="font-bold italic">Objectives: </span>
                     <EditableText
                       inline
@@ -543,30 +543,33 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                       {/* Spacer */}
                       <SpacerRow />
 
-                      {/* Task header: bubble spanning full width */}
+                      {/* Task header: outline bubble with number + bold title */}
                       <tr>
                         <td
                           colSpan={2}
                           className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight"
-                          style={{ padding: '0 2px', border: 'none' }}
+                          style={{ padding: '1px 2px', border: 'none' }}
                         >
-                          <span
-                            className="inline-flex items-center rounded-full px-3 py-0.5 font-bold text-white text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight w-full"
-                            style={{ backgroundColor: wp.color }}
-                          >
-                            T{wp.number}.{task.number}:&nbsp;
-                            <EditableHeaderText
-                              value={task.title || `Task ${task.number}`}
-                              onSave={(val) => saveTaskField(task.id, 'title', val)}
-                              className="text-white"
-                            />
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className="inline-flex items-center rounded-full px-2 py-0.5 font-bold text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight whitespace-nowrap"
+                              style={{ backgroundColor: '#fff', color: wp.color, border: `1.5px solid ${wp.color}` }}
+                            >
+                              T{wp.number}.{task.number}
+                            </span>
+                            <span className="font-bold text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight">
+                              <EditableHeaderText
+                                value={task.title || `Task ${task.number}`}
+                                onSave={(val) => saveTaskField(task.id, 'title', val)}
+                              />
+                            </span>
+                          </div>
                         </td>
                       </tr>
 
                       {/* Task metadata row: leader + partners | timing */}
                       <tr>
-                        <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle px-0.5 py-0" style={{ border: 'none' }}>
+                        <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0" style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }}>
                           <div className="flex items-center flex-wrap gap-0.5">
                             <LeaderPicker
                               entityId={task.id}
@@ -585,7 +588,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                             />
                           </div>
                         </td>
-                        <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle whitespace-nowrap text-right px-0.5 py-0" style={{ border: 'none', width: '75px' }}>
+                        <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle whitespace-nowrap text-right py-0" style={{ border: 'none', width: '75px', paddingLeft: '6px', paddingRight: '6px' }}>
                           <MonthRangePicker taskId={task.id} startMonth={task.start_month} endMonth={task.end_month} proposalId={proposalId} />
                         </td>
                       </tr>
@@ -594,8 +597,8 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                       <tr>
                         <td
                           colSpan={2}
-                          className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle px-0.5 py-0 cursor-text hover:bg-muted/30"
-                          style={{ border: 'none' }}
+                          className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0 cursor-text hover:bg-muted/30"
+                          style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }}
                         >
                           <EditableText
                             value={task.description || ''}
