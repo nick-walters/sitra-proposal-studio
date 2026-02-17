@@ -113,16 +113,19 @@ export const ParticipantReferenceMark = Mark.create<ParticipantReferenceOptions>
         'data-participant-reference': '',
         'class': 'participant-reference-badge',
         'contenteditable': 'false',
-        'style': `
+      'style': `
           display: inline-flex;
           align-items: center;
           background-color: #000000;
           color: #ffffff;
-          padding: 0 0.4rem;
+          border: 1.5px solid #000000;
+          padding: 0px 5px;
           border-radius: 9999px;
-          font-size: 9pt;
+          font-family: 'Times New Roman', Times, serif;
+          font-size: 11pt;
           font-weight: 700;
-          line-height: 1.1;
+          font-style: italic;
+          line-height: 1;
           white-space: nowrap;
           vertical-align: baseline;
           user-select: none;

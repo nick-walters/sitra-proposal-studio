@@ -310,8 +310,8 @@ function MonthSelect({
 function WPBubble({ wp, onRemove, topOffset = '-2pt' }: { wp: WorkPackage; onRemove?: () => void; topOffset?: string }) {
   return (
     <span 
-      className="inline-flex items-center justify-center gap-0.5 px-1.5 rounded-full text-white text-[9pt] font-bold whitespace-nowrap relative"
-      style={{ backgroundColor: wp.color || '#666', lineHeight: 1, verticalAlign: 'middle', top: topOffset, paddingTop: '2px', paddingBottom: '2px' }}
+      className="inline-flex items-center justify-center gap-0.5 rounded-full text-white font-bold whitespace-nowrap relative"
+      style={{ backgroundColor: wp.color || '#666', border: `1.5px solid ${wp.color || '#666'}`, color: '#ffffff', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', position: 'relative', top: topOffset }}
     >
       WP{wp.number}
       {onRemove && (
@@ -427,13 +427,13 @@ function MultiWPSelector({
 
 // Risk level badge - 9pt font
 function RiskBadge({ level }: { level: 'L' | 'M' | 'H' }) {
-  const option = riskLevelOptions.find(o => o.value === level);
-  if (!option) return null;
+  const colorMap: Record<string, string> = { H: '#ef4444', M: '#f59e0b', L: '#22c55e' };
+  const levelColor = colorMap[level] || '#000';
   
   return (
     <span 
-      className={`inline-flex items-center justify-center rounded-full bg-white border ${option.borderColor} ${option.textColor} text-[9pt] font-bold not-italic`}
-      style={{ width: '18px', height: '18px', minWidth: '18px', minHeight: '18px' }}
+      className="inline-flex items-center justify-center rounded-full font-bold not-italic whitespace-nowrap"
+      style={{ backgroundColor: '#ffffff', color: levelColor, border: `1.5px solid ${levelColor}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
     >
       {level}
     </span>
@@ -800,14 +800,17 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                           : '#000';
                         return (
                           <span
-                            className="inline-flex items-center justify-center px-1 rounded-full font-bold font-['Times_New_Roman',Times,serif] text-[9pt] whitespace-nowrap relative"
+                            className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap relative"
                             style={{
                               backgroundColor: '#fff',
                               color: wpColor,
                               border: `1.5px solid ${wpColor}`,
+                              fontFamily: "'Times New Roman', Times, serif",
+                              fontSize: '11pt',
+                              fontWeight: 700,
                               lineHeight: 1,
-                              verticalAlign: 'middle',
-                              top: 'calc(-1pt + 0.5px)',
+                              verticalAlign: 'baseline',
+                              padding: '0px 5px',
                               width: 'fit-content',
                             }}
                           >
@@ -853,8 +856,8 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                           <SelectValue placeholder="-">
                             {del.lead_participant_id ? (
                               <span
-                                className="inline-flex items-center justify-center px-1.5 rounded-full text-[9pt] font-bold italic text-white whitespace-nowrap relative"
-                                style={{ backgroundColor: '#000', lineHeight: 1, verticalAlign: 'middle', top: '-2pt', paddingTop: '2px', paddingBottom: '2px' }}
+                                className="inline-flex items-center justify-center rounded-full font-bold italic text-white whitespace-nowrap relative"
+                                style={{ backgroundColor: '#000', border: '1.5px solid #000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'italic', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
                               >
                                 {participants.find(p => p.id === del.lead_participant_id)?.organisation_short_name || '-'}
                               </span>
@@ -1106,17 +1109,18 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
                   <SortableTableRow key={ms.id} id={ms.id} canDrag={isAdminOrOwner} onDelete={() => deleteMilestone.mutate(ms.id)}>
                     <TableCell className={cellStyles} style={{ lineHeight: 1.2, whiteSpace: 'nowrap', width: '46px' }}>
                       <span
-                        className="inline-flex items-center justify-center px-1 rounded-full font-bold font-['Times_New_Roman',Times,serif] text-[9pt] whitespace-nowrap relative"
+                        className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap relative"
                         style={{
                           backgroundColor: '#fff',
                           color: '#000000',
                           border: '1.5px solid #000000',
+                          fontFamily: "'Times New Roman', Times, serif",
+                          fontSize: '11pt',
+                          fontWeight: 700,
                           lineHeight: 1,
-                          verticalAlign: 'middle',
-                          top: 'calc(-1pt + 0.5px)',
+                          verticalAlign: 'baseline',
+                          padding: '0px 5px',
                           width: 'fit-content',
-                          paddingTop: '2px',
-                          paddingBottom: '2px',
                         }}
                       >
                         MS{ms.number}

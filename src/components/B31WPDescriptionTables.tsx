@@ -21,8 +21,8 @@ interface Props {
 function ParticipantBubble({ participant, showCrown = false }: { participant: B31Participant; showCrown?: boolean }) {
   return (
     <span
-      className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9pt] font-bold italic whitespace-nowrap align-middle"
-      style={{ backgroundColor: '#000000', color: '#FFFFFF', lineHeight: 1 }}
+      className="inline-flex items-center rounded-full font-bold italic whitespace-nowrap"
+      style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'italic', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
     >
       {showCrown && <Crown className="h-2.5 w-2.5 mr-0.5 fill-white" strokeWidth={0} />}
       {participant.organisation_short_name || participant.organisation_name}
@@ -413,8 +413,8 @@ function EditableHeaderText({
 function CaptionBubble({ showCrown = false }: { showCrown?: boolean }) {
   return (
     <span
-      className="inline-flex items-center justify-center rounded-full text-[9pt] font-bold whitespace-nowrap align-middle relative"
-      style={{ backgroundColor: '#000000', color: '#FFFFFF', lineHeight: 1, top: '-1pt', width: 20, height: 14, padding: '0 2px' }}
+      className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
+      style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 3px', minWidth: 20 }}
     >
       {showCrown && <Crown className="h-2.5 w-2.5 fill-white" strokeWidth={0} />}
       {!showCrown && <span>&nbsp;</span>}
@@ -476,8 +476,8 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                     style={{ padding: '0 2px', border: 'none' }}
                   >
                     <span
-                      className="inline-flex items-center rounded-full px-3 py-0.5 font-bold text-white text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight w-full"
-                      style={{ backgroundColor: wp.color }}
+                      className="inline-flex items-center rounded-full font-bold text-white w-full"
+                      style={{ backgroundColor: wp.color, border: `1.5px solid ${wp.color}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, padding: '0px 6px', color: '#ffffff' }}
                     >
                       WP{wp.number}:&nbsp;
                       <EditableHeaderText
@@ -553,7 +553,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                           <div className="flex items-center gap-1">
                             <span
                               className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-                              style={{ backgroundColor: '#fff', color: wp.color, border: `1.5px solid ${wp.color}`, fontSize: '9pt', lineHeight: 1, padding: '1px 4px' }}
+                              style={{ backgroundColor: '#fff', color: wp.color, border: `1.5px solid ${wp.color}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
                             >
                               T{wp.number}.{task.number}
                             </span>
