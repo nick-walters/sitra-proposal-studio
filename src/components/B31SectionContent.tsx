@@ -66,7 +66,7 @@ export function B31SectionContent({ proposalId }: Props) {
       {/* Figure 3.1.b – Gantt chart */}
       {ganttFigure ? (
         <div>
-          <div className="mb-1 print:hidden flex gap-2">
+          <div className="mb-1 print:hidden flex gap-2 ml-auto">
             <DeliverableTaskMappingDialog proposalId={proposalId} />
             <MilestoneTaskMappingDialog proposalId={proposalId} />
           </div>
