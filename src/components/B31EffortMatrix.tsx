@@ -189,9 +189,10 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                 variant="ghost"
                 size="sm"
                 onClick={autoFitColumns}
-                className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                className="h-6 px-1.5 gap-1 text-muted-foreground hover:text-foreground text-xs"
               >
                 <Columns3 size={14} />
+                Auto-resize columns
               </Button>
             </TooltipTrigger>
             <TooltipContent side="left">
