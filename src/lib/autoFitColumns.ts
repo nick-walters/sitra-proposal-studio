@@ -1,88 +1,145 @@
 /**
- * Auto-fit columns to their natural no-wrap widths.
- * Table can be narrower than the container if everything fits.
- * Used for tables like 3.1.f, 3.1.g, 3.1.h where compact sizing is preferred.
+ * Smart auto-fit: character-count-based column sizing.
+ *
+ * 1. Bubble columns (2+ bubbles in any cell) → fixed width from measured bubbles.
+ * 2. Compact columns (all cells ≤ 10 chars) → natural no-wrap width.
+ * 3. Text columns → distribute remaining space proportional to max char count.
+ *
+ * @param fullWidth - true to always fill the container (e.g. Table 3.1.e).
  */
-export function computeAutoFitNarrow(table: HTMLTableElement): number[] | null {
+export function computeAutoFitSmart(
+  table: HTMLTableElement,
+  options?: { fullWidth?: boolean }
+): number[] | null {
+  const fullWidth = options?.fullWidth ?? false;
   const { minWidths, containerWidth, cleanup } = measureColumnWidths(table);
   if (!minWidths) return null;
 
-  const totalMinWidth = minWidths.reduce((s, w) => s + w, 0);
-  // Add small buffer to each column to prevent edge-case wrapping
-  const buffered = minWidths.map(w => w + 2);
-  const totalBuffered = buffered.reduce((s, w) => s + w, 0);
-  let finalWidths: number[];
+  const numCols = minWidths.length;
+  const COMPACT_CHAR_LIMIT = 10;
 
-  if (totalBuffered <= containerWidth) {
-    // Everything fits — use buffered natural widths
-    finalWidths = [...buffered];
-  } else {
-    // Proportional scale-down
-    const scale = containerWidth / totalBuffered;
-    finalWidths = buffered.map(w => Math.max(40, Math.floor(w * scale)));
-    const diff = containerWidth - finalWidths.reduce((s, w) => s + w, 0);
-    if (diff !== 0) finalWidths[0] += diff;
+  // Classify each column
+  type ColType = 'bubble' | 'compact' | 'text';
+  const colTypes: ColType[] = new Array(numCols).fill('text');
+  const colFixedWidths: number[] = new Array(numCols).fill(0);
+  const colMaxChars: number[] = new Array(numCols).fill(0);
+
+  const rows = table.querySelectorAll('tbody tr');
+  const headerCells = table.querySelectorAll('thead th');
+
+  for (let col = 0; col < numCols; col++) {
+    let hasBubbleRow = false;
+    let allCompact = true;
+    let maxChars = 0;
+    let maxTwoBubbleWidth = 0;
+
+    // Check header text too
+    if (headerCells[col]) {
+      const headerText = (headerCells[col] as HTMLElement).textContent?.trim() || '';
+      maxChars = Math.max(maxChars, headerText.length);
+      if (headerText.length > COMPACT_CHAR_LIMIT) allCompact = false;
+    }
+
+    rows.forEach(row => {
+      const cells = row.querySelectorAll('th, td');
+      const cell = cells[col] as HTMLElement | undefined;
+      if (!cell) return;
+
+      const bubbles = cell.querySelectorAll('span.rounded-full');
+      if (bubbles.length >= 2) {
+        hasBubbleRow = true;
+        // Measure two-bubble width
+        const b1 = (bubbles[0] as HTMLElement).offsetWidth;
+        const b2 = (bubbles[1] as HTMLElement).offsetWidth;
+        const gap = 4;
+        maxTwoBubbleWidth = Math.max(maxTwoBubbleWidth, b1 + b2 + gap + 4);
+      }
+
+      const text = cell.textContent?.trim() || '';
+      maxChars = Math.max(maxChars, text.length);
+      if (text.length > COMPACT_CHAR_LIMIT && bubbles.length === 0) {
+        allCompact = false;
+      }
+    });
+
+    if (hasBubbleRow) {
+      colTypes[col] = 'bubble';
+      colFixedWidths[col] = Math.max(maxTwoBubbleWidth, minWidths[col]);
+    } else if (allCompact) {
+      colTypes[col] = 'compact';
+      colFixedWidths[col] = minWidths[col] + 2; // small buffer
+    } else {
+      colTypes[col] = 'text';
+      colMaxChars[col] = Math.max(maxChars, 1); // avoid zero
+    }
   }
 
-  cleanup();
-  return finalWidths.map(w => Math.round(w));
-}
-
-/**
- * Auto-fit columns to fill the full container width.
- * Compact columns (bubbles, badges, short values) keep their natural size;
- * remaining space is distributed proportionally among text-heavy columns.
- * Used for tables like 3.1.e where full-width is preferred.
- *
- * @param colMaxWidths - Optional map of colIndex → max pixel width.
- *   If a column's natural width exceeds this cap, it is fixed at the cap value
- *   and treated as compact (not flexed).
- */
-export function computeAutoFitFull(
-  table: HTMLTableElement,
-  colMaxWidths?: Record<number, number>
-): number[] | null {
-  const { minWidths, containerWidth, cleanup } = measureColumnWidths(table);
-  if (!minWidths) return null;
-
-  // Apply column caps
-  const cappedWidths = minWidths.map((w, i) => {
-    const cap = colMaxWidths?.[i];
-    return cap != null && w > cap ? cap : w;
-  });
-
-  const COMPACT_THRESHOLD = 120;
-  // A column is compact if it's naturally small OR was capped
-  const isCompact = (w: number, i: number) =>
-    w < COMPACT_THRESHOLD || (colMaxWidths?.[i] != null && minWidths[i] > colMaxWidths[i]);
-
-  const compactTotal = cappedWidths.reduce(
-    (s, w, i) => s + (isCompact(w, i) ? w : 0),
+  const fixedTotal = colTypes.reduce(
+    (sum, t, i) => sum + (t !== 'text' ? colFixedWidths[i] : 0),
     0
   );
-  const flexIndices = cappedWidths
-    .map((w, i) => (!isCompact(w, i) ? i : -1))
-    .filter(i => i >= 0);
-  const remainingSpace = Math.max(0, containerWidth - compactTotal);
-  const totalFlexMin = flexIndices.reduce((s, i) => s + cappedWidths[i], 0);
+  const totalMaxChars = colMaxChars.reduce((s, c) => s + c, 0);
+  const availableSpace = Math.max(0, containerWidth - fixedTotal);
 
-  let finalWidths = cappedWidths.map((w, i) => {
-    if (isCompact(w, i)) return w;
-    if (totalFlexMin > 0) {
-      return Math.max(60, remainingSpace * (w / totalFlexMin));
+  let finalWidths: number[] = new Array(numCols);
+
+  for (let i = 0; i < numCols; i++) {
+    if (colTypes[i] !== 'text') {
+      finalWidths[i] = colFixedWidths[i];
+    } else if (totalMaxChars > 0) {
+      finalWidths[i] = Math.max(60, availableSpace * (colMaxChars[i] / totalMaxChars));
+    } else {
+      finalWidths[i] = Math.max(60, minWidths[i]);
     }
-    return Math.max(60, w);
-  });
+  }
 
-  // Adjust to fill container exactly
-  const diff = containerWidth - finalWidths.reduce((s, w) => s + w, 0);
-  if (diff !== 0 && flexIndices.length > 0) {
-    finalWidths[flexIndices[0]] += diff;
+  // If not fullWidth and everything fits naturally narrow, use natural widths
+  if (!fullWidth) {
+    const naturalTotal = colTypes.reduce(
+      (sum, t, i) => sum + (t !== 'text' ? colFixedWidths[i] : minWidths[i] + 2),
+      0
+    );
+    if (naturalTotal <= containerWidth) {
+      // Use compact natural widths for text columns too
+      for (let i = 0; i < numCols; i++) {
+        if (colTypes[i] === 'text') {
+          finalWidths[i] = minWidths[i] + 2;
+        }
+      }
+    }
+  }
+
+  // If fullWidth, ensure we fill the container exactly
+  if (fullWidth) {
+    const currentTotal = finalWidths.reduce((s, w) => s + w, 0);
+    const diff = containerWidth - currentTotal;
+    if (diff !== 0) {
+      // Add remainder to the first text column, or first column
+      const textIdx = colTypes.findIndex(t => t === 'text');
+      finalWidths[textIdx >= 0 ? textIdx : 0] += diff;
+    }
+  }
+
+  // Handle overflow: scale down if total exceeds container
+  const total = finalWidths.reduce((s, w) => s + w, 0);
+  if (total > containerWidth) {
+    const scale = containerWidth / total;
+    finalWidths = finalWidths.map(w => Math.max(40, Math.floor(w * scale)));
+    const diff2 = containerWidth - finalWidths.reduce((s, w) => s + w, 0);
+    if (diff2 !== 0) finalWidths[0] += diff2;
   }
 
   cleanup();
   return finalWidths.map(w => Math.round(w));
 }
+
+// Keep legacy exports for any other consumers (deprecated)
+export const computeAutoFitNarrow = (table: HTMLTableElement) =>
+  computeAutoFitSmart(table);
+export const computeAutoFitFull = (
+  table: HTMLTableElement,
+  _colMaxWidths?: Record<number, number>
+) => computeAutoFitSmart(table, { fullWidth: true });
 
 /** Internal: measure no-wrap column widths, returns cleanup function to restore DOM */
 function measureColumnWidths(table: HTMLTableElement): {
@@ -98,7 +155,6 @@ function measureColumnWidths(table: HTMLTableElement): {
 
   const allCells = table.querySelectorAll('th, td');
   const savedStyles: string[] = [];
-  // Also handle textareas/contenteditable spans inside cells — they constrain width
   const textareas = table.querySelectorAll('textarea');
   const savedTextareaStyles: { width: string; whiteSpace: string }[] = [];
   textareas.forEach((ta, i) => {
