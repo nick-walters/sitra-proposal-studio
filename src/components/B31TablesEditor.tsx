@@ -1044,7 +1044,7 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
   const autoFitColumns = useCallback(() => {
     const table = tableRef.current;
     if (!table) return;
-    const widths = computeAutoFitSmart(table);
+    const widths = computeAutoFitSmart(table, { fullWidth: true });
     if (widths) {
       setColWidths(widths);
       saveWidths(widths);

@@ -64,7 +64,7 @@ export function computeAutoFitSmart(
 
     if (hasBubbleRow) {
       colTypes[col] = 'bubble';
-      colFixedWidths[col] = Math.max(maxTwoBubbleWidth, minWidths[col]);
+      colFixedWidths[col] = maxTwoBubbleWidth > 0 ? maxTwoBubbleWidth : minWidths[col];
     } else if (allCompact) {
       colTypes[col] = 'compact';
       colFixedWidths[col] = minWidths[col] + 2; // small buffer
