@@ -1064,6 +1064,7 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
                         value={ms.wps}
                         onChange={(val) => updateMilestone.mutate({ id: ms.id, wps: val })}
                         workPackages={workPackages}
+                        topOffset="calc(-1pt + 0.5px)"
                       />
                     </TableCell>
                     <TableCell className={cellStyles}>
