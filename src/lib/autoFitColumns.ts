@@ -98,6 +98,15 @@ function measureColumnWidths(table: HTMLTableElement): {
 
   const allCells = table.querySelectorAll('th, td');
   const savedStyles: string[] = [];
+  // Also handle textareas/contenteditable spans inside cells — they constrain width
+  const textareas = table.querySelectorAll('textarea');
+  const savedTextareaStyles: { width: string; whiteSpace: string }[] = [];
+  textareas.forEach((ta, i) => {
+    savedTextareaStyles[i] = { width: ta.style.width, whiteSpace: ta.style.whiteSpace };
+    ta.style.width = 'auto';
+    ta.style.whiteSpace = 'nowrap';
+  });
+
   allCells.forEach((cell, i) => {
     const el = cell as HTMLElement;
     savedStyles[i] = el.style.width;
@@ -114,6 +123,10 @@ function measureColumnWidths(table: HTMLTableElement): {
     table.style.width = prevWidth;
     allCells.forEach((cell, i) => {
       (cell as HTMLElement).style.width = savedStyles[i];
+    });
+    textareas.forEach((ta, i) => {
+      ta.style.width = savedTextareaStyles[i].width;
+      ta.style.whiteSpace = savedTextareaStyles[i].whiteSpace;
     });
   };
 
@@ -134,6 +147,9 @@ function measureColumnWidths(table: HTMLTableElement): {
   });
 
   allCells.forEach((cell) => { (cell as HTMLElement).style.whiteSpace = ''; });
+  textareas.forEach((ta, i) => {
+    ta.style.whiteSpace = savedTextareaStyles[i].whiteSpace;
+  });
   const containerWidth = table.parentElement?.clientWidth ?? table.offsetWidth;
 
   return { minWidths, containerWidth, cleanup: restore };
