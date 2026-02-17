@@ -318,7 +318,7 @@ function SpacerRow() {
         style={{
           fontSize: '1pt',
           lineHeight: '1pt',
-          height: '4px',
+          height: '8px',
           padding: 0,
           userSelect: 'none',
           pointerEvents: 'none',
