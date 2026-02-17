@@ -59,12 +59,12 @@ function LeaderPicker({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80">
+          <ChevronsUpDown className="h-3 w-3 opacity-50 shrink-0" />
           {leader ? (
             <ParticipantBubble participant={leader} showCrown={showCrown} />
           ) : (
-            <span className="text-muted-foreground text-[9pt] italic">Select…</span>
+            <span className="text-muted-foreground text-[9pt] italic">Select WP/task leader</span>
           )}
-          <ChevronsUpDown className="h-3 w-3 opacity-50 shrink-0" />
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-[220px] p-0" align="start">
@@ -149,7 +149,7 @@ function PartnersPicker({
               <ParticipantBubble key={p.id} participant={p} />
             ))
           ) : (
-            <span className="text-muted-foreground text-[9pt] italic">Select…</span>
+            <span className="text-muted-foreground text-[9pt] italic">Add participant(s)</span>
           )}
           <ChevronsUpDown className="h-3 w-3 opacity-50 shrink-0" />
         </button>
