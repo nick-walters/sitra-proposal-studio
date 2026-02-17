@@ -473,6 +473,15 @@
 
 }
 
+/* Bubble styles - prevent inline bubbles from affecting line spacing */
+.wp-reference-badge,
+.participant-reference-badge {
+  line-height: 1 !important;
+  vertical-align: baseline !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
 /* TipTap/ProseMirror table styles - OUTSIDE @layer for higher specificity */
 .ProseMirror table {
   border-collapse: collapse !important;

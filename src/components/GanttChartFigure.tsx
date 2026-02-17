@@ -383,7 +383,7 @@ export function GanttChartFigure({
                 <div className="flex relative" style={{ height: 18 }}>
                   <div 
                     className="absolute flex items-center font-bold text-white truncate rounded-full"
-                    style={{ backgroundColor: wpColor, padding: '0 6px', pointerEvents: 'none', top: 0, bottom: 0, left: 0, right: 0 }}
+                    style={{ backgroundColor: wpColor, border: `1.5px solid ${wpColor}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, padding: '0 6px', pointerEvents: 'none', top: 0, bottom: 0, left: 0, right: 0 }}
                   >
                     WP{wp.number}: {wp.shortName}{wp.title ? ` – ${wp.title}` : ''}
                   </div>
@@ -400,7 +400,7 @@ export function GanttChartFigure({
                       >
                         <span
                           className="inline-flex items-center justify-center rounded-full font-bold"
-                          style={{ backgroundColor: '#fff', color: wpColor, border: `1.5px solid ${wpColor}`, fontSize: '9pt', lineHeight: 1, padding: '1px 4px', whiteSpace: 'nowrap' }}
+                          style={{ backgroundColor: '#fff', color: wpColor, border: `1.5px solid ${wpColor}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, padding: '0px 4px', whiteSpace: 'nowrap', verticalAlign: 'baseline' }}
                         >
                           T{task.wpNumber}.{task.taskNumber}
                         </span>
@@ -500,13 +500,15 @@ style={{ width: labelWidth - 38, height: 18, padding: '0 2px', borderRight: `1px
                                       top: 'calc(50% + 1px)',
                                       left: b.centerX,
                                       transform: 'translate(-50%, -50%)',
-                                      fontSize: '9pt',
+                                      fontFamily: "'Times New Roman', Times, serif",
+                                      fontSize: '11pt',
+                                      fontWeight: 700,
                                       lineHeight: 1,
                                       backgroundColor: '#ffffff',
                                       color: b.color,
-                                      border: `1px solid ${b.color}`,
+                                      border: `1.5px solid ${b.color}`,
                                       borderRadius: '9999px',
-                                      padding: '0 3px',
+                                      padding: '0 4px',
                                       whiteSpace: 'nowrap',
                                       zIndex: 10,
                                     }}
@@ -566,7 +568,7 @@ style={{ width: labelWidth - 38, height: 18, padding: '0 2px', borderRight: `1px
                       >
                         <span
                           className="inline-flex items-center justify-center rounded-full font-bold"
-                          style={{ backgroundColor: '#fff', color: wpColor, border: `1.5px solid ${wpColor}`, fontSize: '9pt', lineHeight: 1, padding: '1px 4px', whiteSpace: 'nowrap' }}
+                          style={{ backgroundColor: '#fff', color: wpColor, border: `1.5px solid ${wpColor}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, padding: '0px 4px', whiteSpace: 'nowrap', verticalAlign: 'baseline' }}
                         >
                           T{wp.number}.{task.number}
                         </span>
