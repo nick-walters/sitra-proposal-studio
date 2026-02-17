@@ -593,6 +593,12 @@ style={{ width: labelWidth - 38, height: 18, padding: '0 2px', borderRight: `1px
                     </div>
                   );
                 })}
+
+                {/* Bottom border under months columns only */}
+                <div className="flex">
+                  <div className="shrink-0" style={{ width: labelWidth }} />
+                  <div style={{ marginRight: MARGIN_GAP, height: 0, flex: 1, borderBottom: `1px solid ${wpColor}` }} />
+                </div>
               </div>
             );
           })}
