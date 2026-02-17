@@ -8,8 +8,8 @@ import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
-const cellStyles = "px-1 py-0.5 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle";
-const headerCellStyles = "px-1 py-0.5 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle";
+const cellStyles = "px-1 py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle";
+const headerCellStyles = "px-1 py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle";
 const editableCellStyles = `${cellStyles} cursor-text hover:bg-muted/30`;
 
 interface Props {
