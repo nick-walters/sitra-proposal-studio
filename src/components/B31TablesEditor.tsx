@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { computeAutoFitWidths } from '@/lib/autoFitColumns';
+import { computeAutoFitNarrow, computeAutoFitFull } from '@/lib/autoFitColumns';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -1220,10 +1220,10 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
   const autoFitColumns = useCallback(() => {
     const table = tableRef.current;
     if (!table) return;
-    const result = computeAutoFitWidths(table);
-    if (result) {
-      setColWidths(result.widths);
-      saveWidths(result.widths);
+    const widths = computeAutoFitFull(table);
+    if (widths) {
+      setColWidths(widths);
+      saveWidths(widths);
     }
   }, [tableRef, setColWidths, saveWidths]);
 
