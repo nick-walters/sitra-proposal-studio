@@ -707,7 +707,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                   No.
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[1] } : { whiteSpace: 'nowrap', width: '1%' }) }}>
+                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[1] } : {}) }}>
                   Deliverable title
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
                 </TableHead>
@@ -765,7 +765,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                         );
                       })()}
                     </TableCell>
-                    <TableCell className={cellStyles} style={{ lineHeight: 1.2, whiteSpace: 'nowrap', width: '1%' }}>
+                    <TableCell className={cellStyles} style={{ lineHeight: 1.2 }}>
                       <span className="font-['Times_New_Roman',Times,serif] text-[11pt]" style={{ lineHeight: 1.2 }}>
                         <EditableTextInline
                           value={del.name}
