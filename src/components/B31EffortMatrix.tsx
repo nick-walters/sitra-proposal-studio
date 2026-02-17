@@ -113,10 +113,14 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
     const table = tableRef.current;
     if (!table) return;
 
-    // Temporarily switch to auto layout to measure natural widths
+    // Save current styles
     const prevLayout = table.style.tableLayout;
+    const prevWidth = table.style.width;
+
+    // Temporarily switch to auto layout with auto width so columns shrink to content
     table.style.tableLayout = 'auto';
-    // Remove fixed widths from all th/td
+    table.style.width = 'auto';
+
     const allCells = table.querySelectorAll('th, td');
     const savedStyles: string[] = [];
     allCells.forEach((cell, i) => {
@@ -127,12 +131,11 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
     });
 
     // Force reflow and measure minimum no-wrap widths per column
-    table.offsetHeight; // force reflow
+    table.offsetHeight;
     const headerCells = table.querySelectorAll('thead th');
     const numCols = headerCells.length;
     const minWidths = new Array(numCols).fill(0);
 
-    // Measure all rows to find the max no-wrap width per column
     const rows = table.querySelectorAll('tr');
     rows.forEach(row => {
       const cells = row.querySelectorAll('th, td');
@@ -153,26 +156,24 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
 
     let finalWidths: number[];
     if (totalMinWidth <= containerWidth) {
-      // Everything fits without wrapping — use exact min widths, table can be narrower than container
+      // Everything fits — use exact min widths, table will be narrower than container
       finalWidths = [...minWidths];
     } else {
-      // Need to wrap some columns — distribute proportionally but keep small columns small
+      // Need to wrap — distribute proportionally
       const scale = containerWidth / totalMinWidth;
       finalWidths = minWidths.map(w => Math.max(40, Math.floor(w * scale)));
-      // Adjust to fill container exactly
       const diff = containerWidth - finalWidths.reduce((s, w) => s + w, 0);
       if (diff !== 0) finalWidths[0] += diff;
     }
 
-    // Restore table layout
+    // Restore table styles
     table.style.tableLayout = prevLayout;
+    table.style.width = prevWidth;
     allCells.forEach((cell, i) => {
       (cell as HTMLElement).style.width = savedStyles[i];
     });
 
-    // Round to integers
     finalWidths = finalWidths.map(w => Math.round(w));
-
     setColWidths(finalWidths);
     saveWidths(finalWidths);
   }, [tableRef, setColWidths, saveWidths]);
