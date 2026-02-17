@@ -252,7 +252,7 @@ function MonthRangePicker({
   return (
     <Popover open={open} onOpenChange={handleOpen}>
       <PopoverTrigger asChild>
-        <button className="cursor-pointer hover:opacity-80 font-['Times_New_Roman',Times,serif] text-[11pt]">
+        <button className="cursor-pointer hover:opacity-80 font-['Times_New_Roman',Times,serif] text-[11pt] font-bold">
           {startMonth != null && endMonth != null ? (
             <>{formatMonth(startMonth)}–{formatMonth(endMonth)}</>
           ) : startMonth != null ? (
