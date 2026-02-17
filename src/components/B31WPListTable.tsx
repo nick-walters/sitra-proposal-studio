@@ -98,13 +98,13 @@ function LeadPicker({
         <button className="inline-flex items-center gap-0.5 cursor-pointer hover:opacity-80">
           {leader ? (
             <span
-              className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9pt] font-bold italic whitespace-nowrap align-middle"
-              style={{ backgroundColor: '#000000', color: '#FFFFFF', lineHeight: 1 }}
+              className="inline-flex items-center rounded-full font-bold italic whitespace-nowrap"
+              style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'italic', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
             >
               {leader.participant_number}. {leader.organisation_short_name || leader.organisation_name}
             </span>
           ) : (
-            <span className="text-muted-foreground text-[9pt] italic">Select…</span>
+            <span className="text-muted-foreground font-['Times_New_Roman',Times,serif] text-[11pt] italic">Select…</span>
           )}
           <ChevronsUpDown className="h-3 w-3 opacity-50 shrink-0" />
         </button>
@@ -258,14 +258,14 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
               <TableRow key={wp.id}>
                 <TableCell className={`${editableCellStyles} leading-[0]`}>
                   <span
-                    className="inline-flex items-center px-1.5 py-0.5 rounded-full text-white text-[9pt] font-bold whitespace-nowrap align-middle"
-                    style={{ backgroundColor: wp.color || '#666', lineHeight: 1 }}
+                    className="inline-flex items-center rounded-full text-white font-bold whitespace-nowrap"
+                    style={{ backgroundColor: wp.color || '#666', border: `1.5px solid ${wp.color || '#666'}`, color: '#ffffff', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
                   >
                     WP{wp.number}: {shortName} –&nbsp;
                     <InlineEdit
                       value={title}
                       onSave={(val) => saveWPField(wp.id, 'title', val)}
-                      className="text-white text-[9pt] font-bold"
+                      className="text-white font-bold font-['Times_New_Roman',Times,serif] text-[11pt]"
                     />
                   </span>
                 </TableCell>
