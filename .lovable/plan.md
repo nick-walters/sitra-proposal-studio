@@ -1,12 +1,9 @@
 
+## Right-Align Assign Buttons
 
-## Change the "No." column width in Table 3.1.c to 40px
+**Change**: Add `ml-auto` to the assign buttons container in `src/components/B31SectionContent.tsx` (line 69).
 
-Set a fixed 40px width on the "No." column header and cells in the Deliverables table (3.1.c) in `src/components/B31TablesEditor.tsx`.
+**Current**: `className="mb-1 print:hidden flex gap-2"`
+**Updated**: `className="mb-1 print:hidden flex gap-2 ml-auto"`
 
-### Technical Details
-
-- Update the `<TableHead>` for the "No." column: replace the current `width: '1%'` fallback with `width: '40px'`
-- Update the `<TableCell>` for the deliverable bubble: replace `width: '1%'` with `width: '40px'`
-- Keep `whiteSpace: 'nowrap'` on both elements to prevent wrapping
-
+This pushes the DeliverableTaskMappingDialog and MilestoneTaskMappingDialog buttons to the right side using flexbox auto margin.
