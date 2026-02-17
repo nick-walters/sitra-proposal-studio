@@ -263,7 +263,7 @@ function EditableTextInline({
       onFocus={() => { isFocused.current = true; }}
       onBlur={() => { isFocused.current = false; }}
       data-placeholder={placeholder}
-      className={`outline-none min-w-[50px] empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground leading-tight ${inheritFont ? 'font-inherit text-inherit' : "font-['Times_New_Roman',Times,serif] text-[11pt]"}`}
+      className={`outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground leading-tight ${inheritFont ? 'font-inherit text-inherit' : "font-['Times_New_Roman',Times,serif] text-[11pt]"}`}
       style={{ display: 'inline' }}
     >
       {value}
@@ -702,29 +702,33 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
           <Table className={`${tableStyles} w-full [&_th]:border-0 [&_td]:border-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto' }} ref={tableRef}>
             <TableHeader>
               <TableRow className="bg-black text-white hover:bg-black">
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[0] } : {}), borderRight: 'none' }}>
-                  Deliverable
+                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[0] } : { width: '55px' }) }}>
+                  No.
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[1] } : { width: '40px' }), borderLeft: 'none', borderRight: 'none' }}>
-                  WP
+                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[1] } : {}) }}>
+                  Deliverable title
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[2] } : { width: '60px' }), borderLeft: 'none' }}>
-                  Lead
+                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[2] } : { width: '40px' }) }}>
+                  WP
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(2)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[3] } : { width: '40px' }}>
-                  Type
+                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[3] } : { width: '60px' }) }}>
+                  Lead
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(3)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[4] } : { width: '50px' }}>
-                  Diss.
+                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[4] } : { width: '40px' }}>
+                  Type
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(4)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[5] } : { width: '40px' }}>
-                  Due
+                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[5] } : { width: '50px' }}>
+                  Diss.
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(5)} />}
+                </TableHead>
+                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[6] } : { width: '40px' }}>
+                  Due
+                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(6)} />}
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -732,43 +736,44 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
               <TableBody>
                 {deliverables.map((del) => (
                   <SortableTableRow key={del.id} id={del.id} canDrag={isAdminOrOwner} onDelete={() => deleteDeliverable.mutate(del.id)}>
-                    <TableCell className={cellStyles} style={{ lineHeight: 1.2, borderRight: 'none' }}>
+                    <TableCell className={cellStyles} style={{ lineHeight: 1.2 }}>
                       {(() => {
                         const wpColor = del.wp_number != null 
                           ? workPackages.find(wp => wp.number === del.wp_number)?.color || '#000'
                           : '#000';
                         return (
-                          <>
-                            <span
-                              className="inline-flex items-center justify-center px-1.5 rounded-full font-bold text-[9pt] mr-1 whitespace-nowrap relative"
-                              style={{
-                                backgroundColor: '#fff',
-                                color: wpColor,
-                                border: `1.5px solid ${wpColor}`,
-                                lineHeight: 1,
-                                verticalAlign: 'middle',
-                                top: '-2pt',
-                              }}
-                            >
-                              <EditableTextInline
-                                value={del.number}
-                                onChange={(val) => updateDeliverable.mutate({ id: del.id, number: val })}
-                                placeholder="D#.#"
-                                inheritFont
-                              />
-                            </span>
-                            <span className="font-['Times_New_Roman',Times,serif] text-[11pt]" style={{ lineHeight: 1.2 }}>
-                              <EditableTextInline
-                                value={del.name}
-                                onChange={(val) => updateDeliverable.mutate({ id: del.id, name: val })}
-                                placeholder="Deliverable name"
-                              />
-                            </span>
-                          </>
+                          <span
+                            className="inline-flex items-center justify-center px-1 rounded-full font-bold font-['Times_New_Roman',Times,serif] text-[9pt] whitespace-nowrap relative"
+                            style={{
+                              backgroundColor: '#fff',
+                              color: wpColor,
+                              border: `1.5px solid ${wpColor}`,
+                              lineHeight: 1,
+                              verticalAlign: 'middle',
+                              top: '-2pt',
+                              width: 'fit-content',
+                            }}
+                          >
+                            <EditableTextInline
+                              value={del.number}
+                              onChange={(val) => updateDeliverable.mutate({ id: del.id, number: val })}
+                              placeholder="D#.#"
+                              inheritFont
+                            />
+                          </span>
                         );
                       })()}
                     </TableCell>
-                    <TableCell className={bubbleCellStyles} style={{ borderLeft: 'none', borderRight: 'none' }}>
+                    <TableCell className={cellStyles} style={{ lineHeight: 1.2 }}>
+                      <span className="font-['Times_New_Roman',Times,serif] text-[11pt]" style={{ lineHeight: 1.2 }}>
+                        <EditableTextInline
+                          value={del.name}
+                          onChange={(val) => updateDeliverable.mutate({ id: del.id, name: val })}
+                          placeholder="Deliverable name"
+                        />
+                      </span>
+                    </TableCell>
+                    <TableCell className={bubbleCellStyles}>
                       <SingleWPSelector
                         value={del.wp_number}
                         onChange={(val) => {
@@ -782,7 +787,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                         workPackages={workPackages}
                       />
                     </TableCell>
-                    <TableCell className={bubbleCellStyles} style={{ borderLeft: 'none' }}>
+                    <TableCell className={bubbleCellStyles}>
                       <Select 
                         value={del.lead_participant_id || ''} 
                         onValueChange={(v) => updateDeliverable.mutate({ id: del.id, lead_participant_id: v || null })}
