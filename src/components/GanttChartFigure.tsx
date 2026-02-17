@@ -433,7 +433,7 @@ style={{ width: labelWidth - 38, height: 18, padding: '0 2px', borderRight: `1px
                           // Collect all bubbles for this task
                           const bubbles: { month: number; label: string; color: string; tooltipTitle: string; type: 'del' | 'ms' }[] = [];
                           task.deliverables?.forEach(d => bubbles.push({ month: d.month, label: `D${d.number.replace(/^D/, '')}`, color: wpColor, tooltipTitle: `Deliverable D${d.number}`, type: 'del' }));
-                          task.milestones?.forEach(ms => bubbles.push({ month: ms.month, label: `MS${ms.number}`, color: '#dc2626', tooltipTitle: `MS${ms.number}: ${ms.name}`, type: 'ms' }));
+                          task.milestones?.forEach(ms => bubbles.push({ month: ms.month, label: `MS${ms.number}`, color: '#000000', tooltipTitle: `MS${ms.number}: ${ms.name}`, type: 'ms' }));
                           if (bubbles.length === 0) return null;
 
                           // Sort by month
