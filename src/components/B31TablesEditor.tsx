@@ -1016,35 +1016,12 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
   const autoFitColumns = useCallback(() => {
     const table = tableRef.current;
     if (!table) return;
-
-    // Check if any milestone has 3+ WPs — if so, cap the WPs column (index 2)
-    const hasThreeOrMoreWPs = milestones.some(m => {
-      const wpList = m.wps?.split(',').filter(Boolean) || [];
-      return wpList.length >= 3;
-    });
-
-    let colCaps: Record<number, number> | undefined;
-    if (hasThreeOrMoreWPs) {
-      const wpCells = table.querySelectorAll('tbody tr td:nth-child(3)');
-      let maxTwoBubbleWidth = 84;
-      wpCells.forEach(cell => {
-        const bubbles = cell.querySelectorAll('span.rounded-full');
-        if (bubbles.length >= 2) {
-          const b1 = (bubbles[0] as HTMLElement).offsetWidth;
-          const b2 = (bubbles[1] as HTMLElement).offsetWidth;
-          const gap = 4;
-          maxTwoBubbleWidth = Math.max(maxTwoBubbleWidth, b1 + b2 + gap + 4);
-        }
-      });
-      colCaps = { 2: maxTwoBubbleWidth };
-    }
-
-    const widths = computeAutoFitFull(table, colCaps);
+    const widths = computeAutoFitNarrow(table);
     if (widths) {
       setColWidths(widths);
       saveWidths(widths);
     }
-  }, [tableRef, setColWidths, saveWidths, milestones]);
+  }, [tableRef, setColWidths, saveWidths]);
 
   return (
     <div>
@@ -1068,7 +1045,7 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
       </p>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <B31TableWrapper>
-          <Table className={`${tableStyles} [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse', width: colWidths.length > 0 ? `max(${colWidths.reduce((s, w) => s + w, 0)}px, 100%)` : '100%' }} ref={tableRef}>
+          <Table className={`${tableStyles} [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse', width: colWidths.length > 0 ? `${colWidths.reduce((s, w) => s + w, 0)}px` : '100%' }} ref={tableRef}>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
                 <TableHead className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[0] } : { width: '45px', whiteSpace: 'nowrap' }) }}>
