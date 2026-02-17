@@ -728,42 +728,42 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
             </TableHeader>
             <SortableContext items={deliverables.map(d => d.id)} strategy={verticalListSortingStrategy}>
               <TableBody>
-                {deliverables.map((del) => (
+                {deliverables.map((del) => {
+                  const wpColor = del.wp_number != null 
+                    ? workPackages.find(wp => wp.number === del.wp_number)?.color || '#000'
+                    : '#000';
+                  // Estimate max bubble width: longest "DX.X: name" string × ~6.5px per char + padding
+                  const maxLen = Math.max(...deliverables.map(d => `${d.number}: ${d.name}`.length), 10);
+                  const bubbleMinWidth = Math.min(maxLen * 6.5 + 12, 400);
+                  return (
                   <SortableTableRow key={del.id} id={del.id} canDrag={isAdminOrOwner} onDelete={() => deleteDeliverable.mutate(del.id)}>
                     <TableCell className={cellStyles} style={{ lineHeight: 1.2, borderRight: 'none' }}>
-                      {(() => {
-                        const wpColor = del.wp_number != null 
-                          ? workPackages.find(wp => wp.number === del.wp_number)?.color || '#000'
-                          : '#000';
-                        return (
-                          <>
-                            <span
-                              className="inline-flex items-center justify-center rounded-full font-bold font-['Times_New_Roman',Times,serif] text-[9pt] mr-1 align-middle"
-                              style={{
-                                backgroundColor: '#fff',
-                                color: wpColor,
-                                border: `1.5px solid ${wpColor}`,
-                                padding: '0 3px',
-                                lineHeight: 1.2,
-                                whiteSpace: 'nowrap',
-                              }}
-                            >
-                              <EditableTextInline
-                                value={del.number}
-                                onChange={(val) => updateDeliverable.mutate({ id: del.id, number: val })}
-                                placeholder="D#.#"
-                              />
-                            </span>
-                            <span className="font-['Times_New_Roman',Times,serif] text-[11pt]" style={{ lineHeight: 1.2 }}>
-                              <EditableTextInline
-                                value={del.name}
-                                onChange={(val) => updateDeliverable.mutate({ id: del.id, name: val })}
-                                placeholder="Deliverable name"
-                              />
-                            </span>
-                          </>
-                        );
-                      })()}
+                      <span
+                        className="inline-flex items-center rounded-full font-['Times_New_Roman',Times,serif] text-[9pt] align-middle"
+                        style={{
+                          backgroundColor: '#fff',
+                          color: wpColor,
+                          border: `1.5px solid ${wpColor}`,
+                          padding: '0 5px',
+                          lineHeight: 1.3,
+                          whiteSpace: 'nowrap',
+                          minWidth: bubbleMinWidth,
+                        }}
+                      >
+                        <span className="font-bold">
+                          <EditableTextInline
+                            value={del.number}
+                            onChange={(val) => updateDeliverable.mutate({ id: del.id, number: val })}
+                            placeholder="D#.#"
+                          />
+                        </span>
+                        <span className="font-bold">:&nbsp;</span>
+                        <EditableTextInline
+                          value={del.name}
+                          onChange={(val) => updateDeliverable.mutate({ id: del.id, name: val })}
+                          placeholder="Deliverable name"
+                        />
+                      </span>
                     </TableCell>
                     <TableCell className={bubbleCellStyles} style={{ borderLeft: 'none', borderRight: 'none' }}>
                       <SingleWPSelector
@@ -852,7 +852,8 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                       />
                     </TableCell>
                   </SortableTableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </SortableContext>
           </Table>
