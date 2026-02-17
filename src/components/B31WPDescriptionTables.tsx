@@ -412,7 +412,7 @@ function EditableHeaderText({
 function CaptionBubble({ showCrown = false }: { showCrown?: boolean }) {
   return (
     <span
-      className="inline-flex items-center rounded-full px-1.5 text-[9pt] font-bold whitespace-nowrap align-middle relative"
+      className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9pt] font-bold whitespace-nowrap align-middle relative"
       style={{ backgroundColor: '#000000', color: '#FFFFFF', lineHeight: 1, top: '-1pt' }}
     >
       {showCrown && <Crown className="h-2.5 w-2.5 fill-white" strokeWidth={0} />}

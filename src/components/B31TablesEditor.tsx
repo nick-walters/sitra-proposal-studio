@@ -798,7 +798,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                             {del.lead_participant_id ? (
                               <span
                                 className="inline-flex items-center justify-center px-1.5 rounded-full text-[9pt] font-bold italic text-white whitespace-nowrap relative"
-                                style={{ backgroundColor: '#000', lineHeight: 1, verticalAlign: 'middle', top: '-2pt' }}
+                                style={{ backgroundColor: '#000', lineHeight: 1, verticalAlign: 'middle', top: '-2pt', paddingTop: '2px', paddingBottom: '2px' }}
                               >
                                 {participants.find(p => p.id === del.lead_participant_id)?.organisation_short_name || '-'}
                               </span>
