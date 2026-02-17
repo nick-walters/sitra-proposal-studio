@@ -17,7 +17,8 @@
 .he-table td,
 .he-table-header,
 .he-table-cell {
-  border: 0.25pt solid black !important;
+  border: none !important;
+  border-bottom: 1px solid #e5e7eb !important;
   padding: 1px 4px !important;
   vertical-align: middle;
   line-height: 1;
@@ -26,13 +27,14 @@
 
 .he-table th,
 .he-table-header {
-  background-color: black !important;
-  color: white !important;
+  background-color: transparent !important;
+  color: black !important;
   font-weight: bold !important;
   font-size: 11pt !important;
   white-space: nowrap;
   font-family: "Times New Roman", Times, serif !important;
   padding: 1px 4px !important;
+  border-bottom: 1.5px solid black !important;
 }
 
 .he-table td,
@@ -484,7 +486,8 @@
 .ProseMirror table th,
 .ProseMirror table td {
   position: relative;
-  border: 0.25pt solid black !important;
+  border: none !important;
+  border-bottom: 1px solid #e5e7eb !important;
   padding: 1px 4px !important;
   min-width: 30px;
   vertical-align: middle;
@@ -493,13 +496,14 @@
 }
 
 .ProseMirror table th {
-  background-color: black !important;
-  color: white !important;
+  background-color: transparent !important;
+  color: black !important;
   font-weight: bold !important;
   font-size: 11pt !important;
   white-space: nowrap;
   font-family: "Times New Roman", Times, serif !important;
   padding: 1px 4px !important;
+  border-bottom: 1.5px solid black !important;
 }
 
 .ProseMirror table td {
