@@ -9,7 +9,7 @@ import { ColumnResizer } from '@/components/ColumnResizer';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles = "border-y border-gray-200 px-1 py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle";
-const headerCellStyles = "px-1 py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight font-bold text-white bg-black align-middle";
+const headerCellStyles = "px-1 py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight font-bold align-middle";
 const editableCellStyles = `${cellStyles} cursor-text hover:bg-muted/30`;
 
 interface Props {
@@ -84,7 +84,10 @@ export function B31EquipmentTable({ equipmentItems, participants, personnelCostB
               Amount
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(2)} />}
             </th>
-            <th className={headerCellStyles}>Justification</th>
+            <th className={`${headerCellStyles} relative`}>
+              Justification
+              {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(3)} />}
+            </th>
           </tr>
         </thead>
         <tbody>

@@ -197,22 +197,25 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
       <p className={`${tableStyles} italic mb-0`}>
         <span className="font-bold italic">Table 3.1.a.</span> List of work packages
       </p>
-      <Table className={`${tableStyles} w-full [&_th]:border-0 [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse' }} ref={tableRef}>
+      <Table className={`${tableStyles} w-full [&_th]:border-0 [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse' }} ref={tableRef}>
         <TableHeader>
-          <TableRow className="bg-black text-white hover:bg-black">
-            <TableHead className={`${cellStyles} relative text-white font-bold`} style={colWidths.length > 0 ? { width: colWidths[0] } : undefined}>
+          <TableRow className="hover:bg-transparent">
+            <TableHead className={`${cellStyles} relative font-bold`} style={colWidths.length > 0 ? { width: colWidths[0] } : undefined}>
               Work package
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
             </TableHead>
-            <TableHead className={`${cellStyles} whitespace-nowrap relative text-white font-bold`} style={colWidths.length > 0 ? { width: colWidths[1] } : undefined}>
+            <TableHead className={`${cellStyles} whitespace-nowrap relative font-bold`} style={colWidths.length > 0 ? { width: colWidths[1] } : undefined}>
               WP leader
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
             </TableHead>
-            <TableHead className={`${cellStyles} whitespace-nowrap relative text-white font-bold`} style={colWidths.length > 0 ? { width: colWidths[2] } : undefined}>
+            <TableHead className={`${cellStyles} whitespace-nowrap relative font-bold`} style={colWidths.length > 0 ? { width: colWidths[2] } : undefined}>
               Person months
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(2)} />}
             </TableHead>
-            <TableHead className={`${cellStyles} whitespace-nowrap text-white font-bold`} style={colWidths.length > 0 ? { width: colWidths[3] } : undefined}>Duration</TableHead>
+            <TableHead className={`${cellStyles} whitespace-nowrap relative font-bold`} style={colWidths.length > 0 ? { width: colWidths[3] } : undefined}>
+              Duration
+              {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(3)} />}
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
