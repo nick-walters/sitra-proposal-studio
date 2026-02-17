@@ -613,7 +613,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                             />
                           </div>
                         </td>
-                        <td className={`${cellStyles} whitespace-nowrap`} style={{ borderColor: wp.color, width: '75px' }}>
+                        <td className={`${cellStyles} whitespace-nowrap text-right`} style={{ borderColor: wp.color, width: '75px' }}>
                           <MonthRangePicker taskId={task.id} startMonth={task.start_month} endMonth={task.end_month} proposalId={proposalId} />
                         </td>
                       </tr>
