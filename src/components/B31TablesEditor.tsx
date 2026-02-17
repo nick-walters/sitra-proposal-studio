@@ -1009,7 +1009,7 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
           <Table className={`${tableStyles} w-full [&_th]:border-0 [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse' }} ref={tableRef}>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[0] } : { width: '50px', whiteSpace: 'nowrap' }) }}>
+                <TableHead className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[0] } : { width: '45px', whiteSpace: 'nowrap' }) }}>
                   No.
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
                 </TableHead>
