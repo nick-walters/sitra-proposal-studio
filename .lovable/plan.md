@@ -1,32 +1,29 @@
 
 
-# Fix Bubble Height Inconsistencies in Table 3.1.c (Deliverables)
+# Fix Uniform Bubble Height in Table 3.1.c
 
-## Problems Identified
+## Problem
+Deliverable, WP, and participant bubbles in the 3.1.c table have inconsistent heights. The deliverable bubble uses `height: 'fit-content'` but the `contentEditable` span inside inflates it. WP and participant bubbles use `top: '-0.5px'` offsets to compensate for clipping but remain slightly different sizes.
 
-1. **Deliverable number bubbles appear taller** than WP/participant bubbles because they contain a `contentEditable` span (`EditableTextInline`) which adds extra internal height compared to plain text.
+## Solution
+Apply a consistent explicit height to all three bubble types so they render identically, and remove the positional hacks.
 
-2. **WP and participant bubbles are cut off at the bottom** because:
-   - The `SingleWPSelector`'s SelectTrigger is missing `min-h-0` (the participant selector already has it)
-   - Cell padding `!py-0` combined with `overflow-visible` still clips the 1.5px border due to table row constraints
+## Technical Changes (src/components/B31TablesEditor.tsx)
 
-## Technical Changes
+**1. Deliverable number bubble (around line 800-814)**
+- Remove `height: 'fit-content'` and `width: 'fit-content'`
+- Add a fixed `height: '17px'` to match the natural rendered height of non-editable bubbles
+- This constrains the `contentEditable` span from inflating the bubble
 
-### File: `src/components/B31TablesEditor.tsx`
+**2. WP bubble in SingleWPSelector (around line 311)**
+- Remove `position: 'relative'` and `top: '-0.5px'`
+- Add `height: '17px'` for consistency
 
-**1. Fix deliverable number bubble height (lines ~800-812)**
-- Add `height: 'fit-content'` and ensure the `EditableTextInline` inside does not inflate the bubble by adding a `lineHeight: 1` style to the contentEditable span
-- Alternatively, ensure the bubble span itself constrains height consistently with other bubble types
+**3. Participant bubble in deliverables table (around line 858)**
+- Remove `position: 'relative'` and `top: '-0.5px'`
+- Add `height: '17px'` for consistency
 
-**2. Fix WP bubble clipping in SingleWPSelector (line 346)**
-- Add `min-h-0` to the SelectTrigger className to match the participant selector pattern
-- Change from: `"h-auto py-0 px-0 ..."`
-- Change to: `"h-auto min-h-0 py-0 px-0 ..."`
+**4. Cell padding (bubbleCellStyles)**
+- Verify `!py-[1px]` is already in place (from previous fix) to prevent border clipping
 
-**3. Fix cell padding to prevent bottom clipping**
-- Update `bubbleCellStyles` to use a minimal vertical padding (`!py-[1px]`) instead of `!py-0` so the 1.5px border of bubbles is not clipped by the table row boundary
-- This change applies uniformly to all bubble cells in all 3.1 tables (deliverables, milestones, risks, etc.)
-
-## Files to Modify
-- `src/components/B31TablesEditor.tsx` (3 targeted edits)
-
+All three bubble types will share the same explicit 17px height, ensuring uniform appearance with no clipping.
