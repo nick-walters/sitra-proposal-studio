@@ -74,7 +74,10 @@ export function B31SectionContent({ proposalId }: Props) {
             canEdit={false}
           />
           <p className={`${tableStyles} italic mt-1`}>
-            <span className="font-bold italic">Figure 3.1.b.</span> Gantt chart, showing timings of WPs, tasks, deliverables <span style={{ display: 'inline-block', width: '1.4em', height: '0.9em', border: '1px solid #16a34a', borderRadius: '9999px', verticalAlign: 'middle', position: 'relative', top: '-0.14em' }} /> &amp; milestones <span style={{ display: 'inline-block', width: '1.4em', height: '0.9em', border: '1px solid #dc2626', borderRadius: '9999px', verticalAlign: 'middle', position: 'relative', top: '-0.14em' }} />
+            <span className="font-bold italic">Figure 3.1.b.</span> Gantt chart, showing timings of WPs, tasks, deliverables{' '}
+            <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', position: 'relative', top: '-1px', border: '1px solid #000000', borderRadius: '9999px', padding: '0 3px', fontSize: '9pt', fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#000000', backgroundColor: '#ffffff' }}>DX.X</span>
+            {' '}&amp; milestones{' '}
+            <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', position: 'relative', top: '-1px', border: '1px solid #dc2626', borderRadius: '9999px', padding: '0 3px', fontSize: '9pt', fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#dc2626', backgroundColor: '#ffffff' }}>MSX</span>
           </p>
           <div className="mt-2 print:hidden flex gap-2">
             <DeliverableTaskMappingDialog proposalId={proposalId} />

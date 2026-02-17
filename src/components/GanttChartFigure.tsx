@@ -597,53 +597,6 @@ style={{ width: labelWidth - 38, height: 18, padding: '0 2px', borderRight: `1px
             );
           })}
 
-          {/* Caption */}
-          <div style={{ marginTop: 6, textAlign: 'center', fontSize: '11pt', fontStyle: 'italic' }}>
-            <span style={{ fontWeight: 'bold' }}>Figure {figureNumber}.</span>
-            {' '}Gantt chart, showing timings of WPs, tasks, deliverables (
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                verticalAlign: 'middle',
-                position: 'relative',
-                top: '-1px',
-                border: '1px solid #000000',
-                borderRadius: '9999px',
-                padding: '0 3px',
-                fontSize: '9pt',
-                fontWeight: 'bold',
-                fontStyle: 'normal',
-                lineHeight: 1,
-                color: '#000000',
-                backgroundColor: '#ffffff',
-              }}
-            >
-              DX.X
-            </span>
-            ) & milestones (
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                verticalAlign: 'middle',
-                position: 'relative',
-                top: '-1px',
-                border: '1px solid #dc2626',
-                borderRadius: '9999px',
-                padding: '0 3px',
-                fontSize: '9pt',
-                fontWeight: 'bold',
-                fontStyle: 'normal',
-                lineHeight: 1,
-                color: '#dc2626',
-                backgroundColor: '#ffffff',
-              }}
-            >
-              MSX
-            </span>
-            )
-          </div>
 
         </div>
       </TooltipProvider>
