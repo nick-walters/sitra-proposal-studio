@@ -167,10 +167,16 @@ function EditableText({
   
   // Auto-resize on mount and when value changes
   useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = '0';
-      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
-    }
+    const el = textareaRef.current;
+    if (!el) return;
+    // Reset height, measure scrollHeight, then apply
+    el.style.height = '0';
+    const sh = el.scrollHeight;
+    // Compute line height to snap to exact line multiples (avoids fractional extra space)
+    const computed = window.getComputedStyle(el);
+    const lh = parseFloat(computed.lineHeight) || parseFloat(computed.fontSize) * 1.2;
+    const lines = Math.max(1, Math.round(sh / lh));
+    el.style.height = (lines * lh) + 'px';
   }, [localValue]);
   
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
