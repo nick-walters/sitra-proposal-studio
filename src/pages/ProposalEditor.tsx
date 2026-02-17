@@ -1038,7 +1038,7 @@ export function ProposalEditor() {
       {/* Status alert - color coded like dashboard */}
       {proposal && (
         <Alert className={cn(
-          "rounded-none border-x-0 border-t-0 border-b-2 py-1.5 [&>svg]:top-2 [&>svg]:text-inherit",
+          "rounded-none border-x-0 border-t-0 border-b-2 py-0.5 [&>svg]:top-1.5 [&>svg]:text-inherit",
           statusInfo.alertBg,
           statusInfo.iconColor
         )}>
