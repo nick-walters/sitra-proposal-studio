@@ -153,7 +153,7 @@ function PartnersPicker({
               <ParticipantBubble key={p.id} participant={p} />
             ))
           ) : (
-            <span className="text-muted-foreground text-[9pt] italic">Add participant(s)</span>
+            <span className="text-muted-foreground text-[9pt] italic">Select participant(s)</span>
           )}
           <ChevronsUpDown className="h-3 w-3 opacity-50 shrink-0" />
         </button>
