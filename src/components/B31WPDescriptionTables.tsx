@@ -548,7 +548,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                         <td
                           colSpan={2}
                           className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight"
-                          style={{ padding: '1px 2px', border: 'none' }}
+                          style={{ padding: '1px 6px', border: 'none' }}
                         >
                           <div className="flex items-center gap-1">
                             <span
