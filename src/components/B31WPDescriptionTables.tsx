@@ -262,8 +262,23 @@ function MonthRangePicker({
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-[280px] p-2" align="start">
-        <div className="text-xs text-muted-foreground mb-1.5 font-medium">
-          {selecting === 'start' ? 'Select start month' : selecting === 'end' ? 'Select end month' : 'Select start month'}
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-xs text-muted-foreground font-medium">
+            {selecting === 'start' ? 'Select start month' : selecting === 'end' ? 'Select end month' : 'Select start month'}
+          </span>
+          {(startMonth != null || endMonth != null) && (
+            <button
+              className="text-xs text-muted-foreground hover:text-foreground italic cursor-pointer"
+              onClick={() => {
+                setLocalStart(null);
+                setLocalEnd(null);
+                save(null, null);
+                setOpen(false);
+              }}
+            >
+              Clear selection
+            </button>
+          )}
         </div>
         <div className="grid grid-cols-6 gap-0.5">
           {months.map(m => {
