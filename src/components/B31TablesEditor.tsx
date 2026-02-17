@@ -135,9 +135,9 @@ const disseminationLevels = [
 ];
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
-const cellStyles = "border border-black !px-0.5 !py-0 !p-0 px-0.5 h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
-const bubbleCellStyles = "border border-black !px-0.5 !py-0 !p-0 px-0.5 h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-none";
-const headerCellStyles = "border border-black !px-0.5 !py-0 !p-0 px-0.5 h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
+const cellStyles = "!px-1 !py-0 !p-0 px-1 h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
+const bubbleCellStyles = "!px-1 !py-0 !p-0 px-1 h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-none";
+const headerCellStyles = "!px-1 !py-0 !p-0 px-1 h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight font-bold";
 
 // Inline editable text that expands to multiple lines - with debounced save
 function EditableText({ 
@@ -705,34 +705,34 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
       </p>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <B31TableWrapper>
-          <Table className={`${tableStyles} w-full [&_th]:border-0 [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse' }} ref={tableRef}>
+          <Table className={`${tableStyles} w-full [&_th]:border-0 [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse' }} ref={tableRef}>
             <TableHeader>
-              <TableRow className="bg-black text-white hover:bg-black">
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[0] } : { width: '40px', whiteSpace: 'nowrap' }) }}>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[0] } : { width: '40px', whiteSpace: 'nowrap' }) }}>
                   No.
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[1] } : {}) }}>
+                <TableHead className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[1] } : {}) }}>
                   Deliverable title
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[2] } : { width: '40px' }) }}>
+                <TableHead className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[2] } : { width: '40px' }) }}>
                   WP
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(2)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[3] } : { width: '60px' }) }}>
+                <TableHead className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[3] } : { width: '60px' }) }}>
                   Lead
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(3)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[4] } : { width: '40px' }}>
+                <TableHead className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[4] } : { width: '40px' }}>
                   Type
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(4)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[5] } : { width: '50px' }}>
+                <TableHead className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[5] } : { width: '50px' }}>
                   Diss.
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(5)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[6] } : { width: '40px' }}>
+                <TableHead className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[6] } : { width: '40px' }}>
                   Due
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(6)} />}
                 </TableHead>
@@ -1006,26 +1006,26 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
       </p>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <B31TableWrapper>
-          <Table className={`${tableStyles} w-full [&_th]:border-0 [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse' }} ref={tableRef}>
+          <Table className={`${tableStyles} w-full [&_th]:border-0 [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse' }} ref={tableRef}>
             <TableHeader>
-              <TableRow className="bg-black text-white hover:bg-black">
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[0] } : { width: '50px', whiteSpace: 'nowrap' }) }}>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[0] } : { width: '50px', whiteSpace: 'nowrap' }) }}>
                   No.
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[1] } : undefined}>
+                <TableHead className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[1] } : undefined}>
                   Milestone name
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[2] } : { width: '40px', whiteSpace: 'nowrap' }) }}>
+                <TableHead className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[2] } : { width: '40px', whiteSpace: 'nowrap' }) }}>
                   WPs
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(2)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[3] } : { width: '40px', whiteSpace: 'nowrap' }) }}>
+                <TableHead className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[3] } : { width: '40px', whiteSpace: 'nowrap' }) }}>
                   Due
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(3)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[4] } : undefined}>
+                <TableHead className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[4] } : undefined}>
                   Means of verification
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(4)} />}
                 </TableHead>
@@ -1225,26 +1225,26 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
       </p>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <B31TableWrapper>
-          <Table className={`${tableStyles} w-full [&_th]:border-0 [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse' }} ref={tableRef}>
+          <Table className={`${tableStyles} w-full [&_th]:border-0 [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse' }} ref={tableRef}>
             <TableHeader>
-              <TableRow className="bg-black text-white hover:bg-black">
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[0] } : { width: '25%' }}>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[0] } : { width: '25%' }}>
                   Risk
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative text-center`} style={colWidths.length > 0 ? { width: colWidths[1] } : { width: '24px' }}>
+                <TableHead className={`${headerCellStyles} relative text-center`} style={colWidths.length > 0 ? { width: colWidths[1] } : { width: '24px' }}>
                   i.
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative text-center`} style={colWidths.length > 0 ? { width: colWidths[2] } : { width: '24px' }}>
+                <TableHead className={`${headerCellStyles} relative text-center`} style={colWidths.length > 0 ? { width: colWidths[2] } : { width: '24px' }}>
                   ii.
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(2)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[3] } : { width: '84px' }}>
+                <TableHead className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[3] } : { width: '84px' }}>
                   WPs
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(3)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[4] } : undefined}>
+                <TableHead className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[4] } : undefined}>
                   Mitigation &amp; adaptation measures
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(4)} />}
                 </TableHead>
