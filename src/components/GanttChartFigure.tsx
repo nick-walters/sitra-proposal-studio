@@ -393,7 +393,7 @@ export function GanttChartFigure({
                 {/* Task Rows */}
                 {wp.tasks.map((task, taskIdx) => {
                   const isLastRow = untimedTasks.length === 0 && taskIdx === wp.tasks.length - 1;
-                  const bottomBorder = isLastRow ? `1px solid ${wpColor}` : `1px solid ${borderLight}`;
+                  const bottomBorder = `1px solid #e5e7eb`;
                   return (
                     <div key={task.id} className="flex" style={{ position: 'relative' }}>
                       {/* Task number bubble */}
@@ -524,8 +524,7 @@ export function GanttChartFigure({
 
                 {/* Untimed task rows */}
                 {untimedTasks.map((task, utIdx) => {
-                  const isLastRow = utIdx === untimedTasks.length - 1;
-                  const bottomBorder = isLastRow ? `1px solid ${wpColor}` : `1px solid ${borderLight}`;
+                  const bottomBorder = `1px solid #e5e7eb`;
                   return (
                     <div key={task.id} className="flex">
                       {/* Task number bubble */}
