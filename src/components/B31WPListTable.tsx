@@ -11,7 +11,7 @@ import { ColumnResizer } from '@/components/ColumnResizer';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
-const cellStyles = "!px-0.5 !py-0 !p-0 px-0.5 h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
+const cellStyles = "!px-[0.1pt] !py-0 !p-0 px-[0.1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
 const editableCellStyles = `${cellStyles} cursor-text hover:bg-muted/30`;
 
 interface Props {

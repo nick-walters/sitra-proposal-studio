@@ -136,9 +136,9 @@ const disseminationLevels = [
 ];
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
-const cellStyles = "!px-1 !py-0 !p-0 px-1 h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
-const bubbleCellStyles = "!px-1 !py-0 !p-0 px-1 h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-none";
-const headerCellStyles = "!px-1 !py-0 !p-0 px-1 h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight font-bold";
+const cellStyles = "!px-[0.1pt] !py-0 !p-0 px-[0.1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
+const bubbleCellStyles = "!px-[0.1pt] !py-0 !p-0 px-[0.1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-none";
+const headerCellStyles = "!px-[0.1pt] !py-0 !p-0 px-[0.1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight font-bold";
 
 // Inline editable text that expands to multiple lines - with debounced save
 function EditableText({ 
