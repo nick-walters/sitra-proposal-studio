@@ -257,7 +257,7 @@ function MonthRangePicker({
           ) : startMonth != null ? (
             <>{formatMonth(startMonth)}–<span className="text-muted-foreground italic">M??</span></>
           ) : (
-            <span className="text-muted-foreground italic">Select range</span>
+            <span className="text-muted-foreground italic">Duration</span>
           )}
         </button>
       </PopoverTrigger>
