@@ -2991,6 +2991,41 @@ export type Database = {
           },
         ]
       }
+      table_column_widths: {
+        Row: {
+          column_widths: Json
+          id: string
+          proposal_id: string
+          table_key: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          column_widths?: Json
+          id?: string
+          proposal_id: string
+          table_key: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          column_widths?: Json
+          id?: string
+          proposal_id?: string
+          table_key?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "table_column_widths_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       template_form_fields: {
         Row: {
           created_at: string

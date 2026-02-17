@@ -21,7 +21,7 @@ interface Props {
 export function B31SubcontractingTable({ items, participants, proposalId }: Props) {
   const queryClient = useQueryClient();
   const { isAdminOrOwner } = useUserRole();
-  const { colWidths, tableRef, handleColResizeStart } = useColumnResize();
+  const { colWidths, tableRef, handleColResizeStart } = useColumnResize({ proposalId, tableKey: 'subcontracting', canResize: isAdminOrOwner });
   const [editingCell, setEditingCell] = useState<{ id: string; field: string } | null>(null);
   const [editValue, setEditValue] = useState('');
 

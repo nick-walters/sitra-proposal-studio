@@ -21,7 +21,7 @@ interface Props {
 export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
   const queryClient = useQueryClient();
   const { isAdminOrOwner } = useUserRole();
-  const { colWidths, tableRef, handleColResizeStart } = useColumnResize();
+  const { colWidths, tableRef, handleColResizeStart } = useColumnResize({ proposalId, tableKey: 'effort-matrix', canResize: isAdminOrOwner });
   const [editingCell, setEditingCell] = useState<{ participantId: string; wpId: string } | null>(null);
   const [editValue, setEditValue] = useState('');
 
