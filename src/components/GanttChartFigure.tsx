@@ -402,8 +402,8 @@ export function GanttChartFigure({
                         style={{ width: 38, height: 18 }}
                       >
                         <span
-                          className="inline-flex items-center justify-center rounded-full text-white font-bold"
-                          style={{ backgroundColor: wpColor, fontSize: '9pt', lineHeight: 1, padding: '1px 4px', whiteSpace: 'nowrap' }}
+                          className="inline-flex items-center justify-center rounded-full font-bold"
+                          style={{ backgroundColor: '#fff', color: wpColor, border: `1.5px solid ${wpColor}`, fontSize: '9pt', lineHeight: 1, padding: '1px 4px', whiteSpace: 'nowrap' }}
                         >
                           T{task.wpNumber}.{task.taskNumber}
                         </span>
@@ -534,8 +534,8 @@ export function GanttChartFigure({
                         style={{ width: 38, height: 18 }}
                       >
                         <span
-                          className="inline-flex items-center justify-center rounded-full text-white font-bold"
-                          style={{ backgroundColor: wpColor, fontSize: '9pt', lineHeight: 1, padding: '1px 4px', whiteSpace: 'nowrap' }}
+                          className="inline-flex items-center justify-center rounded-full font-bold"
+                          style={{ backgroundColor: '#fff', color: wpColor, border: `1.5px solid ${wpColor}`, fontSize: '9pt', lineHeight: 1, padding: '1px 4px', whiteSpace: 'nowrap' }}
                         >
                           T{wp.number}.{task.number}
                         </span>
