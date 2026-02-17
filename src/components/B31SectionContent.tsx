@@ -66,6 +66,10 @@ export function B31SectionContent({ proposalId }: Props) {
       {/* Figure 3.1.b – Gantt chart */}
       {ganttFigure ? (
         <div>
+          <div className="mb-1 print:hidden flex gap-2">
+            <DeliverableTaskMappingDialog proposalId={proposalId} />
+            <MilestoneTaskMappingDialog proposalId={proposalId} />
+          </div>
           <GanttChartFigure
             proposalId={proposalId}
             figureNumber={ganttFigure.figure_number}
@@ -83,10 +87,6 @@ export function B31SectionContent({ proposalId }: Props) {
             {' '}&amp; milestones{' '}
             <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', position: 'relative', top: '-1px', border: '1px solid #000000', borderRadius: '9999px', padding: '0 3px', fontSize: '9pt', fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#000000', backgroundColor: '#ffffff' }}>MSX</span>
           </p>
-          <div className="mt-2 print:hidden flex gap-2">
-            <DeliverableTaskMappingDialog proposalId={proposalId} />
-            <MilestoneTaskMappingDialog proposalId={proposalId} />
-          </div>
         </div>
       ) : (
         <p className="text-muted-foreground text-sm italic">
