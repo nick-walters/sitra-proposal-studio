@@ -550,7 +550,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                           className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight"
                           style={{ padding: '1px 2px', border: 'none' }}
                         >
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1">
                             <span
                               className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
                               style={{ backgroundColor: '#fff', color: wp.color, border: `1.5px solid ${wp.color}`, fontSize: '11pt', lineHeight: 1, padding: '1px 4px', fontFamily: "'Times New Roman', Times, serif" }}
