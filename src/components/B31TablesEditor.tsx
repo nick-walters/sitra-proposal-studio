@@ -48,6 +48,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { EditableCaption } from '@/components/EditableCaption';
 
 interface B31TablesEditorProps {
   proposalId: string;
@@ -752,9 +753,12 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
           </>
         )}
       </div>
-      <p className={`${tableStyles} italic`}>
-        <span className="font-bold italic">Table 3.1.c.</span> Deliverables, including the partner responsible, type, dissemination level &amp; month due
-      </p>
+      <EditableCaption
+        proposalId={proposalId}
+        tableKey="table-3.1.c"
+        label="Table 3.1.c."
+        defaultCaption="Deliverables, including the partner responsible, type, dissemination level & month due"
+      />
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <B31TableWrapper>
           <Table className={`${tableStyles} [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse', width: colWidths.length > 0 ? `${colWidths.reduce((s, w) => s + w, 0)}px` : '100%' }} ref={tableRef}>
@@ -1068,9 +1072,12 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
           </>
         )}
       </div>
-      <p className={`${tableStyles} italic`}>
-        <span className="font-bold italic">Table 3.1.d.</span> Milestones
-      </p>
+      <EditableCaption
+        proposalId={proposalId}
+        tableKey="table-3.1.d"
+        label="Table 3.1.d."
+        defaultCaption="Milestones"
+      />
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <B31TableWrapper>
           <Table className={`${tableStyles} [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse', width: colWidths.length > 0 ? `${colWidths.reduce((s, w) => s + w, 0)}px` : '100%' }} ref={tableRef}>
@@ -1303,9 +1310,14 @@ export function B31RisksTable({ proposalId }: { proposalId: string }) {
           </>
         )}
       </div>
-      <p className={`${tableStyles} italic flex items-center gap-1 flex-wrap`}>
-        <span className="font-bold italic">Table 3.1.e.</span> Critical risks (<span className="font-bold">i.</span> likelihood; <span className="font-bold">ii.</span> severity; <RiskBadge level="L" /> = low, <RiskBadge level="M" /> = medium, <RiskBadge level="H" /> = high)
-      </p>
+      <EditableCaption
+        proposalId={proposalId}
+        tableKey="table-3.1.e"
+        label="Table 3.1.e."
+        defaultCaption="Critical risks"
+        suffix={<>(<span className="font-bold">i.</span> likelihood; <span className="font-bold">ii.</span> severity; <RiskBadge level="L" /> = low, <RiskBadge level="M" /> = medium, <RiskBadge level="H" /> = high)</>}
+        className="flex items-center gap-1 flex-wrap"
+      />
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <B31TableWrapper>
           <Table className={`${tableStyles} [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', borderCollapse: 'collapse', width: colWidths.length > 0 ? `max(${colWidths.reduce((s, w) => s + w, 0)}px, 100%)` : '100%' }} ref={tableRef}>

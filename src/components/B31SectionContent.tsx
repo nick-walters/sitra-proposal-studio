@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { EditableCaption } from '@/components/EditableCaption';
 import { useB31SectionData } from '@/hooks/useB31SectionData';
 import { B31WPListTable } from './B31WPListTable';
 import { B31WPDescriptionTables } from './B31WPDescriptionTables';
@@ -11,7 +12,6 @@ import { GanttChartFigure } from './GanttChartFigure';
 import { DeliverableTaskMappingDialog } from './DeliverableTaskMappingDialog';
 import { MilestoneTaskMappingDialog } from './MilestoneTaskMappingDialog';
 
-const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 
 interface Props {
   proposalId: string;
@@ -53,9 +53,13 @@ export function B31SectionContent({ proposalId }: Props) {
             onContentChange={() => {}}
             canEdit={false}
           />
-          <p className={`${tableStyles} italic mt-1`}>
-            <span className="font-bold italic">Figure 3.1.a.</span> {pertFigure.caption || pertFigure.title}
-          </p>
+          <EditableCaption
+            proposalId={proposalId}
+            tableKey="figure-3.1.a"
+            label="Figure 3.1.a."
+            defaultCaption={pertFigure.caption || pertFigure.title}
+            className="mt-1"
+          />
         </div>
       ) : (
         <p className="text-muted-foreground text-sm italic">
@@ -77,16 +81,22 @@ export function B31SectionContent({ proposalId }: Props) {
             onContentChange={() => {}}
             canEdit={false}
           />
-          <p className={`${tableStyles} italic mt-1`}>
-            <span className="font-bold italic">Figure 3.1.b.</span> Gantt chart, showing timings of WPs{' '}
-            <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', position: 'relative', top: '-1px', border: '1px solid #000000', borderRadius: '9999px', padding: '0 3px', fontSize: '9pt', fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#ffffff', backgroundColor: '#000000' }}>WPX</span>
-            {', '}tasks{' '}
-            <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', position: 'relative', top: '-1px', border: '1px solid #000000', borderRadius: '9999px', padding: '0 3px', fontSize: '9pt', fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#000000', backgroundColor: '#ffffff' }}>TX.X</span>
-            {', '}deliverables{' '}
-            <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', position: 'relative', top: '-1px', border: '1px solid #000000', borderRadius: '9999px', padding: '0 3px', fontSize: '9pt', fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#000000', backgroundColor: '#ffffff' }}>DX.X</span>
-            {' '}&amp; milestones{' '}
-            <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', position: 'relative', top: '-1px', border: '1px solid #000000', borderRadius: '9999px', padding: '0 3px', fontSize: '9pt', fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#000000', backgroundColor: '#ffffff' }}>MSX</span>
-          </p>
+          <EditableCaption
+            proposalId={proposalId}
+            tableKey="figure-3.1.b"
+            label="Figure 3.1.b."
+            defaultCaption="Gantt chart, showing timings of WPs"
+            suffix={<>
+              <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', position: 'relative', top: '-1px', border: '1px solid #000000', borderRadius: '9999px', padding: '0 3px', fontSize: '9pt', fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#ffffff', backgroundColor: '#000000' }}>WPX</span>
+              {', '}tasks{' '}
+              <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', position: 'relative', top: '-1px', border: '1px solid #000000', borderRadius: '9999px', padding: '0 3px', fontSize: '9pt', fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#000000', backgroundColor: '#ffffff' }}>TX.X</span>
+              {', '}deliverables{' '}
+              <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', position: 'relative', top: '-1px', border: '1px solid #000000', borderRadius: '9999px', padding: '0 3px', fontSize: '9pt', fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#000000', backgroundColor: '#ffffff' }}>DX.X</span>
+              {' '}&amp; milestones{' '}
+              <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', position: 'relative', top: '-1px', border: '1px solid #000000', borderRadius: '9999px', padding: '0 3px', fontSize: '9pt', fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#000000', backgroundColor: '#ffffff' }}>MSX</span>
+            </>}
+            className="mt-1"
+          />
         </div>
       ) : (
         <p className="text-muted-foreground text-sm italic">

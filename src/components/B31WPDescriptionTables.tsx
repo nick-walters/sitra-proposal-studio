@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
+import { EditableCaption } from '@/components/EditableCaption';
 import { useQueryClient } from '@tanstack/react-query';
 import { Check, ChevronsUpDown, Crown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -440,14 +441,14 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
 
   return (
     <div>
-      <p className={`${tableStyles} italic mb-0`}>
-        <span className="font-bold italic">Table 3.1.b.</span>{' '}
-        WP descriptions, including objectives, task (T) descriptions, task/WP leaders{' '}
-        <CaptionBubble showCrown />{' '}
-        &amp; other participants{' '}
-        <CaptionBubble />{' '}
-        &amp; start &amp; end month
-      </p>
+      <EditableCaption
+        proposalId={proposalId}
+        tableKey="table-3.1.b"
+        label="Table 3.1.b."
+        defaultCaption="WP descriptions, including objectives, task (T) descriptions, task/WP leaders"
+        suffix={<><CaptionBubble showCrown /> &amp; other participants <CaptionBubble /> &amp; start &amp; end month</>}
+        className="mb-0"
+      />
       {populatedWPs.map((wp, idx) => {
         const shortName = wp.short_name || wp.title || `WP${wp.number}`;
         const title = wp.title || `Work Package ${wp.number}`;

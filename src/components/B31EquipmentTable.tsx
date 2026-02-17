@@ -6,6 +6,7 @@ import { formatCurrency, parseFormattedNumber } from '@/lib/formatNumber';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
+import { EditableCaption } from '@/components/EditableCaption';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles = "border-y border-gray-200 px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle";
@@ -66,9 +67,13 @@ export function B31EquipmentTable({ equipmentItems, participants, personnelCostB
 
   return (
     <div>
-      <p className={`${tableStyles} italic mb-0`}>
-        <span className="font-bold italic">Table 3.1.h.</span> Equipment purchase cost justifications
-      </p>
+      <EditableCaption
+        proposalId={proposalId}
+        tableKey="table-3.1.h"
+        label="Table 3.1.h."
+        defaultCaption="Equipment purchase cost justifications"
+        className="mb-0"
+      />
       <table className={`${tableStyles} border-collapse [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', width: colWidths.length > 0 ? `${colWidths.reduce((s: number, w: number) => s + w, 0)}px` : '100%' }} ref={tableRef}>
         <thead>
           <tr>
