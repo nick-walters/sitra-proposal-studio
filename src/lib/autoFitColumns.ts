@@ -78,7 +78,7 @@ export function computeAutoFitSmart(
     (sum, t, i) => sum + (t !== 'text' ? colFixedWidths[i] : 0),
     0
   );
-  const totalMaxChars = colMaxChars.reduce((s, c) => s + c, 0);
+  const totalMaxChars = colMaxChars.reduce((s, c) => s + Math.sqrt(c), 0);
   const availableSpace = Math.max(0, containerWidth - fixedTotal);
 
   let finalWidths: number[] = new Array(numCols);
@@ -87,7 +87,7 @@ export function computeAutoFitSmart(
     if (colTypes[i] !== 'text') {
       finalWidths[i] = colFixedWidths[i];
     } else if (totalMaxChars > 0) {
-      finalWidths[i] = Math.max(60, availableSpace * (colMaxChars[i] / totalMaxChars));
+      finalWidths[i] = Math.max(60, availableSpace * (Math.sqrt(colMaxChars[i]) / totalMaxChars));
     } else {
       finalWidths[i] = Math.max(60, minWidths[i]);
     }
