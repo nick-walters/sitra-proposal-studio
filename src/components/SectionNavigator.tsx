@@ -234,14 +234,14 @@ function SectionItem({
         {/* WP sections render as colored bubbles - with left margin to align with text */}
         {isWPSection && wpColor ? (
           <span 
-            className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap ml-5"
+            className="inline-flex items-center justify-center px-1.5 py-px rounded-full text-[10px] font-bold whitespace-nowrap"
             style={{ backgroundColor: wpColor, color: '#ffffff' }}
           >
             WP{wpSection.wpNumber}: {wpSection.title}
           </span>
         ) : isCaseSection && caseColor ? (
           <span 
-            className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap ml-5 border-[1.5px] border-black"
+            className="inline-flex items-center justify-center px-1.5 py-px rounded-full text-[10px] font-bold whitespace-nowrap border-[1.5px] border-black"
             style={{ backgroundColor: '#ffffff', color: '#000000' }}
           >
             {caseSection.number}: {caseSection.title}
