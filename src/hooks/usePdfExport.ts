@@ -1513,6 +1513,14 @@ export function usePdfExport() {
       // Get all Part B sections in order
       const partBSections = getPartBSections(sections);
 
+      // Fetch WP data for Table 3.1.b page index
+      const { data: wpDataForPageIndex } = await supabase
+        .from('wp_drafts')
+        .select('number, color')
+        .eq('proposal_id', proposal.id)
+        .order('number');
+      const wpPageIndexData = wpDataForPageIndex || [];
+
       // Render all Part B sections
       for (const section of partBSections) {
         if (isH1Container(section)) {
@@ -1526,6 +1534,11 @@ export function usePdfExport() {
           currentSectionName = `B${formattedNumber}. ${section.title}`;
           updatePageSection();
           addH2(`${formattedNumber}. ${section.title}`);
+          
+          const isSection31 = formattedNumber === '3.1';
+          let table31bReservedPage: number | null = null;
+          let table31bReservedY: number | null = null;
+          const wpStartPages = new Map<number, number>();
           
           // Get and render content
           const content = getSectionContent(section.id);
@@ -1544,11 +1557,79 @@ export function usePdfExport() {
                 break;
               case 'caption':
                 addCaption(block.text, block.captionType);
+                // After rendering Table 3.1.b caption, reserve space for WP page listing
+                if (isSection31 && block.text.match(/Table\s+3\.1\.?b/i) && wpPageIndexData.length > 0) {
+                  table31bReservedPage = pdf.internal.pages.length - 1;
+                  table31bReservedY = yPosition;
+                  // Reserve space: estimate lines needed for WP listing
+                  const estimatedLines = Math.max(1, Math.ceil(wpPageIndexData.length / 5));
+                  yPosition += lineHeightBody * Math.min(estimatedLines, 3);
+                }
                 break;
               case 'table':
+                // Track WP description table starts in section 3.1
+                if (isSection31 && block.rows.length > 0 && block.hasHeader) {
+                  const headerText = block.rows[0]?.[0] || '';
+                  const wpMatch = headerText.match(/Work\s*Package\s+(\d+)/i);
+                  if (wpMatch) {
+                    wpStartPages.set(parseInt(wpMatch[1]), pdf.internal.pages.length - 1);
+                  }
+                }
                 addTable(block.rows, block.hasHeader);
                 break;
             }
+          }
+          
+          // Draw WP page listing in reserved space for Table 3.1.b
+          if (isSection31 && table31bReservedPage !== null && table31bReservedY !== null && wpStartPages.size > 0) {
+            const savedCurrentPage = pdf.internal.pages.length - 1;
+            pdf.setPage(table31bReservedPage);
+            
+            pdf.setFontSize(FONT_SIZE_BODY);
+            pdf.setFont('times', 'italic');
+            pdf.setTextColor(...black);
+            
+            let drawX = margin;
+            let drawY = table31bReservedY;
+            const introText = '. WP descriptions start on the following pages: ';
+            pdf.text(introText, drawX, drawY);
+            drawX += pdf.getTextWidth(introText);
+            
+            const sortedWPs = Array.from(wpStartPages.entries()).sort((a, b) => a[0] - b[0]);
+            
+            for (let i = 0; i < sortedWPs.length; i++) {
+              const [wpNum, pageNum] = sortedWPs[i];
+              const wpColor = wpPageIndexData.find(w => w.number === wpNum)?.color || '#475569';
+              const isLast = i === sortedWPs.length - 1;
+              const pageText = isLast ? ` p.\u00A0${pageNum}` : ` p.\u00A0${pageNum}; `;
+              
+              // Check if bubble + page text fits on current line
+              pdf.setFontSize(8);
+              pdf.setFont('times', 'bold');
+              const bubbleTextWidth = pdf.getTextWidth(`WP${wpNum}`) + 3; // padding
+              pdf.setFontSize(FONT_SIZE_BODY);
+              pdf.setFont('times', 'italic');
+              const pageTextWidth = pdf.getTextWidth(pageText);
+              
+              if (drawX + bubbleTextWidth + pageTextWidth > margin + contentWidth && drawX > margin + 10) {
+                drawX = margin;
+                drawY += lineHeightBody;
+              }
+              
+              // Draw WP bubble
+              const bWidth = drawWPBubble(wpNum, drawX, drawY, wpColor);
+              drawX += bWidth + 0.5;
+              
+              // Draw page text
+              pdf.setFont('times', 'italic');
+              pdf.setFontSize(FONT_SIZE_BODY);
+              pdf.setTextColor(...black);
+              pdf.text(pageText, drawX, drawY);
+              drawX += pageTextWidth;
+            }
+            
+            // Restore to current page
+            pdf.setPage(savedCurrentPage);
           }
           
           if (!content) {
@@ -1556,8 +1637,7 @@ export function usePdfExport() {
           }
           
           // After section 3.1 content, render B3.1 tables (Deliverables, Milestones, Risks)
-          const sectionNum = section.number.replace(/^B/, '');
-          if (sectionNum === '3.1') {
+          if (isSection31) {
             await renderB31Tables(proposal.id);
           }
         }
