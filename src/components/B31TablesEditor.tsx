@@ -305,7 +305,7 @@ function MonthSelect({
 function WPBubble({ wp, onRemove, topOffset = '-2pt' }: { wp: WorkPackage; onRemove?: () => void; topOffset?: string }) {
   return (
     <span 
-      className="inline-flex items-center justify-center gap-0.5 px-1.5 rounded-full text-white text-[9pt] font-bold whitespace-nowrap relative"
+      className="inline-flex items-center justify-center gap-0.5 px-1.5 py-0 rounded-full text-white text-[9pt] font-bold whitespace-nowrap relative"
       style={{ backgroundColor: wp.color || '#666', lineHeight: 1, verticalAlign: 'middle', top: topOffset }}
     >
       WP{wp.number}
