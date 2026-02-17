@@ -263,8 +263,9 @@ function EditableTextInline({
       onFocus={() => { isFocused.current = true; }}
       onBlur={() => { isFocused.current = false; }}
       data-placeholder={placeholder}
-      className={`outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground leading-tight ${inheritFont ? 'font-inherit text-inherit' : "font-['Times_New_Roman',Times,serif] text-[11pt]"}`}
-      style={{ display: 'inline' }}
+      className={`outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground leading-tight ${inheritFont ? '' : "font-['Times_New_Roman',Times,serif] text-[11pt]"}`}
+      style={{ display: 'inline', ...(inheritFont ? { fontFamily: 'inherit', fontSize: 'inherit' } : {}) }}
+      
     >
       {value}
     </span>
@@ -699,7 +700,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
       </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <B31TableWrapper>
-          <Table className={`${tableStyles} w-full [&_th]:border-0 [&_td]:border-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto' }} ref={tableRef}>
+          <Table className={`${tableStyles} max-w-full [&_th]:border-0 [&_td]:border-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', width: colWidths.length > 0 ? undefined : 'auto' }} ref={tableRef}>
             <TableHeader>
               <TableRow className="bg-black text-white hover:bg-black">
                 <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[0] } : { width: '55px' }) }}>
