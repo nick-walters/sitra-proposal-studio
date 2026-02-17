@@ -406,7 +406,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
               style={{ borderLeft: `3pt solid ${wp.color}` }}
             >
               <tbody>
-                {/* Header row 1: WP number + short name | month range */}
+                {/* Header row 1: WP number + short name | WP leader bubble with crown */}
                 <tr>
                   <td
                     className="border px-0.5 font-bold text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight text-white"
@@ -436,11 +436,18 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                       width: '1%',
                     }}
                   >
-                    {monthRange || <span className="opacity-70">—</span>}
+                    <LeaderPicker
+                      entityId={wp.id}
+                      entityTable="wp_drafts"
+                      currentLeaderId={wp.lead_participant_id}
+                      participants={participants}
+                      proposalId={proposalId}
+                      showCrown
+                    />
                   </td>
                 </tr>
 
-                {/* Header row 2: WP title | WP leader bubble with crown */}
+                {/* Header row 2: WP title | month range */}
                 <tr>
                   <td
                     className="border px-0.5 font-bold text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight text-white"
@@ -469,14 +476,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                       width: '1%',
                     }}
                   >
-                    <LeaderPicker
-                      entityId={wp.id}
-                      entityTable="wp_drafts"
-                      currentLeaderId={wp.lead_participant_id}
-                      participants={participants}
-                      proposalId={proposalId}
-                      showCrown
-                    />
+                    {monthRange || <span className="opacity-70">—</span>}
                   </td>
                 </tr>
 
