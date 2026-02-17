@@ -791,7 +791,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
               <TableBody>
                 {deliverables.map((del) => (
                   <SortableTableRow key={del.id} id={del.id} canDrag={isAdminOrOwner} onDelete={() => deleteDeliverable.mutate(del.id)}>
-                    <TableCell className={cellStyles} style={{ lineHeight: 1.2, whiteSpace: 'nowrap', width: '40px' }}>
+                    <TableCell className={bubbleCellStyles} style={{ whiteSpace: 'nowrap', width: '40px' }}>
                       {(() => {
                         const wpColor = del.wp_number != null 
                           ? workPackages.find(wp => wp.number === del.wp_number)?.color || '#000'
