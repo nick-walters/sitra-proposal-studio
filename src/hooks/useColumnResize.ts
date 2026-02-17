@@ -91,5 +91,5 @@ export function useColumnResize(options: {
     document.addEventListener('mouseup', onMouseUp);
   }, [colWidths, canResize, saveWidths]);
 
-  return { colWidths, tableRef, handleColResizeStart, loaded };
+  return { colWidths, setColWidths, tableRef, handleColResizeStart, saveWidths, loaded };
 }

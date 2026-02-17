@@ -6,6 +6,9 @@ import type { B31WPData, B31Participant } from '@/hooks/useB31SectionData';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
+import { Columns3 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles = "px-1 py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle";
@@ -21,7 +24,7 @@ interface Props {
 export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
   const queryClient = useQueryClient();
   const { isAdminOrOwner } = useUserRole();
-  const { colWidths, tableRef, handleColResizeStart } = useColumnResize({ proposalId, tableKey: 'effort-matrix', canResize: isAdminOrOwner });
+  const { colWidths, setColWidths, tableRef, handleColResizeStart, saveWidths } = useColumnResize({ proposalId, tableKey: 'effort-matrix', canResize: isAdminOrOwner });
   const [editingCell, setEditingCell] = useState<{ participantId: string; wpId: string } | null>(null);
   const [editValue, setEditValue] = useState('');
 
@@ -106,13 +109,99 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
     if (e.key === 'Escape') setEditingCell(null);
   };
 
-  if (wpData.length === 0 || participants.length === 0 || !hasData) return null;
+  const autoFitColumns = useCallback(() => {
+    const table = tableRef.current;
+    if (!table) return;
 
-  // Total column count: 1 (participant) + wpData.length (WPs) + 1 (total)
-  const totalCols = wpData.length + 2;
+    // Temporarily switch to auto layout to measure natural widths
+    const prevLayout = table.style.tableLayout;
+    table.style.tableLayout = 'auto';
+    // Remove fixed widths from all th/td
+    const allCells = table.querySelectorAll('th, td');
+    const savedStyles: string[] = [];
+    allCells.forEach((cell, i) => {
+      const el = cell as HTMLElement;
+      savedStyles[i] = el.style.width;
+      el.style.width = '';
+      el.style.whiteSpace = 'nowrap';
+    });
+
+    // Force reflow and measure minimum no-wrap widths per column
+    table.offsetHeight; // force reflow
+    const headerCells = table.querySelectorAll('thead th');
+    const numCols = headerCells.length;
+    const minWidths = new Array(numCols).fill(0);
+
+    // Measure all rows to find the max no-wrap width per column
+    const rows = table.querySelectorAll('tr');
+    rows.forEach(row => {
+      const cells = row.querySelectorAll('th, td');
+      cells.forEach((cell, colIdx) => {
+        if (colIdx < numCols) {
+          minWidths[colIdx] = Math.max(minWidths[colIdx], (cell as HTMLElement).offsetWidth);
+        }
+      });
+    });
+
+    // Restore whitespace
+    allCells.forEach((cell) => {
+      (cell as HTMLElement).style.whiteSpace = '';
+    });
+
+    const containerWidth = table.parentElement?.clientWidth ?? table.offsetWidth;
+    const totalMinWidth = minWidths.reduce((s, w) => s + w, 0);
+
+    let finalWidths: number[];
+    if (totalMinWidth <= containerWidth) {
+      // Everything fits without wrapping — use min widths, give extra space to first column
+      finalWidths = [...minWidths];
+      finalWidths[0] += containerWidth - totalMinWidth;
+    } else {
+      // Need to wrap some columns — distribute proportionally but keep small columns small
+      // Give each column at least its min width scaled down proportionally
+      const scale = containerWidth / totalMinWidth;
+      finalWidths = minWidths.map(w => Math.max(40, Math.floor(w * scale)));
+      // Adjust to fill container exactly
+      const diff = containerWidth - finalWidths.reduce((s, w) => s + w, 0);
+      if (diff !== 0) finalWidths[0] += diff;
+    }
+
+    // Restore table layout
+    table.style.tableLayout = prevLayout;
+    allCells.forEach((cell, i) => {
+      (cell as HTMLElement).style.width = savedStyles[i];
+    });
+
+    // Round to integers
+    finalWidths = finalWidths.map(w => Math.round(w));
+
+    setColWidths(finalWidths);
+    saveWidths(finalWidths);
+  }, [tableRef, setColWidths, saveWidths]);
+
+  if (wpData.length === 0 || participants.length === 0 || !hasData) return null;
 
   return (
     <div>
+      {isAdminOrOwner && (
+        <div className="flex justify-end mb-0.5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={autoFitColumns}
+                className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+              >
+                <Columns3 size={14} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <p>Auto-fit column widths</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      )}
       <p className={`${tableStyles} italic mb-0`}>
         <span className="font-bold italic">Table 3.1.f.</span> Person months per participant per work package
       </p>
