@@ -116,17 +116,17 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
       <p className={`${tableStyles} italic mb-0`}>
         <span className="font-bold italic">Table 3.1.f.</span> Person months per participant per work package
       </p>
-      <table className={`${tableStyles} w-full border-collapse [&_th]:border-0 [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0 [&_thead]:border-b [&_thead]:border-black`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto' }} ref={tableRef}>
+      <table className={`${tableStyles} w-full border-collapse [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto' }} ref={tableRef}>
         <thead>
           <tr>
-            <th className={`${headerCellStyles} relative`} style={{ textAlign: 'left', border: 'none', fontWeight: 'bold', ...(colWidths.length > 0 ? { width: colWidths[0] } : {}) }}>
+            <th className={`${headerCellStyles} relative`} style={{ textAlign: 'left', fontWeight: 'bold', ...(colWidths.length > 0 ? { width: colWidths[0] } : {}) }}>
               Participant
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
             </th>
             {wpData.map((wp, i) => {
               const wpColor = wp.color || '#2563EB';
               return (
-                <th key={wp.id} className={`${headerCellStyles} relative`} style={{ border: 'none', ...(colWidths.length > 0 ? { width: colWidths[i + 1] } : {}) }}>
+                <th key={wp.id} className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[i + 1] } : {}) }}>
                   <span
                     className="inline-flex items-center rounded-full px-1.5 text-[9pt] font-bold whitespace-nowrap"
                     style={{ backgroundColor: wpColor, color: '#FFFFFF', lineHeight: 1, paddingTop: '2px', paddingBottom: '2px' }}
@@ -137,7 +137,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                 </th>
               );
             })}
-            <th className={headerCellStyles} style={{ border: 'none', fontWeight: 'bold' }}>Total</th>
+            <th className={headerCellStyles} style={{ fontWeight: 'bold' }}>Total</th>
           </tr>
         </thead>
         <tbody>
@@ -146,7 +146,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
             const rowTotal = wpData.reduce((sum, wp) => sum + (pMap.get(wp.id) || 0), 0);
             return (
               <tr key={p.id}>
-                <td className="px-1 py-0.5 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle border-y border-gray-200" style={{ textAlign: 'left' }}>
+                <td className="px-1 py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle border-y border-gray-200" style={{ textAlign: 'left' }}>
                   <span
                     className="inline-flex items-center rounded-full px-1.5 text-[9pt] font-bold italic whitespace-nowrap"
                     style={{ backgroundColor: '#000000', color: '#FFFFFF', lineHeight: 1, paddingTop: '2px', paddingBottom: '2px' }}
@@ -186,7 +186,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
           })}
           {/* Total row */}
           <tr>
-            <td className="px-1 py-0.5 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle font-bold border-y border-gray-200" style={{ textAlign: 'left' }}>Total</td>
+            <td className="px-1 py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle font-bold border-y border-gray-200" style={{ textAlign: 'left' }}>Total</td>
             {wpData.map(wp => {
               const colTotal = participants.reduce((sum, p) => sum + (matrix.get(p.id)!.get(wp.id) || 0), 0);
               return <td key={wp.id} className={`${cellStyles} font-bold`}>{colTotal || '—'}</td>;
