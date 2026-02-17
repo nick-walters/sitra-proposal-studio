@@ -56,7 +56,7 @@ interface GanttChartFigureProps {
 // 18cm = 680.315px at 96dpi. We use this as the total chart width.
 const TOTAL_WIDTH_PX = 680;
 const MIN_CELL_WIDTH = 8;
-const MARGIN_GAP = 4; // gap between month columns and right margin
+const MARGIN_GAP = 4.5; // gap between month columns and right margin
 
 export function GanttChartFigure({
   figureNumber,
@@ -408,7 +408,7 @@ export function GanttChartFigure({
                       {/* Task title */}
                       <div 
                         className="shrink-0 flex items-center overflow-hidden"
-                        style={{ width: labelWidth - 38, height: 18, padding: '0 2px', borderRight: `2px solid ${wpColor}` }}
+style={{ width: labelWidth - 38, height: 18, padding: '0 2px', borderRight: `1px solid ${wpColor}` }}
                       >
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.name}</span>
                       </div>
@@ -574,7 +574,7 @@ export function GanttChartFigure({
                       {/* Task title */}
                       <div 
                         className="shrink-0 flex items-center overflow-hidden"
-                        style={{ width: labelWidth - 38, height: 18, padding: '0 2px', borderRight: `2px solid ${wpColor}` }}
+                        style={{ width: labelWidth - 38, height: 18, padding: '0 2px', borderRight: `1px solid ${wpColor}` }}
                       >
                         <span className="text-muted-foreground" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</span>
                       </div>
