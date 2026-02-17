@@ -704,11 +704,11 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                   Deliverable
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[1] } : { width: '40px' }}>
+                <TableHead className={`${headerCellStyles} text-white font-bold relative border-l-0`} style={colWidths.length > 0 ? { width: colWidths[1] } : { width: '40px' }}>
                   WP
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
                 </TableHead>
-                <TableHead className={`${headerCellStyles} text-white font-bold relative`} style={colWidths.length > 0 ? { width: colWidths[2] } : { width: '60px' }}>
+                <TableHead className={`${headerCellStyles} text-white font-bold relative border-l-0`} style={colWidths.length > 0 ? { width: colWidths[2] } : { width: '60px' }}>
                   Lead
                   {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(2)} />}
                 </TableHead>
@@ -747,7 +747,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                         />
                       </span>
                     </TableCell>
-                    <TableCell className={bubbleCellStyles}>
+                    <TableCell className={`${bubbleCellStyles} border-l-0`}>
                       <SingleWPSelector
                         value={del.wp_number}
                         onChange={(val) => {
@@ -761,7 +761,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                         workPackages={workPackages}
                       />
                     </TableCell>
-                    <TableCell className={bubbleCellStyles}>
+                    <TableCell className={`${bubbleCellStyles} border-l-0`}>
                       <Select 
                         value={del.lead_participant_id || ''} 
                         onValueChange={(v) => updateDeliverable.mutate({ id: del.id, lead_participant_id: v || null })}
