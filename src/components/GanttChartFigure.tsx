@@ -56,6 +56,7 @@ interface GanttChartFigureProps {
 // 18cm = 680.315px at 96dpi. We use this as the total chart width.
 const TOTAL_WIDTH_PX = 680;
 const MIN_CELL_WIDTH = 8;
+const MARGIN_GAP = 4; // gap between month columns and right margin
 
 export function GanttChartFigure({
   figureNumber,
@@ -200,7 +201,6 @@ export function GanttChartFigure({
     return yrs;
   }, [projectDuration, months]);
 
-
   const handleDurationChange = (duration: number) => {
     onContentChange({ ...content, projectDuration: duration });
   };
@@ -209,7 +209,7 @@ export function GanttChartFigure({
   const minQuarterWidth = 30;
   const cellWidth = Math.max(MIN_CELL_WIDTH, Math.ceil(minQuarterWidth / 3));
   const timelineWidth = cellWidth * projectDuration;
-  const labelWidth = TOTAL_WIDTH_PX - timelineWidth;
+  const labelWidth = TOTAL_WIDTH_PX - timelineWidth - MARGIN_GAP;
 
   // Border colors - lighter greys
   const borderLight = '#e5e5e5';
@@ -306,8 +306,8 @@ export function GanttChartFigure({
                 Month
               </div>
             </div>
-            {/* Grid column with outer border */}
-            <div style={{ border: `1px solid ${borderDark}`, width: timelineWidth, flexShrink: 0 }}>
+            {/* Grid column with outer border - shifted left with gap on right */}
+            <div style={{ border: `1px solid ${borderDark}`, width: timelineWidth, flexShrink: 0, marginRight: MARGIN_GAP }}>
               {/* Reporting Period Row */}
               <div className="flex">
                 {reportingPeriods.map((rp, rpIdx) => {
@@ -335,7 +335,7 @@ export function GanttChartFigure({
                   </div>
                 ))}
               </div>
-              {/* Month Row - quarterly groups, using borderLeft to align with year borders */}
+              {/* Month Row - quarterly groups */}
               <div className="flex" style={{ borderTop: `1px solid ${borderDark}` }}>
                 {Array.from({ length: Math.ceil(projectDuration / 3) }, (_, qi) => {
                   const startM = qi * 3 + 1;
@@ -343,7 +343,6 @@ export function GanttChartFigure({
                   const count = endM - startM + 1;
                   const isFirstQuarter = qi === 0;
                   const isYearBoundary = (startM - 1) % 12 === 0;
-                  const isQuarterBoundary = qi > 0;
                   const leftBorderColor = isFirstQuarter ? undefined : (isYearBoundary ? borderDark : borderQuarter);
                   return (
                     <div
@@ -380,11 +379,11 @@ export function GanttChartFigure({
                   <div style={{ height: 2 }} aria-hidden="true" />
                 )}
 
-                {/* WP Header Row - full width bubble */}
+                {/* WP Header Row - full width bubble extending to margin */}
                 <div className="flex relative" style={{ height: 18 }}>
                   <div 
-                    className="absolute inset-0 flex items-center font-bold text-white truncate rounded-full"
-                    style={{ backgroundColor: wpColor, padding: '0 6px', pointerEvents: 'none' }}
+                    className="absolute flex items-center font-bold text-white truncate rounded-full"
+                    style={{ backgroundColor: wpColor, padding: '0 6px', pointerEvents: 'none', top: 0, bottom: 0, left: 0, right: 0 }}
                   >
                     WP{wp.number}: {wp.shortName}{wp.title ? ` – ${wp.title}` : ''}
                   </div>
@@ -392,8 +391,6 @@ export function GanttChartFigure({
 
                 {/* Task Rows */}
                 {wp.tasks.map((task, taskIdx) => {
-                  const isLastRow = untimedTasks.length === 0 && taskIdx === wp.tasks.length - 1;
-                  const bottomBorder = `1px solid #e5e7eb`;
                   return (
                     <div key={task.id} className="flex" style={{ position: 'relative' }}>
                       {/* Task number bubble */}
@@ -411,12 +408,12 @@ export function GanttChartFigure({
                       {/* Task title */}
                       <div 
                         className="shrink-0 flex items-center overflow-hidden"
-                        style={{ width: labelWidth - 38, height: 18, padding: '0 2px' }}
+                        style={{ width: labelWidth - 38, height: 18, padding: '0 2px', borderRight: `2px solid ${wpColor}` }}
                       >
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.name}</span>
                       </div>
-                      <div className="flex" style={{ position: 'relative' }}>
-                        {/* Render month cells */}
+                      <div className="flex" style={{ position: 'relative', marginRight: MARGIN_GAP }}>
+                        {/* Render month cells - no horizontal borders */}
                         {months.map(m => {
                           const isInTask = m >= task.startMonth && m <= task.endMonth;
                           return (
@@ -427,7 +424,6 @@ export function GanttChartFigure({
                                 height: 18,
                                 backgroundColor: isInTask ? taskColor : undefined,
                                 borderRight: isInTask ? getFilledCellRightBorder(m, wpColor) : `1px solid ${getMonthRightBorder(m, wpColor)}`,
-                                borderBottom: bottomBorder,
                               }}
                             />
                           );
@@ -459,7 +455,6 @@ export function GanttChartFigure({
                             const curr = positioned[i];
                             const minGap = (prev.width + curr.width) / 2 + 2;
                             if (curr.centerX - prev.centerX < minGap) {
-                              // Find the full cluster
                               let clusterStart = i - 1;
                               let clusterEnd = i;
                               while (clusterEnd + 1 < positioned.length) {
@@ -470,7 +465,6 @@ export function GanttChartFigure({
                                   clusterEnd++;
                                 } else break;
                               }
-                              // Spread cluster evenly around their midpoint
                               const clusterItems = positioned.slice(clusterStart, clusterEnd + 1);
                               const midX = (clusterItems[0].centerX + clusterItems[clusterItems.length - 1].centerX) / 2;
                               const totalWidth = clusterItems.reduce((sum, item, idx) => {
@@ -486,36 +480,75 @@ export function GanttChartFigure({
                             }
                           }
 
-                          return positioned.map((b, idx) => (
-                            <Tooltip key={`${b.type}-${idx}`}>
-                              <TooltipTrigger asChild>
-                                <span
-                                  className="font-bold"
-                                  style={{
-                                    position: 'absolute',
-                                    top: '50%',
-                                    left: b.centerX,
-                                    transform: 'translate(-50%, -50%)',
-                                    fontSize: '9pt',
-                                    lineHeight: 1,
-                                    backgroundColor: '#ffffff',
-                                    color: b.color,
-                                    border: `1px solid ${b.color}`,
-                                    borderRadius: '9999px',
-                                    padding: '0 3px',
-                                    whiteSpace: 'nowrap',
-                                    zIndex: 10,
-                                  }}
-                                >
-                                  {b.label}
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="text-xs font-medium">{b.tooltipTitle}</p>
-                                <p className="text-xs text-muted-foreground">Month {b.month}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          ));
+                          // Calculate triangle position for each bubble (points to the month cell)
+                          const getBubbleTriangleLeft = (b: typeof positioned[0]) => {
+                            const monthCenterX = (b.month - 1) * cellWidth + cellWidth / 2;
+                            // Triangle position relative to bubble left edge
+                            return monthCenterX - (b.centerX - b.width / 2);
+                          };
+
+                          return positioned.map((b, idx) => {
+                            const triangleLeft = getBubbleTriangleLeft(b);
+                            const triangleSize = 4;
+                            return (
+                              <Tooltip key={`${b.type}-${idx}`}>
+                                <TooltipTrigger asChild>
+                                  <span
+                                    className="font-bold"
+                                    style={{
+                                      position: 'absolute',
+                                      top: 'calc(50% + 1px)',
+                                      left: b.centerX,
+                                      transform: 'translate(-50%, -50%)',
+                                      fontSize: '9pt',
+                                      lineHeight: 1,
+                                      backgroundColor: '#ffffff',
+                                      color: b.color,
+                                      border: `1px solid ${b.color}`,
+                                      borderRadius: '9999px',
+                                      padding: '0 3px',
+                                      whiteSpace: 'nowrap',
+                                      zIndex: 10,
+                                    }}
+                                  >
+                                    {/* Triangle pointer on top of bubble */}
+                                    <span
+                                      style={{
+                                        position: 'absolute',
+                                        top: -triangleSize,
+                                        left: triangleLeft - triangleSize,
+                                        width: 0,
+                                        height: 0,
+                                        borderLeft: `${triangleSize}px solid transparent`,
+                                        borderRight: `${triangleSize}px solid transparent`,
+                                        borderBottom: `${triangleSize}px solid ${b.color}`,
+                                        zIndex: 11,
+                                      }}
+                                    />
+                                    {/* White fill triangle to mask the border */}
+                                    <span
+                                      style={{
+                                        position: 'absolute',
+                                        top: -(triangleSize - 1),
+                                        left: triangleLeft - (triangleSize - 1),
+                                        width: 0,
+                                        height: 0,
+                                        borderLeft: `${triangleSize - 1}px solid transparent`,
+                                        borderRight: `${triangleSize - 1}px solid transparent`,
+                                        borderBottom: `${triangleSize - 1}px solid #ffffff`,
+                                        zIndex: 12,
+                                      }}
+                                    />
+                                    {b.label}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs font-medium">{b.tooltipTitle}</p>
+                                  <p className="text-xs text-muted-foreground">Month {b.month}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            );
+                          });
                         })()}
                       </div>
                     </div>
@@ -524,7 +557,6 @@ export function GanttChartFigure({
 
                 {/* Untimed task rows */}
                 {untimedTasks.map((task, utIdx) => {
-                  const bottomBorder = `1px solid #e5e7eb`;
                   return (
                     <div key={task.id} className="flex">
                       {/* Task number bubble */}
@@ -542,11 +574,11 @@ export function GanttChartFigure({
                       {/* Task title */}
                       <div 
                         className="shrink-0 flex items-center overflow-hidden"
-                        style={{ width: labelWidth - 38, height: 18, padding: '0 2px' }}
+                        style={{ width: labelWidth - 38, height: 18, padding: '0 2px', borderRight: `2px solid ${wpColor}` }}
                       >
                         <span className="text-muted-foreground" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</span>
                       </div>
-                      <div className="flex">
+                      <div className="flex" style={{ marginRight: MARGIN_GAP }}>
                         {months.map(m => (
                           <div
                             key={m}
@@ -554,7 +586,6 @@ export function GanttChartFigure({
                               width: cellWidth, 
                               height: 18,
                               borderRight: `1px solid ${getMonthRightBorder(m, wpColor)}`,
-                              borderBottom: bottomBorder,
                             }}
                           />
                         ))}
@@ -565,6 +596,54 @@ export function GanttChartFigure({
               </div>
             );
           })}
+
+          {/* Caption */}
+          <div style={{ marginTop: 6, textAlign: 'center', fontSize: '11pt', fontStyle: 'italic' }}>
+            <span style={{ fontWeight: 'bold' }}>Figure {figureNumber}.</span>
+            {' '}Gantt chart, showing timings of WPs, tasks, deliverables (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                verticalAlign: 'middle',
+                position: 'relative',
+                top: '-1px',
+                border: '1px solid #000000',
+                borderRadius: '9999px',
+                padding: '0 3px',
+                fontSize: '9pt',
+                fontWeight: 'bold',
+                fontStyle: 'normal',
+                lineHeight: 1,
+                color: '#000000',
+                backgroundColor: '#ffffff',
+              }}
+            >
+              DX.X
+            </span>
+            ) & milestones (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                verticalAlign: 'middle',
+                position: 'relative',
+                top: '-1px',
+                border: '1px solid #dc2626',
+                borderRadius: '9999px',
+                padding: '0 3px',
+                fontSize: '9pt',
+                fontWeight: 'bold',
+                fontStyle: 'normal',
+                lineHeight: 1,
+                color: '#dc2626',
+                backgroundColor: '#ffffff',
+              }}
+            >
+              MSX
+            </span>
+            )
+          </div>
 
         </div>
       </TooltipProvider>
