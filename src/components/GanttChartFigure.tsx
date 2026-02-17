@@ -380,32 +380,13 @@ export function GanttChartFigure({
                   <div style={{ height: 2 }} aria-hidden="true" />
                 )}
 
-                {/* WP Header Row */}
-                <div className="flex relative" style={{ borderLeft: `1px solid ${wpColor}`, borderTop: `1px solid ${wpColor}` }}>
+                {/* WP Header Row - full width bubble */}
+                <div className="flex relative" style={{ height: 18 }}>
                   <div 
-                    className="shrink-0"
-                    style={{ width: labelWidth, height: 18, backgroundColor: wpColor, borderRight: `1px solid ${wpColor}`, borderBottom: `1px solid ${wpColor}` }}
-                  />
-                  <div className="flex">
-                    {months.map(m => (
-                      <div
-                        key={m}
-                        style={{ 
-                          width: cellWidth, 
-                          height: 18,
-                          backgroundColor: wpColor,
-                          borderRight: `1px solid ${wpColor}`,
-                          borderBottom: `1px solid ${wpColor}`,
-                        }}
-                      />
-                    ))}
-                  </div>
-                  <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 0, borderRight: `1px solid ${wpColor}` }} />
-                  <div 
-                    className="absolute inset-0 flex items-center font-bold text-white truncate"
-                    style={{ padding: '0 2px', pointerEvents: 'none' }}
+                    className="absolute inset-0 flex items-center font-bold text-white truncate rounded-full"
+                    style={{ backgroundColor: wpColor, padding: '0 6px', pointerEvents: 'none' }}
                   >
-                    WP{wp.number}{wp.title ? `: ${wp.title}` : ''}
+                    WP{wp.number}: {wp.shortName}{wp.title ? ` – ${wp.title}` : ''}
                   </div>
                 </div>
 
@@ -414,12 +395,24 @@ export function GanttChartFigure({
                   const isLastRow = untimedTasks.length === 0 && taskIdx === wp.tasks.length - 1;
                   const bottomBorder = isLastRow ? `1px solid ${wpColor}` : `1px solid ${borderLight}`;
                   return (
-                    <div key={task.id} className="flex" style={{ borderLeft: `1px solid ${wpColor}`, position: 'relative' }}>
+                    <div key={task.id} className="flex" style={{ position: 'relative' }}>
+                      {/* Task number bubble */}
+                      <div 
+                        className="shrink-0 flex items-center justify-center"
+                        style={{ width: 38, height: 18 }}
+                      >
+                        <span
+                          className="inline-flex items-center justify-center rounded-full text-white font-bold"
+                          style={{ backgroundColor: wpColor, fontSize: '9pt', lineHeight: 1, padding: '1px 4px', whiteSpace: 'nowrap' }}
+                        >
+                          T{task.wpNumber}.{task.taskNumber}
+                        </span>
+                      </div>
+                      {/* Task title */}
                       <div 
                         className="shrink-0 flex items-center overflow-hidden"
-                        style={{ width: labelWidth, height: 18, padding: '0 2px', borderRight: `1px solid ${wpColor}`, borderBottom: bottomBorder }}
+                        style={{ width: labelWidth - 38, height: 18, padding: '0 2px' }}
                       >
-                        <span className="font-medium shrink-0 mr-1" style={{ whiteSpace: 'nowrap' }}>T{task.wpNumber}.{task.taskNumber}:</span>
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.name}</span>
                       </div>
                       <div className="flex" style={{ position: 'relative' }}>
@@ -534,12 +527,24 @@ export function GanttChartFigure({
                   const isLastRow = utIdx === untimedTasks.length - 1;
                   const bottomBorder = isLastRow ? `1px solid ${wpColor}` : `1px solid ${borderLight}`;
                   return (
-                    <div key={task.id} className="flex" style={{ borderLeft: `1px solid ${wpColor}` }}>
+                    <div key={task.id} className="flex">
+                      {/* Task number bubble */}
+                      <div 
+                        className="shrink-0 flex items-center justify-center"
+                        style={{ width: 38, height: 18 }}
+                      >
+                        <span
+                          className="inline-flex items-center justify-center rounded-full text-white font-bold"
+                          style={{ backgroundColor: wpColor, fontSize: '9pt', lineHeight: 1, padding: '1px 4px', whiteSpace: 'nowrap' }}
+                        >
+                          T{wp.number}.{task.number}
+                        </span>
+                      </div>
+                      {/* Task title */}
                       <div 
                         className="shrink-0 flex items-center overflow-hidden"
-                        style={{ width: labelWidth, height: 18, padding: '0 2px', borderRight: `1px solid ${wpColor}`, borderBottom: bottomBorder }}
+                        style={{ width: labelWidth - 38, height: 18, padding: '0 2px' }}
                       >
-                        <span className="font-medium shrink-0 mr-1" style={{ whiteSpace: 'nowrap' }}>T{wp.number}.{task.number}:</span>
                         <span className="text-muted-foreground" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</span>
                       </div>
                       <div className="flex">
