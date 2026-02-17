@@ -18,6 +18,7 @@ import { TableFormula } from '@/extensions/TableFormula';
 import { WPReferenceMark } from '@/extensions/WPReferenceMark';
 import { CaseReferenceMark } from '@/extensions/CaseReferenceMark';
 import { ParticipantReferenceMark } from '@/extensions/ParticipantReferenceMark';
+import { computeAutoFitSmart } from '@/lib/autoFitColumns';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
@@ -54,6 +55,7 @@ import {
   Link2,
   Layers,
   Building2,
+  Columns,
 } from "lucide-react";
 import {
   Tooltip,
@@ -611,6 +613,37 @@ export function FormattingToolbar({
               <DropdownMenuItem onClick={() => onOpenFormulaDialog?.()}>
                 <Calculator className="w-4 h-4 mr-2" />
                 Insert Formula
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                // Find the table element the cursor is in
+                const { $from } = editor.state.selection;
+                let depth = $from.depth;
+                while (depth > 0) {
+                  const node = $from.node(depth);
+                  if (node.type.name === 'table') {
+                    const dom = editor.view.nodeDOM($from.before(depth));
+                    if (dom instanceof HTMLTableElement) {
+                      const widths = computeAutoFitSmart(dom);
+                      if (widths) {
+                        const colgroup = dom.querySelector('colgroup');
+                        if (colgroup) {
+                          const cols = colgroup.querySelectorAll('col');
+                          cols.forEach((col, i) => {
+                            if (i < widths.length) {
+                              (col as HTMLElement).style.width = `${widths[i]}px`;
+                              (col as HTMLElement).style.minWidth = `${widths[i]}px`;
+                            }
+                          });
+                        }
+                      }
+                    }
+                    break;
+                  }
+                  depth--;
+                }
+              }}>
+                <Columns className="w-4 h-4 mr-2" />
+                Auto-resize columns
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
