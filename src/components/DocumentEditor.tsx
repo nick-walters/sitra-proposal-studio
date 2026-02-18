@@ -930,8 +930,8 @@ export function DocumentEditor({
                       <span
                         className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
                         style={{
-                          backgroundColor: '#ffffff',
-                          color: '#000000',
+                          backgroundColor: '#000000',
+                          color: '#ffffff',
                           border: '1.5px solid #000',
                           fontFamily: "'Times New Roman', Times, serif",
                           fontSize: '7pt',
