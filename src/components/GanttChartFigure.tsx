@@ -416,7 +416,7 @@ export function GanttChartFigure({
                         width: msDiamondSize,
                         leftX: 0,
                         below: false,
-                        triSide: 'right' as const,
+                        triSide: 'left' as const,
                       };
                     }
                     const bodyW = estimateBubbleW(b.label);
@@ -443,8 +443,16 @@ export function GanttChartFigure({
                   monthGroups.forEach((indices) => {
                     const tX = getTargetX(positioned[indices[0]].month);
                     if (indices.length === 1) {
-                      // Single: right-align bubble to targetX, triangle on right side
-                      positioned[indices[0]].leftX = tX - positioned[indices[0]].width;
+                      const b = positioned[indices[0]];
+                      if (b.type === 'ms') {
+                        // MS: position to the right of the month boundary, triangle on left
+                        b.leftX = tX;
+                        b.triSide = 'left';
+                      } else {
+                        // D: right-align to month boundary, triangle on right
+                        b.leftX = tX - b.width;
+                        b.triSide = 'right';
+                      }
                     } else {
                       // Two+: left bubble right-aligns to targetX, right bubble left-aligns to targetX
                       const left = positioned[indices[0]];
@@ -547,18 +555,17 @@ export function GanttChartFigure({
                           let shapeW: number;
                           let shapeH: number;
                           if (isMs) {
-                            // Milestone: diamond shape
+                            // Milestone: right-angled isosceles triangle
                             shapeW = msDiamondSize;
                             shapeH = msDiamondSize;
-                            svgPath = `M 0,${shapeH / 2} L ${shapeW / 2},0 L ${shapeW},${shapeH / 2} L ${shapeW / 2},${shapeH} Z`;
                           } else {
                             shapeW = b.width;
                             shapeH = bH;
-                            // Deliverable: square on non-arrow side, pointed on arrow side
-                            svgPath = isRight
-                              ? `M 0,0 L ${shapeW - pointDepth},0 L ${shapeW},${shapeH / 2} L ${shapeW - pointDepth},${shapeH} L 0,${shapeH} Z`
-                              : `M ${pointDepth},0 L ${shapeW},0 L ${shapeW},${shapeH} L ${pointDepth},${shapeH} L 0,${shapeH / 2} Z`;
                           }
+                          // Both D and MS: isosceles triangle with one vertical side
+                          svgPath = isRight
+                            ? `M 0,0 L ${shapeW},${shapeH / 2} L 0,${shapeH} Z`
+                            : `M 0,${shapeH / 2} L ${shapeW},0 L ${shapeW},${shapeH} Z`;
 
                           return (
                             <Tooltip key={`${b.type}-${idx}`}>
@@ -592,8 +599,8 @@ export function GanttChartFigure({
                                     style={{
                                       position: 'absolute',
                                       top: isMs ? -1 : 0,
-                                      left: isMs ? 0 : (isRight ? 0 : pointDepth) + (isDel ? 1 : 0),
-                                      width: isMs ? shapeW : b.bodyW,
+                                      left: isRight ? 0 : Math.round(shapeW * 0.3),
+                                      width: isRight ? Math.round(shapeW * 0.7) : Math.round(shapeW * 0.7),
                                       height: shapeH,
                                       display: 'flex',
                                       alignItems: 'center',
