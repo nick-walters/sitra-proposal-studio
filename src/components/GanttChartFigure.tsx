@@ -478,20 +478,22 @@ export function GanttChartFigure({
                     const overlap = (prev.leftX + prev.width + 1) - curr.leftX;
                     if (overlap > 0) {
                       if (prev.type === 'ms' && curr.type === 'del') {
-                        // MS stays pointing left (right of its boundary), D flips to point left too
-                        const prevTX = getTargetX(prev.month);
-                        prev.leftX = prevTX;
-                        prev.triSide = 'left';
+                        // D has priority: keep D in default position (pointing right, left of boundary)
+                        // MS flips to point right, pushed left of D
                         const currTX = getTargetX(curr.month);
-                        curr.leftX = currTX;
-                        curr.triSide = 'left';
+                        curr.leftX = currTX - curr.width;
+                        curr.triSide = 'right';
+                        const prevTX = getTargetX(prev.month);
+                        prev.leftX = Math.min(prevTX - prev.width, curr.leftX - prev.width - 1);
+                        prev.triSide = 'right';
                       } else if (prev.type === 'del' && curr.type === 'ms') {
-                        // D stays pointing right (left of its boundary), MS stays pointing left
+                        // D has priority: keep D in default position (pointing right, left of boundary)
+                        // MS flips to point left, pushed right of D
                         const prevTX = getTargetX(prev.month);
                         prev.leftX = prevTX - prev.width;
                         prev.triSide = 'right';
                         const currTX = getTargetX(curr.month);
-                        curr.leftX = currTX;
+                        curr.leftX = Math.max(currTX, prev.leftX + prev.width + 1);
                         curr.triSide = 'left';
                       } else {
                         // Same type: earlier points right, later points left (existing behavior)
