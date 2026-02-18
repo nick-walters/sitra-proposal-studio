@@ -847,7 +847,7 @@ export function GeneralInfoForm({
                   value={editedProposal.topicId || ''}
                   onChange={(e) => setEditedProposal({ ...editedProposal, topicId: e.target.value })}
                   placeholder="e.g. HORIZON-CL5-2026-D1-01"
-                  className="max-w-md h-8 text-sm"
+                  className="h-8 text-sm"
                 />
               ) : (
                 <div className="flex items-center gap-2">
@@ -888,7 +888,7 @@ export function GeneralInfoForm({
                   onChange={(e) => setEditedProposal({ ...editedProposal, topicUrl: e.target.value })}
                   placeholder="Portal URL (https://ec.europa.eu/...)"
                   type="url"
-                  className="max-w-md h-8 text-sm"
+                  className="h-8 text-sm"
                 />
               </div>
             )}
