@@ -331,7 +331,7 @@ export function GanttChartFigure({
                       className="text-center font-bold flex items-center justify-center"
                       style={{ width: periodMonths * cellWidth, height: 18, borderLeft: rpIdx > 0 ? `1px solid ${borderDark}` : undefined }}
                     >
-                      {rp.number}
+                      RP{rp.number}
                     </div>
                   );
                 })}
@@ -344,7 +344,7 @@ export function GanttChartFigure({
                     className="text-center font-bold flex items-center justify-center"
                     style={{ width: yr.months.length * cellWidth, height: 18, borderLeft: yrIdx > 0 ? `1px solid ${borderDark}` : undefined }}
                   >
-                    {yr.year}
+                    Y{yr.year}
                   </div>
                 ))}
               </div>
