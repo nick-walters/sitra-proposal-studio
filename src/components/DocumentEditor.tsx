@@ -561,21 +561,23 @@ export function DocumentEditor({
   }, [editor, acronymSegments]);
 
   // Handle Task reference insertion - pill bubble
-  const handleInsertTaskRef = useCallback((task: { id: string; wp_number: number; number: number; title: string }) => {
+  const handleInsertTaskRef = useCallback((task: { id: string; wp_number: number; number: number; title: string; wp_color?: string }) => {
     if (!editor) return;
     editor.chain().focus().insertTaskReference({
       wpNumber: task.wp_number,
       taskNumber: task.number,
       taskId: task.id,
+      wpColor: task.wp_color || undefined,
     }).insertContent(' ').run();
   }, [editor]);
 
   // Handle Deliverable reference insertion - pentagon bubble
-  const handleInsertDeliverableRef = useCallback((del: { id: string; number: string; name: string }) => {
+  const handleInsertDeliverableRef = useCallback((del: { id: string; number: string; name: string; wp_color?: string }) => {
     if (!editor) return;
     editor.chain().focus().insertDeliverableReference({
       deliverableNumber: del.number,
       deliverableId: del.id,
+      wpColor: del.wp_color || undefined,
     }).insertContent(' ').run();
   }, [editor]);
 

@@ -18,6 +18,7 @@ interface Task {
   title: string;
   wp_number: number;
   wp_short_name: string | null;
+  wp_color?: string;
 }
 
 interface Deliverable {
@@ -25,6 +26,7 @@ interface Deliverable {
   number: string;
   name: string;
   wp_number: number | null;
+  wp_color?: string;
 }
 
 interface Milestone {
@@ -65,6 +67,45 @@ function TaskBubbleButton() {
   );
 }
 
+// Inline task pill with WP color
+function TaskPill({ label, color }: { label: string; color?: string }) {
+  return (
+    <span
+      className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap shrink-0"
+      style={{
+        backgroundColor: '#ffffff',
+        color: '#000000',
+        border: `1.5px solid ${color || '#000'}`,
+        fontFamily: "'Times New Roman', Times, serif",
+        fontSize: '8pt',
+        fontWeight: 700,
+        lineHeight: 1,
+        padding: '0 4px',
+        height: '15px',
+      }}
+    >
+      {label}
+    </span>
+  );
+}
+
+// Inline deliverable pentagon with WP color
+function DeliverablePentagon({ label, color }: { label: string; color?: string }) {
+  const textWidth = Math.max(28, label.length * 6 + 8);
+  const totalWidth = textWidth + 6;
+  const stroke = color || '#000';
+  return (
+    <span className="shrink-0" style={{ display: 'inline-block', verticalAlign: 'middle', position: 'relative', width: totalWidth, height: 15 }}>
+      <svg width={totalWidth} height={15} viewBox={`0 0 ${totalWidth} 15`} style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
+        <path d={`M 0,0 L ${textWidth},0 L ${totalWidth},7.5 L ${textWidth},15 L 0,15 Z`} fill="#ffffff" stroke={stroke} strokeWidth={1.2} strokeLinejoin="round" />
+      </svg>
+      <span style={{ position: 'absolute', top: 0, left: 0, width: textWidth, height: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '8pt', fontWeight: 700, lineHeight: 1, color: '#000', whiteSpace: 'nowrap' }}>
+        {label}
+      </span>
+    </span>
+  );
+}
+
 // Miniature pentagon for Deliverable button
 function DeliverableBubbleButton() {
   return (
@@ -93,6 +134,20 @@ function MilestoneBubbleButton() {
   );
 }
 
+// Milestone triangle for dropdown items
+function MilestoneTriangle({ number }: { number: number }) {
+  return (
+    <span className="shrink-0" style={{ display: 'inline-block', verticalAlign: 'middle', position: 'relative', width: 17, height: 17 }}>
+      <svg width={17} height={17} viewBox="0 0 17 17" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
+        <path d="M 0,0 L 17,8.5 L 0,17 Z" fill="#000000" />
+      </svg>
+      <span style={{ position: 'absolute', top: 0, left: -1, width: 12, height: 17, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '8pt', fontWeight: 700, lineHeight: 1, color: '#ffffff', letterSpacing: '-0.7px', whiteSpace: 'nowrap' }}>
+        {number}
+      </span>
+    </span>
+  );
+}
+
 export function InsertTDMSReferenceDropdowns({
   proposalId,
   disabled = false,
@@ -110,14 +165,20 @@ export function InsertTDMSReferenceDropdowns({
     if (!proposalId) return;
 
     const fetchData = async () => {
-      // Fetch tasks with WP info
+      // Fetch tasks with WP info including color
       const { data: wpDrafts } = await supabase
         .from('wp_drafts')
-        .select('id, number, short_name')
+        .select('id, number, short_name, color')
         .eq('proposal_id', proposalId)
         .order('number');
 
+      const wpColorMap = new Map<number, string>();
+
       if (wpDrafts) {
+        for (const wp of wpDrafts) {
+          wpColorMap.set(wp.number, wp.color || '#000000');
+        }
+
         const allTasks: Task[] = [];
         for (const wp of wpDrafts) {
           const { data: wpTasks } = await supabase
@@ -133,6 +194,7 @@ export function InsertTDMSReferenceDropdowns({
                 title: t.title || '',
                 wp_number: wp.number,
                 wp_short_name: wp.short_name,
+                wp_color: wp.color || '#000000',
               });
             }
           }
@@ -146,7 +208,12 @@ export function InsertTDMSReferenceDropdowns({
         .select('id, number, name, wp_number')
         .eq('proposal_id', proposalId)
         .order('number');
-      if (dels) setDeliverables(dels);
+      if (dels) {
+        setDeliverables(dels.map(d => ({
+          ...d,
+          wp_color: d.wp_number ? wpColorMap.get(d.wp_number) || '#000000' : '#000000',
+        })));
+      }
 
       // Fetch milestones
       const { data: mss } = await supabase
@@ -195,9 +262,9 @@ export function InsertTDMSReferenceDropdowns({
               <DropdownMenuItem
                 key={task.id}
                 onClick={() => onInsertTask(task)}
-                className="text-xs"
+                className="text-xs gap-2"
               >
-                <span className="font-bold mr-1">T{task.wp_number}.{task.number}</span>
+                <TaskPill label={`T${task.wp_number}.${task.number}`} color={task.wp_color} />
                 <span className="truncate text-muted-foreground">{task.title}</span>
               </DropdownMenuItem>
             ))
@@ -234,9 +301,9 @@ export function InsertTDMSReferenceDropdowns({
               <DropdownMenuItem
                 key={del.id}
                 onClick={() => onInsertDeliverable(del)}
-                className="text-xs"
+                className="text-xs gap-2"
               >
-                <span className="font-bold mr-1">{del.number}</span>
+                <DeliverablePentagon label={del.number} color={del.wp_color} />
                 <span className="truncate text-muted-foreground">{del.name}</span>
               </DropdownMenuItem>
             ))
@@ -273,9 +340,9 @@ export function InsertTDMSReferenceDropdowns({
               <DropdownMenuItem
                 key={ms.id}
                 onClick={() => onInsertMilestone(ms)}
-                className="text-xs"
+                className="text-xs gap-2"
               >
-                <span className="font-bold mr-1">MS{ms.number}</span>
+                <MilestoneTriangle number={ms.number} />
                 <span className="truncate text-muted-foreground">{ms.name}</span>
               </DropdownMenuItem>
             ))

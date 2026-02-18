@@ -12,11 +12,14 @@ interface TaskData {
   id: string;
   number: number;
   wp_number: number;
+  wp_color: string;
 }
 
 interface DeliverableData {
   id: string;
   number: string;
+  wp_number: number | null;
+  wp_color: string;
 }
 
 interface MilestoneData {
@@ -40,7 +43,7 @@ async function fetchReferenceData(proposalId: string) {
       .order('number'),
     supabase
       .from('b31_deliverables')
-      .select('id, number')
+      .select('id, number, wp_number')
       .eq('proposal_id', proposalId),
     supabase
       .from('b31_milestones')
@@ -60,10 +63,16 @@ async function fetchReferenceData(proposalId: string) {
     })
     .map(t => {
       const wp = wpMap.get(t.wp_draft_id)!;
-      return { id: t.id, number: t.number, wp_number: wp.number };
+      return { id: t.id, number: t.number, wp_number: wp.number, wp_color: wp.color || '#000000' };
     });
 
-  const deliverables: DeliverableData[] = (delRes.data || []);
+  // Build WP number-to-color map for deliverables
+  const wpNumberColorMap = new Map(wps.map(wp => [wp.number, wp.color || '#000000']));
+
+  const deliverables: DeliverableData[] = (delRes.data || []).map(d => ({
+    ...d,
+    wp_color: d.wp_number ? wpNumberColorMap.get(d.wp_number) || '#000000' : '#000000',
+  }));
   const milestones: MilestoneData[] = (msRes.data || []);
 
   return {
@@ -132,11 +141,12 @@ export async function syncCrossReferences(
           const task = data.taskById.get(mark.attrs.taskId);
           if (task) {
             const newLabel = `T${task.wp_number}.${task.number}`;
-            if (currentText !== newLabel || mark.attrs.wpNumber !== task.wp_number || mark.attrs.taskNumber !== task.number) {
+            if (currentText !== newLabel || mark.attrs.wpNumber !== task.wp_number || mark.attrs.taskNumber !== task.number || mark.attrs.wpColor !== task.wp_color) {
               const newMark = mark.type.create({
                 ...mark.attrs,
                 wpNumber: task.wp_number,
                 taskNumber: task.number,
+                wpColor: task.wp_color,
               });
               tr.removeMark(pos, pos + node.nodeSize, mark.type);
               tr.addMark(pos, pos + node.nodeSize, newMark);
@@ -152,10 +162,11 @@ export async function syncCrossReferences(
           const del = data.deliverableById.get(mark.attrs.deliverableId);
           if (del) {
             const newLabel = del.number;
-            if (currentText !== newLabel || mark.attrs.deliverableNumber !== del.number) {
+            if (currentText !== newLabel || mark.attrs.deliverableNumber !== del.number || mark.attrs.wpColor !== del.wp_color) {
               const newMark = mark.type.create({
                 ...mark.attrs,
                 deliverableNumber: del.number,
+                wpColor: del.wp_color,
               });
               tr.removeMark(pos, pos + node.nodeSize, mark.type);
               tr.addMark(pos, pos + node.nodeSize, newMark);
