@@ -335,7 +335,7 @@ function WPBubble({ wp, onRemove }: { wp: WorkPackage; onRemove?: () => void }) 
   return (
     <span 
       className="inline-flex items-center justify-center gap-0.5 rounded-full text-white font-bold whitespace-nowrap"
-      style={{ backgroundColor: wp.color || '#666', border: `1.5px solid ${wp.color || '#666'}`, color: '#ffffff', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', height: '17px', position: 'relative', top: '-1.4px' }}
+      style={{ backgroundColor: wp.color || '#666', border: `1.5px solid ${wp.color || '#666'}`, color: '#ffffff', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', height: '17px', position: 'relative', top: '0.6px' }}
     >
       WP{wp.number}
       {onRemove && (
@@ -893,7 +893,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                             {del.lead_participant_id ? (
                               <span
                                 className="inline-flex items-center justify-center rounded-full font-bold italic text-white whitespace-nowrap relative"
-                                style={{ backgroundColor: '#000', border: '1.5px solid #000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'italic', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', height: '17px', position: 'relative', top: '-1.4px' }}
+                                style={{ backgroundColor: '#000', border: '1.5px solid #000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'italic', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', height: '17px', position: 'relative', top: '0.6px' }}
                               >
                                 {participants.find(p => p.id === del.lead_participant_id)?.organisation_short_name || '-'}
                               </span>
