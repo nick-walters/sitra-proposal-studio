@@ -103,11 +103,30 @@ interface Risk {
   order_index: number;
 }
 
-// Generate month options M01 to M72
-const monthOptions = Array.from({ length: 72 }, (_, i) => ({
-  value: i + 1,
-  label: `M${String(i + 1).padStart(2, '0')}`,
-}));
+// Generate month options dynamically based on project duration
+function getMonthOptions(projectDuration: number) {
+  return Array.from({ length: projectDuration }, (_, i) => ({
+    value: i + 1,
+    label: `M${String(i + 1).padStart(2, '0')}`,
+  }));
+}
+
+// Hook to fetch project duration
+function useProjectDuration(proposalId: string) {
+  const { data } = useQuery({
+    queryKey: ['proposal-duration', proposalId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('proposals')
+        .select('duration')
+        .eq('id', proposalId)
+        .single();
+      if (error) throw error;
+      return data?.duration || 36;
+    },
+  });
+  return data || 36;
+}
 
 // Risk level options with colors and sort order
 const riskLevelOptions = [
@@ -280,11 +299,14 @@ function EditableTextInline({
 // Compact month selector with minimal padding
 function MonthSelect({ 
   value, 
-  onChange 
+  onChange,
+  projectDuration = 36,
 }: { 
   value: number | null; 
   onChange: (val: number | null) => void;
+  projectDuration?: number;
 }) {
+  const options = getMonthOptions(projectDuration);
   return (
     <Select 
       value={value?.toString() || ''} 
@@ -296,7 +318,7 @@ function MonthSelect({
         </SelectValue>
       </SelectTrigger>
       <SelectContent className="bg-background z-50 max-h-60">
-        {monthOptions.map(opt => (
+        {options.map(opt => (
           <SelectItem key={opt.value} value={opt.value.toString()}>
             {opt.label}
           </SelectItem>
@@ -593,6 +615,7 @@ function B31TableWrapper({ children }: { children: React.ReactNode }) {
 // ========== DELIVERABLES TABLE (3.1c) ==========
 export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
   const queryClient = useQueryClient();
+  const projectDuration = useProjectDuration(proposalId);
   const { data: workPackages = [] } = useWorkPackages(proposalId);
   const { data: participants = [] } = useParticipants(proposalId);
   const { isAdminOrOwner, loading: roleLoading } = useUserRole();
@@ -915,6 +938,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                       <MonthSelect
                         value={del.due_month}
                         onChange={(val) => updateDeliverable.mutate({ id: del.id, due_month: val })}
+                        projectDuration={projectDuration}
                       />
                     </TableCell>
                   </SortableTableRow>
@@ -931,6 +955,7 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
 // ========== MILESTONES TABLE (3.1d) ==========
 export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
   const queryClient = useQueryClient();
+  const projectDuration = useProjectDuration(proposalId);
   const { data: workPackages = [] } = useWorkPackages(proposalId);
   const { isAdminOrOwner } = useUserRole();
   
@@ -1142,6 +1167,7 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
                       <MonthSelect
                         value={ms.due_month}
                         onChange={(val) => updateMilestone.mutate({ id: ms.id, due_month: val })}
+                        projectDuration={projectDuration}
                       />
                     </TableCell>
                     <TableCell className={cellStyles}>
