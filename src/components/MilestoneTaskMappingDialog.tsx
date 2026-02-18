@@ -100,7 +100,7 @@ export function MilestoneTaskMappingDialog({ proposalId }: MilestoneTaskMappingD
                   <SelectItem value="__none__">Unassigned</SelectItem>
                   {allTasks.map(t => (
                     <SelectItem key={t.id} value={t.id}>
-                      T{t.wpNumber}.{t.number}: {t.title}{t.start_month != null && t.end_month != null ? ` (M${t.start_month}–M${t.end_month})` : ''}
+                      T{t.wpNumber}.{t.number}: {t.title}{t.start_month != null && t.end_month != null ? ` (M${String(t.start_month).padStart(2, '0')}–M${String(t.end_month).padStart(2, '0')})` : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>
