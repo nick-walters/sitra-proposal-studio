@@ -61,7 +61,7 @@ function charsToSegments(chars: { char: string; color: string }[]): AcronymSegme
   return segs;
 }
 
-function CustomColorPalette({ onApply, onInteractionStart, onInteractionEnd }: { onApply: (color: string) => void; onInteractionStart?: () => void; onInteractionEnd?: () => void }) {
+function CustomColorPalette({ onApply, paletteRef }: { onApply: (color: string) => void; paletteRef: React.RefObject<HTMLDivElement | null> }) {
   const [customOpen, setCustomOpen] = useState(false);
   const [hexInput, setHexInput] = useState('#');
   const [nativeColor, setNativeColor] = useState('#000000');
@@ -75,24 +75,27 @@ function CustomColorPalette({ onApply, onInteractionStart, onInteractionEnd }: {
   };
 
   return (
-    <div className="flex items-center gap-1 flex-wrap">
+    <div ref={paletteRef} className="flex items-center gap-1 flex-wrap" onMouseDown={(e) => e.preventDefault()}>
       <span className="text-[10px] text-muted-foreground mr-1">Apply color:</span>
       <Popover open={customOpen} onOpenChange={setCustomOpen}>
         <PopoverTrigger asChild>
           <button
             className="w-5 h-5 rounded-full border border-border hover:scale-125 transition-transform flex items-center justify-center"
             style={{ background: 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)' }}
-            onMouseDown={(e) => e.preventDefault()}
             title="Custom color"
           />
         </PopoverTrigger>
-        <PopoverContent className="w-52 p-3 space-y-2" align="start" onOpenAutoFocus={(e) => e.preventDefault()} onPointerDownOutside={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
-          <div className="flex items-center gap-2">
+        <PopoverContent
+          className="w-52 p-3 space-y-2"
+          align="start"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+        >
+          <div className="flex items-center gap-2" onMouseDown={(e) => e.stopPropagation()}>
             <input
               type="color"
               value={nativeColor}
-              onFocus={() => onInteractionStart?.()}
-              onBlur={() => onInteractionEnd?.()}
               onChange={(e) => {
                 setNativeColor(e.target.value);
                 setHexInput(e.target.value);
@@ -109,7 +112,7 @@ function CustomColorPalette({ onApply, onInteractionStart, onInteractionEnd }: {
               onKeyDown={(e) => e.key === 'Enter' && applyCustom()}
             />
           </div>
-          <Button size="sm" className="w-full h-7 text-xs" tabIndex={0} onMouseDown={(e) => e.preventDefault()} onClick={applyCustom}>
+          <Button size="sm" className="w-full h-7 text-xs" onClick={applyCustom}>
             Apply
           </Button>
         </PopoverContent>
@@ -119,8 +122,6 @@ function CustomColorPalette({ onApply, onInteractionStart, onInteractionEnd }: {
           key={color}
           className="w-5 h-5 rounded-full border border-border hover:scale-125 transition-transform"
           style={{ backgroundColor: color }}
-          tabIndex={0}
-          onMouseDown={(e) => e.preventDefault()}
           onClick={() => onApply(color)}
           title={color}
         />
@@ -147,7 +148,7 @@ export function AcronymColorEditor({ acronym, segments, onChange, onAcronymChang
   const onChangeRef = useRef(onChange);
   const onAcronymChangeRef = useRef(onAcronymChange);
   const skipSyncUntilRef = useRef(0);
-  const colorPickerActiveRef = useRef(false);
+  const paletteRef = useRef<HTMLDivElement>(null);
   onChangeRef.current = onChange;
   onAcronymChangeRef.current = onAcronymChange;
 
@@ -330,11 +331,13 @@ export function AcronymColorEditor({ acronym, segments, onChange, onAcronymChang
   }, [disabled, chars, cursorPos, selStart, selEnd, flushToParent]);
 
   const handleBlur = useCallback((e: React.FocusEvent) => {
-    // Don't clear selection if the native color picker is active
-    if (colorPickerActiveRef.current) return;
-    // Don't clear selection if focus moves to the color palette area
+    // Don't clear selection if focus is null (native color picker dialog) or moves within palette
+    if (!e.relatedTarget) {
+      // Focus went to native dialog (e.g. color picker) — keep selection
+      return;
+    }
     const container = containerRef.current?.parentElement;
-    if (container && e.relatedTarget && container.contains(e.relatedTarget as Node)) {
+    if (container && container.contains(e.relatedTarget as Node)) {
       return;
     }
     setIsFocused(false);
@@ -409,8 +412,7 @@ export function AcronymColorEditor({ acronym, segments, onChange, onAcronymChang
       {range && !disabled && (
         <CustomColorPalette
           onApply={applyColor}
-          onInteractionStart={() => { colorPickerActiveRef.current = true; }}
-          onInteractionEnd={() => { colorPickerActiveRef.current = false; }}
+          paletteRef={paletteRef}
         />
       )}
 
