@@ -5,6 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Bold, Italic, Underline, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, AlignJustify, FileText, Link2, Layers, Building2, Table2, ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { InsertTDMSReferenceDropdowns } from '@/components/InsertTDMSReferenceDropdowns';
 
 interface WPSimpleEditorProps {
   value: string;
@@ -14,12 +15,16 @@ interface WPSimpleEditorProps {
   disabled?: boolean;
   minHeight?: string;
   hideToolbar?: boolean;
+  proposalId?: string;
   // Dialog handlers for advanced features
   onOpenCitationDialog?: () => void;
   onOpenCrossRefDialog?: () => void;
   onOpenWPRefDialog?: () => void;
   onOpenParticipantRefDialog?: () => void;
   onOpenFigureDialog?: () => void;
+  onInsertTaskRef?: (task: any) => void;
+  onInsertDeliverableRef?: (del: any) => void;
+  onInsertMilestoneRef?: (ms: any) => void;
 }
 
 export function WPSimpleEditor({
@@ -30,11 +35,15 @@ export function WPSimpleEditor({
   disabled = false,
   minHeight = '100px',
   hideToolbar = false,
+  proposalId,
   onOpenCitationDialog,
   onOpenCrossRefDialog,
   onOpenWPRefDialog,
   onOpenParticipantRefDialog,
   onOpenFigureDialog,
+  onInsertTaskRef,
+  onInsertDeliverableRef,
+  onInsertMilestoneRef,
 }: WPSimpleEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState(false);
@@ -378,6 +387,18 @@ export function WPSimpleEditor({
                   Insert WP Reference
                 </TooltipContent>
               </Tooltip>
+            )}
+
+            {/* T/D/MS Reference Dropdowns */}
+            {proposalId && onInsertTaskRef && onInsertDeliverableRef && onInsertMilestoneRef && (
+              <InsertTDMSReferenceDropdowns
+                proposalId={proposalId}
+                disabled={disabled}
+                onInsertTask={onInsertTaskRef}
+                onInsertDeliverable={onInsertDeliverableRef}
+                onInsertMilestone={onInsertMilestoneRef}
+                variant="ghost"
+              />
             )}
 
             {/* Partner Reference */}
