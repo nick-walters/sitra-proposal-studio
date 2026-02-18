@@ -406,7 +406,7 @@ export function GanttChartFigure({
                   const pointDepth = 5;
                   const estimateBubbleW = (label: string) => Math.max(10, label.length * 4 + 6);
 
-                  const msDiamondSize = 12;
+                  const msDiamondSize = 15;
                   type PBubble = typeof taskBubbles[0] & { leftX: number; width: number; bodyW: number; below: boolean; triSide: 'right' | 'left' };
                   const positioned: PBubble[] = taskBubbles.map(b => {
                     if (b.type === 'ms') {
