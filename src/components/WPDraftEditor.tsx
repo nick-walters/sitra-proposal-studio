@@ -361,7 +361,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
     toast.success(`Figure reference inserted`);
   }, []);
 
-  // Handle Task reference insertion (contentEditable)
+  // Handle Task reference insertion (contentEditable) - pill bubble
   const insertTaskRefAtCursor = useCallback((task: { wp_number: number; number: number; title: string }) => {
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
@@ -382,37 +382,42 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
     toast.success(`T${task.wp_number}.${task.number} reference inserted`);
   }, []);
 
+  // Handle Deliverable reference insertion - pentagon bubble matching 3.1.c
   const insertDeliverableRefAtCursor = useCallback((del: { number: string; name: string }) => {
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
-      const span = document.createElement('span');
-      span.textContent = `D${del.number}`;
-      span.setAttribute('contenteditable', 'false');
-      Object.assign(span.style, { display: 'inline-flex', alignItems: 'center', height: '17px', padding: '0 4px', borderRadius: '9999px', border: '1.5px solid #000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: '700', lineHeight: '1', whiteSpace: 'nowrap', verticalAlign: 'baseline', userSelect: 'none' });
-      range.insertNode(span);
+      const label = del.number; // Already includes "D" prefix
+      const textWidth = Math.max(36, label.length * 8 + 8);
+      const totalWidth = textWidth + 8;
+      const wrapper = document.createElement('span');
+      wrapper.setAttribute('contenteditable', 'false');
+      Object.assign(wrapper.style, { display: 'inline-block', verticalAlign: 'baseline', position: 'relative', width: `${totalWidth}px`, height: '17px', userSelect: 'none' });
+      wrapper.innerHTML = `<svg width="${totalWidth}" height="17" viewBox="0 0 ${totalWidth} 17" style="position:absolute;top:0;left:0;overflow:visible;"><path d="M 0,0 L ${textWidth},0 L ${totalWidth},8.5 L ${textWidth},17 L 0,17 Z" fill="#ffffff" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/></svg><span style="position:absolute;top:0;left:0;width:${textWidth}px;height:17px;display:flex;align-items:center;justify-content:center;font-family:'Times New Roman',Times,serif;font-size:11pt;font-weight:700;line-height:1;color:#000;white-space:nowrap;">${label}</span>`;
+      range.insertNode(wrapper);
       const space = document.createTextNode(' ');
-      range.setStartAfter(span);
+      range.setStartAfter(wrapper);
       range.insertNode(space);
       range.setStartAfter(space);
       range.collapse(true);
       selection.removeAllRanges();
       selection.addRange(range);
     }
-    toast.success(`D${del.number} reference inserted`);
+    toast.success(`${del.number} reference inserted`);
   }, []);
 
+  // Handle Milestone reference insertion - triangle bubble matching 3.1.d
   const insertMilestoneRefAtCursor = useCallback((ms: { number: number; name: string }) => {
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
-      const span = document.createElement('span');
-      span.textContent = `MS${ms.number}`;
-      span.setAttribute('contenteditable', 'false');
-      Object.assign(span.style, { display: 'inline-flex', alignItems: 'center', height: '17px', padding: '0 4px', borderRadius: '9999px', border: '1.5px solid #000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: '700', lineHeight: '1', whiteSpace: 'nowrap', verticalAlign: 'baseline', userSelect: 'none' });
-      range.insertNode(span);
+      const wrapper = document.createElement('span');
+      wrapper.setAttribute('contenteditable', 'false');
+      Object.assign(wrapper.style, { display: 'inline-block', verticalAlign: 'baseline', position: 'relative', width: '21px', height: '21px', userSelect: 'none' });
+      wrapper.innerHTML = `<svg width="21" height="21" viewBox="0 0 21 21" style="position:absolute;top:0;left:0;overflow:visible;"><path d="M 0,0 L 21,10.5 L 0,21 Z" fill="#000000"/></svg><span style="position:absolute;top:0;left:-1px;width:15px;height:21px;display:flex;align-items:center;justify-content:center;font-family:'Times New Roman',Times,serif;font-size:11pt;font-weight:700;line-height:1;color:#ffffff;letter-spacing:-0.7px;white-space:nowrap;">${ms.number}</span>`;
+      range.insertNode(wrapper);
       const space = document.createTextNode(' ');
-      range.setStartAfter(span);
+      range.setStartAfter(wrapper);
       range.insertNode(space);
       range.setStartAfter(space);
       range.collapse(true);
@@ -643,7 +648,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
                   <TooltipTrigger asChild>
                     <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => setIsCitationOpen(true)}>
                       <FileText className="h-3.5 w-3.5" />
-                      <span className="text-xs">Citation</span>
+                      <span className="text-xs">Add citation</span>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="text-xs">Add Citation</TooltipContent>
@@ -652,11 +657,14 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
                   <TooltipTrigger asChild>
                     <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => setIsCrossRefOpen(true)}>
                       <Link2 className="h-3.5 w-3.5" />
-                      <span className="text-xs">Cross-ref</span>
+                      <span className="text-xs">Cross-ref citation</span>
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Insert Cross-reference</TooltipContent>
+                  <TooltipContent side="bottom" className="text-xs">Insert Cross-reference Citation</TooltipContent>
                 </Tooltip>
+                
+                <Separator orientation="vertical" className="h-5" />
+                
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => setIsWPRefOpen(true)}>
