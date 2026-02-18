@@ -417,7 +417,7 @@ function CaptionParticipantBubble({ showCrown = false }: { showCrown?: boolean }
   return (
     <span
       className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-      style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', height: 'fit-content' }}
+      style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '8pt', fontWeight: 700, fontStyle: 'italic', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 4px', height: '17px' }}
     >
       {showCrown && <Crown className="h-2.5 w-2.5 fill-white" strokeWidth={0} />}
       {!showCrown && <span style={{ display: 'inline-block', width: 10 }}>&nbsp;</span>}
@@ -429,9 +429,20 @@ function CaptionTaskBubble() {
   return (
     <span
       className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-      style={{ backgroundColor: '#ffffff', color: '#000000', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', height: 'fit-content' }}
+      style={{ backgroundColor: '#ffffff', color: '#000000', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '8pt', fontWeight: 700, fontStyle: 'normal', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 4px', height: '17px' }}
     >
-      <span style={{ display: 'inline-block', width: 10 }}>&nbsp;</span>
+      TX.X
+    </span>
+  );
+}
+
+function CaptionWPBubble() {
+  return (
+    <span
+      className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
+      style={{ backgroundColor: '#000000', color: '#ffffff', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '8pt', fontWeight: 700, fontStyle: 'normal', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 4px', height: '17px' }}
+    >
+      WPX
     </span>
   );
 }
@@ -459,8 +470,8 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
         proposalId={proposalId}
         tableKey="table-3.1.b"
         label="Table 3.1.b."
-        defaultCaption="WP descriptions, including objectives, task (T) descriptions, task/WP leaders"
-        suffix={<>task <CaptionTaskBubble /> descriptions, task/WP leaders <CaptionParticipantBubble showCrown /> &amp; other participants <CaptionParticipantBubble /> &amp; start &amp; end month</>}
+        defaultCaption="Work package descriptions"
+        suffix={<>Work package descriptions <CaptionWPBubble />, including objectives, task descriptions <CaptionTaskBubble />, task/WP leaders <CaptionParticipantBubble showCrown />, other task participants <CaptionParticipantBubble /> &amp; duration</>}
         className="mb-0"
       />
       {populatedWPs.map((wp, idx) => {
