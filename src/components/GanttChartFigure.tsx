@@ -530,9 +530,19 @@ export function GanttChartFigure({
                           const r = bH / 2;
                           const isRight = b.triSide === 'right';
 
-                          const svgPath = isRight
-                            ? `M ${r},0 A ${r},${r} 0 1 0 ${r},${bH} L ${b.width - pointDepth},${bH} L ${b.width},${bH / 2} L ${b.width - pointDepth},0 Z`
-                            : `M ${pointDepth},0 L ${b.width - r},0 A ${r},${r} 0 1 1 ${b.width - r},${bH} L ${pointDepth},${bH} L 0,${bH / 2} Z`;
+                          const isDel = b.type === 'del';
+                          let svgPath: string;
+                          if (isDel) {
+                            // Deliverable: square on non-arrow side, pointed on arrow side
+                            svgPath = isRight
+                              ? `M 0,0 L ${b.width - pointDepth},0 L ${b.width},${bH / 2} L ${b.width - pointDepth},${bH} L 0,${bH} Z`
+                              : `M ${pointDepth},0 L ${b.width},0 L ${b.width},${bH} L ${pointDepth},${bH} L 0,${bH / 2} Z`;
+                          } else {
+                            // Milestone: rounded on non-arrow side, pointed on arrow side
+                            svgPath = isRight
+                              ? `M ${r},0 A ${r},${r} 0 1 0 ${r},${bH} L ${b.width - pointDepth},${bH} L ${b.width},${bH / 2} L ${b.width - pointDepth},0 Z`
+                              : `M ${pointDepth},0 L ${b.width - r},0 A ${r},${r} 0 1 1 ${b.width - r},${bH} L ${pointDepth},${bH} L 0,${bH / 2} Z`;
+                          }
 
                           return (
                             <Tooltip key={`${b.type}-${idx}`}>
