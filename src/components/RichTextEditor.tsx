@@ -187,6 +187,7 @@ export function FormattingToolbar({
   isPartB = false,
   isReadOnly = false,
   hideTableInsert = false,
+  crossRefDropdown,
 }: { 
   editor: Editor | null;
   sectionNumber?: string;
@@ -200,6 +201,7 @@ export function FormattingToolbar({
   isPartB?: boolean;
   isReadOnly?: boolean;
   hideTableInsert?: boolean;
+  crossRefDropdown?: React.ReactNode;
 }) {
   const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
   const [isCropOpen, setIsCropOpen] = useState(false);
@@ -683,6 +685,30 @@ export function FormattingToolbar({
             </TooltipContent>
           </Tooltip>
         )}
+
+        {/* Citations */}
+        {onOpenCitationDialog && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 gap-1"
+                onClick={onOpenCitationDialog}
+                disabled={isReadOnly}
+              >
+                <FileText className="w-4 h-4" />
+                <span className="text-xs">Citations</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              Manage Citations
+            </TooltipContent>
+          </Tooltip>
+        )}
+
+        {/* Cross-ref dropdown */}
+        {crossRefDropdown}
 
         {/* Image controls - show when image is selected */}
         {isImageSelected && (
