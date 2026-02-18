@@ -160,7 +160,7 @@ export const CaseReferenceMark = Mark.create<CaseReferenceOptions>({
           line-height: 1.1;
           white-space: nowrap;
           vertical-align: baseline;
-          user-select: none;
+          cursor: pointer;
         `,
       }),
       0,

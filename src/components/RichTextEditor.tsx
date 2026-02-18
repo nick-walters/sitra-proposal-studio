@@ -1,5 +1,5 @@
 import { useEditor, EditorContent, Editor, Extension } from '@tiptap/react';
-import { Plugin, PluginKey } from '@tiptap/pm/state';
+import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
@@ -1035,6 +1035,62 @@ export function useRichTextEditor({
         addProseMirrorPlugins() {
           return [
             createCitationTooltipPlugin((num) => getReferenceRef.current?.(num)),
+          ];
+        },
+      }),
+      // Click-to-select reference marks for easy deletion
+      Extension.create({
+        name: 'referenceClickSelect',
+        addProseMirrorPlugins() {
+          return [
+            new Plugin({
+              key: new PluginKey('referenceClickSelect'),
+              props: {
+                handleClick(view, pos, event) {
+                  const target = event.target as HTMLElement;
+                  const refEl = target.closest('[data-inline-reference], [data-wp-reference], [data-case-reference], [data-participant-reference], [data-acronym-reference]');
+                  if (!refEl) return false;
+                  
+                  // Find the mark range at this position
+                  const { doc } = view.state;
+                  const $pos = doc.resolve(pos);
+                  const markTypes = ['inlineReference', 'wpReference', 'caseReference', 'participantReference', 'acronymReference'];
+                  
+                  for (const markName of markTypes) {
+                    const markType = view.state.schema.marks[markName];
+                    if (!markType) continue;
+                    
+                    const mark = markType.isInSet($pos.marks());
+                    if (!mark) continue;
+                    
+                    // Find the extent of this mark
+                    let from = pos;
+                    let to = pos;
+                    
+                    // Scan backwards
+                    while (from > 0) {
+                      const $before = doc.resolve(from - 1);
+                      if (!markType.isInSet($before.marks())) break;
+                      from--;
+                    }
+                    
+                    // Scan forwards
+                    while (to < doc.content.size) {
+                      const $after = doc.resolve(to + 1);
+                      if (!markType.isInSet($after.marks())) break;
+                      to++;
+                    }
+                    
+                    // Select the entire mark range
+                    const tr = view.state.tr.setSelection(TextSelection.create(doc, from, to));
+                    view.dispatch(tr);
+                    return true;
+                  }
+                  
+                  return false;
+                },
+              },
+            }),
           ];
         },
       }),
