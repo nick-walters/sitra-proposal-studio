@@ -2,7 +2,7 @@ import { Section } from "@/types/proposal";
 import DOMPurify from "dompurify";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, BookOpen, Route, History, Info, Image, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search, GitCompare, Keyboard, Wand2, FileCode, SplitSquareHorizontal, Layers, Building2, FlaskConical, Check, Link2 } from "lucide-react";
+import { Sparkles, BookOpen, Route, History, Info, Image, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search, GitCompare, Keyboard, Wand2, FileCode, SplitSquareHorizontal, Layers, Building2, FlaskConical, Check, Link2, Table2 } from "lucide-react";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
 import {
@@ -912,35 +912,60 @@ export function DocumentEditor({
                     <span className="text-xs">Cross-ref</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-48 bg-popover z-50">
-                  <DropdownMenuItem onClick={() => { setCrossRefFilterType('figure'); setIsCrossRefOpen(true); }}>
-                    Figure
+                <DropdownMenuContent align="start" className="w-52 bg-popover z-50">
+                  <DropdownMenuItem onClick={() => { setCrossRefFilterType('figure'); setIsCrossRefOpen(true); }} className="flex items-center gap-0">
+                    <span className="w-7 flex justify-center shrink-0"><Image className="w-3.5 h-3.5 text-muted-foreground" /></span>
+                    <span>Figure</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => { setCrossRefFilterType('table'); setIsCrossRefOpen(true); }}>
-                    Table
+                  <DropdownMenuItem onClick={() => { setCrossRefFilterType('table'); setIsCrossRefOpen(true); }} className="flex items-center gap-0">
+                    <span className="w-7 flex justify-center shrink-0"><Table2 className="w-3.5 h-3.5 text-muted-foreground" /></span>
+                    <span>Table</span>
                   </DropdownMenuItem>
                   {acronymSegments && acronymSegments.length > 0 && (
-                    <DropdownMenuItem onClick={handleInsertAcronymRef}>
-                      Acronym
+                    <DropdownMenuItem onClick={handleInsertAcronymRef} className="flex items-center gap-0">
+                      <span className="w-7 flex justify-center shrink-0" style={{ fontFamily: "'Times New Roman', Times, serif", fontWeight: 700, fontSize: '8px' }}>AC</span>
+                      <span>Acronym</span>
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem onClick={() => setIsWPRefOpen(true)}>
-                    Work Package
+                  <DropdownMenuItem onClick={() => setIsWPRefOpen(true)} className="flex items-center gap-0">
+                    <span className="w-7 flex justify-center shrink-0">
+                      <span className="inline-block w-[14px] h-[14px] rounded-[2px] bg-primary/80 border border-primary" style={{ fontFamily: "'Times New Roman', Times, serif", fontWeight: 700, fontSize: '8px', color: 'white', lineHeight: '14px', textAlign: 'center' }}>W</span>
+                    </span>
+                    <span>Work Package</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsTaskRefOpen(true)}>
-                    Task
+                  <DropdownMenuItem onClick={() => setIsTaskRefOpen(true)} className="flex items-center gap-0">
+                    <span className="w-7 flex justify-center shrink-0">
+                      <span className="inline-flex items-center justify-center h-[14px] px-[4px] rounded-full border border-foreground/60" style={{ fontFamily: "'Times New Roman', Times, serif", fontWeight: 700, fontSize: '8px', lineHeight: '14px' }}>T</span>
+                    </span>
+                    <span>Task</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsDeliverableRefOpen(true)}>
-                    Deliverable
+                  <DropdownMenuItem onClick={() => setIsDeliverableRefOpen(true)} className="flex items-center gap-0">
+                    <span className="w-7 flex justify-center shrink-0">
+                      <svg width="16" height="14" viewBox="0 0 16 14" className="text-foreground/60">
+                        <polygon points="0,0 12,0 16,7 12,14 0,14" fill="none" stroke="currentColor" strokeWidth="1.2"/>
+                        <text x="6" y="10.5" textAnchor="middle" fill="currentColor" style={{ fontFamily: "'Times New Roman', Times, serif", fontWeight: 700, fontSize: '8px' }}>D</text>
+                      </svg>
+                    </span>
+                    <span>Deliverable</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsMilestoneRefOpen(true)}>
-                    Milestone
+                  <DropdownMenuItem onClick={() => setIsMilestoneRefOpen(true)} className="flex items-center gap-0">
+                    <span className="w-7 flex justify-center shrink-0">
+                      <svg width="14" height="14" viewBox="0 0 14 14" className="text-foreground/60">
+                        <polygon points="7,0 14,14 0,14" fill="currentColor"/>
+                        <text x="7" y="12.5" textAnchor="middle" fill="white" style={{ fontFamily: "'Times New Roman', Times, serif", fontWeight: 700, fontSize: '7px' }}>M</text>
+                      </svg>
+                    </span>
+                    <span>Milestone</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsCaseRefOpen(true)}>
-                    Case
+                  <DropdownMenuItem onClick={() => setIsCaseRefOpen(true)} className="flex items-center gap-0">
+                    <span className="w-7 flex justify-center shrink-0"><Layers className="w-3.5 h-3.5 text-muted-foreground" /></span>
+                    <span>Case</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsParticipantRefOpen(true)}>
-                    Participant
+                  <DropdownMenuItem onClick={() => setIsParticipantRefOpen(true)} className="flex items-center gap-0">
+                    <span className="w-7 flex justify-center shrink-0">
+                      <span className="inline-flex items-center justify-center h-[14px] px-[4px] rounded-full border border-foreground/60 bg-background" style={{ fontFamily: "'Times New Roman', Times, serif", fontWeight: 700, fontSize: '8px', lineHeight: '14px' }}>P</span>
+                    </span>
+                    <span>Participant</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
