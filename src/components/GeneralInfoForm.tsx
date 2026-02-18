@@ -834,24 +834,12 @@ export function GeneralInfoForm({
             <div>
               <label className="text-xs text-muted-foreground mb-0.5 block">Topic ID</label>
               {isEditing && editedProposal ? (
-                <div className="space-y-2">
-                  <Input
-                    value={editedProposal.topicId || ''}
-                    onChange={(e) => setEditedProposal({ ...editedProposal, topicId: e.target.value })}
-                    placeholder="e.g. HORIZON-CL5-2026-D1-01"
-                    className="max-w-md h-8 text-sm"
-                  />
-                  <div>
-                    <label className="text-xs text-muted-foreground mb-0.5 block">Link to topic description</label>
-                    <Input
-                      value={editedProposal.topicUrl || ''}
-                      onChange={(e) => setEditedProposal({ ...editedProposal, topicUrl: e.target.value })}
-                      placeholder="Portal URL (https://ec.europa.eu/...)"
-                      type="url"
-                      className="max-w-md h-8 text-sm"
-                    />
-                  </div>
-                </div>
+                <Input
+                  value={editedProposal.topicId || ''}
+                  onChange={(e) => setEditedProposal({ ...editedProposal, topicId: e.target.value })}
+                  placeholder="e.g. HORIZON-CL5-2026-D1-01"
+                  className="max-w-md h-8 text-sm"
+                />
               ) : (
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-medium">{proposal?.topicId || 'Not specified'}</p>
@@ -882,6 +870,19 @@ export function GeneralInfoForm({
                 <p className="text-sm font-medium">{proposal?.topicTitle || '–'}</p>
               )}
             </div>
+
+            {isEditing && editedProposal && (
+              <div>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Link to topic description</label>
+                <Input
+                  value={editedProposal.topicUrl || ''}
+                  onChange={(e) => setEditedProposal({ ...editedProposal, topicUrl: e.target.value })}
+                  placeholder="Portal URL (https://ec.europa.eu/...)"
+                  type="url"
+                  className="max-w-md h-8 text-sm"
+                />
+              </div>
+            )}
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
