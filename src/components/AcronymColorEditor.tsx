@@ -86,7 +86,7 @@ function CustomColorPalette({ onApply }: { onApply: (color: string) => void }) {
             title="Custom color"
           />
         </PopoverTrigger>
-        <PopoverContent className="w-52 p-3 space-y-2" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+        <PopoverContent className="w-52 p-3 space-y-2" align="start" onOpenAutoFocus={(e) => e.preventDefault()} onPointerDownOutside={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
           <div className="flex items-center gap-2">
             <input
               type="color"
