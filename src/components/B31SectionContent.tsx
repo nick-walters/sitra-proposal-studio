@@ -98,7 +98,7 @@ export function B31SectionContent({ proposalId }: Props) {
               {', '}deliverables{' '}
               <svg width={32} height={12} viewBox="0 0 32 12" style={{ display: 'inline-block', verticalAlign: 'baseline', overflow: 'visible' }}>
                 <path d="M 0,0 L 26,0 L 32,6 L 26,12 L 0,12 Z" fill="#ffffff" stroke="#000000" strokeWidth={1.5} strokeLinejoin="round" />
-                <text x={13} y={9.5} textAnchor="middle" fontFamily="'Times New Roman', Times, serif" fontSize="8pt" fontWeight={700} fill="#000000">DX.X</text>
+                <text x={13} y={9.5} textAnchor="middle" fontFamily="'Times New Roman', Times, serif" fontSize="8pt" fontWeight={700} fontStyle="normal" fill="#000000">DX.X</text>
               </svg>
               {' '}&amp; milestones{' '}
               <svg width={14} height={14} viewBox="0 0 14 14" style={{ display: 'inline-block', verticalAlign: 'baseline', overflow: 'visible' }}>
