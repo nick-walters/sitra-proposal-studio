@@ -1,0 +1,1 @@
+ALTER TABLE public.proposals ADD COLUMN IF NOT EXISTS decision_date_is_estimated boolean NOT NULL DEFAULT false;

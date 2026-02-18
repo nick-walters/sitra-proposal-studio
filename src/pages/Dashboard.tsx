@@ -279,6 +279,7 @@ export function Dashboard() {
         deadline: row.deadline ? new Date(row.deadline) : undefined,
         submittedAt: row.submitted_at ? new Date(row.submitted_at) : undefined,
         decisionDate: row.decision_date ? new Date(row.decision_date) : undefined,
+        decisionDateIsEstimated: (row as any).decision_date_is_estimated || false,
         createdAt: new Date(row.created_at),
         updatedAt: new Date(row.updated_at),
         description: row.description || undefined,
