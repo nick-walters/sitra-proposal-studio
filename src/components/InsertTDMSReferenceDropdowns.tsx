@@ -87,12 +87,15 @@ function MiniPentagon({ text }: { text: string }) {
 
 function MiniTriangle({ text }: { text: string }) {
   return (
-    <span style={{ display: 'inline-block', verticalAlign: 'middle', position: 'relative', width: 19, height: 17 }}>
-      <svg width={19} height={17} viewBox="0 0 19 17" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
-        <path d="M 19,0 L 0,8.5 L 19,17 Z" fill="#000000" />
-      </svg>
-      <span style={{ position: 'absolute', top: 0, right: -1, width: 13, height: 17, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '7pt', fontWeight: 700, lineHeight: 1, color: '#ffffff', letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}>
-        {text}
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '1px' }}>
+      <span style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '8pt', fontWeight: 700, color: '#000', lineHeight: 1 }}>MS</span>
+      <span style={{ display: 'inline-block', verticalAlign: 'middle', position: 'relative', width: 15, height: 15 }}>
+        <svg width={15} height={15} viewBox="0 0 15 15" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
+          <path d="M 15,0 L 0,7.5 L 15,15 Z" fill="#000000" />
+        </svg>
+        <span style={{ position: 'absolute', top: 0, right: -1, width: 11, height: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '6pt', fontWeight: 700, lineHeight: 1, color: '#ffffff', letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}>
+          {text}
+        </span>
       </span>
     </span>
   );
