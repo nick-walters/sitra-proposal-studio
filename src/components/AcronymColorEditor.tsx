@@ -61,10 +61,6 @@ function charsToSegments(chars: { char: string; color: string }[]): AcronymSegme
   return segs;
 }
 
-function defaultSegments(acronym: string): AcronymSegment[] {
-  return acronym ? [{ text: acronym, color: '#000000' }] : [];
-}
-
 function CustomColorPalette({ onApply }: { onApply: (color: string) => void }) {
   const [customOpen, setCustomOpen] = useState(false);
   const [hexInput, setHexInput] = useState('#');
@@ -128,24 +124,60 @@ function CustomColorPalette({ onApply }: { onApply: (color: string) => void }) {
 }
 
 export function AcronymColorEditor({ acronym, segments, onChange, onAcronymChange, disabled, placeholder = 'Type acronym…' }: AcronymColorEditorProps) {
-  const currentText = segments.map(s => s.text).join('');
-  const effectiveSegments = currentText === acronym ? segments : defaultSegments(acronym);
-
-  const chars = expandToChars(effectiveSegments);
+  // Use fully internal char state to avoid re-render lag from parent
+  const [internalChars, setInternalChars] = useState<{ char: string; color: string }[]>(() => {
+    const currentText = segments.map(s => s.text).join('');
+    if (currentText === acronym && segments.length > 0) return expandToChars(segments);
+    return acronym ? [{ char: acronym[0], color: '#000000' }, ...acronym.slice(1).split('').map(c => ({ char: c, color: '#000000' }))] : [];
+  });
   const [selStart, setSelStart] = useState<number | null>(null);
   const [selEnd, setSelEnd] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [cursorPos, setCursorPos] = useState<number>(chars.length);
+  const [cursorPos, setCursorPos] = useState<number>(internalChars.length);
   const [isFocused, setIsFocused] = useState(false);
   const hiddenInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onChangeRef = useRef(onChange);
+  const onAcronymChangeRef = useRef(onAcronymChange);
+  onChangeRef.current = onChange;
+  onAcronymChangeRef.current = onAcronymChange;
+
+  // Sync from props only when NOT focused (external update)
+  useEffect(() => {
+    if (isFocused) return;
+    const currentText = segments.map(s => s.text).join('');
+    if (currentText === acronym && segments.length > 0) {
+      setInternalChars(expandToChars(segments));
+    } else if (acronym) {
+      setInternalChars(acronym.split('').map(c => ({ char: c, color: '#000000' })));
+    } else {
+      setInternalChars([]);
+    }
+  }, [acronym, segments, isFocused]);
+
+  // Debounced flush to parent
+  const flushToParent = useCallback((chars: { char: string; color: string }[]) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      const newSegs = mergeSegments(charsToSegments(chars));
+      const newAcronym = chars.map(c => c.char).join('');
+      onAcronymChangeRef.current?.(newAcronym);
+      onChangeRef.current(newSegs);
+    }, 300);
+  }, []);
+
+  useEffect(() => {
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, []);
+
+  const chars = internalChars;
 
   useEffect(() => {
     setSelStart(null);
     setSelEnd(null);
   }, [acronym]);
 
-  // Keep cursor in bounds
   useEffect(() => {
     if (cursorPos > chars.length) setCursorPos(chars.length);
   }, [chars.length, cursorPos]);
@@ -161,14 +193,10 @@ export function AcronymColorEditor({ acronym, segments, onChange, onAcronymChang
   }, [disabled]);
 
   const handleMouseEnter = useCallback((index: number) => {
-    if (isDragging) {
-      setSelEnd(index);
-    }
+    if (isDragging) setSelEnd(index);
   }, [isDragging]);
 
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-  }, []);
+  const handleMouseUp = useCallback(() => setIsDragging(false), []);
 
   useEffect(() => {
     const handler = () => setIsDragging(false);
@@ -179,17 +207,12 @@ export function AcronymColorEditor({ acronym, segments, onChange, onAcronymChang
   const handleContainerClick = useCallback(() => {
     if (disabled) return;
     hiddenInputRef.current?.focus();
-    // If clicking empty area, place cursor at end and clear selection
-    if (selStart === null) {
-      setCursorPos(chars.length);
-    }
+    if (selStart === null) setCursorPos(chars.length);
   }, [disabled, chars.length, selStart]);
 
   const getSelectionRange = (): [number, number] | null => {
     if (selStart === null || selEnd === null) return null;
-    const start = Math.min(selStart, selEnd);
-    const end = Math.max(selStart, selEnd);
-    return [start, end];
+    return [Math.min(selStart, selEnd), Math.max(selStart, selEnd)];
   };
 
   const applyColor = (color: string) => {
@@ -200,7 +223,10 @@ export function AcronymColorEditor({ acronym, segments, onChange, onAcronymChang
     for (let i = start; i <= end; i++) {
       newChars[i] = { ...newChars[i], color };
     }
-    onChange(mergeSegments(charsToSegments(newChars)));
+    setInternalChars(newChars);
+    // Color changes flush immediately
+    const newSegs = mergeSegments(charsToSegments(newChars));
+    onChangeRef.current(newSegs);
     setSelStart(null);
     setSelEnd(null);
   };
@@ -213,25 +239,20 @@ export function AcronymColorEditor({ acronym, segments, onChange, onAcronymChang
     if (e.key === 'Backspace') {
       e.preventDefault();
       if (range) {
-        // Delete selection
         const [start, end] = range;
         const newChars = [...chars];
         newChars.splice(start, end - start + 1);
-        const newSegs = mergeSegments(charsToSegments(newChars));
-        const newAcronym = newChars.map(c => c.char).join('');
-        onAcronymChange?.(newAcronym);
-        onChange(newSegs);
+        setInternalChars(newChars);
         setCursorPos(start);
         setSelStart(null);
         setSelEnd(null);
+        flushToParent(newChars);
       } else if (cursorPos > 0) {
         const newChars = [...chars];
         newChars.splice(cursorPos - 1, 1);
-        const newSegs = mergeSegments(charsToSegments(newChars));
-        const newAcronym = newChars.map(c => c.char).join('');
-        onAcronymChange?.(newAcronym);
-        onChange(newSegs);
+        setInternalChars(newChars);
         setCursorPos(cursorPos - 1);
+        flushToParent(newChars);
       }
     } else if (e.key === 'Delete') {
       e.preventDefault();
@@ -239,20 +260,16 @@ export function AcronymColorEditor({ acronym, segments, onChange, onAcronymChang
         const [start, end] = range;
         const newChars = [...chars];
         newChars.splice(start, end - start + 1);
-        const newSegs = mergeSegments(charsToSegments(newChars));
-        const newAcronym = newChars.map(c => c.char).join('');
-        onAcronymChange?.(newAcronym);
-        onChange(newSegs);
+        setInternalChars(newChars);
         setCursorPos(start);
         setSelStart(null);
         setSelEnd(null);
+        flushToParent(newChars);
       } else if (cursorPos < chars.length) {
         const newChars = [...chars];
         newChars.splice(cursorPos, 1);
-        const newSegs = mergeSegments(charsToSegments(newChars));
-        const newAcronym = newChars.map(c => c.char).join('');
-        onAcronymChange?.(newAcronym);
-        onChange(newSegs);
+        setInternalChars(newChars);
+        flushToParent(newChars);
       }
     } else if (e.key === 'ArrowLeft') {
       e.preventDefault();
@@ -282,32 +299,42 @@ export function AcronymColorEditor({ acronym, segments, onChange, onAcronymChang
       }
     } else if (e.key.length === 1 && !e.metaKey && !e.ctrlKey) {
       e.preventDefault();
-      // Determine color: use color of character before cursor, or black
-      const colorAtCursor = cursorPos > 0 ? chars[cursorPos - 1].color : '#000000';
+      // Inherit color from character at cursor position (before cursor), or after cursor, or default black
+      const colorAtCursor = cursorPos > 0 ? chars[cursorPos - 1].color : (chars.length > 0 ? chars[0].color : '#000000');
 
       if (range) {
-        // Replace selection
         const [start, end] = range;
         const newChars = [...chars];
         newChars.splice(start, end - start + 1, { char: e.key, color: colorAtCursor });
-        const newSegs = mergeSegments(charsToSegments(newChars));
-        const newAcronym = newChars.map(c => c.char).join('');
-        onAcronymChange?.(newAcronym);
-        onChange(newSegs);
+        setInternalChars(newChars);
         setCursorPos(start + 1);
         setSelStart(null);
         setSelEnd(null);
+        flushToParent(newChars);
       } else {
         const newChars = [...chars];
         newChars.splice(cursorPos, 0, { char: e.key, color: colorAtCursor });
-        const newSegs = mergeSegments(charsToSegments(newChars));
-        const newAcronym = newChars.map(c => c.char).join('');
-        onAcronymChange?.(newAcronym);
-        onChange(newSegs);
+        setInternalChars(newChars);
         setCursorPos(cursorPos + 1);
+        flushToParent(newChars);
       }
     }
-  }, [disabled, chars, cursorPos, selStart, selEnd, onChange, onAcronymChange]);
+  }, [disabled, chars, cursorPos, selStart, selEnd, flushToParent]);
+
+  const handleBlur = useCallback(() => {
+    setIsFocused(false);
+    setSelStart(null);
+    setSelEnd(null);
+    // Flush immediately on blur
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    const newSegs = mergeSegments(charsToSegments(internalChars));
+    const newAcronym = internalChars.map(c => c.char).join('');
+    onAcronymChangeRef.current?.(newAcronym);
+    onChangeRef.current(newSegs);
+  }, [internalChars]);
 
   const range = getSelectionRange();
 
@@ -344,7 +371,6 @@ export function AcronymColorEditor({ acronym, segments, onChange, onAcronymChang
             </span>
           );
         })}
-        {/* Cursor at end */}
         {isFocused && !range && cursorPos === chars.length && (
           <span className="relative w-0">
             <span className="absolute left-0 top-0 bottom-0 w-[1.5px] bg-foreground animate-pulse" style={{ height: 16 }} />
@@ -353,12 +379,11 @@ export function AcronymColorEditor({ acronym, segments, onChange, onAcronymChang
         {chars.length === 0 && !isFocused && (
           <span className="text-muted-foreground text-xs italic">{placeholder}</span>
         )}
-        {/* Hidden input to capture keyboard events */}
         <input
           ref={hiddenInputRef}
           className="absolute opacity-0 w-0 h-0 pointer-events-none"
           onFocus={() => setIsFocused(true)}
-          onBlur={() => { setIsFocused(false); setSelStart(null); setSelEnd(null); }}
+          onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           tabIndex={0}
           aria-label="Acronym input"
