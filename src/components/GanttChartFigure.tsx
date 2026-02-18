@@ -406,12 +406,13 @@ export function GanttChartFigure({
                   const estimateBubbleW = (label: string) => Math.max(10, label.length * 4.5 + 8);
                   const triangleSize = 3;
 
-                  type PBubble = typeof taskBubbles[0] & { leftX: number; width: number; below: boolean };
+                  type PBubble = typeof taskBubbles[0] & { leftX: number; width: number; below: boolean; triSide: 'right' | 'left' };
                   const positioned: PBubble[] = taskBubbles.map(b => ({
                     ...b,
                     width: estimateBubbleW(b.label),
                     leftX: 0,
                     below: false,
+                    triSide: 'right' as const,
                   }));
 
                   // targetX = right border of the month cell (end of month)
@@ -434,11 +435,14 @@ export function GanttChartFigure({
                       const left = positioned[indices[0]];
                       const right = positioned[indices[1]];
                       left.leftX = tX - left.width;
+                      left.triSide = 'right';
                       right.leftX = tX;
+                      right.triSide = 'left';
                       // Check if right bubble exceeds margin
                       if (right.leftX + right.width > timelineWidth) {
                         right.below = true;
                         right.leftX = tX - right.width;
+                        right.triSide = 'right';
                       }
                       // Extra bubbles go below
                       for (let i = 2; i < indices.length; i++) {
@@ -458,10 +462,13 @@ export function GanttChartFigure({
                     if (overlap > 0) {
                       const tX = getTargetX(curr.month);
                       prev.leftX = tX - prev.width;
+                      prev.triSide = 'right';
                       curr.leftX = tX;
+                      curr.triSide = 'left';
                       if (curr.leftX + curr.width > timelineWidth) {
                         curr.below = true;
                         curr.leftX = tX - curr.width;
+                        curr.triSide = 'right';
                       }
                     }
                   }
@@ -514,12 +521,10 @@ export function GanttChartFigure({
                         })}
                         {/* Render positioned bubbles */}
                         {positioned.map((b, idx) => {
-                          const tX = getTargetX(b.month);
-                          // Triangle tip points to targetX (right border of month cell)
-                          const triangleLeftInBubble = tX - b.leftX;
-                          // Clamp triangle within bubble bounds
-                          const clampedTriLeft = Math.max(3, Math.min(triangleLeftInBubble, b.width - 3));
                           const topPos = b.below ? 25 : (rowHeight / 2);
+                          // Compute bubble height (approx 13px for 9pt + padding + border)
+                          const bubbleH = 14;
+                          const isRight = b.triSide === 'right';
 
                           return (
                             <Tooltip key={`${b.type}-${idx}`}>
@@ -546,17 +551,25 @@ export function GanttChartFigure({
                                     textAlign: 'center',
                                   }}
                                 >
-                                  {/* Triangle pointer on top of bubble */}
+                                  {/* Triangle pointer on side of bubble */}
                                   <span
                                     style={{
                                       position: 'absolute',
-                                      top: -triangleSize,
-                                      left: clampedTriLeft - triangleSize,
-                                      width: 0,
-                                      height: 0,
-                                      borderLeft: `${triangleSize}px solid transparent`,
-                                      borderRight: `${triangleSize}px solid transparent`,
-                                      borderBottom: `${triangleSize}px solid ${b.color}`,
+                                      top: '50%',
+                                      marginTop: -triangleSize,
+                                      ...(isRight ? {
+                                        right: -triangleSize,
+                                        width: 0, height: 0,
+                                        borderTop: `${triangleSize}px solid transparent`,
+                                        borderBottom: `${triangleSize}px solid transparent`,
+                                        borderLeft: `${triangleSize}px solid ${b.color}`,
+                                      } : {
+                                        left: -triangleSize,
+                                        width: 0, height: 0,
+                                        borderTop: `${triangleSize}px solid transparent`,
+                                        borderBottom: `${triangleSize}px solid transparent`,
+                                        borderRight: `${triangleSize}px solid ${b.color}`,
+                                      }),
                                       zIndex: 11,
                                     }}
                                   />
@@ -564,13 +577,21 @@ export function GanttChartFigure({
                                   <span
                                     style={{
                                       position: 'absolute',
-                                      top: -(triangleSize - 1),
-                                      left: clampedTriLeft - (triangleSize - 1),
-                                      width: 0,
-                                      height: 0,
-                                      borderLeft: `${triangleSize - 1}px solid transparent`,
-                                      borderRight: `${triangleSize - 1}px solid transparent`,
-                                      borderBottom: `${triangleSize - 1}px solid #ffffff`,
+                                      top: '50%',
+                                      marginTop: -(triangleSize - 1),
+                                      ...(isRight ? {
+                                        right: -(triangleSize - 1),
+                                        width: 0, height: 0,
+                                        borderTop: `${triangleSize - 1}px solid transparent`,
+                                        borderBottom: `${triangleSize - 1}px solid transparent`,
+                                        borderLeft: `${triangleSize - 1}px solid #ffffff`,
+                                      } : {
+                                        left: -(triangleSize - 1),
+                                        width: 0, height: 0,
+                                        borderTop: `${triangleSize - 1}px solid transparent`,
+                                        borderBottom: `${triangleSize - 1}px solid transparent`,
+                                        borderRight: `${triangleSize - 1}px solid #ffffff`,
+                                      }),
                                       zIndex: 12,
                                     }}
                                   />
