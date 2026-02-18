@@ -487,12 +487,8 @@ export function GanttChartFigure({
 
                   // Allow bubbles to extend left of timeline (negative leftX is OK)
 
-                  // Calculate how much bubble overflow eats into the label area
-                  const minBubbleLeft = positioned.length > 0 ? Math.min(...positioned.map(b => b.leftX)) : 0;
-                  const bubbleOverlap = minBubbleLeft < 0 ? Math.abs(minBubbleLeft) : 0;
-
                   const rowHeight = 18;
-                  const titleWidth = Math.max(0, labelWidth - 38 - 6 - bubbleOverlap);
+                  const titleWidth = labelWidth - 38 - 6;
 
                   return (
                     <div key={task.id} className="flex" style={{ position: 'relative' }}>
@@ -508,12 +504,12 @@ export function GanttChartFigure({
                           T{task.wpNumber}.{task.taskNumber}
                         </span>
                       </div>
-                      {/* Task title */}
+                      {/* Task title - use clip to allow bubbles to visually overlap */}
                       <div 
-                        className="shrink-0 flex items-center overflow-hidden"
-                        style={{ width: titleWidth, height: rowHeight, padding: '0 2px', borderRight: `1px solid ${wpColor}` }}
+                        className="shrink-0 flex items-center"
+                        style={{ width: titleWidth, height: rowHeight, padding: '0 2px', borderRight: `1px solid ${wpColor}`, overflow: 'visible', position: 'relative' }}
                       >
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.name}</span>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', maxWidth: '100%' }}>{task.name}</span>
                       </div>
                       <div className="flex" style={{ position: 'relative', marginRight: MARGIN_GAP }}>
                         {/* Render month cells */}
