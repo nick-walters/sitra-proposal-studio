@@ -156,6 +156,35 @@ export function InsertCrossReferenceDialog({
         }
       }
 
+      // Add compulsory B3.1 tables and figures as fallbacks
+      const compulsoryTables: { label: string; title: string }[] = [
+        { label: '3.1.a', title: 'List of work packages' },
+        { label: '3.1.b', title: 'Work package descriptions' },
+        { label: '3.1.c', title: 'List of deliverables' },
+        { label: '3.1.d', title: 'List of milestones' },
+        { label: '3.1.e', title: 'Critical risks for implementation' },
+        { label: '3.1.f', title: 'Summary of staff effort' },
+        { label: '3.1.g', title: 'Subcontracting costs' },
+        { label: '3.1.h', title: 'Purchase costs of equipment' },
+      ];
+      for (const ct of compulsoryTables) {
+        if (!seenTblLabels.has(ct.label)) {
+          seenTblLabels.add(ct.label);
+          allTables.push({ label: ct.label, title: ct.title, type: 'table' });
+        }
+      }
+
+      const compulsoryFigures: { label: string; title: string }[] = [
+        { label: '3.1.a', title: 'PERT chart' },
+        { label: '3.1.b', title: 'Gantt chart' },
+      ];
+      for (const cf of compulsoryFigures) {
+        if (!seenFigLabels.has(cf.label)) {
+          seenFigLabels.add(cf.label);
+          allFigures.push({ label: cf.label, title: cf.title, type: 'figure' });
+        }
+      }
+
       allFigures.sort((a, b) => a.label.localeCompare(b.label));
       allTables.sort((a, b) => a.label.localeCompare(b.label));
 
