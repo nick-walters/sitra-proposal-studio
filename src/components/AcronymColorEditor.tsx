@@ -140,12 +140,16 @@ export function AcronymColorEditor({ acronym, segments, onChange, onAcronymChang
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onChangeRef = useRef(onChange);
   const onAcronymChangeRef = useRef(onAcronymChange);
+  const skipSyncRef = useRef(false);
   onChangeRef.current = onChange;
   onAcronymChangeRef.current = onAcronymChange;
 
   // Sync from props only when NOT focused (external update)
   useEffect(() => {
-    if (isFocused) return;
+    if (isFocused || skipSyncRef.current) {
+      skipSyncRef.current = false;
+      return;
+    }
     const currentText = segments.map(s => s.text).join('');
     if (currentText === acronym && segments.length > 0) {
       setInternalChars(expandToChars(segments));
@@ -224,6 +228,7 @@ export function AcronymColorEditor({ acronym, segments, onChange, onAcronymChang
       newChars[i] = { ...newChars[i], color };
     }
     setInternalChars(newChars);
+    skipSyncRef.current = true;
     // Color changes flush immediately
     const newSegs = mergeSegments(charsToSegments(newChars));
     onChangeRef.current(newSegs);
