@@ -559,7 +559,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                         <td
                           colSpan={2}
                           className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight"
-                          style={{ padding: '1px 6px', border: 'none' }}
+                          style={{ padding: '1px 6px 1px 0px', border: 'none' }}
                         >
                           <div className="flex items-center gap-1">
                             <span
@@ -580,7 +580,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
 
                       {/* Task metadata row: leader + partners | timing */}
                       <tr>
-                        <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0" style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }}>
+                        <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0" style={{ border: 'none', paddingLeft: '0px', paddingRight: '6px' }}>
                           <div className="flex items-center flex-wrap gap-0.5">
                             <LeaderPicker
                               entityId={task.id}
@@ -609,7 +609,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                         <td
                           colSpan={2}
                           className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0 cursor-text hover:bg-muted/30"
-                          style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }}
+                          style={{ border: 'none', paddingLeft: '0px', paddingRight: '6px' }}
                         >
                           <EditableText
                             value={task.description || ''}

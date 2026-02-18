@@ -391,12 +391,96 @@ export function GanttChartFigure({
 
                 {/* Task Rows */}
                 {wp.tasks.map((task, taskIdx) => {
+                  // Pre-compute bubble positions for this task
+                  const taskBubbles: { month: number; label: string; color: string; tooltipTitle: string; type: 'del' | 'ms'; sortNum: string }[] = [];
+                  task.deliverables?.forEach(d => taskBubbles.push({ month: d.month, label: `D${d.number.replace(/^D/, '')}`, color: wpColor, tooltipTitle: `Deliverable D${d.number}`, type: 'del', sortNum: d.number }));
+                  task.milestones?.forEach(ms => taskBubbles.push({ month: ms.month, label: `MS${ms.number}`, color: '#000000', tooltipTitle: `MS${ms.number}: ${ms.name}`, type: 'ms', sortNum: String(ms.number) }));
+
+                  // Sort: by month, D before MS at same month, then numerically
+                  taskBubbles.sort((a, b) => {
+                    if (a.month !== b.month) return a.month - b.month;
+                    if (a.type !== b.type) return a.type === 'del' ? -1 : 1;
+                    return a.sortNum.localeCompare(b.sortNum, undefined, { numeric: true });
+                  });
+
+                  const estimateBubbleW = (label: string) => Math.max(10, label.length * 4.5 + 8);
+                  const triangleSize = 3;
+
+                  type PBubble = typeof taskBubbles[0] & { leftX: number; width: number; below: boolean };
+                  const positioned: PBubble[] = taskBubbles.map(b => ({
+                    ...b,
+                    width: estimateBubbleW(b.label),
+                    leftX: 0,
+                    below: false,
+                  }));
+
+                  // targetX = right border of the month cell (end of month)
+                  const getTargetX = (month: number) => month * cellWidth;
+
+                  // Group by month and position
+                  const monthGroups = new Map<number, number[]>();
+                  positioned.forEach((b, idx) => {
+                    if (!monthGroups.has(b.month)) monthGroups.set(b.month, []);
+                    monthGroups.get(b.month)!.push(idx);
+                  });
+
+                  monthGroups.forEach((indices) => {
+                    const tX = getTargetX(positioned[indices[0]].month);
+                    if (indices.length === 1) {
+                      // Single: right-align bubble to targetX, triangle on right side
+                      positioned[indices[0]].leftX = tX - positioned[indices[0]].width;
+                    } else {
+                      // Two+: left bubble right-aligns to targetX, right bubble left-aligns to targetX
+                      const left = positioned[indices[0]];
+                      const right = positioned[indices[1]];
+                      left.leftX = tX - left.width;
+                      right.leftX = tX;
+                      // Check if right bubble exceeds margin
+                      if (right.leftX + right.width > timelineWidth) {
+                        right.below = true;
+                        right.leftX = tX - right.width;
+                      }
+                      // Extra bubbles go below
+                      for (let i = 2; i < indices.length; i++) {
+                        positioned[indices[i]].below = true;
+                        positioned[indices[i]].leftX = tX - positioned[indices[i]].width;
+                      }
+                    }
+                  });
+
+                  // Resolve overlaps between different-month non-below bubbles
+                  const nonBelow = positioned.map((b, i) => ({ b, i })).filter(x => !x.b.below);
+                  for (let ni = 1; ni < nonBelow.length; ni++) {
+                    const prev = nonBelow[ni - 1].b;
+                    const curr = nonBelow[ni].b;
+                    if (prev.month === curr.month) continue;
+                    const overlap = (prev.leftX + prev.width + 1) - curr.leftX;
+                    if (overlap > 0) {
+                      const tX = getTargetX(curr.month);
+                      prev.leftX = tX - prev.width;
+                      curr.leftX = tX;
+                      if (curr.leftX + curr.width > timelineWidth) {
+                        curr.below = true;
+                        curr.leftX = tX - curr.width;
+                      }
+                    }
+                  }
+
+                  // Clamp all within bounds
+                  positioned.forEach(b => {
+                    if (b.leftX < 0) b.leftX = 0;
+                    if (b.leftX + b.width > timelineWidth) b.leftX = timelineWidth - b.width;
+                  });
+
+                  const hasBelow = positioned.some(b => b.below);
+                  const rowHeight = hasBelow ? 34 : 18;
+
                   return (
-                    <div key={task.id} className="flex" style={{ position: 'relative', paddingLeft: 1 }}>
+                    <div key={task.id} className="flex" style={{ position: 'relative' }}>
                       {/* Task number bubble */}
                       <div 
                         className="shrink-0 flex items-center justify-center"
-                        style={{ width: 38, height: 18 }}
+                        style={{ width: 38, height: rowHeight, marginLeft: 6 }}
                       >
                         <span
                           className="inline-flex items-center justify-center rounded-full font-bold"
@@ -408,12 +492,12 @@ export function GanttChartFigure({
                       {/* Task title */}
                       <div 
                         className="shrink-0 flex items-center overflow-hidden"
-style={{ width: labelWidth - 38, height: 18, padding: '0 2px', borderRight: `1px solid ${wpColor}` }}
+                        style={{ width: labelWidth - 38 - 6, height: rowHeight, padding: '0 2px', borderRight: `1px solid ${wpColor}` }}
                       >
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.name}</span>
                       </div>
                       <div className="flex" style={{ position: 'relative', marginRight: MARGIN_GAP }}>
-                        {/* Render month cells - no horizontal borders */}
+                        {/* Render month cells */}
                         {months.map(m => {
                           const isInTask = m >= task.startMonth && m <= task.endMonth;
                           return (
@@ -421,164 +505,85 @@ style={{ width: labelWidth - 38, height: 18, padding: '0 2px', borderRight: `1px
                               key={m}
                               style={{ 
                                 width: cellWidth, 
-                                height: 18,
+                                height: rowHeight,
                                 backgroundColor: isInTask ? taskColor : undefined,
                                 borderRight: isInTask ? getFilledCellRightBorder(m, wpColor) : `1px solid ${getMonthRightBorder(m, wpColor)}`,
                               }}
                             />
                           );
                         })}
-                        {/* Render bubbles with collision avoidance */}
-                        {(() => {
-                          // Collect all bubbles for this task
-                          const bubbles: { month: number; label: string; color: string; tooltipTitle: string; type: 'del' | 'ms' }[] = [];
-                          task.deliverables?.forEach(d => bubbles.push({ month: d.month, label: `D${d.number.replace(/^D/, '')}`, color: wpColor, tooltipTitle: `Deliverable D${d.number}`, type: 'del' }));
-                          task.milestones?.forEach(ms => bubbles.push({ month: ms.month, label: `MS${ms.number}`, color: '#000000', tooltipTitle: `MS${ms.number}: ${ms.name}`, type: 'ms' }));
-                          if (bubbles.length === 0) return null;
+                        {/* Render positioned bubbles */}
+                        {positioned.map((b, idx) => {
+                          const tX = getTargetX(b.month);
+                          // Triangle tip points to targetX (right border of month cell)
+                          const triangleLeftInBubble = tX - b.leftX;
+                          // Clamp triangle within bubble bounds
+                          const clampedTriLeft = Math.max(3, Math.min(triangleLeftInBubble, b.width - 3));
+                          const topPos = b.below ? 25 : (rowHeight / 2);
 
-                          // Sort by month, then deliverables before milestones for consistent ordering
-                          bubbles.sort((a, b) => a.month - b.month || (a.type === 'del' ? -1 : 1));
-
-                          // 9pt font for gantt MS/D bubbles — char width ~4.5px + 6px padding + 2px border
-                          const estimateBubbleWidth = (label: string) => Math.max(10, label.length * 4.5 + 8);
-
-                          // Compute initial positions: center of each bubble's month cell
-                          const positioned = bubbles.map(b => ({
-                            ...b,
-                            centerX: (b.month - 1) * cellWidth + cellWidth / 2,
-                            width: estimateBubbleWidth(b.label),
-                          }));
-
-                          // For bubbles sharing the same month, place them side-by-side centered on the cell
-                          const monthGroups = new Map<number, number[]>();
-                          positioned.forEach((b, idx) => {
-                            if (!monthGroups.has(b.month)) monthGroups.set(b.month, []);
-                            monthGroups.get(b.month)!.push(idx);
-                          });
-                          monthGroups.forEach((indices) => {
-                            if (indices.length < 2) return;
-                            const cellCenter = (positioned[indices[0]].month - 1) * cellWidth + cellWidth / 2;
-                            const totalWidth = indices.reduce((sum, idx, i) => {
-                              if (i === 0) return positioned[idx].width;
-                              return sum + 1 + positioned[idx].width;
-                            }, 0);
-                            let x = cellCenter - totalWidth / 2;
-                            for (const idx of indices) {
-                              positioned[idx].centerX = x + positioned[idx].width / 2;
-                              x += positioned[idx].width + 1;
-                            }
-                          });
-
-                          // Resolve remaining overlaps between different-month bubbles
-                          for (let i = 1; i < positioned.length; i++) {
-                            const prev = positioned[i - 1];
-                            const curr = positioned[i];
-                            if (prev.month === curr.month) continue; // already handled
-                            const minGap = (prev.width + curr.width) / 2 + 1;
-                            if (curr.centerX - prev.centerX < minGap) {
-                              const midX = (prev.centerX + curr.centerX) / 2;
-                              prev.centerX = midX - minGap / 2;
-                              curr.centerX = midX + minGap / 2;
-                            }
-                          }
-
-                          // Clamp to right page margin
-                          const maxRight = timelineWidth;
-                          for (let i = positioned.length - 1; i >= 0; i--) {
-                            const b = positioned[i];
-                            const rightEdge = b.centerX + b.width / 2;
-                            if (rightEdge > maxRight) {
-                              const shift = rightEdge - maxRight;
-                              b.centerX -= shift;
-                              // Push earlier bubbles left if now overlapping
-                              if (i > 0) {
-                                for (let j = i - 1; j >= 0; j--) {
-                                  const prev = positioned[j];
-                                  const next = positioned[j + 1];
-                                  const minGap = (prev.width + next.width) / 2 + 1;
-                                  if (next.centerX - prev.centerX < minGap) {
-                                    prev.centerX = next.centerX - minGap;
-                                  } else break;
-                                }
-                              }
-                            }
-                          }
-
-                          // Triangle position for each bubble (points to month cell center)
-                          const getBubbleTriangleLeft = (b: typeof positioned[0]) => {
-                            const monthCenterX = (b.month - 1) * cellWidth + cellWidth / 2;
-                            const bubbleLeft = b.centerX - b.width / 2;
-                            const rel = monthCenterX - bubbleLeft;
-                            // Clamp triangle within bubble bounds (with 3px margin from edges)
-                            return Math.max(3, Math.min(rel, b.width - 3));
-                          };
-
-                          const triangleSize = 3;
-
-                          return positioned.map((b, idx) => {
-                            const triangleLeft = getBubbleTriangleLeft(b);
-                            return (
-                              <Tooltip key={`${b.type}-${idx}`}>
-                                <TooltipTrigger asChild>
+                          return (
+                            <Tooltip key={`${b.type}-${idx}`}>
+                              <TooltipTrigger asChild>
+                                <span
+                                  className="font-bold"
+                                  style={{
+                                    position: 'absolute',
+                                    top: topPos,
+                                    left: b.leftX,
+                                    transform: 'translateY(-50%)',
+                                    fontFamily: "'Times New Roman', Times, serif",
+                                    fontSize: '9pt',
+                                    fontWeight: 700,
+                                    lineHeight: 1,
+                                    backgroundColor: '#ffffff',
+                                    color: b.color,
+                                    border: `1.5px solid ${b.color}`,
+                                    borderRadius: '9999px',
+                                    padding: '0 3px',
+                                    whiteSpace: 'nowrap',
+                                    zIndex: 10,
+                                    width: b.width,
+                                    textAlign: 'center',
+                                  }}
+                                >
+                                  {/* Triangle pointer on top of bubble */}
                                   <span
-                                    className="font-bold"
                                     style={{
                                       position: 'absolute',
-                                      top: 'calc(50% + 1px)',
-                                      left: b.centerX,
-                                      transform: 'translate(-50%, -50%)',
-                                      fontFamily: "'Times New Roman', Times, serif",
-                                      fontSize: '9pt',
-                                      fontWeight: 700,
-                                      lineHeight: 1,
-                                      backgroundColor: '#ffffff',
-                                      color: b.color,
-                                      border: `1.5px solid ${b.color}`,
-                                      borderRadius: '9999px',
-                                      padding: '0 3px',
-                                      whiteSpace: 'nowrap',
-                                      zIndex: 10,
+                                      top: -triangleSize,
+                                      left: clampedTriLeft - triangleSize,
+                                      width: 0,
+                                      height: 0,
+                                      borderLeft: `${triangleSize}px solid transparent`,
+                                      borderRight: `${triangleSize}px solid transparent`,
+                                      borderBottom: `${triangleSize}px solid ${b.color}`,
+                                      zIndex: 11,
                                     }}
-                                  >
-                                    {/* Triangle pointer on top of bubble */}
-                                    <span
-                                      style={{
-                                        position: 'absolute',
-                                        top: -triangleSize,
-                                        left: triangleLeft - triangleSize,
-                                        width: 0,
-                                        height: 0,
-                                        borderLeft: `${triangleSize}px solid transparent`,
-                                        borderRight: `${triangleSize}px solid transparent`,
-                                        borderBottom: `${triangleSize}px solid ${b.color}`,
-                                        zIndex: 11,
-                                      }}
-                                    />
-                                    {/* White fill triangle to mask the border */}
-                                    <span
-                                      style={{
-                                        position: 'absolute',
-                                        top: -(triangleSize - 1),
-                                        left: triangleLeft - (triangleSize - 1),
-                                        width: 0,
-                                        height: 0,
-                                        borderLeft: `${triangleSize - 1}px solid transparent`,
-                                        borderRight: `${triangleSize - 1}px solid transparent`,
-                                        borderBottom: `${triangleSize - 1}px solid #ffffff`,
-                                        zIndex: 12,
-                                      }}
-                                    />
-                                    {b.label}
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="text-xs font-medium">{b.tooltipTitle}</p>
-                                  <p className="text-xs text-muted-foreground">Month {b.month}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            );
-                          });
-                        })()}
+                                  />
+                                  {/* White fill triangle to mask the border */}
+                                  <span
+                                    style={{
+                                      position: 'absolute',
+                                      top: -(triangleSize - 1),
+                                      left: clampedTriLeft - (triangleSize - 1),
+                                      width: 0,
+                                      height: 0,
+                                      borderLeft: `${triangleSize - 1}px solid transparent`,
+                                      borderRight: `${triangleSize - 1}px solid transparent`,
+                                      borderBottom: `${triangleSize - 1}px solid #ffffff`,
+                                      zIndex: 12,
+                                    }}
+                                  />
+                                  {b.label}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="text-xs font-medium">{b.tooltipTitle}</p>
+                                <p className="text-xs text-muted-foreground">Month {b.month}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          );
+                        })}
                       </div>
                     </div>
                   );
@@ -591,7 +596,7 @@ style={{ width: labelWidth - 38, height: 18, padding: '0 2px', borderRight: `1px
                       {/* Task number bubble */}
                       <div 
                         className="shrink-0 flex items-center justify-center"
-                        style={{ width: 38, height: 18 }}
+                        style={{ width: 38, height: 18, marginLeft: 6 }}
                       >
                         <span
                           className="inline-flex items-center justify-center rounded-full font-bold"
@@ -603,7 +608,7 @@ style={{ width: labelWidth - 38, height: 18, padding: '0 2px', borderRight: `1px
                       {/* Task title */}
                       <div 
                         className="shrink-0 flex items-center overflow-hidden"
-                        style={{ width: labelWidth - 38, height: 18, padding: '0 2px', borderRight: `1px solid ${wpColor}` }}
+                        style={{ width: labelWidth - 38 - 6, height: 18, padding: '0 2px', borderRight: `1px solid ${wpColor}` }}
                       >
                         <span className="text-muted-foreground" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</span>
                       </div>
