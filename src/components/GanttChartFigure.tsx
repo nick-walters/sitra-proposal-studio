@@ -403,17 +403,21 @@ export function GanttChartFigure({
                     return a.sortNum.localeCompare(b.sortNum, undefined, { numeric: true });
                   });
 
+                  const pointDepth = 5;
                   const estimateBubbleW = (label: string) => Math.max(10, label.length * 4.5 + 8);
-                  const triangleSize = 3;
 
-                  type PBubble = typeof taskBubbles[0] & { leftX: number; width: number; below: boolean; triSide: 'right' | 'left' };
-                  const positioned: PBubble[] = taskBubbles.map(b => ({
-                    ...b,
-                    width: estimateBubbleW(b.label),
-                    leftX: 0,
-                    below: false,
-                    triSide: 'right' as const,
-                  }));
+                  type PBubble = typeof taskBubbles[0] & { leftX: number; width: number; bodyW: number; below: boolean; triSide: 'right' | 'left' };
+                  const positioned: PBubble[] = taskBubbles.map(b => {
+                    const bodyW = estimateBubbleW(b.label);
+                    return {
+                      ...b,
+                      bodyW,
+                      width: bodyW + pointDepth,
+                      leftX: 0,
+                      below: false,
+                      triSide: 'right' as const,
+                    };
+                  });
 
                   // targetX = right border of the month cell (end of month)
                   const getTargetX = (month: number) => month * cellWidth;
@@ -522,80 +526,62 @@ export function GanttChartFigure({
                         {/* Render positioned bubbles */}
                         {positioned.map((b, idx) => {
                           const topPos = b.below ? 25 : (rowHeight / 2);
-                          // Compute bubble height (approx 13px for 9pt + padding + border)
-                          const bubbleH = 14;
+                          const bH = 14;
+                          const r = bH / 2;
                           const isRight = b.triSide === 'right';
+
+                          const svgPath = isRight
+                            ? `M ${r},0 A ${r},${r} 0 1 0 ${r},${bH} L ${b.width - pointDepth},${bH} L ${b.width},${bH / 2} L ${b.width - pointDepth},0 Z`
+                            : `M ${pointDepth},0 L ${b.width - r},0 A ${r},${r} 0 1 1 ${b.width - r},${bH} L ${pointDepth},${bH} L 0,${bH / 2} Z`;
 
                           return (
                             <Tooltip key={`${b.type}-${idx}`}>
                               <TooltipTrigger asChild>
                                 <span
-                                  className="font-bold"
                                   style={{
                                     position: 'absolute',
                                     top: topPos,
                                     left: b.leftX,
                                     transform: 'translateY(-50%)',
-                                    fontFamily: "'Times New Roman', Times, serif",
-                                    fontSize: '9pt',
-                                    fontWeight: 700,
-                                    lineHeight: 1,
-                                    backgroundColor: '#ffffff',
-                                    color: b.color,
-                                    border: `1.5px solid ${b.color}`,
-                                    borderRadius: '9999px',
-                                    padding: '0 3px',
-                                    whiteSpace: 'nowrap',
-                                    zIndex: 10,
                                     width: b.width,
-                                    textAlign: 'center',
+                                    height: bH,
+                                    zIndex: 10,
                                   }}
                                 >
-                                  {/* Triangle pointer on side of bubble */}
+                                  <svg
+                                    width={b.width}
+                                    height={bH}
+                                    viewBox={`0 0 ${b.width} ${bH}`}
+                                    style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}
+                                  >
+                                    <path
+                                      d={svgPath}
+                                      fill="#ffffff"
+                                      stroke={b.color}
+                                      strokeWidth={1.5}
+                                      strokeLinejoin="round"
+                                    />
+                                  </svg>
                                   <span
                                     style={{
                                       position: 'absolute',
-                                      top: '50%',
-                                      marginTop: -triangleSize,
-                                      ...(isRight ? {
-                                        right: -triangleSize,
-                                        width: 0, height: 0,
-                                        borderTop: `${triangleSize}px solid transparent`,
-                                        borderBottom: `${triangleSize}px solid transparent`,
-                                        borderLeft: `${triangleSize}px solid ${b.color}`,
-                                      } : {
-                                        left: -triangleSize,
-                                        width: 0, height: 0,
-                                        borderTop: `${triangleSize}px solid transparent`,
-                                        borderBottom: `${triangleSize}px solid transparent`,
-                                        borderRight: `${triangleSize}px solid ${b.color}`,
-                                      }),
-                                      zIndex: 11,
+                                      top: 0,
+                                      left: isRight ? 0 : pointDepth,
+                                      width: b.bodyW,
+                                      height: bH,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      fontFamily: "'Times New Roman', Times, serif",
+                                      fontSize: '9pt',
+                                      fontWeight: 700,
+                                      lineHeight: 1,
+                                      color: b.color,
+                                      whiteSpace: 'nowrap',
                                     }}
-                                  />
-                                  {/* White fill triangle to mask the border */}
-                                  <span
-                                    style={{
-                                      position: 'absolute',
-                                      top: '50%',
-                                      marginTop: -(triangleSize - 1),
-                                      ...(isRight ? {
-                                        right: -(triangleSize - 1),
-                                        width: 0, height: 0,
-                                        borderTop: `${triangleSize - 1}px solid transparent`,
-                                        borderBottom: `${triangleSize - 1}px solid transparent`,
-                                        borderLeft: `${triangleSize - 1}px solid #ffffff`,
-                                      } : {
-                                        left: -(triangleSize - 1),
-                                        width: 0, height: 0,
-                                        borderTop: `${triangleSize - 1}px solid transparent`,
-                                        borderBottom: `${triangleSize - 1}px solid transparent`,
-                                        borderRight: `${triangleSize - 1}px solid #ffffff`,
-                                      }),
-                                      zIndex: 12,
-                                    }}
-                                  />
-                                  {b.label}
+                                  >
+                                    {b.label}
+                                  </span>
                                 </span>
                               </TooltipTrigger>
                               <TooltipContent>
