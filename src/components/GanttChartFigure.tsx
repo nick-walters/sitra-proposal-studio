@@ -394,7 +394,7 @@ export function GanttChartFigure({
                   // Pre-compute bubble positions for this task
                   const taskBubbles: { month: number; label: string; color: string; tooltipTitle: string; type: 'del' | 'ms'; sortNum: string }[] = [];
                   task.deliverables?.forEach(d => taskBubbles.push({ month: d.month, label: `D${d.number.replace(/^D/, '')}`, color: wpColor, tooltipTitle: `Deliverable D${d.number}`, type: 'del', sortNum: d.number }));
-                  task.milestones?.forEach(ms => taskBubbles.push({ month: ms.month, label: `MS${ms.number}`, color: '#000000', tooltipTitle: `MS${ms.number}: ${ms.name}`, type: 'ms', sortNum: String(ms.number) }));
+                  task.milestones?.forEach(ms => taskBubbles.push({ month: ms.month, label: `${ms.number}`, color: '#000000', tooltipTitle: `MS${ms.number}: ${ms.name}`, type: 'ms', sortNum: String(ms.number) }));
 
                   // Sort: by month, D before MS at same month, then numerically
                   taskBubbles.sort((a, b) => {
@@ -406,8 +406,19 @@ export function GanttChartFigure({
                   const pointDepth = 5;
                   const estimateBubbleW = (label: string) => Math.max(10, label.length * 4.5 + 8);
 
+                  const msDiamondSize = 14;
                   type PBubble = typeof taskBubbles[0] & { leftX: number; width: number; bodyW: number; below: boolean; triSide: 'right' | 'left' };
                   const positioned: PBubble[] = taskBubbles.map(b => {
+                    if (b.type === 'ms') {
+                      return {
+                        ...b,
+                        bodyW: msDiamondSize,
+                        width: msDiamondSize,
+                        leftX: 0,
+                        below: false,
+                        triSide: 'right' as const,
+                      };
+                    }
                     const bodyW = estimateBubbleW(b.label);
                     return {
                       ...b,
@@ -531,17 +542,22 @@ export function GanttChartFigure({
                           const isRight = b.triSide === 'right';
 
                           const isDel = b.type === 'del';
+                          const isMs = b.type === 'ms';
                           let svgPath: string;
-                          if (isDel) {
+                          let shapeW: number;
+                          let shapeH: number;
+                          if (isMs) {
+                            // Milestone: diamond shape
+                            shapeW = msDiamondSize;
+                            shapeH = msDiamondSize;
+                            svgPath = `M 0,${shapeH / 2} L ${shapeW / 2},0 L ${shapeW},${shapeH / 2} L ${shapeW / 2},${shapeH} Z`;
+                          } else {
+                            shapeW = b.width;
+                            shapeH = bH;
                             // Deliverable: square on non-arrow side, pointed on arrow side
                             svgPath = isRight
-                              ? `M 0,0 L ${b.width - pointDepth},0 L ${b.width},${bH / 2} L ${b.width - pointDepth},${bH} L 0,${bH} Z`
-                              : `M ${pointDepth},0 L ${b.width},0 L ${b.width},${bH} L ${pointDepth},${bH} L 0,${bH / 2} Z`;
-                          } else {
-                            // Milestone: rounded on non-arrow side, pointed on arrow side
-                            svgPath = isRight
-                              ? `M ${r},0 A ${r},${r} 0 1 0 ${r},${bH} L ${b.width - pointDepth},${bH} L ${b.width},${bH / 2} L ${b.width - pointDepth},0 Z`
-                              : `M ${pointDepth},0 L ${b.width - r},0 A ${r},${r} 0 1 1 ${b.width - r},${bH} L ${pointDepth},${bH} L 0,${bH / 2} Z`;
+                              ? `M 0,0 L ${shapeW - pointDepth},0 L ${shapeW},${shapeH / 2} L ${shapeW - pointDepth},${shapeH} L 0,${shapeH} Z`
+                              : `M ${pointDepth},0 L ${shapeW},0 L ${shapeW},${shapeH} L ${pointDepth},${shapeH} L 0,${shapeH / 2} Z`;
                           }
 
                           return (
@@ -553,15 +569,15 @@ export function GanttChartFigure({
                                     top: topPos,
                                     left: b.leftX - (isDel ? 1 : 0),
                                     transform: 'translateY(-50%)',
-                                    width: b.width,
-                                    height: bH,
+                                    width: shapeW,
+                                    height: shapeH,
                                     zIndex: 10,
                                   }}
                                 >
                                   <svg
-                                    width={b.width}
-                                    height={bH}
-                                    viewBox={`0 0 ${b.width} ${bH}`}
+                                    width={shapeW}
+                                    height={shapeH}
+                                    viewBox={`0 0 ${shapeW} ${shapeH}`}
                                     style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}
                                   >
                                     <path
@@ -569,16 +585,16 @@ export function GanttChartFigure({
                                       fill="#ffffff"
                                       stroke={b.color}
                                       strokeWidth={1.5}
-                                      strokeLinejoin="round"
+                                      strokeLinejoin={isMs ? 'miter' : 'round'}
                                     />
                                   </svg>
                                   <span
                                     style={{
                                       position: 'absolute',
                                       top: 0,
-                                      left: (isRight ? 0 : pointDepth) + (isDel ? 1 : 0),
-                                      width: b.bodyW,
-                                      height: bH,
+                                      left: isMs ? 0 : (isRight ? 0 : pointDepth) + (isDel ? 1 : 0),
+                                      width: isMs ? shapeW : b.bodyW,
+                                      height: shapeH,
                                       display: 'flex',
                                       alignItems: 'center',
                                       justifyContent: 'center',
