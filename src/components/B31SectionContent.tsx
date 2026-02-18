@@ -103,7 +103,7 @@ export function B31SectionContent({ proposalId }: Props) {
               {' '}&amp; milestones{' '}
               <svg width={14} height={14} viewBox="0 0 14 14" style={{ display: 'inline-block', verticalAlign: 'baseline', overflow: 'visible' }}>
                 <path d="M 0,0 L 14,7 L 0,14 Z" fill="#000000" />
-                <text x={5} y={10.5} textAnchor="middle" fontFamily="'Times New Roman', Times, serif" fontSize="8pt" fontWeight={700} fill="#ffffff" letterSpacing="-0.5">X</text>
+                <text x={5} y={10.5} textAnchor="middle" fontFamily="'Times New Roman', Times, serif" fontSize="8pt" fontWeight={700} fontStyle="normal" fill="#ffffff" letterSpacing="-0.5">X</text>
               </svg>
             </>}
             className="mt-1"
