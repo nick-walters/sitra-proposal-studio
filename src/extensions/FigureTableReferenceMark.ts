@@ -42,7 +42,6 @@ export const FigureTableReferenceMark = Mark.create<FigureTableReferenceMarkOpti
           font-family: 'Times New Roman', Times, serif;
           font-size: 11pt;
           cursor: pointer;
-          user-select: all;
         `.replace(/\s+/g, ' ').trim(),
       }),
       0,
@@ -53,14 +52,12 @@ export const FigureTableReferenceMark = Mark.create<FigureTableReferenceMarkOpti
     return {
       insertFigureTableReference:
         ({ refText }) =>
-        ({ tr, dispatch, editor }) => {
-          if (dispatch) {
-            const markType = editor.schema.marks[this.name];
-            const mark = markType.create();
-            const node = editor.schema.text(refText, [mark]);
-            tr.replaceSelectionWith(node, false);
-          }
-          return true;
+        ({ commands }) => {
+          return commands.insertContent({
+            type: 'text',
+            text: refText,
+            marks: [{ type: 'figureTableReference' }],
+          });
         },
     };
   },
