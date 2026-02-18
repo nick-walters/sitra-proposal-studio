@@ -11,10 +11,12 @@ declare module '@tiptap/core' {
         wpNumber: number;
         taskNumber: number;
         taskId?: string;
+        wpColor?: string;
       }) => ReturnType;
       insertDeliverableReference: (attributes: {
         deliverableNumber: string;
         deliverableId?: string;
+        wpColor?: string;
       }) => ReturnType;
       insertMilestoneReference: (attributes: {
         milestoneNumber: number;
@@ -80,6 +82,11 @@ export const InlineReferenceMark = Mark.create<InlineReferenceOptions>({
         parseHTML: (el) => el.getAttribute('data-milestone-id'),
         renderHTML: (attrs) => attrs.milestoneId ? { 'data-milestone-id': attrs.milestoneId } : {},
       },
+      wpColor: {
+        default: null,
+        parseHTML: (el) => el.getAttribute('data-wp-color'),
+        renderHTML: (attrs) => attrs.wpColor ? { 'data-wp-color': attrs.wpColor } : {},
+      },
     };
   },
 
@@ -91,6 +98,14 @@ export const InlineReferenceMark = Mark.create<InlineReferenceOptions>({
 
   renderHTML({ HTMLAttributes }) {
     const refType = HTMLAttributes['data-ref-type'] || 'task';
+    const wpColor = HTMLAttributes['data-wp-color'] || null;
+
+    // Build inline style for WP color on task and deliverable refs
+    const style: Record<string, string> = {};
+    if (wpColor && (refType === 'task' || refType === 'deliverable')) {
+      style['border-color'] = wpColor;
+      style['--wp-color'] = wpColor;
+    }
 
     return [
       'span',
@@ -98,6 +113,7 @@ export const InlineReferenceMark = Mark.create<InlineReferenceOptions>({
         'data-inline-reference': '',
         'contenteditable': 'false',
         'class': `inline-ref inline-ref-${refType}`,
+        ...(Object.keys(style).length > 0 ? { style: Object.entries(style).map(([k, v]) => `${k}:${v}`).join(';') } : {}),
       }),
       0,
     ];
@@ -120,6 +136,7 @@ export const InlineReferenceMark = Mark.create<InlineReferenceOptions>({
                   wpNumber: attrs.wpNumber,
                   taskNumber: attrs.taskNumber,
                   taskId: attrs.taskId || null,
+                  wpColor: attrs.wpColor || null,
                 },
               }],
             })
@@ -139,6 +156,7 @@ export const InlineReferenceMark = Mark.create<InlineReferenceOptions>({
                   refType: 'deliverable',
                   deliverableNumber: attrs.deliverableNumber,
                   deliverableId: attrs.deliverableId || null,
+                  wpColor: attrs.wpColor || null,
                 },
               }],
             })
