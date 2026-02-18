@@ -728,13 +728,34 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
     reorderDeliverables.mutate(reordered);
   };
 
-  const autoReorder = () => {
+  // Detect current sort to toggle button text
+  const isSortedByMonth = (() => {
+    for (let i = 1; i < deliverables.length; i++) {
+      const prevMonth = deliverables[i - 1].due_month ?? 999;
+      const currMonth = deliverables[i].due_month ?? 999;
+      if (prevMonth > currMonth) return false;
+    }
+    return true;
+  })();
+
+  const orderByNumber = () => {
     const sorted = [...deliverables].sort((a, b) => {
-      // First by due month
+      const wpA = a.wp_number ?? 999;
+      const wpB = b.wp_number ?? 999;
+      if (wpA !== wpB) return wpA - wpB;
+      // Parse sub-number from e.g. "D2.3" -> 3
+      const subA = parseInt(a.number.replace(/^D?\d+\./, '')) || 0;
+      const subB = parseInt(b.number.replace(/^D?\d+\./, '')) || 0;
+      return subA - subB;
+    });
+    reorderDeliverables.mutate(sorted);
+  };
+
+  const orderByMonth = () => {
+    const sorted = [...deliverables].sort((a, b) => {
       const monthA = a.due_month ?? 999;
       const monthB = b.due_month ?? 999;
       if (monthA !== monthB) return monthA - monthB;
-      // Then by WP number
       const wpA = a.wp_number ?? 999;
       const wpB = b.wp_number ?? 999;
       return wpA - wpB;
@@ -760,8 +781,8 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
         </Button>
         {isAdminOrOwner && (
           <>
-            <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs h-6 px-2 py-0">
-              <ArrowUpDown className="h-3 w-3 mr-1" /> Auto-reorder
+            <Button variant="outline" size="sm" onClick={isSortedByMonth ? orderByNumber : orderByMonth} className="text-xs h-6 px-2 py-0">
+              <ArrowUpDown className="h-3 w-3 mr-1" /> {isSortedByMonth ? 'Order by number' : 'Order by month due'}
             </Button>
             <Button variant="outline" size="sm" onClick={autoFitColumns} className="text-xs h-6 px-2 py-0">
               <Columns3 className="h-3 w-3 mr-1" /> Auto-resize columns
