@@ -2,7 +2,7 @@ import { Section } from "@/types/proposal";
 import DOMPurify from "dompurify";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, BookOpen, Route, History, Info, Image, Link2, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search, GitCompare, Keyboard, Wand2, FileCode, SplitSquareHorizontal, Layers, Building2, FlaskConical, Check } from "lucide-react";
+import { Sparkles, BookOpen, Route, History, Info, Image, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search, GitCompare, Keyboard, Wand2, FileCode, SplitSquareHorizontal, Layers, Building2, FlaskConical, Check } from "lucide-react";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
 import {
@@ -515,7 +515,12 @@ export function DocumentEditor({
   // Handle cross-reference insertion
   const handleInsertCrossRef = useCallback((refText: string) => {
     if (!editor) return;
-    editor.chain().focus().insertContent(refText).run();
+    // Insert as bold italic text using content with marks
+    editor.chain().focus().insertContent({
+      type: 'text',
+      text: refText,
+      marks: [{ type: 'bold' }, { type: 'italic' }],
+    }).insertContent(' ').run();
   }, [editor]);
   
   // Handle WP reference insertion
@@ -810,29 +815,34 @@ export function DocumentEditor({
                   disabled={isEffectivelyReadOnly}
                 >
                   <FileText className="w-3 h-3" />
-                  Add citation
+                  Citations
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Add Citation</TooltipContent>
+              <TooltipContent>Manage Citations</TooltipContent>
             </Tooltip>
             {section && !section.isPartA && (
               <>
+                <Separator orientation="vertical" className="h-4 mx-1" />
+                <span className="text-xs font-bold text-foreground mr-1">Cross-ref:</span>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-6 px-2 text-xs gap-1"
+                      className="h-6 px-2 text-xs gap-0.5"
                       onClick={() => setIsCrossRefOpen(true)}
                       disabled={isEffectivelyReadOnly}
                     >
-                      <Link2 className="w-3 h-3" />
-                      Cross-ref
+                      <span
+                        className="font-bold italic"
+                        style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '8pt' }}
+                      >
+                        Figure/Table
+                      </span>
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Insert Cross-reference Citation</TooltipContent>
+                  <TooltipContent>Insert Figure/Table Cross-Reference</TooltipContent>
                 </Tooltip>
-                
                 <Separator orientation="vertical" className="h-4 mx-1" />
                 {acronymSegments && acronymSegments.length > 0 && (
                   <Tooltip>

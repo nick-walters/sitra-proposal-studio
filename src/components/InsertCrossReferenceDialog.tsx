@@ -2,14 +2,15 @@ import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Image, Table2 } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
 
 interface CrossReferenceItem {
   label: string;
@@ -30,7 +31,6 @@ function extractRefsFromContent(html: string): { figures: CrossReferenceItem[]; 
   const figures: CrossReferenceItem[] = [];
   const tables: CrossReferenceItem[] = [];
 
-  // Match figure captions: "Figure X.X.x." pattern
   const figurePattern = /Figure (\d+\.\d+\.[a-z])\.?\s*([^<\n]*)/gi;
   let match;
   const seenFigures = new Set<string>();
@@ -45,7 +45,6 @@ function extractRefsFromContent(html: string): { figures: CrossReferenceItem[]; 
     }
   }
 
-  // Match table captions: "Table X.X.x." pattern
   const tablePattern = /Table (\d+\.\d+\.[a-z])\.?\s*([^<\n]*)/gi;
   const seenTables = new Set<string>();
   while ((match = tablePattern.exec(html)) !== null) {
@@ -73,7 +72,6 @@ export function InsertCrossReferenceDialog({
   const [tables, setTables] = useState<CrossReferenceItem[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Load content from ALL sections in this proposal
   useEffect(() => {
     if (!isOpen || !proposalId) return;
 
@@ -112,7 +110,6 @@ export function InsertCrossReferenceDialog({
         }
       }
 
-      // Sort by label
       allFigures.sort((a, b) => a.label.localeCompare(b.label));
       allTables.sort((a, b) => a.label.localeCompare(b.label));
 
@@ -125,98 +122,94 @@ export function InsertCrossReferenceDialog({
   }, [isOpen, proposalId]);
 
   const handleInsert = (item: CrossReferenceItem) => {
-    const refText = item.type === 'figure' 
+    const refText = item.type === 'figure'
       ? `Figure ${item.label}`
       : `Table ${item.label}`;
     onInsert(refText);
     onClose();
   };
 
+  const renderItems = (items: CrossReferenceItem[], emptyLabel: string) => (
+    <ScrollArea className="max-h-[400px]">
+      {loading ? (
+        <div className="space-y-2 p-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-10 bg-muted animate-pulse rounded" />
+          ))}
+        </div>
+      ) : items.length === 0 ? (
+        <div className="text-center text-muted-foreground py-8">
+          {emptyLabel}
+        </div>
+      ) : (
+        <div className="p-1">
+          {items.map((item, idx) => (
+            <button
+              key={idx}
+              onClick={() => handleInsert(item)}
+              className={cn(
+                "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left",
+                "hover:bg-muted/80 transition-colors"
+              )}
+            >
+              <span
+                className="shrink-0 font-bold italic text-xs"
+                style={{ fontFamily: "'Times New Roman', Times, serif" }}
+              >
+                {item.type === 'figure' ? `Figure ${item.label}` : `Table ${item.label}`}
+              </span>
+              <span className="text-sm text-muted-foreground truncate">{item.title}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </ScrollArea>
+  );
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Insert Cross-Reference</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <span className="font-bold italic" style={{ fontFamily: "'Times New Roman', Times, serif" }}>Figure/Table</span>
+            Cross-Reference
+          </DialogTitle>
+          <DialogDescription>
+            Select a figure or table to insert as an inline cross-reference.
+          </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="figures" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="figures" className="gap-2">
-              <Image className="w-4 h-4" />
+        <Tabs defaultValue="all" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="all">
+              All ({figures.length + tables.length})
+            </TabsTrigger>
+            <TabsTrigger value="figures" className="gap-1">
+              <Image className="w-3.5 h-3.5" />
               Figures ({figures.length})
             </TabsTrigger>
-            <TabsTrigger value="tables" className="gap-2">
-              <Table2 className="w-4 h-4" />
+            <TabsTrigger value="tables" className="gap-1">
+              <Table2 className="w-3.5 h-3.5" />
               Tables ({tables.length})
             </TabsTrigger>
           </TabsList>
 
+          <TabsContent value="all">
+            {renderItems(
+              [...figures, ...tables].sort((a, b) => {
+                if (a.type !== b.type) return a.type === 'figure' ? -1 : 1;
+                return a.label.localeCompare(b.label);
+              }),
+              'No figures or tables found in this proposal.'
+            )}
+          </TabsContent>
+
           <TabsContent value="figures">
-            <ScrollArea className="h-[300px] pr-4">
-              {loading ? (
-                <div className="space-y-2 p-2">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-12 bg-muted animate-pulse rounded" />
-                  ))}
-                </div>
-              ) : figures.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  No figures found in this proposal
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {figures.map((fig, idx) => (
-                    <Button
-                      key={idx}
-                      variant="outline"
-                      className="w-full justify-start text-left h-auto py-3"
-                      onClick={() => handleInsert(fig)}
-                    >
-                      <div>
-                        <div className="font-medium">Figure {fig.label}</div>
-                        <div className="text-xs text-muted-foreground truncate max-w-[300px]">
-                          {fig.title}
-                        </div>
-                      </div>
-                    </Button>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
+            {renderItems(figures, 'No figures found in this proposal.')}
           </TabsContent>
 
           <TabsContent value="tables">
-            <ScrollArea className="h-[300px] pr-4">
-              {loading ? (
-                <div className="space-y-2 p-2">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-12 bg-muted animate-pulse rounded" />
-                  ))}
-                </div>
-              ) : tables.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  No tables found in this proposal
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {tables.map((tbl, idx) => (
-                    <Button
-                      key={idx}
-                      variant="outline"
-                      className="w-full justify-start text-left h-auto py-3"
-                      onClick={() => handleInsert(tbl)}
-                    >
-                      <div>
-                        <div className="font-medium">Table {tbl.label}</div>
-                        <div className="text-xs text-muted-foreground truncate max-w-[300px]">
-                          {tbl.title}
-                        </div>
-                      </div>
-                    </Button>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
+            {renderItems(tables, 'No tables found in this proposal.')}
           </TabsContent>
         </Tabs>
       </DialogContent>
