@@ -13,27 +13,27 @@ export function SaveIndicator({ saving, lastSaved, hasUnsavedChanges = false, cl
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  // Determine color: saving = animate, unsaved = red, saved = green, idle = black
-  const getIconColor = () => {
-    if (saving) return 'text-muted-foreground animate-pulse';
-    if (hasUnsavedChanges) return 'text-destructive';
-    if (lastSaved) return 'text-green-600';
-    return 'text-foreground';
+  const getState = () => {
+    if (saving || hasUnsavedChanges) return 'saving';
+    if (lastSaved) return 'saved';
+    return 'idle';
   };
+
+  const state = getState();
+
+  const iconColor = state === 'saving' ? 'text-destructive animate-pulse' : state === 'saved' ? 'text-green-600' : 'text-foreground';
+  const textColor = state === 'saving' ? 'text-destructive' : state === 'saved' ? 'text-green-600' : 'text-foreground';
+  const label = state === 'saving' ? 'Autosaving' : state === 'saved' ? 'Autosaved' : 'Autosave';
 
   return (
     <div className={cn("flex items-center gap-1.5 text-xs text-muted-foreground", className)}>
-      <Cloud className={cn("w-3.5 h-3.5", getIconColor())} />
-      {saving ? (
-        <span>Saving...</span>
-      ) : lastSaved ? (
-        <div className="flex flex-col leading-none">
-          <span className="text-xs text-green-600 font-medium">Autosaved</span>
+      <Cloud className={cn("w-3.5 h-3.5", iconColor)} />
+      <div className="flex flex-col leading-none">
+        <span className={cn("text-xs font-medium", textColor)}>{label}</span>
+        {state === 'saved' && lastSaved && (
           <span className="text-[10px] text-muted-foreground">{formatTime(lastSaved)}</span>
-        </div>
-      ) : (
-        <span>Autosave</span>
-      )}
+        )}
+      </div>
     </div>
   );
 }
