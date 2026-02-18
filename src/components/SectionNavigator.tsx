@@ -417,7 +417,7 @@ function SectionItem({
             <div 
               className="grid grid-cols-2 gap-x-2 py-1"
               style={{ 
-                paddingLeft: `${(depth + 1) * 12 + 12}px`, 
+                paddingLeft: `${depth * 12 + 12}px`, 
                 paddingRight: '8px',
                 rowGap: '2px',
               }}
