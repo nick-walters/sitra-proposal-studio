@@ -404,9 +404,9 @@ export function GanttChartFigure({
                   });
 
                   const pointDepth = 5;
-                  const estimateBubbleW = (label: string) => Math.max(10, label.length * 4.5 + 8);
+                  const estimateBubbleW = (label: string) => Math.max(10, label.length * 4 + 6);
 
-                  const msDiamondSize = 14;
+                  const msDiamondSize = 12;
                   type PBubble = typeof taskBubbles[0] & { leftX: number; width: number; bodyW: number; below: boolean; triSide: 'right' | 'left' };
                   const positioned: PBubble[] = taskBubbles.map(b => {
                     if (b.type === 'ms') {
@@ -537,7 +537,7 @@ export function GanttChartFigure({
                         {/* Render positioned bubbles */}
                         {positioned.map((b, idx) => {
                           const topPos = b.below ? 25 : (rowHeight / 2);
-                          const bH = 14;
+                          const bH = 12;
                           const r = bH / 2;
                           const isRight = b.triSide === 'right';
 
@@ -599,7 +599,7 @@ export function GanttChartFigure({
                                       alignItems: 'center',
                                       justifyContent: 'center',
                                       fontFamily: "'Times New Roman', Times, serif",
-                                      fontSize: '9pt',
+                                      fontSize: '8pt',
                                       fontWeight: 700,
                                       lineHeight: 1,
                                       color: b.color,
