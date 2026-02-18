@@ -11,7 +11,9 @@ import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 import { Download, FileText, FileType } from 'lucide-react';
+import { usePageEstimate } from '@/hooks/usePageEstimate';
 
 export type ExportFormat = 'pdf' | 'docx';
 
@@ -19,11 +21,13 @@ interface ExportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onExport: (format: ExportFormat, includeWatermark: boolean) => void;
+  proposalId?: string;
 }
 
-export function ExportDialog({ open, onOpenChange, onExport }: ExportDialogProps) {
+export function ExportDialog({ open, onOpenChange, onExport, proposalId }: ExportDialogProps) {
   const [format, setFormat] = useState<ExportFormat>('pdf');
   const [includeWatermark, setIncludeWatermark] = useState(true);
+  const { estimatedPages, totalWords } = usePageEstimate(proposalId || '');
 
   const handleExport = () => {
     onExport(format, includeWatermark);
@@ -41,6 +45,24 @@ export function ExportDialog({ open, onOpenChange, onExport }: ExportDialogProps
         </DialogHeader>
 
         <div className="space-y-6 py-4">
+          {/* Page estimate */}
+          {estimatedPages !== null && (
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium">Estimated length</Label>
+                <p className="text-xs text-muted-foreground">
+                  {totalWords.toLocaleString()} words across all sections
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-medium">{estimatedPages} {estimatedPages === 1 ? 'page' : 'pages'}</span>
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                  Est.
+                </Badge>
+              </div>
+            </div>
+          )}
+
           {/* Format selection */}
           <div className="space-y-3">
             <Label className="text-sm font-medium">Format</Label>

@@ -693,6 +693,7 @@ export function GeneralInfoForm({
                   open={isExportOpen}
                   onOpenChange={setIsExportOpen}
                   onExport={onExport}
+                  proposalId={proposal.id}
                 />
               </>
             )}

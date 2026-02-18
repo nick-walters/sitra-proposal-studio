@@ -65,7 +65,7 @@ import { SplitViewPanel } from "./SplitViewPanel";
 import { B31DeliverablesTable, B31MilestonesTable, B31RisksTable } from "./B31TablesEditor";
 import { B31SectionContent } from "./B31SectionContent";
 import { TrackChange } from "@/extensions/TrackChanges";
-import { usePageEstimate } from "@/hooks/usePageEstimate";
+// usePageEstimate moved to ExportDialog
 import { EditorZoomBar } from "./EditorZoomBar";
 import { useAuth } from "@/hooks/useAuth";
 import { useTrackedChanges } from "@/hooks/useTrackedChanges";
@@ -657,8 +657,7 @@ export function DocumentEditor({
   // Strip HTML for grammar checking
   const plainText = content.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
 
-  // Page estimate for Part B sections
-  const { estimatedPages } = usePageEstimate(proposalId);
+   // Page estimate removed - now shown in ExportDialog
 
   // State for collaboration panel - must be before early return
   const [isCollaborationPanelOpen, setIsCollaborationPanelOpen] = useState(true);
@@ -1009,21 +1008,13 @@ export function DocumentEditor({
         <div className={`flex-1 min-w-0 overflow-auto p-6 bg-muted/30 transition-all`}>
           <div className="mx-auto space-y-6" style={{ maxWidth: '56rem', zoom: `${zoomLevel}%` }}>
             {/* Section Header - word/page limits and page estimate */}
-            {(section.wordLimit || section.pageLimit || estimatedPages !== null) && (
+            {(section.wordLimit || section.pageLimit) && (
               <div className="flex items-center gap-3 mb-6">
                 {section.wordLimit && (
                   <Badge variant="secondary">Word limit: {section.wordLimit}</Badge>
                 )}
                 {section.pageLimit && (
                   <Badge variant="secondary">Page limit: {section.pageLimit}</Badge>
-                )}
-                {estimatedPages !== null && (
-                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground ml-auto">
-                    <span>{estimatedPages} {estimatedPages === 1 ? 'page' : 'pages'}</span>
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-blue-100 text-blue-700 hover:bg-blue-100">
-                      Est.
-                    </Badge>
-                  </div>
                 )}
               </div>
             )}
