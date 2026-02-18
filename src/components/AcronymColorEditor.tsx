@@ -82,6 +82,7 @@ function CustomColorPalette({ onApply }: { onApply: (color: string) => void }) {
           <button
             className="w-5 h-5 rounded-full border border-border hover:scale-125 transition-transform flex items-center justify-center"
             style={{ background: 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)' }}
+            onMouseDown={(e) => e.preventDefault()}
             title="Custom color"
           />
         </PopoverTrigger>
@@ -105,7 +106,7 @@ function CustomColorPalette({ onApply }: { onApply: (color: string) => void }) {
               onKeyDown={(e) => e.key === 'Enter' && applyCustom()}
             />
           </div>
-          <Button size="sm" className="w-full h-7 text-xs" onClick={applyCustom}>
+          <Button size="sm" className="w-full h-7 text-xs" onMouseDown={(e) => e.preventDefault()} onClick={applyCustom}>
             Apply
           </Button>
         </PopoverContent>
@@ -115,6 +116,7 @@ function CustomColorPalette({ onApply }: { onApply: (color: string) => void }) {
           key={color}
           className="w-5 h-5 rounded-full border border-border hover:scale-125 transition-transform"
           style={{ backgroundColor: color }}
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => onApply(color)}
           title={color}
         />
