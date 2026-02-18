@@ -507,8 +507,17 @@ export function GanttChartFigure({
                         curr.leftX = currTX - curr.width;
                         curr.triSide = 'right';
                         const prevTX = getTargetX(prev.month);
-                        prev.leftX = Math.min(prevTX - prev.width, curr.leftX - prev.width - 1);
-                        prev.triSide = 'right';
+                        const proposedLeftX = Math.min(prevTX - prev.width, curr.leftX - prev.width - 1);
+                        if (proposedLeftX < -20) {
+                          // MS would be pushed too far left; anchor MS at its target pointing right, push D right of MS
+                          prev.leftX = prevTX - prev.width;
+                          prev.triSide = 'right';
+                          curr.leftX = prev.leftX + prev.width + 1;
+                          curr.triSide = 'right';
+                        } else {
+                          prev.leftX = proposedLeftX;
+                          prev.triSide = 'right';
+                        }
                       } else if (prev.type === 'del' && curr.type === 'ms') {
                         // D has priority: keep D in default position (pointing right, left of boundary)
                         // MS flips to point left, pushed right of D
@@ -516,8 +525,18 @@ export function GanttChartFigure({
                         prev.leftX = prevTX - prev.width;
                         prev.triSide = 'right';
                         const currTX = getTargetX(curr.month);
-                        curr.leftX = Math.max(currTX, prev.leftX + prev.width + 1);
-                        curr.triSide = 'left';
+                        const proposedLeftX = Math.max(currTX, prev.leftX + prev.width + 1);
+                        const timelineEnd = projectDuration * cellWidth;
+                        if (proposedLeftX + curr.width > timelineEnd + 20) {
+                          // MS would be pushed too far right; anchor MS at its target pointing left, push D left of MS
+                          curr.leftX = currTX;
+                          curr.triSide = 'left';
+                          prev.leftX = curr.leftX - prev.width - 1;
+                          prev.triSide = 'right';
+                        } else {
+                          curr.leftX = proposedLeftX;
+                          curr.triSide = 'left';
+                        }
                       } else {
                         // Same type: earlier points right, later points left (existing behavior)
                         const prevTX = getTargetX(prev.month);
