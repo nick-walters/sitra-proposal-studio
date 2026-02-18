@@ -96,12 +96,12 @@ export function B31SectionContent({ proposalId }: Props) {
               {', '}tasks{' '}
               <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'baseline', border: '1.5px solid #000000', borderRadius: '9999px', padding: '0px 5px', fontSize: '11pt', fontFamily: "'Times New Roman', Times, serif", fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#000000', backgroundColor: '#ffffff' }}>TX.X</span>
               {', '}deliverables{' '}
-              <svg width={32} height={12} viewBox="0 0 32 12" style={{ display: 'inline-block', verticalAlign: 'baseline', overflow: 'visible' }}>
+              <svg width={32} height={12} viewBox="0 0 32 12" style={{ display: 'inline-block', verticalAlign: 'baseline', overflow: 'visible', position: 'relative', top: '2px' }}>
                 <path d="M 0,0 L 26,0 L 32,6 L 26,12 L 0,12 Z" fill="#ffffff" stroke="#000000" strokeWidth={1.5} strokeLinejoin="round" />
                 <text x={13} y={9.5} textAnchor="middle" fontFamily="'Times New Roman', Times, serif" fontSize="8pt" fontWeight={700} fontStyle="normal" fill="#000000">DX.X</text>
               </svg>
               {' '}&amp; milestones{' '}
-              <svg width={17} height={17} viewBox="0 0 17 17" style={{ display: 'inline-block', verticalAlign: 'baseline', overflow: 'visible' }}>
+              <svg width={17} height={17} viewBox="0 0 17 17" style={{ display: 'inline-block', verticalAlign: 'baseline', overflow: 'visible', position: 'relative', top: '2px' }}>
                 <path d="M 0,0 L 17,8.5 L 0,17 Z" fill="#000000" />
                 <text x={6} y={12.5} textAnchor="middle" fontFamily="'Times New Roman', Times, serif" fontSize="8pt" fontWeight={700} fontStyle="normal" fill="#ffffff" letterSpacing="-0.5">X</text>
               </svg>
