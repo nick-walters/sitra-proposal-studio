@@ -167,18 +167,25 @@ export const InlineReferenceMark = Mark.create<InlineReferenceOptions>({
         ({ chain }) => {
           const label = `${attrs.milestoneNumber}`;
           return chain()
-            .insertContent({
-              type: 'text',
-              text: label,
-              marks: [{
-                type: 'inlineReference',
-                attrs: {
-                  refType: 'milestone',
-                  milestoneNumber: attrs.milestoneNumber,
-                  milestoneId: attrs.milestoneId || null,
-                },
-              }],
-            })
+            .insertContent([
+              {
+                type: 'text',
+                text: 'MS',
+                marks: [{ type: 'bold' }],
+              },
+              {
+                type: 'text',
+                text: label,
+                marks: [{
+                  type: 'inlineReference',
+                  attrs: {
+                    refType: 'milestone',
+                    milestoneNumber: attrs.milestoneNumber,
+                    milestoneId: attrs.milestoneId || null,
+                  },
+                }],
+              },
+            ])
             .run();
         },
     };
