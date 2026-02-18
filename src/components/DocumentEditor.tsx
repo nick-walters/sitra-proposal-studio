@@ -892,7 +892,7 @@ export function DocumentEditor({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-6 px-2 text-xs gap-1"
+                      className="h-6 px-1.5 text-xs gap-0.5"
                       onClick={() => setIsCaseRefOpen(true)}
                       disabled={isEffectivelyReadOnly}
                     >
