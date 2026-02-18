@@ -477,14 +477,31 @@ export function GanttChartFigure({
                     if (prev.month === curr.month) continue;
                     const overlap = (prev.leftX + prev.width + 1) - curr.leftX;
                     if (overlap > 0) {
-                      // Earlier bubble points right toward its own month boundary
-                      const prevTX = getTargetX(prev.month);
-                      prev.leftX = prevTX - prev.width;
-                      prev.triSide = 'right';
-                      // Later bubble points left from its own month boundary
-                      const currTX = getTargetX(curr.month);
-                      curr.leftX = currTX;
-                      curr.triSide = 'left';
+                      if (prev.type === 'ms' && curr.type === 'del') {
+                        // MS stays pointing left (right of its boundary), D flips to point left too
+                        const prevTX = getTargetX(prev.month);
+                        prev.leftX = prevTX;
+                        prev.triSide = 'left';
+                        const currTX = getTargetX(curr.month);
+                        curr.leftX = currTX;
+                        curr.triSide = 'left';
+                      } else if (prev.type === 'del' && curr.type === 'ms') {
+                        // D stays pointing right (left of its boundary), MS stays pointing left
+                        const prevTX = getTargetX(prev.month);
+                        prev.leftX = prevTX - prev.width;
+                        prev.triSide = 'right';
+                        const currTX = getTargetX(curr.month);
+                        curr.leftX = currTX;
+                        curr.triSide = 'left';
+                      } else {
+                        // Same type: earlier points right, later points left (existing behavior)
+                        const prevTX = getTargetX(prev.month);
+                        prev.leftX = prevTX - prev.width;
+                        prev.triSide = 'right';
+                        const currTX = getTargetX(curr.month);
+                        curr.leftX = currTX;
+                        curr.triSide = 'left';
+                      }
                     }
                   }
 
