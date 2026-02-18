@@ -485,12 +485,14 @@ export function GanttChartFigure({
                     }
                   }
 
-                  // Clamp: only prevent going off left edge
-                  positioned.forEach(b => {
-                    if (b.leftX < 0) b.leftX = 0;
-                  });
+                  // Allow bubbles to extend left of timeline (negative leftX is OK)
+
+                  // Calculate how much bubble overflow eats into the label area
+                  const minBubbleLeft = positioned.length > 0 ? Math.min(...positioned.map(b => b.leftX)) : 0;
+                  const bubbleOverlap = minBubbleLeft < 0 ? Math.abs(minBubbleLeft) : 0;
 
                   const rowHeight = 18;
+                  const titleWidth = Math.max(0, labelWidth - 38 - 6 - bubbleOverlap);
 
                   return (
                     <div key={task.id} className="flex" style={{ position: 'relative' }}>
@@ -509,7 +511,7 @@ export function GanttChartFigure({
                       {/* Task title */}
                       <div 
                         className="shrink-0 flex items-center overflow-hidden"
-                        style={{ width: labelWidth - 38 - 6, height: rowHeight, padding: '0 2px', borderRight: `1px solid ${wpColor}` }}
+                        style={{ width: titleWidth, height: rowHeight, padding: '0 2px', borderRight: `1px solid ${wpColor}` }}
                       >
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.name}</span>
                       </div>
