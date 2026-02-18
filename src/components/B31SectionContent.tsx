@@ -11,8 +11,6 @@ import { B31SubcontractingTable } from './B31SubcontractingTable';
 import { B31EquipmentTable } from './B31EquipmentTable';
 import { PERTChartFigure } from './PERTChartFigure';
 import { GanttChartFigure } from './GanttChartFigure';
-import { DeliverableTaskMappingDialog } from './DeliverableTaskMappingDialog';
-import { MilestoneTaskMappingDialog } from './MilestoneTaskMappingDialog';
 
 
 interface Props {
@@ -81,10 +79,6 @@ export function B31SectionContent({ proposalId }: Props) {
       {/* Figure 3.1.b – Gantt chart */}
       {ganttFigure ? (
         <div>
-          <div className="print:hidden flex justify-end gap-1 mb-1">
-            <DeliverableTaskMappingDialog proposalId={proposalId} />
-            <MilestoneTaskMappingDialog proposalId={proposalId} />
-          </div>
           <GanttChartFigure
             proposalId={proposalId}
             figureNumber={ganttFigure.figure_number}
