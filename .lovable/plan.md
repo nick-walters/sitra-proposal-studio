@@ -1,35 +1,24 @@
 
 
-## Fix: MS and D bubble positioning in Gantt chart for early months
+## Fix: Case Cross-Reference Not Working
 
-### Problem
+### Root Cause
 
-When MS1 (month 1) and D9.1 (month 2) are on the same task, the overlap resolution algorithm pushes MS1 to `leftX = -31.5`, placing it completely outside the task's timeline area. This happens because:
+The `CaseReferenceMark` extension is registered in two places in `RichTextEditor.tsx`:
+1. The `FormattingToolbar` component's internal editor (around line 893) -- this is only used for the toolbar's own preview editor, not the main document editor.
+2. The `useRichTextEditor` hook (around line 1039-1045) -- this is the **actual editor instance** used by `DocumentEditor`.
 
-1. With 7px-wide month cells, bubble widths (17-27px) greatly exceed cell widths
-2. D9.1 already has a negative leftX (-13.5) to sit left of its month boundary
-3. The overlap resolution then pushes MS1 even further left to "sit left of D"
+**The problem:** `CaseReferenceMark` is missing from the `useRichTextEditor` hook's extensions list. It appears after `WPReferenceMark` in the toolbar editor but was never added to the hook. Without the extension registered, the `insertCaseReference` command simply doesn't exist on the editor, so clicking a case in the dialog silently fails.
 
-### Solution
+### Fix (1 file, 1 line)
 
-Modify the overlap resolution logic in `GanttChartFigure.tsx` to handle the case where pushing a bubble left would place it at an extreme negative position. When the earlier bubble (MS) would be pushed too far left, instead:
+**`src/components/RichTextEditor.tsx`** -- Add `CaseReferenceMark` to the extensions array inside the `useRichTextEditor` hook, right after `WPReferenceMark` (around line 1041):
 
-1. Keep MS at or near its target position, pointing right
-2. Push D to the right of MS instead of keeping D in its default position
+```
+WPReferenceMark,
+CaseReferenceMark,          // <-- add this line
+ParticipantReferenceMark,
+```
 
-### Technical Changes
-
-**File: `src/components/GanttChartFigure.tsx` (lines ~496-531)**
-
-Update the overlap resolution section to add a minimum leftX bound. When the calculated leftX for the earlier bubble would go below a threshold (e.g., more than one bubble-width to the left of x=0), flip the strategy: anchor the earlier bubble near its target and push the later bubble rightward.
-
-Specifically, in the `prev is MS, curr is D` case (lines 503-511):
-- Calculate the proposed MS position as before
-- If the proposed position would place the MS tip more than ~20px before the timeline start (leftX < -20), switch strategy:
-  - Place MS at its target pointing right: `prev.leftX = prevTX - prev.width`, `prev.triSide = 'right'`  
-  - Push D to the right of MS: `curr.leftX = prev.leftX + prev.width + 1`, `curr.triSide = 'right'`
-
-Similarly, handle the symmetric case (`prev is D, curr is MS`) to prevent extreme rightward displacement.
-
-This preserves the existing positioning logic for normal cases while preventing bubbles from being pushed off-chart in tight early-month scenarios.
+No other changes are needed. The import already exists at the top of the file.
 
