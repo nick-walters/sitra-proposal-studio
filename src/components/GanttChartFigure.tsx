@@ -661,7 +661,7 @@ export function GanttChartFigure({
 
                 {/* Bottom border under months columns only */}
                 <div className="flex">
-                  <div className="shrink-0" style={{ width: labelWidth - 0.5 }} />
+                  <div className="shrink-0" style={{ width: labelWidth - 1 }} />
                   <div style={{ width: months.length * cellWidth + 1, height: 0, borderBottom: `1px solid ${wpColor}` }} />
                 </div>
               </div>
