@@ -909,15 +909,30 @@ export function DocumentEditor({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-6 px-2 text-xs gap-1"
+                      className="h-6 px-1.5 text-xs gap-1"
                       onClick={() => setIsParticipantRefOpen(true)}
                       disabled={isEffectivelyReadOnly}
                     >
-                      <Building2 className="w-3 h-3" />
-                      Partner
+                      <span
+                        className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
+                        style={{
+                          backgroundColor: '#ffffff',
+                          color: '#000000',
+                          border: '1.5px solid #000',
+                          fontFamily: "'Times New Roman', Times, serif",
+                          fontSize: '7pt',
+                          fontWeight: 700,
+                          lineHeight: 1,
+                          padding: '1px 4px',
+                          height: '13px',
+                        }}
+                      >
+                        P
+                      </span>
+                      Participant
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Insert Partner Reference</TooltipContent>
+                  <TooltipContent>Insert Participant Reference</TooltipContent>
                 </Tooltip>
               </>
             )}
