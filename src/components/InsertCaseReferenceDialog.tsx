@@ -6,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
+
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FlaskConical } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -103,19 +103,35 @@ export function InsertCaseReferenceDialog({
           ) : (
             <div className="space-y-1 p-1">
               {caseDrafts.map((caseItem) => (
-                <button
+                <div
                   key={caseItem.id}
-                  onClick={() => handleSelect(caseItem)}
+                  role="button"
+                  tabIndex={0}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleSelect(caseItem);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleSelect(caseItem);
+                    }
+                  }}
                   className={cn(
-                    "w-full flex items-center p-3 rounded-md text-left",
+                    "w-full flex items-center p-3 rounded-md text-left cursor-pointer",
                     "hover:bg-muted/80 transition-colors"
                   )}
                 >
-                  <Badge
-                    className="shrink-0 rounded-full font-bold w-12 justify-center border-[1.5px] border-black text-black bg-white"
+                  <span
+                    className="shrink-0 rounded-full font-bold w-12 text-center border-[1.5px] border-black text-black bg-white text-xs px-1.5 py-0.5"
                   >
                     {getCasePrefix(caseItem.case_type)}{caseItem.number}
-                  </Badge>
+                  </span>
                   <div className="flex-1 min-w-0 ml-3">
                     <div className="font-medium text-sm truncate">
                       {caseItem.short_name || '—'}
@@ -124,7 +140,7 @@ export function InsertCaseReferenceDialog({
                       {caseItem.title || '—'}
                     </div>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           )}
