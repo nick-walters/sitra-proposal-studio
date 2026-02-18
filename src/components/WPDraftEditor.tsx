@@ -985,7 +985,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
       <InsertCrossReferenceDialog
         isOpen={isCrossRefOpen}
         onClose={() => setIsCrossRefOpen(false)}
-        content=""
+        proposalId={proposalId}
         sectionNumber=""
         onInsert={insertCrossRefAtCursor}
       />

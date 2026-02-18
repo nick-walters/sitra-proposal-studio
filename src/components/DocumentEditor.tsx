@@ -550,32 +550,29 @@ export function DocumentEditor({
     editor.chain().focus().insertAcronymReference({ segments: acronymSegments }).insertContent(' ').run();
   }, [editor, acronymSegments]);
 
-  // Handle Task reference insertion - pill bubble matching 3.1 table style
+  // Handle Task reference insertion - pill bubble
   const handleInsertTaskRef = useCallback((task: { wp_number: number; number: number; title: string }) => {
     if (!editor) return;
-    const label = `T${task.wp_number}.${task.number}`;
-    editor.chain().focus().insertContent(
-      `<span contenteditable="false" style="display:inline-flex;align-items:center;height:17px;padding:0 4px;border-radius:9999px;border:1.5px solid #000;font-family:'Times New Roman',Times,serif;font-size:11pt;font-weight:700;line-height:1;white-space:nowrap;vertical-align:baseline;user-select:none;">${label}</span> `
-    ).run();
+    editor.chain().focus().insertTaskReference({
+      wpNumber: task.wp_number,
+      taskNumber: task.number,
+    }).insertContent(' ').run();
   }, [editor]);
 
-  // Handle Deliverable reference insertion - pentagon bubble matching 3.1.c table style
+  // Handle Deliverable reference insertion - pentagon bubble
   const handleInsertDeliverableRef = useCallback((del: { number: string; name: string }) => {
     if (!editor) return;
-    const label = del.number; // Already includes "D" prefix from the table data
-    const textWidth = Math.max(36, label.length * 8 + 8);
-    const totalWidth = textWidth + 8;
-    editor.chain().focus().insertContent(
-      `<span contenteditable="false" style="display:inline-block;vertical-align:baseline;position:relative;width:${totalWidth}px;height:17px;user-select:none;"><svg width="${totalWidth}" height="17" viewBox="0 0 ${totalWidth} 17" style="position:absolute;top:0;left:0;overflow:visible;"><path d="M 0,0 L ${textWidth},0 L ${totalWidth},8.5 L ${textWidth},17 L 0,17 Z" fill="#ffffff" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/></svg><span style="position:absolute;top:0;left:0;width:${textWidth}px;height:17px;display:flex;align-items:center;justify-content:center;font-family:'Times New Roman',Times,serif;font-size:11pt;font-weight:700;line-height:1;color:#000;white-space:nowrap;">${label}</span></span> `
-    ).run();
+    editor.chain().focus().insertDeliverableReference({
+      deliverableNumber: del.number,
+    }).insertContent(' ').run();
   }, [editor]);
 
-  // Handle Milestone reference insertion - triangle bubble matching 3.1.d table style
+  // Handle Milestone reference insertion - triangle bubble
   const handleInsertMilestoneRef = useCallback((ms: { number: number; name: string }) => {
     if (!editor) return;
-    editor.chain().focus().insertContent(
-      `<span contenteditable="false" style="display:inline-block;vertical-align:baseline;position:relative;width:21px;height:21px;user-select:none;"><svg width="21" height="21" viewBox="0 0 21 21" style="position:absolute;top:0;left:0;overflow:visible;"><path d="M 0,0 L 21,10.5 L 0,21 Z" fill="#000000"/></svg><span style="position:absolute;top:0;left:-1px;width:15px;height:21px;display:flex;align-items:center;justify-content:center;font-family:'Times New Roman',Times,serif;font-size:11pt;font-weight:700;line-height:1;color:#ffffff;letter-spacing:-0.7px;white-space:nowrap;">${ms.number}</span></span> `
-    ).run();
+    editor.chain().focus().insertMilestoneReference({
+      milestoneNumber: ms.number,
+    }).insertContent(' ').run();
   }, [editor]);
 
   const handleApplySuggestion = useCallback((originalText: string, suggestedText: string) => {
@@ -853,7 +850,7 @@ export function DocumentEditor({
                       <span
                         className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
                         style={{
-                          backgroundColor: '#2563EB',
+                          backgroundColor: '#000000',
                           color: '#ffffff',
                           fontFamily: "'Times New Roman', Times, serif",
                           fontSize: '7pt',
@@ -1327,7 +1324,7 @@ export function DocumentEditor({
       <InsertCrossReferenceDialog
         isOpen={isCrossRefOpen}
         onClose={() => setIsCrossRefOpen(false)}
-        content={content}
+        proposalId={proposalId || ''}
         sectionNumber={section?.number || ''}
         onInsert={handleInsertCrossRef}
       />
