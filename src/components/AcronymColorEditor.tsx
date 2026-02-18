@@ -86,7 +86,7 @@ function CustomColorPalette({ onApply }: { onApply: (color: string) => void }) {
             title="Custom color"
           />
         </PopoverTrigger>
-        <PopoverContent className="w-52 p-3 space-y-2" align="start">
+        <PopoverContent className="w-52 p-3 space-y-2" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
           <div className="flex items-center gap-2">
             <input
               type="color"
@@ -107,7 +107,7 @@ function CustomColorPalette({ onApply }: { onApply: (color: string) => void }) {
               onKeyDown={(e) => e.key === 'Enter' && applyCustom()}
             />
           </div>
-          <Button size="sm" className="w-full h-7 text-xs" onMouseDown={(e) => e.preventDefault()} onClick={applyCustom}>
+          <Button size="sm" className="w-full h-7 text-xs" tabIndex={0} onMouseDown={(e) => e.preventDefault()} onClick={applyCustom}>
             Apply
           </Button>
         </PopoverContent>
@@ -117,6 +117,7 @@ function CustomColorPalette({ onApply }: { onApply: (color: string) => void }) {
           key={color}
           className="w-5 h-5 rounded-full border border-border hover:scale-125 transition-transform"
           style={{ backgroundColor: color }}
+          tabIndex={0}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => onApply(color)}
           title={color}
@@ -327,7 +328,12 @@ export function AcronymColorEditor({ acronym, segments, onChange, onAcronymChang
     }
   }, [disabled, chars, cursorPos, selStart, selEnd, flushToParent]);
 
-  const handleBlur = useCallback(() => {
+  const handleBlur = useCallback((e: React.FocusEvent) => {
+    // Don't clear selection if focus moves to the color palette area
+    const container = containerRef.current?.parentElement;
+    if (container && e.relatedTarget && container.contains(e.relatedTarget as Node)) {
+      return;
+    }
     setIsFocused(false);
     setSelStart(null);
     setSelEnd(null);
