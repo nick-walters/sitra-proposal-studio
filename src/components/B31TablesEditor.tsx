@@ -455,7 +455,7 @@ function RiskBadge({ level }: { level: 'L' | 'M' | 'H' }) {
   return (
     <span 
       className="inline-flex items-center justify-center rounded-full font-bold not-italic whitespace-nowrap"
-      style={{ backgroundColor: '#ffffff', color: levelColor, border: `1.5px solid ${levelColor}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', height: '17px', position: 'relative', top: '-1.4px' }}
+      style={{ backgroundColor: '#ffffff', color: levelColor, border: `1.5px solid ${levelColor}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px', width: '18px', height: '17px', position: 'relative', top: '-1.4px' }}
     >
       {level}
     </span>
