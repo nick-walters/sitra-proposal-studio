@@ -43,7 +43,7 @@ interface InsertTDMSReferenceDropdownsProps {
   size?: 'sm' | 'default';
 }
 
-// Inline SVG bubble components for buttons
+// Miniature bubble for Task button
 function TaskBubbleButton() {
   return (
     <span
@@ -53,11 +53,11 @@ function TaskBubbleButton() {
         color: '#000000',
         border: '1.5px solid #000',
         fontFamily: "'Times New Roman', Times, serif",
-        fontSize: '8pt',
+        fontSize: '7pt',
         fontWeight: 700,
         lineHeight: 1,
-        padding: '0px 4px',
-        height: '15px',
+        padding: '1px 4px',
+        height: '13px',
       }}
     >
       TX.X
@@ -65,26 +65,28 @@ function TaskBubbleButton() {
   );
 }
 
+// Miniature pentagon for Deliverable button
 function DeliverableBubbleButton() {
   return (
-    <span style={{ display: 'inline-block', verticalAlign: 'middle', position: 'relative', width: 36, height: 13 }}>
-      <svg width={36} height={13} viewBox="0 0 36 13" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
-        <path d="M 0,0 L 29,0 L 36,6.5 L 29,13 L 0,13 Z" fill="#ffffff" stroke="#000" strokeWidth={1.2} strokeLinejoin="round" />
+    <span style={{ display: 'inline-block', verticalAlign: 'middle', position: 'relative', width: 32, height: 13 }}>
+      <svg width={32} height={13} viewBox="0 0 32 13" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
+        <path d="M 0,0 L 25,0 L 32,6.5 L 25,13 L 0,13 Z" fill="#ffffff" stroke="#000" strokeWidth={1.2} strokeLinejoin="round" />
       </svg>
-      <span style={{ position: 'absolute', top: 0, left: 0, width: 29, height: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '8pt', fontWeight: 700, lineHeight: 1, color: '#000', whiteSpace: 'nowrap' }}>
+      <span style={{ position: 'absolute', top: 0, left: 0, width: 25, height: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '7pt', fontWeight: 700, lineHeight: 1, color: '#000', whiteSpace: 'nowrap' }}>
         DX.X
       </span>
     </span>
   );
 }
 
+// Miniature triangle for Milestone button
 function MilestoneBubbleButton() {
   return (
-    <span style={{ display: 'inline-block', verticalAlign: 'middle', position: 'relative', width: 17, height: 15 }}>
-      <svg width={17} height={15} viewBox="0 0 17 15" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
-        <path d="M 0,0 L 17,7.5 L 0,15 Z" fill="#000000" />
+    <span style={{ display: 'inline-block', verticalAlign: 'middle', position: 'relative', width: 19, height: 17 }}>
+      <svg width={19} height={17} viewBox="0 0 19 17" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
+        <path d="M 0,0 L 19,8.5 L 0,17 Z" fill="#000000" />
       </svg>
-      <span style={{ position: 'absolute', top: 0, left: -1, width: 12, height: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '7pt', fontWeight: 700, lineHeight: 1, color: '#ffffff', letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}>
+      <span style={{ position: 'absolute', top: 0, left: -1, width: 13, height: 17, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '7pt', fontWeight: 700, lineHeight: 1, color: '#ffffff', letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}>
         X
       </span>
     </span>

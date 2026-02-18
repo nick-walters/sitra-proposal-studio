@@ -2,7 +2,13 @@ import { Section } from "@/types/proposal";
 import DOMPurify from "dompurify";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, BookOpen, Route, History, Info, Image, Link2, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search, GitCompare, Keyboard, Wand2, FileCode, SplitSquareHorizontal, Layers, Building2, FlaskConical, Check } from "lucide-react";
+import { Sparkles, BookOpen, Route, History, Info, Image, Link2, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search, GitCompare, Keyboard, Wand2, FileCode, SplitSquareHorizontal, Layers, Building2, FlaskConical, Check, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
 import {
@@ -243,6 +249,23 @@ export function DocumentEditor({
   const dueDateInfo = getDueDateInfo();
 
   const { content, setContent, loading, saving, lastSaved, lastCitationMapping, isPlaceholder, clearPlaceholder } = sectionContentHook;
+
+  // Track unsaved changes: content changed since last save
+  const lastSavedContentRef = useRef<string>('');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  
+  useEffect(() => {
+    if (lastSaved) {
+      lastSavedContentRef.current = content;
+      setHasUnsavedChanges(false);
+    }
+  }, [lastSaved]);
+  
+  useEffect(() => {
+    if (lastSavedContentRef.current && content !== lastSavedContentRef.current) {
+      setHasUnsavedChanges(true);
+    }
+  }, [content]);
 
   // Sync footnotes when citations are renumbered
   useEffect(() => {
@@ -644,7 +667,7 @@ export function DocumentEditor({
               
               <Separator orientation="vertical" className="h-4 mx-1" />
               
-              {!isEffectivelyReadOnly && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
+              {!isEffectivelyReadOnly && <SaveIndicator saving={saving} lastSaved={lastSaved} hasUnsavedChanges={hasUnsavedChanges} />}
               
               <Separator orientation="vertical" className="h-4 mx-1" />
               
@@ -707,20 +730,30 @@ export function DocumentEditor({
               
               <Separator orientation="vertical" className="h-4 mx-1" />
               
-              <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={() => setIsGrammarOpen(true)}>
-                <Sparkles className="w-3 h-3" />
-                Grammar
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-6 px-2 text-xs gap-1"
-                onClick={() => setIsWritingAssistantOpen(true)}
-                disabled={!editor || isEffectivelyReadOnly}
-              >
-                <Wand2 className="w-3 h-3" />
-                AI
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-6 px-2 text-xs gap-1"
+                    disabled={!editor || isEffectivelyReadOnly}
+                  >
+                    <Wand2 className="w-3 h-3" />
+                    AI tools
+                    <ChevronDown className="w-3 h-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem onClick={() => setIsGrammarOpen(true)}>
+                    <Sparkles className="w-3.5 h-3.5 mr-2" />
+                    Grammar check
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsWritingAssistantOpen(true)}>
+                    <Wand2 className="w-3.5 h-3.5 mr-2" />
+                    Writing assistant
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -803,7 +836,7 @@ export function DocumentEditor({
                       disabled={isEffectivelyReadOnly}
                     >
                       <Link2 className="w-3 h-3" />
-                      Cross-ref citation
+                      Cross-ref
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Insert Cross-reference Citation</TooltipContent>
@@ -834,12 +867,25 @@ export function DocumentEditor({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-6 px-2 text-xs gap-1"
+                      className="h-6 px-1.5 text-xs gap-0.5"
                       onClick={() => setIsWPRefOpen(true)}
                       disabled={isEffectivelyReadOnly}
                     >
-                      <Layers className="w-3 h-3" />
-                      WP
+                      <span
+                        className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
+                        style={{
+                          backgroundColor: '#2563EB',
+                          color: '#ffffff',
+                          fontFamily: "'Times New Roman', Times, serif",
+                          fontSize: '7pt',
+                          fontWeight: 700,
+                          lineHeight: 1,
+                          padding: '1px 4px',
+                          height: '13px',
+                        }}
+                      >
+                        WPX
+                      </span>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Insert WP Reference</TooltipContent>
