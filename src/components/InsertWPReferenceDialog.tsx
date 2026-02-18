@@ -143,13 +143,13 @@ export function InsertWPReferenceDialog({
               No work packages found.
             </div>
           ) : (
-            <div className="space-y-1 p-1">
+            <div className="p-1">
               {wpDrafts.map((wp) => (
                 <button
                   key={wp.id}
                   onClick={() => handleSelect(wp)}
                   className={cn(
-                    "w-full flex items-center p-3 rounded-md text-left",
+                    "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left",
                     "hover:bg-muted/80 transition-colors"
                   )}
                 >
@@ -161,14 +161,10 @@ export function InsertWPReferenceDialog({
                   >
                     WP{wp.number}
                   </Badge>
-                  <div className="flex-1 min-w-0 ml-3">
-                    <div className="font-medium text-sm truncate">
-                      {wp.short_name || '—'}
-                    </div>
-                    <div className="text-xs text-muted-foreground truncate">
-                      {wp.title || '—'}
-                    </div>
-                  </div>
+                  <span className="text-sm truncate">
+                    <span className="font-bold">{wp.short_name || '—'}</span>
+                    {wp.title ? ` – ${wp.title}` : ''}
+                  </span>
                 </button>
               ))}
             </div>

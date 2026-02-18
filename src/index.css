@@ -622,7 +622,7 @@
   border: 1.5px solid currentColor;
   border-color: var(--wp-color, #000);
   background: #ffffff;
-  color: #000;
+  color: var(--wp-color, #000);
 }
 
 .inline-ref-deliverable {
@@ -632,7 +632,7 @@
   height: 17px;
   padding: 0 10px 0 4px;
   background: var(--wp-color, #000);
-  color: #000;
+  color: var(--wp-color, #000);
   clip-path: polygon(0% 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 0% 100%);
   position: relative;
   z-index: 0;
