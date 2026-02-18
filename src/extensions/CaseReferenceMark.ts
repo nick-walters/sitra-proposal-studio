@@ -1,4 +1,5 @@
 import { Mark, mergeAttributes } from '@tiptap/core';
+import { handleRefMarkDeletion } from './deleteRefMarkHelper';
 
 export interface CaseReferenceOptions {
   HTMLAttributes: Record<string, any>;
@@ -165,6 +166,13 @@ export const CaseReferenceMark = Mark.create<CaseReferenceOptions>({
       }),
       0,
     ];
+  },
+
+  addKeyboardShortcuts() {
+    return {
+      Backspace: () => handleRefMarkDeletion(this.editor, this.name, 'backspace'),
+      Delete: () => handleRefMarkDeletion(this.editor, this.name, 'delete'),
+    };
   },
 
   addCommands() {
