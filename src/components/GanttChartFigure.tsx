@@ -17,8 +17,8 @@ interface Task {
   name: string;
   startMonth: number;
   endMonth: number;
-  deliverables?: { number: string; name: string; month: number }[];
-  milestones?: { number: number; name: string; month: number }[];
+  deliverables?: { number: string; name: string; month: number; type?: string; disseminationLevel?: string; leadShortName?: string }[];
+  milestones?: { number: number; name: string; month: number; leadShortName?: string }[];
 }
 
 interface Milestone {
@@ -90,6 +90,7 @@ export function GanttChartFigure({
         { data: tasks, error: taskError },
         { data: deliverables, error: delError },
         { data: msData, error: msError },
+        { data: participants, error: partError },
       ] = await Promise.all([
         supabase
           .from('wp_drafts')
@@ -102,30 +103,37 @@ export function GanttChartFigure({
           .order('order_index'),
         supabase
           .from('b31_deliverables')
-          .select('id, wp_number, number, name, due_month, task_id')
+          .select('id, wp_number, number, name, due_month, task_id, type, dissemination_level, lead_participant_id')
           .eq('proposal_id', proposalId),
         supabase
           .from('b31_milestones')
           .select('id, number, name, due_month, task_id')
           .eq('proposal_id', proposalId)
           .order('number'),
+        supabase
+          .from('participants')
+          .select('id, organisation_short_name, participant_number')
+          .eq('proposal_id', proposalId),
       ]);
       if (wpError) throw wpError;
       if (taskError) throw taskError;
       if (delError) throw delError;
       if (msError) throw msError;
+      if (partError) throw partError;
 
       const wpIds = new Set(wps!.map(wp => wp.id));
       const filteredTasks = (tasks || []).filter(t => wpIds.has(t.wp_draft_id));
 
-      return { wps: wps!, tasks: filteredTasks, deliverables: deliverables || [], milestones: msData || [] };
+      return { wps: wps!, tasks: filteredTasks, deliverables: deliverables || [], milestones: msData || [], participants: participants || [] };
     },
   });
 
   const dynamicData = useMemo(() => {
     if (!wpDraftsData) return { workPackages: [] as WorkPackage[], milestones: [] as Milestone[] };
 
-    const { wps, tasks, deliverables, milestones: msRows } = wpDraftsData;
+    const { wps, tasks, deliverables, milestones: msRows, participants } = wpDraftsData;
+
+    const partMap = new Map(participants.map(p => [p.id, p.organisation_short_name || `P${p.participant_number}`]));
 
     const workPackages: WorkPackage[] = wps.map((wp) => {
       const wpTasks = tasks.filter(t => t.wp_draft_id === wp.id);
@@ -154,10 +162,15 @@ export function GanttChartFigure({
             endMonth: t.end_month!,
             deliverables: wpDeliverables
               .filter(d => d.task_id === t.id && d.due_month != null)
-              .map(d => ({ number: d.number, name: d.name, month: d.due_month! })),
+              .map(d => ({ number: d.number, name: d.name, month: d.due_month!, type: d.type || undefined, disseminationLevel: d.dissemination_level || undefined, leadShortName: d.lead_participant_id ? partMap.get(d.lead_participant_id) : undefined })),
             milestones: msRows
               .filter(m => m.task_id === t.id && m.due_month != null)
-              .map(m => ({ number: m.number, name: m.name, month: m.due_month! })),
+              .map(m => {
+                // For MS, find the lead from a deliverable on the same task
+                const taskDel = wpDeliverables.find(d => d.task_id === t.id && d.lead_participant_id);
+                const leadName = taskDel?.lead_participant_id ? partMap.get(taskDel.lead_participant_id) : undefined;
+                return { number: m.number, name: m.name, month: m.due_month!, leadShortName: leadName };
+              }),
           })),
       };
     });
@@ -393,8 +406,18 @@ export function GanttChartFigure({
                 {wp.tasks.map((task, taskIdx) => {
                   // Pre-compute bubble positions for this task
                   const taskBubbles: { month: number; label: string; color: string; tooltipTitle: string; type: 'del' | 'ms'; sortNum: string }[] = [];
-                  task.deliverables?.forEach(d => taskBubbles.push({ month: d.month, label: `D${d.number.replace(/^D/, '')}`, color: wpColor, tooltipTitle: `D${d.number.replace(/^D/, '')}: ${d.name}`, type: 'del', sortNum: d.number }));
-                  task.milestones?.forEach(ms => taskBubbles.push({ month: ms.month, label: `${ms.number}`, color: '#000000', tooltipTitle: `MS${ms.number}: ${ms.name}`, type: 'ms', sortNum: String(ms.number) }));
+                  task.deliverables?.forEach(d => {
+                    const parts = [`D${d.number.replace(/^D/, '')}: ${d.name}`];
+                    if (d.type) parts.push(`Type: ${d.type}`);
+                    if (d.disseminationLevel) parts.push(`Dissemination: ${d.disseminationLevel}`);
+                    if (d.leadShortName) parts.push(`Lead: ${d.leadShortName}`);
+                    taskBubbles.push({ month: d.month, label: `D${d.number.replace(/^D/, '')}`, color: wpColor, tooltipTitle: parts.join(' | '), type: 'del', sortNum: d.number });
+                  });
+                  task.milestones?.forEach(ms => {
+                    const parts = [`MS${ms.number}: ${ms.name}`];
+                    if (ms.leadShortName) parts.push(`Lead: ${ms.leadShortName}`);
+                    taskBubbles.push({ month: ms.month, label: `${ms.number}`, color: '#000000', tooltipTitle: parts.join(' | '), type: 'ms', sortNum: String(ms.number) });
+                  });
 
                   // Sort: by month, D before MS at same month, then numerically
                   taskBubbles.sort((a, b) => {
