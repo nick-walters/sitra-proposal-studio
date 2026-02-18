@@ -601,6 +601,7 @@ export function GanttChartFigure({
                                       fontWeight: 700,
                                       lineHeight: 1,
                                       color: isMs ? '#ffffff' : b.color,
+                                      letterSpacing: isMs ? '-0.5px' : undefined,
                                       whiteSpace: 'nowrap',
                                     }}
                                   >
