@@ -1052,13 +1052,28 @@ export function DocumentEditor({
               {footnotes.length > 0 && (
                 <div className="mt-8 pt-4 border-t border-border">
                   <div className="space-y-1">
-                    {footnotes.map((fn) => (
-                      <p key={fn.number} className="text-[8pt] text-muted-foreground" 
-                       dangerouslySetInnerHTML={{ 
-                           __html: DOMPurify.sanitize(`<sup>${fn.number}</sup> ${fn.citation.replace(/\*([^*]+)\*/g, '<em>$1</em>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')}`, { ALLOWED_TAGS: ['em', 'strong', 'sup'] }) 
-                         }} 
-                      />
-                    ))}
+                    {footnotes.map((fn) => {
+                      // Build sanitized citation HTML
+                      let citationHtml = DOMPurify.sanitize(
+                        `<sup>${fn.number}</sup> ${fn.citation.replace(/\*([^*]+)\*/g, '<em>$1</em>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')}`,
+                        { ALLOWED_TAGS: ['em', 'strong', 'sup', 'span'], ALLOWED_ATTR: ['style'] }
+                      );
+                      // Replace acronym occurrences with colored version
+                      if (proposalAcronym && acronymSegments && acronymSegments.length > 0) {
+                        const coloredAcronym = acronymSegments
+                          .map(seg => `<span style="color:${seg.color};font-family:'Arial Black',Arial,sans-serif;font-weight:900;">${seg.text}</span>`)
+                          .join('');
+                        citationHtml = citationHtml.replace(
+                          new RegExp(`\\b${proposalAcronym.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'g'),
+                          coloredAcronym
+                        );
+                      }
+                      return (
+                        <p key={fn.number} className="text-[8pt] text-muted-foreground" 
+                         dangerouslySetInnerHTML={{ __html: citationHtml }} 
+                        />
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -1066,7 +1081,11 @@ export function DocumentEditor({
               {/* Page Footer - centered: "ACRONYM (Stage 1 of 2) | Part BX.X. Subsection title | Page X of X" */}
               <div className="document-page-footer">
                 <span className="w-full text-center">
-                  <strong>{proposalAcronym}</strong>
+                  <strong style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900 }}>
+                    {acronymSegments && acronymSegments.length > 0
+                      ? acronymSegments.map((seg, i) => <span key={i} style={{ color: seg.color }}>{seg.text}</span>)
+                      : proposalAcronym}
+                  </strong>
                   {' (Stage 1 of 2) | Part '}
                   {section.number}. {section.title}
                   {' | Page 1 of 1'}
