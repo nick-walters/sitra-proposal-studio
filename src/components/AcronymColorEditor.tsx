@@ -65,6 +65,7 @@ function CustomColorPalette({ onApply, paletteRef }: { onApply: (color: string) 
   const [customOpen, setCustomOpen] = useState(false);
   const [hexInput, setHexInput] = useState('#');
   const [nativeColor, setNativeColor] = useState('#000000');
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const applyCustom = () => {
     const hex = hexInput.startsWith('#') ? hexInput : `#${hexInput}`;
@@ -74,49 +75,61 @@ function CustomColorPalette({ onApply, paletteRef }: { onApply: (color: string) 
     }
   };
 
+  // Close panel on outside click (but not when interacting with native color picker)
+  useEffect(() => {
+    if (!customOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        setCustomOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [customOpen]);
+
   return (
     <div ref={paletteRef} className="flex items-center gap-1 flex-wrap" onMouseDown={(e) => e.preventDefault()}>
       <span className="text-[10px] text-muted-foreground mr-1">Apply color:</span>
-      <Popover open={customOpen} onOpenChange={setCustomOpen}>
-        <PopoverTrigger asChild>
-          <button
-            className="w-5 h-5 rounded-full border border-border hover:scale-125 transition-transform flex items-center justify-center"
-            style={{ background: 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)' }}
-            title="Custom color"
-          />
-        </PopoverTrigger>
-        <PopoverContent
-          className="w-52 p-3 space-y-2"
-          align="start"
-          onOpenAutoFocus={(e) => e.preventDefault()}
-          onPointerDownOutside={(e) => e.preventDefault()}
-          onInteractOutside={(e) => e.preventDefault()}
-        >
-          <div className="flex items-center gap-2" onMouseDown={(e) => e.stopPropagation()}>
-            <input
-              type="color"
-              value={nativeColor}
-              onChange={(e) => {
-                setNativeColor(e.target.value);
-                setHexInput(e.target.value);
-                onApply(e.target.value);
-              }}
-              className="w-8 h-8 rounded cursor-pointer border-0 p-0"
-            />
-            <Input
-              value={hexInput}
-              onChange={(e) => setHexInput(e.target.value)}
-              placeholder="#000000"
-              className="h-7 text-xs font-mono"
-              maxLength={7}
-              onKeyDown={(e) => e.key === 'Enter' && applyCustom()}
-            />
+      <div className="relative">
+        <button
+          className="w-5 h-5 rounded-full border border-border hover:scale-125 transition-transform flex items-center justify-center"
+          style={{ background: 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)' }}
+          title="Custom color"
+          onClick={() => setCustomOpen(!customOpen)}
+        />
+        {customOpen && (
+          <div
+            ref={panelRef}
+            className="absolute left-0 top-7 z-50 w-52 p-3 space-y-2 bg-popover border rounded-md shadow-md"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={nativeColor}
+                onChange={(e) => {
+                  setNativeColor(e.target.value);
+                  setHexInput(e.target.value);
+                  onApply(e.target.value);
+                }}
+                className="w-8 h-8 rounded cursor-pointer border-0 p-0"
+              />
+              <Input
+                value={hexInput}
+                onChange={(e) => setHexInput(e.target.value)}
+                placeholder="#000000"
+                className="h-7 text-xs font-mono"
+                maxLength={7}
+                onMouseDown={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.key === 'Enter' && applyCustom()}
+              />
+            </div>
+            <Button size="sm" className="w-full h-7 text-xs" onClick={applyCustom}>
+              Apply
+            </Button>
           </div>
-          <Button size="sm" className="w-full h-7 text-xs" onClick={applyCustom}>
-            Apply
-          </Button>
-        </PopoverContent>
-      </Popover>
+        )}
+      </div>
       {COLOR_PALETTE.map((color) => (
         <button
           key={color}
