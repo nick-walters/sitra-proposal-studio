@@ -69,16 +69,16 @@ function BubblePill({ text, bg, fg, border }: { text: string; bg: string; fg: st
 }
 
 function MiniPentagon({ text }: { text: string }) {
-  const w = Math.max(28, text.length * 6 + 12);
-  const tw = w - 7;
-  const h = 15;
+  const w = Math.max(32, text.length * 7 + 14);
+  const tw = w - 8;
+  const h = 17;
   const mid = h / 2;
   return (
-    <span style={{ display: 'inline-block', verticalAlign: 'middle', position: 'relative', width: w, height: h }}>
+    <span style={{ display: 'inline-block', verticalAlign: 'middle', position: 'relative', width: w, height: h, marginLeft: 3 }}>
       <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
         <path d={`M 0,0 L ${tw},0 L ${w},${mid} L ${tw},${h} L 0,${h} Z`} fill="#ffffff" stroke="#000" strokeWidth={1.2} strokeLinejoin="round" />
       </svg>
-      <span style={{ position: 'absolute', top: 0, left: 0, width: tw, height: h, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '8pt', fontWeight: 700, lineHeight: 1, color: '#000', whiteSpace: 'nowrap' }}>
+      <span style={{ position: 'absolute', top: 0, left: 0, width: tw, height: h, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '9pt', fontWeight: 700, lineHeight: 1, color: '#000', whiteSpace: 'nowrap' }}>
         {text}
       </span>
     </span>
