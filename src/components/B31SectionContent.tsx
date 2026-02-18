@@ -1,4 +1,6 @@
 import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { EditableCaption } from '@/components/EditableCaption';
 import { useB31SectionData } from '@/hooks/useB31SectionData';
 import { B31WPListTable } from './B31WPListTable';
@@ -19,6 +21,15 @@ interface Props {
 
 export function B31SectionContent({ proposalId }: Props) {
   const { wpData, participants, pertFigure, ganttFigure, subcontractingItems, equipmentItems, loading } = useB31SectionData(proposalId);
+  const { data: proposalDuration } = useQuery({
+    queryKey: ['proposal-duration', proposalId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('proposals').select('duration').eq('id', proposalId).single();
+      if (error) throw error;
+      return data?.duration || 36;
+    },
+  });
+  const projectDuration = proposalDuration || 36;
 
   // Compute personnel costs per participant from effort data
   const personnelCostByParticipant = useMemo(() => {
@@ -105,7 +116,7 @@ export function B31SectionContent({ proposalId }: Props) {
       )}
 
       {/* Table 3.1.b – Work package descriptions */}
-      <B31WPDescriptionTables wpData={wpData} participants={participants} proposalId={proposalId} />
+      <B31WPDescriptionTables wpData={wpData} participants={participants} proposalId={proposalId} projectDuration={projectDuration} />
 
       {/* Table 3.1.c – Deliverables */}
       <B31DeliverablesTable proposalId={proposalId} />

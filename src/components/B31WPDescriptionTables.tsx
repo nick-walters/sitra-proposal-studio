@@ -15,6 +15,7 @@ interface Props {
   wpData: B31WPData[];
   participants: B31Participant[];
   proposalId: string;
+  projectDuration?: number;
 }
 
 /* ── Participant bubble ── */
@@ -198,11 +199,13 @@ function MonthRangePicker({
   startMonth,
   endMonth,
   proposalId,
+  projectDuration = 36,
 }: {
   taskId: string;
   startMonth: number | null;
   endMonth: number | null;
   proposalId: string;
+  projectDuration?: number;
 }) {
   const [open, setOpen] = useState(false);
   const [selecting, setSelecting] = useState<'start' | 'end' | null>(null);
@@ -210,7 +213,7 @@ function MonthRangePicker({
   const [localEnd, setLocalEnd] = useState(endMonth);
   const queryClient = useQueryClient();
 
-  const months = Array.from({ length: 60 }, (_, i) => i + 1);
+  const months = Array.from({ length: projectDuration }, (_, i) => i + 1);
 
   const save = async (start: number | null, end: number | null) => {
     await supabase.from('wp_draft_tasks').update({ start_month: start, end_month: end }).eq('id', taskId);
@@ -434,7 +437,7 @@ function CaptionTaskBubble() {
 }
 
 /* ── Main component ── */
-export function B31WPDescriptionTables({ wpData, participants, proposalId }: Props) {
+export function B31WPDescriptionTables({ wpData, participants, proposalId, projectDuration = 36 }: Props) {
   const queryClient = useQueryClient();
   const populatedWPs = wpData;
 
@@ -600,7 +603,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId }: Pro
                           </div>
                         </td>
                         <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle whitespace-nowrap text-right py-0" style={{ border: 'none', width: '75px', paddingLeft: '6px', paddingRight: '6px' }}>
-                          <MonthRangePicker taskId={task.id} startMonth={task.start_month} endMonth={task.end_month} proposalId={proposalId} />
+                          <MonthRangePicker taskId={task.id} startMonth={task.start_month} endMonth={task.end_month} proposalId={proposalId} projectDuration={projectDuration} />
                         </td>
                       </tr>
 
