@@ -160,7 +160,7 @@ const disseminationLevels = [
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles = "!px-[1pt] !py-0 px-[1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight";
-const bubbleCellStyles = "!px-[1pt] !py-[2px] px-[1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-none overflow-visible";
+const bubbleCellStyles = "!px-[1pt] !py-[1px] px-[1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-none overflow-visible";
 const headerCellStyles = "!px-[1pt] !py-0 px-[1pt] h-auto align-middle font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight font-bold";
 
 // Inline editable text that expands to multiple lines - with debounced save
