@@ -94,6 +94,7 @@ function CustomColorPalette({ onApply }: { onApply: (color: string) => void }) {
               onChange={(e) => {
                 setNativeColor(e.target.value);
                 setHexInput(e.target.value);
+                onApply(e.target.value);
               }}
               className="w-8 h-8 rounded cursor-pointer border-0 p-0"
             />
