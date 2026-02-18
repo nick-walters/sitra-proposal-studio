@@ -338,7 +338,7 @@ export function WPSimpleEditor({
                     onClick={onOpenCitationDialog}
                   >
                     <FileText className="h-4 w-4" />
-                    <span className="text-xs">Citation</span>
+                    <span className="text-xs">Add citation</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="text-xs">
@@ -359,14 +359,16 @@ export function WPSimpleEditor({
                     onClick={onOpenCrossRefDialog}
                   >
                     <Link2 className="h-4 w-4" />
-                    <span className="text-xs">Cross-ref</span>
+                    <span className="text-xs">Cross-ref citation</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="text-xs">
-                  Insert Cross-reference
+                  Insert Cross-reference Citation
                 </TooltipContent>
               </Tooltip>
             )}
+
+            <Separator orientation="vertical" className="h-5 mx-1" />
 
             {/* WP Mention */}
             {onOpenWPRefDialog && (

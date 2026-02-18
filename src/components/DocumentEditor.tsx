@@ -534,7 +534,7 @@ export function DocumentEditor({
     editor.chain().focus().insertAcronymReference({ segments: acronymSegments }).insertContent(' ').run();
   }, [editor, acronymSegments]);
 
-  // Handle Task reference insertion
+  // Handle Task reference insertion - pill bubble matching 3.1 table style
   const handleInsertTaskRef = useCallback((task: { wp_number: number; number: number; title: string }) => {
     if (!editor) return;
     const label = `T${task.wp_number}.${task.number}`;
@@ -543,21 +543,22 @@ export function DocumentEditor({
     ).run();
   }, [editor]);
 
-  // Handle Deliverable reference insertion
+  // Handle Deliverable reference insertion - pentagon bubble matching 3.1.c table style
   const handleInsertDeliverableRef = useCallback((del: { number: string; name: string }) => {
     if (!editor) return;
-    const label = `D${del.number}`;
+    const label = del.number; // Already includes "D" prefix from the table data
+    const textWidth = Math.max(36, label.length * 8 + 8);
+    const totalWidth = textWidth + 8;
     editor.chain().focus().insertContent(
-      `<span contenteditable="false" style="display:inline-flex;align-items:center;height:17px;padding:0 4px;border-radius:9999px;border:1.5px solid #000;font-family:'Times New Roman',Times,serif;font-size:11pt;font-weight:700;line-height:1;white-space:nowrap;vertical-align:baseline;user-select:none;">${label}</span> `
+      `<span contenteditable="false" style="display:inline-block;vertical-align:baseline;position:relative;width:${totalWidth}px;height:17px;user-select:none;"><svg width="${totalWidth}" height="17" viewBox="0 0 ${totalWidth} 17" style="position:absolute;top:0;left:0;overflow:visible;"><path d="M 0,0 L ${textWidth},0 L ${totalWidth},8.5 L ${textWidth},17 L 0,17 Z" fill="#ffffff" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/></svg><span style="position:absolute;top:0;left:0;width:${textWidth}px;height:17px;display:flex;align-items:center;justify-content:center;font-family:'Times New Roman',Times,serif;font-size:11pt;font-weight:700;line-height:1;color:#000;white-space:nowrap;">${label}</span></span> `
     ).run();
   }, [editor]);
 
-  // Handle Milestone reference insertion
+  // Handle Milestone reference insertion - triangle bubble matching 3.1.d table style
   const handleInsertMilestoneRef = useCallback((ms: { number: number; name: string }) => {
     if (!editor) return;
-    const label = `MS${ms.number}`;
     editor.chain().focus().insertContent(
-      `<span contenteditable="false" style="display:inline-flex;align-items:center;height:17px;padding:0 4px;border-radius:9999px;border:1.5px solid #000;font-family:'Times New Roman',Times,serif;font-size:11pt;font-weight:700;line-height:1;white-space:nowrap;vertical-align:baseline;user-select:none;">${label}</span> `
+      `<span contenteditable="false" style="display:inline-block;vertical-align:baseline;position:relative;width:21px;height:21px;user-select:none;"><svg width="21" height="21" viewBox="0 0 21 21" style="position:absolute;top:0;left:0;overflow:visible;"><path d="M 0,0 L 21,10.5 L 0,21 Z" fill="#000000"/></svg><span style="position:absolute;top:0;left:-1px;width:15px;height:21px;display:flex;align-items:center;justify-content:center;font-family:'Times New Roman',Times,serif;font-size:11pt;font-weight:700;line-height:1;color:#ffffff;letter-spacing:-0.7px;white-space:nowrap;">${ms.number}</span></span> `
     ).run();
   }, [editor]);
 
@@ -784,7 +785,7 @@ export function DocumentEditor({
                   disabled={isEffectivelyReadOnly}
                 >
                   <FileText className="w-3 h-3" />
-                  Citation
+                  Add citation
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Add Citation</TooltipContent>
@@ -801,11 +802,13 @@ export function DocumentEditor({
                       disabled={isEffectivelyReadOnly}
                     >
                       <Link2 className="w-3 h-3" />
-                      Cross-ref
+                      Cross-ref citation
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Insert Cross-reference</TooltipContent>
+                  <TooltipContent>Insert Cross-reference Citation</TooltipContent>
                 </Tooltip>
+                
+                <Separator orientation="vertical" className="h-4 mx-1" />
                 {acronymSegments && acronymSegments.length > 0 && (
                   <Tooltip>
                     <TooltipTrigger asChild>
