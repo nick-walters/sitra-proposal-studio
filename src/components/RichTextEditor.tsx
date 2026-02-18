@@ -429,7 +429,7 @@ export function FormattingToolbar({
 
   return (
     <div className="editor-toolbar border-b border-border bg-card px-2 py-1">
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center gap-0">
         {/* Undo Redo */}
         <ToolbarButton 
           icon={<Undo className="w-4 h-4" />} 
@@ -481,7 +481,7 @@ export function FormattingToolbar({
           </TooltipContent>
         </Tooltip>
         <ToolbarButton
-          icon={<Italic className="w-4 h-4" />} 
+          icon={<Italic className="w-3.5 h-3.5" />} 
           tooltip="Italic (Ctrl+I)"
           onClick={() => editor.chain().focus().toggleItalic().run()}
           active={editor.isActive('italic')}
