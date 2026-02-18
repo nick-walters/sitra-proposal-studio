@@ -923,7 +923,9 @@ export function DocumentEditor({
                   </DropdownMenuItem>
                   {acronymSegments && acronymSegments.length > 0 && (
                     <DropdownMenuItem onClick={handleInsertAcronymRef} className="flex items-center gap-0">
-                      <span className="w-7 flex justify-center shrink-0" style={{ fontFamily: "'Times New Roman', Times, serif", fontWeight: 700, fontSize: '8px' }}>AC</span>
+                      <span className="w-7 flex justify-center shrink-0" style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900, fontSize: '8px' }}>
+                        <span style={{ color: '#e11d48' }}>A</span><span style={{ color: '#2563eb' }}>B</span>
+                      </span>
                       <span>Acronym</span>
                     </DropdownMenuItem>
                   )}
@@ -958,7 +960,9 @@ export function DocumentEditor({
                     <span>Milestone</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setIsCaseRefOpen(true)} className="flex items-center gap-0">
-                    <span className="w-7 flex justify-center shrink-0"><Layers className="w-3.5 h-3.5 text-muted-foreground" /></span>
+                    <span className="w-7 flex justify-center shrink-0">
+                      <span className="inline-flex items-center justify-center h-[14px] px-[4px] rounded-full border-[1.2px] border-foreground/80 bg-background" style={{ fontFamily: "'Times New Roman', Times, serif", fontWeight: 700, fontSize: '8px', lineHeight: '14px' }}>C</span>
+                    </span>
                     <span>Case</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setIsParticipantRefOpen(true)} className="flex items-center gap-0">
