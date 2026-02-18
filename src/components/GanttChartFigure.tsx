@@ -17,7 +17,7 @@ interface Task {
   name: string;
   startMonth: number;
   endMonth: number;
-  deliverables?: { number: string; month: number }[];
+  deliverables?: { number: string; name: string; month: number }[];
   milestones?: { number: number; name: string; month: number }[];
 }
 
@@ -102,7 +102,7 @@ export function GanttChartFigure({
           .order('order_index'),
         supabase
           .from('b31_deliverables')
-          .select('id, wp_number, number, due_month, task_id')
+          .select('id, wp_number, number, name, due_month, task_id')
           .eq('proposal_id', proposalId),
         supabase
           .from('b31_milestones')
@@ -154,7 +154,7 @@ export function GanttChartFigure({
             endMonth: t.end_month!,
             deliverables: wpDeliverables
               .filter(d => d.task_id === t.id && d.due_month != null)
-              .map(d => ({ number: d.number, month: d.due_month! })),
+              .map(d => ({ number: d.number, name: d.name, month: d.due_month! })),
             milestones: msRows
               .filter(m => m.task_id === t.id && m.due_month != null)
               .map(m => ({ number: m.number, name: m.name, month: m.due_month! })),
@@ -393,7 +393,7 @@ export function GanttChartFigure({
                 {wp.tasks.map((task, taskIdx) => {
                   // Pre-compute bubble positions for this task
                   const taskBubbles: { month: number; label: string; color: string; tooltipTitle: string; type: 'del' | 'ms'; sortNum: string }[] = [];
-                  task.deliverables?.forEach(d => taskBubbles.push({ month: d.month, label: `D${d.number.replace(/^D/, '')}`, color: wpColor, tooltipTitle: `Deliverable D${d.number}`, type: 'del', sortNum: d.number }));
+                  task.deliverables?.forEach(d => taskBubbles.push({ month: d.month, label: `D${d.number.replace(/^D/, '')}`, color: wpColor, tooltipTitle: `D${d.number.replace(/^D/, '')}: ${d.name}`, type: 'del', sortNum: d.number }));
                   task.milestones?.forEach(ms => taskBubbles.push({ month: ms.month, label: `${ms.number}`, color: '#000000', tooltipTitle: `MS${ms.number}: ${ms.name}`, type: 'ms', sortNum: String(ms.number) }));
 
                   // Sort: by month, D before MS at same month, then numerically
