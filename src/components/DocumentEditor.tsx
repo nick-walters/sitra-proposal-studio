@@ -2,13 +2,7 @@ import { Section } from "@/types/proposal";
 import DOMPurify from "dompurify";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, BookOpen, Route, History, Info, Image, Link2, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search, GitCompare, Keyboard, Wand2, FileCode, SplitSquareHorizontal, Layers, Building2, FlaskConical, Check, ChevronDown } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Sparkles, BookOpen, Route, History, Info, Image, Link2, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search, GitCompare, Keyboard, Wand2, FileCode, SplitSquareHorizontal, Layers, Building2, FlaskConical, Check } from "lucide-react";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
 import {
@@ -22,7 +16,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { EditorContent } from "@tiptap/react";
-import { GrammarChecker } from "./GrammarChecker";
+
 import { CitationDialog } from "./CitationDialog";
 import { InsertFigureDialog } from "./InsertFigureDialog";
 import { InsertCrossReferenceDialog } from "./InsertCrossReferenceDialog";
@@ -115,7 +109,6 @@ export function DocumentEditor({
   acronymSegments,
 }: DocumentEditorProps) {
   const { user } = useAuth();
-  const [isGrammarOpen, setIsGrammarOpen] = useState(false);
   const [isCitationOpen, setIsCitationOpen] = useState(false);
   const [isFigureDialogOpen, setIsFigureDialogOpen] = useState(false);
   const [isCrossRefOpen, setIsCrossRefOpen] = useState(false);
@@ -730,30 +723,16 @@ export function DocumentEditor({
               
               <Separator orientation="vertical" className="h-4 mx-1" />
               
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="h-6 px-2 text-xs gap-1"
-                    disabled={!editor || isEffectivelyReadOnly}
-                  >
-                    <Wand2 className="w-3 h-3" />
-                    AI tools
-                    <ChevronDown className="w-3 h-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  <DropdownMenuItem onClick={() => setIsGrammarOpen(true)}>
-                    <Sparkles className="w-3.5 h-3.5 mr-2" />
-                    Grammar check
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsWritingAssistantOpen(true)}>
-                    <Wand2 className="w-3.5 h-3.5 mr-2" />
-                    Writing assistant
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-6 px-2 text-xs gap-1"
+                onClick={() => setIsWritingAssistantOpen(true)}
+                disabled={!editor || isEffectivelyReadOnly}
+              >
+                <Wand2 className="w-3 h-3" />
+                AI tools
+              </Button>
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -1304,12 +1283,7 @@ export function DocumentEditor({
       </div>
 
       {/* Dialogs */}
-      <GrammarChecker
-        text={plainText}
-        onApplySuggestion={handleApplyGrammarSuggestion}
-        isOpen={isGrammarOpen}
-        onClose={() => setIsGrammarOpen(false)}
-      />
+      {/* GrammarChecker removed - now integrated into WritingAssistantDialog */}
       <CitationDialog
         isOpen={isCitationOpen}
         onClose={() => setIsCitationOpen(false)}
@@ -1412,6 +1386,8 @@ export function DocumentEditor({
         isOpen={isWritingAssistantOpen}
         onClose={() => setIsWritingAssistantOpen(false)}
         selectedText={selectedText}
+        plainText={plainText}
+        onApplyGrammarSuggestion={handleApplyGrammarSuggestion}
         onApply={(newText) => {
           if (editor && selectionRange) {
             // When AI assistant applies changes, add as tracked change with "AI Assistant" as author
@@ -1448,7 +1424,6 @@ export function DocumentEditor({
               .run();
             
             // If track changes is enabled, the insertion will be automatically tracked
-            // but we need to update the last change to be attributed to AI
             const postStorage = (editor.storage as any)?.trackChanges;
             if (trackChangesEnabled && postStorage) {
               const lastChange = postStorage.changes[postStorage.changes.length - 1];
