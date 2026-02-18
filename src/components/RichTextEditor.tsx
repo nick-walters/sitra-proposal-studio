@@ -12,6 +12,7 @@ import { ResizableImage } from './ResizableImage';
 import { ImageCropDialog } from './ImageCropDialog';
 import { createCitationTooltipPlugin } from './CitationMark';
 import { BlockReordering } from '@/extensions/BlockReordering';
+import { TableAutoResizeButton } from '@/extensions/TableAutoResizeButton';
 import { BlockDragHandle } from '@/extensions/BlockDragHandle';
 import { TrackChanges, TrackChangesOptions } from '@/extensions/TrackChanges';
 import { TableFormula } from '@/extensions/TableFormula';
@@ -859,6 +860,7 @@ export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootn
         },
       }),
       BlockReordering,
+      TableAutoResizeButton,
       WPReferenceMark,
       CaseReferenceMark,
       AcronymReference,
@@ -1005,6 +1007,7 @@ export function useRichTextEditor({
       }),
       // Block reordering via keyboard shortcuts (Ctrl+Shift+↑/↓)
       BlockReordering,
+      TableAutoResizeButton,
       // WP reference marks for inline WP badges
       WPReferenceMark,
       // Participant reference marks for inline partner badges

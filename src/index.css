@@ -518,6 +518,11 @@
   word-wrap: break-word;
 }
 
+/* Remove bottom border from last row cells */
+.ProseMirror table tr:last-child td {
+  border-bottom: none !important;
+}
+
 .ProseMirror table th p,
 .ProseMirror table td p {
   margin: 0 !important;
@@ -565,6 +570,32 @@
 /* Also target table margin directly */
 .ProseMirror table {
   margin-top: 0 !important;
+}
+
+/* Auto-resize button bar above tables */
+.table-auto-resize-bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 0 2px 0;
+  user-select: none;
+}
+
+.table-auto-resize-btn {
+  font-size: 11px;
+  line-height: 1;
+  padding: 2px 8px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 4px;
+  background: hsl(var(--background));
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.table-auto-resize-btn:hover {
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
 }
 
 /* Paragraph spacing in ProseMirror - left aligned at 1.5cm margin, no indent */
