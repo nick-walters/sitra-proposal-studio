@@ -36,6 +36,7 @@ import { useSectionAssignment } from "@/hooks/useSectionAssignment";
 import { useCollaborativeCursors } from "@/hooks/useCollaborativeCursors";
 import { useBlockLocking } from "@/hooks/useBlockLocking";
 import { renumberFootnotes } from "@/lib/captionRenumbering";
+import { syncCrossReferences } from "@/lib/syncCrossReferences";
 import { useProposalReferences } from "@/hooks/useProposalReferences";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -314,6 +315,15 @@ export function DocumentEditor({
     },
   });
 
+  // Sync cross-references when editor content loads or section changes
+  useEffect(() => {
+    if (!editor || !proposalId || loading) return;
+    const timer = setTimeout(() => {
+      syncCrossReferences(editor, proposalId);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [editor, proposalId, section?.id, loading]);
+
   // Block locking hook - needs editor for position tracking
   const {
     blockLocks,
@@ -551,27 +561,30 @@ export function DocumentEditor({
   }, [editor, acronymSegments]);
 
   // Handle Task reference insertion - pill bubble
-  const handleInsertTaskRef = useCallback((task: { wp_number: number; number: number; title: string }) => {
+  const handleInsertTaskRef = useCallback((task: { id: string; wp_number: number; number: number; title: string }) => {
     if (!editor) return;
     editor.chain().focus().insertTaskReference({
       wpNumber: task.wp_number,
       taskNumber: task.number,
+      taskId: task.id,
     }).insertContent(' ').run();
   }, [editor]);
 
   // Handle Deliverable reference insertion - pentagon bubble
-  const handleInsertDeliverableRef = useCallback((del: { number: string; name: string }) => {
+  const handleInsertDeliverableRef = useCallback((del: { id: string; number: string; name: string }) => {
     if (!editor) return;
     editor.chain().focus().insertDeliverableReference({
       deliverableNumber: del.number,
+      deliverableId: del.id,
     }).insertContent(' ').run();
   }, [editor]);
 
   // Handle Milestone reference insertion - triangle bubble
-  const handleInsertMilestoneRef = useCallback((ms: { number: number; name: string }) => {
+  const handleInsertMilestoneRef = useCallback((ms: { id: string; number: number; name: string }) => {
     if (!editor) return;
     editor.chain().focus().insertMilestoneReference({
       milestoneNumber: ms.number,
+      milestoneId: ms.id,
     }).insertContent(' ').run();
   }, [editor]);
 
