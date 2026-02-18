@@ -1,24 +1,66 @@
 
+# Fix: Cross-Reference Cursor Focus and Formatting Reset
 
-## Fix: Case Cross-Reference Not Working
+## Root Cause
 
-### Root Cause
+Both the `insertFigureTableReference` and `insertAcronymReference` commands use `commands.insertContent()` inside their command definitions. In TipTap, `commands.insertContent()` dispatches the transaction immediately, which **breaks the chain**. This means everything after the command in the chain -- `.insertContent(' ').unsetBold().unsetItalic().run()` -- silently never executes.
 
-The `CaseReferenceMark` extension is registered in two places in `RichTextEditor.tsx`:
-1. The `FormattingToolbar` component's internal editor (around line 893) -- this is only used for the toolbar's own preview editor, not the main document editor.
-2. The `useRichTextEditor` hook (around line 1039-1045) -- this is the **actual editor instance** used by `DocumentEditor`.
+- For figure/table refs: the reference inserts, but the trailing space and format reset are lost, so typing continues in bold italic.
+- For acronym refs: the reference inserts, but focus is never restored (`.focus()` ran before, but the immediate dispatch resets the editor state).
 
-**The problem:** `CaseReferenceMark` is missing from the `useRichTextEditor` hook's extensions list. It appears after `WPReferenceMark` in the toolbar editor but was never added to the hook. Without the extension registered, the `insertCaseReference` command simply doesn't exist on the editor, so clicking a case in the dialog silently fails.
+## Fix
 
-### Fix (1 file, 1 line)
+### 1. Rewrite `insertFigureTableReference` command (src/extensions/FigureTableReferenceMark.ts)
 
-**`src/components/RichTextEditor.tsx`** -- Add `CaseReferenceMark` to the extensions array inside the `useRichTextEditor` hook, right after `WPReferenceMark` (around line 1041):
+Change from `commands.insertContent()` to direct transaction manipulation so it participates in the chain:
 
+```ts
+insertFigureTableReference:
+  ({ refText }) =>
+  ({ tr, dispatch, editor }) => {
+    if (dispatch) {
+      const mark = editor.schema.marks.figureTableReference.create();
+      const textNode = editor.schema.text(refText, [mark]);
+      tr.replaceSelectionWith(textNode, false);
+    }
+    return true;
+  },
 ```
-WPReferenceMark,
-CaseReferenceMark,          // <-- add this line
-ParticipantReferenceMark,
+
+### 2. Rewrite `insertAcronymReference` command (src/extensions/AcronymReference.ts)
+
+Same fix -- use direct transaction manipulation:
+
+```ts
+insertAcronymReference:
+  (attributes) =>
+  ({ tr, dispatch }) => {
+    if (dispatch) {
+      const node = this.type.create(attributes);
+      tr.replaceSelectionWith(node);
+    }
+    return true;
+  },
 ```
 
-No other changes are needed. The import already exists at the top of the file.
+### 3. Add `unsetMark('figureTableReference')` to the chain (src/components/DocumentEditor.tsx)
 
+The `figureTableReference` mark can bleed into the trailing space even after the chain fix. Update the cross-ref handler to also remove that mark:
+
+```ts
+editor.chain().focus()
+  .insertFigureTableReference({ refText })
+  .insertContent(' ')
+  .unsetMark('figureTableReference')
+  .unsetBold()
+  .unsetItalic()
+  .run();
+```
+
+### Summary of file changes
+
+| File | Change |
+|------|--------|
+| `src/extensions/FigureTableReferenceMark.ts` | Rewrite command to use `tr` directly |
+| `src/extensions/AcronymReference.ts` | Rewrite command to use `tr` directly |
+| `src/components/DocumentEditor.tsx` | Add `.unsetMark('figureTableReference')` to cross-ref handler chain |
