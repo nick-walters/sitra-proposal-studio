@@ -902,3 +902,9 @@
 .overflow-auto {
   -webkit-overflow-scrolling: touch;
 }
+
+/* Global: all trash/delete icons are destructive red */
+.lucide-trash-2,
+.lucide-trash {
+  color: hsl(var(--destructive));
+}
