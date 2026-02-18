@@ -576,7 +576,7 @@ export function GanttChartFigure({
                                     style={{
                                       position: 'absolute',
                                       top: 0,
-                                      left: isRight ? 0 : pointDepth,
+                                      left: (isRight ? 0 : pointDepth) + (isDel ? 1 : 0),
                                       width: b.bodyW,
                                       height: bH,
                                       display: 'flex',
