@@ -41,6 +41,12 @@ import { useProposalReferences } from "@/hooks/useProposalReferences";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format, isPast, isToday, differenceInDays } from "date-fns";
@@ -164,6 +170,10 @@ export function DocumentEditor({
   const [isWPRefOpen, setIsWPRefOpen] = useState(false);
   const [isParticipantRefOpen, setIsParticipantRefOpen] = useState(false);
   const [isCaseRefOpen, setIsCaseRefOpen] = useState(false);
+  const [crossRefFilterType, setCrossRefFilterType] = useState<'figure' | 'table' | undefined>(undefined);
+  const [isTaskRefOpen, setIsTaskRefOpen] = useState(false);
+  const [isDeliverableRefOpen, setIsDeliverableRefOpen] = useState(false);
+  const [isMilestoneRefOpen, setIsMilestoneRefOpen] = useState(false);
   
   // Editor container ref for cursor overlays
   const editorContainerRef = useRef<HTMLDivElement>(null);
@@ -823,140 +833,63 @@ export function DocumentEditor({
             {section && !section.isPartA && (
               <>
                 <Separator orientation="vertical" className="h-4 mx-1" />
-                <span className="text-xs font-bold text-foreground mr-1">Cross-ref:</span>
-                <Tooltip>
-                  <TooltipTrigger asChild>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-6 px-2 text-xs gap-0.5"
-                      onClick={() => setIsCrossRefOpen(true)}
+                      className="h-6 px-2 text-xs gap-1"
                       disabled={isEffectivelyReadOnly}
                     >
-                      <span
-                        className="font-bold italic"
-                        style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '8pt' }}
-                      >
-                        Figure/Table
-                      </span>
+                      Insert cross-ref
                     </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Insert Figure/Table Cross-Reference</TooltipContent>
-                </Tooltip>
-                
-                {acronymSegments && acronymSegments.length > 0 && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-6 px-2 text-xs gap-0"
-                        onClick={handleInsertAcronymRef}
-                        disabled={isEffectivelyReadOnly}
-                        style={{ fontFamily: '"Arial Black", Arial, sans-serif', fontWeight: 900, fontSize: '10px' }}
-                      >
-                        {acronymSegments.map((seg, i) => (
-                          <span key={i} style={{ color: seg.color }}>{seg.text}</span>
-                        ))}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Insert Colored Acronym</TooltipContent>
-                  </Tooltip>
-                )}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-6 px-1.5 text-xs gap-0.5"
-                      onClick={() => setIsWPRefOpen(true)}
-                      disabled={isEffectivelyReadOnly}
-                    >
-                      <span
-                        className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-                        style={{
-                          backgroundColor: '#000000',
-                          color: '#ffffff',
-                          fontFamily: "'Times New Roman', Times, serif",
-                          fontSize: '7pt',
-                          fontWeight: 700,
-                          lineHeight: 1,
-                          padding: '1px 4px',
-                          height: '13px',
-                        }}
-                      >
-                        WP
-                      </span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Insert WP Reference</TooltipContent>
-                </Tooltip>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-48 bg-popover z-50">
+                    <DropdownMenuItem onClick={() => { setCrossRefFilterType('figure'); setIsCrossRefOpen(true); }}>
+                      Figure
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { setCrossRefFilterType('table'); setIsCrossRefOpen(true); }}>
+                      Table
+                    </DropdownMenuItem>
+                    {acronymSegments && acronymSegments.length > 0 && (
+                      <DropdownMenuItem onClick={handleInsertAcronymRef}>
+                        Acronym
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem onClick={() => setIsWPRefOpen(true)}>
+                      Work Package
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setIsTaskRefOpen(true)}>
+                      Task
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setIsDeliverableRefOpen(true)}>
+                      Deliverable
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setIsMilestoneRefOpen(true)}>
+                      Milestone
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setIsCaseRefOpen(true)}>
+                      Case
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setIsParticipantRefOpen(true)}>
+                      Participant
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <InsertTDMSReferenceDropdowns
                   proposalId={proposalId}
                   disabled={isEffectivelyReadOnly}
                   onInsertTask={handleInsertTaskRef}
                   onInsertDeliverable={handleInsertDeliverableRef}
                   onInsertMilestone={handleInsertMilestoneRef}
-                  variant="outline"
+                  dialogsOnly
+                  openTask={isTaskRefOpen}
+                  onOpenTaskChange={setIsTaskRefOpen}
+                  openDeliverable={isDeliverableRefOpen}
+                  onOpenDeliverableChange={setIsDeliverableRefOpen}
+                  openMilestone={isMilestoneRefOpen}
+                  onOpenMilestoneChange={setIsMilestoneRefOpen}
                 />
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-6 px-1.5 text-xs gap-0.5"
-                      onClick={() => setIsCaseRefOpen(true)}
-                      disabled={isEffectivelyReadOnly}
-                    >
-                      <span
-                        className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-                        style={{
-                          backgroundColor: '#ffffff',
-                          color: '#000000',
-                          border: '1.5px solid #000',
-                          fontFamily: "'Times New Roman', Times, serif",
-                          fontSize: '7pt',
-                          fontWeight: 700,
-                          lineHeight: 1,
-                          padding: '1px 4px',
-                          height: '13px',
-                        }}
-                      >
-                        Case
-                      </span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Insert Case Reference</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-6 px-1.5 text-xs gap-0.5"
-                      onClick={() => setIsParticipantRefOpen(true)}
-                      disabled={isEffectivelyReadOnly}
-                    >
-                      <span
-                        className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-                        style={{
-                          backgroundColor: '#000000',
-                          color: '#ffffff',
-                          border: '1.5px solid #000',
-                          fontFamily: "'Times New Roman', Times, serif",
-                          fontSize: '7pt',
-                          fontWeight: 700,
-                          lineHeight: 1,
-                          padding: '1px 4px',
-                          height: '13px',
-                        }}
-                      >
-                        Participant
-                      </span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Insert Participant Reference</TooltipContent>
-                </Tooltip>
               </>
             )}
           </div>
@@ -1376,10 +1309,11 @@ export function DocumentEditor({
       />
       <InsertCrossReferenceDialog
         isOpen={isCrossRefOpen}
-        onClose={() => setIsCrossRefOpen(false)}
+        onClose={() => { setIsCrossRefOpen(false); setCrossRefFilterType(undefined); }}
         proposalId={proposalId || ''}
         sectionNumber={section?.number || ''}
         onInsert={handleInsertCrossRef}
+        filterType={crossRefFilterType}
       />
       <InsertWPReferenceDialog
         open={isWPRefOpen}

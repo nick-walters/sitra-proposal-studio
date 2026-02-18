@@ -25,6 +25,7 @@ interface InsertCrossReferenceDialogProps {
   proposalId: string;
   sectionNumber: string;
   onInsert: (reference: string) => void;
+  filterType?: 'figure' | 'table';
 }
 
 function extractRefsFromContent(html: string): { figures: CrossReferenceItem[]; tables: CrossReferenceItem[] } {
@@ -67,6 +68,7 @@ export function InsertCrossReferenceDialog({
   proposalId,
   sectionNumber,
   onInsert,
+  filterType,
 }: InsertCrossReferenceDialogProps) {
   const [figures, setFigures] = useState<CrossReferenceItem[]>([]);
   const [tables, setTables] = useState<CrossReferenceItem[]>([]);
@@ -215,47 +217,56 @@ export function InsertCrossReferenceDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <span className="font-bold italic" style={{ fontFamily: "'Times New Roman', Times, serif" }}>Figure/Table</span>
+            <span className="font-bold italic" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
+              {filterType === 'figure' ? 'Figure' : filterType === 'table' ? 'Table' : 'Figure/Table'}
+            </span>
             Cross-Reference
           </DialogTitle>
           <DialogDescription>
-            Select a figure or table to insert as an inline cross-reference.
+            Select a {filterType || 'figure or table'} to insert as an inline cross-reference.
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="all">
-              All ({figures.length + tables.length})
-            </TabsTrigger>
-            <TabsTrigger value="figures" className="gap-1">
-              <Image className="w-3.5 h-3.5" />
-              Figures ({figures.length})
-            </TabsTrigger>
-            <TabsTrigger value="tables" className="gap-1">
-              <Table2 className="w-3.5 h-3.5" />
-              Tables ({tables.length})
-            </TabsTrigger>
-          </TabsList>
+        {filterType ? (
+          renderItems(
+            filterType === 'figure' ? figures : tables,
+            `No ${filterType}s found in this proposal.`
+          )
+        ) : (
+          <Tabs defaultValue="all" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="all">
+                All ({figures.length + tables.length})
+              </TabsTrigger>
+              <TabsTrigger value="figures" className="gap-1">
+                <Image className="w-3.5 h-3.5" />
+                Figures ({figures.length})
+              </TabsTrigger>
+              <TabsTrigger value="tables" className="gap-1">
+                <Table2 className="w-3.5 h-3.5" />
+                Tables ({tables.length})
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="all">
-            {renderItems(
-              [...figures, ...tables].sort((a, b) => {
-                if (a.type !== b.type) return a.type === 'figure' ? -1 : 1;
-                return a.label.localeCompare(b.label);
-              }),
-              'No figures or tables found in this proposal.'
-            )}
-          </TabsContent>
+            <TabsContent value="all">
+              {renderItems(
+                [...figures, ...tables].sort((a, b) => {
+                  if (a.type !== b.type) return a.type === 'figure' ? -1 : 1;
+                  return a.label.localeCompare(b.label);
+                }),
+                'No figures or tables found in this proposal.'
+              )}
+            </TabsContent>
 
-          <TabsContent value="figures">
-            {renderItems(figures, 'No figures found in this proposal.')}
-          </TabsContent>
+            <TabsContent value="figures">
+              {renderItems(figures, 'No figures found in this proposal.')}
+            </TabsContent>
 
-          <TabsContent value="tables">
-            {renderItems(tables, 'No tables found in this proposal.')}
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="tables">
+              {renderItems(tables, 'No tables found in this proposal.')}
+            </TabsContent>
+          </Tabs>
+        )}
       </DialogContent>
     </Dialog>
   );

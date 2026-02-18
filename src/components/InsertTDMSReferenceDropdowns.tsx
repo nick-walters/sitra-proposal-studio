@@ -44,6 +44,15 @@ interface InsertTDMSReferenceDropdownsProps {
   onInsertMilestone: (milestone: Milestone) => void;
   variant?: 'outline' | 'ghost';
   size?: 'sm' | 'default';
+  /** When true, only renders dialogs (no toolbar buttons) */
+  dialogsOnly?: boolean;
+  /** Externally controlled dialog opens */
+  openTask?: boolean;
+  onOpenTaskChange?: (open: boolean) => void;
+  openDeliverable?: boolean;
+  onOpenDeliverableChange?: (open: boolean) => void;
+  openMilestone?: boolean;
+  onOpenMilestoneChange?: (open: boolean) => void;
 }
 
 // Miniature bubble helpers for toolbar buttons
@@ -160,13 +169,27 @@ export function InsertTDMSReferenceDropdowns({
   onInsertMilestone,
   variant = 'outline',
   size = 'sm',
+  dialogsOnly = false,
+  openTask: externalOpenTask,
+  onOpenTaskChange,
+  openDeliverable: externalOpenDeliverable,
+  onOpenDeliverableChange,
+  openMilestone: externalOpenMilestone,
+  onOpenMilestoneChange,
 }: InsertTDMSReferenceDropdownsProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
-  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
-  const [deliverableDialogOpen, setDeliverableDialogOpen] = useState(false);
-  const [milestoneDialogOpen, setMilestoneDialogOpen] = useState(false);
+  const [_taskDialogOpen, _setTaskDialogOpen] = useState(false);
+  const [_deliverableDialogOpen, _setDeliverableDialogOpen] = useState(false);
+  const [_milestoneDialogOpen, _setMilestoneDialogOpen] = useState(false);
+  
+  const taskDialogOpen = externalOpenTask !== undefined ? externalOpenTask : _taskDialogOpen;
+  const setTaskDialogOpen = onOpenTaskChange || _setTaskDialogOpen;
+  const deliverableDialogOpen = externalOpenDeliverable !== undefined ? externalOpenDeliverable : _deliverableDialogOpen;
+  const setDeliverableDialogOpen = onOpenDeliverableChange || _setDeliverableDialogOpen;
+  const milestoneDialogOpen = externalOpenMilestone !== undefined ? externalOpenMilestone : _milestoneDialogOpen;
+  const setMilestoneDialogOpen = onOpenMilestoneChange || _setMilestoneDialogOpen;
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -255,53 +278,57 @@ export function InsertTDMSReferenceDropdowns({
 
   return (
     <>
-      {/* Task button */}
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant={variant}
-            size={size}
-            className={buttonClass}
-            disabled={disabled}
-            onClick={() => setTaskDialogOpen(true)}
-          >
-            <BubblePill text="T" bg="#ffffff" fg="#000" border="#000" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>Insert Task Reference</TooltipContent>
-      </Tooltip>
+      {!dialogsOnly && (
+        <>
+          {/* Task button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={variant}
+                size={size}
+                className={buttonClass}
+                disabled={disabled}
+                onClick={() => setTaskDialogOpen(true)}
+              >
+                <BubblePill text="T" bg="#ffffff" fg="#000" border="#000" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Insert Task Reference</TooltipContent>
+          </Tooltip>
 
-      {/* Deliverable button */}
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant={variant}
-            size={size}
-            className={buttonClass}
-            disabled={disabled}
-            onClick={() => setDeliverableDialogOpen(true)}
-          >
-            <MiniPentagon text="D" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>Insert Deliverable Reference</TooltipContent>
-      </Tooltip>
+          {/* Deliverable button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={variant}
+                size={size}
+                className={buttonClass}
+                disabled={disabled}
+                onClick={() => setDeliverableDialogOpen(true)}
+              >
+                <MiniPentagon text="D" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Insert Deliverable Reference</TooltipContent>
+          </Tooltip>
 
-      {/* Milestone button */}
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant={variant}
-            size={size}
-            className={buttonClass}
-            disabled={disabled}
-            onClick={() => setMilestoneDialogOpen(true)}
-          >
-            <MiniTriangle text="MS" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>Insert Milestone Reference</TooltipContent>
-      </Tooltip>
+          {/* Milestone button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={variant}
+                size={size}
+                className={buttonClass}
+                disabled={disabled}
+                onClick={() => setMilestoneDialogOpen(true)}
+              >
+                <MiniTriangle text="MS" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Insert Milestone Reference</TooltipContent>
+          </Tooltip>
+        </>
+      )}
 
       {/* Task Dialog */}
       <Dialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen}>
