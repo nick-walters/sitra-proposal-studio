@@ -303,7 +303,7 @@ export function GanttChartFigure({
                 Year
               </div>
               <div className={`flex items-center justify-end ${headerLabelStyle}`} style={{ height: 18, padding: '0 2px' }}>
-                Month
+                Quarter
               </div>
             </div>
             {/* Grid column with outer border - shifted left with gap on right */}
@@ -350,7 +350,7 @@ export function GanttChartFigure({
                       className="flex items-center justify-center"
                       style={{ width: cellWidth * count, height: 18, padding: 0, borderLeft: leftBorderColor ? `1px solid ${leftBorderColor}` : undefined }}
                     >
-                      <span style={{ fontSize: '9pt' }}>{startM}-{endM}</span>
+                      <span style={{ fontSize: '11pt' }}>Q{(qi % 4) + 1}</span>
                     </div>
                   );
                 })}
