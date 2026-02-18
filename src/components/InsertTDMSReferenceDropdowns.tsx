@@ -46,15 +46,15 @@ interface InsertTDMSReferenceDropdownsProps {
   size?: 'sm' | 'default';
 }
 
-// Miniature bubble for Task button
-function TaskBubbleButton() {
+// Miniature bubble helpers for toolbar buttons
+function BubblePill({ text, bg, fg, border }: { text: string; bg: string; fg: string; border?: string }) {
   return (
     <span
       className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
       style={{
-        backgroundColor: '#ffffff',
-        color: '#000000',
-        border: '1.5px solid #000',
+        backgroundColor: bg,
+        color: fg,
+        border: border ? `1.5px solid ${border}` : undefined,
         fontFamily: "'Times New Roman', Times, serif",
         fontSize: '7pt',
         fontWeight: 700,
@@ -63,47 +63,47 @@ function TaskBubbleButton() {
         height: '13px',
       }}
     >
-      TX.X
+      {text}
     </span>
   );
 }
 
-// Miniature pentagon for Deliverable button
-function DeliverableBubbleButton() {
+function MiniPentagon({ text }: { text: string }) {
+  const w = Math.max(24, text.length * 5 + 10);
+  const tw = w - 6;
   return (
-    <span style={{ display: 'inline-block', verticalAlign: 'middle', position: 'relative', width: 40, height: 13 }}>
-      <svg width={40} height={13} viewBox="0 0 40 13" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
-        <path d="M 0,0 L 32,0 L 40,6.5 L 32,13 L 0,13 Z" fill="#ffffff" stroke="#000" strokeWidth={1.2} strokeLinejoin="round" />
+    <span style={{ display: 'inline-block', verticalAlign: 'middle', position: 'relative', width: w, height: 13 }}>
+      <svg width={w} height={13} viewBox={`0 0 ${w} 13`} style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
+        <path d={`M 0,0 L ${tw},0 L ${w},6.5 L ${tw},13 L 0,13 Z`} fill="#ffffff" stroke="#000" strokeWidth={1.2} strokeLinejoin="round" />
       </svg>
-      <span style={{ position: 'absolute', top: 0, left: 0, width: 32, height: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '7pt', fontWeight: 700, lineHeight: 1, color: '#000', whiteSpace: 'nowrap' }}>
-        DX.X
+      <span style={{ position: 'absolute', top: 0, left: 0, width: tw, height: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '7pt', fontWeight: 700, lineHeight: 1, color: '#000', whiteSpace: 'nowrap' }}>
+        {text}
       </span>
     </span>
   );
 }
 
-// Miniature triangle for Milestone button
-function MilestoneBubbleButton() {
+function MiniTriangle({ text }: { text: string }) {
   return (
     <span style={{ display: 'inline-block', verticalAlign: 'middle', position: 'relative', width: 19, height: 17 }}>
       <svg width={19} height={17} viewBox="0 0 19 17" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
         <path d="M 0,0 L 19,8.5 L 0,17 Z" fill="#000000" />
       </svg>
       <span style={{ position: 'absolute', top: 0, left: -1, width: 13, height: 17, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '7pt', fontWeight: 700, lineHeight: 1, color: '#ffffff', letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}>
-        X
+        {text}
       </span>
     </span>
   );
 }
 
-// Task pill bubble for dialog items
+// Dialog item bubbles (larger)
 function TaskPill({ label, color }: { label: string; color?: string }) {
   return (
     <span
       className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap shrink-0"
       style={{
         backgroundColor: '#ffffff',
-        color: '#000000',
+        color: color || '#000',
         border: `1.5px solid ${color || '#000'}`,
         fontFamily: "'Times New Roman', Times, serif",
         fontSize: '9pt',
@@ -118,7 +118,6 @@ function TaskPill({ label, color }: { label: string; color?: string }) {
   );
 }
 
-// Deliverable pentagon bubble for dialog items
 function DeliverablePentagon({ label, color }: { label: string; color?: string }) {
   const textWidth = Math.max(32, label.length * 7 + 8);
   const totalWidth = textWidth + 8;
@@ -128,14 +127,13 @@ function DeliverablePentagon({ label, color }: { label: string; color?: string }
       <svg width={totalWidth} height={17} viewBox={`0 0 ${totalWidth} 17`} style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
         <path d={`M 0,0 L ${textWidth},0 L ${totalWidth},8.5 L ${textWidth},17 L 0,17 Z`} fill="#ffffff" stroke={stroke} strokeWidth={1.5} strokeLinejoin="round" />
       </svg>
-      <span style={{ position: 'absolute', top: 0, left: 0, width: textWidth, height: 17, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '9pt', fontWeight: 700, lineHeight: 1, color: '#000', whiteSpace: 'nowrap' }}>
+      <span style={{ position: 'absolute', top: 0, left: 0, width: textWidth, height: 17, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '9pt', fontWeight: 700, lineHeight: 1, color: color || '#000', whiteSpace: 'nowrap' }}>
         {label}
       </span>
     </span>
   );
 }
 
-// Milestone triangle bubble for dialog items
 function MilestoneTriangle({ number }: { number: number }) {
   return (
     <span className="shrink-0" style={{ display: 'inline-block', verticalAlign: 'middle', position: 'relative', width: 21, height: 21 }}>
@@ -171,7 +169,6 @@ export function InsertTDMSReferenceDropdowns({
 
     const fetchData = async () => {
       setLoading(true);
-      // Fetch tasks with WP info including color
       const { data: wpDrafts } = await supabase
         .from('wp_drafts')
         .select('id, number, short_name, color')
@@ -208,7 +205,6 @@ export function InsertTDMSReferenceDropdowns({
         setTasks(allTasks);
       }
 
-      // Fetch deliverables
       const { data: dels } = await supabase
         .from('b31_deliverables')
         .select('id, number, name, wp_number')
@@ -221,7 +217,6 @@ export function InsertTDMSReferenceDropdowns({
         })));
       }
 
-      // Fetch milestones
       const { data: mss } = await supabase
         .from('b31_milestones')
         .select('id, number, name')
@@ -265,7 +260,7 @@ export function InsertTDMSReferenceDropdowns({
             disabled={disabled}
             onClick={() => setTaskDialogOpen(true)}
           >
-            <TaskBubbleButton />
+            <BubblePill text="T" bg="#ffffff" fg="#000" border="#000" />
           </Button>
         </TooltipTrigger>
         <TooltipContent>Insert Task Reference</TooltipContent>
@@ -281,7 +276,7 @@ export function InsertTDMSReferenceDropdowns({
             disabled={disabled}
             onClick={() => setDeliverableDialogOpen(true)}
           >
-            <DeliverableBubbleButton />
+            <MiniPentagon text="D" />
           </Button>
         </TooltipTrigger>
         <TooltipContent>Insert Deliverable Reference</TooltipContent>
@@ -297,7 +292,7 @@ export function InsertTDMSReferenceDropdowns({
             disabled={disabled}
             onClick={() => setMilestoneDialogOpen(true)}
           >
-            <MilestoneBubbleButton />
+            <MiniTriangle text="MS" />
           </Button>
         </TooltipTrigger>
         <TooltipContent>Insert Milestone Reference</TooltipContent>
@@ -319,7 +314,7 @@ export function InsertTDMSReferenceDropdowns({
             {loading ? (
               <div className="space-y-2 p-2">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-12 bg-muted animate-pulse rounded" />
+                  <div key={i} className="h-10 bg-muted animate-pulse rounded" />
                 ))}
               </div>
             ) : tasks.length === 0 ? (
@@ -327,25 +322,18 @@ export function InsertTDMSReferenceDropdowns({
                 No tasks found. Add tasks to your work packages first.
               </div>
             ) : (
-              <div className="space-y-1 p-1">
+              <div className="p-1">
                 {tasks.map((task) => (
                   <button
                     key={task.id}
                     onClick={() => handleSelectTask(task)}
                     className={cn(
-                      "w-full flex items-center p-3 rounded-md text-left",
+                      "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left",
                       "hover:bg-muted/80 transition-colors"
                     )}
                   >
                     <TaskPill label={`T${task.wp_number}.${task.number}`} color={task.wp_color} />
-                    <div className="flex-1 min-w-0 ml-3">
-                      <div className="font-medium text-sm truncate">
-                        {task.title || '—'}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        WP{task.wp_number}{task.wp_short_name ? ` – ${task.wp_short_name}` : ''}
-                      </div>
-                    </div>
+                    <span className="text-sm truncate">{task.title || '—'}</span>
                   </button>
                 ))}
               </div>
@@ -370,7 +358,7 @@ export function InsertTDMSReferenceDropdowns({
             {loading ? (
               <div className="space-y-2 p-2">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-12 bg-muted animate-pulse rounded" />
+                  <div key={i} className="h-10 bg-muted animate-pulse rounded" />
                 ))}
               </div>
             ) : deliverables.length === 0 ? (
@@ -378,27 +366,18 @@ export function InsertTDMSReferenceDropdowns({
                 No deliverables found. Add deliverables in section 3.1 first.
               </div>
             ) : (
-              <div className="space-y-1 p-1">
+              <div className="p-1">
                 {deliverables.map((del) => (
                   <button
                     key={del.id}
                     onClick={() => handleSelectDeliverable(del)}
                     className={cn(
-                      "w-full flex items-center p-3 rounded-md text-left",
+                      "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left",
                       "hover:bg-muted/80 transition-colors"
                     )}
                   >
                     <DeliverablePentagon label={del.number} color={del.wp_color} />
-                    <div className="flex-1 min-w-0 ml-3">
-                      <div className="font-medium text-sm truncate">
-                        {del.name || '—'}
-                      </div>
-                      {del.wp_number && (
-                        <div className="text-xs text-muted-foreground">
-                          WP{del.wp_number}
-                        </div>
-                      )}
-                    </div>
+                    <span className="text-sm truncate">{del.name || '—'}</span>
                   </button>
                 ))}
               </div>
@@ -423,7 +402,7 @@ export function InsertTDMSReferenceDropdowns({
             {loading ? (
               <div className="space-y-2 p-2">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-12 bg-muted animate-pulse rounded" />
+                  <div key={i} className="h-10 bg-muted animate-pulse rounded" />
                 ))}
               </div>
             ) : milestones.length === 0 ? (
@@ -431,22 +410,18 @@ export function InsertTDMSReferenceDropdowns({
                 No milestones found. Add milestones in section 3.1 first.
               </div>
             ) : (
-              <div className="space-y-1 p-1">
+              <div className="p-1">
                 {milestones.map((ms) => (
                   <button
                     key={ms.id}
                     onClick={() => handleSelectMilestone(ms)}
                     className={cn(
-                      "w-full flex items-center p-3 rounded-md text-left",
+                      "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left",
                       "hover:bg-muted/80 transition-colors"
                     )}
                   >
                     <MilestoneTriangle number={ms.number} />
-                    <div className="flex-1 min-w-0 ml-3">
-                      <div className="font-medium text-sm truncate">
-                        {ms.name || '—'}
-                      </div>
-                    </div>
+                    <span className="text-sm truncate">{ms.name || '—'}</span>
                   </button>
                 ))}
               </div>
