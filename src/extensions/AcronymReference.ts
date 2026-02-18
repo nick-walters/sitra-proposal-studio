@@ -68,7 +68,7 @@ export const AcronymReference = Node.create<AcronymReferenceOptions>({
       font-weight: 900;
       font-size: inherit;
       white-space: nowrap;
-      user-select: none;
+      cursor: pointer;
     `.replace(/\s+/g, ' ').trim();
 
     const children = segments.map((seg: AcronymSegment) => [

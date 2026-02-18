@@ -128,7 +128,7 @@ export const ParticipantReferenceMark = Mark.create<ParticipantReferenceOptions>
           line-height: 1;
           white-space: nowrap;
           vertical-align: baseline;
-          user-select: none;
+          cursor: pointer;
         `,
       }),
       0, // Use 0 to render the actual text content, not duplicate it

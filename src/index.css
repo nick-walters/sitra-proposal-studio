@@ -604,13 +604,26 @@
 
 /* Inline reference bubbles (Task, Deliverable, Milestone) */
 .inline-ref {
-  user-select: none;
+  user-select: all;
   vertical-align: baseline;
   white-space: nowrap;
   font-family: 'Times New Roman', Times, serif;
   font-size: 11pt;
   font-weight: 700;
   line-height: 1;
+  cursor: pointer;
+}
+
+/* Delete indicator on hover for all reference badges */
+.ProseMirror:not(.ProseMirror-focused-readonly) [data-inline-reference]:hover,
+.ProseMirror:not(.ProseMirror-focused-readonly) [data-wp-reference]:hover,
+.ProseMirror:not(.ProseMirror-focused-readonly) [data-case-reference]:hover,
+.ProseMirror:not(.ProseMirror-focused-readonly) [data-participant-reference]:hover,
+.ProseMirror:not(.ProseMirror-focused-readonly) [data-acronym-reference]:hover {
+  opacity: 0.8;
+  outline: 1.5px solid hsl(var(--destructive, 0 84% 60%));
+  outline-offset: 1px;
+  border-radius: 4px;
 }
 
 .inline-ref-task {
