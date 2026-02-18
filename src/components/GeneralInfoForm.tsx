@@ -365,10 +365,12 @@ function ReportingPeriodsEditor({ proposal, onUpdate }: {
           );
         })}
       </div>
-      <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={handleAddRP}>
-        <Plus className="w-3 h-3" />
-        Add reporting period
-      </Button>
+      <div style={{ paddingLeft: 'calc(3rem + 5rem + 1rem)' }}>
+        <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={handleAddRP}>
+          <Plus className="w-3 h-3" />
+          Add reporting period
+        </Button>
+      </div>
       {totalCovered < duration && (
         <p className="text-xs text-warning">
           Reporting periods cover {totalCovered} of {duration} months. Add more to cover the full duration.
