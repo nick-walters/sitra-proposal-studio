@@ -1,4 +1,5 @@
 import { Mark, mergeAttributes } from '@tiptap/core';
+import { handleRefMarkDeletion } from './deleteRefMarkHelper';
 
 export interface InlineReferenceOptions {
   HTMLAttributes: Record<string, any>;
@@ -117,6 +118,13 @@ export const InlineReferenceMark = Mark.create<InlineReferenceOptions>({
       }),
       0,
     ];
+  },
+
+  addKeyboardShortcuts() {
+    return {
+      Backspace: () => handleRefMarkDeletion(this.editor, this.name, 'backspace'),
+      Delete: () => handleRefMarkDeletion(this.editor, this.name, 'delete'),
+    };
   },
 
   addCommands() {
