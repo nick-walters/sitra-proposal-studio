@@ -2506,6 +2506,7 @@ export type Database = {
           created_by: string | null
           deadline: string | null
           decision_date: string | null
+          decision_date_is_estimated: boolean
           description: string | null
           destination: string | null
           duration: number | null
@@ -2543,6 +2544,7 @@ export type Database = {
           created_by?: string | null
           deadline?: string | null
           decision_date?: string | null
+          decision_date_is_estimated?: boolean
           description?: string | null
           destination?: string | null
           duration?: number | null
@@ -2580,6 +2582,7 @@ export type Database = {
           created_by?: string | null
           deadline?: string | null
           decision_date?: string | null
+          decision_date_is_estimated?: boolean
           description?: string | null
           destination?: string | null
           duration?: number | null

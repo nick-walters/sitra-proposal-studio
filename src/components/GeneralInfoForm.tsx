@@ -25,7 +25,7 @@ import { AcronymColorEditor, type AcronymSegment } from "./AcronymColorEditor";
 import { SaveIndicator } from "./SaveIndicator";
 import { Loader2, FileText, Target, Euro, Calendar as CalendarIcon, ExternalLink, Download, Trash2, RefreshCw, FileDown, CheckCircle2, Plus, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { format } from "date-fns";
+import { format, addMonths } from "date-fns";
 import { cn } from "@/lib/utils";
 
 interface GeneralInfoFormProps {
@@ -977,12 +977,15 @@ export function GeneralInfoForm({
                         mode="single"
                         selected={editedProposal.deadline}
                         onSelect={(date) => {
+                          const isStage1 = editedProposal.submissionStage === 'stage_1';
+                          const monthsToAdd = isStage1 ? 3 : 5;
+                          const estimatedDecision = date ? addMonths(date, monthsToAdd) : undefined;
                           setEditedProposal({ 
                             ...editedProposal, 
                             deadline: date,
-                            decisionDate: !editedProposal.decisionDate && date 
-                              ? new Date(date.getFullYear(), date.getMonth() + 3, date.getDate()) 
-                              : editedProposal.decisionDate
+                            // Always auto-estimate when deadline changes
+                            decisionDate: estimatedDecision,
+                            decisionDateIsEstimated: !!date,
                           });
                         }}
                         disabled={(date) => date < new Date()}
@@ -1003,7 +1006,7 @@ export function GeneralInfoForm({
               
               <div>
                 <label className="text-xs text-muted-foreground mb-0.5 block">
-                  Decision{proposal?.status === 'draft' && ' (estimated)'}
+                  Decision date
                 </label>
                 {isEditing && editedProposal ? (
                   <Popover>
@@ -1011,24 +1014,35 @@ export function GeneralInfoForm({
                       <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-8 text-sm", !editedProposal.decisionDate && "text-muted-foreground")}>
                         <CalendarIcon className="mr-2 h-3.5 w-3.5" />
                         {editedProposal.decisionDate ? format(editedProposal.decisionDate, 'PPP') : 'Select date'}
+                        {editedProposal.decisionDateIsEstimated && editedProposal.decisionDate && (
+                          <span className="ml-auto inline-flex items-center px-1.5 py-0 text-[9px] font-medium bg-blue-50 text-blue-600 border border-blue-300 rounded">
+                            Est.
+                          </span>
+                        )}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0 z-50 bg-popover" align="start">
                       <Calendar
                         mode="single"
                         selected={editedProposal.decisionDate}
-                        onSelect={(date) => setEditedProposal({ ...editedProposal, decisionDate: date })}
+                        onSelect={(date) => setEditedProposal({ ...editedProposal, decisionDate: date, decisionDateIsEstimated: false })}
+                        className="pointer-events-auto"
                       />
                     </PopoverContent>
                   </Popover>
                 ) : (
-                  <p className="text-sm font-medium">
-                    {proposal?.decisionDate 
-                      ? format(proposal.decisionDate, 'dd MMM yyyy') 
-                      : proposal?.deadline 
-                        ? format(new Date(proposal.deadline.getFullYear(), proposal.deadline.getMonth() + 3, proposal.deadline.getDate()), 'dd MMM yyyy')
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-medium">
+                      {proposal?.decisionDate 
+                        ? format(proposal.decisionDate, 'dd MMM yyyy') 
                         : 'Not set'}
-                  </p>
+                    </p>
+                    {proposal?.decisionDate && proposal?.decisionDateIsEstimated && proposal?.status !== 'funded' && proposal?.status !== 'not_funded' && (
+                      <span className="inline-flex items-center px-1.5 py-0 text-[9px] font-medium bg-blue-50 text-blue-600 border border-blue-300 rounded">
+                        Est.
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
 

@@ -212,6 +212,7 @@ export interface Proposal {
   logoUrl?: string;
   submittedAt?: Date;
   decisionDate?: Date;
+  decisionDateIsEstimated?: boolean;
   expectedProjects?: string;
   usesFstp?: boolean;
   reportingPeriods?: { number: number; startMonth: number; endMonth: number }[];

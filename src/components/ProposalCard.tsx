@@ -2,16 +2,7 @@ import { Proposal, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS } from 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, FileText, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink, AlertTriangle, Trophy, HelpCircle } from "lucide-react";
-import { format, differenceInDays, addMonths } from "date-fns";
-
-// Calculate estimated decision date based on submission stage
-// Full proposals: ~5 months after deadline
-// Stage 1: ~3 months after deadline
-const getEstimatedDecisionDate = (proposal: Proposal): Date | null => {
-  if (!proposal.deadline) return null;
-  const monthsToAdd = proposal.submissionStage === 'stage_1' ? 3 : 5;
-  return addMonths(proposal.deadline, monthsToAdd);
-};
+import { format, differenceInDays } from "date-fns";
 
 interface ProposalCardProps {
   proposal: Proposal;
@@ -148,31 +139,27 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
                 <span className="font-bold">Deadline:</span> {format(proposal.deadline, 'dd/MM/yyyy')}
               </div>
             )}
-            {/* For decided proposals, show actual decision date */}
-            {isDecided && proposal.decisionDate && (
+            {/* Show decision date if available */}
+            {proposal.decisionDate && (
               <div className="flex items-center gap-0.5">
-                {proposal.status === 'funded' ? (
-                  <CheckCircle2 className="w-2.5 h-2.5 text-green-600" />
+                {isDecided ? (
+                  proposal.status === 'funded' ? (
+                    <CheckCircle2 className="w-2.5 h-2.5 text-green-600" />
+                  ) : (
+                    <XCircle className="w-2.5 h-2.5 text-red-600" />
+                  )
                 ) : (
-                  <XCircle className="w-2.5 h-2.5 text-red-600" />
+                  <Clock className="w-2.5 h-2.5 text-muted-foreground" />
                 )}
                 <span className="font-bold">Decision:</span> {format(proposal.decisionDate, 'dd/MM/yyyy')}
-              </div>
-            )}
-            {/* For drafts and submitted proposals with deadline, show estimated decision date */}
-            {(isDraft || proposal.status === 'submitted') && proposal.deadline && (() => {
-              const estimatedDate = getEstimatedDecisionDate(proposal);
-              return estimatedDate ? (
-                <div className="flex items-center gap-0.5">
-                  <Clock className="w-2.5 h-2.5 text-muted-foreground" />
-                  <span className="font-bold">Decision:</span> {format(estimatedDate, 'dd/MM/yyyy')}
+                {proposal.decisionDateIsEstimated && !isDecided && (
                   <span className="inline-flex items-center gap-0.5 ml-1 px-1 py-0 text-[8px] font-medium bg-white text-blue-600 border border-blue-400 rounded">
                     <HelpCircle className="w-2 h-2" />
                     Est.
                   </span>
-                </div>
-              ) : null;
-            })()}
+                )}
+              </div>
+            )}
           </div>
 
           {/* Action buttons */}
@@ -284,31 +271,27 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
                   <span className="font-bold">Deadline:</span> {format(proposal.deadline, 'dd/MM/yyyy')}
                 </div>
               )}
-              {/* For decided proposals, show actual decision date */}
-              {isDecided && proposal.decisionDate && (
+              {/* Show decision date if available */}
+              {proposal.decisionDate && (
                 <div className="flex items-center gap-0.5">
-                  {proposal.status === 'funded' ? (
-                    <CheckCircle2 className="w-2.5 h-2.5 text-green-600" />
+                  {isDecided ? (
+                    proposal.status === 'funded' ? (
+                      <CheckCircle2 className="w-2.5 h-2.5 text-green-600" />
+                    ) : (
+                      <XCircle className="w-2.5 h-2.5 text-red-600" />
+                    )
                   ) : (
-                    <XCircle className="w-2.5 h-2.5 text-red-600" />
+                    <Clock className="w-2.5 h-2.5 text-muted-foreground" />
                   )}
                   <span className="font-bold">Decision:</span> {format(proposal.decisionDate, 'dd/MM/yyyy')}
-                </div>
-              )}
-              {/* For drafts and submitted proposals with deadline, show estimated decision date */}
-              {(isDraft || proposal.status === 'submitted') && proposal.deadline && (() => {
-                const estimatedDate = getEstimatedDecisionDate(proposal);
-                return estimatedDate ? (
-                  <div className="flex items-center gap-0.5">
-                    <Clock className="w-2.5 h-2.5 text-muted-foreground" />
-                    <span className="font-bold">Decision:</span> {format(estimatedDate, 'dd/MM/yyyy')}
+                  {proposal.decisionDateIsEstimated && !isDecided && (
                     <span className="inline-flex items-center gap-0.5 ml-1 px-1 py-0 text-[8px] font-medium bg-white text-blue-600 border border-blue-400 rounded">
                       <HelpCircle className="w-2 h-2" />
                       Est.
                     </span>
-                  </div>
-                ) : null;
-              })()}
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

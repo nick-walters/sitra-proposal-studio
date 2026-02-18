@@ -45,6 +45,7 @@ interface ProposalData {
   logoUrl?: string;
   submittedAt?: Date;
   decisionDate?: Date;
+  decisionDateIsEstimated?: boolean;
   templateTypeId?: string;
   expectedProjects?: string;
   usesFstp?: boolean;
@@ -105,6 +106,7 @@ export function useProposalData(proposalId: string) {
         logoUrl: data.logo_url || undefined,
         submittedAt: data.submitted_at ? new Date(data.submitted_at) : undefined,
         decisionDate: data.decision_date ? new Date(data.decision_date) : undefined,
+        decisionDateIsEstimated: (data as any).decision_date_is_estimated || false,
         templateTypeId: data.template_type_id || undefined,
         expectedProjects: (data as any).expected_projects || undefined,
         usesFstp: data.uses_fstp || false,
@@ -315,6 +317,7 @@ export function useProposalData(proposalId: string) {
     if (updates.totalBudget !== undefined) dbUpdates.total_budget = updates.totalBudget;
     if (updates.deadline !== undefined) dbUpdates.deadline = updates.deadline?.toISOString();
     if (updates.decisionDate !== undefined) dbUpdates.decision_date = updates.decisionDate?.toISOString();
+    if (updates.decisionDateIsEstimated !== undefined) dbUpdates.decision_date_is_estimated = updates.decisionDateIsEstimated;
     if (updates.workProgramme !== undefined) dbUpdates.work_programme = updates.workProgramme;
     if (updates.destination !== undefined) dbUpdates.destination = updates.destination;
     if (updates.logoUrl !== undefined) dbUpdates.logo_url = updates.logoUrl;
