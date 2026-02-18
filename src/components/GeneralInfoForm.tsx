@@ -666,11 +666,14 @@ export function GeneralInfoForm({
       <div className="max-w-7xl mx-auto space-y-4">
         {/* Header row with Guidelines button on left, export buttons on right */}
         <div className="flex items-center justify-between">
-          <PartAGuidelinesDialog
-            sectionTitle="Part A1: General information"
-            officialGuidelines={officialGuidelines}
-            sitraTips={sitraTips}
-          />
+          <div className="flex items-center gap-3">
+            <PartAGuidelinesDialog
+              sectionTitle="Part A1: General information"
+              officialGuidelines={officialGuidelines}
+              sitraTips={sitraTips}
+            />
+            {canEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
+          </div>
           <div className="flex items-center gap-3">
             {onExport && !isCoordinator && (
               <Button variant="outline" size="sm" className="gap-2" onClick={() => onExport('pdf', true)}>
@@ -691,7 +694,6 @@ export function GeneralInfoForm({
                 />
               </>
             )}
-            {canEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
           </div>
         </div>
 
