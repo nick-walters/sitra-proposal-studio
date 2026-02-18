@@ -601,7 +601,7 @@ export function GanttChartFigure({
                                   <span
                                     style={{
                                       position: 'absolute',
-                                      top: isMs ? -1 : 0,
+                                      top: isMs ? -1 : -1,
                                       left: isMs ? (isRight ? 0 : Math.round(shapeW * 0.3)) : (isRight ? 0 : pointDepth) + (isDel ? 1 : 0),
                                       width: isMs ? (isRight ? Math.round(shapeW * 0.7) : Math.round(shapeW * 0.7)) : b.bodyW,
                                       height: shapeH,
