@@ -70,7 +70,7 @@ export function DeliverableTaskMappingDialog({ proposalId }: DeliverableTaskMapp
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="text-xs h-6 px-2 py-0 gap-1">
           <Settings2 className="w-3 h-3" />
-          Assign Deliverables to Tasks
+          Assign deliverables to tasks
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[70vh] overflow-y-auto">
