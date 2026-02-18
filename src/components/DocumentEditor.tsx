@@ -933,13 +933,13 @@ export function DocumentEditor({
                   )}
                   <DropdownMenuItem onClick={() => setIsWPRefOpen(true)} className="flex items-center gap-2">
                     <span className="w-16 flex justify-start shrink-0">
-                      <span style={{ display: 'inline-block', width: '18px', height: '14px', backgroundColor: '#2563EB', border: '1.5px solid #2563EB', borderRadius: '9999px' }} />
+                      <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#2563EB', border: '1.5px solid #2563EB', borderRadius: '9999px' }} />
                     </span>
                     <span>Work Package</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setIsTaskRefOpen(true)} className="flex items-center gap-2">
                     <span className="w-16 flex justify-start shrink-0">
-                      <span style={{ display: 'inline-block', width: '16px', height: '14px', borderRadius: '9999px', border: '1.5px solid #2563EB', background: '#ffffff' }} />
+                      <span style={{ display: 'inline-block', width: '22px', height: '14px', borderRadius: '9999px', border: '1.5px solid #2563EB', background: '#ffffff' }} />
                     </span>
                     <span>Task</span>
                   </DropdownMenuItem>
@@ -959,13 +959,13 @@ export function DocumentEditor({
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setIsCaseRefOpen(true)} className="flex items-center gap-2">
                     <span className="w-16 flex justify-start shrink-0">
-                      <span style={{ display: 'inline-block', width: '18px', height: '14px', border: '1.5px solid #000000', borderRadius: '9999px', background: '#ffffff' }} />
+                      <span style={{ display: 'inline-block', width: '22px', height: '14px', border: '1.5px solid #000000', borderRadius: '9999px', background: '#ffffff' }} />
                     </span>
                     <span>Case</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setIsParticipantRefOpen(true)} className="flex items-center gap-2">
                     <span className="w-16 flex justify-start shrink-0">
-                      <span style={{ display: 'inline-block', width: '18px', height: '14px', backgroundColor: '#000000', border: '1.5px solid #000000', borderRadius: '9999px' }} />
+                      <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#000000', border: '1.5px solid #000000', borderRadius: '9999px' }} />
                     </span>
                     <span>Participant</span>
                   </DropdownMenuItem>
