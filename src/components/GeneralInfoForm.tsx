@@ -776,36 +776,40 @@ export function GeneralInfoForm({
               Duration &amp; reporting periods
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <label className="text-xs text-muted-foreground mb-0.5 block">Project duration (months)</label>
-              {isEditing && editedProposal ? (
-                <Select
-                  value={editedProposal.duration?.toString() || ''}
-                  onValueChange={(v) => setEditedProposal({ ...editedProposal, duration: parseInt(v) })}
-                >
-                  <SelectTrigger className="w-24 h-8 text-sm">
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 72 }, (_, i) => i + 1).map((months) => (
-                      <SelectItem key={months} value={months.toString()}>{months}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <p className="text-sm font-medium">{proposal?.duration ? `${proposal.duration}` : '–'}</p>
+          <CardContent>
+            <div className="flex gap-6 items-start">
+              <div className="shrink-0">
+                <label className="text-xs text-muted-foreground mb-0.5 block">Project duration (months)</label>
+                {isEditing && editedProposal ? (
+                  <Select
+                    value={editedProposal.duration?.toString() || ''}
+                    onValueChange={(v) => setEditedProposal({ ...editedProposal, duration: parseInt(v) })}
+                  >
+                    <SelectTrigger className="w-24 h-8 text-sm">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 72 }, (_, i) => i + 1).map((months) => (
+                        <SelectItem key={months} value={months.toString()}>{months}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm font-medium">{proposal?.duration ? `${proposal.duration}` : '–'}</p>
+                )}
+              </div>
+              {userCanEditOverview && editedProposal && (
+                <div className="flex-1 min-w-0">
+                  <ReportingPeriodsEditor
+                    proposal={editedProposal}
+                    onUpdate={(rps) => {
+                      setEditedProposal({ ...editedProposal, reportingPeriods: rps });
+                      onUpdateProposal({ reportingPeriods: rps });
+                    }}
+                  />
+                </div>
               )}
             </div>
-            {userCanEditOverview && editedProposal && (
-              <ReportingPeriodsEditor
-                proposal={editedProposal}
-                onUpdate={(rps) => {
-                  setEditedProposal({ ...editedProposal, reportingPeriods: rps });
-                  onUpdateProposal({ reportingPeriods: rps });
-                }}
-              />
-            )}
           </CardContent>
         </Card>
 
