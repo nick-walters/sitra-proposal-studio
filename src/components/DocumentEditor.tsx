@@ -534,38 +534,36 @@ export function DocumentEditor({
     setContent(restoredContent);
   }, [setContent]);
 
-  // Handle cross-reference insertion
+  // Handle cross-reference insertion (figures/tables as bold italic)
   const handleInsertCrossRef = useCallback((refText: string) => {
     if (!editor) return;
-    // Insert as bold italic text using content with marks
+    // Insert as bold italic text, then add a normal space and unset formatting
     editor.chain().focus().insertContent({
       type: 'text',
       text: refText,
       marks: [{ type: 'bold' }, { type: 'italic' }],
-    }).insertContent(' ').run();
+    }).insertContent(' ').unsetBold().unsetItalic().run();
   }, [editor]);
   
   // Handle WP reference insertion
   const handleInsertWPRef = useCallback((wp: { id: string; number: number; short_name: string | null; color: string }) => {
     if (!editor) return;
-    // Insert WP badge using the insertWPReference command (inserts content with mark)
     editor.chain().focus().insertWPReference({
       wpNumber: wp.number,
       wpShortName: wp.short_name || '',
       wpColor: wp.color,
       wpId: wp.id,
-    }).insertContent(' ').run();
+    }).insertContent(' ').unsetBold().unsetItalic().run();
   }, [editor]);
   
   // Handle Participant reference insertion
   const handleInsertParticipantRef = useCallback((participant: { id: string; participantNumber: number; shortName: string }) => {
     if (!editor) return;
-    // Insert participant badge using the insertParticipantReference command (inserts content with mark)
     editor.chain().focus().insertParticipantReference({
       participantNumber: participant.participantNumber,
       shortName: participant.shortName,
       participantId: participant.id,
-    }).insertContent(' ').run();
+    }).insertContent(' ').unsetBold().unsetItalic().run();
   }, [editor]);
   
   // Handle Case reference insertion
@@ -578,13 +576,13 @@ export function DocumentEditor({
       caseColor: caseItem.color,
       caseId: caseItem.id,
       caseType: caseItem.case_type,
-    }).insertContent(' ').run();
+    }).insertContent(' ').unsetBold().unsetItalic().run();
   }, [editor]);
 
   // Handle Acronym reference insertion
   const handleInsertAcronymRef = useCallback(() => {
     if (!editor || !acronymSegments || acronymSegments.length === 0) return;
-    editor.chain().focus().insertAcronymReference({ segments: acronymSegments }).insertContent(' ').run();
+    editor.chain().focus().insertAcronymReference({ segments: acronymSegments }).insertContent(' ').unsetBold().unsetItalic().run();
   }, [editor, acronymSegments]);
 
   // Handle Task reference insertion - pill bubble
@@ -595,7 +593,7 @@ export function DocumentEditor({
       taskNumber: task.number,
       taskId: task.id,
       wpColor: task.wp_color || undefined,
-    }).insertContent(' ').run();
+    }).insertContent(' ').unsetBold().unsetItalic().run();
   }, [editor]);
 
   // Handle Deliverable reference insertion - pentagon bubble
@@ -605,7 +603,7 @@ export function DocumentEditor({
       deliverableNumber: del.number,
       deliverableId: del.id,
       wpColor: del.wp_color || undefined,
-    }).insertContent(' ').run();
+    }).insertContent(' ').unsetBold().unsetItalic().run();
   }, [editor]);
 
   // Handle Milestone reference insertion - triangle bubble
@@ -614,7 +612,7 @@ export function DocumentEditor({
     editor.chain().focus().insertMilestoneReference({
       milestoneNumber: ms.number,
       milestoneId: ms.id,
-    }).insertContent(' ').run();
+    }).insertContent(' ').unsetBold().unsetItalic().run();
   }, [editor]);
 
   const handleApplySuggestion = useCallback((originalText: string, suggestedText: string) => {

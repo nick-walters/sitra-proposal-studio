@@ -92,13 +92,12 @@ export const AcronymReference = Node.create<AcronymReferenceOptions>({
     return {
       insertAcronymReference:
         (attributes) =>
-        ({ chain }) => {
-          return chain()
-            .insertContent({
-              type: this.name,
-              attrs: attributes,
-            })
-            .run();
+        ({ tr, dispatch }) => {
+          const node = this.type.create(attributes);
+          if (dispatch) {
+            tr.replaceSelectionWith(node);
+          }
+          return true;
         },
     };
   },
