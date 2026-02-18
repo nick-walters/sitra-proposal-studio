@@ -539,7 +539,7 @@ export function DocumentEditor({
     if (!editor) return;
     // Use setTimeout to ensure Radix dialog has fully unmounted and released focus
     setTimeout(() => {
-      editor.chain().focus().insertFigureTableReference({ refText }).insertContent(' ').unsetBold().unsetItalic().run();
+      editor.chain().focus().insertFigureTableReference({ refText }).insertContent(' ').unsetMark('figureTableReference').unsetBold().unsetItalic().run();
     }, 150);
   }, [editor]);
   
