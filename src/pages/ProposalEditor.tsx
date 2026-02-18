@@ -89,6 +89,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ColoredAcronym } from "@/components/AcronymColorEditor";
 
 export function ProposalEditor() {
   const { id } = useParams();
@@ -942,8 +943,14 @@ export function ProposalEditor() {
             </div>
             
             {/* Acronym */}
-            <h1 className="font-semibold">
-              {loading ? <Skeleton className="h-5 w-24" /> : (proposal?.acronym || 'Unknown')}
+            <h1 className="font-semibold flex items-center gap-1">
+              {loading ? <Skeleton className="h-5 w-24" /> : (
+                (proposal as any)?.acronymSegments?.length > 0 ? (
+                  <ColoredAcronym segments={(proposal as any).acronymSegments} />
+                ) : (
+                  proposal?.acronym || 'Unknown'
+                )
+              )}
               {proposal?.submissionStage === 'stage_1' && <span className="font-normal text-muted-foreground text-sm"> (Stage 1)</span>}
             </h1>
             
