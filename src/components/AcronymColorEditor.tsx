@@ -2,7 +2,6 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Paintbrush, Pipette } from 'lucide-react';
 
 export interface AcronymSegment {
   text: string;
@@ -10,30 +9,20 @@ export interface AcronymSegment {
 }
 
 const COLOR_PALETTE = [
-  '#22c55e', // leaf green
-  '#14b8a6', // teal
-  '#2563eb', // blue
-  '#8b5cf6', // violet
-  '#ef4444', // red
-  '#f59e0b', // amber
-  '#ec4899', // pink
-  '#06b6d4', // cyan
-  '#f97316', // orange
-  '#6366f1', // indigo
-  '#84cc16', // lime
-  '#0ea5e9', // sky blue
-  '#000000', // black
-  '#64748b', // slate
+  '#22c55e', '#14b8a6', '#2563eb', '#8b5cf6', '#ef4444', '#f59e0b',
+  '#ec4899', '#06b6d4', '#f97316', '#6366f1', '#84cc16', '#0ea5e9',
+  '#000000', '#64748b',
 ];
 
 interface AcronymColorEditorProps {
   acronym: string;
   segments: AcronymSegment[];
   onChange: (segments: AcronymSegment[]) => void;
+  onAcronymChange?: (acronym: string) => void;
   disabled?: boolean;
+  placeholder?: string;
 }
 
-/** Merge adjacent segments with the same color */
 function mergeSegments(segments: AcronymSegment[]): AcronymSegment[] {
   if (segments.length === 0) return [];
   const merged: AcronymSegment[] = [{ ...segments[0] }];
@@ -48,7 +37,6 @@ function mergeSegments(segments: AcronymSegment[]): AcronymSegment[] {
   return merged;
 }
 
-/** Expand segments to per-character array */
 function expandToChars(segments: AcronymSegment[]): { char: string; color: string }[] {
   const chars: { char: string; color: string }[] = [];
   for (const seg of segments) {
@@ -59,7 +47,6 @@ function expandToChars(segments: AcronymSegment[]): { char: string; color: strin
   return chars;
 }
 
-/** Build segments from per-character colors */
 function charsToSegments(chars: { char: string; color: string }[]): AcronymSegment[] {
   if (chars.length === 0) return [];
   const segs: AcronymSegment[] = [{ text: chars[0].char, color: chars[0].color }];
@@ -74,7 +61,6 @@ function charsToSegments(chars: { char: string; color: string }[]): AcronymSegme
   return segs;
 }
 
-/** Default: all characters black */
 function defaultSegments(acronym: string): AcronymSegment[] {
   return acronym ? [{ text: acronym, color: '#000000' }] : [];
 }
@@ -141,28 +127,37 @@ function CustomColorPalette({ onApply }: { onApply: (color: string) => void }) {
   );
 }
 
-export function AcronymColorEditor({ acronym, segments, onChange, disabled }: AcronymColorEditorProps) {
-  // Ensure segments match current acronym text
+export function AcronymColorEditor({ acronym, segments, onChange, onAcronymChange, disabled, placeholder = 'Type acronym…' }: AcronymColorEditorProps) {
   const currentText = segments.map(s => s.text).join('');
   const effectiveSegments = currentText === acronym ? segments : defaultSegments(acronym);
-  
+
   const chars = expandToChars(effectiveSegments);
   const [selStart, setSelStart] = useState<number | null>(null);
   const [selEnd, setSelEnd] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [cursorPos, setCursorPos] = useState<number>(chars.length);
+  const [isFocused, setIsFocused] = useState(false);
+  const hiddenInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Reset selection if acronym changes
   useEffect(() => {
     setSelStart(null);
     setSelEnd(null);
   }, [acronym]);
 
-  const handleMouseDown = useCallback((index: number) => {
+  // Keep cursor in bounds
+  useEffect(() => {
+    if (cursorPos > chars.length) setCursorPos(chars.length);
+  }, [chars.length, cursorPos]);
+
+  const handleMouseDown = useCallback((index: number, e: React.MouseEvent) => {
     if (disabled) return;
+    e.preventDefault();
     setSelStart(index);
     setSelEnd(index);
     setIsDragging(true);
+    setCursorPos(index + 1);
+    hiddenInputRef.current?.focus();
   }, [disabled]);
 
   const handleMouseEnter = useCallback((index: number) => {
@@ -180,6 +175,15 @@ export function AcronymColorEditor({ acronym, segments, onChange, disabled }: Ac
     window.addEventListener('mouseup', handler);
     return () => window.removeEventListener('mouseup', handler);
   }, []);
+
+  const handleContainerClick = useCallback(() => {
+    if (disabled) return;
+    hiddenInputRef.current?.focus();
+    // If clicking empty area, place cursor at end and clear selection
+    if (selStart === null) {
+      setCursorPos(chars.length);
+    }
+  }, [disabled, chars.length, selStart]);
 
   const getSelectionRange = (): [number, number] | null => {
     if (selStart === null || selEnd === null) return null;
@@ -201,48 +205,167 @@ export function AcronymColorEditor({ acronym, segments, onChange, disabled }: Ac
     setSelEnd(null);
   };
 
-  const resetColors = () => {
-    onChange(defaultSegments(acronym));
-    setSelStart(null);
-    setSelEnd(null);
-  };
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (disabled) return;
+
+    const range = getSelectionRange();
+
+    if (e.key === 'Backspace') {
+      e.preventDefault();
+      if (range) {
+        // Delete selection
+        const [start, end] = range;
+        const newChars = [...chars];
+        newChars.splice(start, end - start + 1);
+        const newSegs = mergeSegments(charsToSegments(newChars));
+        const newAcronym = newChars.map(c => c.char).join('');
+        onAcronymChange?.(newAcronym);
+        onChange(newSegs);
+        setCursorPos(start);
+        setSelStart(null);
+        setSelEnd(null);
+      } else if (cursorPos > 0) {
+        const newChars = [...chars];
+        newChars.splice(cursorPos - 1, 1);
+        const newSegs = mergeSegments(charsToSegments(newChars));
+        const newAcronym = newChars.map(c => c.char).join('');
+        onAcronymChange?.(newAcronym);
+        onChange(newSegs);
+        setCursorPos(cursorPos - 1);
+      }
+    } else if (e.key === 'Delete') {
+      e.preventDefault();
+      if (range) {
+        const [start, end] = range;
+        const newChars = [...chars];
+        newChars.splice(start, end - start + 1);
+        const newSegs = mergeSegments(charsToSegments(newChars));
+        const newAcronym = newChars.map(c => c.char).join('');
+        onAcronymChange?.(newAcronym);
+        onChange(newSegs);
+        setCursorPos(start);
+        setSelStart(null);
+        setSelEnd(null);
+      } else if (cursorPos < chars.length) {
+        const newChars = [...chars];
+        newChars.splice(cursorPos, 1);
+        const newSegs = mergeSegments(charsToSegments(newChars));
+        const newAcronym = newChars.map(c => c.char).join('');
+        onAcronymChange?.(newAcronym);
+        onChange(newSegs);
+      }
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      if (cursorPos > 0) setCursorPos(cursorPos - 1);
+      setSelStart(null);
+      setSelEnd(null);
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      if (cursorPos < chars.length) setCursorPos(cursorPos + 1);
+      setSelStart(null);
+      setSelEnd(null);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      setCursorPos(0);
+      setSelStart(null);
+      setSelEnd(null);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      setCursorPos(chars.length);
+      setSelStart(null);
+      setSelEnd(null);
+    } else if (e.key === 'a' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      if (chars.length > 0) {
+        setSelStart(0);
+        setSelEnd(chars.length - 1);
+      }
+    } else if (e.key.length === 1 && !e.metaKey && !e.ctrlKey) {
+      e.preventDefault();
+      // Determine color: use color of character before cursor, or black
+      const colorAtCursor = cursorPos > 0 ? chars[cursorPos - 1].color : '#000000';
+
+      if (range) {
+        // Replace selection
+        const [start, end] = range;
+        const newChars = [...chars];
+        newChars.splice(start, end - start + 1, { char: e.key, color: colorAtCursor });
+        const newSegs = mergeSegments(charsToSegments(newChars));
+        const newAcronym = newChars.map(c => c.char).join('');
+        onAcronymChange?.(newAcronym);
+        onChange(newSegs);
+        setCursorPos(start + 1);
+        setSelStart(null);
+        setSelEnd(null);
+      } else {
+        const newChars = [...chars];
+        newChars.splice(cursorPos, 0, { char: e.key, color: colorAtCursor });
+        const newSegs = mergeSegments(charsToSegments(newChars));
+        const newAcronym = newChars.map(c => c.char).join('');
+        onAcronymChange?.(newAcronym);
+        onChange(newSegs);
+        setCursorPos(cursorPos + 1);
+      }
+    }
+  }, [disabled, chars, cursorPos, selStart, selEnd, onChange, onAcronymChange]);
 
   const range = getSelectionRange();
 
   return (
     <div className="space-y-1.5">
-      {/* Character display - select characters by clicking/dragging */}
-      <div 
+      <div
         ref={containerRef}
-        className="flex items-center select-none border rounded-md px-2 py-1.5 bg-background min-h-[32px]"
+        className={`flex items-center border rounded-md px-2 py-1.5 bg-background min-h-[32px] cursor-text ${isFocused ? 'ring-2 ring-ring ring-offset-1' : ''}`}
         style={{ fontFamily: '"Arial Black", Arial, sans-serif' }}
+        onClick={handleContainerClick}
       >
         {chars.map((ch, i) => {
           const isSelected = range && i >= range[0] && i <= range[1];
+          const showCursor = isFocused && !range && cursorPos === i;
           return (
-            <span
-              key={i}
-              className="cursor-pointer transition-all text-sm font-black leading-none"
-              style={{
-                color: ch.color,
-                backgroundColor: isSelected ? 'hsl(var(--primary) / 0.15)' : undefined,
-                borderBottom: isSelected ? '2px solid hsl(var(--primary))' : '2px solid transparent',
-                padding: '2px 0',
-              }}
-              onMouseDown={(e) => { e.preventDefault(); handleMouseDown(i); }}
-              onMouseEnter={() => handleMouseEnter(i)}
-              onMouseUp={handleMouseUp}
-            >
-              {ch.char}
+            <span key={i} className="relative">
+              {showCursor && (
+                <span className="absolute left-0 top-0 bottom-0 w-[1.5px] bg-foreground animate-pulse" style={{ marginTop: 1, marginBottom: 1 }} />
+              )}
+              <span
+                className="cursor-text transition-all text-sm font-black leading-none select-none"
+                style={{
+                  color: ch.color,
+                  backgroundColor: isSelected ? 'hsl(var(--primary) / 0.15)' : undefined,
+                  borderBottom: isSelected ? '2px solid hsl(var(--primary))' : '2px solid transparent',
+                  padding: '2px 0',
+                }}
+                onMouseDown={(e) => handleMouseDown(i, e)}
+                onMouseEnter={() => handleMouseEnter(i)}
+                onMouseUp={handleMouseUp}
+              >
+                {ch.char}
+              </span>
             </span>
           );
         })}
-        {chars.length === 0 && (
-          <span className="text-muted-foreground text-xs italic">No acronym set</span>
+        {/* Cursor at end */}
+        {isFocused && !range && cursorPos === chars.length && (
+          <span className="relative w-0">
+            <span className="absolute left-0 top-0 bottom-0 w-[1.5px] bg-foreground animate-pulse" style={{ height: 16 }} />
+          </span>
         )}
+        {chars.length === 0 && !isFocused && (
+          <span className="text-muted-foreground text-xs italic">{placeholder}</span>
+        )}
+        {/* Hidden input to capture keyboard events */}
+        <input
+          ref={hiddenInputRef}
+          className="absolute opacity-0 w-0 h-0 pointer-events-none"
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => { setIsFocused(false); setSelStart(null); setSelEnd(null); }}
+          onKeyDown={handleKeyDown}
+          tabIndex={0}
+          aria-label="Acronym input"
+          disabled={disabled}
+        />
       </div>
 
-      {/* Color palette - shown when selection exists */}
       {range && !disabled && (
         <CustomColorPalette onApply={applyColor} />
       )}

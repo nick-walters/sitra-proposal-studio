@@ -728,20 +728,18 @@ export function GeneralInfoForm({
                   <label className="text-xs text-muted-foreground mb-0.5 block">Acronym</label>
                   {isEditing && editedProposal ? (
                     <>
-                      <Input
-                        value={editedProposal.acronym}
-                        onChange={(e) => setEditedProposal({ ...editedProposal, acronym: e.target.value })}
-                        className="text-sm font-semibold w-40 h-8 mb-1.5"
-                        placeholder="Acronym"
-                      />
-                      <label className="text-xs text-muted-foreground mb-0.5 block mt-2">Acronym colour style</label>
                       <AcronymColorEditor
                         acronym={editedProposal.acronym}
                         segments={(editedProposal as any).acronymSegments || []}
+                        onAcronymChange={(newAcronym) => {
+                          setEditedProposal({ ...editedProposal, acronym: newAcronym });
+                          onUpdateProposal({ acronym: newAcronym });
+                        }}
                         onChange={(segments) => {
                           setEditedProposal({ ...editedProposal, acronymSegments: segments } as any);
                           onUpdateProposal({ acronymSegments: segments });
                         }}
+                        placeholder="Type acronym…"
                       />
                     </>
                   ) : (
