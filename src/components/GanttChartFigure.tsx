@@ -545,7 +545,7 @@ export function GanttChartFigure({
                         {/* Render positioned bubbles */}
                         {positioned.map((b, idx) => {
                           const topPos = b.below ? 25 : (rowHeight / 2);
-                          const bH = 11;
+                          const bH = 10;
                           const r = bH / 2;
                           const isRight = b.triSide === 'right';
 
