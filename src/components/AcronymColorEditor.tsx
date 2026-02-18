@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Paintbrush, RotateCcw } from 'lucide-react';
+import { Paintbrush, RotateCcw, Pipette } from 'lucide-react';
 
 export interface AcronymSegment {
   text: string;
@@ -76,6 +77,71 @@ function charsToSegments(chars: { char: string; color: string }[]): AcronymSegme
 /** Default: all characters black */
 function defaultSegments(acronym: string): AcronymSegment[] {
   return acronym ? [{ text: acronym, color: '#000000' }] : [];
+}
+
+function CustomColorPalette({ onApply, onReset }: { onApply: (color: string) => void; onReset: () => void }) {
+  const [customOpen, setCustomOpen] = useState(false);
+  const [hexInput, setHexInput] = useState('#');
+  const [nativeColor, setNativeColor] = useState('#000000');
+
+  const applyCustom = () => {
+    const hex = hexInput.startsWith('#') ? hexInput : `#${hexInput}`;
+    if (/^#[0-9a-fA-F]{6}$/.test(hex)) {
+      onApply(hex);
+      setCustomOpen(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-1 flex-wrap">
+      <span className="text-[10px] text-muted-foreground mr-1">Apply color:</span>
+      {COLOR_PALETTE.map((color) => (
+        <button
+          key={color}
+          className="w-5 h-5 rounded-full border border-border hover:scale-125 transition-transform"
+          style={{ backgroundColor: color }}
+          onClick={() => onApply(color)}
+          title={color}
+        />
+      ))}
+      <Popover open={customOpen} onOpenChange={setCustomOpen}>
+        <PopoverTrigger asChild>
+          <button
+            className="w-5 h-5 rounded-full border border-border hover:scale-125 transition-transform flex items-center justify-center"
+            style={{ background: 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)' }}
+            title="Custom color"
+          />
+        </PopoverTrigger>
+        <PopoverContent className="w-52 p-3 space-y-2" align="start">
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={nativeColor}
+              onChange={(e) => {
+                setNativeColor(e.target.value);
+                setHexInput(e.target.value);
+              }}
+              className="w-8 h-8 rounded cursor-pointer border-0 p-0"
+            />
+            <Input
+              value={hexInput}
+              onChange={(e) => setHexInput(e.target.value)}
+              placeholder="#000000"
+              className="h-7 text-xs font-mono"
+              maxLength={7}
+              onKeyDown={(e) => e.key === 'Enter' && applyCustom()}
+            />
+          </div>
+          <Button size="sm" className="w-full h-7 text-xs" onClick={applyCustom}>
+            Apply
+          </Button>
+        </PopoverContent>
+      </Popover>
+      <Button variant="ghost" size="sm" className="h-5 px-1.5 ml-1" onClick={onReset} title="Reset all colors">
+        <RotateCcw className="w-3 h-3" />
+      </Button>
+    </div>
+  );
 }
 
 export function AcronymColorEditor({ acronym, segments, onChange, disabled }: AcronymColorEditorProps) {
@@ -181,21 +247,7 @@ export function AcronymColorEditor({ acronym, segments, onChange, disabled }: Ac
 
       {/* Color palette - shown when selection exists */}
       {range && !disabled && (
-        <div className="flex items-center gap-1 flex-wrap">
-          <span className="text-[10px] text-muted-foreground mr-1">Apply color:</span>
-          {COLOR_PALETTE.map((color) => (
-            <button
-              key={color}
-              className="w-5 h-5 rounded-full border border-border hover:scale-125 transition-transform"
-              style={{ backgroundColor: color }}
-              onClick={() => applyColor(color)}
-              title={color}
-            />
-          ))}
-          <Button variant="ghost" size="sm" className="h-5 px-1.5 ml-1" onClick={resetColors} title="Reset all colors">
-            <RotateCcw className="w-3 h-3" />
-          </Button>
-        </div>
+        <CustomColorPalette onApply={applyColor} onReset={resetColors} />
       )}
 
       {!range && chars.length > 0 && !disabled && (
