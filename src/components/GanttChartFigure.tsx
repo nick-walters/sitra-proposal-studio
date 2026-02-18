@@ -56,7 +56,7 @@ interface GanttChartFigureProps {
 // 18cm = 680.315px at 96dpi. We use this as the total chart width.
 const TOTAL_WIDTH_PX = 680;
 const MIN_CELL_WIDTH = 7;
-const MARGIN_GAP = 6; // gap between month columns and right margin
+const MARGIN_GAP = 15; // gap between month columns and right margin
 
 export function GanttChartFigure({
   figureNumber,
