@@ -35,7 +35,6 @@ export const FigureTableReferenceMark = Mark.create<FigureTableReferenceMarkOpti
       'span',
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
         'data-fig-table-ref': '',
-        'contenteditable': 'false',
         style: `
           font-weight: bold;
           font-style: italic;

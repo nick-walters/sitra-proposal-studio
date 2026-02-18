@@ -537,41 +537,41 @@ export function DocumentEditor({
   // Handle cross-reference insertion (figures/tables as marked bold italic)
   const handleInsertCrossRef = useCallback((refText: string) => {
     if (!editor) return;
-    // Delay focus to after dialog unmount
-    requestAnimationFrame(() => {
+    // Use setTimeout to ensure Radix dialog has fully unmounted and released focus
+    setTimeout(() => {
       editor.chain().focus().insertFigureTableReference({ refText }).insertContent(' ').unsetBold().unsetItalic().run();
-    });
+    }, 150);
   }, [editor]);
   
   // Handle WP reference insertion
   const handleInsertWPRef = useCallback((wp: { id: string; number: number; short_name: string | null; color: string }) => {
     if (!editor) return;
-    requestAnimationFrame(() => {
+    setTimeout(() => {
       editor.chain().focus().insertWPReference({
         wpNumber: wp.number,
         wpShortName: wp.short_name || '',
         wpColor: wp.color,
         wpId: wp.id,
       }).insertContent(' ').unsetBold().unsetItalic().run();
-    });
+    }, 150);
   }, [editor]);
   
   // Handle Participant reference insertion
   const handleInsertParticipantRef = useCallback((participant: { id: string; participantNumber: number; shortName: string }) => {
     if (!editor) return;
-    requestAnimationFrame(() => {
+    setTimeout(() => {
       editor.chain().focus().insertParticipantReference({
         participantNumber: participant.participantNumber,
         shortName: participant.shortName,
         participantId: participant.id,
       }).insertContent(' ').unsetBold().unsetItalic().run();
-    });
+    }, 150);
   }, [editor]);
   
   // Handle Case reference insertion
   const handleInsertCaseRef = useCallback((caseItem: { id: string; number: number; short_name: string | null; color: string; case_type: string }) => {
     if (!editor) return;
-    requestAnimationFrame(() => {
+    setTimeout(() => {
       editor.chain().focus().insertCaseReference({
         caseNumber: caseItem.number,
         caseShortName: caseItem.short_name || '',
@@ -579,15 +579,15 @@ export function DocumentEditor({
         caseId: caseItem.id,
         caseType: caseItem.case_type,
       }).insertContent(' ').unsetBold().unsetItalic().run();
-    });
+    }, 150);
   }, [editor]);
 
   // Handle Acronym reference insertion
   const handleInsertAcronymRef = useCallback(() => {
     if (!editor || !acronymSegments || acronymSegments.length === 0) return;
-    requestAnimationFrame(() => {
+    setTimeout(() => {
       editor.chain().focus().insertAcronymReference({ segments: acronymSegments }).insertContent(' ').unsetBold().unsetItalic().run();
-    });
+    }, 150);
   }, [editor, acronymSegments]);
 
   // Handle Task reference insertion - pill bubble
