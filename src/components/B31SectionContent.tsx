@@ -96,9 +96,19 @@ export function B31SectionContent({ proposalId }: Props) {
               {', '}tasks{' '}
               <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'baseline', border: '1.5px solid #000000', borderRadius: '9999px', padding: '0px 5px', fontSize: '11pt', fontFamily: "'Times New Roman', Times, serif", fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#000000', backgroundColor: '#ffffff' }}>TX.X</span>
               {', '}deliverables{' '}
-              <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'baseline', border: '1.5px solid #000000', borderRadius: '9999px', padding: '0px 5px', fontSize: '11pt', fontFamily: "'Times New Roman', Times, serif", fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#000000', backgroundColor: '#ffffff' }}>DX.X</span>
+              <span style={{ display: 'inline-block', verticalAlign: 'baseline', position: 'relative', width: 30, height: 10 }}>
+                <svg width={30} height={10} viewBox="0 0 30 10" style={{ position: 'absolute', top: 0, left: 0 }}>
+                  <path d="M 0,0 L 25,0 L 30,5 L 25,10 L 0,10 Z" fill="#ffffff" stroke="#000000" strokeWidth={1.5} strokeLinejoin="round" />
+                </svg>
+                <span style={{ position: 'absolute', top: -0.5, left: 0, width: 25, height: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '8pt', fontWeight: 700, lineHeight: 1, color: '#000000', whiteSpace: 'nowrap' }}>DX.X</span>
+              </span>
               {' '}&amp; milestones{' '}
-              <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'baseline', border: '1.5px solid #000000', borderRadius: '9999px', padding: '0px 5px', fontSize: '11pt', fontFamily: "'Times New Roman', Times, serif", fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#000000', backgroundColor: '#ffffff' }}>MSX</span>
+              <span style={{ display: 'inline-block', verticalAlign: 'baseline', position: 'relative', width: 17, height: 17 }}>
+                <svg width={17} height={17} viewBox="0 0 17 17" style={{ position: 'absolute', top: -3, left: 0 }}>
+                  <path d="M 0,0 L 17,8.5 L 0,17 Z" fill="#000000" />
+                </svg>
+                <span style={{ position: 'absolute', top: -3, left: -1, width: 12, height: 17, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '8pt', fontWeight: 700, lineHeight: 1, color: '#ffffff', letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}>MSX</span>
+              </span>
             </>}
             className="mt-1"
           />

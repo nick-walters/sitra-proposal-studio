@@ -844,27 +844,18 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                           ? workPackages.find(wp => wp.number === del.wp_number)?.color || '#000'
                           : '#000';
                         return (
-                          <span
-                            className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap relative"
-                            style={{
-                              backgroundColor: '#fff',
-                              color: wpColor,
-                              border: `1.5px solid ${wpColor}`,
-                              fontFamily: "'Times New Roman', Times, serif",
-                              fontSize: '11pt',
-                              fontWeight: 700,
-                              lineHeight: 1,
-                              verticalAlign: 'baseline',
-                              padding: '0px 5px',
-                              height: '17px',
-                            }}
-                          >
-                            <EditableTextInline
-                              value={del.number}
-                              onChange={(val) => updateDeliverable.mutate({ id: del.id, number: val })}
-                              placeholder="D#.#"
-                              inheritFont
-                            />
+                          <span style={{ display: 'inline-block', verticalAlign: 'baseline', position: 'relative', width: 50, height: 17 }}>
+                            <svg width={50} height={17} viewBox="0 0 50 17" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
+                              <path d="M 0,0 L 42,0 L 50,8.5 L 42,17 L 0,17 Z" fill="#ffffff" stroke={wpColor} strokeWidth={1.5} strokeLinejoin="round" />
+                            </svg>
+                            <span style={{ position: 'absolute', top: 0, left: 0, width: 42, height: 17, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, color: wpColor, whiteSpace: 'nowrap' }}>
+                              <EditableTextInline
+                                value={del.number}
+                                onChange={(val) => updateDeliverable.mutate({ id: del.id, number: val })}
+                                placeholder="D#.#"
+                                inheritFont
+                              />
+                            </span>
                           </span>
                         );
                       })()}
@@ -1156,22 +1147,13 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
                 {milestones.map((ms) => (
                   <SortableTableRow key={ms.id} id={ms.id} canDrag={isAdminOrOwner} onDelete={() => deleteMilestone.mutate(ms.id)}>
                     <TableCell className={cellStyles} style={{ lineHeight: 1.2, whiteSpace: 'nowrap', width: '46px' }}>
-                      <span
-                        className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap relative"
-                        style={{
-                          backgroundColor: '#fff',
-                          color: '#000000',
-                          border: '1.5px solid #000000',
-                          fontFamily: "'Times New Roman', Times, serif",
-                          fontSize: '11pt',
-                          fontWeight: 700,
-                          lineHeight: 1,
-                          verticalAlign: 'baseline',
-                          padding: '0px 5px',
-                          width: 'fit-content',
-                        }}
-                      >
-                        MS{ms.number}
+                      <span style={{ display: 'inline-block', verticalAlign: 'baseline', position: 'relative', width: 25, height: 25 }}>
+                        <svg width={25} height={25} viewBox="0 0 25 25" style={{ position: 'absolute', top: -3, left: 0, overflow: 'visible' }}>
+                          <path d="M 0,0 L 25,12.5 L 0,25 Z" fill="#000000" />
+                        </svg>
+                        <span style={{ position: 'absolute', top: -3, left: -1, width: 18, height: 25, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, color: '#ffffff', letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}>
+                          MS{ms.number}
+                        </span>
                       </span>
                     </TableCell>
                     <TableCell className={cellStyles} style={{ lineHeight: 1.2 }}>
