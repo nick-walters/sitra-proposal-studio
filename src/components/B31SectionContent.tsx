@@ -101,9 +101,9 @@ export function B31SectionContent({ proposalId }: Props) {
                 <text x={13} y={9.5} textAnchor="middle" fontFamily="'Times New Roman', Times, serif" fontSize="8pt" fontWeight={700} fontStyle="normal" fill="#000000">DX.X</text>
               </svg>
               {' '}&amp; milestones{' '}
-              <svg width={14} height={14} viewBox="0 0 14 14" style={{ display: 'inline-block', verticalAlign: 'baseline', overflow: 'visible' }}>
-                <path d="M 0,0 L 14,7 L 0,14 Z" fill="#000000" />
-                <text x={5} y={10.5} textAnchor="middle" fontFamily="'Times New Roman', Times, serif" fontSize="8pt" fontWeight={700} fontStyle="normal" fill="#ffffff" letterSpacing="-0.5">X</text>
+              <svg width={17} height={17} viewBox="0 0 17 17" style={{ display: 'inline-block', verticalAlign: 'baseline', overflow: 'visible' }}>
+                <path d="M 0,0 L 17,8.5 L 0,17 Z" fill="#000000" />
+                <text x={6} y={12.5} textAnchor="middle" fontFamily="'Times New Roman', Times, serif" fontSize="8pt" fontWeight={700} fontStyle="normal" fill="#ffffff" letterSpacing="-0.5">X</text>
               </svg>
             </>}
             className="mt-1"
