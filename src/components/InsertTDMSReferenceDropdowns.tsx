@@ -68,11 +68,11 @@ function TaskBubbleButton() {
 // Miniature pentagon for Deliverable button
 function DeliverableBubbleButton() {
   return (
-    <span style={{ display: 'inline-block', verticalAlign: 'middle', position: 'relative', width: 36, height: 13 }}>
-      <svg width={36} height={13} viewBox="0 0 36 13" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
-        <path d="M 0,0 L 28,0 L 36,6.5 L 28,13 L 0,13 Z" fill="#ffffff" stroke="#000" strokeWidth={1.2} strokeLinejoin="round" />
+    <span style={{ display: 'inline-block', verticalAlign: 'middle', position: 'relative', width: 40, height: 13 }}>
+      <svg width={40} height={13} viewBox="0 0 40 13" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
+        <path d="M 0,0 L 32,0 L 40,6.5 L 32,13 L 0,13 Z" fill="#ffffff" stroke="#000" strokeWidth={1.2} strokeLinejoin="round" />
       </svg>
-      <span style={{ position: 'absolute', top: 0, left: 0, width: 28, height: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '7pt', fontWeight: 700, lineHeight: 1, color: '#000', whiteSpace: 'nowrap' }}>
+      <span style={{ position: 'absolute', top: 0, left: 0, width: 32, height: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '7pt', fontWeight: 700, lineHeight: 1, color: '#000', whiteSpace: 'nowrap' }}>
         DX.X
       </span>
     </span>
@@ -167,7 +167,7 @@ export function InsertTDMSReferenceDropdowns({
   return (
     <>
       {/* Task dropdown */}
-      <DropdownMenu>
+      <DropdownMenu modal={false}>
         <Tooltip>
           <TooltipTrigger asChild>
             <DropdownMenuTrigger asChild>
@@ -206,7 +206,7 @@ export function InsertTDMSReferenceDropdowns({
       </DropdownMenu>
 
       {/* Deliverable dropdown */}
-      <DropdownMenu>
+      <DropdownMenu modal={false}>
         <Tooltip>
           <TooltipTrigger asChild>
             <DropdownMenuTrigger asChild>
@@ -245,7 +245,7 @@ export function InsertTDMSReferenceDropdowns({
       </DropdownMenu>
 
       {/* Milestone dropdown */}
-      <DropdownMenu>
+      <DropdownMenu modal={false}>
         <Tooltip>
           <TooltipTrigger asChild>
             <DropdownMenuTrigger asChild>
