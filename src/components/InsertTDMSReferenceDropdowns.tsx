@@ -87,9 +87,9 @@ function MiniTriangle({ text }: { text: string }) {
   return (
     <span style={{ display: 'inline-block', verticalAlign: 'middle', position: 'relative', width: 19, height: 17 }}>
       <svg width={19} height={17} viewBox="0 0 19 17" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
-        <path d="M 0,0 L 19,8.5 L 0,17 Z" fill="#000000" />
+        <path d="M 19,0 L 0,8.5 L 19,17 Z" fill="#000000" />
       </svg>
-      <span style={{ position: 'absolute', top: 0, left: -1, width: 13, height: 17, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '7pt', fontWeight: 700, lineHeight: 1, color: '#ffffff', letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}>
+      <span style={{ position: 'absolute', top: 0, right: -1, width: 13, height: 17, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '7pt', fontWeight: 700, lineHeight: 1, color: '#ffffff', letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}>
         {text}
       </span>
     </span>
@@ -138,9 +138,9 @@ function MilestoneTriangle({ number }: { number: number }) {
   return (
     <span className="shrink-0" style={{ display: 'inline-block', verticalAlign: 'middle', position: 'relative', width: 21, height: 21 }}>
       <svg width={21} height={21} viewBox="0 0 21 21" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
-        <path d="M 0,0 L 21,10.5 L 0,21 Z" fill="#000000" />
+        <path d="M 21,0 L 0,10.5 L 21,21 Z" fill="#000000" />
       </svg>
-      <span style={{ position: 'absolute', top: 0, left: -1, width: 15, height: 21, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '9pt', fontWeight: 700, lineHeight: 1, color: '#ffffff', letterSpacing: '-0.7px', whiteSpace: 'nowrap' }}>
+      <span style={{ position: 'absolute', top: 0, right: -1, width: 15, height: 21, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '9pt', fontWeight: 700, lineHeight: 1, color: '#ffffff', letterSpacing: '-0.7px', whiteSpace: 'nowrap' }}>
         {number}
       </span>
     </span>

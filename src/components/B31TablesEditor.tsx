@@ -1149,9 +1149,9 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
                     <TableCell className={bubbleCellStyles} style={{ lineHeight: 1.2, whiteSpace: 'nowrap', width: '46px' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', position: 'relative', width: 21, height: 21 }}>
                         <svg width={21} height={21} viewBox="0 0 21 21" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
-                          <path d="M 0,0 L 21,10.5 L 0,21 Z" fill="#000000" />
+                          <path d="M 21,0 L 0,10.5 L 21,21 Z" fill="#000000" />
                         </svg>
-                        <span style={{ position: 'absolute', top: 0, left: -1, width: 15, height: 21, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, color: '#ffffff', letterSpacing: '-0.7px', whiteSpace: 'nowrap' }}>
+                        <span style={{ position: 'absolute', top: 0, right: -1, width: 15, height: 21, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, color: '#ffffff', letterSpacing: '-0.7px', whiteSpace: 'nowrap' }}>
                           {ms.number}
                         </span>
                       </span>
