@@ -406,7 +406,7 @@ export function GanttChartFigure({
                   const pointDepth = 5;
                   const estimateBubbleW = (label: string) => Math.max(10, label.length * 4 + 6);
 
-                  const msDiamondSize = 15;
+                  const msDiamondSize = 17;
                   type PBubble = typeof taskBubbles[0] & { leftX: number; width: number; bodyW: number; below: boolean; triSide: 'right' | 'left' };
                   const positioned: PBubble[] = taskBubbles.map(b => {
                     if (b.type === 'ms') {
@@ -592,9 +592,9 @@ export function GanttChartFigure({
                                   >
                                     <path
                                       d={svgPath}
-                                      fill="#ffffff"
-                                      stroke={b.color}
-                                      strokeWidth={1.5}
+                                      fill={isMs ? '#000000' : '#ffffff'}
+                                      stroke={isMs ? 'none' : b.color}
+                                      strokeWidth={isMs ? 0 : 1.5}
                                       strokeLinejoin={isMs ? 'miter' : 'round'}
                                     />
                                   </svg>
@@ -612,7 +612,7 @@ export function GanttChartFigure({
                                       fontSize: '8pt',
                                       fontWeight: 700,
                                       lineHeight: 1,
-                                      color: b.color,
+                                      color: isMs ? '#ffffff' : b.color,
                                       whiteSpace: 'nowrap',
                                     }}
                                   >
