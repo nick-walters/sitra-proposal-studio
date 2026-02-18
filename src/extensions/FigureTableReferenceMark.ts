@@ -53,14 +53,14 @@ export const FigureTableReferenceMark = Mark.create<FigureTableReferenceMarkOpti
     return {
       insertFigureTableReference:
         ({ refText }) =>
-        ({ chain }) => {
-          return chain()
-            .insertContent({
-              type: 'text',
-              text: refText,
-              marks: [{ type: this.name }],
-            })
-            .run();
+        ({ tr, dispatch, editor }) => {
+          if (dispatch) {
+            const markType = editor.schema.marks[this.name];
+            const mark = markType.create();
+            const node = editor.schema.text(refText, [mark]);
+            tr.replaceSelectionWith(node, false);
+          }
+          return true;
         },
     };
   },

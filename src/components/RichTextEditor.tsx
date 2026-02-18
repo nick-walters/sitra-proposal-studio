@@ -21,6 +21,7 @@ import { WPReferenceMark } from '@/extensions/WPReferenceMark';
 import { CaseReferenceMark } from '@/extensions/CaseReferenceMark';
 import { ParticipantReferenceMark } from '@/extensions/ParticipantReferenceMark';
 import { AcronymReference } from '@/extensions/AcronymReference';
+import { FigureTableReferenceMark } from '@/extensions/FigureTableReferenceMark';
 import { computeAutoFitSmart } from '@/lib/autoFitColumns';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -892,6 +893,7 @@ export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootn
       WPReferenceMark,
       CaseReferenceMark,
       AcronymReference,
+      FigureTableReferenceMark,
       // Prevent tables from being first element in the document content
       Extension.create({
         name: 'preventTableAtStart',
@@ -1045,6 +1047,8 @@ export function useRichTextEditor({
       ParticipantReferenceMark,
       // Acronym reference for colored acronym insertion
       AcronymReference,
+      // Figure/table reference marks for atomic deletion
+      FigureTableReferenceMark,
       // Block drag-and-drop via drag handle
       BlockDragHandle.configure({
         getLockedBlocks: () => getLockedBlocksRef.current(),
@@ -1076,13 +1080,13 @@ export function useRichTextEditor({
               props: {
                 handleClick(view, pos, event) {
                   const target = event.target as HTMLElement;
-                  const refEl = target.closest('[data-inline-reference], [data-wp-reference], [data-case-reference], [data-participant-reference], [data-acronym-reference]');
+                  const refEl = target.closest('[data-inline-reference], [data-wp-reference], [data-case-reference], [data-participant-reference], [data-acronym-reference], [data-fig-table-ref]');
                   if (!refEl) return false;
                   
                   // Find the mark range at this position
                   const { doc } = view.state;
                   const $pos = doc.resolve(pos);
-                  const markTypes = ['inlineReference', 'wpReference', 'caseReference', 'participantReference', 'acronymReference'];
+                  const markTypes = ['inlineReference', 'wpReference', 'caseReference', 'participantReference', 'acronymReference', 'figureTableReference'];
                   
                   for (const markName of markTypes) {
                     const markType = view.state.schema.marks[markName];

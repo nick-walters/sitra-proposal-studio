@@ -534,15 +534,11 @@ export function DocumentEditor({
     setContent(restoredContent);
   }, [setContent]);
 
-  // Handle cross-reference insertion (figures/tables as bold italic)
+  // Handle cross-reference insertion (figures/tables as marked bold italic)
   const handleInsertCrossRef = useCallback((refText: string) => {
     if (!editor) return;
-    // Insert as bold italic text, then add a normal space and unset formatting
-    editor.chain().focus().insertContent({
-      type: 'text',
-      text: refText,
-      marks: [{ type: 'bold' }, { type: 'italic' }],
-    }).insertContent(' ').unsetBold().unsetItalic().run();
+    // Insert using figureTableReference mark for atomic deletion
+    editor.chain().focus().insertFigureTableReference({ refText }).insertContent(' ').unsetBold().unsetItalic().run();
   }, [editor]);
   
   // Handle WP reference insertion
