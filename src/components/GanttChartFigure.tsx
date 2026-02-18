@@ -239,7 +239,7 @@ export function GanttChartFigure({
   const getFilledCellRightBorder = (month: number, yearColor?: string) => {
     if (month % 12 === 0) return `1px solid ${yearColor || borderYear}`;
     if (month % 3 === 0) return `1px solid ${borderQuarter}`;
-    return `1px solid #d4d4d4`;
+    return `1px solid #e8e8e8`;
   };
 
   const headerLabelStyle = "font-bold italic";
