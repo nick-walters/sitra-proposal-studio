@@ -10,12 +10,15 @@ declare module '@tiptap/core' {
       insertTaskReference: (attributes: {
         wpNumber: number;
         taskNumber: number;
+        taskId?: string;
       }) => ReturnType;
       insertDeliverableReference: (attributes: {
         deliverableNumber: string;
+        deliverableId?: string;
       }) => ReturnType;
       insertMilestoneReference: (attributes: {
         milestoneNumber: number;
+        milestoneId?: string;
       }) => ReturnType;
     };
   }
@@ -52,15 +55,30 @@ export const InlineReferenceMark = Mark.create<InlineReferenceOptions>({
         parseHTML: (el) => el.getAttribute('data-task-number'),
         renderHTML: (attrs) => attrs.taskNumber ? { 'data-task-number': attrs.taskNumber } : {},
       },
+      taskId: {
+        default: null,
+        parseHTML: (el) => el.getAttribute('data-task-id'),
+        renderHTML: (attrs) => attrs.taskId ? { 'data-task-id': attrs.taskId } : {},
+      },
       deliverableNumber: {
         default: null,
         parseHTML: (el) => el.getAttribute('data-deliverable-number'),
         renderHTML: (attrs) => attrs.deliverableNumber ? { 'data-deliverable-number': attrs.deliverableNumber } : {},
       },
+      deliverableId: {
+        default: null,
+        parseHTML: (el) => el.getAttribute('data-deliverable-id'),
+        renderHTML: (attrs) => attrs.deliverableId ? { 'data-deliverable-id': attrs.deliverableId } : {},
+      },
       milestoneNumber: {
         default: null,
         parseHTML: (el) => el.getAttribute('data-milestone-number'),
         renderHTML: (attrs) => attrs.milestoneNumber ? { 'data-milestone-number': attrs.milestoneNumber } : {},
+      },
+      milestoneId: {
+        default: null,
+        parseHTML: (el) => el.getAttribute('data-milestone-id'),
+        renderHTML: (attrs) => attrs.milestoneId ? { 'data-milestone-id': attrs.milestoneId } : {},
       },
     };
   },
@@ -97,7 +115,12 @@ export const InlineReferenceMark = Mark.create<InlineReferenceOptions>({
               text: label,
               marks: [{
                 type: 'inlineReference',
-                attrs: { refType: 'task', wpNumber: attrs.wpNumber, taskNumber: attrs.taskNumber },
+                attrs: {
+                  refType: 'task',
+                  wpNumber: attrs.wpNumber,
+                  taskNumber: attrs.taskNumber,
+                  taskId: attrs.taskId || null,
+                },
               }],
             })
             .run();
@@ -112,7 +135,11 @@ export const InlineReferenceMark = Mark.create<InlineReferenceOptions>({
               text: label,
               marks: [{
                 type: 'inlineReference',
-                attrs: { refType: 'deliverable', deliverableNumber: attrs.deliverableNumber },
+                attrs: {
+                  refType: 'deliverable',
+                  deliverableNumber: attrs.deliverableNumber,
+                  deliverableId: attrs.deliverableId || null,
+                },
               }],
             })
             .run();
@@ -127,7 +154,11 @@ export const InlineReferenceMark = Mark.create<InlineReferenceOptions>({
               text: label,
               marks: [{
                 type: 'inlineReference',
-                attrs: { refType: 'milestone', milestoneNumber: attrs.milestoneNumber },
+                attrs: {
+                  refType: 'milestone',
+                  milestoneNumber: attrs.milestoneNumber,
+                  milestoneId: attrs.milestoneId || null,
+                },
               }],
             })
             .run();
