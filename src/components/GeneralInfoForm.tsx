@@ -340,7 +340,7 @@ function ReportingPeriodsEditor({ proposal, onUpdate }: {
           return (
             <div key={idx} className="flex items-center gap-2">
               <span className="text-sm font-medium w-12">RP{rp.number}</span>
-              <span className="text-xs text-muted-foreground w-28">
+              <span className="text-xs text-muted-foreground w-20">
                 M{String(rp.startMonth).padStart(2, '0')}–M{String(rp.endMonth).padStart(2, '0')}
               </span>
               <Select
