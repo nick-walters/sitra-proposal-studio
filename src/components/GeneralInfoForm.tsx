@@ -331,14 +331,14 @@ function ReportingPeriodsEditor({ proposal, onUpdate }: {
   const canAdd = totalCovered < duration;
 
   return (
-    <div className="space-y-3">
-      <label className="text-xs text-muted-foreground mb-0.5 block">Reporting periods</label>
-      <div className="space-y-2">
+    <div className="space-y-1.5">
+      <label className="text-xs text-muted-foreground mb-0 block">Reporting periods</label>
+      <div className="space-y-1">
         {rps.map((rp, idx) => {
           const len = rp.endMonth - rp.startMonth + 1;
           const maxLen = Math.min(18, duration - rp.startMonth + 1);
           return (
-            <div key={idx} className="flex items-center gap-3">
+            <div key={idx} className="flex items-center gap-2">
               <span className="text-sm font-medium w-12">RP{rp.number}</span>
               <span className="text-xs text-muted-foreground w-28">
                 M{String(rp.startMonth).padStart(2, '0')}–M{String(rp.endMonth).padStart(2, '0')}
@@ -357,7 +357,7 @@ function ReportingPeriodsEditor({ proposal, onUpdate }: {
                 </SelectContent>
               </Select>
               {rps.length > 1 && (
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleRemoveRP(idx)}>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => handleRemoveRP(idx)}>
                   <Trash2 className="w-3 h-3" />
                 </Button>
               )}
