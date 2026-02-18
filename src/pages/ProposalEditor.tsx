@@ -686,6 +686,7 @@ export function ProposalEditor() {
           topicId={proposal?.topicId}
           workProgramme={proposal?.workProgramme}
           destination={proposal?.destination}
+          acronymSegments={(proposal as any)?.acronymSegments}
         />
       );
     }
@@ -828,6 +829,7 @@ export function ProposalEditor() {
         topicUrl={proposal?.topicUrl}
         workProgramme={proposal?.workProgramme}
         destination={proposal?.destination}
+        acronymSegments={(proposal as any)?.acronymSegments}
       />
     );
   };

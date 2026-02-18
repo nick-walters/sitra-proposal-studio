@@ -215,6 +215,7 @@ export interface Proposal {
   expectedProjects?: string;
   usesFstp?: boolean;
   reportingPeriods?: { number: number; startMonth: number; endMonth: number }[];
+  acronymSegments?: { text: string; color: string }[];
 }
 
 export interface Participant {
