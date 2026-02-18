@@ -105,26 +105,9 @@ export function InsertCaseReferenceDialog({
               {caseDrafts.map((caseItem) => {
                 const prefix = getCasePrefix(caseItem.case_type);
                 return (
-                  <div
+                  <button
                     key={caseItem.id}
-                    role="button"
-                    tabIndex={0}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleSelect(caseItem);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleSelect(caseItem);
-                      }
-                    }}
+                    onClick={() => handleSelect(caseItem)}
                     className={cn(
                       "w-full flex items-center p-3 rounded-md text-left cursor-pointer",
                       "hover:bg-muted/80 transition-colors"
@@ -143,7 +126,7 @@ export function InsertCaseReferenceDialog({
                         {caseItem.title || '—'}
                       </div>
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
