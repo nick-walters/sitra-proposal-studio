@@ -631,11 +631,21 @@
   justify-content: center;
   height: 17px;
   padding: 0 10px 0 4px;
-  background: #ffffff;
+  background: var(--wp-color, #000);
   color: #000;
-  border: 1.5px solid currentColor;
-  border-color: var(--wp-color, #000);
   clip-path: polygon(0% 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 0% 100%);
+  position: relative;
+  z-index: 0;
+}
+
+.inline-ref-deliverable::before {
+  content: '';
+  position: absolute;
+  inset: 1.5px;
+  right: 2.5px;
+  background: #ffffff;
+  clip-path: polygon(0% 0%, calc(100% - 7px) 0%, 100% 50%, calc(100% - 7px) 100%, 0% 100%);
+  z-index: -1;
 }
 
 .inline-ref-milestone {
