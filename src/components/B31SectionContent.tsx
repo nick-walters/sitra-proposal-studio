@@ -102,7 +102,7 @@ export function B31SectionContent({ proposalId }: Props) {
               </span>
               {' '}&amp; milestones{' '}
               <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'baseline' }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#000000', color: '#ffffff', padding: '0px 2px 0px 5px', height: '17px', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, whiteSpace: 'nowrap', clipPath: 'polygon(0 0, 70% 0, 100% 50%, 70% 100%, 0 100%)' }}>MSX&nbsp;</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#000000', color: '#ffffff', padding: '0px 2px 0px 5px', height: '17px', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, whiteSpace: 'nowrap', clipPath: 'polygon(0 0, 70% 0, 100% 50%, 70% 100%, 0 100%)' }}>X&nbsp;</span>
               </span>
             </>}
             className="mt-1"

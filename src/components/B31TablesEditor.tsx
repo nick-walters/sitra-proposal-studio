@@ -844,11 +844,11 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
                           ? workPackages.find(wp => wp.number === del.wp_number)?.color || '#000'
                           : '#000';
                         return (
-                          <span style={{ display: 'inline-block', verticalAlign: 'baseline', position: 'relative', width: 50, height: 17 }}>
-                            <svg width={50} height={17} viewBox="0 0 50 17" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
-                              <path d="M 0,0 L 42,0 L 50,8.5 L 42,17 L 0,17 Z" fill="#ffffff" stroke={wpColor} strokeWidth={1.5} strokeLinejoin="round" />
+                          <span style={{ display: 'inline-block', verticalAlign: 'baseline', position: 'relative', width: 44, height: 17 }}>
+                            <svg width={44} height={17} viewBox="0 0 44 17" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
+                              <path d="M 0,0 L 36,0 L 44,8.5 L 36,17 L 0,17 Z" fill="#ffffff" stroke={wpColor} strokeWidth={1.5} strokeLinejoin="round" />
                             </svg>
-                            <span style={{ position: 'absolute', top: 0, left: 0, width: 42, height: 17, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, color: wpColor, whiteSpace: 'nowrap' }}>
+                            <span style={{ position: 'absolute', top: 0, left: 0, width: 36, height: 17, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, color: wpColor, whiteSpace: 'nowrap' }}>
                               <EditableTextInline
                                 value={del.number}
                                 onChange={(val) => updateDeliverable.mutate({ id: del.id, number: val })}
@@ -1152,7 +1152,7 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
                           <path d="M 0,0 L 25,12.5 L 0,25 Z" fill="#000000" />
                         </svg>
                         <span style={{ position: 'absolute', top: -3, left: -1, width: 18, height: 25, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, color: '#ffffff', letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}>
-                          MS{ms.number}
+                          {ms.number}
                         </span>
                       </span>
                     </TableCell>
