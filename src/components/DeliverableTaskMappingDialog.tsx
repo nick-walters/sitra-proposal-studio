@@ -102,7 +102,7 @@ export function DeliverableTaskMappingDialog({ proposalId }: DeliverableTaskMapp
                         <SelectItem value="__none__">Unassigned</SelectItem>
                         {tasks.map(t => (
                           <SelectItem key={t.id} value={t.id}>
-                            T{wp.number}.{t.number}: {t.title || '(untitled)'}{t.start_month != null && t.end_month != null ? ` (M${t.start_month}–M${t.end_month})` : ''}
+                            T{wp.number}.{t.number}: {t.title || '(untitled)'}{t.start_month != null && t.end_month != null ? ` (M${String(t.start_month).padStart(2, '0')}–M${String(t.end_month).padStart(2, '0')})` : ''}
                           </SelectItem>
                         ))}
                       </SelectContent>
