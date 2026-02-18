@@ -16,42 +16,6 @@ export async function exportAsPng(element: HTMLElement, filename: string) {
   link.click();
 }
 
-/**
- * Fallback: Export a DOM element as a single-slide PPTX with an image.
- */
-export async function exportAsPptxImage(element: HTMLElement, filename: string) {
-  const canvas = await html2canvas(element, {
-    backgroundColor: '#ffffff',
-    scale: 2,
-    useCORS: true,
-  });
-  const imgData = canvas.toDataURL('image/png');
-
-  const pptx = new PptxGenJS();
-  const slide = pptx.addSlide();
-
-  const slideW = 10;
-  const slideH = 5.63;
-  const imgAspect = canvas.width / canvas.height;
-  const slideAspect = slideW / slideH;
-
-  let w: number, h: number, x: number, y: number;
-  if (imgAspect > slideAspect) {
-    w = slideW;
-    h = slideW / imgAspect;
-    x = 0;
-    y = (slideH - h) / 2;
-  } else {
-    h = slideH;
-    w = slideH * imgAspect;
-    x = (slideW - w) / 2;
-    y = 0;
-  }
-
-  slide.addImage({ data: imgData, x, y, w, h });
-  await pptx.writeFile({ fileName: `${filename}.pptx` });
-}
-
 // ========== PERT Chart Native Export ==========
 
 export interface PERTNode {

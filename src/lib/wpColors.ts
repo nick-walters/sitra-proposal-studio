@@ -15,20 +15,6 @@ export const DEFAULT_WP_COLORS = [
   '#8B5CF6', // Purple
 ];
 
-export const WP_COLOR_NAMES = [
-  'Royal Blue',
-  'Emerald',
-  'Amber',
-  'Violet',
-  'Cyan',
-  'Orange',
-  'Pink',
-  'Slate',
-  'Lime',
-  'Indigo',
-  'Teal',
-  'Purple',
-];
 
 /**
  * Get a contrasting text color (black or white) based on the background color
@@ -87,14 +73,6 @@ export function hexToHSL(hex: string): { h: number; s: number; l: number } {
     s: Math.round(s * 100),
     l: Math.round(l * 100),
   };
-}
-
-/**
- * Convert hex to HSL CSS string
- */
-export function hexToHSLString(hex: string): string {
-  const { h, s, l } = hexToHSL(hex);
-  return `${h} ${s}% ${l}%`;
 }
 
 /**
