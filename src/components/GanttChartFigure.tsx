@@ -558,14 +558,17 @@ export function GanttChartFigure({
                             // Milestone: right-angled isosceles triangle
                             shapeW = msDiamondSize;
                             shapeH = msDiamondSize;
+                            svgPath = isRight
+                              ? `M 0,0 L ${shapeW},${shapeH / 2} L 0,${shapeH} Z`
+                              : `M 0,${shapeH / 2} L ${shapeW},0 L ${shapeW},${shapeH} Z`;
                           } else {
                             shapeW = b.width;
                             shapeH = bH;
+                            // Deliverable: square on non-arrow side, pointed on arrow side
+                            svgPath = isRight
+                              ? `M 0,0 L ${shapeW - pointDepth},0 L ${shapeW},${shapeH / 2} L ${shapeW - pointDepth},${shapeH} L 0,${shapeH} Z`
+                              : `M ${pointDepth},0 L ${shapeW},0 L ${shapeW},${shapeH} L ${pointDepth},${shapeH} L 0,${shapeH / 2} Z`;
                           }
-                          // Both D and MS: isosceles triangle with one vertical side
-                          svgPath = isRight
-                            ? `M 0,0 L ${shapeW},${shapeH / 2} L 0,${shapeH} Z`
-                            : `M 0,${shapeH / 2} L ${shapeW},0 L ${shapeW},${shapeH} Z`;
 
                           return (
                             <Tooltip key={`${b.type}-${idx}`}>
@@ -599,8 +602,8 @@ export function GanttChartFigure({
                                     style={{
                                       position: 'absolute',
                                       top: isMs ? -1 : 0,
-                                      left: isRight ? 0 : Math.round(shapeW * 0.3),
-                                      width: isRight ? Math.round(shapeW * 0.7) : Math.round(shapeW * 0.7),
+                                      left: isMs ? (isRight ? 0 : Math.round(shapeW * 0.3)) : (isRight ? 0 : pointDepth) + (isDel ? 1 : 0),
+                                      width: isMs ? (isRight ? Math.round(shapeW * 0.7) : Math.round(shapeW * 0.7)) : b.bodyW,
                                       height: shapeH,
                                       display: 'flex',
                                       alignItems: 'center',
