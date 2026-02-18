@@ -843,7 +843,7 @@ export function DocumentEditor({
                   </TooltipTrigger>
                   <TooltipContent>Insert Figure/Table Cross-Reference</TooltipContent>
                 </Tooltip>
-                <Separator orientation="vertical" className="h-4 mx-1" />
+                
                 {acronymSegments && acronymSegments.length > 0 && (
                   <Tooltip>
                     <TooltipTrigger asChild>

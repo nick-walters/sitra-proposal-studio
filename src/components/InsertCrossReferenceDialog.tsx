@@ -77,13 +77,26 @@ export function InsertCrossReferenceDialog({
 
     const loadAllContent = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('section_content')
-        .select('content, section_id')
-        .eq('proposal_id', proposalId);
 
-      if (error) {
-        console.error('Error loading section content:', error);
+      // Fetch section content, compulsory table captions, and figures in parallel
+      const [contentResult, captionsResult, figuresResult] = await Promise.all([
+        supabase
+          .from('section_content')
+          .select('content, section_id')
+          .eq('proposal_id', proposalId),
+        supabase
+          .from('table_captions')
+          .select('table_key, caption')
+          .eq('proposal_id', proposalId),
+        supabase
+          .from('figures')
+          .select('figure_number, title, section_id')
+          .eq('proposal_id', proposalId)
+          .order('figure_number'),
+      ]);
+
+      if (contentResult.error) {
+        console.error('Error loading section content:', contentResult.error);
         setLoading(false);
         return;
       }
@@ -93,7 +106,8 @@ export function InsertCrossReferenceDialog({
       const seenFigLabels = new Set<string>();
       const seenTblLabels = new Set<string>();
 
-      for (const row of data || []) {
+      // Extract from section content HTML
+      for (const row of contentResult.data || []) {
         if (!row.content) continue;
         const { figures: figs, tables: tbls } = extractRefsFromContent(row.content);
         for (const f of figs) {
@@ -107,6 +121,36 @@ export function InsertCrossReferenceDialog({
             seenTblLabels.add(t.label);
             allTables.push({ ...t, sectionId: row.section_id });
           }
+        }
+      }
+
+      // Add compulsory tables from table_captions (e.g. Table 3.1.a, 3.1.b, etc.)
+      for (const cap of captionsResult.data || []) {
+        // table_key format: "table-3.1.a" → label "3.1.a"
+        const labelMatch = cap.table_key?.match(/^table-(\d+\.\d+\.[a-z])$/i);
+        if (labelMatch) {
+          const label = labelMatch[1];
+          if (!seenTblLabels.has(label)) {
+            seenTblLabels.add(label);
+            allTables.push({
+              label,
+              title: cap.caption || 'Untitled',
+              type: 'table',
+            });
+          }
+        }
+      }
+
+      // Add figures from figures table
+      for (const fig of figuresResult.data || []) {
+        if (!seenFigLabels.has(fig.figure_number)) {
+          seenFigLabels.add(fig.figure_number);
+          allFigures.push({
+            label: fig.figure_number,
+            title: fig.title || 'Untitled',
+            type: 'figure',
+            sectionId: fig.section_id,
+          });
         }
       }
 
