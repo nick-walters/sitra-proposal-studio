@@ -55,7 +55,7 @@ interface GanttChartFigureProps {
 
 // 18cm = 680.315px at 96dpi. We use this as the total chart width.
 const TOTAL_WIDTH_PX = 680;
-const MIN_CELL_WIDTH = 8;
+const MIN_CELL_WIDTH = 7;
 const MARGIN_GAP = 6; // gap between month columns and right margin
 
 export function GanttChartFigure({
@@ -206,7 +206,7 @@ export function GanttChartFigure({
   };
 
   // Calculate cell width: use minimal width for month columns to maximize label space
-  const minQuarterWidth = 30;
+  const minQuarterWidth = 21;
   const cellWidth = Math.max(MIN_CELL_WIDTH, Math.ceil(minQuarterWidth / 3));
   const timelineWidth = cellWidth * projectDuration;
   const labelWidth = TOTAL_WIDTH_PX - timelineWidth - MARGIN_GAP;
