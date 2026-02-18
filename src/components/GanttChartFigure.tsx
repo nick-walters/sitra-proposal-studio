@@ -461,12 +461,7 @@ export function GanttChartFigure({
                       left.triSide = 'right';
                       right.leftX = tX;
                       right.triSide = 'left';
-                      // Check if right bubble exceeds margin
-                      if (right.leftX + right.width > timelineWidth) {
-                        right.below = true;
-                        right.leftX = tX - right.width;
-                        right.triSide = 'right';
-                      }
+                      // Extra bubbles go below only if same-month overflow
                       // Extra bubbles go below
                       for (let i = 2; i < indices.length; i++) {
                         positioned[indices[i]].below = true;
@@ -487,19 +482,13 @@ export function GanttChartFigure({
                       prev.leftX = tX - prev.width;
                       prev.triSide = 'right';
                       curr.leftX = tX;
+                      curr.leftX = tX;
                       curr.triSide = 'left';
-                      if (curr.leftX + curr.width > timelineWidth) {
-                        curr.below = true;
-                        curr.leftX = tX - curr.width;
-                        curr.triSide = 'right';
-                      }
                     }
                   }
-
-                  // Clamp all within bounds
+                  // Clamp: only prevent going off left edge
                   positioned.forEach(b => {
                     if (b.leftX < 0) b.leftX = 0;
-                    if (b.leftX + b.width > timelineWidth) b.leftX = timelineWidth - b.width;
                   });
 
                   const hasBelow = positioned.some(b => b.below);
