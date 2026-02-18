@@ -295,7 +295,7 @@ export function GanttChartFigure({
           {/* Header block: RP, Year, Month rows with unified outer border */}
           <div className="flex">
             {/* Labels column */}
-            <div className="shrink-0" style={{ width: labelWidth }}>
+            <div className="shrink-0" style={{ width: labelWidth, paddingTop: 2 }}>
               <div className={`flex items-center justify-end ${headerLabelStyle}`} style={{ height: 18, padding: '0 2px' }}>
                 Reporting period
               </div>
