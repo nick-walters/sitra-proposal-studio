@@ -23,6 +23,7 @@ import { InsertCrossReferenceDialog } from "./InsertCrossReferenceDialog";
 import { InsertWPReferenceDialog } from "./InsertWPReferenceDialog";
 import { InsertCaseReferenceDialog } from "./InsertCaseReferenceDialog";
 import { InsertParticipantReferenceDialog } from "./InsertParticipantReferenceDialog";
+import { InsertTDMSReferenceDropdowns } from "./InsertTDMSReferenceDropdowns";
 import { CommentsSidebar } from "./CommentsSidebar";
 import { SectionAssignmentDialog } from "./SectionAssignmentDialog";
 import { ImpactPathwayGenerator } from "./ImpactPathwayGenerator";
@@ -533,6 +534,33 @@ export function DocumentEditor({
     editor.chain().focus().insertAcronymReference({ segments: acronymSegments }).insertContent(' ').run();
   }, [editor, acronymSegments]);
 
+  // Handle Task reference insertion
+  const handleInsertTaskRef = useCallback((task: { wp_number: number; number: number; title: string }) => {
+    if (!editor) return;
+    const label = `T${task.wp_number}.${task.number}`;
+    editor.chain().focus().insertContent(
+      `<span contenteditable="false" style="display:inline-flex;align-items:center;height:17px;padding:0 4px;border-radius:9999px;border:1.5px solid #000;font-family:'Times New Roman',Times,serif;font-size:11pt;font-weight:700;line-height:1;white-space:nowrap;vertical-align:baseline;user-select:none;">${label}</span> `
+    ).run();
+  }, [editor]);
+
+  // Handle Deliverable reference insertion
+  const handleInsertDeliverableRef = useCallback((del: { number: string; name: string }) => {
+    if (!editor) return;
+    const label = `D${del.number}`;
+    editor.chain().focus().insertContent(
+      `<span contenteditable="false" style="display:inline-flex;align-items:center;height:17px;padding:0 4px;border-radius:9999px;border:1.5px solid #000;font-family:'Times New Roman',Times,serif;font-size:11pt;font-weight:700;line-height:1;white-space:nowrap;vertical-align:baseline;user-select:none;">${label}</span> `
+    ).run();
+  }, [editor]);
+
+  // Handle Milestone reference insertion
+  const handleInsertMilestoneRef = useCallback((ms: { number: number; name: string }) => {
+    if (!editor) return;
+    const label = `MS${ms.number}`;
+    editor.chain().focus().insertContent(
+      `<span contenteditable="false" style="display:inline-flex;align-items:center;height:17px;padding:0 4px;border-radius:9999px;border:1.5px solid #000;font-family:'Times New Roman',Times,serif;font-size:11pt;font-weight:700;line-height:1;white-space:nowrap;vertical-align:baseline;user-select:none;">${label}</span> `
+    ).run();
+  }, [editor]);
+
   const handleApplySuggestion = useCallback((originalText: string, suggestedText: string) => {
     if (!originalText || !suggestedText || !content) return;
     const newContent = content.replace(originalText, suggestedText);
@@ -778,6 +806,25 @@ export function DocumentEditor({
                   </TooltipTrigger>
                   <TooltipContent>Insert Cross-reference</TooltipContent>
                 </Tooltip>
+                {acronymSegments && acronymSegments.length > 0 && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 px-2 text-xs gap-0"
+                        onClick={handleInsertAcronymRef}
+                        disabled={isEffectivelyReadOnly}
+                        style={{ fontFamily: '"Arial Black", Arial, sans-serif', fontWeight: 900, fontSize: '10px' }}
+                      >
+                        {acronymSegments.map((seg, i) => (
+                          <span key={i} style={{ color: seg.color }}>{seg.text}</span>
+                        ))}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Insert Colored Acronym</TooltipContent>
+                  </Tooltip>
+                )}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
@@ -793,6 +840,14 @@ export function DocumentEditor({
                   </TooltipTrigger>
                   <TooltipContent>Insert WP Reference</TooltipContent>
                 </Tooltip>
+                <InsertTDMSReferenceDropdowns
+                  proposalId={proposalId}
+                  disabled={isEffectivelyReadOnly}
+                  onInsertTask={handleInsertTaskRef}
+                  onInsertDeliverable={handleInsertDeliverableRef}
+                  onInsertMilestone={handleInsertMilestoneRef}
+                  variant="outline"
+                />
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
@@ -823,25 +878,6 @@ export function DocumentEditor({
                   </TooltipTrigger>
                   <TooltipContent>Insert Partner Reference</TooltipContent>
                 </Tooltip>
-                {acronymSegments && acronymSegments.length > 0 && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-6 px-2 text-xs gap-0"
-                        onClick={handleInsertAcronymRef}
-                        disabled={isEffectivelyReadOnly}
-                        style={{ fontFamily: '"Arial Black", Arial, sans-serif', fontWeight: 900, fontSize: '10px' }}
-                      >
-                        {acronymSegments.map((seg, i) => (
-                          <span key={i} style={{ color: seg.color }}>{seg.text}</span>
-                        ))}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Insert Colored Acronym</TooltipContent>
-                  </Tooltip>
-                )}
               </>
             )}
           </div>

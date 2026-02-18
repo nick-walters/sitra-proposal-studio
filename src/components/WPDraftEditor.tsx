@@ -12,6 +12,7 @@ import { InsertCrossReferenceDialog } from '@/components/InsertCrossReferenceDia
 import { InsertWPReferenceDialog } from '@/components/InsertWPReferenceDialog';
 import { InsertParticipantReferenceDialog } from '@/components/InsertParticipantReferenceDialog';
 import { InsertFigureDialog } from '@/components/InsertFigureDialog';
+import { InsertTDMSReferenceDropdowns } from '@/components/InsertTDMSReferenceDropdowns';
 import { useProposalReferences } from '@/hooks/useProposalReferences';
 import { useQuery } from '@tanstack/react-query';
 
@@ -360,6 +361,67 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
     toast.success(`Figure reference inserted`);
   }, []);
 
+  // Handle Task reference insertion (contentEditable)
+  const insertTaskRefAtCursor = useCallback((task: { wp_number: number; number: number; title: string }) => {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const span = document.createElement('span');
+      span.textContent = `T${task.wp_number}.${task.number}`;
+      span.setAttribute('contenteditable', 'false');
+      Object.assign(span.style, { display: 'inline-flex', alignItems: 'center', height: '17px', padding: '0 4px', borderRadius: '9999px', border: '1.5px solid #000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: '700', lineHeight: '1', whiteSpace: 'nowrap', verticalAlign: 'baseline', userSelect: 'none' });
+      range.insertNode(span);
+      const space = document.createTextNode(' ');
+      range.setStartAfter(span);
+      range.insertNode(space);
+      range.setStartAfter(space);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+    toast.success(`T${task.wp_number}.${task.number} reference inserted`);
+  }, []);
+
+  const insertDeliverableRefAtCursor = useCallback((del: { number: string; name: string }) => {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const span = document.createElement('span');
+      span.textContent = `D${del.number}`;
+      span.setAttribute('contenteditable', 'false');
+      Object.assign(span.style, { display: 'inline-flex', alignItems: 'center', height: '17px', padding: '0 4px', borderRadius: '9999px', border: '1.5px solid #000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: '700', lineHeight: '1', whiteSpace: 'nowrap', verticalAlign: 'baseline', userSelect: 'none' });
+      range.insertNode(span);
+      const space = document.createTextNode(' ');
+      range.setStartAfter(span);
+      range.insertNode(space);
+      range.setStartAfter(space);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+    toast.success(`D${del.number} reference inserted`);
+  }, []);
+
+  const insertMilestoneRefAtCursor = useCallback((ms: { number: number; name: string }) => {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const span = document.createElement('span');
+      span.textContent = `MS${ms.number}`;
+      span.setAttribute('contenteditable', 'false');
+      Object.assign(span.style, { display: 'inline-flex', alignItems: 'center', height: '17px', padding: '0 4px', borderRadius: '9999px', border: '1.5px solid #000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: '700', lineHeight: '1', whiteSpace: 'nowrap', verticalAlign: 'baseline', userSelect: 'none' });
+      range.insertNode(span);
+      const space = document.createTextNode(' ');
+      range.setStartAfter(span);
+      range.insertNode(space);
+      range.setStartAfter(space);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+    toast.success(`MS${ms.number} reference inserted`);
+  }, []);
+
   // Fetch participants, figures, and WP drafts for the proposal
   useEffect(() => {
     const fetchParticipants = async () => {
@@ -604,6 +666,14 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="text-xs">Insert WP Reference</TooltipContent>
                 </Tooltip>
+                <InsertTDMSReferenceDropdowns
+                  proposalId={proposalId}
+                  disabled={readOnly}
+                  onInsertTask={insertTaskRefAtCursor}
+                  onInsertDeliverable={insertDeliverableRefAtCursor}
+                  onInsertMilestone={insertMilestoneRefAtCursor}
+                  variant="ghost"
+                />
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => setIsParticipantRefOpen(true)}>
