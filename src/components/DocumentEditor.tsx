@@ -704,6 +704,45 @@ export function DocumentEditor({
                 <History className="w-3 h-3" />
                 History
               </Button>
+              
+              <Separator orientation="vertical" className="h-4 mx-1" />
+              
+              <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={() => setIsGrammarOpen(true)}>
+                <Sparkles className="w-3 h-3" />
+                Grammar
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-6 px-2 text-xs gap-1"
+                onClick={() => setIsWritingAssistantOpen(true)}
+                disabled={!editor || isEffectivelyReadOnly}
+              >
+                <Wand2 className="w-3 h-3" />
+                AI
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-6 px-2 text-xs gap-1"
+                onClick={() => setIsSnippetsOpen(true)}
+                disabled={!editor || isEffectivelyReadOnly}
+              >
+                <FileCode className="w-3 h-3" />
+                Snippets
+              </Button>
+              {isImpactSection && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-6 px-2 text-xs gap-1 bg-primary/5 border-primary/30 hover:bg-primary/10" 
+                  onClick={() => setIsImpactPathwayOpen(true)}
+                  disabled={isEffectivelyReadOnly}
+                >
+                  <Route className="w-3 h-3" />
+                  Impact Mapper
+                </Button>
+              )}
             </div>
             
             {/* Right side: shortcuts, panel toggle */}
@@ -733,47 +772,9 @@ export function DocumentEditor({
           </div>
         </div>
 
-        {/* Row 2: Grammar AI Snippets | Citation Cross-ref WP Partner */}
+        {/* Row 2: Citation Cross-ref | Acronym WP T D MS Case Partner */}
         <div className="px-2 py-1 border-b border-border bg-card">
           <div className="flex items-center gap-1">
-            <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={() => setIsGrammarOpen(true)}>
-              <Sparkles className="w-3 h-3" />
-              Grammar
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="h-6 px-2 text-xs gap-1"
-              onClick={() => setIsWritingAssistantOpen(true)}
-              disabled={!editor || isEffectivelyReadOnly}
-            >
-              <Wand2 className="w-3 h-3" />
-              AI
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="h-6 px-2 text-xs gap-1"
-              onClick={() => setIsSnippetsOpen(true)}
-              disabled={!editor || isEffectivelyReadOnly}
-            >
-              <FileCode className="w-3 h-3" />
-              Snippets
-            </Button>
-            {isImpactSection && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-6 px-2 text-xs gap-1 bg-primary/5 border-primary/30 hover:bg-primary/10" 
-                onClick={() => setIsImpactPathwayOpen(true)}
-                disabled={isEffectivelyReadOnly}
-              >
-                <Route className="w-3 h-3" />
-                Impact Mapper
-              </Button>
-            )}
-            
-            <Separator orientation="vertical" className="h-4 mx-1" />
             
             <Tooltip>
               <TooltipTrigger asChild>
