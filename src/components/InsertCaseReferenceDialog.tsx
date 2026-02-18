@@ -102,46 +102,34 @@ export function InsertCaseReferenceDialog({
             </div>
           ) : (
             <div className="space-y-1 p-1">
-              {caseDrafts.map((caseItem) => (
-                <div
-                  key={caseItem.id}
-                  role="button"
-                  tabIndex={0}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleSelect(caseItem);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      handleSelect(caseItem);
-                    }
-                  }}
-                  className={cn(
-                    "w-full flex items-center p-3 rounded-md text-left cursor-pointer",
-                    "hover:bg-muted/80 transition-colors"
-                  )}
-                >
-                  <span
-                    className="shrink-0 rounded-full font-bold w-12 text-center border-[1.5px] border-black text-black bg-white text-xs px-1.5 py-0.5"
+              {caseDrafts.map((caseItem) => {
+                const prefix = getCasePrefix(caseItem.case_type);
+                return (
+                  <button
+                    key={caseItem.id}
+                    type="button"
+                    onClick={() => handleSelect(caseItem)}
+                    className={cn(
+                      "w-full flex items-center p-3 rounded-md text-left cursor-pointer",
+                      "hover:bg-muted/80 transition-colors"
+                    )}
                   >
-                    {getCasePrefix(caseItem.case_type)}{caseItem.number}
-                  </span>
-                  <div className="flex-1 min-w-0 ml-3">
-                    <div className="font-medium text-sm truncate">
-                      {caseItem.short_name || '—'}
+                    <span
+                      className="shrink-0 rounded-full font-bold w-12 text-center border-[1.5px] border-black text-black bg-white text-xs px-1.5 py-0.5"
+                    >
+                      {prefix}{caseItem.number}
+                    </span>
+                    <div className="flex-1 min-w-0 ml-3">
+                      <div className="font-medium text-sm truncate">
+                        {caseItem.short_name || '—'}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {caseItem.title || '—'}
+                      </div>
                     </div>
-                    <div className="text-xs text-muted-foreground truncate">
-                      {caseItem.title || '—'}
-                    </div>
-                  </div>
-                </div>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           )}
         </ScrollArea>

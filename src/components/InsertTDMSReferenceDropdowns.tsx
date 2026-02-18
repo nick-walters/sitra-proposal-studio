@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
-import { ChevronDown } from 'lucide-react';
+
 
 interface Task {
   id: string;
@@ -68,11 +68,11 @@ function TaskBubbleButton() {
 // Miniature pentagon for Deliverable button
 function DeliverableBubbleButton() {
   return (
-    <span style={{ display: 'inline-block', verticalAlign: 'middle', position: 'relative', width: 32, height: 13 }}>
-      <svg width={32} height={13} viewBox="0 0 32 13" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
-        <path d="M 0,0 L 25,0 L 32,6.5 L 25,13 L 0,13 Z" fill="#ffffff" stroke="#000" strokeWidth={1.2} strokeLinejoin="round" />
+    <span style={{ display: 'inline-block', verticalAlign: 'middle', position: 'relative', width: 36, height: 13 }}>
+      <svg width={36} height={13} viewBox="0 0 36 13" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
+        <path d="M 0,0 L 28,0 L 36,6.5 L 28,13 L 0,13 Z" fill="#ffffff" stroke="#000" strokeWidth={1.2} strokeLinejoin="round" />
       </svg>
-      <span style={{ position: 'absolute', top: 0, left: 0, width: 25, height: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '7pt', fontWeight: 700, lineHeight: 1, color: '#000', whiteSpace: 'nowrap' }}>
+      <span style={{ position: 'absolute', top: 0, left: 0, width: 28, height: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '7pt', fontWeight: 700, lineHeight: 1, color: '#000', whiteSpace: 'nowrap' }}>
         DX.X
       </span>
     </span>
@@ -178,7 +178,6 @@ export function InsertTDMSReferenceDropdowns({
                 disabled={disabled}
               >
                 <TaskBubbleButton />
-                <ChevronDown className="w-3 h-3" />
               </Button>
             </DropdownMenuTrigger>
           </TooltipTrigger>
@@ -218,7 +217,6 @@ export function InsertTDMSReferenceDropdowns({
                 disabled={disabled}
               >
                 <DeliverableBubbleButton />
-                <ChevronDown className="w-3 h-3" />
               </Button>
             </DropdownMenuTrigger>
           </TooltipTrigger>
@@ -258,7 +256,6 @@ export function InsertTDMSReferenceDropdowns({
                 disabled={disabled}
               >
                 <MilestoneBubbleButton />
-                <ChevronDown className="w-3 h-3" />
               </Button>
             </DropdownMenuTrigger>
           </TooltipTrigger>

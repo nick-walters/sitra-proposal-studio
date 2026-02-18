@@ -9,92 +9,120 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Image, Table2 } from "lucide-react";
+import { supabase } from '@/integrations/supabase/client';
 
 interface CrossReferenceItem {
   label: string;
   title: string;
   type: 'figure' | 'table';
+  sectionId?: string;
 }
 
 interface InsertCrossReferenceDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  content: string;
+  proposalId: string;
   sectionNumber: string;
   onInsert: (reference: string) => void;
 }
 
-export function InsertCrossReferenceDialog({
-  isOpen,
-  onClose,
-  content,
-  sectionNumber,
-  onInsert,
-}: InsertCrossReferenceDialogProps) {
-  const [figures, setFigures] = useState<CrossReferenceItem[]>([]);
-  const [tables, setTables] = useState<CrossReferenceItem[]>([]);
+function extractRefsFromContent(html: string): { figures: CrossReferenceItem[]; tables: CrossReferenceItem[] } {
+  const figures: CrossReferenceItem[] = [];
+  const tables: CrossReferenceItem[] = [];
 
-  // Extract all figures and tables from content
-  useEffect(() => {
-    if (!content) {
-      setFigures([]);
-      setTables([]);
-      return;
-    }
-
-    const extractedFigures: CrossReferenceItem[] = [];
-    const extractedTables: CrossReferenceItem[] = [];
-
-    // Match figure captions: look for "Figure X.X.x." pattern (with or without bold/italic)
-    const figurePattern = /<em>(?:<strong>)?Figure (\d+\.\d+\.[a-z])\.(?:<\/strong>)?([^<]*)/gi;
-    let match;
-    
-    while ((match = figurePattern.exec(content)) !== null) {
-      extractedFigures.push({
+  // Match figure captions: "Figure X.X.x." pattern
+  const figurePattern = /Figure (\d+\.\d+\.[a-z])\.?\s*([^<\n]*)/gi;
+  let match;
+  const seenFigures = new Set<string>();
+  while ((match = figurePattern.exec(html)) !== null) {
+    if (!seenFigures.has(match[1])) {
+      seenFigures.add(match[1]);
+      figures.push({
         label: match[1],
         title: match[2]?.trim() || 'Untitled',
         type: 'figure',
       });
     }
+  }
 
-    // Also check for non-italic figures
-    const figurePatternAlt = /Figure (\d+\.\d+\.[a-z])\.\s*([^<\n]*)/gi;
-    while ((match = figurePatternAlt.exec(content)) !== null) {
-      // Avoid duplicates
-      if (!extractedFigures.some(f => f.label === match[1])) {
-        extractedFigures.push({
-          label: match[1],
-          title: match[2]?.trim() || 'Untitled',
-          type: 'figure',
-        });
-      }
-    }
-
-    // Match table captions
-    const tablePattern = /<em>(?:<strong>)?Table (\d+\.\d+\.[a-z])\.(?:<\/strong>)?([^<]*)/gi;
-    while ((match = tablePattern.exec(content)) !== null) {
-      extractedTables.push({
+  // Match table captions: "Table X.X.x." pattern
+  const tablePattern = /Table (\d+\.\d+\.[a-z])\.?\s*([^<\n]*)/gi;
+  const seenTables = new Set<string>();
+  while ((match = tablePattern.exec(html)) !== null) {
+    if (!seenTables.has(match[1])) {
+      seenTables.add(match[1]);
+      tables.push({
         label: match[1],
-        title: match[2]?.trim() || 'Untitled',
+        title: match[2]?.trim().replace(/<[^>]*>/g, '') || 'Untitled',
         type: 'table',
       });
     }
+  }
 
-    // Also check for non-italic tables
-    const tablePatternAlt = /Table (\d+\.\d+\.[a-z])\.\s*([^<\n]*)/gi;
-    while ((match = tablePatternAlt.exec(content)) !== null) {
-      if (!extractedTables.some(t => t.label === match[1])) {
-        extractedTables.push({
-          label: match[1],
-          title: match[2]?.trim() || 'Untitled',
-          type: 'table',
-        });
+  return { figures, tables };
+}
+
+export function InsertCrossReferenceDialog({
+  isOpen,
+  onClose,
+  proposalId,
+  sectionNumber,
+  onInsert,
+}: InsertCrossReferenceDialogProps) {
+  const [figures, setFigures] = useState<CrossReferenceItem[]>([]);
+  const [tables, setTables] = useState<CrossReferenceItem[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Load content from ALL sections in this proposal
+  useEffect(() => {
+    if (!isOpen || !proposalId) return;
+
+    const loadAllContent = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('section_content')
+        .select('content, section_id')
+        .eq('proposal_id', proposalId);
+
+      if (error) {
+        console.error('Error loading section content:', error);
+        setLoading(false);
+        return;
       }
-    }
 
-    setFigures(extractedFigures);
-    setTables(extractedTables);
-  }, [content]);
+      const allFigures: CrossReferenceItem[] = [];
+      const allTables: CrossReferenceItem[] = [];
+      const seenFigLabels = new Set<string>();
+      const seenTblLabels = new Set<string>();
+
+      for (const row of data || []) {
+        if (!row.content) continue;
+        const { figures: figs, tables: tbls } = extractRefsFromContent(row.content);
+        for (const f of figs) {
+          if (!seenFigLabels.has(f.label)) {
+            seenFigLabels.add(f.label);
+            allFigures.push({ ...f, sectionId: row.section_id });
+          }
+        }
+        for (const t of tbls) {
+          if (!seenTblLabels.has(t.label)) {
+            seenTblLabels.add(t.label);
+            allTables.push({ ...t, sectionId: row.section_id });
+          }
+        }
+      }
+
+      // Sort by label
+      allFigures.sort((a, b) => a.label.localeCompare(b.label));
+      allTables.sort((a, b) => a.label.localeCompare(b.label));
+
+      setFigures(allFigures);
+      setTables(allTables);
+      setLoading(false);
+    };
+
+    loadAllContent();
+  }, [isOpen, proposalId]);
 
   const handleInsert = (item: CrossReferenceItem) => {
     const refText = item.type === 'figure' 
@@ -125,9 +153,15 @@ export function InsertCrossReferenceDialog({
 
           <TabsContent value="figures">
             <ScrollArea className="h-[300px] pr-4">
-              {figures.length === 0 ? (
+              {loading ? (
+                <div className="space-y-2 p-2">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-12 bg-muted animate-pulse rounded" />
+                  ))}
+                </div>
+              ) : figures.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">
-                  No figures found in this section
+                  No figures found in this proposal
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -153,9 +187,15 @@ export function InsertCrossReferenceDialog({
 
           <TabsContent value="tables">
             <ScrollArea className="h-[300px] pr-4">
-              {tables.length === 0 ? (
+              {loading ? (
+                <div className="space-y-2 p-2">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-12 bg-muted animate-pulse rounded" />
+                  ))}
+                </div>
+              ) : tables.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">
-                  No tables found in this section
+                  No tables found in this proposal
                 </p>
               ) : (
                 <div className="space-y-2">

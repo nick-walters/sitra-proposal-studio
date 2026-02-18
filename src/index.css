@@ -598,7 +598,53 @@
   color: hsl(var(--accent-foreground));
 }
 
-/* Paragraph spacing in ProseMirror - left aligned at 1.5cm margin, no indent */
+/* Inline reference bubbles (Task, Deliverable, Milestone) */
+.inline-ref {
+  user-select: none;
+  vertical-align: baseline;
+  white-space: nowrap;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 11pt;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.inline-ref-task {
+  display: inline-flex;
+  align-items: center;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9999px;
+  border: 1.5px solid #000;
+  background: #ffffff;
+  color: #000;
+}
+
+.inline-ref-deliverable {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 17px;
+  padding: 0 10px 0 4px;
+  background: #ffffff;
+  color: #000;
+  border: 1.5px solid #000;
+  clip-path: polygon(0% 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 0% 100%);
+}
+
+.inline-ref-milestone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 21px;
+  height: 21px;
+  background: #000;
+  color: #fff;
+  clip-path: polygon(0% 0%, 100% 50%, 0% 100%);
+  padding-right: 6px;
+  letter-spacing: -0.7px;
+}
+
 .ProseMirror p {
   margin-top: 6pt;
   margin-bottom: 6pt;
