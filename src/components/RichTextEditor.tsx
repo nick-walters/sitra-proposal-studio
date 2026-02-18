@@ -18,6 +18,7 @@ import { TableFormula } from '@/extensions/TableFormula';
 import { WPReferenceMark } from '@/extensions/WPReferenceMark';
 import { CaseReferenceMark } from '@/extensions/CaseReferenceMark';
 import { ParticipantReferenceMark } from '@/extensions/ParticipantReferenceMark';
+import { AcronymReference } from '@/extensions/AcronymReference';
 import { computeAutoFitSmart } from '@/lib/autoFitColumns';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -860,6 +861,7 @@ export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootn
       BlockReordering,
       WPReferenceMark,
       CaseReferenceMark,
+      AcronymReference,
       // Prevent tables from being first element in the document content
       Extension.create({
         name: 'preventTableAtStart',
@@ -1007,6 +1009,8 @@ export function useRichTextEditor({
       WPReferenceMark,
       // Participant reference marks for inline partner badges
       ParticipantReferenceMark,
+      // Acronym reference for colored acronym insertion
+      AcronymReference,
       // Block drag-and-drop via drag handle
       BlockDragHandle.configure({
         getLockedBlocks: () => getLockedBlocksRef.current(),

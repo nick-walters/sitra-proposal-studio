@@ -21,6 +21,7 @@ import { Section, Proposal, Participant, ParticipantMember, WORK_PROGRAMMES, DES
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { AcronymColorEditor, type AcronymSegment } from "./AcronymColorEditor";
 import { SaveIndicator } from "./SaveIndicator";
 import { Loader2, FileText, Target, Euro, Calendar as CalendarIcon, ExternalLink, Download, Trash2, RefreshCw, FileDown, CheckCircle2, Plus, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -726,12 +727,22 @@ export function GeneralInfoForm({
                 <div>
                   <label className="text-xs text-muted-foreground mb-0.5 block">Acronym</label>
                   {isEditing && editedProposal ? (
-                    <Input
-                      value={editedProposal.acronym}
-                      onChange={(e) => setEditedProposal({ ...editedProposal, acronym: e.target.value })}
-                      className="text-sm font-semibold w-40 h-8"
-                      placeholder="Acronym"
-                    />
+                    <>
+                      <Input
+                        value={editedProposal.acronym}
+                        onChange={(e) => setEditedProposal({ ...editedProposal, acronym: e.target.value })}
+                        className="text-sm font-semibold w-40 h-8 mb-1.5"
+                        placeholder="Acronym"
+                      />
+                      <AcronymColorEditor
+                        acronym={editedProposal.acronym}
+                        segments={(editedProposal as any).acronymSegments || []}
+                        onChange={(segments) => {
+                          setEditedProposal({ ...editedProposal, acronymSegments: segments } as any);
+                          onUpdateProposal({ acronymSegments: segments });
+                        }}
+                      />
+                    </>
                   ) : (
                     <p className="text-sm font-black" style={{ fontFamily: '"Arial Black", Arial, sans-serif' }}>{proposal?.acronym}</p>
                   )}

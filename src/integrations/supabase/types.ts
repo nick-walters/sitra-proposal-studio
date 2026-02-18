@@ -2497,6 +2497,7 @@ export type Database = {
       proposals: {
         Row: {
           acronym: string
+          acronym_segments: Json | null
           budget_template_id: string | null
           budget_type: Database["public"]["Enums"]["budget_type"]
           cases_enabled: boolean
@@ -2533,6 +2534,7 @@ export type Database = {
         }
         Insert: {
           acronym: string
+          acronym_segments?: Json | null
           budget_template_id?: string | null
           budget_type?: Database["public"]["Enums"]["budget_type"]
           cases_enabled?: boolean
@@ -2569,6 +2571,7 @@ export type Database = {
         }
         Update: {
           acronym?: string
+          acronym_segments?: Json | null
           budget_template_id?: string | null
           budget_type?: Database["public"]["Enums"]["budget_type"]
           cases_enabled?: boolean

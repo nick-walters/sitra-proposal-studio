@@ -89,6 +89,7 @@ interface DocumentEditorProps {
   workProgramme?: string;
   destination?: string;
   allSections?: Section[];
+  acronymSegments?: { text: string; color: string }[];
 }
 
 export function DocumentEditor({ 
@@ -104,6 +105,7 @@ export function DocumentEditor({
   workProgramme,
   destination,
   allSections = [],
+  acronymSegments,
 }: DocumentEditorProps) {
   const { user } = useAuth();
   const [isGrammarOpen, setIsGrammarOpen] = useState(false);
@@ -525,7 +527,12 @@ export function DocumentEditor({
     }).insertContent(' ').run();
   }, [editor]);
 
-  // Handle applying a suggestion from comments
+  // Handle Acronym reference insertion
+  const handleInsertAcronymRef = useCallback(() => {
+    if (!editor || !acronymSegments || acronymSegments.length === 0) return;
+    editor.chain().focus().insertAcronymReference({ segments: acronymSegments }).insertContent(' ').run();
+  }, [editor, acronymSegments]);
+
   const handleApplySuggestion = useCallback((originalText: string, suggestedText: string) => {
     if (!originalText || !suggestedText || !content) return;
     const newContent = content.replace(originalText, suggestedText);
@@ -816,6 +823,25 @@ export function DocumentEditor({
                   </TooltipTrigger>
                   <TooltipContent>Insert Partner Reference</TooltipContent>
                 </Tooltip>
+                {acronymSegments && acronymSegments.length > 0 && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 px-2 text-xs gap-0"
+                        onClick={handleInsertAcronymRef}
+                        disabled={isEffectivelyReadOnly}
+                        style={{ fontFamily: '"Arial Black", Arial, sans-serif', fontWeight: 900, fontSize: '10px' }}
+                      >
+                        {acronymSegments.map((seg, i) => (
+                          <span key={i} style={{ color: seg.color }}>{seg.text}</span>
+                        ))}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Insert Colored Acronym</TooltipContent>
+                  </Tooltip>
+                )}
               </>
             )}
           </div>

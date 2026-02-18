@@ -51,6 +51,7 @@ interface ProposalData {
   casesEnabled?: boolean;
   casesType?: string;
   reportingPeriods?: { number: number; startMonth: number; endMonth: number }[];
+  acronymSegments?: { text: string; color: string }[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -110,6 +111,7 @@ export function useProposalData(proposalId: string) {
         casesEnabled: (data as any).cases_enabled || false,
         casesType: (data as any).cases_type || undefined,
         reportingPeriods: (data as any).reporting_periods || undefined,
+        acronymSegments: (data as any).acronym_segments || undefined,
         createdAt: new Date(data.created_at),
         updatedAt: new Date(data.updated_at),
       });
@@ -321,6 +323,7 @@ export function useProposalData(proposalId: string) {
     if (updates.expectedProjects !== undefined) dbUpdates.expected_projects = updates.expectedProjects;
     if (updates.usesFstp !== undefined) dbUpdates.uses_fstp = updates.usesFstp;
     if (updates.reportingPeriods !== undefined) dbUpdates.reporting_periods = updates.reportingPeriods;
+    if (updates.acronymSegments !== undefined) dbUpdates.acronym_segments = updates.acronymSegments;
 
     const { error } = await supabase
       .from('proposals')
