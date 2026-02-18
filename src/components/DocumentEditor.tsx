@@ -2,7 +2,7 @@ import { Section } from "@/types/proposal";
 import DOMPurify from "dompurify";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, BookOpen, Route, History, Info, Image, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search, GitCompare, Keyboard, Wand2, FileCode, SplitSquareHorizontal, Layers, Building2, FlaskConical, Check } from "lucide-react";
+import { Sparkles, BookOpen, Route, History, Info, Image, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search, GitCompare, Keyboard, Wand2, FileCode, SplitSquareHorizontal, Layers, Building2, FlaskConical, Check, Link2 } from "lucide-react";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { FormattingToolbar, useRichTextEditor } from "./RichTextEditor";
 import {
@@ -908,6 +908,7 @@ export function DocumentEditor({
                     className="h-7 px-2 gap-1"
                     disabled={isEffectivelyReadOnly}
                   >
+                    <Link2 className="w-4 h-4" />
                     <span className="text-xs">Cross-ref</span>
                   </Button>
                 </DropdownMenuTrigger>
