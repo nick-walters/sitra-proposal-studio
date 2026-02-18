@@ -2,14 +2,15 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
 
 
 interface Task {
@@ -67,45 +68,6 @@ function TaskBubbleButton() {
   );
 }
 
-// Inline task pill with WP color
-function TaskPill({ label, color }: { label: string; color?: string }) {
-  return (
-    <span
-      className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap shrink-0"
-      style={{
-        backgroundColor: '#ffffff',
-        color: '#000000',
-        border: `1.5px solid ${color || '#000'}`,
-        fontFamily: "'Times New Roman', Times, serif",
-        fontSize: '8pt',
-        fontWeight: 700,
-        lineHeight: 1,
-        padding: '0 4px',
-        height: '15px',
-      }}
-    >
-      {label}
-    </span>
-  );
-}
-
-// Inline deliverable pentagon with WP color
-function DeliverablePentagon({ label, color }: { label: string; color?: string }) {
-  const textWidth = Math.max(28, label.length * 6 + 8);
-  const totalWidth = textWidth + 6;
-  const stroke = color || '#000';
-  return (
-    <span className="shrink-0" style={{ display: 'inline-block', verticalAlign: 'middle', position: 'relative', width: totalWidth, height: 15 }}>
-      <svg width={totalWidth} height={15} viewBox={`0 0 ${totalWidth} 15`} style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
-        <path d={`M 0,0 L ${textWidth},0 L ${totalWidth},7.5 L ${textWidth},15 L 0,15 Z`} fill="#ffffff" stroke={stroke} strokeWidth={1.2} strokeLinejoin="round" />
-      </svg>
-      <span style={{ position: 'absolute', top: 0, left: 0, width: textWidth, height: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '8pt', fontWeight: 700, lineHeight: 1, color: '#000', whiteSpace: 'nowrap' }}>
-        {label}
-      </span>
-    </span>
-  );
-}
-
 // Miniature pentagon for Deliverable button
 function DeliverableBubbleButton() {
   return (
@@ -134,14 +96,53 @@ function MilestoneBubbleButton() {
   );
 }
 
-// Milestone triangle for dropdown items
+// Task pill bubble for dialog items
+function TaskPill({ label, color }: { label: string; color?: string }) {
+  return (
+    <span
+      className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap shrink-0"
+      style={{
+        backgroundColor: '#ffffff',
+        color: '#000000',
+        border: `1.5px solid ${color || '#000'}`,
+        fontFamily: "'Times New Roman', Times, serif",
+        fontSize: '9pt',
+        fontWeight: 700,
+        lineHeight: 1,
+        padding: '1px 5px',
+        height: '17px',
+      }}
+    >
+      {label}
+    </span>
+  );
+}
+
+// Deliverable pentagon bubble for dialog items
+function DeliverablePentagon({ label, color }: { label: string; color?: string }) {
+  const textWidth = Math.max(32, label.length * 7 + 8);
+  const totalWidth = textWidth + 8;
+  const stroke = color || '#000';
+  return (
+    <span className="shrink-0" style={{ display: 'inline-block', verticalAlign: 'middle', position: 'relative', width: totalWidth, height: 17 }}>
+      <svg width={totalWidth} height={17} viewBox={`0 0 ${totalWidth} 17`} style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
+        <path d={`M 0,0 L ${textWidth},0 L ${totalWidth},8.5 L ${textWidth},17 L 0,17 Z`} fill="#ffffff" stroke={stroke} strokeWidth={1.5} strokeLinejoin="round" />
+      </svg>
+      <span style={{ position: 'absolute', top: 0, left: 0, width: textWidth, height: 17, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '9pt', fontWeight: 700, lineHeight: 1, color: '#000', whiteSpace: 'nowrap' }}>
+        {label}
+      </span>
+    </span>
+  );
+}
+
+// Milestone triangle bubble for dialog items
 function MilestoneTriangle({ number }: { number: number }) {
   return (
-    <span className="shrink-0" style={{ display: 'inline-block', verticalAlign: 'middle', position: 'relative', width: 17, height: 17 }}>
-      <svg width={17} height={17} viewBox="0 0 17 17" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
-        <path d="M 0,0 L 17,8.5 L 0,17 Z" fill="#000000" />
+    <span className="shrink-0" style={{ display: 'inline-block', verticalAlign: 'middle', position: 'relative', width: 21, height: 21 }}>
+      <svg width={21} height={21} viewBox="0 0 21 21" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
+        <path d="M 0,0 L 21,10.5 L 0,21 Z" fill="#000000" />
       </svg>
-      <span style={{ position: 'absolute', top: 0, left: -1, width: 12, height: 17, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '8pt', fontWeight: 700, lineHeight: 1, color: '#ffffff', letterSpacing: '-0.7px', whiteSpace: 'nowrap' }}>
+      <span style={{ position: 'absolute', top: 0, left: -1, width: 15, height: 21, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '9pt', fontWeight: 700, lineHeight: 1, color: '#ffffff', letterSpacing: '-0.7px', whiteSpace: 'nowrap' }}>
         {number}
       </span>
     </span>
@@ -160,11 +161,16 @@ export function InsertTDMSReferenceDropdowns({
   const [tasks, setTasks] = useState<Task[]>([]);
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [deliverableDialogOpen, setDeliverableDialogOpen] = useState(false);
+  const [milestoneDialogOpen, setMilestoneDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!proposalId) return;
 
     const fetchData = async () => {
+      setLoading(true);
       // Fetch tasks with WP info including color
       const { data: wpDrafts } = await supabase
         .from('wp_drafts')
@@ -222,6 +228,7 @@ export function InsertTDMSReferenceDropdowns({
         .eq('proposal_id', proposalId)
         .order('number');
       if (mss) setMilestones(mss);
+      setLoading(false);
     };
 
     fetchData();
@@ -231,124 +238,222 @@ export function InsertTDMSReferenceDropdowns({
     ? "h-6 px-1.5 text-xs gap-0.5"
     : "h-7 px-1.5 gap-0.5";
 
+  const handleSelectTask = (task: Task) => {
+    onInsertTask(task);
+    setTaskDialogOpen(false);
+  };
+
+  const handleSelectDeliverable = (del: Deliverable) => {
+    onInsertDeliverable(del);
+    setDeliverableDialogOpen(false);
+  };
+
+  const handleSelectMilestone = (ms: Milestone) => {
+    onInsertMilestone(ms);
+    setMilestoneDialogOpen(false);
+  };
+
   return (
     <>
-      {/* Task dropdown */}
-      <DropdownMenu modal={false}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant={variant}
-                size={size}
-                className={buttonClass}
-                disabled={disabled}
-              >
-                <TaskBubbleButton />
-              </Button>
-            </DropdownMenuTrigger>
-          </TooltipTrigger>
-          <TooltipContent>Insert Task Reference</TooltipContent>
-        </Tooltip>
-        <DropdownMenuContent align="start" className="max-h-64 overflow-y-auto min-w-[280px] w-max max-w-[400px] bg-popover z-50">
-          <DropdownMenuLabel className="text-xs">Tasks</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {tasks.length === 0 ? (
-            <DropdownMenuItem disabled className="text-xs text-muted-foreground">
-              No tasks defined
-            </DropdownMenuItem>
-          ) : (
-            tasks.map((task) => (
-              <DropdownMenuItem
-                key={task.id}
-                onClick={() => onInsertTask(task)}
-                className="text-xs gap-2"
-              >
-                <TaskPill label={`T${task.wp_number}.${task.number}`} color={task.wp_color} />
-                <span className="truncate text-muted-foreground">{task.title}</span>
-              </DropdownMenuItem>
-            ))
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {/* Task button */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant={variant}
+            size={size}
+            className={buttonClass}
+            disabled={disabled}
+            onClick={() => setTaskDialogOpen(true)}
+          >
+            <TaskBubbleButton />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Insert Task Reference</TooltipContent>
+      </Tooltip>
 
-      {/* Deliverable dropdown */}
-      <DropdownMenu modal={false}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant={variant}
-                size={size}
-                className={buttonClass}
-                disabled={disabled}
-              >
-                <DeliverableBubbleButton />
-              </Button>
-            </DropdownMenuTrigger>
-          </TooltipTrigger>
-          <TooltipContent>Insert Deliverable Reference</TooltipContent>
-        </Tooltip>
-        <DropdownMenuContent align="start" className="max-h-64 overflow-y-auto min-w-[280px] w-max max-w-[400px] bg-popover z-50">
-          <DropdownMenuLabel className="text-xs">Deliverables</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {deliverables.length === 0 ? (
-            <DropdownMenuItem disabled className="text-xs text-muted-foreground">
-              No deliverables defined
-            </DropdownMenuItem>
-          ) : (
-            deliverables.map((del) => (
-              <DropdownMenuItem
-                key={del.id}
-                onClick={() => onInsertDeliverable(del)}
-                className="text-xs gap-2"
-              >
-                <DeliverablePentagon label={del.number} color={del.wp_color} />
-                <span className="truncate text-muted-foreground">{del.name}</span>
-              </DropdownMenuItem>
-            ))
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {/* Deliverable button */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant={variant}
+            size={size}
+            className={buttonClass}
+            disabled={disabled}
+            onClick={() => setDeliverableDialogOpen(true)}
+          >
+            <DeliverableBubbleButton />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Insert Deliverable Reference</TooltipContent>
+      </Tooltip>
 
-      {/* Milestone dropdown */}
-      <DropdownMenu modal={false}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant={variant}
-                size={size}
-                className={buttonClass}
-                disabled={disabled}
-              >
-                <MilestoneBubbleButton />
-              </Button>
-            </DropdownMenuTrigger>
-          </TooltipTrigger>
-          <TooltipContent>Insert Milestone Reference</TooltipContent>
-        </Tooltip>
-        <DropdownMenuContent align="start" className="max-h-64 overflow-y-auto min-w-[280px] w-max max-w-[400px] bg-popover z-50">
-          <DropdownMenuLabel className="text-xs">Milestones</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {milestones.length === 0 ? (
-            <DropdownMenuItem disabled className="text-xs text-muted-foreground">
-              No milestones defined
-            </DropdownMenuItem>
-          ) : (
-            milestones.map((ms) => (
-              <DropdownMenuItem
-                key={ms.id}
-                onClick={() => onInsertMilestone(ms)}
-                className="text-xs gap-2"
-              >
-                <MilestoneTriangle number={ms.number} />
-                <span className="truncate text-muted-foreground">{ms.name}</span>
-              </DropdownMenuItem>
-            ))
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {/* Milestone button */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant={variant}
+            size={size}
+            className={buttonClass}
+            disabled={disabled}
+            onClick={() => setMilestoneDialogOpen(true)}
+          >
+            <MilestoneBubbleButton />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Insert Milestone Reference</TooltipContent>
+      </Tooltip>
+
+      {/* Task Dialog */}
+      <Dialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <TaskPill label="T" />
+              Insert Task Reference
+            </DialogTitle>
+            <DialogDescription>
+              Select a task to insert as an inline reference badge.
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[400px]">
+            {loading ? (
+              <div className="space-y-2 p-2">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-12 bg-muted animate-pulse rounded" />
+                ))}
+              </div>
+            ) : tasks.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                No tasks found. Add tasks to your work packages first.
+              </div>
+            ) : (
+              <div className="space-y-1 p-1">
+                {tasks.map((task) => (
+                  <button
+                    key={task.id}
+                    onClick={() => handleSelectTask(task)}
+                    className={cn(
+                      "w-full flex items-center p-3 rounded-md text-left",
+                      "hover:bg-muted/80 transition-colors"
+                    )}
+                  >
+                    <TaskPill label={`T${task.wp_number}.${task.number}`} color={task.wp_color} />
+                    <div className="flex-1 min-w-0 ml-3">
+                      <div className="font-medium text-sm truncate">
+                        {task.title || '—'}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        WP{task.wp_number}{task.wp_short_name ? ` – ${task.wp_short_name}` : ''}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Deliverable Dialog */}
+      <Dialog open={deliverableDialogOpen} onOpenChange={setDeliverableDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <DeliverablePentagon label="D" />
+              Insert Deliverable Reference
+            </DialogTitle>
+            <DialogDescription>
+              Select a deliverable to insert as an inline reference badge.
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[400px]">
+            {loading ? (
+              <div className="space-y-2 p-2">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-12 bg-muted animate-pulse rounded" />
+                ))}
+              </div>
+            ) : deliverables.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                No deliverables found. Add deliverables in section 3.1 first.
+              </div>
+            ) : (
+              <div className="space-y-1 p-1">
+                {deliverables.map((del) => (
+                  <button
+                    key={del.id}
+                    onClick={() => handleSelectDeliverable(del)}
+                    className={cn(
+                      "w-full flex items-center p-3 rounded-md text-left",
+                      "hover:bg-muted/80 transition-colors"
+                    )}
+                  >
+                    <DeliverablePentagon label={del.number} color={del.wp_color} />
+                    <div className="flex-1 min-w-0 ml-3">
+                      <div className="font-medium text-sm truncate">
+                        {del.name || '—'}
+                      </div>
+                      {del.wp_number && (
+                        <div className="text-xs text-muted-foreground">
+                          WP{del.wp_number}
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Milestone Dialog */}
+      <Dialog open={milestoneDialogOpen} onOpenChange={setMilestoneDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MilestoneTriangle number={0} />
+              Insert Milestone Reference
+            </DialogTitle>
+            <DialogDescription>
+              Select a milestone to insert as an inline reference badge.
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[400px]">
+            {loading ? (
+              <div className="space-y-2 p-2">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-12 bg-muted animate-pulse rounded" />
+                ))}
+              </div>
+            ) : milestones.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                No milestones found. Add milestones in section 3.1 first.
+              </div>
+            ) : (
+              <div className="space-y-1 p-1">
+                {milestones.map((ms) => (
+                  <button
+                    key={ms.id}
+                    onClick={() => handleSelectMilestone(ms)}
+                    className={cn(
+                      "w-full flex items-center p-3 rounded-md text-left",
+                      "hover:bg-muted/80 transition-colors"
+                    )}
+                  >
+                    <MilestoneTriangle number={ms.number} />
+                    <div className="flex-1 min-w-0 ml-3">
+                      <div className="font-medium text-sm truncate">
+                        {ms.name || '—'}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
