@@ -1,4 +1,5 @@
 import { Section } from "@/types/proposal";
+import { supabase } from "@/integrations/supabase/client";
 import DOMPurify from "dompurify";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -174,6 +175,7 @@ export function DocumentEditor({
   const [isTaskRefOpen, setIsTaskRefOpen] = useState(false);
   const [isDeliverableRefOpen, setIsDeliverableRefOpen] = useState(false);
   const [isMilestoneRefOpen, setIsMilestoneRefOpen] = useState(false);
+  const [hasCases, setHasCases] = useState(false);
   
   // Editor container ref for cursor overlays
   const editorContainerRef = useRef<HTMLDivElement>(null);
@@ -333,6 +335,16 @@ export function DocumentEditor({
     }, 500);
     return () => clearTimeout(timer);
   }, [editor, proposalId, section?.id, loading]);
+
+  // Check if proposal has cases
+  useEffect(() => {
+    if (!proposalId) return;
+    supabase
+      .from('case_drafts')
+      .select('id', { count: 'exact', head: true })
+      .eq('proposal_id', proposalId)
+      .then(({ count }) => setHasCases((count ?? 0) > 0));
+  }, [proposalId]);
 
   // Block locking hook - needs editor for position tracking
   const {
@@ -811,7 +823,7 @@ export function DocumentEditor({
           </div>
         </div>
 
-
+        {/* Assignment info banner - show when section is assigned */}
 
         {/* Assignment info banner - show when section is assigned */}
         {assignmentInfo.assignedTo && (
@@ -915,11 +927,11 @@ export function DocumentEditor({
                 <DropdownMenuContent align="start" className="w-64 bg-popover z-50">
                   <DropdownMenuItem onClick={() => { setCrossRefFilterType('figure'); setIsCrossRefOpen(true); }} className="flex items-center gap-2">
                     <span className="w-16 flex justify-start shrink-0"><Image className="w-3.5 h-3.5 text-foreground" /></span>
-                    <span>Figure</span>
+                    <span>Figure number</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => { setCrossRefFilterType('table'); setIsCrossRefOpen(true); }} className="flex items-center gap-2">
                     <span className="w-16 flex justify-start shrink-0"><Table2 className="w-3.5 h-3.5 text-foreground" /></span>
-                    <span>Table</span>
+                    <span>Table number</span>
                   </DropdownMenuItem>
                   {acronymSegments && acronymSegments.length > 0 && (
                     <DropdownMenuItem onClick={handleInsertAcronymRef} className="flex items-center gap-2">
@@ -935,7 +947,7 @@ export function DocumentEditor({
                     <span className="w-16 flex justify-start shrink-0">
                       <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#2563EB', border: '1.5px solid #2563EB', borderRadius: '9999px' }} />
                     </span>
-                    <span>Work Package</span>
+                    <span>Work package</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setIsTaskRefOpen(true)} className="flex items-center gap-2">
                     <span className="w-16 flex justify-start shrink-0">
@@ -957,12 +969,14 @@ export function DocumentEditor({
                     </span>
                     <span>Milestone</span>
                   </DropdownMenuItem>
+                  {hasCases && (
                   <DropdownMenuItem onClick={() => setIsCaseRefOpen(true)} className="flex items-center gap-2">
                     <span className="w-16 flex justify-start shrink-0">
                       <span style={{ display: 'inline-block', width: '22px', height: '14px', border: '1.5px solid #000000', borderRadius: '9999px', background: '#ffffff' }} />
                     </span>
                     <span>Case</span>
                   </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={() => setIsParticipantRefOpen(true)} className="flex items-center gap-2">
                     <span className="w-16 flex justify-start shrink-0">
                       <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#000000', border: '1.5px solid #000000', borderRadius: '9999px' }} />
