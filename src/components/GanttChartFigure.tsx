@@ -429,7 +429,8 @@ export function GanttChartFigure({
                   });
 
                   // targetX = right border of the month cell (end of month)
-                  const getTargetX = (month: number) => month * cellWidth;
+                  // Subtract 0.5 to align tip with the center of the 1px cell border
+                  const getTargetX = (month: number) => month * cellWidth - 0.5;
 
                   // Group by month and position
                   const monthGroups = new Map<number, number[]>();
