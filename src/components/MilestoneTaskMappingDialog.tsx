@@ -70,7 +70,7 @@ export function MilestoneTaskMappingDialog({ proposalId }: MilestoneTaskMappingD
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
+        <Button variant="outline" size="sm" className="text-xs h-6 px-2 py-0 gap-1">
           <Settings2 className="w-3 h-3" />
           Assign Milestones to Tasks
         </Button>

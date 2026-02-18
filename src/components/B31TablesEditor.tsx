@@ -778,10 +778,10 @@ export function B31DeliverablesTable({ proposalId }: { proposalId: string }) {
   return (
     <div>
       <div className="print:hidden flex justify-end gap-1 mb-1">
-        <DeliverableTaskMappingDialog proposalId={proposalId} />
         <Button variant="outline" size="sm" onClick={() => addDeliverable.mutate()} className="text-xs h-6 px-2 py-0">
           <Plus className="h-3 w-3 mr-1" /> Add deliverable
         </Button>
+        <DeliverableTaskMappingDialog proposalId={proposalId} />
         {isAdminOrOwner && (
           <>
             <Button variant="outline" size="sm" onClick={isSortedByMonth ? orderByNumber : orderByMonth} className="text-xs h-6 px-2 py-0">
@@ -1103,10 +1103,10 @@ export function B31MilestonesTable({ proposalId }: { proposalId: string }) {
   return (
     <div>
       <div className="print:hidden flex justify-end gap-1 mb-1">
-        <MilestoneTaskMappingDialog proposalId={proposalId} />
         <Button variant="outline" size="sm" onClick={() => addMilestone.mutate()} className="text-xs h-6 px-2 py-0">
           <Plus className="h-3 w-3 mr-1" /> Add milestone
         </Button>
+        <MilestoneTaskMappingDialog proposalId={proposalId} />
         {isAdminOrOwner && (
           <>
             <Button variant="outline" size="sm" onClick={autoReorder} className="text-xs h-6 px-2 py-0">
