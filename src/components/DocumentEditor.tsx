@@ -811,89 +811,7 @@ export function DocumentEditor({
           </div>
         </div>
 
-        {/* Row 2: Citation Cross-ref | Acronym WP T D MS Case Partner */}
-        <div className="px-2 py-1 border-b border-border bg-card">
-          <div className="flex items-center gap-1">
-            
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-6 px-2 text-xs gap-1"
-                  onClick={() => setIsCitationOpen(true)}
-                  disabled={isEffectivelyReadOnly}
-                >
-                  <FileText className="w-3 h-3" />
-                  Citations
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Manage Citations</TooltipContent>
-            </Tooltip>
-            {section && !section.isPartA && (
-              <>
-                <Separator orientation="vertical" className="h-4 mx-1" />
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-6 px-2 text-xs gap-1"
-                      disabled={isEffectivelyReadOnly}
-                    >
-                      Insert cross-ref
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-48 bg-popover z-50">
-                    <DropdownMenuItem onClick={() => { setCrossRefFilterType('figure'); setIsCrossRefOpen(true); }}>
-                      Figure
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { setCrossRefFilterType('table'); setIsCrossRefOpen(true); }}>
-                      Table
-                    </DropdownMenuItem>
-                    {acronymSegments && acronymSegments.length > 0 && (
-                      <DropdownMenuItem onClick={handleInsertAcronymRef}>
-                        Acronym
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem onClick={() => setIsWPRefOpen(true)}>
-                      Work Package
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setIsTaskRefOpen(true)}>
-                      Task
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setIsDeliverableRefOpen(true)}>
-                      Deliverable
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setIsMilestoneRefOpen(true)}>
-                      Milestone
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setIsCaseRefOpen(true)}>
-                      Case
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setIsParticipantRefOpen(true)}>
-                      Participant
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <InsertTDMSReferenceDropdowns
-                  proposalId={proposalId}
-                  disabled={isEffectivelyReadOnly}
-                  onInsertTask={handleInsertTaskRef}
-                  onInsertDeliverable={handleInsertDeliverableRef}
-                  onInsertMilestone={handleInsertMilestoneRef}
-                  dialogsOnly
-                  openTask={isTaskRefOpen}
-                  onOpenTaskChange={setIsTaskRefOpen}
-                  openDeliverable={isDeliverableRefOpen}
-                  onOpenDeliverableChange={setIsDeliverableRefOpen}
-                  openMilestone={isMilestoneRefOpen}
-                  onOpenMilestoneChange={setIsMilestoneRefOpen}
-                />
-              </>
-            )}
-          </div>
-        </div>
+
 
         {/* Assignment info banner - show when section is assigned */}
         {assignmentInfo.assignedTo && (
@@ -980,6 +898,67 @@ export function DocumentEditor({
           isPartB={section && !section.isPartA}
           isReadOnly={isEffectivelyReadOnly}
           hideTableInsert={section?.number === 'B3.1'}
+          crossRefDropdown={section && !section.isPartA ? (
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 gap-1"
+                    disabled={isEffectivelyReadOnly}
+                  >
+                    <span className="text-xs">Cross-ref</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48 bg-popover z-50">
+                  <DropdownMenuItem onClick={() => { setCrossRefFilterType('figure'); setIsCrossRefOpen(true); }}>
+                    Figure
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { setCrossRefFilterType('table'); setIsCrossRefOpen(true); }}>
+                    Table
+                  </DropdownMenuItem>
+                  {acronymSegments && acronymSegments.length > 0 && (
+                    <DropdownMenuItem onClick={handleInsertAcronymRef}>
+                      Acronym
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={() => setIsWPRefOpen(true)}>
+                    Work Package
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsTaskRefOpen(true)}>
+                    Task
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsDeliverableRefOpen(true)}>
+                    Deliverable
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsMilestoneRefOpen(true)}>
+                    Milestone
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsCaseRefOpen(true)}>
+                    Case
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsParticipantRefOpen(true)}>
+                    Participant
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <InsertTDMSReferenceDropdowns
+                proposalId={proposalId}
+                disabled={isEffectivelyReadOnly}
+                onInsertTask={handleInsertTaskRef}
+                onInsertDeliverable={handleInsertDeliverableRef}
+                onInsertMilestone={handleInsertMilestoneRef}
+                dialogsOnly
+                openTask={isTaskRefOpen}
+                onOpenTaskChange={setIsTaskRefOpen}
+                openDeliverable={isDeliverableRefOpen}
+                onOpenDeliverableChange={setIsDeliverableRefOpen}
+                openMilestone={isMilestoneRefOpen}
+                onOpenMilestoneChange={setIsMilestoneRefOpen}
+              />
+            </>
+          ) : undefined}
         />
       </div>
 
