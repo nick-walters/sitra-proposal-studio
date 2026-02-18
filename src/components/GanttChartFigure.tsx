@@ -477,11 +477,13 @@ export function GanttChartFigure({
                     if (prev.month === curr.month) continue;
                     const overlap = (prev.leftX + prev.width + 1) - curr.leftX;
                     if (overlap > 0) {
-                      // Earlier bubble goes left, later goes right, both flip
-                      const tX = getTargetX(curr.month);
-                      prev.leftX = tX - prev.width;
+                      // Earlier bubble points right toward its own month boundary
+                      const prevTX = getTargetX(prev.month);
+                      prev.leftX = prevTX - prev.width;
                       prev.triSide = 'right';
-                      curr.leftX = tX;
+                      // Later bubble points left from its own month boundary
+                      const currTX = getTargetX(curr.month);
+                      curr.leftX = currTX;
                       curr.triSide = 'left';
                     }
                   }
