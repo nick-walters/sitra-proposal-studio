@@ -924,7 +924,7 @@ export function ProposalEditor() {
     <div className="h-screen bg-background flex flex-col overflow-hidden">
       <Header />
       {/* Proposal Top Bar */}
-      <header className="h-14 border-b border-border bg-card/80 backdrop-blur-sm sticky top-16 z-40">
+      <header className="h-10 border-b border-border bg-card/80 backdrop-blur-sm sticky top-16 z-40">
         <div className="h-full px-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
