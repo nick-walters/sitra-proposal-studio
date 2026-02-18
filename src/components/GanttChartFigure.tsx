@@ -551,7 +551,7 @@ export function GanttChartFigure({
                                   style={{
                                     position: 'absolute',
                                     top: topPos,
-                                    left: b.leftX,
+                                    left: b.leftX - (isDel ? 1 : 0),
                                     transform: 'translateY(-50%)',
                                     width: b.width,
                                     height: bH,
