@@ -912,62 +912,61 @@ export function DocumentEditor({
                     <span className="text-xs">Cross-ref</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-52 bg-popover z-50">
-                  <DropdownMenuItem onClick={() => { setCrossRefFilterType('figure'); setIsCrossRefOpen(true); }} className="flex items-center gap-0">
-                    <span className="w-7 flex justify-center shrink-0"><Image className="w-3.5 h-3.5 text-muted-foreground" /></span>
+                <DropdownMenuContent align="start" className="w-64 bg-popover z-50">
+                  <DropdownMenuItem onClick={() => { setCrossRefFilterType('figure'); setIsCrossRefOpen(true); }} className="flex items-center gap-2">
+                    <span className="w-12 flex justify-center shrink-0"><Image className="w-3.5 h-3.5 text-muted-foreground" /></span>
                     <span>Figure</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => { setCrossRefFilterType('table'); setIsCrossRefOpen(true); }} className="flex items-center gap-0">
-                    <span className="w-7 flex justify-center shrink-0"><Table2 className="w-3.5 h-3.5 text-muted-foreground" /></span>
+                  <DropdownMenuItem onClick={() => { setCrossRefFilterType('table'); setIsCrossRefOpen(true); }} className="flex items-center gap-2">
+                    <span className="w-12 flex justify-center shrink-0"><Table2 className="w-3.5 h-3.5 text-muted-foreground" /></span>
                     <span>Table</span>
                   </DropdownMenuItem>
                   {acronymSegments && acronymSegments.length > 0 && (
-                    <DropdownMenuItem onClick={handleInsertAcronymRef} className="flex items-center gap-0">
-                      <span className="w-7 flex justify-center shrink-0" style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900, fontSize: '8px' }}>
-                        <span style={{ color: '#e11d48' }}>A</span><span style={{ color: '#2563eb' }}>B</span>
+                    <DropdownMenuItem onClick={handleInsertAcronymRef} className="flex items-center gap-2">
+                      <span className="w-12 flex justify-center shrink-0">
+                        <span style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900, fontSize: '9px', whiteSpace: 'nowrap' }}>
+                          {acronymSegments.map((seg, i) => <span key={i} style={{ color: seg.color }}>{seg.text}</span>)}
+                        </span>
                       </span>
                       <span>Acronym</span>
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem onClick={() => setIsWPRefOpen(true)} className="flex items-center gap-0">
-                    <span className="w-7 flex justify-center shrink-0">
-                      <span className="inline-block w-[14px] h-[14px] rounded-[2px] bg-primary/80 border border-primary" style={{ fontFamily: "'Times New Roman', Times, serif", fontWeight: 700, fontSize: '8px', color: 'white', lineHeight: '14px', textAlign: 'center' }}>W</span>
+                  <DropdownMenuItem onClick={() => setIsWPRefOpen(true)} className="flex items-center gap-2">
+                    <span className="w-12 flex justify-center shrink-0">
+                      <span style={{ display: 'inline-flex', alignItems: 'center', backgroundColor: '#2563EB', color: '#ffffff', border: '1.5px solid #2563EB', padding: '0 4px', borderRadius: '9999px', fontFamily: "'Times New Roman', Times, serif", fontSize: '9px', fontWeight: 700, lineHeight: '1', whiteSpace: 'nowrap', height: '14px' }}>WP1</span>
                     </span>
                     <span>Work Package</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsTaskRefOpen(true)} className="flex items-center gap-0">
-                    <span className="w-7 flex justify-center shrink-0">
-                      <span className="inline-flex items-center justify-center h-[14px] px-[4px] rounded-full border border-foreground/60" style={{ fontFamily: "'Times New Roman', Times, serif", fontWeight: 700, fontSize: '8px', lineHeight: '14px' }}>T</span>
+                  <DropdownMenuItem onClick={() => setIsTaskRefOpen(true)} className="flex items-center gap-2">
+                    <span className="w-12 flex justify-center shrink-0">
+                      <span style={{ display: 'inline-flex', alignItems: 'center', height: '14px', padding: '0 3px', borderRadius: '9999px', border: '1.5px solid #2563EB', background: '#ffffff', color: '#2563EB', fontFamily: "'Times New Roman', Times, serif", fontSize: '9px', fontWeight: 700, lineHeight: '1', whiteSpace: 'nowrap' }}>T1.1</span>
                     </span>
                     <span>Task</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsDeliverableRefOpen(true)} className="flex items-center gap-0">
-                    <span className="w-7 flex justify-center shrink-0">
-                      <svg width="16" height="14" viewBox="0 0 16 14" className="text-foreground/60">
-                        <polygon points="0,0 12,0 16,7 12,14 0,14" fill="none" stroke="currentColor" strokeWidth="1.2"/>
-                        <text x="6" y="10.5" textAnchor="middle" fill="currentColor" style={{ fontFamily: "'Times New Roman', Times, serif", fontWeight: 700, fontSize: '8px' }}>D</text>
-                      </svg>
+                  <DropdownMenuItem onClick={() => setIsDeliverableRefOpen(true)} className="flex items-center gap-2">
+                    <span className="w-12 flex justify-center shrink-0">
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: '14px', padding: '0 8px 0 3px', background: '#2563EB', color: '#2563EB', clipPath: 'polygon(0% 0%, calc(100% - 6px) 0%, 100% 50%, calc(100% - 6px) 100%, 0% 100%)', position: 'relative', fontFamily: "'Times New Roman', Times, serif", fontSize: '9px', fontWeight: 700, lineHeight: '1', whiteSpace: 'nowrap' }}>
+                        <span style={{ position: 'relative', zIndex: 1, color: '#2563EB' }}>D1.1</span>
+                        <span style={{ position: 'absolute', inset: '1.5px', right: '2px', background: '#ffffff', clipPath: 'polygon(0% 0%, calc(100% - 5px) 0%, 100% 50%, calc(100% - 5px) 100%, 0% 100%)', zIndex: 0 }} />
+                      </span>
                     </span>
                     <span>Deliverable</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsMilestoneRefOpen(true)} className="flex items-center gap-0">
-                    <span className="w-7 flex justify-center shrink-0">
-                      <svg width="14" height="14" viewBox="0 0 14 14" className="text-foreground/60">
-                        <polygon points="7,0 14,14 0,14" fill="currentColor"/>
-                        <text x="7" y="12.5" textAnchor="middle" fill="white" style={{ fontFamily: "'Times New Roman', Times, serif", fontWeight: 700, fontSize: '7px' }}>M</text>
-                      </svg>
+                  <DropdownMenuItem onClick={() => setIsMilestoneRefOpen(true)} className="flex items-center gap-2">
+                    <span className="w-12 flex justify-center shrink-0">
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '16px', height: '16px', background: '#000', color: '#fff', clipPath: 'polygon(100% 0%, 0% 50%, 100% 100%)', paddingLeft: '5px', fontFamily: "'Times New Roman', Times, serif", fontSize: '8px', fontWeight: 700, lineHeight: '1', letterSpacing: '-0.7px' }}>1</span>
                     </span>
                     <span>Milestone</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsCaseRefOpen(true)} className="flex items-center gap-0">
-                    <span className="w-7 flex justify-center shrink-0">
-                      <span className="inline-flex items-center justify-center h-[14px] px-[4px] rounded-full border-[1.2px] border-foreground/80 bg-background" style={{ fontFamily: "'Times New Roman', Times, serif", fontWeight: 700, fontSize: '8px', lineHeight: '14px' }}>C</span>
+                  <DropdownMenuItem onClick={() => setIsCaseRefOpen(true)} className="flex items-center gap-2">
+                    <span className="w-12 flex justify-center shrink-0">
+                      <span style={{ display: 'inline-flex', alignItems: 'center', backgroundColor: '#ffffff', color: '#000000', border: '1.5px solid #000000', padding: '0 4px', borderRadius: '9999px', fontFamily: "'Times New Roman', Times, serif", fontSize: '9px', fontWeight: 700, lineHeight: '1', whiteSpace: 'nowrap', height: '14px' }}>CS1</span>
                     </span>
                     <span>Case</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsParticipantRefOpen(true)} className="flex items-center gap-0">
-                    <span className="w-7 flex justify-center shrink-0">
-                      <span className="inline-flex items-center justify-center h-[14px] px-[4px] rounded-full border border-foreground/60 bg-background" style={{ fontFamily: "'Times New Roman', Times, serif", fontWeight: 700, fontSize: '8px', lineHeight: '14px' }}>P</span>
+                  <DropdownMenuItem onClick={() => setIsParticipantRefOpen(true)} className="flex items-center gap-2">
+                    <span className="w-12 flex justify-center shrink-0">
+                      <span style={{ display: 'inline-flex', alignItems: 'center', backgroundColor: '#000000', color: '#ffffff', border: '1.5px solid #000000', padding: '0 4px', borderRadius: '9999px', fontFamily: "'Times New Roman', Times, serif", fontSize: '9px', fontWeight: 700, fontStyle: 'italic', lineHeight: '1', whiteSpace: 'nowrap', height: '14px' }}>P1</span>
                     </span>
                     <span>Participant</span>
                   </DropdownMenuItem>
