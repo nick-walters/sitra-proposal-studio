@@ -61,7 +61,7 @@ function charsToSegments(chars: { char: string; color: string }[]): AcronymSegme
   return segs;
 }
 
-function CustomColorPalette({ onApply }: { onApply: (color: string) => void }) {
+function CustomColorPalette({ onApply, onInteractionStart, onInteractionEnd }: { onApply: (color: string) => void; onInteractionStart?: () => void; onInteractionEnd?: () => void }) {
   const [customOpen, setCustomOpen] = useState(false);
   const [hexInput, setHexInput] = useState('#');
   const [nativeColor, setNativeColor] = useState('#000000');
@@ -91,6 +91,8 @@ function CustomColorPalette({ onApply }: { onApply: (color: string) => void }) {
             <input
               type="color"
               value={nativeColor}
+              onFocus={() => onInteractionStart?.()}
+              onBlur={() => onInteractionEnd?.()}
               onChange={(e) => {
                 setNativeColor(e.target.value);
                 setHexInput(e.target.value);
@@ -145,6 +147,7 @@ export function AcronymColorEditor({ acronym, segments, onChange, onAcronymChang
   const onChangeRef = useRef(onChange);
   const onAcronymChangeRef = useRef(onAcronymChange);
   const skipSyncUntilRef = useRef(0);
+  const colorPickerActiveRef = useRef(false);
   onChangeRef.current = onChange;
   onAcronymChangeRef.current = onAcronymChange;
 
@@ -221,22 +224,20 @@ export function AcronymColorEditor({ acronym, segments, onChange, onAcronymChang
     return [Math.min(selStart, selEnd), Math.max(selStart, selEnd)];
   };
 
-  const applyColor = (color: string) => {
+  const applyColor = useCallback((color: string) => {
     const range = getSelectionRange();
     if (!range) return;
     const [start, end] = range;
-    const newChars = [...chars];
+    const newChars = [...internalChars];
     for (let i = start; i <= end; i++) {
       newChars[i] = { ...newChars[i], color };
     }
     setInternalChars(newChars);
     skipSyncUntilRef.current = Date.now() + 500;
-    // Color changes flush immediately
     const newSegs = mergeSegments(charsToSegments(newChars));
     onChangeRef.current(newSegs);
-    setSelStart(null);
-    setSelEnd(null);
-  };
+    // Don't clear selection — user may want to pick another color
+  }, [internalChars, selStart, selEnd]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (disabled) return;
@@ -329,6 +330,8 @@ export function AcronymColorEditor({ acronym, segments, onChange, onAcronymChang
   }, [disabled, chars, cursorPos, selStart, selEnd, flushToParent]);
 
   const handleBlur = useCallback((e: React.FocusEvent) => {
+    // Don't clear selection if the native color picker is active
+    if (colorPickerActiveRef.current) return;
     // Don't clear selection if focus moves to the color palette area
     const container = containerRef.current?.parentElement;
     if (container && e.relatedTarget && container.contains(e.relatedTarget as Node)) {
@@ -404,7 +407,11 @@ export function AcronymColorEditor({ acronym, segments, onChange, onAcronymChang
       </div>
 
       {range && !disabled && (
-        <CustomColorPalette onApply={applyColor} />
+        <CustomColorPalette
+          onApply={applyColor}
+          onInteractionStart={() => { colorPickerActiveRef.current = true; }}
+          onInteractionEnd={() => { colorPickerActiveRef.current = false; }}
+        />
       )}
 
       {!range && chars.length > 0 && !disabled && (
