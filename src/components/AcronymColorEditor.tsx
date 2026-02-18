@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Paintbrush, RotateCcw, Pipette } from 'lucide-react';
+import { Paintbrush, Pipette } from 'lucide-react';
 
 export interface AcronymSegment {
   text: string;
@@ -79,7 +79,7 @@ function defaultSegments(acronym: string): AcronymSegment[] {
   return acronym ? [{ text: acronym, color: '#000000' }] : [];
 }
 
-function CustomColorPalette({ onApply, onReset }: { onApply: (color: string) => void; onReset: () => void }) {
+function CustomColorPalette({ onApply }: { onApply: (color: string) => void }) {
   const [customOpen, setCustomOpen] = useState(false);
   const [hexInput, setHexInput] = useState('#');
   const [nativeColor, setNativeColor] = useState('#000000');
@@ -95,15 +95,6 @@ function CustomColorPalette({ onApply, onReset }: { onApply: (color: string) => 
   return (
     <div className="flex items-center gap-1 flex-wrap">
       <span className="text-[10px] text-muted-foreground mr-1">Apply color:</span>
-      {COLOR_PALETTE.map((color) => (
-        <button
-          key={color}
-          className="w-5 h-5 rounded-full border border-border hover:scale-125 transition-transform"
-          style={{ backgroundColor: color }}
-          onClick={() => onApply(color)}
-          title={color}
-        />
-      ))}
       <Popover open={customOpen} onOpenChange={setCustomOpen}>
         <PopoverTrigger asChild>
           <button
@@ -137,9 +128,15 @@ function CustomColorPalette({ onApply, onReset }: { onApply: (color: string) => 
           </Button>
         </PopoverContent>
       </Popover>
-      <Button variant="ghost" size="sm" className="h-5 px-1.5 ml-1" onClick={onReset} title="Reset all colors">
-        <RotateCcw className="w-3 h-3" />
-      </Button>
+      {COLOR_PALETTE.map((color) => (
+        <button
+          key={color}
+          className="w-5 h-5 rounded-full border border-border hover:scale-125 transition-transform"
+          style={{ backgroundColor: color }}
+          onClick={() => onApply(color)}
+          title={color}
+        />
+      ))}
     </div>
   );
 }
@@ -247,7 +244,7 @@ export function AcronymColorEditor({ acronym, segments, onChange, disabled }: Ac
 
       {/* Color palette - shown when selection exists */}
       {range && !disabled && (
-        <CustomColorPalette onApply={applyColor} onReset={resetColors} />
+        <CustomColorPalette onApply={applyColor} />
       )}
 
       {!range && chars.length > 0 && !disabled && (
