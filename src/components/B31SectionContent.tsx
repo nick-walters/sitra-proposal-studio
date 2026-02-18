@@ -96,14 +96,9 @@ export function B31SectionContent({ proposalId }: Props) {
               {', '}tasks{' '}
               <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'baseline', border: '1.5px solid #000000', borderRadius: '9999px', padding: '0px 5px', fontSize: '11pt', fontFamily: "'Times New Roman', Times, serif", fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#000000', backgroundColor: '#ffffff' }}>TX.X</span>
               {', '}deliverables{' '}
-              <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'baseline', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#000000', whiteSpace: 'nowrap' }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff', border: '1.5px solid #000000', padding: '0px 4px 0px 5px', height: '17px', borderRadius: '9999px 0 0 9999px', borderRight: 'none' }}>DX.X</span>
-                <span style={{ display: 'inline-block', width: 0, height: 0, borderTop: '9.5px solid transparent', borderBottom: '9.5px solid transparent', borderLeft: '8px solid #000000', position: 'relative', top: '0px' }} />
-              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'baseline', border: '1.5px solid #000000', borderRadius: '9999px 0 0 9999px', padding: '0px 0px 0px 5px', fontSize: '11pt', fontFamily: "'Times New Roman', Times, serif", fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#000000', backgroundColor: '#ffffff', height: '17px' }}>DX.X</span><span style={{ display: 'inline-block', width: 0, height: 0, borderTop: '9.5px solid transparent', borderBottom: '9.5px solid transparent', borderLeft: '7px solid #000000', verticalAlign: 'baseline' }} />
               {' '}&amp; milestones{' '}
-              <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'baseline' }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#000000', color: '#ffffff', padding: '0px 2px 0px 5px', height: '17px', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, whiteSpace: 'nowrap', clipPath: 'polygon(0 0, 70% 0, 100% 50%, 70% 100%, 0 100%)' }}>X&nbsp;</span>
-              </span>
+              <span style={{ display: 'inline-block', width: 0, height: 0, borderTop: '9.5px solid transparent', borderBottom: '9.5px solid transparent', borderLeft: '7px solid #000000', verticalAlign: 'baseline' }} /><span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'baseline', borderRadius: '0 9999px 9999px 0', padding: '0px 5px 0px 0px', fontSize: '11pt', fontFamily: "'Times New Roman', Times, serif", fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#ffffff', backgroundColor: '#000000', height: '17px', marginLeft: '-1px', border: '1.5px solid #000000', borderLeft: 'none' }}>X</span>
             </>}
             className="mt-1"
           />
