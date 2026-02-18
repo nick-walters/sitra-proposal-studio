@@ -436,60 +436,87 @@ style={{ width: labelWidth - 38, height: 18, padding: '0 2px', borderRight: `1px
                           task.milestones?.forEach(ms => bubbles.push({ month: ms.month, label: `MS${ms.number}`, color: '#000000', tooltipTitle: `MS${ms.number}: ${ms.name}`, type: 'ms' }));
                           if (bubbles.length === 0) return null;
 
-                          // Sort by month
-                          bubbles.sort((a, b) => a.month - b.month);
+                          // Sort by month, then deliverables before milestones for consistent ordering
+                          bubbles.sort((a, b) => a.month - b.month || (a.type === 'del' ? -1 : 1));
 
-                          // Estimate bubble width in px (char width ~5.5px at 9pt + 6px horizontal padding + 2px border)
-                          const estimateBubbleWidth = (label: string) => Math.max(10, label.length * 5.5 + 8);
-                          
-                          // Compute positions: center of each bubble's month cell
+                          // 9pt font for gantt MS/D bubbles — char width ~4.5px + 6px padding + 2px border
+                          const estimateBubbleWidth = (label: string) => Math.max(10, label.length * 4.5 + 8);
+
+                          // Compute initial positions: center of each bubble's month cell
                           const positioned = bubbles.map(b => ({
                             ...b,
                             centerX: (b.month - 1) * cellWidth + cellWidth / 2,
                             width: estimateBubbleWidth(b.label),
                           }));
 
-                          // Resolve overlaps: group bubbles that would overlap and spread them
+                          // For bubbles sharing the same month, place them side-by-side centered on the cell
+                          const monthGroups = new Map<number, number[]>();
+                          positioned.forEach((b, idx) => {
+                            if (!monthGroups.has(b.month)) monthGroups.set(b.month, []);
+                            monthGroups.get(b.month)!.push(idx);
+                          });
+                          monthGroups.forEach((indices) => {
+                            if (indices.length < 2) return;
+                            const cellCenter = (positioned[indices[0]].month - 1) * cellWidth + cellWidth / 2;
+                            const totalWidth = indices.reduce((sum, idx, i) => {
+                              if (i === 0) return positioned[idx].width;
+                              return sum + 1 + positioned[idx].width;
+                            }, 0);
+                            let x = cellCenter - totalWidth / 2;
+                            for (const idx of indices) {
+                              positioned[idx].centerX = x + positioned[idx].width / 2;
+                              x += positioned[idx].width + 1;
+                            }
+                          });
+
+                          // Resolve remaining overlaps between different-month bubbles
                           for (let i = 1; i < positioned.length; i++) {
                             const prev = positioned[i - 1];
                             const curr = positioned[i];
-                            const minGap = (prev.width + curr.width) / 2 + 2;
+                            if (prev.month === curr.month) continue; // already handled
+                            const minGap = (prev.width + curr.width) / 2 + 1;
                             if (curr.centerX - prev.centerX < minGap) {
-                              let clusterStart = i - 1;
-                              let clusterEnd = i;
-                              while (clusterEnd + 1 < positioned.length) {
-                                const next = positioned[clusterEnd + 1];
-                                const last = positioned[clusterEnd];
-                                const gap = (last.width + next.width) / 2 + 2;
-                                if (next.centerX - last.centerX < gap) {
-                                  clusterEnd++;
-                                } else break;
-                              }
-                              const clusterItems = positioned.slice(clusterStart, clusterEnd + 1);
-                              const midX = (clusterItems[0].centerX + clusterItems[clusterItems.length - 1].centerX) / 2;
-                              const totalWidth = clusterItems.reduce((sum, item, idx) => {
-                                if (idx === 0) return item.width;
-                                return sum + 2 + item.width;
-                              }, 0);
-                              let x = midX - totalWidth / 2;
-                              for (let j = clusterStart; j <= clusterEnd; j++) {
-                                positioned[j].centerX = x + positioned[j].width / 2;
-                                x += positioned[j].width + 2;
-                              }
-                              i = clusterEnd;
+                              const midX = (prev.centerX + curr.centerX) / 2;
+                              prev.centerX = midX - minGap / 2;
+                              curr.centerX = midX + minGap / 2;
                             }
                           }
 
-                          // Calculate triangle position for each bubble (points to the month cell)
+                          // Clamp to right page margin
+                          const maxRight = timelineWidth;
+                          for (let i = positioned.length - 1; i >= 0; i--) {
+                            const b = positioned[i];
+                            const rightEdge = b.centerX + b.width / 2;
+                            if (rightEdge > maxRight) {
+                              const shift = rightEdge - maxRight;
+                              b.centerX -= shift;
+                              // Push earlier bubbles left if now overlapping
+                              if (i > 0) {
+                                for (let j = i - 1; j >= 0; j--) {
+                                  const prev = positioned[j];
+                                  const next = positioned[j + 1];
+                                  const minGap = (prev.width + next.width) / 2 + 1;
+                                  if (next.centerX - prev.centerX < minGap) {
+                                    prev.centerX = next.centerX - minGap;
+                                  } else break;
+                                }
+                              }
+                            }
+                          }
+
+                          // Triangle position for each bubble (points to month cell center)
                           const getBubbleTriangleLeft = (b: typeof positioned[0]) => {
                             const monthCenterX = (b.month - 1) * cellWidth + cellWidth / 2;
-                            // Triangle position relative to bubble left edge
-                            return monthCenterX - (b.centerX - b.width / 2);
+                            const bubbleLeft = b.centerX - b.width / 2;
+                            const rel = monthCenterX - bubbleLeft;
+                            // Clamp triangle within bubble bounds (with 3px margin from edges)
+                            return Math.max(3, Math.min(rel, b.width - 3));
                           };
+
+                          const triangleSize = 3;
 
                           return positioned.map((b, idx) => {
                             const triangleLeft = getBubbleTriangleLeft(b);
-                            const triangleSize = 4;
                             return (
                               <Tooltip key={`${b.type}-${idx}`}>
                                 <TooltipTrigger asChild>
@@ -501,14 +528,14 @@ style={{ width: labelWidth - 38, height: 18, padding: '0 2px', borderRight: `1px
                                       left: b.centerX,
                                       transform: 'translate(-50%, -50%)',
                                       fontFamily: "'Times New Roman', Times, serif",
-                                      fontSize: '11pt',
+                                      fontSize: '9pt',
                                       fontWeight: 700,
                                       lineHeight: 1,
                                       backgroundColor: '#ffffff',
                                       color: b.color,
                                       border: `1.5px solid ${b.color}`,
                                       borderRadius: '9999px',
-                                      padding: '0 4px',
+                                      padding: '0 3px',
                                       whiteSpace: 'nowrap',
                                       zIndex: 10,
                                     }}
