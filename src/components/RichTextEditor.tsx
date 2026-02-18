@@ -1039,6 +1039,8 @@ export function useRichTextEditor({
       InlineReferenceMark,
       // WP reference marks for inline WP badges
       WPReferenceMark,
+      // Case reference marks for inline case badges
+      CaseReferenceMark,
       // Participant reference marks for inline partner badges
       ParticipantReferenceMark,
       // Acronym reference for colored acronym insertion
