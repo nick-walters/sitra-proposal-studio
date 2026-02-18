@@ -407,7 +407,7 @@ export function GanttChartFigure({
                   const estimateBubbleW = (label: string) => Math.max(10, label.length * 4 + 6);
 
                   const msDiamondSize = 17;
-                  type PBubble = typeof taskBubbles[0] & { leftX: number; width: number; bodyW: number; below: boolean; triSide: 'right' | 'left' };
+                  type PBubble = typeof taskBubbles[0] & { leftX: number; width: number; bodyW: number; triSide: 'right' | 'left' };
                   const positioned: PBubble[] = taskBubbles.map(b => {
                     if (b.type === 'ms') {
                       return {
@@ -415,7 +415,6 @@ export function GanttChartFigure({
                         bodyW: msDiamondSize,
                         width: msDiamondSize,
                         leftX: 0,
-                        below: false,
                         triSide: 'left' as const,
                       };
                     }
@@ -425,7 +424,6 @@ export function GanttChartFigure({
                       bodyW,
                       width: bodyW + pointDepth,
                       leftX: 0,
-                      below: false,
                       triSide: 'right' as const,
                     };
                   });
@@ -445,54 +443,54 @@ export function GanttChartFigure({
                     if (indices.length === 1) {
                       const b = positioned[indices[0]];
                       if (b.type === 'ms') {
-                        // MS: position to the right of the month boundary, triangle on left
+                        // MS: right of month boundary, triangle points left
                         b.leftX = tX;
                         b.triSide = 'left';
                       } else {
-                        // D: right-align to month boundary, triangle on right
+                        // D: left of month boundary, triangle points right
                         b.leftX = tX - b.width;
                         b.triSide = 'right';
                       }
                     } else {
-                      // Two+: left bubble right-aligns to targetX, right bubble left-aligns to targetX
+                      // Two at same month: first left-aligns to tX, second right-aligns from tX
                       const left = positioned[indices[0]];
                       const right = positioned[indices[1]];
                       left.leftX = tX - left.width;
                       left.triSide = 'right';
                       right.leftX = tX;
                       right.triSide = 'left';
-                      // Extra bubbles go below only if same-month overflow
-                      // Extra bubbles go below
+                      // Any extras just stack to the right
+                      let nextX = right.leftX + right.width + 1;
                       for (let i = 2; i < indices.length; i++) {
-                        positioned[indices[i]].below = true;
-                        positioned[indices[i]].leftX = tX - positioned[indices[i]].width;
+                        positioned[indices[i]].leftX = nextX;
+                        positioned[indices[i]].triSide = 'left';
+                        nextX += positioned[indices[i]].width + 1;
                       }
                     }
                   });
 
-                  // Resolve overlaps between different-month non-below bubbles
-                  const nonBelow = positioned.map((b, i) => ({ b, i })).filter(x => !x.b.below);
-                  for (let ni = 1; ni < nonBelow.length; ni++) {
-                    const prev = nonBelow[ni - 1].b;
-                    const curr = nonBelow[ni].b;
+                  // Resolve overlaps between different-month bubbles
+                  for (let ni = 1; ni < positioned.length; ni++) {
+                    const prev = positioned[ni - 1];
+                    const curr = positioned[ni];
                     if (prev.month === curr.month) continue;
                     const overlap = (prev.leftX + prev.width + 1) - curr.leftX;
                     if (overlap > 0) {
+                      // Earlier bubble goes left, later goes right, both flip
                       const tX = getTargetX(curr.month);
                       prev.leftX = tX - prev.width;
                       prev.triSide = 'right';
                       curr.leftX = tX;
-                      curr.leftX = tX;
                       curr.triSide = 'left';
                     }
                   }
+
                   // Clamp: only prevent going off left edge
                   positioned.forEach(b => {
                     if (b.leftX < 0) b.leftX = 0;
                   });
 
-                  const hasBelow = positioned.some(b => b.below);
-                  const rowHeight = hasBelow ? 34 : 18;
+                  const rowHeight = 18;
 
                   return (
                     <div key={task.id} className="flex" style={{ position: 'relative' }}>
@@ -533,7 +531,7 @@ export function GanttChartFigure({
                         })}
                         {/* Render positioned bubbles */}
                         {positioned.map((b, idx) => {
-                          const topPos = b.below ? 25 : (rowHeight / 2);
+                          const topPos = rowHeight / 2;
                           const bH = 10;
                           const r = bH / 2;
                           const isRight = b.triSide === 'right';
