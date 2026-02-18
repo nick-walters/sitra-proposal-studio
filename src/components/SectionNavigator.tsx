@@ -415,10 +415,11 @@ function SectionItem({
           {/* Render WP Drafts, Case Drafts, and A2 Participants as 2-column grid of bubbles */}
           {(section.id === 'wp-drafts' || section.id === 'case-drafts' || section.id === 'a2') ? (
             <div 
-              className="grid grid-cols-2 gap-x-2 gap-y-1 py-1"
+              className="grid grid-cols-2 gap-x-2 py-1"
               style={{ 
-                paddingLeft: `${(depth + 1) * 12 + (section.id === 'a2' ? 20 : 28)}px`, 
-                paddingRight: '8px' 
+                paddingLeft: `${(depth + 1) * 12 + 12}px`, 
+                paddingRight: '8px',
+                rowGap: '2px',
               }}
             >
               {section.subsections!.map((subsection) => {
@@ -434,7 +435,7 @@ function SectionItem({
                       <TooltipTrigger asChild>
                         <button
                           className={cn(
-                            "inline-flex items-center justify-start w-fit px-2 py-0.5 rounded-full text-xs font-bold truncate cursor-pointer transition-all max-w-full",
+                            "inline-flex items-center justify-start w-fit px-2 py-0 rounded-full text-xs font-bold truncate cursor-pointer transition-all max-w-full leading-tight",
                             isSubActive && "ring-2 ring-primary ring-offset-1"
                           )}
                           style={{ 
