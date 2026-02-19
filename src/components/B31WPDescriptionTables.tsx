@@ -788,8 +788,8 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
                   </td>
                 </tr>
 
-                {/* Colour border after objectives */}
-                <SpacerRow color={wp.color} />
+                {/* Spacer after objectives */}
+                <SpacerRow />
               </tbody>
 
               {/* Tasks - each in its own sortable tbody */}
@@ -813,6 +813,9 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
                   ))}
                 </SortableContext>
               </DndContext>
+
+              {/* Colour border after last task */}
+              <tbody><SpacerRow color={wp.color} /></tbody>
             </table>
           </div>
         );
