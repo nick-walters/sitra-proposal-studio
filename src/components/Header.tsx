@@ -17,9 +17,9 @@ export function Header() {
   return (
     <>
       <header className="h-16 border-b border-border bg-card sticky top-0 z-40">
-        <div className="h-full px-6 flex items-center justify-between">
+        <div className="h-full px-6 flex items-center">
           {/* Left: Logo + Alpha */}
-          <div className="flex items-center gap-4 flex-1">
+          <div className="flex items-center gap-4 w-[220px] shrink-0">
             <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
               <img src={sitraLogo} alt="Sitra Proposal Studio" className="h-8 w-auto object-contain flex-shrink-0" />
             </Link>
@@ -54,7 +54,7 @@ export function Header() {
           </nav>
 
           {/* Right: Notifications, Avatar */}
-          <div className="flex items-center gap-2 flex-1 justify-end">
+          <div className="flex items-center gap-2 w-[220px] shrink-0 justify-end">
             {user && <NotificationCenter />}
             {user && (
               <UserAvatarMenu 
