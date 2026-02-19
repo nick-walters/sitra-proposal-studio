@@ -254,8 +254,13 @@ function SectionItem({
             // For always-expanded sections (wp-drafts), just navigate
             onSectionClick(section);
           } else if (hasSubsections) {
-            // Sections with subsections: expand/collapse AND always navigate to self
-            setIsExpanded(!isExpanded);
+            // Sections with subsections: if already active, toggle collapse
+            // If not active, expand and navigate to self
+            if (isActive) {
+              setIsExpanded(!isExpanded);
+            } else {
+              setIsExpanded(true);
+            }
             onSectionClick(section);
           } else {
             onSectionClick(section);
