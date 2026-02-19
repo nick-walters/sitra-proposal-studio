@@ -828,6 +828,21 @@ export function DocumentEditor({
                 <FileCode className="w-3 h-3" />
                 Snippets
               </Button>
+              <Separator orientation="vertical" className="h-4 mx-1" />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={isCollaborationPanelOpen ? "default" : "outline"}
+                    size="sm"
+                    className="h-6 px-2 text-xs gap-1"
+                    onClick={() => setIsCollaborationPanelOpen(!isCollaborationPanelOpen)}
+                  >
+                    {isCollaborationPanelOpen ? <PanelRightClose className="w-3 h-3" /> : <PanelRight className="w-3 h-3" />}
+                    {isCollaborationPanelOpen ? 'Hide Panel' : 'Panel'}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{isCollaborationPanelOpen ? 'Hide collaboration panel' : 'Show collaboration panel'}</TooltipContent>
+              </Tooltip>
               {isImpactSection && (
                 <Button 
                   variant="outline" 
@@ -1163,7 +1178,7 @@ export function DocumentEditor({
         </div>{/* end inner overflow-hidden wrapper */}
 
         {/* Right-hand Collaboration Panel */}
-        {isCollaborationPanelOpen ? (
+        {isCollaborationPanelOpen && (
           <div className="w-80 shrink-0 h-full border-l border-border bg-card flex flex-col">
             {/* Panel Header with close button */}
             <div className="flex items-center justify-between px-3 py-1.5 border-b border-border">
@@ -1243,22 +1258,6 @@ export function DocumentEditor({
                 </div>
               )}
             </div>
-          </div>
-        ) : (
-          <div className="shrink-0 h-full border-l border-border bg-card flex flex-col items-center py-2 w-8">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => setIsCollaborationPanelOpen(true)}
-                >
-                  <PanelRight className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="left">Show panel</TooltipContent>
-            </Tooltip>
           </div>
         )}
       </div>
