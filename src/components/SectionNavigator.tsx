@@ -437,9 +437,9 @@ function SectionItem({
                   <TooltipProvider key={subsection.id}>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <button
+                          <button
                           className={cn(
-                            "inline-flex items-center justify-start w-fit px-1.5 py-0 rounded-full text-[11px] font-bold truncate cursor-pointer transition-all max-w-full leading-tight",
+                            "inline-flex items-center justify-start w-fit px-1.5 py-0 rounded-full text-[11px] font-bold truncate cursor-pointer transition-all max-w-full leading-tight break-all",
                             isSubActive && "ring-2 ring-primary ring-offset-1"
                           )}
                           style={{ 
