@@ -18,42 +18,41 @@ export function Header() {
     <>
       <header className="h-16 border-b border-border bg-card sticky top-0 z-40">
         <div className="h-full px-6 flex items-center justify-between">
-          {/* Left: Logo */}
-          <div className="flex items-center gap-4 flex-1">
+          {/* Left: Logo + Navigation */}
+          <div className="flex items-center gap-4">
             <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
               <img src={sitraLogo} alt="Sitra Proposal Studio" className="h-8 w-auto object-contain flex-shrink-0" />
             </Link>
             <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded">alpha</span>
-          </div>
-
-          {/* Centre: Navigation */}
-          <nav className="hidden md:flex items-center gap-1 justify-center flex-1">
-            <Link to="/dashboard">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <Columns3 className="w-4 h-4" />
-                Proposal dashboard
-              </Button>
-            </Link>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="gap-2"
-              onClick={() => setIsCollaboratorsOpen(true)}
-            >
-              <Users className="w-4 h-4" />
-              Collaborators
-            </Button>
-            {(isOwner || (isGlobalAdmin && hasAnyCoordinatorRole)) && (
-              <Link to="/admin">
+            <nav className="hidden md:flex items-center gap-1">
+              <Link to="/dashboard">
                 <Button variant="ghost" size="sm" className="gap-2">
-                  <Database className="w-4 h-4" />
-                  <span className="hidden sm:inline">Backend</span>
+                  <Columns3 className="w-4 h-4" />
+                  Proposal dashboard
                 </Button>
               </Link>
-            )}
-          </nav>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="gap-2"
+                onClick={() => setIsCollaboratorsOpen(true)}
+              >
+                <Users className="w-4 h-4" />
+                Collaborators
+              </Button>
+              {(isOwner || (isGlobalAdmin && hasAnyCoordinatorRole)) && (
+                <Link to="/admin">
+                  <Button variant="ghost" size="sm" className="gap-2">
+                    <Database className="w-4 h-4" />
+                    <span className="hidden sm:inline">Backend</span>
+                  </Button>
+                </Link>
+              )}
+            </nav>
+          </div>
+
           {/* Right: Notifications, Avatar */}
-          <div className="flex items-center gap-2 flex-1 justify-end">
+          <div className="flex items-center gap-2">
             {user && <NotificationCenter />}
             {user && (
               <UserAvatarMenu 
