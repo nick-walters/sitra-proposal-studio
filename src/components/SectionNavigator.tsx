@@ -149,7 +149,7 @@ function SectionItem({
           dueDateInfo?.isDueSoon && !dueDateInfo?.isOverdue && "border-l-2 border-amber-500",
           isAssignedToMe && !dueDateInfo?.isOverdue && !dueDateInfo?.isDueSoon && "border-l-2 border-blue-500"
         )}
-        style={{ paddingLeft: `${depth * 12 + 12 + extraIndent}px` }}
+        style={{ paddingLeft: `${depth * 8 + 12 + extraIndent}px` }}
         onClick={() => {
           if (isCollapsibleHeading) {
             // For collapsible headings, expand/collapse and navigate to first child
@@ -417,7 +417,7 @@ function SectionItem({
             <div 
               className="grid grid-cols-2 gap-x-1 py-1"
               style={{ 
-                paddingLeft: `${depth * 12 + 12}px`, 
+                paddingLeft: `${depth * 8 + 12}px`, 
                 paddingRight: '8px',
                 rowGap: '2px',
               }}
