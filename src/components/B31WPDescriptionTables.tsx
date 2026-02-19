@@ -522,8 +522,8 @@ function SortableTaskGroup({
 
   return (
     <tbody ref={setNodeRef} style={style}>
-      {/* Spacer without border */}
-      <SpacerRow />
+      {/* Colour border above task */}
+      <SpacerRow color={wp.color} />
 
       {/* Task header: drag handle + outline bubble with number + bold title + delete btn */}
       <tr>
@@ -629,8 +629,6 @@ function SortableTaskGroup({
         </td>
       </tr>
 
-      {/* Colour border after task */}
-      <SpacerRow color={wp.color} />
     </tbody>
   );
 }
