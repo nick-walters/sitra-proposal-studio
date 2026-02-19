@@ -788,8 +788,6 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
                   </td>
                 </tr>
 
-                {/* Spacer after objectives */}
-                <SpacerRow />
               </tbody>
 
               {/* Tasks - each in its own sortable tbody */}
