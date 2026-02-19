@@ -153,7 +153,9 @@ export function LogoUpload({
     toast.success('Logo removed');
   };
 
-  const acronymColor = getAcronymColor(proposalAcronym);
+  // Use first non-black acronym segment color if available, otherwise generate from hash
+  const segmentColor = acronymSegments?.map(s => s.color).find(c => c && c !== '#000000');
+  const acronymColor = segmentColor || getAcronymColor(proposalAcronym);
 
   return (
     <div className="flex gap-2 items-start">
