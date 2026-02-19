@@ -701,11 +701,13 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
     const success = await applyOrder(reordered);
     if (success) {
       toast.success('Tasks reordered', {
+        duration: 8000,
         action: {
           label: 'Undo',
           onClick: async () => {
             const prevTasks = previousOrder.map(id => wp.tasks.find(t => t.id === id)!);
             await applyOrder(prevTasks);
+            toast.success('Reorder undone');
           },
         },
       });
