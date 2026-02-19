@@ -70,7 +70,6 @@ import { TrackChange } from "@/extensions/TrackChanges";
 // usePageEstimate moved to ExportDialog
 import { EditorZoomBar } from "./EditorZoomBar";
 import { useAuth } from "@/hooks/useAuth";
-import { useTrackedChanges } from "@/hooks/useTrackedChanges";
 import {
   Tooltip,
   TooltipContent,
@@ -153,15 +152,7 @@ export function DocumentEditor({
     }
   }, [user?.id]);
   const [zoomLevel, setZoomLevel] = useState(100);
-  const {
-    changes: trackedChanges,
-    loading: trackChangesLoading,
-    handleChangesUpdate: setTrackedChanges,
-  } = useTrackedChanges({
-    proposalId: proposalId || '',
-    sectionId: section?.id || '',
-    enabled: trackChangesEnabled,
-  });
+  const [trackedChanges, setTrackedChanges] = useState<TrackChange[]>([]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isFormulaOpen, setIsFormulaOpen] = useState(false);
   const [isComparisonOpen, setIsComparisonOpen] = useState(false);

@@ -25,7 +25,7 @@ const RETRY_DELAY = 1500;
  */
 function getAuthToken(): string {
   try {
-    const raw = localStorage.getItem('sb-nfeoyxjstfehwrkgapho-auth-token');
+    const raw = localStorage.getItem('sitra-proposal-studio-auth');
     if (raw) {
       const parsed = JSON.parse(raw);
       return parsed?.access_token || '';
@@ -99,20 +99,21 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
   const pendingContentRef = useRef<string | null>(null);
   const isSavingRef = useRef(false);
   const contentRef = useRef<string>(''); // always-current content mirror
+  const lastSavedContentRef = useRef<string>(''); // content actually written to DB
 
   // Keep contentRef in sync
   useEffect(() => {
     contentRef.current = content;
   }, [content]);
 
-  // ── Save a version snapshot (async, throttled) ──────────────────────
-  const saveVersion = useCallback(async (contentToSave: string) => {
+  // ── Save a version snapshot (async, optionally forced) ──────────────
+  const saveVersion = useCallback(async (contentToSave: string, force = false) => {
     if (!proposalId || !sectionId || !user?.id) return;
     if (contentToSave === lastVersionContentRef.current) return;
     if (!contentToSave.trim()) return;
 
     const now = Date.now();
-    if (now - lastVersionTimeRef.current < VERSION_MIN_INTERVAL) return;
+    if (!force && now - lastVersionTimeRef.current < VERSION_MIN_INTERVAL) return;
 
     try {
       const { data, error } = await supabase.rpc('insert_section_version', {
@@ -200,6 +201,9 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
       if (finalContent !== contentToSave) {
         setContentState(finalContent);
       }
+
+      // Track the actual content written to DB for version comparison
+      lastSavedContentRef.current = finalContent;
 
       // Trigger a throttled version save after every successful content save
       saveVersion(finalContent);
@@ -334,9 +338,11 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
     if (!proposalId || !sectionId || !user?.id) return;
 
     const intervalId = setInterval(() => {
-      const currentContent = pendingContentRef.current ?? contentRef.current;
+      // Use lastSavedContentRef (what was actually written to DB) for comparison,
+      // since pendingContentRef is null after save and contentRef may match the pre-renumber version
+      const currentContent = lastSavedContentRef.current || contentRef.current;
       if (currentContent && currentContent !== lastVersionContentRef.current && currentContent.trim()) {
-        saveVersion(currentContent);
+        saveVersion(currentContent, true); // force=true to bypass throttle since interval already provides throttling
       }
     }, VERSION_MIN_INTERVAL);
 

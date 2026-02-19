@@ -1,7 +1,6 @@
 import { Extension, Mark } from '@tiptap/core';
 import { Plugin, PluginKey, Transaction } from 'prosemirror-state';
-import { Decoration, DecorationSet } from 'prosemirror-view';
-import { Mark as PMMark, MarkType } from 'prosemirror-model';
+import { Mark as PMMark, MarkType, Fragment, Slice } from 'prosemirror-model';
 
 export interface TrackChange {
   id: string;
@@ -57,12 +56,9 @@ function collectChangesFromDoc(doc: any, schema: any): TrackChange[] {
     for (const mark of node.marks) {
       if (mark.type === insertionType || mark.type === deletionType) {
         const attrs = mark.attrs;
-        // Find the full extent of this mark from pos
         const markEnd = pos + node.nodeSize;
-        // Check if we already have this changeId (mark may span multiple text nodes)
         const existing = changes.find(c => c.id === attrs.changeId);
         if (existing) {
-          // Extend range
           existing.from = Math.min(existing.from, pos);
           existing.to = Math.max(existing.to, markEnd);
           existing.content = doc.textBetween(existing.from, existing.to, ' ');
@@ -87,8 +83,26 @@ function collectChangesFromDoc(doc: any, schema: any): TrackChange[] {
 }
 
 /**
- * The TrackInsertion mark — applied to newly inserted text.
+ * Apply a mark to all text nodes in a fragment, preserving existing formatting marks.
  */
+function addMarkToFragment(fragment: Fragment, mark: PMMark, schema: any): Fragment {
+  const nodes: any[] = [];
+  fragment.forEach((node: any) => {
+    if (node.isText) {
+      // Add the track mark while preserving existing marks (bold, italic, etc.)
+      const newMarks = mark.addToSet(node.marks);
+      nodes.push(node.mark(newMarks));
+    } else if (node.content && node.content.size > 0) {
+      // Recurse into inline nodes
+      const newContent = addMarkToFragment(node.content, mark, schema);
+      nodes.push(node.copy(newContent));
+    } else {
+      nodes.push(node);
+    }
+  });
+  return Fragment.from(nodes);
+}
+
 const trackChangeAttributes = () => ({
   changeId: {
     default: null,
@@ -145,9 +159,6 @@ const TrackInsertionMark = Mark.create({
   },
 });
 
-/**
- * The TrackDeletion mark — applied to text that was "deleted" but kept visible with strikethrough.
- */
 const TrackDeletionMark = Mark.create({
   name: 'trackDeletion',
   
@@ -193,9 +204,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
   addStorage() {
     return {
       enabled: this.options.enabled,
-      // We keep a local `changes` array derived from marks for the UI
       changes: [] as TrackChange[],
-      // Track the current merge target for consecutive typing
       lastInsertionId: null as string | null,
       lastInsertionTime: 0,
     };
@@ -223,7 +232,6 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           const insertionType = schema.marks.trackInsertion;
           const deletionType = schema.marks.trackDeletion;
 
-          // Collect ranges for this changeId
           const ranges: { from: number; to: number; type: 'insertion' | 'deletion' }[] = [];
           doc.descendants((node: any, pos: number) => {
             if (!node.isText) return;
@@ -246,12 +254,11 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           const changeType = ranges[0].type;
 
           if (changeType === 'insertion') {
-            // Accept insertion = just remove the mark, keep the text
             for (const range of ranges) {
               tr.removeMark(range.from, range.to, insertionType);
             }
           } else {
-            // Accept deletion = actually delete the text (process in reverse to keep positions valid)
+            // Accept deletion = actually delete the text (process in reverse)
             const sorted = [...ranges].sort((a, b) => b.from - a.from);
             for (const range of sorted) {
               tr.delete(range.from, range.to);
@@ -261,7 +268,6 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           tr.setMeta('trackChangesInternal', true);
           if (dispatch) dispatch(tr);
 
-          // Update changes list from new doc
           setTimeout(() => {
             this.storage.changes = collectChangesFromDoc(
               editor.state.doc,
@@ -303,13 +309,11 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           const changeType = ranges[0].type;
 
           if (changeType === 'insertion') {
-            // Reject insertion = delete the text
             const sorted = [...ranges].sort((a, b) => b.from - a.from);
             for (const range of sorted) {
               tr.delete(range.from, range.to);
             }
           } else {
-            // Reject deletion = just remove the mark, keep the text
             for (const range of ranges) {
               tr.removeMark(range.from, range.to, deletionType);
             }
@@ -337,19 +341,8 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           const insertionType = schema.marks.trackInsertion;
           const deletionType = schema.marks.trackDeletion;
 
-          // First remove all insertion marks (keep text)
-          doc.descendants((node: any, pos: number) => {
-            if (!node.isText) return;
-            for (const mark of node.marks) {
-              if (mark.type === insertionType) {
-                tr.removeMark(pos, pos + node.nodeSize, insertionType);
-              }
-            }
-          });
-
-          // Then delete all deletion-marked text (reverse order)
+          // Collect all deletion ranges first (before any mutations)
           const deletionRanges: { from: number; to: number }[] = [];
-          // Re-scan because positions haven't shifted yet in tr
           doc.descendants((node: any, pos: number) => {
             if (!node.isText) return;
             for (const mark of node.marks) {
@@ -359,10 +352,23 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
             }
           });
 
-          // Merge adjacent ranges and delete in reverse
+          // Remove all insertion marks (keep text) — mark removal doesn't shift positions
+          doc.descendants((node: any, pos: number) => {
+            if (!node.isText) return;
+            for (const mark of node.marks) {
+              if (mark.type === insertionType) {
+                tr.removeMark(pos, pos + node.nodeSize, insertionType);
+              }
+            }
+          });
+
+          // Delete all deletion-marked text in reverse order to maintain valid positions
+          // Use tr.mapping to map original positions through prior deletions
           const sorted = [...deletionRanges].sort((a, b) => b.from - a.from);
           for (const range of sorted) {
-            tr.delete(range.from, range.to);
+            const mappedFrom = tr.mapping.map(range.from);
+            const mappedTo = tr.mapping.map(range.to);
+            tr.delete(mappedFrom, mappedTo);
           }
 
           tr.setMeta('trackChangesInternal', true);
@@ -384,17 +390,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           const insertionType = schema.marks.trackInsertion;
           const deletionType = schema.marks.trackDeletion;
 
-          // Remove all deletion marks (keep text)
-          doc.descendants((node: any, pos: number) => {
-            if (!node.isText) return;
-            for (const mark of node.marks) {
-              if (mark.type === deletionType) {
-                tr.removeMark(pos, pos + node.nodeSize, deletionType);
-              }
-            }
-          });
-
-          // Delete all insertion-marked text (reverse order)
+          // Collect all insertion ranges first (before any mutations)
           const insertionRanges: { from: number; to: number }[] = [];
           doc.descendants((node: any, pos: number) => {
             if (!node.isText) return;
@@ -405,9 +401,22 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
             }
           });
 
+          // Remove all deletion marks (keep text) — mark removal doesn't shift positions
+          doc.descendants((node: any, pos: number) => {
+            if (!node.isText) return;
+            for (const mark of node.marks) {
+              if (mark.type === deletionType) {
+                tr.removeMark(pos, pos + node.nodeSize, deletionType);
+              }
+            }
+          });
+
+          // Delete all insertion-marked text in reverse order
           const sorted = [...insertionRanges].sort((a, b) => b.from - a.from);
           for (const range of sorted) {
-            tr.delete(range.from, range.to);
+            const mappedFrom = tr.mapping.map(range.from);
+            const mappedTo = tr.mapping.map(range.to);
+            tr.delete(mappedFrom, mappedTo);
           }
 
           tr.setMeta('trackChangesInternal', true);
@@ -435,7 +444,6 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
 
           let hasUserChange = false;
           for (const tr of transactions) {
-            // Skip block reorder transactions — they move content, not edit it
             if (tr.getMeta('blockReorder')) return null;
             if (tr.docChanged && !tr.getMeta('trackChangesInternal')) {
               hasUserChange = true;
@@ -458,7 +466,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           newTr.setMeta('addToHistory', false);
           let modified = false;
 
-          const MERGE_WINDOW_MS = 10000;
+          const MERGE_WINDOW_MS = 5000; // reduced from 10s to 5s for more Word-like grouping
           const now = Date.now();
 
           for (const tr of transactions) {
@@ -468,18 +476,16 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
               const stepMap = step.getMap();
 
               stepMap.forEach((oldStart: number, oldEnd: number, newStart: number, newEnd: number) => {
-                // Handle deletions: in Word-style, we don't actually delete.
-                // Instead we should re-insert the deleted content with a deletion mark.
-                // However, since the content is already gone in newState, we need to
-                // get it from oldState and re-insert it.
-                if (oldEnd > oldStart && newEnd <= newStart) {
-                  // Text was deleted. We need to reinsert it with a deletion mark.
+                const isDelete = oldEnd > oldStart;
+                const isInsert = newEnd > newStart;
+
+                // === REPLACEMENT: text was selected and typed over ===
+                if (isDelete && isInsert) {
                   const deletedSlice = oldState.doc.slice(oldStart, oldEnd);
                   const deletedText = oldState.doc.textBetween(oldStart, oldEnd, ' ');
 
                   if (deletedText.trim()) {
-                    // Check if the deleted text already had a trackInsertion mark
-                    // If so, just let it be deleted (don't track deletion of tracked insertions)
+                    // Check if deleted text was a tracked insertion by same author
                     let wasTrackedInsertion = false;
                     oldState.doc.nodesBetween(oldStart, oldEnd, (node) => {
                       if (node.isText) {
@@ -492,13 +498,65 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                     });
 
                     if (!wasTrackedInsertion) {
-                      // Determine changeId: merge with adjacent deletion if recent
-                      let changeId: string;
-                      const lastId = extension.storage.lastInsertionId;
-                      // For deletions, always create a new change
-                      changeId = generateChangeId();
+                      const deletionChangeId = generateChangeId();
+                      const deletionMark = deletionType.create({
+                        changeId: deletionChangeId,
+                        authorId,
+                        authorName,
+                        authorColor,
+                        timestamp: new Date().toISOString(),
+                      });
 
-                      // Re-insert the deleted text at newStart with a deletion mark
+                      // Preserve formatting: apply deletion mark to each text node in the slice
+                      const markedContent = addMarkToFragment(deletedSlice.content, deletionMark, schema);
+                      newTr.insert(newStart, markedContent);
+                      modified = true;
+                    }
+                  }
+
+                  // Mark the newly inserted text with an insertion mark
+                  const insertedText = newState.doc.textBetween(newStart, newEnd, ' ');
+                  if (insertedText.trim()) {
+                    const insertionChangeId = generateChangeId();
+                    extension.storage.lastInsertionId = insertionChangeId;
+                    extension.storage.lastInsertionTime = now;
+
+                    const mark = insertionType.create({
+                      changeId: insertionChangeId,
+                      authorId,
+                      authorName,
+                      authorColor,
+                      timestamp: new Date().toISOString(),
+                    });
+
+                    // Adjust positions: the deletion re-insert shifted things
+                    const offset = modified ? oldEnd - oldStart : 0;
+                    newTr.addMark(newStart + offset, newEnd + offset, mark);
+                    modified = true;
+                  }
+
+                  return; // done with this step range
+                }
+
+                // === PURE DELETION ===
+                if (isDelete && !isInsert) {
+                  const deletedSlice = oldState.doc.slice(oldStart, oldEnd);
+                  const deletedText = oldState.doc.textBetween(oldStart, oldEnd, ' ');
+
+                  if (deletedText.trim()) {
+                    let wasTrackedInsertion = false;
+                    oldState.doc.nodesBetween(oldStart, oldEnd, (node) => {
+                      if (node.isText) {
+                        for (const mark of node.marks) {
+                          if (mark.type === insertionType && mark.attrs.authorId === authorId) {
+                            wasTrackedInsertion = true;
+                          }
+                        }
+                      }
+                    });
+
+                    if (!wasTrackedInsertion) {
+                      const changeId = generateChangeId();
                       const deletionMark = deletionType.create({
                         changeId,
                         authorId,
@@ -507,23 +565,22 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                         timestamp: new Date().toISOString(),
                       });
 
-                      const textNode = schema.text(deletedText, [deletionMark]);
-                      newTr.insert(newStart, textNode);
+                      // Preserve formatting on deleted content
+                      const markedContent = addMarkToFragment(deletedSlice.content, deletionMark, schema);
+                      newTr.insert(newStart, markedContent);
                       modified = true;
                     }
                   }
                 }
 
-                // Handle insertions: mark the new content with an insertion mark
-                if (newEnd > newStart && oldEnd <= oldStart) {
+                // === PURE INSERTION ===
+                if (isInsert && !isDelete) {
                   const insertedText = newState.doc.textBetween(newStart, newEnd, ' ');
 
-                  // Merge with recent insertion even for whitespace/newlines
                   const hasActiveMerge =
                     extension.storage.lastInsertionId &&
                     now - extension.storage.lastInsertionTime < MERGE_WINDOW_MS;
 
-                  // Skip only if it's pure whitespace AND there's no active merge
                   if (insertedText.trim() || hasActiveMerge) {
                     let changeId: string;
                     if (hasActiveMerge) {
@@ -552,7 +609,6 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           }
 
           if (modified) {
-            // Update changes list from marks
             setTimeout(() => {
               const changes = collectChangesFromDoc(
                 extension.editor.state.doc,
