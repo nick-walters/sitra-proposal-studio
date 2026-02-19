@@ -265,7 +265,7 @@ function SectionItem({
                 {formatSectionNumber(section.number, depth)}
               </span>
             )}
-            <span className={cn("flex-1 truncate", isActive && "font-medium")}>
+            <span className={cn("flex-1 truncate", isActive && "font-medium")} style={{ textWrap: 'nowrap', wordBreak: 'break-all' }}>
               {formatTitle(section.title)}
             </span>
           </>
