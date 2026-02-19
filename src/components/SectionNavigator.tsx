@@ -140,7 +140,7 @@ function SectionItem({
     <div className="animate-fade-in">
       <div
         className={cn(
-          "section-nav-item flex items-center gap-2 group",
+          "section-nav-item flex items-center gap-[6px] group",
           isActive && "section-nav-item-active",
           !isActive && "hover:bg-muted",
           (isCollapsibleHeading || isTopLevelBold) && "font-semibold",
