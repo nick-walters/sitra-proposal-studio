@@ -265,8 +265,10 @@ function SectionItem({
                 {formatSectionNumber(section.number, depth)}
               </span>
             )}
-            <span className={cn("flex-1 truncate", isActive && "font-medium")} style={{ wordSpacing: '-0.25em' }}>
-              {formatTitle(section.title)}
+            <span className={cn("flex-1 min-w-0 overflow-hidden whitespace-nowrap", isActive && "font-medium")} title={formatTitle(section.title)}>
+              <span className="block overflow-hidden text-ellipsis" style={{ wordBreak: 'break-all' }}>
+                {formatTitle(section.title)}
+              </span>
             </span>
           </>
         )}
