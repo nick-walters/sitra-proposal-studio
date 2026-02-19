@@ -781,7 +781,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
                 </tr>
 
                 {/* Spacing between header and duration row */}
-                <tr><td colSpan={2} style={{ border: 'none', padding: 0, height: '4px', lineHeight: '4px', fontSize: '1pt' }} /></tr>
+                <tr><td colSpan={2} style={{ border: 'none', padding: 0, height: '3px', lineHeight: '3px', fontSize: '1pt' }} /></tr>
 
                 {/* WP duration + leader row */}
                 <tr>
