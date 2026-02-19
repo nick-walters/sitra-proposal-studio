@@ -676,23 +676,40 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
     const newIndex = wp.tasks.findIndex(t => t.id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
 
+    // Save previous order for undo
+    const previousOrder = wp.tasks.map(t => t.id);
+
     const reordered = arrayMove(wp.tasks, oldIndex, newIndex);
 
-    // Update order_index and number for all tasks in this WP
-    for (let i = 0; i < reordered.length; i++) {
-      const { error } = await supabase
-        .from('wp_draft_tasks')
-        .update({ order_index: i, number: i + 1 })
-        .eq('id', reordered[i].id);
-      if (error) {
-        toast.error('Failed to reorder tasks');
-        break;
+    const applyOrder = async (tasks: typeof reordered) => {
+      for (let i = 0; i < tasks.length; i++) {
+        const { error } = await supabase
+          .from('wp_draft_tasks')
+          .update({ order_index: i, number: i + 1 })
+          .eq('id', tasks[i].id);
+        if (error) {
+          toast.error('Failed to reorder tasks');
+          return false;
+        }
       }
-    }
+      queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
+      queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] });
+      window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+      return true;
+    };
 
-    queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
-    queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] });
-    window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+    const success = await applyOrder(reordered);
+    if (success) {
+      toast.success('Tasks reordered', {
+        action: {
+          label: 'Undo',
+          onClick: async () => {
+            const prevTasks = previousOrder.map(id => wp.tasks.find(t => t.id === id)!);
+            await applyOrder(prevTasks);
+          },
+        },
+      });
+    }
   };
 
   return (
