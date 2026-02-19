@@ -38,9 +38,8 @@ export function findBlockRange(
   // For tables, include caption before
   if (node.type.name === 'table') {
     if (pos > 0) {
-      const beforePos = pos - 1;
-      const $beforePos = doc.resolve(beforePos);
-      const beforeNode = $beforePos.nodeBefore;
+      const $atPos = doc.resolve(pos);
+      const beforeNode = $atPos.nodeBefore;
       
       if (beforeNode && beforeNode.type.name === 'paragraph') {
         const textContent = beforeNode.textContent.toLowerCase();
@@ -60,9 +59,8 @@ export function findBlockRange(
     // Figure caption - look for image before it
     if (textContent.startsWith('figure ') || hasClass.includes('figure-caption')) {
       if (pos > 0) {
-        const beforePos = pos - 1;
-        const $beforePos = doc.resolve(beforePos);
-        const beforeNode = $beforePos.nodeBefore;
+        const $atPos = doc.resolve(pos);
+        const beforeNode = $atPos.nodeBefore;
         
         if (beforeNode && beforeNode.type.name === 'image') {
           return {
