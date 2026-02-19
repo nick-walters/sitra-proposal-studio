@@ -502,6 +502,9 @@ export function ProposalEditor() {
                 participantId: b.participantId,
               }))}
               onExport={handleExport}
+              onStatusChange={handleStatusChangeRequest}
+              updatingStatus={updatingStatus}
+              canChangeStatus={isGlobalOwner || isCoordinator}
             />
           </div>
         );
@@ -976,6 +979,15 @@ export function ProposalEditor() {
               </span>
             )}
             
+            {/* Status Badge */}
+            {proposal && (
+              <span className={`proposal-badge ${statusInfo.className} flex items-center gap-0.5 text-[10px]`}>
+                <StatusIcon className="w-3 h-3" />
+                {statusInfo.label}
+                {statusInfo.days !== undefined && ` (${statusInfo.days}d)`}
+              </span>
+            )}
+            
             {/* Deadline */}
             {proposal?.deadline && (
               <div className="hidden xl:flex items-center gap-1 text-[10px] text-muted-foreground">
@@ -1045,100 +1057,8 @@ export function ProposalEditor() {
         </div>
       </header>
 
-      {/* Status alert - color coded like dashboard */}
-      {proposal && (
-        <Alert className={cn(
-          "rounded-none border-x-0 border-t-0 border-b-2 py-0.5 [&>svg]:top-1.5 [&>svg]:text-inherit",
-          statusInfo.alertBg,
-          statusInfo.iconColor
-        )}>
-          <StatusIcon className="h-3.5 w-3.5" />
-          <AlertDescription className={cn("text-sm flex items-center gap-2 flex-wrap", statusInfo.iconColor)}>
-            <span className="flex-1">
-              {proposal.status === 'draft' && (
-                <>
-                  <strong>{statusInfo.label}</strong> – this proposal is due by the deadline{' '}
-                  {proposal.deadline ? format(new Date(proposal.deadline), 'dd/MM/yyyy') : 'not set'}
-                  {statusInfo.days !== undefined && ` (${statusInfo.days} days remaining)`}.
-                </>
-              )}
-              {proposal.status === 'submitted' && (
-                <>
-                  <strong>Under Evaluation</strong> – this proposal has been submitted and is under evaluation. 
-                  Editing is disabled but you can view all sections.
-                </>
-              )}
-              {proposal.status === 'funded' && (
-                <>
-                  <strong>Funded</strong> – this proposal was successful! Editing is disabled but you can view all sections and export it as a PDF.
-                </>
-              )}
-              {proposal.status === 'not_funded' && (
-                <>
-                  <strong>Not funded</strong> – this proposal was unsuccessful. Editing is disabled but you can view all sections and export it as a PDF.
-                </>
-              )}
-            </span>
 
-            {/* Duplicate button for funded/not_funded */}
-            {(proposal.status === 'funded' || proposal.status === 'not_funded') && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="gap-1.5 h-6 text-xs"
-                onClick={() => setIsDuplicateOpen(true)}
-              >
-                <Copy className="w-3 h-3" />
-                Duplicate for resubmission
-              </Button>
-            )}
 
-            {/* Status change dropdown for coordinators/owners */}
-            {(isGlobalOwner || isCoordinator) && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5 h-6 text-xs"
-                    disabled={updatingStatus}
-                  >
-                    {updatingStatus && <Loader2 className="w-3 h-3 animate-spin" />}
-                    Change status
-                    <ChevronDown className="w-3 h-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {proposal.status !== 'draft' && (
-                    <DropdownMenuItem onClick={() => handleStatusChangeRequest('draft')}>
-                      <FileText className="w-4 h-4 mr-2" />
-                      Draft
-                    </DropdownMenuItem>
-                  )}
-                  {proposal.status !== 'submitted' && (
-                    <DropdownMenuItem onClick={() => handleStatusChangeRequest('submitted')}>
-                      <Send className="w-4 h-4 mr-2" />
-                      Under Evaluation
-                    </DropdownMenuItem>
-                  )}
-                  {proposal.status !== 'funded' && (
-                    <DropdownMenuItem onClick={() => handleStatusChangeRequest('funded')}>
-                      <Trophy className="w-4 h-4 mr-2" />
-                      Funded
-                    </DropdownMenuItem>
-                  )}
-                  {proposal.status !== 'not_funded' && (
-                    <DropdownMenuItem onClick={() => handleStatusChangeRequest('not_funded')}>
-                      <ThumbsDown className="w-4 h-4 mr-2" />
-                      Not Funded
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </AlertDescription>
-        </Alert>
-      )}
 
       {/* Main Content */}
       <div className="flex-1 flex min-h-0">
