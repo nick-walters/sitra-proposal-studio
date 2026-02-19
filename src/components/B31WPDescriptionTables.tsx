@@ -526,22 +526,52 @@ function SortableTaskGroup({
       <SpacerRow color={wp.color} />
 
       {/* Task header: drag handle + outline bubble with number + bold title + delete btn */}
-      <tr>
+      <tr style={{ position: 'relative' }}>
         <td
           colSpan={2}
           className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight"
-          style={{ padding: '1px 6px 1px 0px', border: 'none' }}
+          style={{ padding: '1px 6px', border: 'none' }}
         >
+          {/* Drag handle – left margin */}
+          <button
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted rounded touch-none shrink-0 print:hidden"
+            title="Drag to reorder"
+            style={{ position: 'absolute', left: '-22px', top: '50%', transform: 'translateY(-50%)' }}
+          >
+            <GripVertical className="w-3.5 h-3.5 text-muted-foreground" />
+          </button>
+          {/* Delete button – right margin */}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                className="p-0.5 text-destructive hover:bg-destructive/10 rounded transition-colors shrink-0 print:hidden"
+                title="Delete task"
+                style={{ position: 'absolute', right: '-22px', top: '50%', transform: 'translateY(-50%)' }}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete task T{wp.number}.{task.number}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete this task and its description. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={() => onDeleteTask(task.id)}
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <div className="flex items-center gap-1">
-            {/* Drag handle */}
-            <button
-              {...attributes}
-              {...listeners}
-              className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted rounded touch-none shrink-0 print:hidden"
-              title="Drag to reorder"
-            >
-              <GripVertical className="w-3.5 h-3.5 text-muted-foreground" />
-            </button>
             <span
               className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
               style={{ backgroundColor: '#fff', color: wp.color, border: `1.5px solid ${wp.color}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
@@ -554,34 +584,6 @@ function SortableTaskGroup({
                 onSave={(val) => saveTaskField(task.id, 'title', val)}
               />
             </span>
-            {/* Delete button with confirmation */}
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <button
-                  className="p-0.5 text-destructive hover:bg-destructive/10 rounded transition-colors shrink-0 print:hidden"
-                  title="Delete task"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete task T{wp.number}.{task.number}?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will permanently delete this task and its description. This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    onClick={() => onDeleteTask(task.id)}
-                  >
-                    Delete
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
           </div>
         </td>
       </tr>
