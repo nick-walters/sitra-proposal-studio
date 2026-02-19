@@ -1,66 +1,36 @@
 
-# Fix: Cross-Reference Cursor Focus and Formatting Reset
 
-## Root Cause
+## Reduce spacing after H2 headings to 0pt
 
-Both the `insertFigureTableReference` and `insertAcronymReference` commands use `commands.insertContent()` inside their command definitions. In TipTap, `commands.insertContent()` dispatches the transaction immediately, which **breaks the chain**. This means everything after the command in the chain -- `.insertContent(' ').unsetBold().unsetItalic().run()` -- silently never executes.
+Currently, the space after Level 2 headings is 6pt in both the editor and PDF export. This plan reduces it to 0pt in all relevant places.
 
-- For figure/table refs: the reference inserts, but the trailing space and format reset are lost, so typing continues in bold italic.
-- For acronym refs: the reference inserts, but focus is never restored (`.focus()` ran before, but the immediate dispatch resets the editor state).
+### Changes
 
-## Fix
+**1. CSS (Editor view) -- `src/index.css`**
 
-### 1. Rewrite `insertFigureTableReference` command (src/extensions/FigureTableReferenceMark.ts)
+In the editor, the gap after an H2 comes from the following paragraph's `margin-top: 6pt`. To eliminate it specifically after H2, add a CSS rule:
 
-Change from `commands.insertContent()` to direct transaction manipulation so it participates in the chain:
-
-```ts
-insertFigureTableReference:
-  ({ refText }) =>
-  ({ tr, dispatch, editor }) => {
-    if (dispatch) {
-      const mark = editor.schema.marks.figureTableReference.create();
-      const textNode = editor.schema.text(refText, [mark]);
-      tr.replaceSelectionWith(textNode, false);
-    }
-    return true;
-  },
+```css
+.document-h2 + p,
+.ProseMirror h2 + p {
+  margin-top: 0 !important;
+}
 ```
 
-### 2. Rewrite `insertAcronymReference` command (src/extensions/AcronymReference.ts)
+Also add `margin-bottom: 0 !important` to the `.document-h2` class for explicitness.
 
-Same fix -- use direct transaction manipulation:
+**2. PDF Export -- `src/hooks/usePdfExport.ts`**
 
-```ts
-insertAcronymReference:
-  (attributes) =>
-  ({ tr, dispatch }) => {
-    if (dispatch) {
-      const node = this.type.create(attributes);
-      tr.replaceSelectionWith(node);
-    }
-    return true;
-  },
-```
+In the `addH2` helper (line 292), remove the `paragraphSpacingH2` added after the heading:
 
-### 3. Add `unsetMark('figureTableReference')` to the chain (src/components/DocumentEditor.tsx)
+- Change: `yPosition += 4.5 + paragraphSpacingH2` to `yPosition += 4.5`
+- Update the comment from "6pt before, 6pt after" to "6pt before, 0pt after"
 
-The `figureTableReference` mark can bleed into the trailing space even after the chain fix. Update the cross-ref handler to also remove that mark:
+### Technical Details
 
-```ts
-editor.chain().focus()
-  .insertFigureTableReference({ refText })
-  .insertContent(' ')
-  .unsetMark('figureTableReference')
-  .unsetBold()
-  .unsetItalic()
-  .run();
-```
+| Location | Current | New |
+|---|---|---|
+| `src/index.css` `.document-h2` | No explicit margin-bottom | `margin-bottom: 0 !important` |
+| `src/index.css` new rule | N/A | `.document-h2 + p, .ProseMirror h2 + p { margin-top: 0 !important }` |
+| `src/hooks/usePdfExport.ts` line 292 | `yPosition += 4.5 + paragraphSpacingH2` | `yPosition += 4.5` |
 
-### Summary of file changes
-
-| File | Change |
-|------|--------|
-| `src/extensions/FigureTableReferenceMark.ts` | Rewrite command to use `tr` directly |
-| `src/extensions/AcronymReference.ts` | Rewrite command to use `tr` directly |
-| `src/components/DocumentEditor.tsx` | Add `.unsetMark('figureTableReference')` to cross-ref handler chain |
