@@ -107,7 +107,7 @@ export function LogoUpload({
         : 'Use maximum 2 colors only (use one primary color and white or black).';
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: {
-          prompt: `Create a simple, bold logo icon for "${proposalAcronym}". Requirements: ${colorInstruction} Flat design with no gradients, fills the entire square canvas edge-to-edge, abstract geometric or symbolic shape representing "${keywords}", professional and modern, suitable for EU research project. No text, no letters, just an iconic symbol.`,
+          prompt: `Create a simple, bold logo icon for "${proposalAcronym}". Requirements: ${colorInstruction} Flat design with no gradients, the graphic element must be as large as possible filling the entire square canvas edge-to-edge with zero padding or margin around it, abstract geometric or symbolic shape representing "${keywords}", professional and modern, suitable for EU research project. No text, no letters, just an iconic symbol. The design must bleed to all edges of the canvas with no whitespace border.`,
         },
       });
 
