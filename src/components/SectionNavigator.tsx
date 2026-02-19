@@ -224,12 +224,11 @@ function SectionItem({
         style={{ paddingLeft: `${depth * 8 + 12 + extraIndent}px` }}
         onClick={() => {
           if (isCollapsibleHeading) {
-            // For collapsible headings, expand/collapse and navigate to first child
-            setIsExpanded(!isExpanded);
+            // For collapsible headings, expand (but don't collapse) and navigate to first child
+            setIsExpanded(true);
             // Find the first navigable child section
             const findFirstChild = (subs: (Section | WPSection)[]): Section | WPSection | undefined => {
               for (const sub of subs) {
-                // Skip collapsible headings, find actual content sections
                 const subHasSubs = sub.subsections && sub.subsections.length > 0;
                 const isSubCollapsible = subHasSubs && (
                   sub.id === 'part-a' || sub.id === 'part-b' || 
@@ -238,7 +237,6 @@ function SectionItem({
                 if (!isSubCollapsible) {
                   return sub;
                 }
-                // Recursively check subsections
                 if (sub.subsections) {
                   const found = findFirstChild(sub.subsections);
                   if (found) return found;
@@ -251,16 +249,10 @@ function SectionItem({
               onSectionClick(firstChild);
             }
           } else if (isAlwaysExpanded) {
-            // For always-expanded sections (wp-drafts), just navigate
             onSectionClick(section);
           } else if (hasSubsections) {
-            // Sections with subsections: if already active, toggle collapse
-            // If not active, expand and navigate to self
-            if (isActive) {
-              setIsExpanded(!isExpanded);
-            } else {
-              setIsExpanded(true);
-            }
+            // Sections with subsections: expand and navigate, collapse only via arrow
+            setIsExpanded(true);
             onSectionClick(section);
           } else {
             onSectionClick(section);
