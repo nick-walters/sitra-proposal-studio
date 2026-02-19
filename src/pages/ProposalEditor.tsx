@@ -1002,7 +1002,7 @@ export function ProposalEditor() {
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="h-6 px-2 gap-1 text-[10px] hidden xl:flex"
+                className="h-6 px-2 gap-1 text-[10px] flex"
                 onClick={(e) => {
                   e.stopPropagation();
                   window.open(proposal.topicUrl, '_blank');
