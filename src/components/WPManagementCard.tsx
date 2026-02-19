@@ -415,6 +415,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
+      window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
     },
   });
 
@@ -452,6 +453,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
+      window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
       toast.success('Work package deleted');
     },
     onError: () => {

@@ -328,14 +328,22 @@ export function DocumentEditor({
     },
   });
 
-  // Sync cross-references when editor content loads or section changes
+  // Sync cross-references when editor content loads, section changes, or external data changes
+  const [syncTrigger, setSyncTrigger] = useState(0);
+  
+  useEffect(() => {
+    const handleCrossRefDataChanged = () => setSyncTrigger(prev => prev + 1);
+    window.addEventListener('cross-ref-data-changed', handleCrossRefDataChanged);
+    return () => window.removeEventListener('cross-ref-data-changed', handleCrossRefDataChanged);
+  }, []);
+
   useEffect(() => {
     if (!editor || !proposalId || loading) return;
     const timer = setTimeout(() => {
       syncCrossReferences(editor, proposalId);
     }, 500);
     return () => clearTimeout(timer);
-  }, [editor, proposalId, section?.id, loading]);
+  }, [editor, proposalId, section?.id, loading, syncTrigger]);
 
   // Check if proposal has cases
   useEffect(() => {
