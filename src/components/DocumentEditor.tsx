@@ -39,6 +39,7 @@ import { useCollaborativeCursors } from "@/hooks/useCollaborativeCursors";
 import { useBlockLocking } from "@/hooks/useBlockLocking";
 import { renumberFootnotes } from "@/lib/captionRenumbering";
 import { syncCrossReferences } from "@/lib/syncCrossReferences";
+import { renumberCaptionsInEditor } from "@/lib/renumberCaptionsInEditor";
 import { useProposalReferences } from "@/hooks/useProposalReferences";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -333,9 +334,20 @@ export function DocumentEditor({
   
   useEffect(() => {
     const handleCrossRefDataChanged = () => setSyncTrigger(prev => prev + 1);
+    const handleBlockReordered = () => {
+      // Renumber captions first, then sync cross-references
+      if (editor && section?.number) {
+        renumberCaptionsInEditor(editor, section.number);
+      }
+      setSyncTrigger(prev => prev + 1);
+    };
     window.addEventListener('cross-ref-data-changed', handleCrossRefDataChanged);
-    return () => window.removeEventListener('cross-ref-data-changed', handleCrossRefDataChanged);
-  }, []);
+    window.addEventListener('block-reordered', handleBlockReordered);
+    return () => {
+      window.removeEventListener('cross-ref-data-changed', handleCrossRefDataChanged);
+      window.removeEventListener('block-reordered', handleBlockReordered);
+    };
+  }, [editor, section?.number]);
 
   useEffect(() => {
     if (!editor || !proposalId || loading) return;

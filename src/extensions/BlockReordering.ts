@@ -165,6 +165,7 @@ export const BlockReordering = Extension.create({
         tr.setSelection(newSelection);
         
         view.dispatch(tr);
+        setTimeout(() => window.dispatchEvent(new Event('block-reordered')), 50);
         return true;
       },
       'Mod-Shift-ArrowDown': () => {
@@ -210,6 +211,7 @@ export const BlockReordering = Extension.create({
         tr.setSelection(newSelection);
         
         view.dispatch(tr);
+        setTimeout(() => window.dispatchEvent(new Event('block-reordered')), 50);
         return true;
       },
     };
