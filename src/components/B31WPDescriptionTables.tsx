@@ -590,6 +590,7 @@ function SortableTaskGroup({
         <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0" style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }}>
           <div className="flex items-center flex-wrap gap-0.5">
             <MonthRangePicker taskId={task.id} startMonth={task.start_month} endMonth={task.end_month} proposalId={proposalId} projectDuration={projectDuration} />
+            <span className="font-['Times_New_Roman',Times,serif] text-[11pt] text-muted-foreground mx-1">&nbsp;|&nbsp;</span>
             <LeaderPicker
               entityId={task.id}
               entityTable="wp_draft_tasks"
@@ -756,6 +757,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
                       <span className="font-bold text-[11pt] font-['Times_New_Roman',Times,serif] whitespace-nowrap" style={{ color: '#000000' }}>
                         {monthRange || <span className="text-muted-foreground italic font-normal">—</span>}
                       </span>
+                      <span className="font-['Times_New_Roman',Times,serif] text-[11pt] text-muted-foreground mx-1">&nbsp;|&nbsp;</span>
                       <LeaderPicker
                         entityId={wp.id}
                         entityTable="wp_drafts"
