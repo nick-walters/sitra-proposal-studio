@@ -79,7 +79,7 @@ export function ParticipantListTable({
               <th style={{ width: '12%' }}>Short name</th>
               <th style={{ width: '40%' }}>Legal name</th>
               <th style={{ width: '8%' }}>Logo</th>
-              <th style={{ width: '15%' }}>Role</th>
+              <th style={{ width: '15%' }}>Lead roles</th>
               <th style={{ width: '20%' }}>Country</th>
             </tr>
           </thead>

@@ -716,7 +716,7 @@ export function ParticipantListView({
                 {canReorder && <div className="w-4" />}
                 <div className="w-24 text-left"># / Short</div>
                 <div className="flex-1 min-w-0 text-left">Organisation</div>
-                <div className="w-20 text-left">Leadership roles</div>
+                <div className="w-20 text-left">Lead roles</div>
                 <div className="w-10 text-left">Logo</div>
                 <div className="text-left" style={{ width: '140px' }}>Country</div>
                 <div className="w-10" />
@@ -757,7 +757,7 @@ export function ParticipantListView({
               <div className="flex items-center gap-1.5 px-2 pb-0 mb-0 text-xs text-muted-foreground font-bold">
                 <div className="w-24 text-left"># / Short</div>
                 <div className="flex-1 min-w-0 text-left">Organisation</div>
-                <div className="w-20 text-left">Leadership roles</div>
+                <div className="w-20 text-left">Lead roles</div>
                 <div className="w-10 text-left">Logo</div>
                 <div className="text-left" style={{ width: '140px' }}>Country</div>
                 <div className="w-10" />
