@@ -525,20 +525,20 @@ function SortableTaskGroup({
       {/* Colour border above task */}
       <SpacerRow color={wp.color} />
 
-      {/* Task header: drag handle + outline bubble with number + bold title + delete btn */}
-      <tr style={{ position: 'relative' }}>
+      {/* Task header */}
+      <tr>
         <td
           colSpan={2}
           className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight"
-          style={{ padding: '1px 6px', border: 'none' }}
+          style={{ padding: '1px 6px', border: 'none', position: 'relative', overflow: 'visible' }}
         >
           {/* Drag handle – left margin */}
           <button
             {...attributes}
             {...listeners}
-            className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted rounded touch-none shrink-0 print:hidden"
+            className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted rounded touch-none print:hidden"
             title="Drag to reorder"
-            style={{ position: 'absolute', left: '-22px', top: '50%', transform: 'translateY(-50%)' }}
+            style={{ position: 'absolute', left: '-28px', top: '50%', transform: 'translateY(-50%)' }}
           >
             <GripVertical className="w-3.5 h-3.5 text-muted-foreground" />
           </button>
@@ -546,9 +546,9 @@ function SortableTaskGroup({
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <button
-                className="p-0.5 text-destructive hover:bg-destructive/10 rounded transition-colors shrink-0 print:hidden"
+                className="p-0.5 text-destructive hover:bg-destructive/10 rounded transition-colors print:hidden"
                 title="Delete task"
-                style={{ position: 'absolute', right: '-22px', top: '50%', transform: 'translateY(-50%)' }}
+                style={{ position: 'absolute', right: '-28px', top: '50%', transform: 'translateY(-50%)' }}
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
