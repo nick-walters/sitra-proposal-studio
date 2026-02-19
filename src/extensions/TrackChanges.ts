@@ -455,6 +455,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
 
           const newTr = newState.tr;
           newTr.setMeta('trackChangesInternal', true);
+          newTr.setMeta('addToHistory', false);
           let modified = false;
 
           const MERGE_WINDOW_MS = 10000;

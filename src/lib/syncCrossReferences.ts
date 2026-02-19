@@ -331,6 +331,7 @@ export async function syncCrossReferences(
   });
 
   if (changed) {
+    tr.setMeta('addToHistory', false);
     editor.view.dispatch(tr);
   }
 
