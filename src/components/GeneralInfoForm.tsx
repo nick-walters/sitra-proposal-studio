@@ -17,13 +17,14 @@ import { InlineGuideline } from "./GuidelineBox";
 import { PartAGuidelinesDialog } from "./PartAGuidelinesDialog";
 import { LogoUpload } from "./LogoUpload";
 
-import { Section, Proposal, Participant, ParticipantMember, WORK_PROGRAMMES, DESTINATIONS, getDestinationsForWorkProgramme } from "@/types/proposal";
+import { Section, Proposal, Participant, ParticipantMember, ProposalStatus, WORK_PROGRAMMES, DESTINATIONS, getDestinationsForWorkProgramme } from "@/types/proposal";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AcronymColorEditor, type AcronymSegment } from "./AcronymColorEditor";
 import { SaveIndicator } from "./SaveIndicator";
-import { Loader2, FileText, Target, Euro, Calendar as CalendarIcon, ExternalLink, Download, Trash2, RefreshCw, FileDown, CheckCircle2, Plus, Clock } from "lucide-react";
+import { Loader2, FileText, Target, Euro, Calendar as CalendarIcon, ExternalLink, Download, Trash2, RefreshCw, FileDown, CheckCircle2, Plus, Clock, Send, Trophy, ThumbsDown, ChevronDown } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
 import { format, addMonths } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,10 @@ interface GeneralInfoFormProps {
   participants?: Participant[];
   budgetItems?: { amount: number; participantId: string }[];
   onExport?: (format: ExportFormat, includeWatermark: boolean) => void;
+  // Status change props
+  onStatusChange?: (status: ProposalStatus) => void;
+  updatingStatus?: boolean;
+  canChangeStatus?: boolean;
 }
 
 interface DeclarationLink {
@@ -390,6 +395,9 @@ export function GeneralInfoForm({
   participants = [],
   budgetItems = [],
   onExport,
+  onStatusChange,
+  updatingStatus = false,
+  canChangeStatus = false,
 }: GeneralInfoFormProps) {
   // A1 form data state
   const [formData, setFormData] = useState<FormData>({
@@ -1053,6 +1061,55 @@ export function GeneralInfoForm({
                   <p className="text-sm font-medium">
                     {proposal?.submittedAt ? format(proposal.submittedAt, 'dd MMM yyyy') : 'Not recorded'}
                   </p>
+                </div>
+              )}
+
+              {/* Status change */}
+              {canChangeStatus && onStatusChange && (
+                <div>
+                  <label className="text-xs text-muted-foreground mb-0.5 block">Status</label>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal h-8 text-sm gap-1.5"
+                        disabled={updatingStatus}
+                      >
+                        {updatingStatus && <Loader2 className="w-3 h-3 animate-spin" />}
+                        {proposal?.status === 'draft' && <><FileText className="w-3.5 h-3.5" /> Draft</>}
+                        {proposal?.status === 'submitted' && <><Send className="w-3.5 h-3.5" /> Under Evaluation</>}
+                        {proposal?.status === 'funded' && <><Trophy className="w-3.5 h-3.5" /> Funded</>}
+                        {proposal?.status === 'not_funded' && <><ThumbsDown className="w-3.5 h-3.5" /> Not Funded</>}
+                        <ChevronDown className="w-3 h-3 ml-auto" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      {proposal?.status !== 'draft' && (
+                        <DropdownMenuItem onClick={() => onStatusChange('draft')}>
+                          <FileText className="w-4 h-4 mr-2" />
+                          Draft
+                        </DropdownMenuItem>
+                      )}
+                      {proposal?.status !== 'submitted' && (
+                        <DropdownMenuItem onClick={() => onStatusChange('submitted')}>
+                          <Send className="w-4 h-4 mr-2" />
+                          Under Evaluation
+                        </DropdownMenuItem>
+                      )}
+                      {proposal?.status !== 'funded' && (
+                        <DropdownMenuItem onClick={() => onStatusChange('funded')}>
+                          <Trophy className="w-4 h-4 mr-2" />
+                          Funded
+                        </DropdownMenuItem>
+                      )}
+                      {proposal?.status !== 'not_funded' && (
+                        <DropdownMenuItem onClick={() => onStatusChange('not_funded')}>
+                          <ThumbsDown className="w-4 h-4 mr-2" />
+                          Not Funded
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               )}
             </div>
