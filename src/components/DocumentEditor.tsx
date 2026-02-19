@@ -842,7 +842,7 @@ export function DocumentEditor({
               )}
             </div>
             
-            {/* Right side: shortcuts, panel toggle */}
+            {/* Right side: shortcuts */}
             <div className="flex items-center gap-1 shrink-0">
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -851,19 +851,6 @@ export function DocumentEditor({
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Keyboard shortcuts</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant={isCollaborationPanelOpen ? "default" : "outline"}
-                    size="sm" 
-                    className="h-6 px-1.5"
-                    onClick={() => setIsCollaborationPanelOpen(!isCollaborationPanelOpen)}
-                  >
-                    {isCollaborationPanelOpen ? <PanelRightClose className="w-3 h-3" /> : <PanelRight className="w-3 h-3" />}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{isCollaborationPanelOpen ? 'Hide panel' : 'Show panel'}</TooltipContent>
               </Tooltip>
             </div>
           </div>
@@ -1176,6 +1163,18 @@ export function DocumentEditor({
         {/* Right-hand Collaboration Panel */}
         {isCollaborationPanelOpen ? (
           <div className="w-80 shrink-0 h-full border-l border-border bg-card flex flex-col">
+            {/* Panel Header with close button */}
+            <div className="flex items-center justify-between px-3 py-1.5 border-b border-border">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Collaboration</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsCollaborationPanelOpen(false)}>
+                    <PanelRightClose className="w-3.5 h-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="left">Hide panel</TooltipContent>
+              </Tooltip>
+            </div>
             {/* Panel Tabs */}
             <div className="flex border-b border-border">
               <button
