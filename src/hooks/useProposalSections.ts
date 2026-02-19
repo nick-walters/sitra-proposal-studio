@@ -448,7 +448,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     const wpAndCasesSection: Section = {
       id: 'wp-drafts',
       number: '',
-      title: 'WPs & cases',
+      title: 'Draft WP & case manager',
       subsections: [...wpDraftSections, ...caseDraftSections],
     };
 
