@@ -290,7 +290,7 @@
   }
 
   /* Body text left-aligned at 1.5cm margin, no indent */
-  .document-content p {
+  .document-content p:not(.figure-caption) {
     text-align: left !important;
     text-indent: 0 !important;
     margin-left: 0 !important;
@@ -682,7 +682,7 @@
   letter-spacing: -0.7px;
 }
 
-.ProseMirror p {
+.ProseMirror p:not(.figure-caption) {
   margin-top: 6pt;
   margin-bottom: 6pt;
   margin-left: 0 !important;
