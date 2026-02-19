@@ -377,6 +377,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
         id: wp.id,
         order_index: index,
         number: index + 1,
+        color: wpColors[index % wpColors.length],
       }));
       
       // First pass: set all numbers to negative temporaries to avoid unique constraint violations
@@ -388,35 +389,60 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
         if (error) throw error;
       }
       
-      // Second pass: set final numbers
+      // Second pass: set final numbers and reassign colors from palette
       for (const update of updates) {
         const { error } = await supabase
           .from('wp_drafts')
-          .update({ number: update.number })
+          .update({ number: update.number, color: update.color })
           .eq('id', update.id);
         if (error) throw error;
       }
+
+      // Third pass: update b31_deliverables.wp_number for deliverables linked via tasks
+      // Fetch all tasks for these WPs to build wp_draft_id → new number map
+      const wpIdToNumber = new Map(updates.map(u => [u.id, u.number]));
+      const { data: tasks } = await supabase
+        .from('wp_draft_tasks')
+        .select('id, wp_draft_id')
+        .in('wp_draft_id', updates.map(u => u.id));
+      
+      if (tasks && tasks.length > 0) {
+        // Build task_id → new wp_number map
+        const taskWpMap = new Map(tasks.map(t => [t.id, wpIdToNumber.get(t.wp_draft_id)!]));
+        
+        // Fetch deliverables linked to these tasks
+        const { data: deliverables } = await supabase
+          .from('b31_deliverables')
+          .select('id, task_id, wp_number')
+          .eq('proposal_id', proposalId)
+          .not('task_id', 'is', null);
+        
+        if (deliverables) {
+          for (const del of deliverables) {
+            const newWpNum = del.task_id ? taskWpMap.get(del.task_id) : undefined;
+            if (newWpNum != null && newWpNum !== del.wp_number) {
+              await supabase
+                .from('b31_deliverables')
+                .update({ wp_number: newWpNum })
+                .eq('id', del.id);
+            }
+          }
+        }
+      }
     },
     onMutate: async (reorderedWPs) => {
-      // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['wp-drafts-management', proposalId] });
-      
-      // Snapshot the previous value
       const previousWPs = queryClient.getQueryData<WPDraft[]>(['wp-drafts-management', proposalId]);
-      
-      // Optimistically update with new order and numbers
       const optimisticWPs = reorderedWPs.map((wp, index) => ({
         ...wp,
         order_index: index,
         number: index + 1,
+        color: wpColors[index % wpColors.length],
       }));
       queryClient.setQueryData(['wp-drafts-management', proposalId], optimisticWPs);
-      
-      // Return context with the snapshotted value
       return { previousWPs };
     },
     onError: (_err, _vars, context) => {
-      // Rollback on error
       if (context?.previousWPs) {
         queryClient.setQueryData(['wp-drafts-management', proposalId], context.previousWPs);
       }
@@ -425,6 +451,8 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
+      queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
+      queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] });
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
     },
   });
