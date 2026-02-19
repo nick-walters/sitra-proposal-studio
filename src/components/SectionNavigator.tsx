@@ -415,7 +415,7 @@ function SectionItem({
           {/* Render WP Drafts, Case Drafts, and A2 Participants as 2-column grid of bubbles */}
           {(section.id === 'wp-drafts' || section.id === 'case-drafts' || section.id === 'a2') ? (
             <div 
-              className="grid grid-cols-2 gap-x-1 py-1"
+              className="grid grid-cols-2 gap-x-[5px] py-1"
               style={{ 
                 paddingLeft: `${depth * 8 + 12}px`, 
                 paddingRight: '8px',
