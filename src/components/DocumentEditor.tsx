@@ -568,16 +568,14 @@ export function DocumentEditor({
         refKind: payload.refKind,
       });
 
-      // Insert a trailing space and clear stored marks so the cursor
-      // stays on the same line right after the reference badge.
-      editor.chain()
-        .insertContent(' ')
-        .unsetBold()
-        .unsetItalic()
-        .run();
-
-      // Clear any lingering marks so next typed text is plain
-      const { tr } = editor.state;
+      // Insert a plain space (no marks) after the reference badge and
+      // place the cursor right after it so subsequent typing is unstyled.
+      const { tr, schema } = editor.state;
+      const pos = tr.selection.from;
+      const spaceNode = schema.text(' ');  // no marks → plain text
+      tr.insert(pos, spaceNode);
+      // Place cursor after the space we just inserted
+      tr.setSelection(TextSelection.create(tr.doc, pos + 1));
       tr.setStoredMarks([]);
       editor.view.dispatch(tr);
     }, 150);
