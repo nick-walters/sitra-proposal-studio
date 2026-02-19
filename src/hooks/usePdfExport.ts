@@ -280,7 +280,7 @@ export function usePdfExport() {
         currentSectionName = text;
       };
 
-      // Helper: Add H2 heading (12pt bold, 6pt before, 6pt after)
+      // Helper: Add H2 heading (12pt bold, 6pt before, 0pt after)
       const addH2 = (text: string) => {
         yPosition += paragraphSpacingH2; // 6pt before
         checkPageBreak(10);
@@ -289,7 +289,7 @@ export function usePdfExport() {
         pdf.setTextColor(...black);
         
         pdf.text(text, margin, yPosition);
-        yPosition += 4.5 + paragraphSpacingH2; // Line height + 6pt after
+        yPosition += 4.5; // Line height, 0pt after
         currentSectionName = text;
       };
 
