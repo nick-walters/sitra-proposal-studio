@@ -8,7 +8,12 @@ export interface FigureTableReferenceMarkOptions {
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     figureTableReference: {
-      insertFigureTableReference: (attrs: { refText: string }) => ReturnType;
+      insertFigureTableReference: (attrs: {
+        refText: string;
+        figureId?: string;
+        tableKey?: string;
+        refKind?: 'figure' | 'table';
+      }) => ReturnType;
     };
   }
 }
@@ -19,6 +24,26 @@ export const FigureTableReferenceMark = Mark.create<FigureTableReferenceMarkOpti
   addOptions() {
     return {
       HTMLAttributes: {},
+    };
+  },
+
+  addAttributes() {
+    return {
+      figureId: {
+        default: null,
+        parseHTML: (el) => el.getAttribute('data-figure-id'),
+        renderHTML: (attrs) => attrs.figureId ? { 'data-figure-id': attrs.figureId } : {},
+      },
+      tableKey: {
+        default: null,
+        parseHTML: (el) => el.getAttribute('data-table-key'),
+        renderHTML: (attrs) => attrs.tableKey ? { 'data-table-key': attrs.tableKey } : {},
+      },
+      refKind: {
+        default: null,
+        parseHTML: (el) => el.getAttribute('data-ref-kind'),
+        renderHTML: (attrs) => attrs.refKind ? { 'data-ref-kind': attrs.refKind } : {},
+      },
     };
   },
 
@@ -50,10 +75,14 @@ export const FigureTableReferenceMark = Mark.create<FigureTableReferenceMarkOpti
   addCommands() {
     return {
       insertFigureTableReference:
-        ({ refText }) =>
+        ({ refText, figureId, tableKey, refKind }) =>
         ({ tr, dispatch, editor }) => {
           if (dispatch) {
-            const mark = editor.schema.marks.figureTableReference.create();
+            const markAttrs: Record<string, any> = {};
+            if (figureId) markAttrs.figureId = figureId;
+            if (tableKey) markAttrs.tableKey = tableKey;
+            if (refKind) markAttrs.refKind = refKind;
+            const mark = editor.schema.marks.figureTableReference.create(markAttrs);
             const textNode = editor.schema.text(refText, [mark]);
             tr.replaceSelectionWith(textNode, false);
           }

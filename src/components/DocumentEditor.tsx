@@ -536,12 +536,17 @@ export function DocumentEditor({
   }, [setContent]);
 
   // Handle cross-reference insertion (figures/tables as marked bold italic)
-  const handleInsertCrossRef = useCallback((refText: string) => {
+  const handleInsertCrossRef = useCallback((payload: { refText: string; figureId?: string; tableKey?: string; refKind: 'figure' | 'table' }) => {
     if (!editor) return;
     // Use setTimeout to ensure Radix dialog has fully unmounted and released focus
     setTimeout(() => {
       editor.commands.focus();
-      editor.commands.insertFigureTableReference({ refText });
+      editor.commands.insertFigureTableReference({
+        refText: payload.refText,
+        figureId: payload.figureId,
+        tableKey: payload.tableKey,
+        refKind: payload.refKind,
+      });
 
       // The figureTableReference mark bleeds into subsequent text.
       // To break out: insert a space with NO marks via direct transaction.

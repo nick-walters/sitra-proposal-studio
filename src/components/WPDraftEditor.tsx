@@ -248,14 +248,20 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
     toast.success(`Citation [${citationNumber}] inserted`);
   }, []);
   
-  const insertCrossRefAtCursor = useCallback((refText: string) => {
+  const insertCrossRefAtCursor = useCallback((payload: { refText: string; figureId?: string; tableKey?: string; refKind: 'figure' | 'table' }) => {
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
       const refSpan = document.createElement('span');
-      refSpan.textContent = refText;
-      refSpan.style.color = 'blue';
-      refSpan.style.textDecoration = 'underline';
+      refSpan.textContent = payload.refText;
+      refSpan.setAttribute('data-fig-table-ref', '');
+      if (payload.figureId) refSpan.setAttribute('data-figure-id', payload.figureId);
+      if (payload.tableKey) refSpan.setAttribute('data-table-key', payload.tableKey);
+      if (payload.refKind) refSpan.setAttribute('data-ref-kind', payload.refKind);
+      refSpan.style.fontWeight = 'bold';
+      refSpan.style.fontStyle = 'italic';
+      refSpan.style.fontFamily = "'Times New Roman', Times, serif";
+      refSpan.style.cursor = 'pointer';
       range.insertNode(refSpan);
       range.setStartAfter(refSpan);
       range.collapse(true);
