@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { UserAvatarMenu } from "@/components/UserAvatarMenu";
 import { CollaboratorsDialog } from "@/components/CollaboratorsDialog";
 import { NotificationCenter } from "@/components/NotificationCenter";
-import { Users, Database } from "lucide-react";
+import { Users, Database, LayoutDashboard } from "lucide-react";
 import sitraLogo from "@/assets/sitra-proposal-studio-logo.png";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -30,6 +30,7 @@ export function Header() {
           <nav className="hidden md:flex items-center gap-1 justify-center flex-1">
             <Link to="/dashboard">
               <Button variant="ghost" size="sm" className="gap-2">
+                <LayoutDashboard className="w-4 h-4" />
                 Proposal dashboard
               </Button>
             </Link>
