@@ -143,6 +143,7 @@ export function renumberCaptionsInEditor(editor: Editor, sectionNumber: string):
   }
 
   tr.setMeta('blockReorder', true); // Skip track changes for this renumbering
+  tr.setMeta('addToHistory', false); // Don't create separate undo step
   editor.view.dispatch(tr);
 
   return true;
