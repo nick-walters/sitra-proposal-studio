@@ -140,7 +140,7 @@ function SectionItem({
     <div className="animate-fade-in">
       <div
         className={cn(
-          "section-nav-item flex items-center gap-[6px] group",
+          "section-nav-item flex items-center gap-1 group",
           isActive && "section-nav-item-active",
           !isActive && "hover:bg-muted",
           (isCollapsibleHeading || isTopLevelBold) && "font-semibold",
@@ -257,7 +257,7 @@ function SectionItem({
           <>
             {/* Only show number if not a top-level bold item and number exists */}
             {showNumber && !isTopLevelBold && (
-              <span className="font-medium text-muted-foreground mr-0.5">
+              <span className="font-medium text-muted-foreground">
                 {formatSectionNumber(section.number, depth)}
               </span>
             )}
