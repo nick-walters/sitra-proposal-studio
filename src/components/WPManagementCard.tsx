@@ -379,10 +379,20 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
         number: index + 1,
       }));
       
+      // First pass: set all numbers to negative temporaries to avoid unique constraint violations
       for (const update of updates) {
         const { error } = await supabase
           .from('wp_drafts')
-          .update({ order_index: update.order_index, number: update.number })
+          .update({ order_index: update.order_index, number: -(update.number + 1000) })
+          .eq('id', update.id);
+        if (error) throw error;
+      }
+      
+      // Second pass: set final numbers
+      for (const update of updates) {
+        const { error } = await supabase
+          .from('wp_drafts')
+          .update({ number: update.number })
           .eq('id', update.id);
         if (error) throw error;
       }
