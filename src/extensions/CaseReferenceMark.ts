@@ -156,9 +156,11 @@ export const CaseReferenceMark = Mark.create<CaseReferenceOptions>({
           border: 1.5px solid #000000;
           padding: 0 0.4rem;
           border-radius: 9999px;
+          font-family: 'Times New Roman', Times, serif;
           font-size: 11pt;
           font-weight: 700;
-          line-height: 1.1;
+          font-style: italic;
+          line-height: 1;
           white-space: nowrap;
           vertical-align: baseline;
           cursor: pointer;
