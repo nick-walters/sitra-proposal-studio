@@ -100,7 +100,7 @@ export function InsertParticipantReferenceDialog({
                 >
                   <div className="w-24 shrink-0">
                     <span
-                      className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap"
+                      className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold italic whitespace-nowrap"
                       style={{
                         backgroundColor: '#000000',
                         color: '#ffffff',
