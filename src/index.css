@@ -341,6 +341,12 @@
     text-align: left;
     margin-top: 0 !important;
     padding-top: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+  .document-h2 + p,
+  .ProseMirror h2 + p {
+    margin-top: 0 !important;
   }
 
   .document-h3 {
