@@ -254,7 +254,7 @@ function SectionItem({
             // For always-expanded sections (wp-drafts), just navigate
             onSectionClick(section);
           } else if (hasSubsections) {
-            // WP drafts expands AND navigates to show manager/tracker
+            // Sections with subsections: expand/collapse AND always navigate to self
             setIsExpanded(!isExpanded);
             onSectionClick(section);
           } else {
@@ -485,14 +485,18 @@ function SectionItem({
 
       {hasSubsections && (isAlwaysExpanded || isExpanded) && (
         <div className="animate-slide-in-left">
-          {/* Render WP Drafts, Case Drafts, and A2 Participants as 2-column grid of bubbles */}
+          {/* Render WP Drafts, Case Drafts, and A2 Participants as multi-column grid of bubbles */}
           {(section.id === 'wp-drafts' || section.id === 'case-drafts' || section.id === 'a2') ? (
             <div 
-              className="grid grid-cols-2 gap-x-[3px] py-1"
+              className={cn(
+                "grid gap-x-[3px] py-1",
+                section.id === 'a2' ? "" : "grid-cols-2"
+              )}
               style={{ 
                 paddingLeft: `${depth * 8 + 12}px`, 
                 paddingRight: '8px',
                 rowGap: '2px',
+                ...(section.id === 'a2' ? { gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))' } : {}),
               }}
             >
               {section.subsections!.map((subsection) => {
