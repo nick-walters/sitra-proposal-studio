@@ -748,7 +748,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
 
         return (
           <div key={wp.id}>
-            <div style={{ height: '0.7em' }} />
+            <div style={{ height: '0.5em' }} />
             <table
               className={`${tableStyles} w-full border-collapse`}
             >
