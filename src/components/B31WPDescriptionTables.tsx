@@ -780,6 +780,9 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
                   </td>
                 </tr>
 
+                {/* Spacing between header and duration row */}
+                <tr><td colSpan={2} style={{ border: 'none', padding: 0, height: '4px', lineHeight: '4px', fontSize: '1pt' }} /></tr>
+
                 {/* WP duration + leader row */}
                 <tr>
                   <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0" style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }}>
