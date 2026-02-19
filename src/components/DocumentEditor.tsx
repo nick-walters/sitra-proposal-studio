@@ -838,7 +838,7 @@ export function DocumentEditor({
                     onClick={() => setIsCollaborationPanelOpen(!isCollaborationPanelOpen)}
                   >
                     {isCollaborationPanelOpen ? <PanelRightClose className="w-3 h-3" /> : <PanelRight className="w-3 h-3" />}
-                    {isCollaborationPanelOpen ? 'Hide Panel' : 'Panel'}
+                    Review Panel
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>{isCollaborationPanelOpen ? 'Hide collaboration panel' : 'Show collaboration panel'}</TooltipContent>
@@ -857,17 +857,6 @@ export function DocumentEditor({
               )}
             </div>
             
-            {/* Right side: shortcuts */}
-            <div className="flex items-center gap-1 shrink-0">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsShortcutsOpen(true)}>
-                    <Keyboard className="w-3 h-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Keyboard shortcuts</TooltipContent>
-              </Tooltip>
-            </div>
           </div>
         </div>
 
@@ -1033,6 +1022,15 @@ export function DocumentEditor({
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              <Separator orientation="vertical" className="h-4 mx-1" />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsShortcutsOpen(true)}>
+                    <Keyboard className="w-3 h-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Keyboard shortcuts</TooltipContent>
+              </Tooltip>
               <InsertTDMSReferenceDropdowns
                 proposalId={proposalId}
                 disabled={isEffectivelyReadOnly}
