@@ -17,6 +17,17 @@ interface CrossReferenceItem {
   title: string;
   type: 'figure' | 'table';
   sectionId?: string;
+  /** DB id from the figures table (figures only) */
+  figureId?: string;
+  /** table_key from the table_captions table (tables only) */
+  tableKey?: string;
+}
+
+export interface CrossRefInsertPayload {
+  refText: string;
+  figureId?: string;
+  tableKey?: string;
+  refKind: 'figure' | 'table';
 }
 
 interface InsertCrossReferenceDialogProps {
@@ -24,7 +35,7 @@ interface InsertCrossReferenceDialogProps {
   onClose: () => void;
   proposalId: string;
   sectionNumber: string;
-  onInsert: (reference: string) => void;
+  onInsert: (payload: CrossRefInsertPayload) => void;
   filterType?: 'figure' | 'table';
 }
 
@@ -92,7 +103,7 @@ export function InsertCrossReferenceDialog({
           .eq('proposal_id', proposalId),
         supabase
           .from('figures')
-          .select('figure_number, title, section_id')
+          .select('id, figure_number, title, section_id')
           .eq('proposal_id', proposalId)
           .order('figure_number'),
       ]);
@@ -138,12 +149,17 @@ export function InsertCrossReferenceDialog({
               label,
               title: cap.caption || 'Untitled',
               type: 'table',
+              tableKey: cap.table_key,
             });
+          } else {
+            // Update existing entry with tableKey if missing
+            const existing = allTables.find(t => t.label === label && !t.tableKey);
+            if (existing) existing.tableKey = cap.table_key;
           }
         }
       }
 
-      // Add figures from figures table
+      // Add figures from figures table — these have DB IDs
       for (const fig of figuresResult.data || []) {
         if (!seenFigLabels.has(fig.figure_number)) {
           seenFigLabels.add(fig.figure_number);
@@ -152,7 +168,12 @@ export function InsertCrossReferenceDialog({
             title: fig.title || 'Untitled',
             type: 'figure',
             sectionId: fig.section_id,
+            figureId: fig.id,
           });
+        } else {
+          // Update existing entry with figureId if missing
+          const existing = allFigures.find(f => f.label === fig.figure_number && !f.figureId);
+          if (existing) existing.figureId = fig.id;
         }
       }
 
@@ -170,7 +191,7 @@ export function InsertCrossReferenceDialog({
       for (const ct of compulsoryTables) {
         if (!seenTblLabels.has(ct.label)) {
           seenTblLabels.add(ct.label);
-          allTables.push({ label: ct.label, title: ct.title, type: 'table' });
+          allTables.push({ label: ct.label, title: ct.title, type: 'table', tableKey: `table-${ct.label}` });
         }
       }
 
@@ -200,7 +221,12 @@ export function InsertCrossReferenceDialog({
     const refText = item.type === 'figure'
       ? `Figure ${item.label}`
       : `Table ${item.label}`;
-    onInsert(refText);
+    onInsert({
+      refText,
+      figureId: item.figureId,
+      tableKey: item.tableKey,
+      refKind: item.type,
+    });
     onClose();
   };
 

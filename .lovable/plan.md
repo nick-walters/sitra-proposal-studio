@@ -1,36 +1,26 @@
 
 
-## Reduce spacing after H2 headings to 0pt
+## Dynamic cross-reference sync — COMPLETED
 
-Currently, the space after Level 2 headings is 6pt in both the editor and PDF export. This plan reduces it to 0pt in all relevant places.
+All cross-references are now ID-linked and dynamically synced when items are renumbered or reordered.
 
-### Changes
+### What was done
 
-**1. CSS (Editor view) -- `src/index.css`**
-
-In the editor, the gap after an H2 comes from the following paragraph's `margin-top: 6pt`. To eliminate it specifically after H2, add a CSS rule:
-
-```css
-.document-h2 + p,
-.ProseMirror h2 + p {
-  margin-top: 0 !important;
-}
-```
-
-Also add `margin-bottom: 0 !important` to the `.document-h2` class for explicitness.
-
-**2. PDF Export -- `src/hooks/usePdfExport.ts`**
-
-In the `addH2` helper (line 292), remove the `paragraphSpacingH2` added after the heading:
-
-- Change: `yPosition += 4.5 + paragraphSpacingH2` to `yPosition += 4.5`
-- Update the comment from "6pt before, 6pt after" to "6pt before, 0pt after"
-
-### Technical Details
-
-| Location | Current | New |
+| Ref Type | Before | After |
 |---|---|---|
-| `src/index.css` `.document-h2` | No explicit margin-bottom | `margin-bottom: 0 !important` |
-| `src/index.css` new rule | N/A | `.document-h2 + p, .ProseMirror h2 + p { margin-top: 0 !important }` |
-| `src/hooks/usePdfExport.ts` line 292 | `yPosition += 4.5 + paragraphSpacingH2` | `yPosition += 4.5` |
+| WP | ID-linked, synced | No change |
+| Task | ID-linked, synced | No change |
+| Deliverable | ID-linked, synced | No change |
+| Milestone | ID-linked, synced | No change |
+| **Case** | Had ID, **not synced** | ✅ Now synced (number, type, color) |
+| **Participant** | Had ID, **not synced** | ✅ Now synced (number, short_name) |
+| **Figure** | **No ID**, static text | ✅ Now stores `figureId`, synced |
+| **Table** | **No ID**, static text | ✅ Now stores `tableKey` |
 
+### Files changed
+
+1. `src/extensions/FigureTableReferenceMark.ts` — Added `figureId`, `tableKey`, `refKind` attributes
+2. `src/lib/syncCrossReferences.ts` — Added case, participant, and figure sync; fetches all reference data in parallel
+3. `src/components/InsertCrossReferenceDialog.tsx` — Now passes `CrossRefInsertPayload` with IDs instead of plain string
+4. `src/components/DocumentEditor.tsx` — Updated handler to forward IDs to the mark
+5. `src/components/WPDraftEditor.tsx` — Updated handler to set data attributes on inserted spans

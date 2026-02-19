@@ -27,11 +27,43 @@ interface MilestoneData {
   number: number;
 }
 
+interface CaseData {
+  id: string;
+  number: number;
+  case_type: string;
+  short_name: string | null;
+  color: string;
+}
+
+interface ParticipantData {
+  id: string;
+  participant_number: number | null;
+  organisation_short_name: string | null;
+}
+
+interface FigureData {
+  id: string;
+  figure_number: string;
+  figure_type: string;
+  title: string;
+}
+
+function getCasePrefix(caseType: string): string {
+  switch (caseType) {
+    case 'case_study': return 'CS';
+    case 'use_case': return 'UC';
+    case 'living_lab': return 'LL';
+    case 'pilot': return 'P';
+    case 'demonstration': return 'D';
+    default: return 'C';
+  }
+}
+
 /**
  * Fetches current numbering data for all cross-referenceable items in a proposal
  */
 async function fetchReferenceData(proposalId: string) {
-  const [wpRes, taskRes, delRes, msRes] = await Promise.all([
+  const [wpRes, taskRes, delRes, msRes, caseRes, participantRes, figureRes, tableCaptionRes] = await Promise.all([
     supabase
       .from('wp_drafts')
       .select('id, number, color, short_name')
@@ -49,18 +81,32 @@ async function fetchReferenceData(proposalId: string) {
       .from('b31_milestones')
       .select('id, number')
       .eq('proposal_id', proposalId),
+    supabase
+      .from('case_drafts')
+      .select('id, number, case_type, short_name, color')
+      .eq('proposal_id', proposalId)
+      .order('number'),
+    supabase
+      .from('participants')
+      .select('id, participant_number, organisation_short_name')
+      .eq('proposal_id', proposalId)
+      .order('participant_number'),
+    supabase
+      .from('figures')
+      .select('id, figure_number, figure_type, title')
+      .eq('proposal_id', proposalId),
+    supabase
+      .from('table_captions')
+      .select('table_key, caption')
+      .eq('proposal_id', proposalId),
   ]);
 
   const wps: WPData[] = wpRes.data || [];
   const wpMap = new Map(wps.map(wp => [wp.id, wp]));
 
   // Build task map with WP number resolved
-  const wpDraftIds = new Set(wps.map(w => w.id));
   const tasks: TaskData[] = (taskRes.data || [])
-    .filter(t => {
-      const wp = wpMap.get(t.wp_draft_id);
-      return wp !== undefined;
-    })
+    .filter(t => wpMap.has(t.wp_draft_id))
     .map(t => {
       const wp = wpMap.get(t.wp_draft_id)!;
       return { id: t.id, number: t.number, wp_number: wp.number, wp_color: wp.color || '#000000' };
@@ -73,20 +119,33 @@ async function fetchReferenceData(proposalId: string) {
     ...d,
     wp_color: d.wp_number ? wpNumberColorMap.get(d.wp_number) || '#000000' : '#000000',
   }));
-  const milestones: MilestoneData[] = (msRes.data || []);
+  const milestones: MilestoneData[] = msRes.data || [];
+  const cases: CaseData[] = caseRes.data || [];
+  const participants: ParticipantData[] = participantRes.data || [];
+  const figures: FigureData[] = figureRes.data || [];
+
+  // Build table caption map: tableKey → caption text
+  const tableCaptionMap = new Map<string, string>();
+  for (const tc of tableCaptionRes.data || []) {
+    tableCaptionMap.set(tc.table_key, tc.caption || '');
+  }
 
   return {
     wpById: wpMap,
     taskById: new Map(tasks.map(t => [t.id, t])),
     deliverableById: new Map(deliverables.map(d => [d.id, d])),
     milestoneById: new Map(milestones.map(m => [m.id, m])),
+    caseById: new Map(cases.map(c => [c.id, c])),
+    participantById: new Map(participants.map(p => [p.id, p])),
+    figureById: new Map(figures.map(f => [f.id, f])),
+    tableCaptionMap,
   };
 }
 
 /**
  * Synchronizes all cross-reference marks in the editor with current numbering.
- * Scans through the document for wpReference, inlineReference, and caseReference marks,
- * and updates their text content and attributes if the referenced item's number has changed.
+ * Scans through the document for all reference marks and updates their text
+ * content and attributes if the referenced item's number has changed.
  * 
  * Returns true if any changes were made.
  */
@@ -113,15 +172,13 @@ export async function syncCrossReferences(
         if (wp) {
           const currentLabel = `WP${wp.number}`;
           const currentText = node.text || '';
-          if (currentText !== currentLabel || mark.attrs.wpNumber !== wp.number) {
-            // Update the mark attributes
+          if (currentText !== currentLabel || mark.attrs.wpNumber !== wp.number || mark.attrs.wpColor !== wp.color) {
             const newMark = mark.type.create({
               ...mark.attrs,
               wpNumber: wp.number,
               wpColor: wp.color,
               wpShortName: wp.short_name || mark.attrs.wpShortName,
             });
-            // Replace text and mark
             tr.removeMark(pos, pos + node.nodeSize, mark.type);
             tr.addMark(pos, pos + node.nodeSize, newMark);
             if (currentText !== currentLabel) {
@@ -196,6 +253,79 @@ export async function syncCrossReferences(
             }
           }
         }
+      }
+
+      // Handle case references
+      if (mark.type.name === 'caseReference' && mark.attrs.caseId) {
+        const caseItem = data.caseById.get(mark.attrs.caseId);
+        if (caseItem) {
+          const prefix = getCasePrefix(caseItem.case_type);
+          const newLabel = `${prefix}${caseItem.number}`;
+          const currentText = node.text || '';
+          if (currentText !== newLabel || mark.attrs.caseNumber !== caseItem.number || mark.attrs.caseColor !== caseItem.color || mark.attrs.caseType !== caseItem.case_type) {
+            const newMark = mark.type.create({
+              ...mark.attrs,
+              caseNumber: caseItem.number,
+              caseColor: caseItem.color,
+              caseShortName: caseItem.short_name || mark.attrs.caseShortName,
+              caseType: caseItem.case_type,
+            });
+            tr.removeMark(pos, pos + node.nodeSize, mark.type);
+            tr.addMark(pos, pos + node.nodeSize, newMark);
+            if (currentText !== newLabel) {
+              tr.replaceWith(pos, pos + node.nodeSize, state.schema.text(newLabel, [newMark, ...marks.filter(m => m !== mark)]));
+            }
+            changed = true;
+          }
+        }
+      }
+
+      // Handle participant references
+      if (mark.type.name === 'participantReference' && mark.attrs.participantId) {
+        const participant = data.participantById.get(mark.attrs.participantId);
+        if (participant) {
+          const newLabel = participant.organisation_short_name || 'Partner';
+          const currentText = node.text || '';
+          if (currentText !== newLabel || mark.attrs.participantNumber !== participant.participant_number || mark.attrs.shortName !== participant.organisation_short_name) {
+            const newMark = mark.type.create({
+              ...mark.attrs,
+              participantNumber: participant.participant_number,
+              shortName: participant.organisation_short_name,
+            });
+            tr.removeMark(pos, pos + node.nodeSize, mark.type);
+            tr.addMark(pos, pos + node.nodeSize, newMark);
+            if (currentText !== newLabel) {
+              tr.replaceWith(pos, pos + node.nodeSize, state.schema.text(newLabel, [newMark, ...marks.filter(m => m !== mark)]));
+            }
+            changed = true;
+          }
+        }
+      }
+
+      // Handle figure/table references
+      if (mark.type.name === 'figureTableReference') {
+        const currentText = node.text || '';
+
+        // Sync figures by figureId
+        if (mark.attrs.figureId) {
+          const figure = data.figureById.get(mark.attrs.figureId);
+          if (figure) {
+            const newLabel = `Figure ${figure.figure_number}`;
+            if (currentText !== newLabel) {
+              const newMark = mark.type.create({ ...mark.attrs });
+              tr.removeMark(pos, pos + node.nodeSize, mark.type);
+              tr.addMark(pos, pos + node.nodeSize, newMark);
+              tr.replaceWith(pos, pos + node.nodeSize, state.schema.text(newLabel, [newMark, ...marks.filter(m => m !== mark)]));
+              changed = true;
+            }
+          }
+        }
+
+        // Sync tables by tableKey — the table_key itself is stable,
+        // but if the caption changes we don't need to update the ref text
+        // (ref text is "Table 3.1.a", not the caption).
+        // Table labels are derived from their key, so no dynamic update needed
+        // unless we add table renumbering in the future.
       }
     }
   });
