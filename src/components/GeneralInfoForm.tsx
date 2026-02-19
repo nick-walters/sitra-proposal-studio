@@ -895,19 +895,6 @@ export function GeneralInfoForm({
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label className="text-xs text-muted-foreground mb-0.5 block">Proposal stage</label>
-                <p className="text-sm font-medium">
-                  {proposal?.submissionStage === 'stage_1' ? 'Pre-proposal (stage 1)' : 'Full proposal'}
-                </p>
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-0.5 block">Type of action</label>
-                <p className="text-sm font-medium">{proposal?.type || 'Not specified'}</p>
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
                 <label className="text-xs text-muted-foreground mb-0.5 block">Work programme</label>
                 {isEditing && editedProposal ? (
                   <Select
@@ -955,6 +942,19 @@ export function GeneralInfoForm({
                     {destination ? `${destination.abbreviation} - ${destination.fullName}` : 'Not specified'}
                   </p>
                 )}
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Proposal stage</label>
+                <p className="text-sm font-medium">
+                  {proposal?.submissionStage === 'stage_1' ? 'Pre-proposal (stage 1)' : 'Full proposal'}
+                </p>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Type of action</label>
+                <p className="text-sm font-medium">{proposal?.type || 'Not specified'}</p>
               </div>
             </div>
 
