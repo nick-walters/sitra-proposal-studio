@@ -530,7 +530,7 @@ function SortableTaskGroup({
         <td
           colSpan={2}
           className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight"
-          style={{ padding: '1px 6px', border: 'none', position: 'relative', overflow: 'visible' }}
+          style={{ padding: '1px 6px 1px 0px', border: 'none', position: 'relative', overflow: 'visible' }}
         >
           {/* Drag handle – left margin */}
           <button
