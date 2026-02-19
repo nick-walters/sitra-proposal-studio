@@ -541,8 +541,10 @@ export function DocumentEditor({
     setTimeout(() => {
       editor.commands.focus();
       editor.commands.insertFigureTableReference({ refText });
-      // Insert trailing space and reset formatting in a separate chain
+      // Insert trailing space and explicitly clear all stored marks so next typed char is plain
       editor.chain().focus().insertContent(' ').unsetMark('figureTableReference').unsetBold().unsetItalic().run();
+      // Force-clear stored marks so ProseMirror doesn't inherit bold/italic from preceding mark
+      editor.view.dispatch(editor.state.tr.setStoredMarks([]));
     }, 150);
   }, [editor]);
   
@@ -593,6 +595,8 @@ export function DocumentEditor({
       editor.commands.insertAcronymReference({ segments: acronymSegments });
       // Insert trailing space and reset formatting separately
       editor.chain().focus().insertContent(' ').unsetBold().unsetItalic().run();
+      // Force-clear stored marks so ProseMirror doesn't inherit formatting from preceding node
+      editor.view.dispatch(editor.state.tr.setStoredMarks([]));
     }, 150);
   }, [editor, acronymSegments]);
 
