@@ -234,21 +234,21 @@ function SectionItem({
         {/* WP sections render as colored bubbles - with left margin to align with text */}
         {isWPSection && wpColor ? (
           <span 
-            className="inline-flex items-center justify-center px-1.5 py-px rounded-full text-[10px] font-bold whitespace-nowrap"
+            className="inline-flex items-center justify-center px-1.5 py-px rounded-full text-[9px] font-bold whitespace-nowrap"
             style={{ backgroundColor: wpColor, color: '#ffffff' }}
           >
             WP{wpSection.wpNumber}: {wpSection.title}
           </span>
         ) : isCaseSection && caseColor ? (
           <span 
-            className="inline-flex items-center justify-center px-1.5 py-px rounded-full text-[10px] font-bold whitespace-nowrap border-[1.5px] border-black"
+            className="inline-flex items-center justify-center px-1.5 py-px rounded-full text-[9px] font-bold whitespace-nowrap border-[1.5px] border-black"
             style={{ backgroundColor: '#ffffff', color: '#000000' }}
           >
             {caseSection.number}: {caseSection.title}
           </span>
         ) : isParticipantSection ? (
           <span 
-            className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap ml-5"
+            className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap ml-5"
             style={{ backgroundColor: '#000000', color: '#ffffff' }}
           >
             P{section.number}: {section.title}
@@ -435,7 +435,7 @@ function SectionItem({
                       <TooltipTrigger asChild>
                         <button
                           className={cn(
-                            "inline-flex items-center justify-start w-fit px-2 py-0 rounded-full text-xs font-bold truncate cursor-pointer transition-all max-w-full leading-tight",
+                            "inline-flex items-center justify-start w-fit px-2 py-0 rounded-full text-[11px] font-bold truncate cursor-pointer transition-all max-w-full leading-tight",
                             isSubActive && "ring-2 ring-primary ring-offset-1"
                           )}
                           style={{ 
