@@ -774,8 +774,8 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
                   </td>
                 </tr>
 
-                {/* Spacer */}
-                <SpacerRow />
+                {/* Spacer with WP colour border */}
+                <SpacerRow color={wp.color} />
 
                 {/* Objectives */}
                 <tr>
