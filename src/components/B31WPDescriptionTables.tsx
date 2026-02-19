@@ -338,8 +338,8 @@ function MonthRangePicker({
   );
 }
 
-/* ── Spacer row ── */
-function SpacerRow() {
+/* ── Spacer row with optional colour-coded border ── */
+function SpacerRow({ color }: { color?: string }) {
   return (
     <tr>
       <td
@@ -355,6 +355,16 @@ function SpacerRow() {
         }}
         contentEditable={false}
       >
+        {color && (
+          <div
+            style={{
+              width: '30%',
+              height: '1.5px',
+              backgroundColor: color,
+              margin: '5px auto 0',
+            }}
+          />
+        )}
         &nbsp;
       </td>
     </tr>
@@ -511,8 +521,8 @@ function SortableTaskGroup({
 
   return (
     <tbody ref={setNodeRef} style={style}>
-      {/* Spacer */}
-      <SpacerRow />
+      {/* Spacer with WP colour border */}
+      <SpacerRow color={wp.color} />
 
       {/* Task header: drag handle + outline bubble with number + bold title + delete btn */}
       <tr>
@@ -704,9 +714,14 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
           ? `M${String(Math.min(...starts)).padStart(2, '0')}–M${String(Math.max(...ends)).padStart(2, '0')}`
           : null;
 
+        const prevWP = idx > 0 ? populatedWPs[idx - 1] : null;
         return (
           <div key={wp.id}>
-            <div style={{ height: '1.5em' }} />
+            <div style={{ height: '1.5em', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {prevWP && (
+                <div style={{ width: '30%', height: '1.5px', backgroundColor: prevWP.color }} />
+              )}
+            </div>
             <table
               className={`${tableStyles} w-full border-collapse`}
             >
