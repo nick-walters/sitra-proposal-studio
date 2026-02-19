@@ -479,28 +479,20 @@ export function DocumentEditor({
       return;
     }
     
-    // Check if editor is empty or cursor is at the very beginning
-    const editorText = editor.getText().trim();
-    const isEditorEmpty = editorText === '';
+    // Check if there is any content before the cursor position (including empty paragraphs)
     const cursorPos = editor.state.selection.from;
-    const isAtStart = cursorPos <= 1;
+    const hasContentBefore = cursorPos > 1; // pos 0 is doc start, pos 1 is inside first empty paragraph
     
     // Insert image and caption together
     const figureLabel = `Figure ${figure.figureNumber}`;
     
-    // Build content array - add placeholder paragraph if inserting at start of empty/beginning
+    // Build content array
     const contentToInsert: any[] = [];
     
-    if (isEditorEmpty || isAtStart) {
-      // Add a placeholder paragraph before the figure
+    if (!hasContentBefore) {
+      // No content at all before cursor — add an empty paragraph so figure isn't the first node
       contentToInsert.push({
         type: 'paragraph',
-        content: [
-          {
-            type: 'text',
-            text: '[Introductory text to be added]'
-          }
-        ]
       });
     }
     
