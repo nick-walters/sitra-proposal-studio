@@ -610,9 +610,6 @@ function SortableTaskGroup({
         </td>
       </tr>
 
-      {/* Colour border before task description */}
-      <SpacerRow color={wp.color} />
-
       {/* Task description row */}
       <tr>
         <td
@@ -630,6 +627,9 @@ function SortableTaskGroup({
           />
         </td>
       </tr>
+
+      {/* Colour border after task */}
+      <SpacerRow color={wp.color} />
     </tbody>
   );
 }
