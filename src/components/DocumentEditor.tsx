@@ -596,8 +596,8 @@ export function DocumentEditor({
   // Handle Acronym reference insertion
   const handleInsertAcronymRef = useCallback(() => {
     if (!editor || !acronymSegments || acronymSegments.length === 0) return;
+    // Use longer timeout — acronym is inserted from dropdown menu which needs time to unmount
     setTimeout(() => {
-      editor.commands.focus();
       editor.commands.insertAcronymReference({ segments: acronymSegments });
 
       // Insert a plain space and clear stored marks via direct transaction
@@ -608,9 +608,11 @@ export function DocumentEditor({
       tr.setStoredMarks([]);
       editor.view.dispatch(tr);
 
-      // Force DOM focus back to the editor (atom nodes can steal it)
-      editor.view.focus();
-    }, 150);
+      // Schedule focus after dropdown fully unmounts
+      requestAnimationFrame(() => {
+        editor.commands.focus();
+      });
+    }, 200);
   }, [editor, acronymSegments]);
 
   // Handle Task reference insertion - pill bubble
