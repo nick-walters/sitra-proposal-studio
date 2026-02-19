@@ -442,6 +442,9 @@ export function useWPDraftEditor(wpId: string | null) {
   const reorderTasks = useCallback(async (newOrder: string[]) => {
     if (!wpDraft) return false;
 
+    // Save previous order for undo
+    const previousOrder = wpDraft.tasks ? wpDraft.tasks.map(t => t.id) : [];
+
     try {
       const updates = newOrder.map((id, index) => ({
         id,
@@ -470,6 +473,13 @@ export function useWPDraftEditor(wpId: string | null) {
           .update({ order_index: update.order_index, number: update.number })
           .eq('id', update.id);
       }
+
+      toast.success('Tasks reordered', {
+        action: {
+          label: 'Undo',
+          onClick: () => { reorderTasks(previousOrder); },
+        },
+      });
 
       return true;
     } catch (err) {
