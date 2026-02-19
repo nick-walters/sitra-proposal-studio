@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -18,7 +18,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { EditableCaption } from '@/components/EditableCaption';
 import { useQueryClient } from '@tanstack/react-query';
-import { Check, ChevronsUpDown, Crown, GripVertical, Trash2, Undo2 } from 'lucide-react';
+import { Check, ChevronsUpDown, Crown, GripVertical, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
@@ -639,9 +639,6 @@ function SortableTaskGroup({
 export function B31WPDescriptionTables({ wpData, participants, proposalId, projectDuration = 36 }: Props) {
   const queryClient = useQueryClient();
   const populatedWPs = wpData;
-  const [undoData, setUndoData] = useState<{ previousOrder: string[]; wpNumber: number } | null>(null);
-  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [undoLoading, setUndoLoading] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -707,59 +704,28 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
     };
 
     const reorderedIds = reordered.map(t => t.id);
+    console.log('[handleTaskDragEnd] previousOrder:', previousOrder);
+    console.log('[handleTaskDragEnd] reorderedIds:', reorderedIds);
     const success = await applyOrder(reorderedIds, 'reorder');
     if (success) {
-      toast.success('Tasks reordered');
-      // Set undo state
-      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-      setUndoData({ previousOrder, wpNumber: wp.number });
-      undoTimerRef.current = setTimeout(() => setUndoData(null), 10000);
+      toast.success('Tasks reordered', {
+        duration: 10000,
+        action: {
+          label: 'Undo',
+          onClick: async () => {
+            console.log('[Undo] clicked, previousOrder:', previousOrder);
+            const undone = await applyOrder(previousOrder, 'undo');
+            if (undone) {
+              toast.success('Reorder undone');
+            }
+          },
+        },
+      });
     }
-  };
-
-  const handleUndo = async () => {
-    if (!undoData || undoLoading) return;
-    setUndoLoading(true);
-    const applyUndoOrder = async (taskIds: string[]) => {
-      for (let i = 0; i < taskIds.length; i++) {
-        const { error } = await supabase
-          .from('wp_draft_tasks')
-          .update({ order_index: i, number: i + 1 })
-          .eq('id', taskIds[i]);
-        if (error) {
-          toast.error('Failed to undo reorder');
-          setUndoLoading(false);
-          return false;
-        }
-      }
-      await queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
-      await queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] });
-      window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
-      return true;
-    };
-    const ok = await applyUndoOrder(undoData.previousOrder);
-    if (ok) {
-      toast.success('Reorder undone');
-      setUndoData(null);
-      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-    }
-    setUndoLoading(false);
   };
 
   return (
-    <div className="relative">
-      {undoData && (
-        <div className="sticky top-0 z-50 flex items-center justify-center py-2">
-          <button
-            onClick={handleUndo}
-            disabled={undoLoading}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md shadow-lg hover:opacity-90 transition-opacity text-sm font-medium disabled:opacity-50"
-          >
-            <Undo2 className="h-4 w-4" />
-            {undoLoading ? 'Undoing...' : `Undo task reorder (WP${undoData.wpNumber})`}
-          </button>
-        </div>
-      )}
+    <div>
       <EditableCaption
         proposalId={proposalId}
         tableKey="table-3.1.b"
