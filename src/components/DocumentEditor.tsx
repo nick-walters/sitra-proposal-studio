@@ -1,3 +1,4 @@
+import { TextSelection } from '@tiptap/pm/state';
 import { Section } from "@/types/proposal";
 import { supabase } from "@/integrations/supabase/client";
 import DOMPurify from "dompurify";
@@ -541,10 +542,15 @@ export function DocumentEditor({
     setTimeout(() => {
       editor.commands.focus();
       editor.commands.insertFigureTableReference({ refText });
-      // Insert trailing space and explicitly clear all stored marks so next typed char is plain
-      editor.chain().focus().insertContent(' ').unsetMark('figureTableReference').unsetBold().unsetItalic().run();
-      // Force-clear stored marks so ProseMirror doesn't inherit bold/italic from preceding mark
-      editor.view.dispatch(editor.state.tr.setStoredMarks([]));
+
+      // The figureTableReference mark bleeds into subsequent text.
+      // To break out: insert a space with NO marks via direct transaction.
+      const { tr } = editor.state;
+      const spaceNode = editor.schema.text(' ');            // plain text node, no marks
+      tr.insert(tr.selection.from, spaceNode);
+      tr.setSelection(TextSelection.near(tr.doc.resolve(tr.selection.from + 1)));
+      tr.setStoredMarks([]);
+      editor.view.dispatch(tr);
     }, 150);
   }, [editor]);
   
@@ -593,10 +599,14 @@ export function DocumentEditor({
     setTimeout(() => {
       editor.commands.focus();
       editor.commands.insertAcronymReference({ segments: acronymSegments });
-      // Insert trailing space and reset formatting separately
-      editor.chain().focus().insertContent(' ').unsetBold().unsetItalic().run();
-      // Force-clear stored marks so ProseMirror doesn't inherit formatting from preceding node
-      editor.view.dispatch(editor.state.tr.setStoredMarks([]));
+
+      // Insert a plain space and clear stored marks via direct transaction
+      const { tr } = editor.state;
+      const spaceNode = editor.schema.text(' ');
+      tr.insert(tr.selection.from, spaceNode);
+      tr.setSelection(TextSelection.near(tr.doc.resolve(tr.selection.from + 1)));
+      tr.setStoredMarks([]);
+      editor.view.dispatch(tr);
     }, 150);
   }, [editor, acronymSegments]);
 
