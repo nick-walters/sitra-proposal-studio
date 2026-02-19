@@ -12,6 +12,7 @@ interface LogoUploadProps {
   proposalId: string;
   proposalAcronym: string;
   proposalTitle: string;
+  acronymSegments?: { text: string; color: string }[];
   disabled?: boolean;
 }
 
@@ -38,6 +39,7 @@ export function LogoUpload({
   proposalId,
   proposalAcronym,
   proposalTitle,
+  acronymSegments,
   disabled = false,
 }: LogoUploadProps) {
   const { user } = useAuth();
@@ -96,9 +98,16 @@ export function LogoUpload({
     setIsGenerating(true);
     try {
       const keywords = proposalTitle.split(' ').slice(0, 3).join(' ');
+      // Extract unique colors from acronym segments if available
+      const uniqueColors = acronymSegments && acronymSegments.length > 0
+        ? [...new Set(acronymSegments.map(s => s.color).filter(c => c && c !== '#000000'))]
+        : [];
+      const colorInstruction = uniqueColors.length > 0
+        ? `Use EXACTLY these brand colors: ${uniqueColors.join(', ')}. These are the project's official colors — incorporate them as the primary palette.`
+        : 'Use maximum 2 colors only (use one primary color and white or black).';
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: {
-          prompt: `Create a simple, bold logo icon for "${proposalAcronym}". Requirements: maximum 2 colors only (use one primary color and white or black), flat design with no gradients, fills the entire square canvas edge-to-edge, abstract geometric or symbolic shape representing "${keywords}", professional and modern, suitable for EU research project. No text, no letters, just an iconic symbol.`,
+          prompt: `Create a simple, bold logo icon for "${proposalAcronym}". Requirements: ${colorInstruction} Flat design with no gradients, fills the entire square canvas edge-to-edge, abstract geometric or symbolic shape representing "${keywords}", professional and modern, suitable for EU research project. No text, no letters, just an iconic symbol.`,
         },
       });
 

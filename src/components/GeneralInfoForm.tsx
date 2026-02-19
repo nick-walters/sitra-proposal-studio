@@ -762,6 +762,7 @@ export function GeneralInfoForm({
                       proposalId={proposalId}
                       proposalAcronym={editedProposal.acronym}
                       proposalTitle={editedProposal.title}
+                      acronymSegments={(editedProposal as any).acronymSegments}
                       onUpload={handleLogoChange}
                     />
                   ) : (
