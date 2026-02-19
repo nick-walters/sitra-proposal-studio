@@ -413,7 +413,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
         // Fetch deliverables linked to these tasks
         const { data: deliverables } = await supabase
           .from('b31_deliverables')
-          .select('id, task_id, wp_number')
+          .select('id, task_id, wp_number, number')
           .eq('proposal_id', proposalId)
           .not('task_id', 'is', null);
         
@@ -421,9 +421,14 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
           for (const del of deliverables) {
             const newWpNum = del.task_id ? taskWpMap.get(del.task_id) : undefined;
             if (newWpNum != null && newWpNum !== del.wp_number) {
+              // Update wp_number and also the display number string (e.g., "D2.1" → "D3.1")
+              const currentNumber = del.number || '';
+              const dotIndex = currentNumber.indexOf('.');
+              const suffix = dotIndex >= 0 ? currentNumber.substring(dotIndex) : '.X';
+              const newNumber = `D${newWpNum}${suffix}`;
               await supabase
                 .from('b31_deliverables')
-                .update({ wp_number: newWpNum })
+                .update({ wp_number: newWpNum, number: newNumber })
                 .eq('id', del.id);
             }
           }
