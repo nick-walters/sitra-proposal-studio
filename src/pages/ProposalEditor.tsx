@@ -295,8 +295,8 @@ export function ProposalEditor() {
   }, []);
 
   const handleSectionClick = (section: Section | WPSection) => {
-    // Clear selected participant when navigating away from A2
-    if (section.id !== 'a2' && !section.id.startsWith('a2-')) {
+    // Clear selected participant when navigating to A2 overview or away from A2
+    if (section.id === 'a2' || (!section.id.startsWith('a2-'))) {
       setSelectedParticipantId(null);
     }
     // If clicking on a participant section, extract the ID
