@@ -30,7 +30,7 @@ export function Header() {
           <nav className="hidden md:flex items-center gap-1 justify-center flex-1">
             <Link to="/dashboard">
               <Button variant="ghost" size="sm" className="gap-2">
-                Proposal Dashboard
+                Proposal dashboard
               </Button>
             </Link>
             <Button 
