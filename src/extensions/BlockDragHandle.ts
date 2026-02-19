@@ -453,6 +453,11 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
                 }
 
                 view.dispatch(tr);
+                
+                // Trigger caption renumbering and cross-ref sync
+                setTimeout(() => {
+                  window.dispatchEvent(new Event('block-reordered'));
+                }, 50);
               } catch (e) {
                 console.error('Drop error:', e);
               }
