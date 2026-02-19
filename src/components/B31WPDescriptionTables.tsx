@@ -678,6 +678,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
     }
 
     queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
+    queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] });
     window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
   };
 
