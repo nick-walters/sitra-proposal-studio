@@ -984,17 +984,24 @@ export function ProposalEditor() {
             )}
             
             {/* Topic Link */}
-            {proposal?.topicUrl && (
-              <a 
-                href={proposal.topicUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 h-5 px-1.5 text-[10px] font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md transition-colors"
-                onClick={(e) => e.stopPropagation()}
-              >
-                Topic
-                <ExternalLink className="w-2.5 h-2.5" />
-              </a>
+            {proposal && (
+              proposal.topicUrl ? (
+                <a 
+                  href={proposal.topicUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 h-5 px-1.5 text-[10px] font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md transition-colors shrink-0"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Topic
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </a>
+              ) : (
+                <span className="inline-flex items-center gap-1 h-5 px-1.5 text-[10px] font-medium border border-input bg-muted text-muted-foreground rounded-md shrink-0 opacity-60 cursor-default">
+                  Topic
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </span>
+              )
             )}
           </div>
 
