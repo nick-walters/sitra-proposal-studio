@@ -722,13 +722,25 @@ export function GeneralInfoForm({
                 <div>
                   <label className="text-xs text-muted-foreground mb-0.5 block">Title</label>
                   {isEditing && editedProposal ? (
-                    <Textarea
-                      value={editedProposal.title}
-                      onChange={(e) => setEditedProposal({ ...editedProposal, title: e.target.value })}
-                      className="text-sm font-semibold resize-none max-w-lg"
-                      placeholder="Full proposal title"
-                      rows={3}
-                    />
+                    <>
+                      <Textarea
+                        value={editedProposal.title}
+                        onChange={(e) => {
+                          if (e.target.value.length <= 200) {
+                            setEditedProposal({ ...editedProposal, title: e.target.value });
+                          }
+                        }}
+                        className="text-sm font-semibold resize-none max-w-lg"
+                        placeholder="Full proposal title"
+                        rows={3}
+                        maxLength={200}
+                      />
+                      <div className="flex justify-end mt-0.5">
+                        <span className={cn("text-xs text-muted-foreground", editedProposal.title.length > 180 && "text-warning")}>
+                          {editedProposal.title.length} / 200 characters
+                        </span>
+                      </div>
+                    </>
                   ) : (
                     <h2 className="text-sm font-semibold text-foreground max-w-lg" style={{ fontFamily: 'Arial, sans-serif' }}>{proposal?.title}</h2>
                   )}
