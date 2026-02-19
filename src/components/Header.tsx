@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { UserAvatarMenu } from "@/components/UserAvatarMenu";
 import { CollaboratorsDialog } from "@/components/CollaboratorsDialog";
 import { NotificationCenter } from "@/components/NotificationCenter";
-import { Users, Database, Kanban } from "lucide-react";
+import { Users, Database, Columns3 } from "lucide-react";
 import sitraLogo from "@/assets/sitra-proposal-studio-logo.png";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -30,7 +30,7 @@ export function Header() {
           <nav className="hidden md:flex items-center gap-1 justify-center flex-1">
             <Link to="/dashboard">
               <Button variant="ghost" size="sm" className="gap-2">
-                <Kanban className="w-4 h-4" />
+                <Columns3 className="w-4 h-4" />
                 Proposal dashboard
               </Button>
             </Link>
@@ -43,11 +43,6 @@ export function Header() {
               <Users className="w-4 h-4" />
               Collaborators
             </Button>
-          </nav>
-
-          {/* Right: Notifications, Backend (admin/owner only), Avatar */}
-          <div className="flex items-center gap-2 flex-1 justify-end">
-            {user && <NotificationCenter />}
             {(isOwner || (isGlobalAdmin && hasAnyCoordinatorRole)) && (
               <Link to="/admin">
                 <Button variant="ghost" size="sm" className="gap-2">
@@ -56,6 +51,10 @@ export function Header() {
                 </Button>
               </Link>
             )}
+          </nav>
+          {/* Right: Notifications, Avatar */}
+          <div className="flex items-center gap-2 flex-1 justify-end">
+            {user && <NotificationCenter />}
             {user && (
               <UserAvatarMenu 
                 userId={user.id}
