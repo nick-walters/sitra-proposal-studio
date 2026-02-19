@@ -505,7 +505,7 @@ export function DocumentEditor({
     // Add the caption
     contentToInsert.push({
       type: 'paragraph',
-      attrs: { class: 'figure-caption' },
+      attrs: { class: 'figure-caption', textAlign: 'center' },
       content: [
         {
           type: 'text',

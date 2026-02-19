@@ -12,6 +12,7 @@ import { ResizableImage } from './ResizableImage';
 import { ImageCropDialog } from './ImageCropDialog';
 import { createCitationTooltipPlugin } from './CitationMark';
 import { BlockReordering } from '@/extensions/BlockReordering';
+import { ParagraphClass } from '@/extensions/ParagraphClass';
 import { TableAutoResizeButton } from '@/extensions/TableAutoResizeButton';
 import { InlineReferenceMark } from '@/extensions/InlineReferenceMark';
 import { BlockDragHandle } from '@/extensions/BlockDragHandle';
@@ -859,6 +860,7 @@ export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootn
         },
       }),
       Underline,
+      ParagraphClass,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
         defaultAlignment: 'justify',
@@ -1007,6 +1009,7 @@ export function useRichTextEditor({
         },
       }),
       Underline,
+      ParagraphClass,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
         defaultAlignment: 'justify',
