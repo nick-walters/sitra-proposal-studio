@@ -539,7 +539,10 @@ export function DocumentEditor({
     if (!editor) return;
     // Use setTimeout to ensure Radix dialog has fully unmounted and released focus
     setTimeout(() => {
-      editor.chain().focus().insertFigureTableReference({ refText }).insertContent(' ').unsetMark('figureTableReference').unsetBold().unsetItalic().run();
+      editor.commands.focus();
+      editor.commands.insertFigureTableReference({ refText });
+      // Insert trailing space and reset formatting in a separate chain
+      editor.chain().focus().insertContent(' ').unsetMark('figureTableReference').unsetBold().unsetItalic().run();
     }, 150);
   }, [editor]);
   
@@ -586,7 +589,10 @@ export function DocumentEditor({
   const handleInsertAcronymRef = useCallback(() => {
     if (!editor || !acronymSegments || acronymSegments.length === 0) return;
     setTimeout(() => {
-      editor.chain().focus().insertAcronymReference({ segments: acronymSegments }).insertContent(' ').unsetBold().unsetItalic().run();
+      editor.commands.focus();
+      editor.commands.insertAcronymReference({ segments: acronymSegments });
+      // Insert trailing space and reset formatting separately
+      editor.chain().focus().insertContent(' ').unsetBold().unsetItalic().run();
     }, 150);
   }, [editor, acronymSegments]);
 
