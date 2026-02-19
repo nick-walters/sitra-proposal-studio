@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -639,23 +639,6 @@ function SortableTaskGroup({
 export function B31WPDescriptionTables({ wpData, participants, proposalId, projectDuration = 36 }: Props) {
   const queryClient = useQueryClient();
   const populatedWPs = wpData;
-  const pendingUndoRef = useRef<(() => Promise<void>) | null>(null);
-
-  // Intercept Ctrl+Z to undo task reordering before TipTap processes it
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey && pendingUndoRef.current) {
-        e.preventDefault();
-        e.stopPropagation();
-        const undoFn = pendingUndoRef.current;
-        pendingUndoRef.current = null;
-        undoFn();
-      }
-    };
-    // Use capture phase to intercept before TipTap
-    document.addEventListener('keydown', handler, true);
-    return () => document.removeEventListener('keydown', handler, true);
-  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -725,22 +708,16 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
     console.log('[handleTaskDragEnd] reorderedIds:', reorderedIds);
     const success = await applyOrder(reorderedIds, 'reorder');
     if (success) {
-      // Store undo action for Ctrl+Z
-      const undoAction = async () => {
-        const undone = await applyOrder(previousOrder, 'undo');
-        if (undone) {
-          toast.success('Reorder undone');
-        }
-      };
-      pendingUndoRef.current = undoAction;
-
-      toast.success('Tasks reordered – press Ctrl+Z to undo', {
+      toast.success('Tasks reordered', {
         duration: 10000,
         action: {
           label: 'Undo',
           onClick: async () => {
-            pendingUndoRef.current = null;
-            await undoAction();
+            console.log('[Undo] clicked, previousOrder:', previousOrder);
+            const undone = await applyOrder(previousOrder, 'undo');
+            if (undone) {
+              toast.success('Reorder undone');
+            }
           },
         },
       });

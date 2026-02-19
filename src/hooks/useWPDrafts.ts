@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -287,7 +287,6 @@ export function useWPDraftEditor(wpId: string | null) {
   const [wpDraft, setWPDraft] = useState<WPDraft | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const pendingUndoRef = useRef<(() => Promise<void>) | null>(null);
 
   const fetchWPDraft = useCallback(async () => {
     if (!wpId) {
@@ -475,46 +474,39 @@ export function useWPDraftEditor(wpId: string | null) {
           .eq('id', update.id);
       }
 
-      const undoAction = async () => {
-        try {
-          const undoUpdates = previousOrder.map((id, index) => ({
-            id,
-            order_index: index,
-            number: index + 1,
-          }));
-          setWPDraft(prev => {
-            if (!prev || !prev.tasks) return prev;
-            const taskMap = new Map(prev.tasks.map(t => [t.id, t]));
-            return {
-              ...prev,
-              tasks: previousOrder.map((id, index) => ({
-                ...taskMap.get(id)!,
-                order_index: index,
-                number: index + 1,
-              })),
-            };
-          });
-          for (const update of undoUpdates) {
-            await supabase
-              .from('wp_draft_tasks')
-              .update({ order_index: update.order_index, number: update.number })
-              .eq('id', update.id);
-          }
-          toast.success('Reorder undone');
-        } catch (err) {
-          toast.error('Failed to undo');
-        }
-      };
-
-      pendingUndoRef.current = undoAction;
-
-      toast.success('Tasks reordered – press Ctrl+Z to undo', {
-        duration: 10000,
+      toast.success('Tasks reordered', {
+        duration: 8000,
         action: {
           label: 'Undo',
           onClick: async () => {
-            pendingUndoRef.current = null;
-            await undoAction();
+            try {
+              const updates = previousOrder.map((id, index) => ({
+                id,
+                order_index: index,
+                number: index + 1,
+              }));
+              setWPDraft(prev => {
+                if (!prev || !prev.tasks) return prev;
+                const taskMap = new Map(prev.tasks.map(t => [t.id, t]));
+                return {
+                  ...prev,
+                  tasks: previousOrder.map((id, index) => ({
+                    ...taskMap.get(id)!,
+                    order_index: index,
+                    number: index + 1,
+                  })),
+                };
+              });
+              for (const update of updates) {
+                await supabase
+                  .from('wp_draft_tasks')
+                  .update({ order_index: update.order_index, number: update.number })
+                  .eq('id', update.id);
+              }
+              toast.success('Reorder undone');
+            } catch (err) {
+              toast.error('Failed to undo');
+            }
           },
         },
       });
@@ -966,21 +958,6 @@ export function useWPDraftEditor(wpId: string | null) {
       return false;
     }
   }, [wpDraft]);
-
-  // Intercept Ctrl+Z for task reorder undo
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey && pendingUndoRef.current) {
-        e.preventDefault();
-        e.stopPropagation();
-        const undoFn = pendingUndoRef.current;
-        pendingUndoRef.current = null;
-        undoFn();
-      }
-    };
-    document.addEventListener('keydown', handler, true);
-    return () => document.removeEventListener('keydown', handler, true);
-  }, []);
 
   return {
     wpDraft,
