@@ -358,8 +358,8 @@ function SpacerRow({ color }: { color?: string }) {
         {color && (
           <div
             style={{
-              width: '30%',
-              height: '1.5px',
+              width: '100%',
+              height: '1px',
               backgroundColor: color,
               margin: '5px auto 0',
             }}
@@ -719,7 +719,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
           <div key={wp.id}>
             <div style={{ height: '1.5em', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {prevWP && (
-                <div style={{ width: '30%', height: '1.5px', backgroundColor: prevWP.color }} />
+                <div style={{ width: '100%', height: '1px', backgroundColor: prevWP.color }} />
               )}
             </div>
             <table
