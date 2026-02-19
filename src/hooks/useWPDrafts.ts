@@ -475,9 +475,39 @@ export function useWPDraftEditor(wpId: string | null) {
       }
 
       toast.success('Tasks reordered', {
+        duration: 8000,
         action: {
           label: 'Undo',
-          onClick: () => { reorderTasks(previousOrder); },
+          onClick: async () => {
+            try {
+              const updates = previousOrder.map((id, index) => ({
+                id,
+                order_index: index,
+                number: index + 1,
+              }));
+              setWPDraft(prev => {
+                if (!prev || !prev.tasks) return prev;
+                const taskMap = new Map(prev.tasks.map(t => [t.id, t]));
+                return {
+                  ...prev,
+                  tasks: previousOrder.map((id, index) => ({
+                    ...taskMap.get(id)!,
+                    order_index: index,
+                    number: index + 1,
+                  })),
+                };
+              });
+              for (const update of updates) {
+                await supabase
+                  .from('wp_draft_tasks')
+                  .update({ order_index: update.order_index, number: update.number })
+                  .eq('id', update.id);
+              }
+              toast.success('Reorder undone');
+            } catch (err) {
+              toast.error('Failed to undo');
+            }
+          },
         },
       });
 
