@@ -1174,7 +1174,7 @@ export function DocumentEditor({
         )}
 
         {/* Right-hand Collaboration Panel */}
-        {isCollaborationPanelOpen && (
+        {isCollaborationPanelOpen ? (
           <div className="w-80 shrink-0 h-full border-l border-border bg-card flex flex-col">
             {/* Panel Tabs */}
             <div className="flex border-b border-border">
@@ -1199,32 +1199,39 @@ export function DocumentEditor({
               >
                 <GitCompare className="w-3 h-3 inline mr-1.5" />
                 Track Changes
-                {trackedChanges.length > 0 && (
-                  <Badge variant="secondary" className="ml-1 text-[10px] px-1 py-0 h-4">
-                    {trackedChanges.length}
-                  </Badge>
-                )}
               </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 ml-auto"
+                    onClick={() => setIsCollaborationPanelOpen(false)}
+                  >
+                    <PanelRightClose className="w-3 h-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Hide panel</TooltipContent>
+              </Tooltip>
             </div>
 
             {/* Panel Content */}
-            <div className="flex-1 overflow-hidden">
-              {collaborationTab === 'comments' ? (
-                <CommentsSidebar
-                  proposalId={proposalId}
-                  sectionId={section?.id || ''}
-                  selectedText={selectedText}
-                  selectionRange={selectionRange}
-                  onClearSelection={() => {
-                    setSelectedText('');
-                    setSelectionRange(undefined);
-                  }}
-                  compact
-                />
-              ) : (
+            <div className="flex-1 min-h-0 overflow-hidden">
+              {collaborationTab === 'comments' && (
                 <div className="h-full flex flex-col">
-                  {/* Track Changes Toggle */}
-                  <div className="p-3 border-b border-border">
+                  <ScrollArea className="flex-1">
+                    <div className="p-3 space-y-3">
+                      <CommentsSidebar
+                        proposalId={proposalId}
+                        sectionId={section?.id || ''}
+                      />
+                    </div>
+                  </ScrollArea>
+                </div>
+              )}
+              {collaborationTab === 'changes' && (
+                <div className="h-full flex flex-col">
+                  <div className="p-2 border-b border-border">
                     <TrackChangesToolbar
                       editor={editor}
                       enabled={trackChangesEnabled}
@@ -1232,94 +1239,25 @@ export function DocumentEditor({
                       changes={trackedChanges}
                     />
                   </div>
-                  {/* Changes List */}
-                  <ScrollArea className="flex-1">
-                    <div className="p-3 space-y-2">
-                      {!trackChangesEnabled && trackedChanges.length === 0 && (
-                        <div className="text-center py-8">
-                          <GitCompare className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                          <p className="text-sm text-muted-foreground">Track Changes is off</p>
-                          <p className="text-xs text-muted-foreground mt-1">Enable it to track edits by all collaborators</p>
-                        </div>
-                      )}
-                      {trackChangesEnabled && trackedChanges.length === 0 && (
-                        <div className="text-center py-8">
-                          <Check className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                          <p className="text-sm text-muted-foreground">No pending changes</p>
-                          <p className="text-xs text-muted-foreground mt-1">Edits will appear here as they're made</p>
-                        </div>
-                      )}
-                      {trackedChanges.map((change) => (
-                        <div
-                          key={change.id}
-                          className={`p-2 rounded-md text-xs border ${
-                            change.type === 'insertion'
-                              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-                              : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-1">
-                            <div className="flex items-center gap-1.5">
-                              <div 
-                                className="w-2 h-2 rounded-full"
-                                style={{ backgroundColor: change.authorColor }}
-                              />
-                              <span className="font-medium">{change.authorName}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-5 w-5 p-0 text-green-600 hover:text-green-700"
-                                    onClick={() => editor?.commands.acceptChange(change.id)}
-                                  >
-                                    <Check className="w-3 h-3" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Accept</TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-5 w-5 p-0 text-destructive hover:text-destructive"
-                                    onClick={() => editor?.commands.rejectChange(change.id)}
-                                  >
-                                    <X className="w-3 h-3" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Reject</TooltipContent>
-                              </Tooltip>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <span>{format(new Date(change.timestamp), 'MMM d, h:mm a')}</span>
-                            <Badge 
-                              variant="outline" 
-                              className={`text-[10px] py-0 ${
-                                change.type === 'insertion' 
-                                  ? 'border-green-300 text-green-700 dark:border-green-700 dark:text-green-400'
-                                  : 'border-red-300 text-red-700 dark:border-red-700 dark:text-red-400'
-                              }`}
-                            >
-                              {change.type === 'insertion' ? 'Added' : 'Deleted'}
-                            </Badge>
-                          </div>
-                          {change.content && (
-                            <div className="mt-1 text-muted-foreground italic truncate">
-                              "{change.content}"
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
                 </div>
               )}
             </div>
+          </div>
+        ) : (
+          <div className="shrink-0 h-full border-l border-border bg-card flex flex-col items-center py-2 w-8">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setIsCollaborationPanelOpen(true)}
+                >
+                  <PanelRight className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left">Show panel</TooltipContent>
+            </Tooltip>
           </div>
         )}
       </div>
