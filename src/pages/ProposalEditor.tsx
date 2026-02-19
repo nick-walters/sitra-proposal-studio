@@ -930,12 +930,7 @@ export function ProposalEditor() {
       {/* Proposal Top Bar */}
       <header className="h-10 border-b border-border bg-card/80 backdrop-blur-sm sticky top-16 z-40">
         <div className="h-full px-4 flex items-center justify-between">
-          <div className="flex items-center gap-3 -ml-2 min-w-0 flex-1 overflow-x-auto scrollbar-none">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="gap-1.5 h-auto py-1 px-2">
-              <ArrowLeft className="w-4 h-4 shrink-0" />
-              <span className="hidden sm:inline text-xs leading-tight text-left whitespace-normal max-w-[90px]">Back to proposal dashboard</span>
-            </Button>
-            <Separator orientation="vertical" className="h-6" />
+          <div className="flex items-center gap-3 min-w-0 flex-1 overflow-x-auto scrollbar-none">
             
             {/* Logo */}
             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
