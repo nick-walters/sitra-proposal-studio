@@ -1,12 +1,83 @@
 import { Section, Participant } from "@/types/proposal";
 import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Layers, Building2, Info, Euro, Lightbulb, Target, Settings, FlaskConical, ShieldCheck, HelpCircle, MessageSquare, ListTodo, Briefcase } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useLayoutEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SectionAssignment } from "@/hooks/useSectionAssignments";
 import { isPast, isToday, differenceInDays, format } from "date-fns";
 import type { WPSection, CaseSection } from "@/hooks/useProposalSections";
+
+// JS-based truncation that trims trailing whitespace before "..."
+function TruncatedText({ text, className, isActive }: { text: string; className?: string; isActive?: boolean }) {
+  const containerRef = useRef<HTMLSpanElement>(null);
+  const measureRef = useRef<HTMLSpanElement>(null);
+  const [truncated, setTruncated] = useState<string | null>(null);
+
+  const compute = useCallback(() => {
+    const container = containerRef.current;
+    const measure = measureRef.current;
+    if (!container || !measure) return;
+    
+    // Reset to full text to measure natural width
+    setTruncated(null);
+    
+    requestAnimationFrame(() => {
+      if (!container || !measure) return;
+      const availableWidth = container.clientWidth;
+      
+      // Measure full text
+      measure.textContent = text;
+      if (measure.scrollWidth <= availableWidth) {
+        setTruncated(null);
+        return;
+      }
+      
+      // Binary search for max chars that fit
+      let lo = 0, hi = text.length;
+      const ellipsis = '...';
+      while (lo < hi) {
+        const mid = Math.ceil((lo + hi) / 2);
+        measure.textContent = text.slice(0, mid) + ellipsis;
+        if (measure.scrollWidth <= availableWidth) {
+          lo = mid;
+        } else {
+          hi = mid - 1;
+        }
+      }
+      
+      // Trim trailing whitespace before ellipsis
+      const visible = text.slice(0, lo).replace(/\s+$/, '');
+      setTruncated(visible + ellipsis);
+    });
+  }, [text]);
+
+  useLayoutEffect(() => {
+    compute();
+    const container = containerRef.current;
+    if (!container) return;
+    const ro = new ResizeObserver(compute);
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, [compute]);
+
+  return (
+    <span
+      ref={containerRef}
+      className={cn("flex-1 min-w-0 overflow-hidden whitespace-nowrap", isActive && "font-medium")}
+      title={text}
+    >
+      {/* Hidden measurement span */}
+      <span
+        ref={measureRef}
+        className="invisible absolute whitespace-nowrap"
+        style={{ font: 'inherit', letterSpacing: 'inherit' }}
+        aria-hidden="true"
+      />
+      {truncated ?? text}
+    </span>
+  );
+}
 
 // Collaborator presence info for real-time editing indicators
 interface CollaboratorPresence {
@@ -265,9 +336,7 @@ function SectionItem({
                 {formatSectionNumber(section.number, depth)}
               </span>
             )}
-            <span className={cn("flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis", isActive && "font-medium")} title={formatTitle(section.title)} style={{ textOverflow: 'ellipsis', wordBreak: 'break-all', overflowWrap: 'anywhere' }}>
-              {formatTitle(section.title)}
-            </span>
+            <TruncatedText text={formatTitle(section.title)} isActive={isActive} />
           </>
         )}
         
