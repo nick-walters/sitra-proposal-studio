@@ -681,12 +681,12 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
 
     const reordered = arrayMove(wp.tasks, oldIndex, newIndex);
 
-    const applyOrder = async (tasks: typeof reordered) => {
-      for (let i = 0; i < tasks.length; i++) {
+    const applyOrder = async (taskIds: string[]) => {
+      for (let i = 0; i < taskIds.length; i++) {
         const { error } = await supabase
           .from('wp_draft_tasks')
           .update({ order_index: i, number: i + 1 })
-          .eq('id', tasks[i].id);
+          .eq('id', taskIds[i]);
         if (error) {
           toast.error('Failed to reorder tasks');
           return false;
@@ -698,16 +698,18 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
       return true;
     };
 
-    const success = await applyOrder(reordered);
+    const reorderedIds = reordered.map(t => t.id);
+    const success = await applyOrder(reorderedIds);
     if (success) {
       toast.success('Tasks reordered', {
         duration: 8000,
         action: {
           label: 'Undo',
           onClick: async () => {
-            const prevTasks = previousOrder.map(id => wp.tasks.find(t => t.id === id)!);
-            await applyOrder(prevTasks);
-            toast.success('Reorder undone');
+            const undone = await applyOrder(previousOrder);
+            if (undone) {
+              toast.success('Reorder undone');
+            }
           },
         },
       });
