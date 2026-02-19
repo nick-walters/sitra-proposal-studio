@@ -777,6 +777,29 @@ export function DocumentEditor({
               
               <Separator orientation="vertical" className="h-4 mx-1" />
               
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-6 px-2 text-xs gap-1"
+                onClick={() => setIsWritingAssistantOpen(true)}
+                disabled={!editor || isEffectivelyReadOnly}
+              >
+                <Wand2 className="w-3 h-3" />
+                AI tools
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-6 px-2 text-xs gap-1"
+                onClick={() => setIsSnippetsOpen(true)}
+                disabled={!editor || isEffectivelyReadOnly}
+              >
+                <FileCode className="w-3 h-3" />
+                Snippets
+              </Button>
+              
+              <Separator orientation="vertical" className="h-4 mx-1" />
+              
               {canManageLock && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -805,29 +828,6 @@ export function DocumentEditor({
                 <History className="w-3 h-3" />
                 History
               </Button>
-              
-              <Separator orientation="vertical" className="h-4 mx-1" />
-              
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-6 px-2 text-xs gap-1"
-                onClick={() => setIsWritingAssistantOpen(true)}
-                disabled={!editor || isEffectivelyReadOnly}
-              >
-                <Wand2 className="w-3 h-3" />
-                AI tools
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-6 px-2 text-xs gap-1"
-                onClick={() => setIsSnippetsOpen(true)}
-                disabled={!editor || isEffectivelyReadOnly}
-              >
-                <FileCode className="w-3 h-3" />
-                Snippets
-              </Button>
               <Separator orientation="vertical" className="h-4 mx-1" />
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -838,7 +838,7 @@ export function DocumentEditor({
                     onClick={() => setIsCollaborationPanelOpen(!isCollaborationPanelOpen)}
                   >
                     {isCollaborationPanelOpen ? <PanelRightClose className="w-3 h-3" /> : <PanelRight className="w-3 h-3" />}
-                    Review Panel
+                    Review panel
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>{isCollaborationPanelOpen ? 'Hide collaboration panel' : 'Show collaboration panel'}</TooltipContent>
