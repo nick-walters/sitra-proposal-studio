@@ -712,7 +712,7 @@ export function ParticipantListView({
             /* Edit mode with reordering */
             <>
               {/* Column Headers for card view */}
-              <div className="flex items-center gap-1.5 px-2 pb-0 mb-0 text-xs text-muted-foreground font-bold">
+              <div className="flex items-center gap-1.5 px-2 pb-0 -mb-1 text-xs text-muted-foreground font-bold">
                 {canReorder && <div className="w-4" />}
                 <div className="w-24 text-left"># / Short</div>
                 <div className="flex-1 min-w-0 text-left">Organisation</div>
@@ -754,7 +754,7 @@ export function ParticipantListView({
             /* Edit mode without reordering (card view) */
             <>
               {/* Column Headers for card view */}
-              <div className="flex items-center gap-1.5 px-2 pb-0 mb-0 text-xs text-muted-foreground font-bold">
+              <div className="flex items-center gap-1.5 px-2 pb-0 -mb-1 text-xs text-muted-foreground font-bold">
                 <div className="w-24 text-left"># / Short</div>
                 <div className="flex-1 min-w-0 text-left">Organisation</div>
                 <div className="w-20 text-left">Lead roles</div>
