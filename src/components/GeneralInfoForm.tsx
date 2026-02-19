@@ -737,7 +737,7 @@ export function GeneralInfoForm({
                   </InlineGuideline>
                 </div>
 
-                <div className="max-w-lg">
+                <div>
                   <label className="text-xs text-muted-foreground mb-0.5 block">Acronym</label>
                   {isEditing && editedProposal ? (
                     <>
@@ -782,6 +782,50 @@ export function GeneralInfoForm({
           </CardContent>
         </Card>
 
+        {/* Duration & Reporting Periods Card */}
+        <Card>
+          <CardHeader className="pb-3 pt-4">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Clock className="w-4 h-4" />
+              Duration &amp; reporting periods
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-6 items-start">
+              <div className="shrink-0">
+                <label className="text-xs text-muted-foreground mb-0.5 block">Project duration (months)</label>
+                {isEditing && editedProposal ? (
+                  <Select
+                    value={editedProposal.duration?.toString() || ''}
+                    onValueChange={(v) => setEditedProposal({ ...editedProposal, duration: parseInt(v) })}
+                  >
+                    <SelectTrigger className="w-24 h-8 text-sm">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 72 }, (_, i) => i + 1).map((months) => (
+                        <SelectItem key={months} value={months.toString()}>{months}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm font-medium">{proposal?.duration ? `${proposal.duration}` : '–'}</p>
+                )}
+              </div>
+              {userCanEditOverview && editedProposal && (
+                <div className="flex-1 min-w-0">
+                  <ReportingPeriodsEditor
+                    proposal={editedProposal}
+                    onUpdate={(rps) => {
+                      setEditedProposal({ ...editedProposal, reportingPeriods: rps });
+                      onUpdateProposal({ reportingPeriods: rps });
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Topic Card */}
         <Card>
@@ -948,6 +992,7 @@ export function GeneralInfoForm({
                           setEditedProposal({ 
                             ...editedProposal, 
                             deadline: date,
+                            // Always auto-estimate when deadline changes
                             decisionDate: estimatedDecision,
                             decisionDateIsEstimated: !!date,
                           });
@@ -1071,51 +1116,6 @@ export function GeneralInfoForm({
           </CardContent>
         </Card>
 
-        {/* Duration & Reporting Periods Card */}
-        <Card>
-          <CardHeader className="pb-3 pt-4">
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <Clock className="w-4 h-4" />
-              Duration &amp; reporting periods
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-6 items-start">
-              <div className="shrink-0">
-                <label className="text-xs text-muted-foreground mb-0.5 block">Project duration (months)</label>
-                {isEditing && editedProposal ? (
-                  <Select
-                    value={editedProposal.duration?.toString() || ''}
-                    onValueChange={(v) => setEditedProposal({ ...editedProposal, duration: parseInt(v) })}
-                  >
-                    <SelectTrigger className="w-24 h-8 text-sm">
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 72 }, (_, i) => i + 1).map((months) => (
-                        <SelectItem key={months} value={months.toString()}>{months}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <p className="text-sm font-medium">{proposal?.duration ? `${proposal.duration}` : '–'}</p>
-                )}
-              </div>
-              {userCanEditOverview && editedProposal && (
-                <div className="flex-1 min-w-0">
-                  <ReportingPeriodsEditor
-                    proposal={editedProposal}
-                    onUpdate={(rps) => {
-                      setEditedProposal({ ...editedProposal, reportingPeriods: rps });
-                      onUpdateProposal({ reportingPeriods: rps });
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Topic Content Import Section - Admin/Owner only */}
         {proposal?.topicUrl && userCanEditOverview && (
           <Card className="border-dashed border-primary/30 bg-primary/5">
@@ -1133,26 +1133,32 @@ export function GeneralInfoForm({
                 )}
               </div>
             </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground mb-3">
-                Automatically extract topic details, expected outcomes, and scope from the EU portal page.
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Import the official topic description and destination text from the EU Funding & Tenders Portal. 
+                This helps collaborators understand the call requirements while developing the proposal.
               </p>
+              
               <Button
                 variant="outline"
-                size="sm"
-                className="gap-1.5"
                 onClick={handleImportTopicContent}
                 disabled={importingTopic}
+                className="gap-2"
               >
                 {importingTopic ? (
                   <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin" />
                     Importing...
+                  </>
+                ) : proposal?.topicDescription ? (
+                  <>
+                    <RefreshCw className="w-4 h-4" />
+                    Check for updates
                   </>
                 ) : (
                   <>
-                    <Download className="w-3.5 h-3.5" />
-                    Import from portal
+                    <FileDown className="w-4 h-4" />
+                    Import topic content
                   </>
                 )}
               </Button>
@@ -1160,6 +1166,378 @@ export function GeneralInfoForm({
           </Card>
         )}
 
+        {/* Imported Topic Description - Visible to all */}
+        {(proposal?.topicDescription || proposal?.topicDestinationDescription) && (
+          <Card>
+            <CardHeader className="pb-2 pt-4">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <FileText className="w-4 h-4" />
+                Topic Description
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {proposal?.topicDescription && (
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block font-medium">
+                    Expected Outcome & Scope
+                  </label>
+                  <div className="prose prose-sm max-w-none dark:prose-invert text-sm leading-relaxed whitespace-pre-wrap bg-muted/30 rounded-lg p-4 max-h-96 overflow-y-auto">
+                    {proposal.topicDescription}
+                  </div>
+                </div>
+              )}
+              
+              {proposal?.topicDestinationDescription && (
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block font-medium">
+                    Destination
+                  </label>
+                  <div className="prose prose-sm max-w-none dark:prose-invert text-sm leading-relaxed whitespace-pre-wrap bg-muted/30 rounded-lg p-4 max-h-64 overflow-y-auto">
+                    {proposal.topicDestinationDescription}
+                  </div>
+                </div>
+              )}
+              
+              {proposal?.topicContentImportedAt && (
+                <p className="text-xs text-muted-foreground italic">
+                  Content imported from the EU Funding & Tenders Portal on {format(proposal.topicContentImportedAt, 'dd MMM yyyy')}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Budget Overview Card */}
+        <Card>
+          <CardHeader className="pb-2 pt-4">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Euro className="w-4 h-4" />
+              Budget overview
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Budget available (topic)</label>
+                {isEditing && editedProposal ? (
+                  <FormattedNumberInput
+                    value={editedProposal.totalBudget || ''}
+                    onChange={(val) => setEditedProposal({ ...editedProposal, totalBudget: val || undefined })}
+                    placeholder="e.g. 5,000,000"
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm font-medium">
+                    {proposal?.totalBudget ? `€${proposal.totalBudget.toLocaleString('en-IE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '–'}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Budget applied for</label>
+                <p className="text-sm font-medium">€{totalBudgetFromItems.toLocaleString('en-IE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-0.5 block">№ projects to be funded</label>
+                {isEditing && editedProposal ? (
+                  <Select
+                    value={editedProposal.expectedProjects || ''}
+                    onValueChange={(v) => setEditedProposal({ ...editedProposal, expectedProjects: v })}
+                  >
+                    <SelectTrigger className="w-32 h-8 text-sm">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
+                        <SelectItem key={num} value={num.toString()}>{num}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm font-medium">{proposal?.expectedProjects || '–'}</p>
+                )}
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Budget type</label>
+                {isEditing && editedProposal ? (
+                  <>
+                    <Select
+                      value={editedProposal.budgetType}
+                      onValueChange={(v: 'traditional' | 'lump_sum') => {
+                        if (v !== editedProposal.budgetType) {
+                          setPendingBudgetType(v);
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="h-8 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="traditional">Actual costs</SelectItem>
+                        <SelectItem value="lump_sum">Lump sum</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    {/* Budget Type Change Confirmation Dialog */}
+                    <AlertDialog open={!!pendingBudgetType} onOpenChange={(open) => !open && setPendingBudgetType(null)}>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Change budget type?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            You are about to change the budget type from{' '}
+                            <strong>{editedProposal.budgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}</strong> to{' '}
+                            <strong>{pendingBudgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}</strong>.
+                            <br /><br />
+                            This change should only be necessary if the topic requirements have changed. Are you sure you want to proceed?
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => {
+                              if (pendingBudgetType) {
+                                setEditedProposal({ ...editedProposal, budgetType: pendingBudgetType });
+                              }
+                              setPendingBudgetType(null);
+                            }}
+                          >
+                            Change budget type
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </>
+                ) : (
+                  <p className="text-sm font-medium">{proposal?.budgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}</p>
+                )}
+              </div>
+            </div>
+            
+            {/* FSTP Checkbox */}
+            {canEdit ? (
+              <div className="flex items-center space-x-2 mt-3 pt-3 border-t">
+                <Checkbox 
+                  id="uses-fstp" 
+                  checked={proposal?.usesFstp || false} 
+                  onCheckedChange={(checked) => onUpdateProposal({ usesFstp: checked === true })}
+                />
+                <Label htmlFor="uses-fstp" className="text-sm cursor-pointer">
+                  Financial support to third parties (FSTP) is possible under this topic
+                </Label>
+              </div>
+            ) : proposal?.usesFstp ? (
+              <div className="flex items-center space-x-2 mt-3 pt-3 border-t">
+                <Checkbox id="uses-fstp-readonly" checked disabled />
+                <Label htmlFor="uses-fstp-readonly" className="text-sm text-muted-foreground">
+                  Financial support to third parties (FSTP) is possible under this topic
+                </Label>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        {/* Abstract */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Abstract</CardTitle>
+            <InlineGuideline className="mt-2">
+              Max 2000 characters (with spaces). It will be used as the short description of your proposal in the evaluation process and in communications if your proposal is funded.
+            </InlineGuideline>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Textarea
+              value={formData.abstract}
+              onChange={(e) => handleAbstractChange(e.target.value)}
+              placeholder="Enter your proposal abstract..."
+              className="min-h-[200px] resize-none"
+              maxLength={2000}
+              disabled={!canEdit}
+            />
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>{abstractWordCount} words</span>
+              <span className={abstractCharCount > 1800 ? 'text-warning' : ''}>
+                {abstractCharCount} / 2000 characters
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Fixed Keywords */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Fixed keywords</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {canEdit && formData.fixedKeywords.length < 5 && (
+              <div className="flex gap-2">
+                <Input
+                  value={keywordInput}
+                  onChange={(e) => setKeywordInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Enter a keyword..."
+                  className="flex-1"
+                />
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={handleAddKeyword}
+                  disabled={!keywordInput.trim()}
+                >
+                  Add
+                </Button>
+              </div>
+            )}
+            
+            <div className="flex flex-wrap gap-2">
+              {formData.fixedKeywords.map((keyword, index) => (
+                <Badge key={index} variant="secondary" className="px-3 py-1.5 text-sm">
+                  {keyword}
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveKeyword(keyword)}
+                      className="ml-2 hover:text-destructive"
+                    >
+                      ×
+                    </button>
+                  )}
+                </Badge>
+              ))}
+              {formData.fixedKeywords.length === 0 && (
+                <p className="text-sm text-muted-foreground italic">No fixed keywords added yet</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Free Keywords */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Free keywords</CardTitle>
+            <InlineGuideline className="mt-2">
+              Enter any words you think give extra detail of the scope of your proposal (max 200 characters with spaces).
+            </InlineGuideline>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Textarea
+              value={formData.freeKeywords}
+              onChange={(e) => setFormData(prev => ({ ...prev, freeKeywords: e.target.value }))}
+              placeholder="Enter free keywords..."
+              className="min-h-[80px] resize-none"
+              maxLength={200}
+              disabled={!canEdit}
+            />
+            <div className="flex justify-end text-sm text-muted-foreground">
+              <span className={freeKeywordsCharCount > 180 ? 'text-warning' : ''}>
+                {freeKeywordsCharCount} / 200 characters
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Previous Submission */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Previous submission</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <Label>
+                Has this proposal (or a very similar one) been submitted in the past 2 years in response to a call for proposals under any EU programme, including the current call?
+              </Label>
+              <RadioGroup
+                value={formData.previousSubmission}
+                onValueChange={(value: 'yes' | 'no') => setFormData(prev => ({ 
+                  ...prev, 
+                  previousSubmission: value,
+                  previousSubmissionReference: value === 'no' ? '' : prev.previousSubmissionReference,
+                }))}
+                disabled={!canEdit}
+                className="flex gap-6"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="yes" id="prev-yes" />
+                  <Label htmlFor="prev-yes" className="font-normal cursor-pointer">Yes</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="no" id="prev-no" />
+                  <Label htmlFor="prev-no" className="font-normal cursor-pointer">No</Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            {formData.previousSubmission === 'yes' && (
+              <div className="space-y-2 pt-2">
+                <Label htmlFor="prev-reference">Please give the proposal reference or contract number:</Label>
+                <Input
+                  id="prev-reference"
+                  value={formData.previousSubmissionReference}
+                  onChange={(e) => setFormData(prev => ({ ...prev, previousSubmissionReference: e.target.value }))}
+                  placeholder="Enter proposal reference or contract number..."
+                  disabled={!canEdit}
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Declarations */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Declarations</CardTitle>
+            <InlineGuideline className="mt-2">
+              By ticking the boxes below, applicants confirm the declarations on behalf of their organisation. If the proposal is retained for EU funding, they will all be required to sign a declaration of honour. False statements or incorrect information may lead to administrative sanctions under the EU Financial Regulation.
+            </InlineGuideline>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {DECLARATIONS.map((declaration) => (
+              <div key={declaration.id} className="flex items-start space-x-3">
+                <Checkbox
+                  id={declaration.id}
+                  checked={formData.declarations[declaration.id as keyof typeof formData.declarations]}
+                  onCheckedChange={(checked) => handleDeclarationChange(declaration.id, checked as boolean)}
+                  disabled={!canEdit}
+                  className="mt-0.5"
+                />
+                <div className="font-normal text-sm leading-relaxed">
+                  <Label htmlFor={declaration.id} className="font-normal cursor-pointer">
+                    <span className="font-medium">{declaration.number}.</span>{' '}
+                    {renderTextWithLinks(declaration.text, declaration.links)}
+                  </Label>
+                  {declaration.bullets && declaration.bullets.length > 0 && (
+                    <ul className="list-disc ml-5 mt-1 space-y-0.5">
+                      {declaration.bullets.map((bullet, idx) => (
+                        <li key={idx}>
+                          {typeof bullet === 'string' ? (
+                            bullet
+                          ) : (
+                            <>
+                              {bullet.text}
+                              <a
+                                href={bullet.link.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {bullet.link.text}
+                              </a>
+                            </>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {declaration.suffix && (
+                    <p className="mt-1">{declaration.suffix}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+
+        {/* Delete Proposal - Admins/Owners Only */}
         {isCoordinator && (
           <DeleteProposalSection proposalId={proposalId} proposalTitle={proposal?.title || 'this proposal'} />
         )}
