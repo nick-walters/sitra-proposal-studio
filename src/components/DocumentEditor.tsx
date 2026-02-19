@@ -732,7 +732,7 @@ export function DocumentEditor({
         {/* Row 1: Guidelines | Autosaved | Find | Split Compare | Lock History | Shortcuts Comments/Panel */}
         <div className="px-2 py-1 border-b border-border bg-card">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 min-w-0 flex-1 overflow-x-auto">
               <Button 
                 variant="outline" 
                 size="sm" 
