@@ -496,7 +496,7 @@ function SectionItem({
                 paddingLeft: `${depth * 8 + 12}px`, 
                 paddingRight: '8px',
                 rowGap: '2px',
-                ...(section.id === 'a2' ? { gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))' } : {}),
+                ...(section.id === 'a2' ? { gridTemplateColumns: 'repeat(auto-fill, minmax(55px, 1fr))' } : {}),
               }}
             >
               {section.subsections!.map((subsection) => {
