@@ -928,8 +928,9 @@ export function ProposalEditor() {
       <header className="h-10 border-b border-border bg-card/80 backdrop-blur-sm sticky top-16 z-40">
         <div className="h-full px-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="gap-1.5">
               <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline text-xs">Back to proposal dashboard</span>
             </Button>
             <Separator orientation="vertical" className="h-6" />
             
