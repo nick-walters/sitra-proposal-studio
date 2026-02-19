@@ -1,42 +1,54 @@
 
 
-## Fix: Trailing space before ellipsis in B3 heading
+## Fix: Collaboration Panel Toggle Always Visible
 
 ### Problem
-CSS `text-overflow: ellipsis` is a browser-level limitation -- it never trims trailing whitespace before the ellipsis. When the B3 heading "Quality & efficiency of implementation" overflows right after the space in "of ", the result is `of ...` instead of `of...`.
+The collaboration panel (and its collapsed toggle strip) is placed inside a flex row with `overflow-hidden`, which clips it when the viewport isn't wide enough. The `shrink-0` on the panel prevents it from shrinking, but the parent's `overflow-hidden` hides anything that extends beyond its bounds.
 
-This cannot be fixed with CSS alone (no combination of `word-break`, `overflow-wrap`, or `text-overflow` properties will trim that space).
-
-### Solution
-Replace CSS-based ellipsis with a small JavaScript-based truncation utility that:
-1. Measures whether the text overflows its container
-2. When truncated, trims any trailing whitespace before appending "..."
-
-### Implementation
-
-**File: `src/components/SectionNavigator.tsx`**
-
-1. Create a small `TruncatedText` component (inline in the file) that:
-   - Uses a `useRef` on the text span
-   - Uses a `useLayoutEffect` + `ResizeObserver` to detect when text overflows
-   - When overflowing, uses binary search on a hidden measurement span to find the last fitting character
-   - Trims trailing spaces from the visible portion and appends "..."
-   - When not overflowing, renders the full text normally
-
-2. Replace the current title `<span>` (line 268) with `<TruncatedText text={formatTitle(section.title)} />`, removing the CSS `text-overflow: ellipsis` and `word-break: break-all` styles.
-
-### Technical details
-
+### Root Cause
+In `DocumentEditor.tsx` at line 1040, the layout is:
 ```text
-TruncatedText component:
-  - props: text (string), className (string)
-  - refs: containerRef, measureRef (hidden span for measuring)
-  - state: displayText (string | null)
-  - ResizeObserver watches containerRef width
-  - On resize: if scrollWidth > clientWidth, binary-search
-    for max chars that fit, trim trailing spaces, append "..."
-  - Otherwise: displayText = null (show full text)
+div.flex-1.flex.min-w-0.overflow-hidden
+  |-- div.flex-1.min-w-0 (main editor content)
+  |-- SplitViewPanel (optional, variable width)
+  |-- Collaboration panel (w-80 or w-8, shrink-0)
 ```
 
-This is a reliable, widely-used pattern for ellipsis truncation that gives full control over whitespace handling.
+The main editor content area is `flex-1 min-w-0` but has no max constraint that accounts for the panel. When the total available width is limited (e.g. sidebar open + narrow screen), the flex container overflows and `overflow-hidden` clips the rightmost element -- the collaboration panel.
 
+### Solution
+Restructure the flex layout so the collaboration panel width is always reserved first, and the main content fills the remainder:
+
+1. **Remove `overflow-hidden` from the flex row** (line 1040) and replace with `overflow-visible` or just remove it.
+
+2. **Wrap the main content + split view in their own container** that gets `flex-1 min-w-0 overflow-hidden` (so only the editor content scrolls/clips, not the panel).
+
+3. **Keep the collaboration panel outside that inner wrapper**, directly in the outer flex row, so it always has its reserved space.
+
+### Technical Changes
+
+**File: `src/components/DocumentEditor.tsx`**
+
+Change the layout structure from:
+```text
+<div className="flex-1 flex min-w-0 overflow-hidden">
+  <div className="flex-1 min-w-0 overflow-auto ...">  <!-- editor -->
+  <SplitViewPanel />                                    <!-- optional -->
+  <CollaborationPanel (w-80 or w-8) />                  <!-- clipped! -->
+</div>
+```
+
+To:
+```text
+<div className="flex-1 flex min-w-0">
+  <div className="flex-1 flex min-w-0 overflow-hidden">
+    <div className="flex-1 min-w-0 overflow-auto ...">  <!-- editor -->
+    <SplitViewPanel />                                    <!-- optional -->
+  </div>
+  <CollaborationPanel (w-80 or w-8) />                   <!-- always visible -->
+</div>
+```
+
+This nests the editor and optional split view inside an inner flex container that handles overflow, while the collaboration panel sits alongside at the top level where it cannot be clipped.
+
+The change is minimal -- just wrapping the editor content + split view in one additional `div` and moving the collaboration panel out of the overflow-hidden scope.
