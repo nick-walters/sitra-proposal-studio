@@ -7,11 +7,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart3, Network, Image, Check, Sparkles, Upload, Link2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { cn } from '@/lib/utils';
 
 interface Figure {
   id: string;
@@ -39,10 +39,9 @@ export function InsertFigureDialog({
   onInsertFigure,
   onInsertFigureImage,
 }: InsertFigureDialogProps) {
-  const [selectedFigure, setSelectedFigure] = useState<Figure | null>(null);
+  const [selectedFigures, setSelectedFigures] = useState<Set<string>>(new Set());
   const [insertMode, setInsertMode] = useState<'image' | 'reference'>('image');
 
-  // Fetch figures for this proposal
   const { data: figures = [] } = useQuery({
     queryKey: ['figures', proposalId],
     queryFn: async () => {
@@ -64,34 +63,46 @@ export function InsertFigureDialog({
     enabled: isOpen,
   });
 
+  const toggleFigure = (id: string) => {
+    setSelectedFigures(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
   const handleInsert = () => {
-    if (!selectedFigure) return;
-    
-    if (insertMode === 'image' && onInsertFigureImage) {
-      onInsertFigureImage(selectedFigure);
-    } else {
-      onInsertFigure(selectedFigure);
+    if (selectedFigures.size === 0) return;
+
+    // Get selected figures in their original order
+    const ordered = figures.filter(f => selectedFigures.has(f.id));
+
+    for (const fig of ordered) {
+      if (insertMode === 'image' && onInsertFigureImage) {
+        onInsertFigureImage(fig);
+      } else {
+        onInsertFigure(fig);
+      }
     }
-    setSelectedFigure(null);
+
+    setSelectedFigures(new Set());
     onClose();
   };
 
   const getFigureIcon = (type: string) => {
     switch (type) {
-      case 'gantt':
-        return BarChart3;
-      case 'pert':
-        return Network;
-      case 'ai':
-        return Sparkles;
-      case 'image':
-        return Upload;
-      default:
-        return Image;
+      case 'gantt': return BarChart3;
+      case 'pert': return Network;
+      case 'ai': return Sparkles;
+      case 'image': return Upload;
+      default: return Image;
     }
   };
 
-  // Only show image-based figures for the image insert mode
   const imageFigures = figures.filter(f => f.content?.imageUrl);
   const displayFigures = insertMode === 'image' ? imageFigures : figures;
 
@@ -101,11 +112,11 @@ export function InsertFigureDialog({
         <DialogHeader>
           <DialogTitle>Insert Figure</DialogTitle>
           <DialogDescription>
-            Select a figure from your proposal to insert at the cursor position.
+            Select one or more figures to insert at the cursor position.
           </DialogDescription>
         </DialogHeader>
-        
-        <Tabs value={insertMode} onValueChange={(v) => { setInsertMode(v as 'image' | 'reference'); setSelectedFigure(null); }}>
+
+        <Tabs value={insertMode} onValueChange={(v) => { setInsertMode(v as 'image' | 'reference'); setSelectedFigures(new Set()); }}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="image" className="gap-2">
               <Image className="w-4 h-4" />
@@ -116,16 +127,16 @@ export function InsertFigureDialog({
               Insert Reference
             </TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="image" className="mt-4">
             <p className="text-sm text-muted-foreground mb-3">
-              Insert the figure image with its caption into the document.
+              Insert figure images with their captions into the document.
             </p>
           </TabsContent>
-          
+
           <TabsContent value="reference" className="mt-4">
             <p className="text-sm text-muted-foreground mb-3">
-              Insert a text reference like "(see Figure 1.1.a)" that links to the figure.
+              Insert text references like "(see Figure 1.1.a)" that link to figures.
             </p>
           </TabsContent>
         </Tabs>
@@ -135,7 +146,7 @@ export function InsertFigureDialog({
             <div className="text-center py-8">
               <Image className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
               <p className="text-sm text-muted-foreground">
-                {insertMode === 'image' 
+                {insertMode === 'image'
                   ? 'No image figures available. Upload or generate images from the Figures page.'
                   : 'No figures created yet. Create figures from the Figures section.'}
               </p>
@@ -143,19 +154,20 @@ export function InsertFigureDialog({
           ) : (
             displayFigures.map((figure) => {
               const Icon = getFigureIcon(figure.figureType);
-              const isSelected = selectedFigure?.id === figure.id;
+              const isSelected = selectedFigures.has(figure.id);
               const hasImage = figure.content?.imageUrl;
-              
+
               return (
                 <button
                   key={figure.id}
                   type="button"
-                  className={`w-full flex items-center gap-3 p-3 rounded-lg border text-left transition-colors ${
+                  className={cn(
+                    "w-full flex items-center gap-3 p-3 rounded-lg border text-left transition-colors",
                     isSelected
                       ? 'border-primary bg-primary/5'
                       : 'border-border hover:bg-muted'
-                  }`}
-                  onClick={() => setSelectedFigure(figure)}
+                  )}
+                  onClick={() => toggleFigure(figure.id)}
                 >
                   <div className="w-12 h-12 rounded bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
                     {hasImage ? (
@@ -180,13 +192,15 @@ export function InsertFigureDialog({
             })
           )}
         </div>
-        
+
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleInsert} disabled={!selectedFigure}>
-            {insertMode === 'image' ? 'Insert Figure' : 'Insert Reference'}
+          <Button onClick={handleInsert} disabled={selectedFigures.size === 0}>
+            {insertMode === 'image'
+              ? `Insert ${selectedFigures.size > 1 ? `${selectedFigures.size} Figures` : 'Figure'}`
+              : `Insert ${selectedFigures.size > 1 ? `${selectedFigures.size} References` : 'Reference'}`}
           </Button>
         </div>
       </DialogContent>
