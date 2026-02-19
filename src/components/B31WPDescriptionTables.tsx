@@ -352,20 +352,21 @@ function SpacerRow({ color }: { color?: string }) {
           userSelect: 'none',
           pointerEvents: 'none',
           border: 'none',
+          verticalAlign: 'middle',
         }}
         contentEditable={false}
       >
-        {color && (
+        {color ? (
           <div
             style={{
               width: '100%',
               height: '1px',
               backgroundColor: color,
-              margin: '5px auto 0',
             }}
           />
+        ) : (
+          <>&nbsp;</>
         )}
-        &nbsp;
       </td>
     </tr>
   );
