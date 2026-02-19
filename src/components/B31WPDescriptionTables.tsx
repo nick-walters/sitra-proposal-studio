@@ -681,32 +681,40 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
 
     const reordered = arrayMove(wp.tasks, oldIndex, newIndex);
 
-    const applyOrder = async (taskIds: string[]) => {
+    const applyOrder = async (taskIds: string[], label: string) => {
+      console.log(`[applyOrder] ${label} - updating ${taskIds.length} tasks:`, taskIds);
       for (let i = 0; i < taskIds.length; i++) {
-        const { error } = await supabase
+        const { error, data } = await supabase
           .from('wp_draft_tasks')
           .update({ order_index: i, number: i + 1 })
-          .eq('id', taskIds[i]);
+          .eq('id', taskIds[i])
+          .select();
+        console.log(`[applyOrder] ${label} - task ${taskIds[i]}: order_index=${i}, number=${i+1}`, error ? `ERROR: ${error.message}` : `OK (${data?.length} rows)`);
         if (error) {
           toast.error('Failed to reorder tasks');
           return false;
         }
       }
-      queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
-      queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] });
+      console.log(`[applyOrder] ${label} - invalidating queries`);
+      await queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
+      await queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] });
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+      console.log(`[applyOrder] ${label} - done`);
       return true;
     };
 
     const reorderedIds = reordered.map(t => t.id);
-    const success = await applyOrder(reorderedIds);
+    console.log('[handleTaskDragEnd] previousOrder:', previousOrder);
+    console.log('[handleTaskDragEnd] reorderedIds:', reorderedIds);
+    const success = await applyOrder(reorderedIds, 'reorder');
     if (success) {
       toast.success('Tasks reordered', {
-        duration: 8000,
+        duration: 10000,
         action: {
           label: 'Undo',
           onClick: async () => {
-            const undone = await applyOrder(previousOrder);
+            console.log('[Undo] clicked, previousOrder:', previousOrder);
+            const undone = await applyOrder(previousOrder, 'undo');
             if (undone) {
               toast.success('Reorder undone');
             }
