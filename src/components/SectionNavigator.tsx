@@ -78,6 +78,7 @@ function SectionItem({
   currentUserId?: string;
   collaborators?: CollaboratorPresence[];
 }) {
+  const isAlwaysExpanded = section.id === 'wp-drafts';
   const [isExpanded, setIsExpanded] = useState(section.id !== 'a2');
   const hasSubsections = section.subsections && section.subsections.length > 0;
   const isActive = activeSectionId === section.id;
@@ -178,6 +179,9 @@ function SectionItem({
             if (firstChild) {
               onSectionClick(firstChild);
             }
+          } else if (isAlwaysExpanded) {
+            // For always-expanded sections (wp-drafts), just navigate
+            onSectionClick(section);
           } else if (hasSubsections) {
             // WP drafts expands AND navigates to show manager/tracker
             setIsExpanded(!isExpanded);
@@ -268,7 +272,7 @@ function SectionItem({
         )}
         
         {/* Right-aligned expand/collapse arrow for items with subsections */}
-        {hasSubsections && (
+        {hasSubsections && !isAlwaysExpanded && (
           <button
             className="p-0.5 rounded hover:bg-accent ml-auto shrink-0"
             onClick={(e) => {
@@ -410,7 +414,7 @@ function SectionItem({
         
       </div>
 
-      {hasSubsections && isExpanded && (
+      {hasSubsections && (isAlwaysExpanded || isExpanded) && (
         <div className="animate-slide-in-left">
           {/* Render WP Drafts, Case Drafts, and A2 Participants as 2-column grid of bubbles */}
           {(section.id === 'wp-drafts' || section.id === 'case-drafts' || section.id === 'a2') ? (
