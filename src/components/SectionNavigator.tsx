@@ -531,11 +531,6 @@ export function SectionNavigator({
 
   return (
     <nav className="py-2">
-      <div className="px-4 py-2 mb-2">
-        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          Contents
-        </h2>
-      </div>
       <div className="space-y-0.5">
         {sectionsWithParticipants.map((section) => (
           <SectionItem
