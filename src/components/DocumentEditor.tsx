@@ -607,6 +607,9 @@ export function DocumentEditor({
       tr.setSelection(TextSelection.near(tr.doc.resolve(tr.selection.from + 1)));
       tr.setStoredMarks([]);
       editor.view.dispatch(tr);
+
+      // Force DOM focus back to the editor (atom nodes can steal it)
+      editor.view.focus();
     }, 150);
   }, [editor, acronymSegments]);
 
