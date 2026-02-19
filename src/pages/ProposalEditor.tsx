@@ -988,29 +988,18 @@ export function ProposalEditor() {
               </span>
             )}
             
-            {/* Deadline */}
-            {proposal?.deadline && (
-              <div className="hidden xl:flex items-center gap-1 text-[10px] text-muted-foreground">
-                <Calendar className="w-3 h-3 text-yellow-600" />
-                <span className="font-semibold">Deadline:</span>
-                <span>{format(new Date(proposal.deadline), 'dd/MM/yyyy')}</span>
-              </div>
-            )}
-            
             {/* Topic Link */}
             {proposal?.topicUrl && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-6 px-2 gap-1 text-[10px] flex"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  window.open(proposal.topicUrl, '_blank');
-                }}
+              <a 
+                href={proposal.topicUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 h-5 px-1.5 text-[10px] font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md transition-colors"
+                onClick={(e) => e.stopPropagation()}
               >
                 Topic
                 <ExternalLink className="w-2.5 h-2.5" />
-              </Button>
+              </a>
             )}
           </div>
 
