@@ -521,8 +521,8 @@ function SortableTaskGroup({
 
   return (
     <tbody ref={setNodeRef} style={style}>
-      {/* Spacer with WP colour border */}
-      <SpacerRow color={wp.color} />
+      {/* Spacer without border */}
+      <SpacerRow />
 
       {/* Task header: drag handle + outline bubble with number + bold title + delete btn */}
       <tr>
@@ -585,10 +585,11 @@ function SortableTaskGroup({
         </td>
       </tr>
 
-      {/* Task metadata row: leader + partners | timing */}
+      {/* Task metadata row: duration | leader | partners */}
       <tr>
         <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0" style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }}>
           <div className="flex items-center flex-wrap gap-0.5">
+            <MonthRangePicker taskId={task.id} startMonth={task.start_month} endMonth={task.end_month} proposalId={proposalId} projectDuration={projectDuration} />
             <LeaderPicker
               entityId={task.id}
               entityTable="wp_draft_tasks"
@@ -606,10 +607,10 @@ function SortableTaskGroup({
             />
           </div>
         </td>
-        <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle whitespace-nowrap text-right py-0" style={{ border: 'none', width: '75px', paddingLeft: '6px', paddingRight: '6px' }}>
-          <MonthRangePicker taskId={task.id} startMonth={task.start_month} endMonth={task.end_month} proposalId={proposalId} projectDuration={projectDuration} />
-        </td>
       </tr>
+
+      {/* Colour border before task description */}
+      <SpacerRow color={wp.color} />
 
       {/* Task description row */}
       <tr>
@@ -714,14 +715,9 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
           ? `M${String(Math.min(...starts)).padStart(2, '0')}–M${String(Math.max(...ends)).padStart(2, '0')}`
           : null;
 
-        const prevWP = idx > 0 ? populatedWPs[idx - 1] : null;
         return (
           <div key={wp.id}>
-            <div style={{ height: '1.5em', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {prevWP && (
-                <div style={{ width: '100%', height: '1px', backgroundColor: prevWP.color }} />
-              )}
-            </div>
+            <div style={{ height: '1.5em' }} />
             <table
               className={`${tableStyles} w-full border-collapse`}
             >
@@ -753,10 +749,13 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
                   </td>
                 </tr>
 
-                {/* WP leader + duration row */}
+                {/* WP duration + leader row */}
                 <tr>
                   <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0" style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }}>
                     <div className="flex items-center flex-wrap gap-0.5">
+                      <span className="font-bold text-[11pt] font-['Times_New_Roman',Times,serif] whitespace-nowrap" style={{ color: '#000000' }}>
+                        {monthRange || <span className="text-muted-foreground italic font-normal">—</span>}
+                      </span>
                       <LeaderPicker
                         entityId={wp.id}
                         entityTable="wp_drafts"
@@ -766,11 +765,6 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
                         showCrown
                       />
                     </div>
-                  </td>
-                  <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle whitespace-nowrap text-right py-0" style={{ border: 'none', width: '75px', paddingLeft: '6px', paddingRight: '6px' }}>
-                    <span className="font-bold text-[11pt] font-['Times_New_Roman',Times,serif] whitespace-nowrap" style={{ color: '#000000' }}>
-                      {monthRange || <span className="text-muted-foreground italic font-normal">—</span>}
-                    </span>
                   </td>
                 </tr>
 
@@ -792,6 +786,9 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
                     />
                   </td>
                 </tr>
+
+                {/* Colour border after objectives */}
+                <SpacerRow color={wp.color} />
               </tbody>
 
               {/* Tasks - each in its own sortable tbody */}
