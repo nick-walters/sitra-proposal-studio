@@ -568,12 +568,16 @@ export function DocumentEditor({
         refKind: payload.refKind,
       });
 
-      // The figureTableReference mark bleeds into subsequent text.
-      // To break out: insert a space with NO marks via direct transaction.
+      // Insert a trailing space and clear stored marks so the cursor
+      // stays on the same line right after the reference badge.
+      editor.chain()
+        .insertContent(' ')
+        .unsetBold()
+        .unsetItalic()
+        .run();
+
+      // Clear any lingering marks so next typed text is plain
       const { tr } = editor.state;
-      const spaceNode = editor.schema.text(' ');            // plain text node, no marks
-      tr.insert(tr.selection.from, spaceNode);
-      tr.setSelection(TextSelection.near(tr.doc.resolve(tr.selection.from + 1)));
       tr.setStoredMarks([]);
       editor.view.dispatch(tr);
     }, 150);
