@@ -1,54 +1,34 @@
 
 
-## Fix: Collaboration Panel Toggle Always Visible
-
-### Problem
-The collaboration panel (and its collapsed toggle strip) is placed inside a flex row with `overflow-hidden`, which clips it when the viewport isn't wide enough. The `shrink-0` on the panel prevents it from shrinking, but the parent's `overflow-hidden` hides anything that extends beyond its bounds.
+## Analysis: Why the Topic Button Is Not Visible
 
 ### Root Cause
-In `DocumentEditor.tsx` at line 1040, the layout is:
-```text
-div.flex-1.flex.min-w-0.overflow-hidden
-  |-- div.flex-1.min-w-0 (main editor content)
-  |-- SplitViewPanel (optional, variable width)
-  |-- Collaboration panel (w-80 or w-8, shrink-0)
-```
 
-The main editor content area is `flex-1 min-w-0` but has no max constraint that accounts for the panel. When the total available width is limited (e.g. sidebar open + narrow screen), the flex container overflows and `overflow-hidden` clips the rightmost element -- the collaboration panel.
+The proposal in the database (`7ace25fe-1154-486f-88b4-8a1485163a45`) has `topic_url = NULL`. The button is conditionally rendered with `{proposal?.topicUrl && ...}`, so it never appears.
 
-### Solution
-Restructure the flex layout so the collaboration panel width is always reserved first, and the main content fills the remainder:
+The "flash" you saw was actually the "View Only" badge (on the right side of the bar), not the Topic button. That badge appears briefly while `isDraft` is being determined during loading, then disappears once the proposal loads and is confirmed as a draft.
 
-1. **Remove `overflow-hidden` from the flex row** (line 1040) and replace with `overflow-visible` or just remove it.
+The Dashboard sample proposals have hardcoded `topicUrl` values, which is why the Topic button works there -- those are not real database records.
 
-2. **Wrap the main content + split view in their own container** that gets `flex-1 min-w-0 overflow-hidden` (so only the editor content scrolls/clips, not the panel).
+### Fix Plan
 
-3. **Keep the collaboration panel outside that inner wrapper**, directly in the outer flex row, so it always has its reserved space.
+**1. Show the Topic button even when there is no URL (as a disabled or placeholder state)**
+
+Since not all proposals will have a topic URL set, the button should still appear but either:
+- Link to the topic URL when available, or
+- Be disabled/greyed out when no URL is set, so the user knows where it will appear
+
+**2. Place it immediately after the Status Badge (line 984)**
+
+The button is already in the right position in the code (line 986-998, after the status badge at line 978-984). The issue is purely that `topicUrl` is null, so the conditional prevents rendering.
 
 ### Technical Changes
 
-**File: `src/components/DocumentEditor.tsx`**
+**File: `src/pages/ProposalEditor.tsx` (lines 986-998)**
 
-Change the layout structure from:
-```text
-<div className="flex-1 flex min-w-0 overflow-hidden">
-  <div className="flex-1 min-w-0 overflow-auto ...">  <!-- editor -->
-  <SplitViewPanel />                                    <!-- optional -->
-  <CollaborationPanel (w-80 or w-8) />                  <!-- clipped! -->
-</div>
-```
+- Remove the `proposal?.topicUrl &&` conditional guard so the button always renders when a proposal is loaded
+- If `proposal?.topicUrl` exists, render as a clickable link opening in a new tab
+- If `proposal?.topicUrl` is missing, render a disabled-looking button (muted colors, no click action, or optionally a tooltip saying "No topic URL set")
+- Keep the `shrink-0` class to prevent it from being compressed
+- Use the same `ExternalLink` icon style as the Dashboard's `ProposalCard`
 
-To:
-```text
-<div className="flex-1 flex min-w-0">
-  <div className="flex-1 flex min-w-0 overflow-hidden">
-    <div className="flex-1 min-w-0 overflow-auto ...">  <!-- editor -->
-    <SplitViewPanel />                                    <!-- optional -->
-  </div>
-  <CollaborationPanel (w-80 or w-8) />                   <!-- always visible -->
-</div>
-```
-
-This nests the editor and optional split view inside an inner flex container that handles overflow, while the collaboration panel sits alongside at the top level where it cannot be clipped.
-
-The change is minimal -- just wrapping the editor content + split view in one additional `div` and moving the collaboration panel out of the overflow-hidden scope.
