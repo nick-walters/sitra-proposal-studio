@@ -59,6 +59,7 @@
   margin-bottom: 6pt !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
+  text-align: center !important;
 }
 
 .table-caption {
@@ -560,6 +561,7 @@
   margin-top: 0 !important;
   margin-bottom: 6pt !important;
   padding-top: 0 !important;
+  text-align: center !important;
 }
 
 .ProseMirror .caption-label {
@@ -716,6 +718,7 @@
 .ProseMirror p.figure-caption {
   margin-top: 0 !important;
   margin-bottom: 6pt !important;
+  text-align: center !important;
 }
 
 /* Column resize handle */
