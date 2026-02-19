@@ -435,8 +435,9 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
                 
                 let insertPos = insertBefore ? targetBlock.startPos : targetBlock.endPos;
                 
-                // Create transaction
+                // Create transaction - mark as block reorder to skip track changes
                 const tr = state.tr;
+                tr.setMeta('blockReorder', true);
                 
                 // If moving down, we need to insert first then delete
                 // If moving up, we need to delete first then insert

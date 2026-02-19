@@ -153,6 +153,7 @@ export const BlockReordering = Extension.create({
         const slice = doc.slice(currentBlock.startPos, currentBlock.endPos);
         
         // Delete original and insert before previous
+        tr.setMeta('blockReorder', true);
         tr.delete(currentBlock.startPos, currentBlock.endPos);
         
         // Calculate new position (accounts for deletion)
@@ -197,6 +198,7 @@ export const BlockReordering = Extension.create({
         const insertAfterPos = nextBlockRange.endPos;
         
         // Delete original first
+        tr.setMeta('blockReorder', true);
         tr.delete(currentBlock.startPos, currentBlock.endPos);
         
         // Calculate new position accounting for deletion
