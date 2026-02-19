@@ -355,6 +355,7 @@ export function CaseManagementCard({
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
+      window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
     },
   });
 
@@ -390,6 +391,7 @@ export function CaseManagementCard({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
+      window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
       toast.success('Case deleted');
     },
     onError: () => {

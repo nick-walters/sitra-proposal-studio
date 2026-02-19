@@ -1,15 +1,42 @@
 import React, { useState, useCallback, useRef } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { EditableCaption } from '@/components/EditableCaption';
 import { useQueryClient } from '@tanstack/react-query';
-import { Check, ChevronsUpDown, Crown } from 'lucide-react';
+import { Check, ChevronsUpDown, Crown, GripVertical, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import type { B31WPData, B31Participant } from '@/hooks/useB31SectionData';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
-const cellStyles = "border px-0.5 py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle";
-const editableCellStyles = `${cellStyles} cursor-text hover:bg-muted/30`;
 
 interface Props {
   wpData: B31WPData[];
@@ -229,7 +256,6 @@ function MonthRangePicker({
       setSelecting('end');
     } else {
       if (m < (localStart ?? 1)) {
-        // clicked before start, reset
         setLocalStart(m);
         setSelecting('end');
       } else {
@@ -447,10 +473,164 @@ function CaptionWPBubble() {
   );
 }
 
+/* ── Sortable task group (wraps 3 rows in a tbody) ── */
+function SortableTaskGroup({
+  task,
+  wp,
+  participants,
+  proposalId,
+  projectDuration,
+  saveTaskField,
+  onDeleteTask,
+}: {
+  task: B31WPData['tasks'][0];
+  wp: B31WPData;
+  participants: B31Participant[];
+  proposalId: string;
+  projectDuration: number;
+  saveTaskField: (taskId: string, field: string, value: string) => void;
+  onDeleteTask: (taskId: string) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const partnerIds = task.participants?.map(p => p.participant_id) || [];
+  const queryClient = useQueryClient();
+
+  return (
+    <tbody ref={setNodeRef} style={style}>
+      {/* Spacer */}
+      <SpacerRow />
+
+      {/* Task header: drag handle + outline bubble with number + bold title + delete btn */}
+      <tr>
+        <td
+          colSpan={2}
+          className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight"
+          style={{ padding: '1px 6px 1px 0px', border: 'none' }}
+        >
+          <div className="flex items-center gap-1">
+            {/* Drag handle */}
+            <button
+              {...attributes}
+              {...listeners}
+              className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted rounded touch-none shrink-0 print:hidden"
+              title="Drag to reorder"
+            >
+              <GripVertical className="w-3.5 h-3.5 text-muted-foreground" />
+            </button>
+            <span
+              className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
+              style={{ backgroundColor: '#fff', color: wp.color, border: `1.5px solid ${wp.color}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
+            >
+              T{wp.number}.{task.number}
+            </span>
+            <span className="font-bold text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight flex-1">
+              <EditableHeaderText
+                value={task.title || `Task ${task.number}`}
+                onSave={(val) => saveTaskField(task.id, 'title', val)}
+              />
+            </span>
+            {/* Delete button with confirmation */}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button
+                  className="p-0.5 text-destructive hover:bg-destructive/10 rounded transition-colors shrink-0 print:hidden"
+                  title="Delete task"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete task T{wp.number}.{task.number}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete this task and its description. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={() => onDeleteTask(task.id)}
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </td>
+      </tr>
+
+      {/* Task metadata row: leader + partners | timing */}
+      <tr>
+        <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0" style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }}>
+          <div className="flex items-center flex-wrap gap-0.5">
+            <LeaderPicker
+              entityId={task.id}
+              entityTable="wp_draft_tasks"
+              currentLeaderId={task.lead_participant_id}
+              participants={participants}
+              proposalId={proposalId}
+              showCrown
+            />
+            <PartnersPicker
+              taskId={task.id}
+              selectedIds={partnerIds}
+              participants={participants}
+              proposalId={proposalId}
+              leaderId={task.lead_participant_id}
+            />
+          </div>
+        </td>
+        <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle whitespace-nowrap text-right py-0" style={{ border: 'none', width: '75px', paddingLeft: '6px', paddingRight: '6px' }}>
+          <MonthRangePicker taskId={task.id} startMonth={task.start_month} endMonth={task.end_month} proposalId={proposalId} projectDuration={projectDuration} />
+        </td>
+      </tr>
+
+      {/* Task description row */}
+      <tr>
+        <td
+          colSpan={2}
+          className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0 cursor-text hover:bg-muted/30"
+          style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }}
+        >
+          <EditableText
+            value={task.description || ''}
+            placeholder="Enter task description..."
+            onSave={async (val) => {
+              await supabase.from('wp_draft_tasks').update({ description: val }).eq('id', task.id);
+              queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
+            }}
+          />
+        </td>
+      </tr>
+    </tbody>
+  );
+}
+
 /* ── Main component ── */
 export function B31WPDescriptionTables({ wpData, participants, proposalId, projectDuration = 36 }: Props) {
   const queryClient = useQueryClient();
   const populatedWPs = wpData;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   if (populatedWPs.length === 0) return null;
 
@@ -462,6 +642,43 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
   const saveTaskField = async (taskId: string, field: string, value: string) => {
     await supabase.from('wp_draft_tasks').update({ [field]: value || null }).eq('id', taskId);
     queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    const { error } = await supabase.from('wp_draft_tasks').delete().eq('id', taskId);
+    if (error) {
+      toast.error('Failed to delete task');
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
+    window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+    toast.success('Task deleted');
+  };
+
+  const handleTaskDragEnd = async (event: DragEndEvent, wp: B31WPData) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = wp.tasks.findIndex(t => t.id === active.id);
+    const newIndex = wp.tasks.findIndex(t => t.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(wp.tasks, oldIndex, newIndex);
+
+    // Update order_index and number for all tasks in this WP
+    for (let i = 0; i < reordered.length; i++) {
+      const { error } = await supabase
+        .from('wp_draft_tasks')
+        .update({ order_index: i, number: i + 1 })
+        .eq('id', reordered[i].id);
+      if (error) {
+        toast.error('Failed to reorder tasks');
+        break;
+      }
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
+    window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
   };
 
   return (
@@ -559,86 +776,29 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
                     />
                   </td>
                 </tr>
-
-                {/* Tasks */}
-                {wp.tasks.map(task => {
-                  const partnerIds = task.participants?.map(p => p.participant_id) || [];
-                  return (
-                    <React.Fragment key={task.id}>
-                      {/* Spacer */}
-                      <SpacerRow />
-
-                      {/* Task header: outline bubble with number + bold title */}
-                      <tr>
-                        <td
-                          colSpan={2}
-                          className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight"
-                          style={{ padding: '1px 6px 1px 0px', border: 'none' }}
-                        >
-                          <div className="flex items-center gap-1">
-                            <span
-                              className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-                              style={{ backgroundColor: '#fff', color: wp.color, border: `1.5px solid ${wp.color}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
-                            >
-                              T{wp.number}.{task.number}
-                            </span>
-                            <span className="font-bold text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight">
-                              <EditableHeaderText
-                                value={task.title || `Task ${task.number}`}
-                                onSave={(val) => saveTaskField(task.id, 'title', val)}
-                              />
-                            </span>
-                          </div>
-                        </td>
-                      </tr>
-
-                      {/* Task metadata row: leader + partners | timing */}
-                      <tr>
-                        <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0" style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }}>
-                          <div className="flex items-center flex-wrap gap-0.5">
-                            <LeaderPicker
-                              entityId={task.id}
-                              entityTable="wp_draft_tasks"
-                              currentLeaderId={task.lead_participant_id}
-                              participants={participants}
-                              proposalId={proposalId}
-                              showCrown
-                            />
-                            <PartnersPicker
-                              taskId={task.id}
-                              selectedIds={partnerIds}
-                              participants={participants}
-                              proposalId={proposalId}
-                              leaderId={task.lead_participant_id}
-                            />
-                          </div>
-                        </td>
-                        <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle whitespace-nowrap text-right py-0" style={{ border: 'none', width: '75px', paddingLeft: '6px', paddingRight: '6px' }}>
-                          <MonthRangePicker taskId={task.id} startMonth={task.start_month} endMonth={task.end_month} proposalId={proposalId} projectDuration={projectDuration} />
-                        </td>
-                      </tr>
-
-                      {/* Task description row */}
-                      <tr>
-                        <td
-                          colSpan={2}
-                          className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0 cursor-text hover:bg-muted/30"
-                          style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }}
-                        >
-                          <EditableText
-                            value={task.description || ''}
-                            placeholder="Enter task description..."
-                            onSave={async (val) => {
-                              await supabase.from('wp_draft_tasks').update({ description: val }).eq('id', task.id);
-                              queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
-                            }}
-                          />
-                        </td>
-                      </tr>
-                    </React.Fragment>
-                  );
-                })}
               </tbody>
+
+              {/* Tasks - each in its own sortable tbody */}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={(event) => handleTaskDragEnd(event, wp)}
+              >
+                <SortableContext items={wp.tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+                  {wp.tasks.map(task => (
+                    <SortableTaskGroup
+                      key={task.id}
+                      task={task}
+                      wp={wp}
+                      participants={participants}
+                      proposalId={proposalId}
+                      projectDuration={projectDuration}
+                      saveTaskField={saveTaskField}
+                      onDeleteTask={handleDeleteTask}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
             </table>
           </div>
         );
