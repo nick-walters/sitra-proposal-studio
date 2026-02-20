@@ -32,23 +32,36 @@ interface TopicInformationPageProps {
   budgetItems?: { amount: number; participantId: string }[];
 }
 
-function getCallStatus(openingDate?: Date, deadline?: Date): { label: string; variant: 'default' | 'destructive' | 'secondary' | 'outline'; className: string } {
+function getCallStatus(openingDate?: Date, deadline?: Date): { label: string; variant: 'default' | 'destructive' | 'secondary' | 'outline'; className: string } | null {
+  if (!openingDate) return null; // No badge when opening date not defined
+
   const now = new Date();
-  
-  if (openingDate && now < openingDate) {
+
+  // Check if past 17:00 Brussels time on deadline date
+  if (deadline) {
+    const brusselsDeadline = new Date(deadline.toLocaleString('en-US', { timeZone: 'Europe/Brussels' }));
+    brusselsDeadline.setHours(17, 0, 0, 0);
+    // Convert back: get the Brussels 17:00 as a UTC-comparable timestamp
+    const deadlineCutoff = new Date(deadline);
+    deadlineCutoff.setHours(17, 0, 0, 0);
+    // Use Intl to get accurate Brussels time comparison
+    const nowBrussels = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Brussels' }));
+    const deadlineBrussels = new Date(deadline.toLocaleString('en-US', { timeZone: 'Europe/Brussels' }));
+    deadlineBrussels.setHours(17, 0, 0, 0);
+    if (nowBrussels > deadlineBrussels) {
+      return { label: 'Closed', variant: 'destructive', className: 'bg-destructive/10 text-destructive border-destructive/30' };
+    }
+  }
+
+  if (now < openingDate) {
     return { label: 'Upcoming', variant: 'secondary', className: 'bg-muted text-muted-foreground' };
   }
-  if (deadline && now > deadline) {
-    return { label: 'Closed', variant: 'destructive', className: 'bg-destructive/10 text-destructive border-destructive/30' };
-  }
-  if (openingDate && deadline && now >= openingDate && now <= deadline) {
+
+  if (openingDate && now >= openingDate) {
     return { label: 'Open for submission', variant: 'default', className: 'bg-green-50 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700' };
   }
-  // If only deadline is set and hasn't passed
-  if (deadline && now <= deadline) {
-    return { label: 'Open for submission', variant: 'default', className: 'bg-green-50 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700' };
-  }
-  return { label: 'Unknown', variant: 'outline', className: '' };
+
+  return null;
 }
 
 /** Parse a budget string that may be a range like "3,500,000–4,000,000" into [min, max] numbers */
@@ -331,7 +344,7 @@ export function TopicInformationPage({
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
                   <label className="text-xs text-muted-foreground block">Opening date</label>
-                  {(proposal?.openingDate || proposal?.deadline) && (
+                  {callStatus && (
                     <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 h-4", callStatus.className)}>
                       {callStatus.label}
                     </Badge>
@@ -352,6 +365,11 @@ export function TopicInformationPage({
                         onSelect={(date) => setEditedProposal({ ...editedProposal, openingDate: date } as any)}
                         className="pointer-events-auto"
                       />
+                      <div className="px-3 pb-2">
+                        <Button variant="ghost" size="sm" className="w-full text-xs text-muted-foreground" onClick={() => setEditedProposal({ ...editedProposal, openingDate: undefined } as any)}>
+                          Reset
+                        </Button>
+                      </div>
                     </PopoverContent>
                   </Popover>
                 ) : (
@@ -378,6 +396,11 @@ export function TopicInformationPage({
                         onSelect={(date) => setEditedProposal({ ...editedProposal, deadline: date })}
                         className="pointer-events-auto"
                       />
+                      <div className="px-3 pb-2">
+                        <Button variant="ghost" size="sm" className="w-full text-xs text-muted-foreground" onClick={() => setEditedProposal({ ...editedProposal, deadline: undefined })}>
+                          Reset
+                        </Button>
+                      </div>
                     </PopoverContent>
                   </Popover>
                 ) : (
