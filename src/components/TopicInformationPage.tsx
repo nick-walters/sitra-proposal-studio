@@ -306,9 +306,11 @@ export function TopicInformationPage({
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
                   <label className="text-xs text-muted-foreground block">Opening date</label>
-                  <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 h-4", callStatus.className)}>
-                    {callStatus.label}
-                  </Badge>
+                  {(proposal?.openingDate || proposal?.deadline) && (
+                    <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 h-4", callStatus.className)}>
+                      {callStatus.label}
+                    </Badge>
+                  )}
                 </div>
                 {isEditing && editedProposal ? (
                   <Popover>
