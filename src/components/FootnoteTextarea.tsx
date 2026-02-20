@@ -18,6 +18,9 @@ interface FootnoteTextareaProps {
   disabled?: boolean;
   className?: string;
   minHeight?: string;
+  hideInlineFootnoteButton?: boolean;
+  textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
+  onFocus?: () => void;
 }
 
 export function FootnoteTextarea({
@@ -29,8 +32,12 @@ export function FootnoteTextarea({
   disabled = false,
   className,
   minHeight = "150px",
+  hideInlineFootnoteButton = false,
+  textareaRef: externalRef,
+  onFocus,
 }: FootnoteTextareaProps) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const internalRef = useRef<HTMLTextAreaElement>(null);
+  const textareaRef = externalRef || internalRef;
 
   const insertFootnote = useCallback(() => {
     const nextNumber = footnotes.length + 1;
@@ -93,10 +100,11 @@ export function FootnoteTextarea({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           disabled={disabled}
-          className={`text-sm resize-none ${className || ""}`}
+          className={`text-sm resize-none text-left ${className || ""}`}
           style={{ minHeight }}
+          onFocus={onFocus}
         />
-        {!disabled && (
+        {!disabled && !hideInlineFootnoteButton && (
           <Button
             type="button"
             variant="outline"
