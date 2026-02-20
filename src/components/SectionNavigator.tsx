@@ -165,7 +165,7 @@ function SectionItem({
   const caseColor = caseSection.caseColor;
   
   // Check if this is a participant section (a2-{participantId})
-  const isParticipantSection = section.id.startsWith('a2-') && section.id !== 'a2';
+  const isParticipantSection = (section.id.startsWith('a2-') && section.id !== 'a2') || (section.id.startsWith('a3-') && section.id !== 'a3');
   
   // Get collaborators currently editing this section
   const sectionCollaborators = collaborators.filter(c => c.sectionId === section.id);
@@ -486,17 +486,17 @@ function SectionItem({
       {hasSubsections && (isAlwaysExpanded || isExpanded) && (
         <div className="animate-slide-in-left">
           {/* Render WP Drafts, Case Drafts, and A2 Participants as multi-column grid of bubbles */}
-          {(section.id === 'wp-drafts' || section.id === 'case-drafts' || section.id === 'a2') ? (
+          {(section.id === 'wp-drafts' || section.id === 'case-drafts' || section.id === 'a2' || section.id === 'a3') ? (
             <div 
               className={cn(
                 "grid gap-x-[3px] py-1",
-                section.id === 'a2' ? "" : "grid-cols-2"
+                (section.id === 'a2' || section.id === 'a3') ? "" : "grid-cols-2"
               )}
               style={{ 
                 paddingLeft: `${depth * 8 + 12}px`, 
                 paddingRight: '8px',
                 rowGap: '2px',
-                ...(section.id === 'a2' ? { gridTemplateColumns: 'repeat(auto-fill, minmax(55px, 1fr))' } : {}),
+                ...((section.id === 'a2' || section.id === 'a3') ? { gridTemplateColumns: 'repeat(auto-fill, minmax(55px, 1fr))' } : {}),
               }}
             >
               {section.subsections!.map((subsection) => {
@@ -513,7 +513,8 @@ function SectionItem({
                           <button
                           className={cn(
                             "inline-flex items-center justify-start w-fit px-1.5 py-0 rounded-full text-[11px] font-bold truncate cursor-pointer transition-all max-w-full leading-tight break-all",
-                            isSubActive && "ring-2 ring-primary ring-offset-1"
+                            isSubActive && "ring-2 ring-primary ring-offset-1",
+                            !isWP && !isCase && "italic"
                           )}
                           style={{ 
                             backgroundColor: isWP ? wpSub.wpColor : isCase ? '#ffffff' : '#000000',
@@ -592,6 +593,17 @@ export function SectionNavigator({
                 ...sub,
                 subsections: visibleParticipants.map(p => ({
                   id: `a2-${p.id}`,
+                  number: `${p.participantNumber}`,
+                  title: p.organisationShortName || p.organisationName || 'Participant',
+                  isPartA: true,
+                })),
+              };
+            }
+            if (sub.id === 'a3' && visibleParticipants.length > 0) {
+              return {
+                ...sub,
+                subsections: visibleParticipants.map(p => ({
+                  id: `a3-${p.id}`,
                   number: `${p.participantNumber}`,
                   title: p.organisationShortName || p.organisationName || 'Participant',
                   isPartA: true,

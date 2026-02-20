@@ -7,6 +7,7 @@ import { ParticipantDetailForm } from "@/components/ParticipantDetailForm";
 import { GeneralInfoForm } from "@/components/GeneralInfoForm";
 import { TopicInformationPage } from "@/components/TopicInformationPage";
 import { BudgetPortalSheet } from "@/components/BudgetPortalSheet";
+import { BudgetParticipantForm } from "@/components/BudgetParticipantForm";
 import { EthicsForm } from "@/components/EthicsForm";
 import { OtherQuestionsForm } from "@/components/OtherQuestionsForm";
 import { DeclarationsForm } from "@/components/DeclarationsForm";
@@ -328,7 +329,7 @@ export function ProposalEditor() {
 
   const handleSectionClick = (section: Section | WPSection) => {
     // Clear selected participant when navigating to A2 overview or away from A2
-    if (section.id === 'a2' || (!section.id.startsWith('a2-'))) {
+    if (section.id === 'a2' || (!section.id.startsWith('a2-') && !section.id.startsWith('a3-'))) {
       setSelectedParticipantId(null);
     }
     // If clicking on a participant section, extract the ID
@@ -686,7 +687,23 @@ export function ProposalEditor() {
         }
       }
 
-      // A3 - Budget (spreadsheet) - matches "a3"
+      // Handle specific participant budget section (a3-{id})
+      if (activeSection.id.startsWith('a3-')) {
+        const participantId = activeSection.id.replace('a3-', '');
+        return (
+          <div className="flex-1 overflow-y-auto">
+            <BudgetParticipantForm
+              proposalId={id || ''}
+              participantId={participantId}
+              proposalType={proposal?.type || null}
+              canEdit={canEdit}
+              isCoordinator={isCoordinator}
+            />
+          </div>
+        );
+      }
+
+      // A3 - Budget (overview) - matches "a3"
       if (activeSection.id === 'a3' || activeSection.id === 'budget') {
         return (
           <div className="flex-1 overflow-y-auto">
