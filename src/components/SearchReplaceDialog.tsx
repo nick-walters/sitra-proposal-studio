@@ -231,7 +231,8 @@ export function SearchReplaceDialog({ isOpen, onClose, editor }: SearchReplaceDi
       .insertContent(replacement)
       .run();
 
-    // Refresh matches after replacement
+    // Clear stale decorations immediately, then refresh
+    setMatches([]);
     setTimeout(findMatches, 50);
   };
 
@@ -241,11 +242,9 @@ export function SearchReplaceDialog({ isOpen, onClose, editor }: SearchReplaceDi
     // Process matches in reverse order to maintain positions
     const sortedMatches = [...matches].sort((a, b) => b.from - a.from);
 
-    editor.chain().focus();
-    
-    for (const match of sortedMatches) {
+    // Build replacements list
+    const replacements = sortedMatches.map(match => {
       let replacement = replaceText;
-      
       if (useRegex) {
         try {
           const pattern = new RegExp(searchText, caseSensitive ? '' : 'i');
@@ -254,16 +253,19 @@ export function SearchReplaceDialog({ isOpen, onClose, editor }: SearchReplaceDi
           // Fall back to literal replacement
         }
       }
+      return { from: match.from, to: match.to, replacement };
+    });
 
-      editor
-        .chain()
-        .setTextSelection({ from: match.from, to: match.to })
-        .deleteSelection()
-        .insertContent(replacement)
-        .run();
-    }
+    // Apply all replacements in a single transaction
+    editor.chain().focus().command(({ tr }) => {
+      for (const { from, to, replacement } of replacements) {
+        tr.replaceWith(from, to, replacement ? editor.schema.text(replacement) : editor.schema.text(''));
+      }
+      return true;
+    }).run();
 
-    // Refresh matches after replacement
+    // Clear stale decorations immediately, then refresh
+    setMatches([]);
     setTimeout(findMatches, 50);
   };
 

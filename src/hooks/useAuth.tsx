@@ -7,7 +7,8 @@ export function useAuth() {
   const [user, setUser] = useState<User | null>(() => {
     try {
       const cached = sessionStorage.getItem('auth-user');
-      return cached ? JSON.parse(cached) : null;
+      // Cached value is slim {id, email} — enough to prevent loading flash
+      return cached ? JSON.parse(cached) as User : null;
     } catch {
       return null;
     }
@@ -28,7 +29,9 @@ export function useAuth() {
     // Cache user for instant hydration on page refresh
     if (newSession?.user) {
       try {
-        sessionStorage.setItem('auth-user', JSON.stringify(newSession.user));
+        // Only cache minimal fields needed to prevent loading flash
+        const { id, email } = newSession.user;
+        sessionStorage.setItem('auth-user', JSON.stringify({ id, email }));
       } catch {
         // Ignore storage errors
       }

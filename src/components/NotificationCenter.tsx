@@ -33,7 +33,7 @@ function NotificationItem({
   return (
     <div 
       className={cn(
-        "flex items-start gap-3 p-3 hover:bg-muted/50 transition-colors cursor-pointer border-b last:border-b-0",
+        "group flex items-start gap-3 p-3 hover:bg-muted/50 transition-colors cursor-pointer border-b last:border-b-0",
         !notification.is_read && "bg-blue-50/50 dark:bg-blue-950/20"
       )}
       onClick={() => {
