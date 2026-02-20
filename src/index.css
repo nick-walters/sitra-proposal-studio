@@ -414,7 +414,7 @@
   }
 
   .section-nav-item-active {
-    @apply bg-muted/70 text-foreground;
+    @apply bg-muted text-foreground;
   }
 
   .editor-toolbar {
