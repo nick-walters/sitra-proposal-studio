@@ -770,7 +770,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
                         onSave={(val) => saveWPField(wp.id, 'short_name', val)}
                         className="text-white"
                       />
-                      &nbsp;–&nbsp;
+                      {shortName && title ? <>&nbsp;–&nbsp;</> : null}
                       <EditableHeaderText
                         value={title}
                         onSave={(val) => saveWPField(wp.id, 'title', val)}
