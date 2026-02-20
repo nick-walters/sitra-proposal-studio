@@ -6,7 +6,7 @@ import { ParticipantListView } from "@/components/ParticipantListView";
 import { ParticipantDetailForm } from "@/components/ParticipantDetailForm";
 import { GeneralInfoForm } from "@/components/GeneralInfoForm";
 import { TopicInformationPage } from "@/components/TopicInformationPage";
-import { BudgetSpreadsheetEnhanced } from "@/components/BudgetSpreadsheetEnhanced";
+import { BudgetPortalSheet } from "@/components/BudgetPortalSheet";
 import { EthicsForm } from "@/components/EthicsForm";
 import { OtherQuestionsForm } from "@/components/OtherQuestionsForm";
 import { DeclarationsForm } from "@/components/DeclarationsForm";
@@ -690,21 +690,11 @@ export function ProposalEditor() {
       if (activeSection.id === 'a3' || activeSection.id === 'budget') {
         return (
           <div className="flex-1 overflow-y-auto">
-            <BudgetSpreadsheetEnhanced
-              budgetItems={budgetItems}
-              budgetChanges={budgetChanges}
-              participants={participants}
-              budgetType={proposal?.budgetType || 'traditional'}
-              totalBudget={proposal?.totalBudget}
-              onAddBudgetItem={addBudgetItem}
-              onUpdateBudgetItem={updateBudgetItem}
-              onDeleteBudgetItem={deleteBudgetItem}
-              onChangeBudgetType={handleBudgetTypeChange}
-              canEdit={canEdit}
+            <BudgetPortalSheet
               proposalId={id || ''}
-              saving={budgetSaving}
+              proposalType={proposal?.type || null}
+              canEdit={canEdit}
               isCoordinator={isCoordinator}
-              isFullProposal={proposal?.submissionStage !== 'stage_1'}
             />
           </div>
         );
