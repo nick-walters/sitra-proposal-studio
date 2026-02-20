@@ -139,7 +139,7 @@ export function CreateProposalDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
-    toast.info('Creating your proposal — it will open shortly…', { duration: 5000 });
+    toast.info('Creating your proposal — it will open shortly…', { duration: Infinity });
     onCreateProposal({ 
       acronym, 
       title, 
