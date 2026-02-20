@@ -761,7 +761,7 @@ function EthicsQuestionRow({
     <>
       <div 
         className={cn(
-          "grid grid-cols-[1fr,auto,auto] gap-2 items-start py-2 border-b border-border/50",
+          "grid grid-cols-[1fr,auto,auto] gap-2 items-start py-2 px-3 border-b border-border/50",
           indent > 0 && "bg-muted/30"
         )}
       >
@@ -937,9 +937,9 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
                       <AlertTriangle className="w-4 h-4 text-warning" />
                     )}
                   </div>
-                  <div className="px-3 pb-2">
+                  <div className="pb-2">
                     {/* Table header */}
-                    <div className="grid grid-cols-[1fr,auto,auto] gap-2 items-center py-2 border-b-2 border-border text-xs font-medium text-muted-foreground">
+                    <div className="grid grid-cols-[1fr,auto,auto] gap-2 items-center py-2 px-3 border-b-2 border-border text-xs font-medium text-muted-foreground">
                       <div>Question</div>
                       <div className="w-24 text-center">Answer</div>
                       <div className="w-16 text-center">Page</div>
@@ -1125,9 +1125,9 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
                       {section.description}
                     </p>
                   )}
-                  <div className="px-3 pb-2">
+                  <div className="pb-2">
                     {/* Table header */}
-                    <div className="grid grid-cols-[1fr,auto,auto] gap-2 items-center py-2 border-b-2 border-border text-xs font-medium text-muted-foreground">
+                    <div className="grid grid-cols-[1fr,auto,auto] gap-2 items-center py-2 px-3 border-b-2 border-border text-xs font-medium text-muted-foreground">
                       <div>Question</div>
                       <div className="w-24 text-center">Answer</div>
                       <div className="w-16 text-center">Page</div>
