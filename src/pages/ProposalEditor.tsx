@@ -5,6 +5,7 @@ import { DocumentEditor } from "@/components/DocumentEditor";
 import { ParticipantListView } from "@/components/ParticipantListView";
 import { ParticipantDetailForm } from "@/components/ParticipantDetailForm";
 import { GeneralInfoForm } from "@/components/GeneralInfoForm";
+import { TopicInformationPage } from "@/components/TopicInformationPage";
 import { BudgetSpreadsheetEnhanced } from "@/components/BudgetSpreadsheetEnhanced";
 import { EthicsForm } from "@/components/EthicsForm";
 import { OtherQuestionsForm } from "@/components/OtherQuestionsForm";
@@ -473,6 +474,30 @@ export function ProposalEditor() {
                 setActiveSection(wpSection);
               }
             }}
+          />
+        </div>
+      );
+    }
+
+    // Topic Information page
+    if (activeSection.id === 'topic-info') {
+      return (
+        <div className="flex-1 overflow-y-auto">
+          <TopicInformationPage
+            proposalId={id || ''}
+            proposal={proposal ? {
+              ...proposal,
+              members: [],
+              sections: allSections,
+            } : null}
+            canEdit={canEdit && isCoordinator}
+            isCoordinator={isCoordinator}
+            onUpdateProposal={updateProposal}
+            participants={participants}
+            budgetItems={budgetItems.map((b) => ({
+              amount: b.amount,
+              participantId: b.participantId,
+            }))}
           />
         </div>
       );

@@ -422,6 +422,13 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
 
   // Return either template sections or fallback to hardcoded sections
   const allSections = useMemo(() => {
+    // Topic information section (above Part A)
+    const topicInfoSection: Section = {
+      id: 'topic-info',
+      number: '',
+      title: 'Topic information',
+    };
+
     // Proposal management section (always at top, not a page itself)
     const proposalManagementSection: Section = {
       id: 'proposal-management',
@@ -463,8 +470,8 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         partBRoot.subsections = partBRoot.subsections.filter(s => s.id !== 'figures' && s.title !== 'Figures');
       }
       
-      // Build result: Proposal Management, Part A, Part B, then WP Drafts, then Case Drafts, then Figures
-      const result = [proposalManagementSection, ...partASections, ...partBSections];
+      // Build result: Proposal Management, Topic Info, Part A, Part B, then WP Drafts, then Case Drafts, then Figures
+      const result = [proposalManagementSection, topicInfoSection, ...partASections, ...partBSections];
       
       // Add combined WPs & cases section if there are any WP or case drafts
       if (wpDraftSections.length > 0 || caseDraftSections.length > 0) {
@@ -478,7 +485,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     }
     
     // Fallback to hardcoded sections
-    const fallbackSections = [proposalManagementSection, ...PART_A_SECTIONS, ...HORIZON_EUROPE_SECTIONS];
+    const fallbackSections = [proposalManagementSection, topicInfoSection, ...PART_A_SECTIONS, ...HORIZON_EUROPE_SECTIONS];
     
     // Add combined WPs & cases section
     if (wpDraftSections.length > 0 || caseDraftSections.length > 0) {

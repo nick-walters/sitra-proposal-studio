@@ -205,6 +205,7 @@ export interface Proposal {
   topicContentImportedAt?: Date;
   totalBudget?: number;
   deadline?: Date;
+  openingDate?: Date;
   description?: string;
   duration?: number;
   workProgramme?: string;

@@ -197,6 +197,7 @@ function SectionItem({
     section.number === 'Part A' ||
     section.id === 'part-b' || 
     section.number === 'Part B' ||
+    section.id === 'topic-info' ||
     section.id === 'figures' ||
     section.title === 'Figures' ||
     section.id === 'wp-progress-tracker' ||
@@ -261,7 +262,9 @@ function SectionItem({
       >
         {/* Left-side icons */}
         {/* Left-side icons */}
-        {section.id === 'proposal-management' ? (
+        {section.id === 'topic-info' ? (
+          <Target className="w-4 h-4 text-muted-foreground shrink-0" />
+        ) : section.id === 'proposal-management' ? (
           <Briefcase className="w-4 h-4 text-muted-foreground shrink-0" />
         ) : section.id === 'messaging' ? (
           <MessageSquare className="w-4 h-4 text-muted-foreground shrink-0" />
