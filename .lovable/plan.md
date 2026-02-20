@@ -1,142 +1,78 @@
 
 
-# A3 Budget Restructure: Per-Participant Pages + Overview
+# Feature Improvement Suggestions for Sitra Proposal Studio
 
-## Summary
-
-Restructure A3 so that each participant gets their own budget page (like A2), accessible via participant bubbles in the left panel. The A3 overview page becomes a summary dashboard with lock controls. Both A2 and A3 participant bubbles render in italic text.
+After a thorough review of the codebase, here are actionable improvements grouped by area.
 
 ---
 
-## Changes
+## 1. Notification Center -- Delete button never visible
 
-### 1. Left Panel Navigation (SectionNavigator.tsx)
+**Problem:** In `NotificationCenter.tsx`, the delete button (Trash icon) has class `opacity-0 group-hover:opacity-100`, but the parent `<div>` on line 34 lacks the `group` class. The button is permanently invisible.
 
-- Inject participant subsections under A3 (same pattern as A2), creating `a3-{participantId}` sections
-- Both A2 and A3 participant bubble text gets `italic` styling added to the button class
-- A3 subsections use the same multi-column grid layout as A2
-
-### 2. A3 Overview Page (BudgetPortalSheet.tsx -- refactored)
-
-Restore the A3 landing page to a summary/overview format:
-- **Summary cards** at the top: Total Request, Total Eligible Costs, Indirect Costs, Requested EU Contribution (using `grandTotals` from `useBudgetRows`)
-- **Summary table**: One row per participant showing key totals (personnel, subcontracting, travel, equipment, other goods, internally invoiced, indirect, total eligible, EU contribution) -- read-only
-- **Lock controls**: Coordinators/admins/owners see a lock toggle per participant row
-- **No inline editing** on this page -- editing happens on individual participant pages
-
-### 3. New: Per-Participant Budget Form (new component: `BudgetParticipantForm.tsx`)
-
-A user-friendly vertical form (not a wide spreadsheet) for a single participant's budget:
-- **Header**: Participant name, number, country, role
-- **Cost entry section**: Card-based layout with labeled fields for each cost category (Personnel, Subcontracting, Travel, Equipment, Other goods, Internally invoiced) using `FormattedNumberInput`
-- **Justification buttons**: Inline with subcontracting, equipment, other goods, and internally invoiced fields -- opens `BudgetJustificationDialog`
-- **Calculated section**: Read-only display of indirect costs, total eligible costs, funding rate, max EU contribution, requested EU contribution
-- **Financial section**: Editable fields for income generated, financial contributions, own resources
-- **Total estimated income**: Read-only calculated value
-- **Locked state**: If the row is locked and user is not admin, all fields are disabled with a lock banner (similar to section locking pattern)
-
-### 4. ProposalEditor.tsx Routing
-
-- `a3` section ID renders the overview (`BudgetPortalSheet` refactored as overview)
-- `a3-{participantId}` section IDs render `BudgetParticipantForm` for that participant
-- Clicking a participant bubble in the A3 nav goes to their budget form
-
-### 5. Data Flow
-
-No database changes needed -- the existing `budget_rows` and `budget_cost_justifications` tables support this. The `useBudgetRows` hook is shared between the overview and per-participant views.
+**Fix:** Add `group` to the notification item wrapper div's className.
 
 ---
 
-## Technical Details
+## 2. Search & Replace -- Stale decorations after replace
 
-### SectionNavigator.tsx changes
+**Problem:** In `SearchReplaceDialog.tsx`, after `replaceCurrent()` or `replaceAll()`, the match list refreshes via `setTimeout(findMatches, 50)`, but the decoration plugin still holds the old positions until the effect re-runs. This can cause decorations to highlight wrong text briefly.
 
-In the `SectionNavigator` component's `sectionsWithParticipants` memo, add a second injection block for A3:
-
-```typescript
-if (sub.id === 'a3' && visibleParticipants.length > 0) {
-  return {
-    ...sub,
-    subsections: visibleParticipants.map(p => ({
-      id: `a3-${p.id}`,
-      number: `${p.participantNumber}`,
-      title: p.organisationShortName || p.organisationName || 'Participant',
-      isPartA: true,
-    })),
-  };
-}
-```
-
-For italic styling, add `italic` to the button className for participant bubbles (where `!isWP && !isCase`) in lines ~514-531.
-
-### BudgetPortalSheet.tsx refactored as overview
-
-- Remove inline editing (FormattedNumberInput cells)
-- Show read-only formatted numbers per participant row
-- Add summary cards at top using the existing `grandTotals`
-- Add lock toggle column for admins
-- Each participant name is clickable, navigating to `a3-{participantId}`
-
-### New BudgetParticipantForm.tsx
-
-A vertical card-based form:
-
-```text
-+------------------------------------------+
-| P1: Sitra (Coordinator)          [Locked] |
-| Country: Finland                          |
-+------------------------------------------+
-| Cost Categories                           |
-| Personnel costs          [___________] EUR|
-| Subcontracting costs     [___________] [J]|
-| Travel & subsistence     [___________] EUR|
-| Equipment                [___________] [J]|
-| Other goods & services   [___________] [J]|
-| Internally invoiced      [___________] [J]|
-+------------------------------------------+
-| Calculated Values                         |
-| Direct costs:              12,000 EUR     |
-| Indirect costs (25%):       3,000 EUR     |
-| Total eligible costs:      15,000 EUR     |
-| Funding rate:                  100%       |
-| Max EU contribution:      15,000 EUR     |
-| Requested EU contribution: 15,000 EUR    |
-+------------------------------------------+
-| Financial Information                     |
-| Income generated         [___________] EUR|
-| Financial contributions  [___________] EUR|
-| Own resources            [___________] EUR|
-| Total estimated income:    15,000 EUR     |
-+------------------------------------------+
-```
-
-[J] = justification button opening BudgetJustificationDialog
-
-### ProposalEditor.tsx routing additions
-
-Add handler for `a3-{participantId}` sections (similar to `a2-{participantId}` pattern at line 647):
-
-```typescript
-if (activeSection.id.startsWith('a3-')) {
-  const participantId = activeSection.id.replace('a3-', '');
-  return <BudgetParticipantForm 
-    proposalId={id} 
-    participantId={participantId}
-    proposalType={proposal?.type}
-    canEdit={canEdit}
-    isCoordinator={isCoordinator}
-  />;
-}
-```
+**Fix:** Clear `matches` state immediately before the timeout, so stale decorations are removed instantly.
 
 ---
 
-## Files affected
+## 3. Search & Replace -- replaceAll uses individual chain calls
 
-| Action | File |
-|--------|------|
-| Edit | `src/components/SectionNavigator.tsx` -- inject A3 participant subsections + italic styling |
-| Edit | `src/components/BudgetPortalSheet.tsx` -- refactor to overview/summary format |
-| Create | `src/components/BudgetParticipantForm.tsx` -- per-participant budget form |
-| Edit | `src/pages/ProposalEditor.tsx` -- add routing for `a3-{participantId}` |
+**Problem:** `replaceAll()` loops through matches calling `editor.chain()...run()` once per match. This fires N separate transactions, which is slow on large documents and can cause undo-history bloat.
+
+**Fix:** Wrap all replacements in a single chained transaction by accumulating all operations.
+
+---
+
+## 4. Notification hook -- unreadCount can desync on realtime DELETE
+
+**Problem:** In `useNotifications.ts`, the DELETE handler removes the notification from state but never decrements `unreadCount` if the deleted notification was unread.
+
+**Fix:** In the DELETE realtime handler, check if the removed notification was unread and decrement the count.
+
+---
+
+## 5. SaveIndicator -- no "saving" spinner state
+
+**Problem:** `SaveIndicator.tsx` treats `saving=true` and `hasUnsavedChanges=true` identically (just shows "Autosaves after 5 sec"). There's no visual feedback while an active save is in progress vs content simply being dirty.
+
+**Fix:** Add a third visual state with a spinner/pulsing icon when `saving` is true, distinct from the idle "Autosaves after 5 sec" state.
+
+---
+
+## 6. useSectionContent -- beforeunload handler doesn't save version
+
+**Problem:** The `beforeunload` handler saves content via sync XHR but does NOT save a version snapshot. The unmount cleanup does both, but `beforeunload` (tab close) skips the version. This means the last edits before closing the tab may not appear in version history.
+
+**Fix:** Also call `syncSaveVersion` in the `beforeunload` handler when content has changed from the last version.
+
+---
+
+## 7. useAuth -- sessionStorage caching stores full User object
+
+**Problem:** The entire Supabase `User` object (which can be large with metadata) is stored in `sessionStorage`. This is used only to prevent a loading flash, so only `id` and `email` are needed.
+
+**Fix:** Cache only `{ id, email }` in sessionStorage for the hydration check, and let the real session restore the full object.
+
+---
+
+## Technical Implementation Details
+
+| # | File | Change Type | Complexity |
+|---|------|-------------|------------|
+| 1 | `NotificationCenter.tsx` | Add `group` class | Trivial |
+| 2 | `SearchReplaceDialog.tsx` | Clear matches before timeout | Small |
+| 3 | `SearchReplaceDialog.tsx` | Single-transaction replaceAll | Medium |
+| 4 | `useNotifications.ts` | Fix DELETE handler unread count | Small |
+| 5 | `SaveIndicator.tsx` | Add spinner for saving state | Small |
+| 6 | `useSectionContent.ts` | Add syncSaveVersion to beforeunload | Small |
+| 7 | `useAuth.tsx` | Slim sessionStorage cache | Small |
+
+All changes are backwards-compatible and require no database migrations.
 
