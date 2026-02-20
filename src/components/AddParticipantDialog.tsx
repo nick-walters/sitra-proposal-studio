@@ -197,7 +197,7 @@ export function AddParticipantDialog({
                 value={form.organisationName}
                 onChange={(e) => {
                   // Apply name case
-                  const value = e.target.value.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+                  const value = e.target.value.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase());
                   setForm(prev => ({ ...prev, organisationName: value }));
                   if (formErrors.organisationName) setFormErrors(prev => ({ ...prev, organisationName: '' }));
                 }}
@@ -220,7 +220,7 @@ export function AddParticipantDialog({
                 value={form.englishName}
                 onChange={(e) => {
                   // Apply name case
-                  const value = e.target.value.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+                  const value = e.target.value.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase());
                   setForm(prev => ({ ...prev, englishName: value }));
                 }}
                 placeholder="e.g. The Finnish Innovation Fund"

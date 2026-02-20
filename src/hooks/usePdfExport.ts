@@ -4,6 +4,12 @@ import { toast } from 'sonner';
 import { Proposal, Section, Participant } from '@/types/proposal';
 import { supabase } from '@/integrations/supabase/client';
 
+/** Convert hex color string to RGB tuple */
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace('#', '');
+  return [parseInt(h.substring(0, 2), 16), parseInt(h.substring(2, 4), 16), parseInt(h.substring(4, 6), 16)];
+}
+
 interface SectionContent {
   id: string;
   sectionId: string;
@@ -750,11 +756,7 @@ export function usePdfExport() {
       // Helper: Draw WP bubble with custom color
       const drawWPBubble = (wpNum: number, x: number, y: number, color: string): number => {
         const text = `WP${wpNum}`;
-        // Parse hex color to RGB
-        const hex = color.replace('#', '');
-        const r = parseInt(hex.substr(0, 2), 16);
-        const g = parseInt(hex.substr(2, 2), 16);
-        const b = parseInt(hex.substr(4, 2), 16);
+        const [r, g, b] = hexToRgb(color);
         return drawBubble(text, x, y, [r, g, b]);
       };
 
@@ -1019,10 +1021,6 @@ export function usePdfExport() {
             const deliverableText = `${d.number}: ${title}`;
             const wpNum = d.wp_number;
             const wpColor = wpNum && wpColorMap.get(wpNum) ? wpColorMap.get(wpNum)! : '#475569';
-            const hexToRgb = (hex: string): [number, number, number] => {
-              const h = hex.replace('#', '');
-              return [parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16)];
-            };
             const leadName = d.lead_participant_id ? (participantMap.get(d.lead_participant_id) || '') : '—';
             
             return [
@@ -1457,10 +1455,6 @@ export function usePdfExport() {
           
           // WP badges
           for (const wp of wpRoles) {
-            const hexToRgb = (hex: string): [number, number, number] => {
-              const h = hex.replace('#', '');
-              return [parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16)];
-            };
             const bubbleWidth = drawBubble(`WP${wp.wpNumber}`, roleX, roleY, hexToRgb(wp.color));
             roleX += bubbleWidth + 1.5;
             if (roleX + avgBubbleWidth > xPos + roleColWidthActual) {
@@ -1471,10 +1465,6 @@ export function usePdfExport() {
           
           // Case badges
           for (const c of caseRoles) {
-            const hexToRgb = (hex: string): [number, number, number] => {
-              const h = hex.replace('#', '');
-              return [parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16)];
-            };
             const bubbleWidth = drawBubble(`${c.prefix}${c.caseNumber}`, roleX, roleY, hexToRgb(c.color));
             roleX += bubbleWidth + 1.5;
             if (roleX + avgBubbleWidth > xPos + roleColWidthActual) {

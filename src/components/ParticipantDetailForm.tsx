@@ -116,7 +116,7 @@ export function ParticipantDetailForm({
 
   // Helper to convert to Name Case
   const toNameCase = (str: string) => {
-    return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+    return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase());
   };
 
   const handleFieldUpdate = (field: string, value: unknown) => {
