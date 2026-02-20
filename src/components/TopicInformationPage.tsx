@@ -3,8 +3,8 @@ import { FormattedNumberInput } from '@/components/FormattedNumberInput';
 import { EuroCurrencyInput } from '@/components/EuroCurrencyInput';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { FootnoteTextarea, FootnoteReadonlyView, type Footnote } from "./FootnoteTextarea";
+import { FootnoteReadonlyView, type Footnote } from "./FootnoteTextarea";
+import { TopicRichTextArea } from "./TopicRichTextArea";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -114,34 +114,11 @@ export function TopicInformationPage({
     proposal?.workProgramme ? getDestinationsForWorkProgramme(proposal.workProgramme) : []
   );
 
-  // Refs for description textareas (for formatting toolbar)
-  const expectedOutcomeRef = useRef<HTMLTextAreaElement>(null);
-  const scopeRef = useRef<HTMLTextAreaElement>(null);
-  const destinationRef = useRef<HTMLTextAreaElement>(null);
+  // Track which field is active for footnote insertion
   const [activeFieldKey, setActiveFieldKey] = useState<'expectedOutcome' | 'scope' | 'destination' | null>(null);
-
-  const activeTextareaRef = useMemo(() => {
-    if (activeFieldKey === 'expectedOutcome') return expectedOutcomeRef;
-    if (activeFieldKey === 'scope') return scopeRef;
-    if (activeFieldKey === 'destination') return destinationRef;
-    return { current: null } as React.RefObject<HTMLTextAreaElement | null>;
-  }, [activeFieldKey]);
-
-  const handleToolbarTextChange = useCallback((newValue: string) => {
-    if (!editedProposal) return;
-    if (activeFieldKey === 'expectedOutcome') {
-      setEditedProposal({ ...editedProposal, topicExpectedOutcome: newValue } as any);
-    } else if (activeFieldKey === 'scope') {
-      setEditedProposal({ ...editedProposal, topicScope: newValue } as any);
-    } else if (activeFieldKey === 'destination') {
-      setEditedProposal({ ...editedProposal, topicDestinationDescription: newValue } as any);
-    }
-  }, [editedProposal, activeFieldKey]);
 
   const handleToolbarInsertFootnote = useCallback(() => {
     if (!editedProposal || !activeFieldKey) return;
-    const textarea = activeTextareaRef.current;
-    if (!textarea) return;
 
     const isDestination = activeFieldKey === 'destination';
     const footnotes: any[] = isDestination
@@ -150,23 +127,25 @@ export function TopicInformationPage({
     const nextNumber = footnotes.length + 1;
     const newFootnote = { id: crypto.randomUUID(), text: "" };
 
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const marker = `[${nextNumber}]`;
-    const fieldKey = activeFieldKey === 'expectedOutcome' ? 'topicExpectedOutcome'
-      : activeFieldKey === 'scope' ? 'topicScope' : 'topicDestinationDescription';
-    const currentVal = (editedProposal as any)?.[fieldKey] || '';
-    const newValue = currentVal.slice(0, start) + marker + currentVal.slice(end);
+    // Insert superscript marker at cursor in contentEditable
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      const marker = document.createElement('sup');
+      marker.className = 'text-primary font-semibold text-[10px]';
+      marker.textContent = `[${nextNumber}]`;
+      range.deleteContents();
+      range.insertNode(marker);
+      // Move cursor after marker
+      range.setStartAfter(marker);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
 
     const footnotesKey = isDestination ? 'destinationFootnotes' : 'topicFootnotes';
-    setEditedProposal({ ...editedProposal, [fieldKey]: newValue, [footnotesKey]: [...footnotes, newFootnote] } as any);
-
-    requestAnimationFrame(() => {
-      textarea.focus();
-      const newPos = start + marker.length;
-      textarea.setSelectionRange(newPos, newPos);
-    });
-  }, [editedProposal, activeFieldKey, activeTextareaRef]);
+    setEditedProposal({ ...editedProposal, [footnotesKey]: [...footnotes, newFootnote] } as any);
+  }, [editedProposal, activeFieldKey]);
 
   const userCanEdit = canEdit && isCoordinator;
 
@@ -265,8 +244,6 @@ export function TopicInformationPage({
     <div className="flex-1 overflow-auto bg-muted/30">
       {userCanEdit && (
         <TopicFormattingToolbar
-          activeTextareaRef={activeTextareaRef}
-          onTextChange={handleToolbarTextChange}
           onInsertFootnote={handleToolbarInsertFootnote}
         />
       )}
@@ -676,14 +653,9 @@ export function TopicInformationPage({
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Expected outcome</label>
               {userCanEdit ? (
-                <FootnoteTextarea
+                <TopicRichTextArea
                   value={(editedProposal as any)?.topicExpectedOutcome || ''}
                   onChange={(val) => setEditedProposal({ ...editedProposal, topicExpectedOutcome: val } as any)}
-                  footnotes={(editedProposal as any)?.topicFootnotes || []}
-                  onFootnotesChange={(fns) => setEditedProposal({ ...editedProposal, topicFootnotes: fns } as any)}
-                  placeholder=""
-                  hideInlineFootnoteButton
-                  textareaRef={expectedOutcomeRef}
                   onFocus={() => setActiveFieldKey('expectedOutcome')}
                 />
               ) : (
@@ -697,14 +669,9 @@ export function TopicInformationPage({
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Scope</label>
               {userCanEdit ? (
-                <FootnoteTextarea
+                <TopicRichTextArea
                   value={(editedProposal as any)?.topicScope || ''}
                   onChange={(val) => setEditedProposal({ ...editedProposal, topicScope: val } as any)}
-                  footnotes={(editedProposal as any)?.topicFootnotes || []}
-                  onFootnotesChange={(fns) => setEditedProposal({ ...editedProposal, topicFootnotes: fns } as any)}
-                  placeholder=""
-                  hideInlineFootnoteButton
-                  textareaRef={scopeRef}
                   onFocus={() => setActiveFieldKey('scope')}
                 />
               ) : (
@@ -733,15 +700,10 @@ export function TopicInformationPage({
           </CardHeader>
           <CardContent>
             {userCanEdit ? (
-              <FootnoteTextarea
+              <TopicRichTextArea
                 value={(editedProposal as any)?.topicDestinationDescription || ''}
                 onChange={(val) => setEditedProposal({ ...editedProposal, topicDestinationDescription: val } as any)}
-                footnotes={(editedProposal as any)?.destinationFootnotes || []}
-                onFootnotesChange={(fns) => setEditedProposal({ ...editedProposal, destinationFootnotes: fns } as any)}
-                placeholder=""
                 minHeight="200px"
-                hideInlineFootnoteButton
-                textareaRef={destinationRef}
                 onFocus={() => setActiveFieldKey('destination')}
               />
             ) : (
