@@ -169,14 +169,17 @@ export function TopicInformationPage({
     if (!editedProposal || !editingField) return;
     const footnotesKey = getFootnotesKey(editingField);
     const footnotes: any[] = (editedProposal as any)?.[footnotesKey] || [];
+    const newId = crypto.randomUUID();
     const globalNumber = getFootnoteStartNumber(editingField) + footnotes.length;
-    const newFootnote = { id: crypto.randomUUID(), text: "" };
+    const newFootnote = { id: newId, text: "" };
 
     const sel = window.getSelection();
     if (sel && sel.rangeCount > 0) {
       const range = sel.getRangeAt(0);
       const marker = document.createElement('sup');
-      marker.className = 'text-primary font-semibold text-[10px]';
+      marker.className = 'text-primary font-semibold text-[10px] footnote-marker';
+      marker.setAttribute('data-footnote-id', newId);
+      marker.setAttribute('contenteditable', 'false');
       marker.textContent = `${globalNumber}`;
       range.deleteContents();
       range.insertNode(marker);
