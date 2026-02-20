@@ -350,11 +350,13 @@ export function TopicInformationPage({
         )}
         {isThisEditing ? (
           <>
-            <div className="border rounded-md">
+            <div className="sticky top-0 z-10">
               <TopicFormattingToolbar
                 onInsertFootnote={handleInsertFootnote}
                 onInsertLink={handleInsertLink}
               />
+            </div>
+            <div className="border rounded-md">
               <TopicRichTextArea
                 value={fieldValue}
                 onChange={(val) => setEditedProposal({ ...editedProposal, [valueKey]: val } as any)}

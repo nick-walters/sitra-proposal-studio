@@ -17,7 +17,7 @@ export function TopicFormattingToolbar({
   };
 
   return (
-    <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b flex items-center gap-0.5 p-1.5 flex-wrap">
+    <div className="bg-background/95 backdrop-blur-sm border rounded-md rounded-b-none border-b flex items-center gap-0.5 p-1.5 flex-wrap">
       <Tooltip>
         <TooltipTrigger asChild>
           <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => exec('bold')}>
