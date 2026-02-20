@@ -172,6 +172,7 @@ export function DocumentEditor({
   
   // Editor container ref for cursor overlays
   const editorContainerRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   // Collaborative cursors hook
   const { 
@@ -319,6 +320,11 @@ export function DocumentEditor({
       });
     },
   });
+
+  // Scroll to top when section changes
+  useEffect(() => {
+    scrollContainerRef.current?.scrollTo({ top: 0 });
+  }, [section?.id]);
 
   // Sync cross-references when editor content loads, section changes, or external data changes
   const [syncTrigger, setSyncTrigger] = useState(0);
@@ -1044,7 +1050,7 @@ export function DocumentEditor({
       <div className="flex-1 flex min-w-0 min-h-0">
         <div className="flex-1 flex min-w-0 min-h-0 overflow-hidden">
         {/* Main content area */}
-        <div className={`flex-1 min-w-0 overflow-auto p-6 bg-muted/30 transition-all`}>
+        <div ref={scrollContainerRef} className={`flex-1 min-w-0 overflow-auto p-6 bg-muted/30 transition-all`}>
           <div className="mx-auto space-y-6" style={{ maxWidth: '56rem', zoom: `${zoomLevel}%` }}>
             {/* Section Header - word/page limits and page estimate */}
             {(section.wordLimit || section.pageLimit) && (
