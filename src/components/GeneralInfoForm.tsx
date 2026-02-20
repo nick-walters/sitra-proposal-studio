@@ -674,6 +674,7 @@ export function GeneralInfoForm({
   return (
     <div className="flex-1 overflow-auto p-4 bg-muted/30">
       <div className="max-w-7xl mx-auto space-y-4">
+        <h1 className="text-xl font-bold">A1. General information (plus project parameters)</h1>
         {/* Header row with Guidelines button on left, export buttons on right */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -794,242 +795,16 @@ export function GeneralInfoForm({
           </CardContent>
         </Card>
 
-        {/* Topic Card */}
+        {/* Proposal Status Card */}
         <Card>
           <CardHeader className="pb-2 pt-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <Target className="w-4 h-4" />
-                Topic
-              </CardTitle>
-              {proposal?.topicUrl && !isEditing && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="gap-1.5 h-7 text-xs"
-                  onClick={() => window.open(proposal.topicUrl, '_blank')}
-                >
-                  <ExternalLink className="w-3 h-3" />
-                  View on portal
-                </Button>
-              )}
-            </div>
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <FileText className="w-4 h-4" />
+              Proposal status
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <label className="text-xs text-muted-foreground mb-0.5 block">Topic ID</label>
-              {isEditing && editedProposal ? (
-                <Input
-                  value={editedProposal.topicId || ''}
-                  onChange={(e) => setEditedProposal({ ...editedProposal, topicId: e.target.value })}
-                  placeholder="e.g. HORIZON-CL5-2026-D1-01"
-                  className="h-8 text-sm"
-                />
-              ) : (
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium">{proposal?.topicId || 'Not specified'}</p>
-                  {proposal?.topicUrl && (
-                    <a 
-                      href={proposal.topicUrl.startsWith('http') ? proposal.topicUrl : `https://${proposal.topicUrl}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                    >
-                      <ExternalLink className="w-2.5 h-2.5" />
-                      Topic
-                    </a>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="text-xs text-muted-foreground mb-0.5 block">Topic title</label>
-              {isEditing && editedProposal ? (
-                <Input
-                  value={editedProposal.topicTitle || ''}
-                  onChange={(e) => setEditedProposal({ ...editedProposal, topicTitle: e.target.value })}
-                  className="h-8 text-sm"
-                />
-              ) : (
-                <p className="text-sm font-medium">{proposal?.topicTitle || '–'}</p>
-              )}
-            </div>
-
-            {isEditing && editedProposal && (
-              <div>
-                <label className="text-xs text-muted-foreground mb-0.5 block">Link to topic description</label>
-                <Input
-                  value={editedProposal.topicUrl || ''}
-                  onChange={(e) => setEditedProposal({ ...editedProposal, topicUrl: e.target.value })}
-                  placeholder="Portal URL (https://ec.europa.eu/...)"
-                  type="url"
-                  className="h-8 text-sm"
-                />
-              </div>
-            )}
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className="text-xs text-muted-foreground mb-0.5 block">Work programme</label>
-                {isEditing && editedProposal ? (
-                  <Select
-                    value={editedProposal.workProgramme || ''}
-                    onValueChange={(v) => setEditedProposal({ ...editedProposal, workProgramme: v, destination: undefined })}
-                  >
-                    <SelectTrigger className="h-8 text-sm">
-                      <SelectValue placeholder="Select work programme" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {WORK_PROGRAMMES.map(wp => (
-                        <SelectItem key={wp.id} value={wp.id}>
-                          {wp.abbreviation} - {wp.fullName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <p className="text-sm font-medium">
-                    {workProgramme ? `${workProgramme.abbreviation} - ${workProgramme.fullName}` : 'Not specified'}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-0.5 block">Destination</label>
-                {isEditing && editedProposal ? (
-                  <Select
-                    value={editedProposal.destination || ''}
-                    onValueChange={(v) => setEditedProposal({ ...editedProposal, destination: v })}
-                    disabled={!editedProposal.workProgramme}
-                  >
-                    <SelectTrigger className="h-8 text-sm">
-                      <SelectValue placeholder="Select destination" />
-                    </SelectTrigger>
-                    <SelectContent className="z-50 bg-popover">
-                      {availableDestinations.map(d => (
-                        <SelectItem key={d.id} value={d.id} className="!pl-2">
-                          {d.abbreviation} - {d.fullName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <p className="text-sm font-medium">
-                    {destination ? `${destination.abbreviation} - ${destination.fullName}` : 'Not specified'}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className="text-xs text-muted-foreground mb-0.5 block">Proposal stage</label>
-                <p className="text-sm font-medium">
-                  {proposal?.submissionStage === 'stage_1' ? 'Pre-proposal (stage 1)' : 'Full proposal'}
-                </p>
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-0.5 block">Type of action</label>
-                <p className="text-sm font-medium">{proposal?.type || 'Not specified'}</p>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Key Dates */}
+          <CardContent>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <div>
-                <label className="text-xs text-muted-foreground mb-0.5 block">Deadline</label>
-                {isEditing && editedProposal ? (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-8 text-sm", !editedProposal.deadline && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                        {editedProposal.deadline ? format(editedProposal.deadline, 'PPP') : 'Select date'}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 z-50 bg-popover" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={editedProposal.deadline}
-                        onSelect={(date) => {
-                          const isStage1 = editedProposal.submissionStage === 'stage_1';
-                          const monthsToAdd = isStage1 ? 3 : 5;
-                          const estimatedDecision = date ? addMonths(date, monthsToAdd) : undefined;
-                          setEditedProposal({ 
-                            ...editedProposal, 
-                            deadline: date,
-                            decisionDate: estimatedDecision,
-                            decisionDateIsEstimated: !!date,
-                          });
-                        }}
-                        disabled={(date) => date < new Date()}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                ) : (
-                  <div>
-                    <p className="text-sm font-medium">
-                      {proposal?.deadline ? format(proposal.deadline, 'dd MMM yyyy') : 'Not set'}
-                    </p>
-                    {daysUntilDeadline !== null && daysUntilDeadline > 0 && (
-                      <p className="text-xs text-warning font-medium">{daysUntilDeadline} days remaining</p>
-                    )}
-                  </div>
-                )}
-              </div>
-              
-              <div>
-                <label className="text-xs text-muted-foreground mb-0.5 block">
-                  Decision date
-                </label>
-                {isEditing && editedProposal ? (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-8 text-sm", !editedProposal.decisionDate && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                        {editedProposal.decisionDate ? format(editedProposal.decisionDate, 'PPP') : 'Select date'}
-                        {editedProposal.decisionDateIsEstimated && editedProposal.decisionDate && (
-                          <span className="ml-auto inline-flex items-center px-1.5 py-0 text-[9px] font-medium bg-blue-50 text-blue-600 border border-blue-300 rounded">
-                            Est.
-                          </span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 z-50 bg-popover" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={editedProposal.decisionDate}
-                        onSelect={(date) => setEditedProposal({ ...editedProposal, decisionDate: date, decisionDateIsEstimated: false })}
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                ) : (
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-sm font-medium">
-                      {proposal?.decisionDate 
-                        ? format(proposal.decisionDate, 'dd MMM yyyy') 
-                        : 'Not set'}
-                    </p>
-                    {proposal?.decisionDate && proposal?.decisionDateIsEstimated && proposal?.status !== 'funded' && proposal?.status !== 'not_funded' && (
-                      <span className="inline-flex items-center px-1.5 py-0 text-[9px] font-medium bg-blue-50 text-blue-600 border border-blue-300 rounded">
-                        Est.
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {proposal?.status !== 'draft' && (
-                <div>
-                  <label className="text-xs text-muted-foreground mb-0.5 block">Submission date</label>
-                  <p className="text-sm font-medium">
-                    {proposal?.submittedAt ? format(proposal.submittedAt, 'dd MMM yyyy') : 'Not recorded'}
-                  </p>
-                </div>
-              )}
-
               {/* Status change */}
               {canChangeStatus && onStatusChange && (
                 <div>
@@ -1052,297 +827,72 @@ export function GeneralInfoForm({
                     <DropdownMenuContent align="start">
                       {proposal?.status !== 'draft' && (
                         <DropdownMenuItem onClick={() => onStatusChange('draft')}>
-                          <FileText className="w-4 h-4 mr-2" />
-                          Draft
+                          <FileText className="w-4 h-4 mr-2" /> Draft
                         </DropdownMenuItem>
                       )}
                       {proposal?.status !== 'submitted' && (
                         <DropdownMenuItem onClick={() => onStatusChange('submitted')}>
-                          <Send className="w-4 h-4 mr-2" />
-                          Under Evaluation
+                          <Send className="w-4 h-4 mr-2" /> Under Evaluation
                         </DropdownMenuItem>
                       )}
                       {proposal?.status !== 'funded' && (
                         <DropdownMenuItem onClick={() => onStatusChange('funded')}>
-                          <Trophy className="w-4 h-4 mr-2" />
-                          Funded
+                          <Trophy className="w-4 h-4 mr-2" /> Funded
                         </DropdownMenuItem>
                       )}
                       {proposal?.status !== 'not_funded' && (
                         <DropdownMenuItem onClick={() => onStatusChange('not_funded')}>
-                          <ThumbsDown className="w-4 h-4 mr-2" />
-                          Not Funded
+                          <ThumbsDown className="w-4 h-4 mr-2" /> Not Funded
                         </DropdownMenuItem>
                       )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
               )}
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Duration & Reporting Periods Card */}
-        <Card>
-          <CardHeader className="pb-3 pt-4">
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <Clock className="w-4 h-4" />
-              Duration &amp; reporting periods
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-6 items-start">
-              <div className="shrink-0">
-                <label className="text-xs text-muted-foreground mb-0.5 block">Project duration (months)</label>
-                {isEditing && editedProposal ? (
-                  <Select
-                    value={editedProposal.duration?.toString() || ''}
-                    onValueChange={(v) => setEditedProposal({ ...editedProposal, duration: parseInt(v) })}
-                  >
-                    <SelectTrigger className="w-24 h-8 text-sm">
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 72 }, (_, i) => i + 1).map((months) => (
-                        <SelectItem key={months} value={months.toString()}>{months}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <p className="text-sm font-medium">{proposal?.duration ? `${proposal.duration}` : '–'}</p>
-                )}
-              </div>
-              {userCanEditOverview && editedProposal && (
-                <div className="flex-1 min-w-0">
-                  <ReportingPeriodsEditor
-                    proposal={editedProposal}
-                    onUpdate={(rps) => {
-                      setEditedProposal({ ...editedProposal, reportingPeriods: rps });
-                      onUpdateProposal({ reportingPeriods: rps });
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Topic Content Import Section - Admin/Owner only */}
-        {proposal?.topicUrl && userCanEditOverview && (
-          <Card className="border-dashed border-primary/30 bg-primary/5">
-            <CardHeader className="pb-2 pt-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-sm">
-                  <FileDown className="w-4 h-4" />
-                  Import Topic Content
-                </CardTitle>
-                {proposal?.topicContentImportedAt && (
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3 text-primary" />
-                    Last imported: {format(proposal.topicContentImportedAt, 'dd MMM yyyy, HH:mm')}
-                  </span>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Import the official topic description and destination text from the EU Funding & Tenders Portal. 
-                This helps collaborators understand the call requirements while developing the proposal.
-              </p>
-              
-              <Button
-                variant="outline"
-                onClick={handleImportTopicContent}
-                disabled={importingTopic}
-                className="gap-2"
-              >
-                {importingTopic ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Importing...
-                  </>
-                ) : proposal?.topicDescription ? (
-                  <>
-                    <RefreshCw className="w-4 h-4" />
-                    Check for updates
-                  </>
-                ) : (
-                  <>
-                    <FileDown className="w-4 h-4" />
-                    Import topic content
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Imported Topic Description - Visible to all */}
-        {(proposal?.topicDescription || proposal?.topicDestinationDescription) && (
-          <Card>
-            <CardHeader className="pb-2 pt-4">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <FileText className="w-4 h-4" />
-                Topic Description
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {proposal?.topicDescription && (
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block font-medium">
-                    Expected Outcome & Scope
-                  </label>
-                  <div className="prose prose-sm max-w-none dark:prose-invert text-sm leading-relaxed whitespace-pre-wrap bg-muted/30 rounded-lg p-4 max-h-96 overflow-y-auto">
-                    {proposal.topicDescription}
-                  </div>
-                </div>
-              )}
-              
-              {proposal?.topicDestinationDescription && (
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block font-medium">
-                    Destination
-                  </label>
-                  <div className="prose prose-sm max-w-none dark:prose-invert text-sm leading-relaxed whitespace-pre-wrap bg-muted/30 rounded-lg p-4 max-h-64 overflow-y-auto">
-                    {proposal.topicDestinationDescription}
-                  </div>
-                </div>
-              )}
-              
-              {proposal?.topicContentImportedAt && (
-                <p className="text-xs text-muted-foreground italic">
-                  Content imported from the EU Funding & Tenders Portal on {format(proposal.topicContentImportedAt, 'dd MMM yyyy')}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Budget Overview Card */}
-        <Card>
-          <CardHeader className="pb-2 pt-4">
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <Euro className="w-4 h-4" />
-              Budget overview
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div>
-                <label className="text-xs text-muted-foreground mb-0.5 block">Budget available (topic)</label>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Decision date</label>
                 {isEditing && editedProposal ? (
-                  <FormattedNumberInput
-                    value={editedProposal.totalBudget || ''}
-                    onChange={(val) => setEditedProposal({ ...editedProposal, totalBudget: val || undefined })}
-                    placeholder="e.g. 5,000,000"
-                    className="h-8 text-sm"
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-8 text-sm", !editedProposal.decisionDate && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                        {editedProposal.decisionDate ? format(editedProposal.decisionDate, 'PPP') : 'Select date'}
+                        {editedProposal.decisionDateIsEstimated && editedProposal.decisionDate && (
+                          <span className="ml-auto inline-flex items-center px-1.5 py-0 text-[9px] font-medium bg-blue-50 text-blue-600 border border-blue-300 rounded">Est.</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 z-50 bg-popover" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={editedProposal.decisionDate}
+                        onSelect={(date) => setEditedProposal({ ...editedProposal, decisionDate: date, decisionDateIsEstimated: false })}
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
                 ) : (
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-medium">
+                      {proposal?.decisionDate ? format(proposal.decisionDate, 'dd MMM yyyy') : 'Not set'}
+                    </p>
+                    {proposal?.decisionDate && proposal?.decisionDateIsEstimated && proposal?.status !== 'funded' && proposal?.status !== 'not_funded' && (
+                      <span className="inline-flex items-center px-1.5 py-0 text-[9px] font-medium bg-blue-50 text-blue-600 border border-blue-300 rounded">Est.</span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {proposal?.status !== 'draft' && (
+                <div>
+                  <label className="text-xs text-muted-foreground mb-0.5 block">Submission date</label>
                   <p className="text-sm font-medium">
-                    {proposal?.totalBudget ? `€${proposal.totalBudget.toLocaleString('en-IE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '–'}
+                    {proposal?.submittedAt ? format(proposal.submittedAt, 'dd MMM yyyy') : 'Not recorded'}
                   </p>
-                )}
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-0.5 block">Budget applied for</label>
-                <p className="text-sm font-medium">€{totalBudgetFromItems.toLocaleString('en-IE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-0.5 block">№ projects to be funded</label>
-                {isEditing && editedProposal ? (
-                  <Select
-                    value={editedProposal.expectedProjects || ''}
-                    onValueChange={(v) => setEditedProposal({ ...editedProposal, expectedProjects: v })}
-                  >
-                    <SelectTrigger className="w-32 h-8 text-sm">
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
-                        <SelectItem key={num} value={num.toString()}>{num}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <p className="text-sm font-medium">{proposal?.expectedProjects || '–'}</p>
-                )}
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-0.5 block">Budget type</label>
-                {isEditing && editedProposal ? (
-                  <>
-                    <Select
-                      value={editedProposal.budgetType}
-                      onValueChange={(v: 'traditional' | 'lump_sum') => {
-                        if (v !== editedProposal.budgetType) {
-                          setPendingBudgetType(v);
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="h-8 text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="traditional">Actual costs</SelectItem>
-                        <SelectItem value="lump_sum">Lump sum</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    
-                    {/* Budget Type Change Confirmation Dialog */}
-                    <AlertDialog open={!!pendingBudgetType} onOpenChange={(open) => !open && setPendingBudgetType(null)}>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Change budget type?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            You are about to change the budget type from{' '}
-                            <strong>{editedProposal.budgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}</strong> to{' '}
-                            <strong>{pendingBudgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}</strong>.
-                            <br /><br />
-                            This change should only be necessary if the topic requirements have changed. Are you sure you want to proceed?
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => {
-                              if (pendingBudgetType) {
-                                setEditedProposal({ ...editedProposal, budgetType: pendingBudgetType });
-                              }
-                              setPendingBudgetType(null);
-                            }}
-                          >
-                            Change budget type
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </>
-                ) : (
-                  <p className="text-sm font-medium">{proposal?.budgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}</p>
-                )}
-              </div>
+                </div>
+              )}
             </div>
-            
-            {/* FSTP Checkbox */}
-            {canEdit ? (
-              <div className="flex items-center space-x-2 mt-3 pt-3 border-t">
-                <Checkbox 
-                  id="uses-fstp" 
-                  checked={proposal?.usesFstp || false} 
-                  onCheckedChange={(checked) => onUpdateProposal({ usesFstp: checked === true })}
-                />
-                <Label htmlFor="uses-fstp" className="text-sm cursor-pointer">
-                  Financial support to third parties (FSTP) is possible under this topic
-                </Label>
-              </div>
-            ) : proposal?.usesFstp ? (
-              <div className="flex items-center space-x-2 mt-3 pt-3 border-t">
-                <Checkbox id="uses-fstp-readonly" checked disabled />
-                <Label htmlFor="uses-fstp-readonly" className="text-sm text-muted-foreground">
-                  Financial support to third parties (FSTP) is possible under this topic
-                </Label>
-              </div>
-            ) : null}
           </CardContent>
         </Card>
 
