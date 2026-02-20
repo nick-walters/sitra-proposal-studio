@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Participant, ParticipantMember, ParticipantSummary, PARTICIPANT_TYPE_LABELS } from '@/types/proposal';
+import { ORGANISATION_CATEGORY_LABELS } from '@/components/ParticipantTable';
 import { SaveIndicator } from './SaveIndicator';
 import { CountrySelect } from './CountrySelect';
 import { User } from 'lucide-react';
@@ -56,19 +57,7 @@ interface ParticipantDetailFormProps {
   proposalAcronym?: string;
 }
 
-// Legal entity types aligned with organisation categories
-const LEGAL_ENTITY_TYPES = [
-  'Higher or secondary education',
-  'Research organisation',
-  'Private for-profit',
-  'Small/medium enterprise',
-  'Public body',
-  'Non-governmental organisation',
-  'Agency or regulatory body',
-  'Civil society organisation',
-  'International organisation',
-  'Other',
-];
+// Legal entity types use the same ORGANISATION_CATEGORY_LABELS from ParticipantTable
 
 export function ParticipantDetailForm({
   participant,
@@ -242,9 +231,9 @@ export function ParticipantDetailForm({
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {LEGAL_ENTITY_TYPES.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
+                    {Object.entries(ORGANISATION_CATEGORY_LABELS).map(([code, label]) => (
+                      <SelectItem key={code} value={code}>
+                        {code} – {label}
                       </SelectItem>
                     ))}
                   </SelectContent>
