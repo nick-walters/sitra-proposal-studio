@@ -2,10 +2,13 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Check, X } from 'lucide-react';
 import type { Editor } from '@tiptap/react';
 
+import { format } from 'date-fns';
+
 interface TooltipState {
   changeId: string;
   type: 'insertion' | 'deletion';
   authorName: string;
+  timestamp: string | null;
   x: number;
   y: number;
 }
@@ -29,7 +32,7 @@ export function TrackChangeTooltip({ editor, containerRef }: TrackChangeTooltipP
     const isInsertion = el.hasAttribute('data-track-insertion');
     const type = isInsertion ? 'insertion' : 'deletion';
 
-    // Read authorName from DOM attribute as primary source, fall back to storage
+    // Read authorName and timestamp from DOM attributes
     let authorName = el.getAttribute('data-author-name') || '';
     if (!authorName && editor) {
       const storage = (editor.storage as any).trackChanges;
@@ -38,6 +41,14 @@ export function TrackChangeTooltip({ editor, containerRef }: TrackChangeTooltipP
     }
     if (!authorName) authorName = 'Unknown';
 
+    const rawTimestamp = el.getAttribute('data-timestamp');
+    let timestamp: string | null = null;
+    if (rawTimestamp) {
+      try {
+        timestamp = format(new Date(rawTimestamp), 'MMM d, h:mm a');
+      } catch { timestamp = null; }
+    }
+
     const rect = el.getBoundingClientRect();
     const containerRect = containerRef.current.getBoundingClientRect();
 
@@ -45,6 +56,7 @@ export function TrackChangeTooltip({ editor, containerRef }: TrackChangeTooltipP
       changeId,
       type,
       authorName,
+      timestamp,
       x: rect.left - containerRect.left + rect.width / 2,
       y: rect.top - containerRect.top - 4,
     });
@@ -118,6 +130,7 @@ export function TrackChangeTooltip({ editor, containerRef }: TrackChangeTooltipP
     >
       <span className="text-[10px] text-muted-foreground mr-1 whitespace-nowrap">
         {tooltip.authorName} · {tooltip.type === 'insertion' ? 'inserted' : 'deleted'}
+        {tooltip.timestamp && <span className="ml-1 opacity-70">· {tooltip.timestamp}</span>}
       </span>
       <button
         onMouseDown={e => e.preventDefault()}

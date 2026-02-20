@@ -31,6 +31,10 @@ declare module '@tiptap/core' {
       rejectChange: (changeId: string) => ReturnType;
       acceptAllChanges: () => ReturnType;
       rejectAllChanges: () => ReturnType;
+      navigateToNextChange: () => ReturnType;
+      navigateToPreviousChange: () => ReturnType;
+      acceptChangeAtCursor: () => ReturnType;
+      rejectChangeAtCursor: () => ReturnType;
     };
   }
 }
@@ -429,6 +433,53 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
 
           return true;
         },
+
+      navigateToNextChange:
+        () =>
+        ({ editor, state }) => {
+          const changes = collectChangesFromDoc(state.doc, state.schema);
+          if (changes.length === 0) return false;
+          const cursorPos = state.selection.from;
+          // Find next change after cursor
+          const sorted = [...changes].sort((a, b) => a.from - b.from);
+          const next = sorted.find(c => c.from > cursorPos) || sorted[0];
+          editor.commands.setTextSelection(next.from);
+          editor.view.dispatch(editor.state.tr.scrollIntoView());
+          return true;
+        },
+
+      navigateToPreviousChange:
+        () =>
+        ({ editor, state }) => {
+          const changes = collectChangesFromDoc(state.doc, state.schema);
+          if (changes.length === 0) return false;
+          const cursorPos = state.selection.from;
+          const sorted = [...changes].sort((a, b) => b.from - a.from);
+          const prev = sorted.find(c => c.from < cursorPos) || sorted[0];
+          editor.commands.setTextSelection(prev.from);
+          editor.view.dispatch(editor.state.tr.scrollIntoView());
+          return true;
+        },
+
+      acceptChangeAtCursor:
+        () =>
+        ({ editor, state }) => {
+          const cursorPos = state.selection.from;
+          const changes = collectChangesFromDoc(state.doc, state.schema);
+          const atCursor = changes.find(c => c.from <= cursorPos && c.to >= cursorPos);
+          if (!atCursor) return false;
+          return editor.commands.acceptChange(atCursor.id);
+        },
+
+      rejectChangeAtCursor:
+        () =>
+        ({ editor, state }) => {
+          const cursorPos = state.selection.from;
+          const changes = collectChangesFromDoc(state.doc, state.schema);
+          const atCursor = changes.find(c => c.from <= cursorPos && c.to >= cursorPos);
+          if (!atCursor) return false;
+          return editor.commands.rejectChange(atCursor.id);
+        },
     };
   },
 
@@ -485,19 +536,22 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                   const deletedText = oldState.doc.textBetween(oldStart, oldEnd, ' ');
 
                   if (deletedText.trim()) {
-                    // Check if deleted text was a tracked insertion by same author
-                    let wasTrackedInsertion = false;
-                    oldState.doc.nodesBetween(oldStart, oldEnd, (node) => {
-                      if (node.isText) {
-                        for (const mark of node.marks) {
-                          if (mark.type === insertionType && mark.attrs.authorId === authorId) {
-                            wasTrackedInsertion = true;
-                          }
-                        }
+                    // Check each text node individually: only re-insert nodes that are NOT
+                    // tracked insertions by the same author (those should just vanish).
+                    const nodesToReinsert: any[] = [];
+                    let hasUntrackedContent = false;
+                    
+                    oldState.doc.nodesBetween(oldStart, oldEnd, (node, nodePos) => {
+                      if (!node.isText) return;
+                      const isOwnInsertion = node.marks.some(
+                        (m: PMMark) => m.type === insertionType && m.attrs.authorId === authorId
+                      );
+                      if (!isOwnInsertion) {
+                        hasUntrackedContent = true;
                       }
                     });
 
-                    if (!wasTrackedInsertion) {
+                    if (hasUntrackedContent) {
                       const deletionChangeId = generateChangeId();
                       const deletionMark = deletionType.create({
                         changeId: deletionChangeId,
@@ -507,10 +561,28 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                         timestamp: new Date().toISOString(),
                       });
 
-                      // Preserve formatting: apply deletion mark to each text node in the slice
-                      const markedContent = addMarkToFragment(deletedSlice.content, deletionMark, schema);
-                      newTr.insert(newStart, markedContent);
-                      modified = true;
+                      // Filter: only re-insert non-own-insertion nodes with deletion mark
+                      const filteredNodes: any[] = [];
+                      deletedSlice.content.forEach((node: any) => {
+                        if (node.isText) {
+                          const isOwnInsertion = node.marks.some(
+                            (m: PMMark) => m.type === insertionType && m.attrs.authorId === authorId
+                          );
+                          if (!isOwnInsertion) {
+                            // Remove any existing track insertion marks from other authors, keep formatting
+                            const cleanMarks = node.marks.filter((m: PMMark) => m.type !== insertionType);
+                            const newMarks = deletionMark.addToSet(cleanMarks);
+                            filteredNodes.push(node.mark(newMarks));
+                          }
+                        } else {
+                          filteredNodes.push(node);
+                        }
+                      });
+
+                      if (filteredNodes.length > 0) {
+                        newTr.insert(newStart, Fragment.from(filteredNodes));
+                        modified = true;
+                      }
                     }
                   }
 
@@ -544,18 +616,18 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                   const deletedText = oldState.doc.textBetween(oldStart, oldEnd, ' ');
 
                   if (deletedText.trim()) {
-                    let wasTrackedInsertion = false;
+                    // Check per-node: only re-insert nodes not tracked as own insertion
+                    let hasUntrackedContent = false;
                     oldState.doc.nodesBetween(oldStart, oldEnd, (node) => {
                       if (node.isText) {
-                        for (const mark of node.marks) {
-                          if (mark.type === insertionType && mark.attrs.authorId === authorId) {
-                            wasTrackedInsertion = true;
-                          }
-                        }
+                        const isOwnInsertion = node.marks.some(
+                          (m: PMMark) => m.type === insertionType && m.attrs.authorId === authorId
+                        );
+                        if (!isOwnInsertion) hasUntrackedContent = true;
                       }
                     });
 
-                    if (!wasTrackedInsertion) {
+                    if (hasUntrackedContent) {
                       const changeId = generateChangeId();
                       const deletionMark = deletionType.create({
                         changeId,
@@ -565,10 +637,26 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                         timestamp: new Date().toISOString(),
                       });
 
-                      // Preserve formatting on deleted content
-                      const markedContent = addMarkToFragment(deletedSlice.content, deletionMark, schema);
-                      newTr.insert(newStart, markedContent);
-                      modified = true;
+                      const filteredNodes: any[] = [];
+                      deletedSlice.content.forEach((node: any) => {
+                        if (node.isText) {
+                          const isOwnInsertion = node.marks.some(
+                            (m: PMMark) => m.type === insertionType && m.attrs.authorId === authorId
+                          );
+                          if (!isOwnInsertion) {
+                            const cleanMarks = node.marks.filter((m: PMMark) => m.type !== insertionType);
+                            const newMarks = deletionMark.addToSet(cleanMarks);
+                            filteredNodes.push(node.mark(newMarks));
+                          }
+                        } else {
+                          filteredNodes.push(node);
+                        }
+                      });
+
+                      if (filteredNodes.length > 0) {
+                        newTr.insert(newStart, Fragment.from(filteredNodes));
+                        modified = true;
+                      }
                     }
                   }
                 }
