@@ -424,8 +424,7 @@ export function GeneralInfoForm({
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [pendingBudgetType, setPendingBudgetType] = useState<'traditional' | 'lump_sum' | null>(null);
   
-  // Topic import state
-  const [importingTopic, setImportingTopic] = useState(false);
+  
   const [isExportOpen, setIsExportOpen] = useState(false);
   // Overview editing state (for admin/owner)
   const [editedProposal, setEditedProposal] = useState(proposal);
@@ -617,37 +616,7 @@ export function GeneralInfoForm({
   const abstractWordCount = formData.abstract.trim() ? formData.abstract.trim().split(/\s+/).length : 0;
   const freeKeywordsCharCount = formData.freeKeywords.length;
 
-  // Import topic content from URL
-  const handleImportTopicContent = async () => {
-    if (!proposal?.topicUrl || !proposalId) {
-      toast.error('No topic URL configured');
-      return;
-    }
-
-    setImportingTopic(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('scrape-topic', {
-        body: { proposalId, topicUrl: proposal.topicUrl },
-      });
-
-      if (error) throw error;
-
-      if (data?.success) {
-        toast.success('Topic content imported successfully');
-        // Trigger a refresh of the proposal data
-        if (onUpdateProposal) {
-          await onUpdateProposal({});
-        }
-      } else {
-        toast.error(data?.error || 'Failed to import topic content');
-      }
-    } catch (error) {
-      console.error('Error importing topic:', error);
-      toast.error('Failed to import topic content');
-    } finally {
-      setImportingTopic(false);
-    }
-  };
+  
 
   const officialGuidelines = useMemo(() => {
     return (section.guidelinesArray || [])

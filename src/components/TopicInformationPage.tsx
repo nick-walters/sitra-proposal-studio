@@ -91,8 +91,7 @@ export function TopicInformationPage({
   budgetItems = [],
 }: TopicInformationPageProps) {
   const [editedProposal, setEditedProposal] = useState(proposal);
-  const [importingTopic, setImportingTopic] = useState(false);
-  const [importingDestination, setImportingDestination] = useState(false);
+  
   const [pendingBudgetType, setPendingBudgetType] = useState<'traditional' | 'lump_sum' | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [saving, setSaving] = useState(false);
@@ -253,55 +252,7 @@ export function TopicInformationPage({
 
   const callStatus = getCallStatus(proposal?.openingDate, proposal?.deadline);
 
-  const handleFetchTopicDescription = async () => {
-    if (!proposal?.topicUrl || !proposalId) {
-      toast.error('No topic URL configured');
-      return;
-    }
-    setImportingTopic(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('scrape-topic', {
-        body: { proposalId, topicUrl: proposal.topicUrl },
-      });
-      if (error) throw error;
-      if (data?.success) {
-        toast.success('Topic content imported successfully');
-        await onUpdateProposal({});
-      } else {
-        toast.error(data?.error || 'Failed to import topic content');
-      }
-    } catch (error) {
-      console.error('Error importing topic:', error);
-      toast.error('Failed to import topic content');
-    } finally {
-      setImportingTopic(false);
-    }
-  };
-
-  const handleFetchDestinationDescription = async () => {
-    if (!proposal?.topicUrl || !proposalId) {
-      toast.error('No topic URL configured');
-      return;
-    }
-    setImportingDestination(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('scrape-topic', {
-        body: { proposalId, topicUrl: proposal.topicUrl },
-      });
-      if (error) throw error;
-      if (data?.success) {
-        toast.success('Destination content imported successfully');
-        await onUpdateProposal({});
-      } else {
-        toast.error(data?.error || 'Failed to import content');
-      }
-    } catch (error) {
-      console.error('Error importing destination:', error);
-      toast.error('Failed to import destination content');
-    } finally {
-      setImportingDestination(false);
-    }
-  };
+  
 
   const renderEditButton = (fieldKey: EditableField) => {
     if (userCanEdit && !editingField) {
