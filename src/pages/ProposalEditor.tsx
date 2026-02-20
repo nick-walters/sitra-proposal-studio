@@ -46,7 +46,7 @@ import { Section, BudgetType, ProposalStatus, WORK_PROGRAMMES, DESTINATIONS, PRO
 import type { WPSection, CaseSection } from "@/hooks/useProposalSections";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { format, differenceInDays } from "date-fns";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -95,6 +95,7 @@ import { ColoredAcronym } from "@/components/AcronymColorEditor";
 export function ProposalEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { isOwner: isGlobalOwner } = useUserRole();
   const [activeSection, setActiveSection] = useState<Section | WPSection | CaseSection | null>(null);
@@ -236,21 +237,44 @@ export function ProposalEditor() {
     return mapping;
   }, [caseLeadershipData]);
 
-  // Auto-select A1 on initial load (was proposal-overview, now merged into A1)
+  // Auto-select section on initial load: URL param > localStorage > A1
   useEffect(() => {
     if (!sectionsLoading && allSections.length > 0 && !activeSection) {
-      // Find A1 section (might be nested under Part A)
-      const findA1Section = (sections: Section[]): Section | undefined => {
+      const findSectionById = (sections: Section[], targetId: string): Section | undefined => {
         for (const section of sections) {
-          if (section.id === 'a1') return section;
+          if (section.id === targetId) return section;
           if (section.subsections) {
-            const found = findA1Section(section.subsections);
+            const found = findSectionById(section.subsections, targetId);
             if (found) return found;
           }
         }
         return undefined;
       };
-      const a1Section = findA1Section(allSections);
+
+      // 1. Check URL search param (e.g. ?section=topic-info)
+      const urlSection = searchParams.get('section');
+      if (urlSection) {
+        const found = findSectionById(allSections, urlSection);
+        if (found) {
+          setActiveSection(found);
+          // Clear the param so it doesn't persist on refresh
+          setSearchParams({}, { replace: true });
+          return;
+        }
+      }
+
+      // 2. Check localStorage for last visited section
+      const lastSectionId = localStorage.getItem(`proposal-${id}-lastSection`);
+      if (lastSectionId) {
+        const found = findSectionById(allSections, lastSectionId);
+        if (found) {
+          setActiveSection(found);
+          return;
+        }
+      }
+
+      // 3. Default to A1
+      const a1Section = findSectionById(allSections, 'a1');
       if (a1Section) {
         setActiveSection(a1Section);
       }
@@ -305,6 +329,8 @@ export function ProposalEditor() {
       setSelectedParticipantId(section.id.replace('a2-', ''));
     }
     setActiveSection(section);
+    // Persist last visited section
+    if (id) localStorage.setItem(`proposal-${id}-lastSection`, section.id);
   };
 
   const handleBudgetTypeChange = (type: BudgetType) => {
