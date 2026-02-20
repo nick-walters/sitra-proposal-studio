@@ -2527,7 +2527,9 @@ export type Database = {
           topic_content_imported_at: string | null
           topic_description: string | null
           topic_destination_description: string | null
+          topic_expected_outcome: string | null
           topic_id: string | null
+          topic_scope: string | null
           topic_title: string | null
           topic_url: string | null
           total_budget: number | null
@@ -2570,7 +2572,9 @@ export type Database = {
           topic_content_imported_at?: string | null
           topic_description?: string | null
           topic_destination_description?: string | null
+          topic_expected_outcome?: string | null
           topic_id?: string | null
+          topic_scope?: string | null
           topic_title?: string | null
           topic_url?: string | null
           total_budget?: number | null
@@ -2613,7 +2617,9 @@ export type Database = {
           topic_content_imported_at?: string | null
           topic_description?: string | null
           topic_destination_description?: string | null
+          topic_expected_outcome?: string | null
           topic_id?: string | null
+          topic_scope?: string | null
           topic_title?: string | null
           topic_url?: string | null
           total_budget?: number | null

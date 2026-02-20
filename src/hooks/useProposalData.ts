@@ -40,6 +40,8 @@ interface ProposalData {
   topicUrl?: string;
   topicTitle?: string;
   topicDescription?: string;
+  topicExpectedOutcome?: string;
+  topicScope?: string;
   topicDestinationDescription?: string;
   topicContentImportedAt?: Date;
   workProgramme?: string;
@@ -106,6 +108,8 @@ export function useProposalData(proposalId: string) {
         topicUrl: data.topic_url || undefined,
         topicTitle: data.topic_title || undefined,
         topicDescription: (data as any).topic_description || undefined,
+        topicExpectedOutcome: (data as any).topic_expected_outcome || undefined,
+        topicScope: (data as any).topic_scope || undefined,
         topicDestinationDescription: (data as any).topic_destination_description || undefined,
         topicContentImportedAt: (data as any).topic_content_imported_at ? new Date((data as any).topic_content_imported_at) : undefined,
         workProgramme: data.work_programme || undefined,
@@ -342,6 +346,10 @@ export function useProposalData(proposalId: string) {
     if (updates.fstpBudgetPerThirdParty !== undefined) dbUpdates.fstp_budget_per_third_party = updates.fstpBudgetPerThirdParty;
     if (updates.reportingPeriods !== undefined) dbUpdates.reporting_periods = updates.reportingPeriods;
     if (updates.acronymSegments !== undefined) dbUpdates.acronym_segments = updates.acronymSegments;
+    if (updates.topicDescription !== undefined) dbUpdates.topic_description = updates.topicDescription;
+    if (updates.topicExpectedOutcome !== undefined) dbUpdates.topic_expected_outcome = updates.topicExpectedOutcome;
+    if (updates.topicScope !== undefined) dbUpdates.topic_scope = updates.topicScope;
+    if (updates.topicDestinationDescription !== undefined) dbUpdates.topic_destination_description = updates.topicDestinationDescription;
 
     const { error } = await supabase
       .from('proposals')

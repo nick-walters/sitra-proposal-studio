@@ -609,21 +609,54 @@ export function TopicInformationPage({
                 Topic description
               </CardTitle>
           </CardHeader>
-          <CardContent>
-            {userCanEdit ? (
-              <Textarea
-                value={(editedProposal as any)?.topicDescription || ''}
-                onChange={(e) => setEditedProposal({ ...editedProposal, topicDescription: e.target.value } as any)}
-                placeholder="Topic description will appear here after fetching from the portal URL, or you can enter it manually..."
-                className="min-h-[200px] text-sm resize-none"
-              />
-            ) : (
-              <div className="prose prose-sm max-w-none dark:prose-invert text-sm leading-relaxed whitespace-pre-wrap bg-muted/30 rounded-lg p-4 max-h-96 overflow-y-auto">
-                {proposal?.topicDescription || <span className="text-muted-foreground italic">No topic description available</span>}
-              </div>
-            )}
+          <CardContent className="space-y-4">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Description</label>
+              {userCanEdit ? (
+                <Textarea
+                  value={(editedProposal as any)?.topicDescription || ''}
+                  onChange={(e) => setEditedProposal({ ...editedProposal, topicDescription: e.target.value } as any)}
+                  placeholder="Enter the topic description..."
+                  className="min-h-[150px] text-sm resize-none"
+                />
+              ) : (
+                <div className="prose prose-sm max-w-none dark:prose-invert text-sm leading-relaxed whitespace-pre-wrap bg-muted/30 rounded-lg p-4 max-h-96 overflow-y-auto">
+                  {proposal?.topicDescription || <span className="text-muted-foreground italic">No topic description available</span>}
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Expected outcome</label>
+              {userCanEdit ? (
+                <Textarea
+                  value={(editedProposal as any)?.topicExpectedOutcome || ''}
+                  onChange={(e) => setEditedProposal({ ...editedProposal, topicExpectedOutcome: e.target.value } as any)}
+                  placeholder="Enter the expected outcome..."
+                  className="min-h-[150px] text-sm resize-none"
+                />
+              ) : (
+                <div className="prose prose-sm max-w-none dark:prose-invert text-sm leading-relaxed whitespace-pre-wrap bg-muted/30 rounded-lg p-4 max-h-96 overflow-y-auto">
+                  {proposal?.topicExpectedOutcome || <span className="text-muted-foreground italic">No expected outcome available</span>}
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Scope</label>
+              {userCanEdit ? (
+                <Textarea
+                  value={(editedProposal as any)?.topicScope || ''}
+                  onChange={(e) => setEditedProposal({ ...editedProposal, topicScope: e.target.value } as any)}
+                  placeholder="Enter the scope..."
+                  className="min-h-[150px] text-sm resize-none"
+                />
+              ) : (
+                <div className="prose prose-sm max-w-none dark:prose-invert text-sm leading-relaxed whitespace-pre-wrap bg-muted/30 rounded-lg p-4 max-h-96 overflow-y-auto">
+                  {proposal?.topicScope || <span className="text-muted-foreground italic">No scope available</span>}
+                </div>
+              )}
+            </div>
             {proposal?.topicContentImportedAt && (
-              <p className="text-xs text-muted-foreground italic mt-2">
+              <p className="text-xs text-muted-foreground italic">
                 Last imported: {format(proposal.topicContentImportedAt, 'dd MMM yyyy, HH:mm')}
               </p>
             )}
