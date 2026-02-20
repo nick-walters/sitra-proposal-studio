@@ -22,6 +22,11 @@ import { WPProgressTracker } from "@/components/WPProgressTracker";
 import { ProposalMessagingBoard } from "@/components/ProposalMessagingBoard";
 import { ProposalTaskAllocator } from "@/components/ProposalTaskAllocator";
 import { ProposalProgressTracker } from "@/components/ProposalProgressTracker";
+import { WorkloadDashboard } from "@/components/WorkloadDashboard";
+import { ProposalScoringAssessment } from "@/components/ProposalScoringAssessment";
+import { CrossReferenceChecker } from "@/components/CrossReferenceChecker";
+import { BudgetValidationEngine } from "@/components/BudgetValidationEngine";
+import { ParticipantCompletenessChecker } from "@/components/ParticipantCompletenessChecker";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -489,6 +494,41 @@ export function ProposalEditor() {
       return (
         <div className="flex-1 overflow-y-auto">
           <ProposalTaskAllocator proposalId={id || ''} isCoordinator={isCoordinator} />
+        </div>
+      );
+    }
+    if (activeSection.id === 'workload-dashboard') {
+      return (
+        <div className="flex-1 overflow-y-auto">
+          <WorkloadDashboard proposalId={id || ''} />
+        </div>
+      );
+    }
+    if (activeSection.id === 'scoring-assessment') {
+      return (
+        <div className="flex-1 overflow-y-auto">
+          <ProposalScoringAssessment proposalId={id || ''} />
+        </div>
+      );
+    }
+    if (activeSection.id === 'cross-ref-checker') {
+      return (
+        <div className="flex-1 overflow-y-auto p-6">
+          <CrossReferenceChecker proposalId={id || ''} isOpen={true} onClose={() => {}} />
+        </div>
+      );
+    }
+    if (activeSection.id === 'budget-validation') {
+      return (
+        <div className="flex-1 overflow-y-auto">
+          <BudgetValidationEngine proposalId={id || ''} />
+        </div>
+      );
+    }
+    if (activeSection.id === 'participant-checker') {
+      return (
+        <div className="flex-1 overflow-y-auto">
+          <ParticipantCompletenessChecker proposalId={id || ''} />
         </div>
       );
     }
