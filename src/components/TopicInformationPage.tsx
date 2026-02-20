@@ -398,6 +398,7 @@ export function TopicInformationPage({
                         mode="single"
                         selected={editedProposal.deadline}
                         onSelect={(date) => setEditedProposal({ ...editedProposal, deadline: date })}
+                        disabled={(date) => !!(editedProposal as any).openingDate && date < (editedProposal as any).openingDate}
                         className="pointer-events-auto"
                       />
                       <div className="px-3 pb-2">
