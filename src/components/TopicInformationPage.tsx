@@ -384,7 +384,7 @@ export function TopicInformationPage({
               </div>
 
               <div>
-                <label className="text-xs text-muted-foreground mb-0.5 block">Deadline</label>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Deadline (17:00 Brussels time)</label>
                 {isEditing && editedProposal ? (
                   <Popover>
                     <PopoverTrigger asChild>
