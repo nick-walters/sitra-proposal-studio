@@ -761,7 +761,7 @@ function EthicsQuestionRow({
     <>
       <div 
         className={cn(
-          "grid grid-cols-[1fr,auto,auto] gap-2 items-start py-2 px-6 border-b border-border/50",
+          "grid grid-cols-[1fr,auto,auto] gap-2 items-start py-2 border-b border-border/50",
           indent > 0 && "bg-muted/30"
         )}
       >
@@ -922,28 +922,25 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
               </p>
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="px-6 pt-0 pb-2">
             {/* Sections 1-9 */}
             {ETHICS_SECTIONS.map((section, index) => {
               const sectionHasIssues = section.questions.some(q => ethicsData[q.id] === true);
               
               return (
                 <div key={section.id} className={cn(index > 0 && 'border-t border-border')}>
-                  <div className="flex items-center justify-between px-6 py-2">
+                  <div className="flex items-center justify-between py-2">
                     <h3 className="font-semibold text-sm">
                       {section.number}. {section.title}
                     </h3>
-                    {sectionHasIssues && (
-                      <AlertTriangle className="w-4 h-4 text-warning" />
-                    )}
+                    <div className="flex items-center gap-2">
+                      {sectionHasIssues && (
+                        <AlertTriangle className="w-4 h-4 text-warning" />
+                      )}
+                      <span className="text-xs font-medium text-muted-foreground w-16 text-center">Page</span>
+                    </div>
                   </div>
                   <div className="pb-2">
-                    {/* Table header */}
-                    <div className="grid grid-cols-[1fr,auto,auto] gap-2 items-center py-2 px-6 border-b-2 border-border text-xs font-medium text-muted-foreground">
-                      <div>Question</div>
-                      <div className="w-24 text-center">Answer</div>
-                      <div className="w-16 text-center">Page</div>
-                    </div>
 
                     {/* Questions */}
                     {section.questions.map((question) => (
@@ -1099,7 +1096,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
               </p>
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="px-6 pt-0 pb-2">
             {/* Security Sections */}
             {SECURITY_SECTIONS.map((section, index) => {
               const sectionHasIssues = section.questions.some(q => ethicsData[q.id] === true);
@@ -1112,26 +1109,23 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
               
               return (
                 <div key={section.id} className={cn(index > 0 && 'border-t border-border')}>
-                  <div className="flex items-center justify-between px-6 py-2">
+                  <div className="flex items-center justify-between py-2">
                     <h3 className="font-semibold text-sm">
                       {section.number}. {section.title}
                     </h3>
-                    {sectionHasIssues && (
-                      <AlertTriangle className="w-4 h-4 text-warning" />
-                    )}
+                    <div className="flex items-center gap-2">
+                      {sectionHasIssues && (
+                        <AlertTriangle className="w-4 h-4 text-warning" />
+                      )}
+                      <span className="text-xs font-medium text-muted-foreground w-16 text-center">Page</span>
+                    </div>
                   </div>
                   {section.description && (
-                    <p className="text-xs text-muted-foreground px-6 -mt-1 mb-1">
+                    <p className="text-xs text-muted-foreground -mt-1 mb-1">
                       {section.description}
                     </p>
                   )}
                   <div className="pb-2">
-                    {/* Table header */}
-                    <div className="grid grid-cols-[1fr,auto,auto] gap-2 items-center py-2 px-6 border-b-2 border-border text-xs font-medium text-muted-foreground">
-                      <div>Question</div>
-                      <div className="w-24 text-center">Answer</div>
-                      <div className="w-16 text-center">Page</div>
-                    </div>
 
                     {/* Questions */}
                     {section.questions.map((question) => (
