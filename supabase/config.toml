@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.generate-impact-pathway]
 verify_jwt = false
+
+[functions.analyse-consortium]
+verify_jwt = false

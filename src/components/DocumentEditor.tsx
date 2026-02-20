@@ -1359,6 +1359,8 @@ export function DocumentEditor({
         selectedText={selectedText}
         plainText={plainText}
         sectionId={section?.id}
+        proposalId={proposalId}
+        canUseConsortiumBuilder={roleTier === 'coordinator'}
         onApplyGrammarSuggestion={handleApplyGrammarSuggestion}
         onApply={(newText) => {
           if (editor && selectionRange) {

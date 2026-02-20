@@ -3,7 +3,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Participant, ParticipantMember, Section, ParticipantType } from '@/types/proposal';
-import { Building2, GripVertical, UserPlus, Plus, Search, Check, Upload, X, Loader2 } from 'lucide-react';
+import { Building2, GripVertical, UserPlus, Plus, Search, Check, Upload, X, Loader2, Hash } from 'lucide-react';
+import { BulkPicLookupDialog } from './BulkPicLookupDialog';
 import { ParticipantListTable } from './ParticipantListTable';
 import { generateParticipantLogoPath, uploadProposalFile } from '@/lib/proposalStorage';
 import { CountrySelect } from './CountrySelect';
@@ -565,6 +566,7 @@ export function ParticipantListView({
 }: ParticipantListViewProps) {
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [isAddParticipantDialogOpen, setIsAddParticipantDialogOpen] = useState(false);
+  const [isBulkPicOpen, setIsBulkPicOpen] = useState(false);
   const [fetchingLogoFor, setFetchingLogoFor] = useState<string | null>(null);
 
   // Extract guidelines from section
@@ -668,10 +670,16 @@ export function ParticipantListView({
             </div>
             <div className="flex gap-2">
               {canAddParticipant && onAddParticipant && (
-                <Button size="sm" onClick={() => setIsAddParticipantDialogOpen(true)} className="gap-1.5 h-8">
-                  <Plus className="w-3.5 h-3.5" />
-                  Add Participant
-                </Button>
+                <>
+                  <Button size="sm" onClick={() => setIsBulkPicOpen(true)} variant="outline" className="gap-1.5 h-8">
+                    <Hash className="w-3.5 h-3.5" />
+                    Bulk PIC Lookup
+                  </Button>
+                  <Button size="sm" onClick={() => setIsAddParticipantDialogOpen(true)} className="gap-1.5 h-8">
+                    <Plus className="w-3.5 h-3.5" />
+                    Add Participant
+                  </Button>
+                </>
               )}
               {canInvite && (
                 <Button variant="outline" size="sm" onClick={() => setIsInviteDialogOpen(true)} className="gap-1.5 h-8">
@@ -791,14 +799,23 @@ export function ParticipantListView({
 
         {/* Add Participant Dialog */}
         {onAddParticipant && (
-          <AddParticipantDialog
-            open={isAddParticipantDialogOpen}
-            onOpenChange={setIsAddParticipantDialogOpen}
-            onAddParticipant={async (participantData) => {
-              await onAddParticipant(participantData);
-            }}
-            participantCount={participants.length}
-          />
+          <>
+            <AddParticipantDialog
+              open={isAddParticipantDialogOpen}
+              onOpenChange={setIsAddParticipantDialogOpen}
+              onAddParticipant={async (participantData) => {
+                await onAddParticipant(participantData);
+              }}
+              participantCount={participants.length}
+            />
+            <BulkPicLookupDialog
+              isOpen={isBulkPicOpen}
+              onClose={() => setIsBulkPicOpen(false)}
+              proposalId={proposalId}
+              existingPics={new Set(participants.map(p => p.picNumber).filter(Boolean) as string[])}
+              onAddParticipant={onAddParticipant}
+            />
+          </>
         )}
       </div>
     </TooltipProvider>
