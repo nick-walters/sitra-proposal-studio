@@ -42,7 +42,7 @@ declare module '@tiptap/core' {
 export const trackChangesPluginKey = new PluginKey('trackChanges');
 
 function generateChangeId(): string {
-  return `change-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  return `change-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 }
 
 /**
@@ -416,7 +416,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
 
       navigateToNextChange:
         () =>
-        ({ editor, tr, state, dispatch }) => {
+        ({ tr, state, dispatch }) => {
           const changes = collectChangesFromDoc(state.doc, state.schema);
           if (changes.length === 0) return false;
           const cursorPos = state.selection.from;
