@@ -43,6 +43,8 @@ interface ProposalData {
   topicExpectedOutcome?: string;
   topicScope?: string;
   topicDestinationDescription?: string;
+  topicFootnotes?: { id: string; text: string }[];
+  destinationFootnotes?: { id: string; text: string }[];
   topicContentImportedAt?: Date;
   workProgramme?: string;
   destination?: string;
@@ -111,6 +113,8 @@ export function useProposalData(proposalId: string) {
         topicExpectedOutcome: (data as any).topic_expected_outcome || undefined,
         topicScope: (data as any).topic_scope || undefined,
         topicDestinationDescription: (data as any).topic_destination_description || undefined,
+        topicFootnotes: (data as any).topic_footnotes || [],
+        destinationFootnotes: (data as any).destination_footnotes || [],
         topicContentImportedAt: (data as any).topic_content_imported_at ? new Date((data as any).topic_content_imported_at) : undefined,
         workProgramme: data.work_programme || undefined,
         destination: data.destination || undefined,
@@ -350,6 +354,8 @@ export function useProposalData(proposalId: string) {
     if (updates.topicExpectedOutcome !== undefined) dbUpdates.topic_expected_outcome = updates.topicExpectedOutcome;
     if (updates.topicScope !== undefined) dbUpdates.topic_scope = updates.topicScope;
     if (updates.topicDestinationDescription !== undefined) dbUpdates.topic_destination_description = updates.topicDestinationDescription;
+    if (updates.topicFootnotes !== undefined) dbUpdates.topic_footnotes = updates.topicFootnotes;
+    if (updates.destinationFootnotes !== undefined) dbUpdates.destination_footnotes = updates.destinationFootnotes;
 
     const { error } = await supabase
       .from('proposals')

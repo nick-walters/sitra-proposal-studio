@@ -2509,6 +2509,7 @@ export type Database = {
           decision_date_is_estimated: boolean
           description: string | null
           destination: string | null
+          destination_footnotes: Json | null
           duration: number | null
           expected_projects: string | null
           fstp_budget: string | null
@@ -2528,6 +2529,7 @@ export type Database = {
           topic_description: string | null
           topic_destination_description: string | null
           topic_expected_outcome: string | null
+          topic_footnotes: Json | null
           topic_id: string | null
           topic_scope: string | null
           topic_title: string | null
@@ -2554,6 +2556,7 @@ export type Database = {
           decision_date_is_estimated?: boolean
           description?: string | null
           destination?: string | null
+          destination_footnotes?: Json | null
           duration?: number | null
           expected_projects?: string | null
           fstp_budget?: string | null
@@ -2573,6 +2576,7 @@ export type Database = {
           topic_description?: string | null
           topic_destination_description?: string | null
           topic_expected_outcome?: string | null
+          topic_footnotes?: Json | null
           topic_id?: string | null
           topic_scope?: string | null
           topic_title?: string | null
@@ -2599,6 +2603,7 @@ export type Database = {
           decision_date_is_estimated?: boolean
           description?: string | null
           destination?: string | null
+          destination_footnotes?: Json | null
           duration?: number | null
           expected_projects?: string | null
           fstp_budget?: string | null
@@ -2618,6 +2623,7 @@ export type Database = {
           topic_description?: string | null
           topic_destination_description?: string | null
           topic_expected_outcome?: string | null
+          topic_footnotes?: Json | null
           topic_id?: string | null
           topic_scope?: string | null
           topic_title?: string | null

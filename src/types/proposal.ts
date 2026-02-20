@@ -204,6 +204,8 @@ export interface Proposal {
   topicExpectedOutcome?: string;
   topicScope?: string;
   topicDestinationDescription?: string;
+  topicFootnotes?: { id: string; text: string }[];
+  destinationFootnotes?: { id: string; text: string }[];
   topicContentImportedAt?: Date;
   totalBudget?: number;
   totalBudgetText?: string;
