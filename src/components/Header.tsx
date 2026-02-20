@@ -5,7 +5,7 @@ import { CollaboratorsDialog } from "@/components/CollaboratorsDialog";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { Users, Database, Columns3 } from "lucide-react";
 import sitraLogo from "@/assets/sitra-proposal-studio-logo.png";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 
@@ -13,15 +13,17 @@ export function Header() {
   const { user, signOut } = useAuth();
   const { isOwner, hasAnyCoordinatorRole, isGlobalAdmin } = useUserRole();
   const [isCollaboratorsOpen, setIsCollaboratorsOpen] = useState(false);
+  const location = useLocation();
+  const isCompact = location.pathname.startsWith('/proposal/');
 
   return (
     <>
-      <header className="h-16 border-b border-border bg-card sticky top-0 z-40">
+      <header className={`${isCompact ? 'h-10' : 'h-16'} border-b border-border bg-card sticky top-0 z-40 transition-[height] duration-200`}>
         <div className="h-full px-6 flex items-center">
           {/* Left: Logo + Alpha */}
           <div className="flex items-center gap-4 w-[220px] shrink-0">
             <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
-              <img src={sitraLogo} alt="Sitra Proposal Studio" className="h-8 w-auto object-contain flex-shrink-0" />
+              <img src={sitraLogo} alt="Sitra Proposal Studio" className={`${isCompact ? 'h-5' : 'h-8'} w-auto object-contain flex-shrink-0 transition-[height] duration-200`} />
             </Link>
             <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded">alpha</span>
           </div>
