@@ -10,6 +10,7 @@ interface TopicRichTextAreaProps {
   onFocus?: () => void;
   footnotes?: { id: string; text: string }[];
   onFootnotesChange?: (footnotes: { id: string; text: string }[]) => void;
+  footnoteStartNumber?: number;
 }
 
 export function TopicRichTextArea({
@@ -21,6 +22,7 @@ export function TopicRichTextArea({
   onFocus,
   footnotes = [],
   onFootnotesChange,
+  footnoteStartNumber = 1,
 }: TopicRichTextAreaProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState(false);
@@ -124,27 +126,32 @@ export function TopicRichTextArea({
       {/* Footnotes area */}
       {footnotes.length > 0 && (
         <div className="border-t px-3 py-2 space-y-1 bg-muted/30">
-          {footnotes.map((fn, idx) => (
-            <div key={fn.id} className="flex items-start gap-1.5 text-xs">
-              <sup className="text-primary font-semibold text-[10px] mt-0.5 shrink-0">{idx + 1}</sup>
-              {!disabled ? (
-                <input
-                  className="flex-1 bg-transparent border-b border-dashed border-muted-foreground/30 outline-none text-xs py-0.5 focus:border-primary"
-                  placeholder="Enter reference..."
-                  value={fn.text}
-                  onChange={(e) => {
-                    if (onFootnotesChange) {
-                      const updated = [...footnotes];
-                      updated[idx] = { ...fn, text: e.target.value };
-                      onFootnotesChange(updated);
-                    }
-                  }}
-                />
-              ) : (
-                <span className="text-muted-foreground">{fn.text || '–'}</span>
-              )}
-            </div>
-          ))}
+          {footnotes.map((fn, idx) => {
+            const displayNum = footnoteStartNumber + idx;
+            return (
+              <div key={fn.id} className="flex items-start gap-1.5 text-xs">
+                <sup className="text-primary font-semibold text-[10px] mt-0.5 shrink-0">{displayNum}</sup>
+                {!disabled ? (
+                  <div
+                    contentEditable
+                    suppressContentEditableWarning
+                    className="flex-1 bg-transparent border-b border-dashed border-muted-foreground/30 outline-none text-xs py-0.5 focus:border-primary [&_a]:text-primary [&_a]:underline"
+                    dangerouslySetInnerHTML={{ __html: fn.text || '' }}
+                    onBlur={(e) => {
+                      if (onFootnotesChange) {
+                        const updated = [...footnotes];
+                        updated[idx] = { ...fn, text: e.currentTarget.innerHTML };
+                        onFootnotesChange(updated);
+                      }
+                    }}
+                    data-placeholder="Enter reference (paste links supported)..."
+                  />
+                ) : (
+                  <span className="text-muted-foreground [&_a]:text-primary [&_a]:underline" dangerouslySetInnerHTML={{ __html: fn.text || '–' }} />
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -152,10 +159,11 @@ export function TopicRichTextArea({
 }
 
 /** Read-only view for rich text with clickable links */
-export function TopicRichTextReadonly({ html, footnotes = [], emptyMessage = '–' }: {
+export function TopicRichTextReadonly({ html, footnotes = [], emptyMessage = '–', footnoteStartNumber = 1 }: {
   html?: string;
   footnotes?: { id: string; text: string }[];
   emptyMessage?: string;
+  footnoteStartNumber?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -190,8 +198,8 @@ export function TopicRichTextReadonly({ html, footnotes = [], emptyMessage = '�
         <div className="border-t mt-2 pt-2 space-y-0.5">
           {footnotes.map((fn, idx) => (
             <div key={fn.id} className="flex items-start gap-1.5 text-xs text-muted-foreground">
-              <sup className="text-primary font-semibold text-[10px] mt-0.5">{idx + 1}</sup>
-              <span>{fn.text || '–'}</span>
+              <sup className="text-primary font-semibold text-[10px] mt-0.5">{footnoteStartNumber + idx}</sup>
+              <span className="[&_a]:text-primary [&_a]:underline [&_a]:cursor-pointer" dangerouslySetInnerHTML={{ __html: fn.text || '–' }} />
             </div>
           ))}
         </div>
