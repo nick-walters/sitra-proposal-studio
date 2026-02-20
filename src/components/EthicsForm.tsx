@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
+import { DebouncedTextarea } from '@/components/ui/debounced-textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertTriangle, CheckCircle, Shield, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -1017,9 +1018,9 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
                 <li>methodology (e.g. clinical trials, involvement of children, protection of personal data, etc.)</li>
                 <li>the potential impact of the activities (e.g. environmental damage, stigmatisation of particular social groups, political or financial adverse consequences, misuse, etc.)</li>
               </ul>
-              <Textarea
+              <DebouncedTextarea
                 value={ethicsData.ethicsSelfAssessmentObjectives || ''}
-                onChange={(e) => onUpdateEthics({ ethicsSelfAssessmentObjectives: e.target.value })}
+                onDebouncedChange={(value) => onUpdateEthics({ ethicsSelfAssessmentObjectives: value })}
                 placeholder="Explain the identified ethics issues in relation to objectives, methodology, and potential impact..."
                 className="min-h-[80px] text-sm mt-1"
                 disabled={!canEdit}
@@ -1037,9 +1038,9 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
                 legal and ethical requirements of the country or countries where the tasks are to be carried out. It is reminded 
                 that for activities performed in a non-EU country, they should also be allowed in at least one EU Member State.
               </CardDescription>
-              <Textarea
+              <DebouncedTextarea
                 value={ethicsData.ethicsSelfAssessmentCompliance || ''}
-                onChange={(e) => onUpdateEthics({ ethicsSelfAssessmentCompliance: e.target.value })}
+                onDebouncedChange={(value) => onUpdateEthics({ ethicsSelfAssessmentCompliance: value })}
                 placeholder="Describe how you will ensure compliance with ethical principles and relevant legislations..."
                 className="min-h-[80px] text-sm mt-1"
                 disabled={!canEdit}
@@ -1177,9 +1178,9 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
             </CardDescription>
           </CardHeader>
           <CardContent className="px-6 pt-0 pb-4">
-            <Textarea
+            <DebouncedTextarea
               value={ethicsData.securitySelfAssessment || ''}
-              onChange={(e) => onUpdateEthics({ securitySelfAssessment: e.target.value })}
+              onDebouncedChange={(value) => onUpdateEthics({ securitySelfAssessment: value })}
               placeholder="Describe the measures you intend to take to address the security issues..."
               className="min-h-[80px] text-sm"
               maxLength={5000}
