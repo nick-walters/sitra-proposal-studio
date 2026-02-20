@@ -21,9 +21,9 @@ export function SaveIndicator({ saving, lastSaved, hasUnsavedChanges = false, cl
 
   const state = getState();
 
-  const iconColor = state === 'saving' ? 'text-destructive animate-pulse' : state === 'saved' ? 'text-green-600' : 'text-foreground';
-  const textColor = state === 'saving' ? 'text-destructive' : state === 'saved' ? 'text-green-600' : 'text-foreground';
-  const label = state === 'saving' ? 'Autosaving' : state === 'saved' ? 'Autosaved' : 'Autosave';
+  const iconColor = state === 'saving' ? 'text-muted-foreground' : state === 'saved' ? 'text-green-600' : 'text-foreground';
+  const textColor = state === 'saving' ? 'text-muted-foreground' : state === 'saved' ? 'text-green-600' : 'text-foreground';
+  const label = state === 'saving' ? 'Autosaves every 5 seconds' : state === 'saved' ? 'Autosaved' : 'Autosave';
 
   return (
     <div className={cn("flex items-center gap-1.5 text-xs text-muted-foreground", className)}>

@@ -202,6 +202,25 @@ export function SectionVersionHistoryDialog({
     return groups;
   }, [versions]);
 
+  // Compute display version numbers as "major.minor"
+  const displayVersionNumbers = useMemo(() => {
+    const sorted = [...versions].sort((a, b) => a.version_number - b.version_number);
+    const map = new Map<string, string>();
+    let major = 0;
+    let minor = 0;
+    for (const v of sorted) {
+      if (v.is_major) {
+        major++;
+        minor = 0;
+      } else {
+        if (major === 0) major = 1; // first version
+        minor++;
+      }
+      map.set(v.id, `${major}.${minor}`);
+    }
+    return map;
+  }, [versions]);
+
   // Build a map of version_number -> previous version for deltas
   const versionDeltaMap = useMemo(() => {
     const sorted = [...versions].sort((a, b) => a.version_number - b.version_number);
@@ -331,7 +350,7 @@ export function SectionVersionHistoryDialog({
 
         <div className="flex gap-4 min-h-[400px]">
           {/* Version List */}
-          <ScrollArea className="flex-1 border border-border rounded-md">
+          <ScrollArea className="flex-1 border border-border rounded-md max-h-[400px]">
             {isLoading ? (
               <div className="flex items-center justify-center h-40">
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -371,7 +390,7 @@ export function SectionVersionHistoryDialog({
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className={`text-sm truncate ${version.is_major ? 'font-semibold' : 'font-medium text-muted-foreground'}`}>
-                                  Version {version.version_number}
+                                  Version {displayVersionNumbers.get(version.id) || version.version_number}
                                 </span>
                                 {isFirst && (
                                   <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
@@ -395,29 +414,23 @@ export function SectionVersionHistoryDialog({
                                 )}
                               </div>
                               {version.label && (
-                                <p className="text-xs text-primary mt-0.5 truncate flex items-center gap-1">
+                                <p className="text-xs text-primary font-bold mt-0.5 truncate flex items-center gap-1">
                                   <Tag className="w-3 h-3 flex-shrink-0" />
                                   {version.label}
                                 </p>
                               )}
-                              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                                <span className="flex items-center gap-1">
-                                  <Clock className="w-3 h-3" />
+                              <div className="grid grid-cols-3 gap-1 mt-1 text-xs text-muted-foreground">
+                                <span className="flex items-center gap-1 truncate">
+                                  <Clock className="w-3 h-3 flex-shrink-0" />
                                   {getRelativeTime(version.created_at)}
                                 </span>
-                                <span>{getWordCount(version.content)} words</span>
-                                <span>{formatSize(getContentSize(version.content))}</span>
-                                {delta && delta.wordDelta !== 0 && (
-                                  <span className={delta.wordDelta > 0 ? 'text-green-600' : 'text-red-500'}>
-                                    {delta.wordDelta > 0 ? '+' : ''}{delta.wordDelta}w
-                                  </span>
-                                )}
-                                {version.created_by && profiles[version.created_by] && (
-                                  <span className="flex items-center gap-1">
-                                    <User className="w-3 h-3" />
+                                <span className="truncate">{formatSize(getContentSize(version.content))}</span>
+                                {version.created_by && profiles[version.created_by] ? (
+                                  <span className="flex items-center gap-1 truncate">
+                                    <User className="w-3 h-3 flex-shrink-0" />
                                     {profiles[version.created_by]}
                                   </span>
-                                )}
+                                ) : <span />}
                               </div>
                             </div>
                             <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -437,7 +450,7 @@ export function SectionVersionHistoryDialog({
               <div className="space-y-4">
                 <div>
                   <h4 className={`text-sm ${selectedVersion.is_major ? 'font-semibold' : 'font-medium'}`}>
-                    Version {selectedVersion.version_number}
+                    Version {displayVersionNumbers.get(selectedVersion.id) || selectedVersion.version_number}
                   </h4>
 
                   {/* Label display / editing */}
