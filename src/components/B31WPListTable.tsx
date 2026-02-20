@@ -261,7 +261,7 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
                     className="inline-flex items-center rounded-full text-white font-bold whitespace-nowrap"
                     style={{ backgroundColor: wp.color || '#666', border: `1.5px solid ${wp.color || '#666'}`, color: '#ffffff', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
                   >
-                    WP{wp.number}{shortName ? `: ${shortName}` : ''}{title ? ' –\u00A0' : shortName ? ' –\u00A0' : ''}
+                    WP{wp.number}: {shortName}{shortName && title ? ' –\u00A0' : ''}
                     <InlineEdit
                       value={title}
                       onSave={(val) => saveWPField(wp.id, 'title', val)}
