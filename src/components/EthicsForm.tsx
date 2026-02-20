@@ -928,17 +928,14 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
               const sectionHasIssues = section.questions.some(q => ethicsData[q.id] === true);
               
               return (
-                <div key={section.id} className={cn(index > 0 && 'border-t border-border')}>
+                <div key={section.id}>
                   <div className="flex items-center justify-between py-2">
                     <h3 className="font-semibold text-sm">
                       {section.number}. {section.title}
                     </h3>
-                    <div className="flex items-center gap-2">
-                      {sectionHasIssues && (
-                        <AlertTriangle className="w-4 h-4 text-warning" />
-                      )}
-                      <span className="text-xs font-medium text-muted-foreground w-16 text-center">Page</span>
-                    </div>
+                    {sectionHasIssues && (
+                      <AlertTriangle className="w-4 h-4 text-warning" />
+                    )}
                   </div>
                   <div className="pb-2">
 
@@ -1108,17 +1105,14 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
               };
               
               return (
-                <div key={section.id} className={cn(index > 0 && 'border-t border-border')}>
+                <div key={section.id}>
                   <div className="flex items-center justify-between py-2">
                     <h3 className="font-semibold text-sm">
                       {section.number}. {section.title}
                     </h3>
-                    <div className="flex items-center gap-2">
-                      {sectionHasIssues && (
-                        <AlertTriangle className="w-4 h-4 text-warning" />
-                      )}
-                      <span className="text-xs font-medium text-muted-foreground w-16 text-center">Page</span>
-                    </div>
+                    {sectionHasIssues && (
+                      <AlertTriangle className="w-4 h-4 text-warning" />
+                    )}
                   </div>
                   {section.description && (
                     <p className="text-xs text-muted-foreground -mt-1 mb-1">
