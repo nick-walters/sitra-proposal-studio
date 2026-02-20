@@ -155,10 +155,10 @@ export function OtherQuestionsForm({ proposalId, isTwoStageSecondStage, canEdit 
   }
 
   return (
-    <div className="flex-1 overflow-auto p-4 bg-muted/30">
-      <div className="max-w-7xl mx-auto space-y-4">
+    <div className="flex-1 overflow-auto p-6 bg-muted/30">
+      <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-foreground">Part A5: Other questions</h1>
+          <h1 className="text-xl font-bold text-foreground">Part A5: Other questions</h1>
           {canEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
         </div>
 
@@ -166,10 +166,10 @@ export function OtherQuestionsForm({ proposalId, isTwoStageSecondStage, canEdit 
         {isTwoStageSecondStage && (
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
+              <h3 className="font-semibold text-base flex items-center gap-2">
                 <Info className="w-5 h-5" />
                 Two-stage submission
-              </CardTitle>
+              </h3>
               <CardDescription>
                 For proposals submitted as the second stage in a two-stage call
               </CardDescription>
@@ -217,10 +217,10 @@ export function OtherQuestionsForm({ proposalId, isTwoStageSecondStage, canEdit 
         {/* Clinical trials */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
+            <h3 className="font-semibold text-base flex items-center gap-2">
               <AlertTriangle className="w-5 h-5" />
               Clinical studies / trials / investigations
-            </CardTitle>
+            </h3>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3">

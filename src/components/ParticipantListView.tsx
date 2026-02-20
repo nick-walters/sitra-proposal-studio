@@ -654,8 +654,8 @@ export function ParticipantListView({
 
   return (
     <TooltipProvider>
-      <div className="flex-1 overflow-auto p-4 bg-muted/30">
-        <div className="max-w-4xl mx-auto space-y-4">
+      <div className="flex-1 overflow-auto p-6 bg-muted/30">
+        <div className="max-w-7xl mx-auto space-y-6">
           {/* Guidelines Button */}
           <PartAGuidelinesDialog
             sectionTitle="Part A2: Participants"
@@ -666,7 +666,7 @@ export function ParticipantListView({
           {/* Header */}
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-1">
-              <h1 className="text-lg font-semibold">Part A2: Participants</h1>
+              <h1 className="text-xl font-bold text-foreground">Part A2: Participants</h1>
               <p className="text-xs text-muted-foreground">
                 Manage consortium partners and their details
               </p>

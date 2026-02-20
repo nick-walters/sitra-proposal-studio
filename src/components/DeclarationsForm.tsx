@@ -239,7 +239,7 @@ export function DeclarationsForm({ participants, proposalId, canEdit }: Declarat
 
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Part A5: Declarations</h1>
+          <h1 className="text-xl font-bold text-foreground">Part A5: Declarations</h1>
         </div>
 
         {participants.length === 0 ? (
