@@ -33,6 +33,13 @@ import {
   ThumbsUp,
   ThumbsDown,
   Lightbulb,
+  Users,
+  MapPin,
+  Building2,
+  Target,
+  Megaphone,
+  TrendingUp,
+  AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -44,6 +51,8 @@ interface WritingAssistantDialogProps {
   plainText?: string;
   onApplyGrammarSuggestion?: (original: string, replacement: string) => void;
   sectionId?: string;
+  proposalId?: string;
+  canUseConsortiumBuilder?: boolean;
 }
 
 type Action = 'improve_clarity' | 'improve_tone' | 'make_concise' | 'expand' | 'eu_language' | 'evaluate_section';
@@ -107,6 +116,40 @@ interface EvaluationResult {
   summary: string;
 }
 
+interface ConsortiumGap {
+  type: string;
+  priority: 'high' | 'medium' | 'low';
+  description: string;
+  suggestedProfile: {
+    organisationType: string;
+    region: string;
+    expertise: string;
+    role: string;
+  };
+  rationale: string;
+}
+
+interface ConsortiumAnalysis {
+  summary: string;
+  strengths: string[];
+  gaps: ConsortiumGap[];
+}
+
+const gapTypeIcons: Record<string, React.ReactNode> = {
+  geographic: <MapPin className="w-4 h-4" />,
+  expertise: <Lightbulb className="w-4 h-4" />,
+  organisation_type: <Building2 className="w-4 h-4" />,
+  role_coverage: <Target className="w-4 h-4" />,
+  dissemination: <Megaphone className="w-4 h-4" />,
+  exploitation: <TrendingUp className="w-4 h-4" />,
+};
+
+const priorityColors: Record<string, string> = {
+  high: 'bg-destructive/10 text-destructive border-destructive/20',
+  medium: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-800',
+  low: 'bg-muted text-muted-foreground border-border',
+};
+
 const typeIcons: Record<string, React.ReactNode> = {
   grammar: <Type className="w-3.5 h-3.5" />,
   spelling: <AlertCircle className="w-3.5 h-3.5" />,
@@ -147,6 +190,8 @@ export function WritingAssistantDialog({
   plainText,
   onApplyGrammarSuggestion,
   sectionId,
+  proposalId,
+  canUseConsortiumBuilder = false,
 }: WritingAssistantDialogProps) {
   const [result, setResult] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -158,6 +203,10 @@ export function WritingAssistantDialog({
   const [grammarSuggestions, setGrammarSuggestions] = useState<Suggestion[]>([]);
   const [grammarLoading, setGrammarLoading] = useState(false);
   const [appliedSuggestions, setAppliedSuggestions] = useState<Set<number>>(new Set());
+
+  // Consortium builder state
+  const [consortiumResult, setConsortiumResult] = useState<ConsortiumAnalysis | null>(null);
+  const [consortiumLoading, setConsortiumLoading] = useState(false);
 
   // Derive sectionType from sectionId for criteria context
   const sectionType = sectionId?.startsWith('b1-1') ? 'b1-1' 
@@ -275,10 +324,36 @@ export function WritingAssistantDialog({
     }
   }, [result, onApply, onClose]);
 
+  const handleAnalyseConsortium = useCallback(async () => {
+    if (!proposalId) {
+      toast.error('No proposal context available');
+      return;
+    }
+    setConsortiumLoading(true);
+    setConsortiumResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyse-consortium', {
+        body: { proposalId },
+      });
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+      setConsortiumResult(data?.result || null);
+    } catch (err) {
+      console.error('Consortium analysis error:', err);
+      toast.error('Failed to analyse consortium');
+    } finally {
+      setConsortiumLoading(false);
+    }
+  }, [proposalId]);
+
   const handleClose = () => {
     setResult('');
     setActiveAction(null);
     setEvaluation(null);
+    setConsortiumResult(null);
     onClose();
   };
 
@@ -298,9 +373,15 @@ export function WritingAssistantDialog({
         </DialogHeader>
 
         <Tabs defaultValue="grammar" className="flex-1 flex flex-col min-h-0">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className={cn("grid w-full", canUseConsortiumBuilder ? "grid-cols-5" : "grid-cols-4")}>
             <TabsTrigger value="grammar">Grammar</TabsTrigger>
             <TabsTrigger value="actions">Writing</TabsTrigger>
+            {canUseConsortiumBuilder && (
+              <TabsTrigger value="consortium">
+                <Users className="w-3.5 h-3.5 mr-1" />
+                Consortium
+              </TabsTrigger>
+            )}
             <TabsTrigger value="result" disabled={!result}>Result</TabsTrigger>
             <TabsTrigger value="evaluation" disabled={!evaluation}>Evaluation</TabsTrigger>
           </TabsList>
@@ -538,6 +619,102 @@ export function WritingAssistantDialog({
               </ScrollArea>
             )}
           </TabsContent>
+
+          {/* Consortium Builder Tab */}
+          {canUseConsortiumBuilder && (
+            <TabsContent value="consortium" className="flex-1 flex flex-col min-h-0 space-y-4">
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  AI analyses your current consortium against Horizon Europe best practices and suggests missing partner profiles.
+                </p>
+                <Button
+                  onClick={handleAnalyseConsortium}
+                  disabled={consortiumLoading}
+                  className="w-full gap-2"
+                  size="sm"
+                >
+                  {consortiumLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Analysing consortium...
+                    </>
+                  ) : (
+                    <>
+                      <Users className="w-4 h-4" />
+                      Analyse Consortium
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {consortiumResult && (
+                <ScrollArea className="flex-1 max-h-[400px]">
+                  <div className="space-y-4 pr-4">
+                    {/* Summary */}
+                    <div className="p-3 rounded-lg bg-muted/50">
+                      <p className="text-sm">{consortiumResult.summary}</p>
+                    </div>
+
+                    {/* Strengths */}
+                    {consortiumResult.strengths.length > 0 && (
+                      <div className="space-y-1.5">
+                        <h4 className="text-sm font-medium flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                          <CheckCircle2 className="w-4 h-4" /> Strengths
+                        </h4>
+                        <ul className="text-sm space-y-1 ml-6 list-disc text-muted-foreground">
+                          {consortiumResult.strengths.map((s, i) => <li key={i}>{s}</li>)}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Gaps */}
+                    {consortiumResult.gaps.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium flex items-center gap-1.5">
+                          <AlertTriangle className="w-4 h-4 text-amber-500" /> Recommended Partners
+                        </h4>
+                        {consortiumResult.gaps.map((gap, idx) => (
+                          <div key={idx} className={cn("p-3 rounded-lg border space-y-2", priorityColors[gap.priority] || priorityColors.medium)}>
+                            <div className="flex items-center gap-2">
+                              {gapTypeIcons[gap.type] || <Target className="w-4 h-4" />}
+                              <span className="text-sm font-medium flex-1">{gap.description}</span>
+                              <Badge variant="outline" className="text-[10px] capitalize">{gap.priority}</Badge>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div>
+                                <span className="font-medium">Type:</span>{' '}
+                                <span className="text-muted-foreground">{gap.suggestedProfile.organisationType}</span>
+                              </div>
+                              <div>
+                                <span className="font-medium">Region:</span>{' '}
+                                <span className="text-muted-foreground">{gap.suggestedProfile.region}</span>
+                              </div>
+                              <div>
+                                <span className="font-medium">Expertise:</span>{' '}
+                                <span className="text-muted-foreground">{gap.suggestedProfile.expertise}</span>
+                              </div>
+                              <div>
+                                <span className="font-medium">Role:</span>{' '}
+                                <span className="text-muted-foreground">{gap.suggestedProfile.role}</span>
+                              </div>
+                            </div>
+                            <p className="text-xs text-muted-foreground italic">{gap.rationale}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {consortiumResult.gaps.length === 0 && consortiumResult.strengths.length > 0 && (
+                      <div className="p-3 rounded-lg border border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-800 flex items-center gap-2">
+                        <CheckCircle2 className="w-5 h-5 text-green-600" />
+                        <span className="text-sm text-green-700 dark:text-green-400">No major gaps identified in the consortium.</span>
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+              )}
+            </TabsContent>
+          )}
         </Tabs>
       </DialogContent>
     </Dialog>
