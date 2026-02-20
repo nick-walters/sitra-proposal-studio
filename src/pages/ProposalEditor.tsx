@@ -987,7 +987,7 @@ export function ProposalEditor() {
     <div className="h-screen bg-background flex flex-col overflow-hidden">
       <Header />
       {/* Proposal Top Bar */}
-      <header className="h-10 border-b border-border bg-card/80 backdrop-blur-sm sticky top-16 z-40">
+      <header className="h-10 border-b border-border bg-card/80 backdrop-blur-sm sticky top-10 z-40">
         <div className="h-full px-4 flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0 flex-1 overflow-x-auto scrollbar-none">
             
