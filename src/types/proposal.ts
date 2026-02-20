@@ -205,6 +205,8 @@ export interface Proposal {
   topicScope?: string;
   topicDestinationDescription?: string;
   topicFootnotes?: { id: string; text: string }[];
+  outcomeFootnotes?: { id: string; text: string }[];
+  scopeFootnotes?: { id: string; text: string }[];
   destinationFootnotes?: { id: string; text: string }[];
   topicContentImportedAt?: Date;
   totalBudget?: number;

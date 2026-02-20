@@ -44,6 +44,8 @@ interface ProposalData {
   topicScope?: string;
   topicDestinationDescription?: string;
   topicFootnotes?: { id: string; text: string }[];
+  outcomeFootnotes?: { id: string; text: string }[];
+  scopeFootnotes?: { id: string; text: string }[];
   destinationFootnotes?: { id: string; text: string }[];
   topicContentImportedAt?: Date;
   workProgramme?: string;
@@ -114,6 +116,8 @@ export function useProposalData(proposalId: string) {
         topicScope: (data as any).topic_scope || undefined,
         topicDestinationDescription: (data as any).topic_destination_description || undefined,
         topicFootnotes: (data as any).topic_footnotes || [],
+        outcomeFootnotes: (data as any).outcome_footnotes || [],
+        scopeFootnotes: (data as any).scope_footnotes || [],
         destinationFootnotes: (data as any).destination_footnotes || [],
         topicContentImportedAt: (data as any).topic_content_imported_at ? new Date((data as any).topic_content_imported_at) : undefined,
         workProgramme: data.work_programme || undefined,
@@ -355,6 +359,8 @@ export function useProposalData(proposalId: string) {
     if (updates.topicScope !== undefined) dbUpdates.topic_scope = updates.topicScope;
     if (updates.topicDestinationDescription !== undefined) dbUpdates.topic_destination_description = updates.topicDestinationDescription;
     if (updates.topicFootnotes !== undefined) dbUpdates.topic_footnotes = updates.topicFootnotes;
+    if (updates.outcomeFootnotes !== undefined) dbUpdates.outcome_footnotes = updates.outcomeFootnotes;
+    if (updates.scopeFootnotes !== undefined) dbUpdates.scope_footnotes = updates.scopeFootnotes;
     if (updates.destinationFootnotes !== undefined) dbUpdates.destination_footnotes = updates.destinationFootnotes;
 
     const { error } = await supabase

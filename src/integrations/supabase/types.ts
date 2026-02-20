@@ -2519,7 +2519,9 @@ export type Database = {
           is_two_stage_second_stage: boolean | null
           logo_url: string | null
           opening_date: string | null
+          outcome_footnotes: Json | null
           reporting_periods: Json | null
+          scope_footnotes: Json | null
           status: Database["public"]["Enums"]["proposal_status"]
           submission_stage: string | null
           submitted_at: string | null
@@ -2566,7 +2568,9 @@ export type Database = {
           is_two_stage_second_stage?: boolean | null
           logo_url?: string | null
           opening_date?: string | null
+          outcome_footnotes?: Json | null
           reporting_periods?: Json | null
+          scope_footnotes?: Json | null
           status?: Database["public"]["Enums"]["proposal_status"]
           submission_stage?: string | null
           submitted_at?: string | null
@@ -2613,7 +2617,9 @@ export type Database = {
           is_two_stage_second_stage?: boolean | null
           logo_url?: string | null
           opening_date?: string | null
+          outcome_footnotes?: Json | null
           reporting_periods?: Json | null
+          scope_footnotes?: Json | null
           status?: Database["public"]["Enums"]["proposal_status"]
           submission_stage?: string | null
           submitted_at?: string | null

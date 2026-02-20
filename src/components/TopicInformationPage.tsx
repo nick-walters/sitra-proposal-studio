@@ -109,12 +109,12 @@ export function TopicInformationPage({
 
   const startEditing = (field: EditableField) => {
     if (!userCanEdit || !editedProposal) return;
-    // Save snapshot for discard
     setEditSnapshot({
       topicExpectedOutcome: (editedProposal as any)?.topicExpectedOutcome || '',
       topicScope: (editedProposal as any)?.topicScope || '',
       topicDestinationDescription: (editedProposal as any)?.topicDestinationDescription || '',
-      topicFootnotes: (editedProposal as any)?.topicFootnotes || [],
+      outcomeFootnotes: (editedProposal as any)?.outcomeFootnotes || [],
+      scopeFootnotes: (editedProposal as any)?.scopeFootnotes || [],
       destinationFootnotes: (editedProposal as any)?.destinationFootnotes || [],
     });
     setEditingField(field);
@@ -138,7 +138,8 @@ export function TopicInformationPage({
         topicExpectedOutcome: editSnapshot.topicExpectedOutcome,
         topicScope: editSnapshot.topicScope,
         topicDestinationDescription: editSnapshot.topicDestinationDescription,
-        topicFootnotes: editSnapshot.topicFootnotes,
+        outcomeFootnotes: editSnapshot.outcomeFootnotes,
+        scopeFootnotes: editSnapshot.scopeFootnotes,
         destinationFootnotes: editSnapshot.destinationFootnotes,
       } as any);
     }
@@ -146,13 +147,29 @@ export function TopicInformationPage({
     setEditSnapshot(null);
   };
 
+  // Compute footnote start numbers for sequential numbering across fields
+  const getFootnoteStartNumber = (fieldKey: EditableField) => {
+    const source = editingField ? editedProposal : proposal;
+    const outcomeCount = ((source as any)?.outcomeFootnotes || []).length;
+    const scopeCount = ((source as any)?.scopeFootnotes || []).length;
+    if (fieldKey === 'expectedOutcome') return 1;
+    if (fieldKey === 'scope') return 1 + outcomeCount;
+    if (fieldKey === 'destination') return 1 + outcomeCount + scopeCount;
+    return 1;
+  };
+
+  const getFootnotesKey = (fieldKey: EditableField): string => {
+    if (fieldKey === 'expectedOutcome') return 'outcomeFootnotes';
+    if (fieldKey === 'scope') return 'scopeFootnotes';
+    if (fieldKey === 'destination') return 'destinationFootnotes';
+    return 'outcomeFootnotes';
+  };
+
   const handleInsertFootnote = useCallback(() => {
     if (!editedProposal || !editingField) return;
-    const isDestination = editingField === 'destination';
-    const footnotes: any[] = isDestination
-      ? ((editedProposal as any)?.destinationFootnotes || [])
-      : ((editedProposal as any)?.topicFootnotes || []);
-    const nextNumber = footnotes.length + 1;
+    const footnotesKey = getFootnotesKey(editingField);
+    const footnotes: any[] = (editedProposal as any)?.[footnotesKey] || [];
+    const globalNumber = getFootnoteStartNumber(editingField) + footnotes.length;
     const newFootnote = { id: crypto.randomUUID(), text: "" };
 
     const sel = window.getSelection();
@@ -160,7 +177,7 @@ export function TopicInformationPage({
       const range = sel.getRangeAt(0);
       const marker = document.createElement('sup');
       marker.className = 'text-primary font-semibold text-[10px]';
-      marker.textContent = `${nextNumber}`;
+      marker.textContent = `${globalNumber}`;
       range.deleteContents();
       range.insertNode(marker);
       range.setStartAfter(marker);
@@ -169,7 +186,6 @@ export function TopicInformationPage({
       sel.addRange(range);
     }
 
-    const footnotesKey = isDestination ? 'destinationFootnotes' : 'topicFootnotes';
     setEditedProposal({ ...editedProposal, [footnotesKey]: [...footnotes, newFootnote] } as any);
   }, [editedProposal, editingField]);
 
@@ -283,17 +299,17 @@ export function TopicInformationPage({
     }
   };
 
-  /** Render an editable rich text field with edit/save/discard controls */
   const renderRichTextField = (
     fieldKey: EditableField,
     label: string,
     valueKey: string,
-    footnotesKey: string,
     emptyMessage: string,
   ) => {
     const isThisEditing = editingField === fieldKey;
     const fieldValue = (editedProposal as any)?.[valueKey] || '';
+    const footnotesKey = getFootnotesKey(fieldKey);
     const fieldFootnotes = (editedProposal as any)?.[footnotesKey] || [];
+    const startNum = getFootnoteStartNumber(fieldKey);
 
     return (
       <div>
@@ -344,6 +360,7 @@ export function TopicInformationPage({
               onChange={(val) => setEditedProposal({ ...editedProposal, [valueKey]: val } as any)}
               footnotes={fieldFootnotes}
               onFootnotesChange={(fns) => setEditedProposal({ ...editedProposal, [footnotesKey]: fns } as any)}
+              footnoteStartNumber={startNum}
             />
           </div>
         ) : (
@@ -351,6 +368,7 @@ export function TopicInformationPage({
             html={(proposal as any)?.[valueKey]}
             footnotes={(proposal as any)?.[footnotesKey] || []}
             emptyMessage={emptyMessage}
+            footnoteStartNumber={startNum}
           />
         )}
       </div>
@@ -757,8 +775,8 @@ export function TopicInformationPage({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {renderRichTextField('expectedOutcome', 'Expected outcome', 'topicExpectedOutcome', 'topicFootnotes', 'No expected outcome available')}
-            {renderRichTextField('scope', 'Scope', 'topicScope', 'topicFootnotes', 'No scope available')}
+            {renderRichTextField('expectedOutcome', 'Expected outcome', 'topicExpectedOutcome', 'No expected outcome available')}
+            {renderRichTextField('scope', 'Scope', 'topicScope', 'No scope available')}
             {proposal?.topicContentImportedAt && (
               <p className="text-xs text-muted-foreground italic">
                 Last imported: {format(proposal.topicContentImportedAt, 'dd MMM yyyy, HH:mm')}
@@ -776,7 +794,7 @@ export function TopicInformationPage({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {renderRichTextField('destination', 'Description', 'topicDestinationDescription', 'destinationFootnotes', 'No destination description available')}
+            {renderRichTextField('destination', 'Description', 'topicDestinationDescription', 'No destination description available')}
           </CardContent>
         </Card>
       </div>
