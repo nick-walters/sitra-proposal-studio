@@ -574,29 +574,31 @@ export function ProposalEditor() {
             const canEditThisParticipant = canEdit;
             
             return (
-              <ParticipantDetailForm
-                participant={selectedParticipant}
-                participantMembers={participantMembers}
-                allParticipants={participants.map(p => ({
-                  id: p.id,
-                  participant_number: p.participantNumber,
-                  organisation_short_name: p.organisationShortName || null,
-                  organisation_name: p.organisationName || '',
-                }))}
-                onUpdateParticipant={updateParticipant}
-                onDeleteParticipant={(id) => {
-                  deleteParticipant(id);
-                  setSelectedParticipantId(null);
-                }}
-                onAddMember={addParticipantMember}
-                onUpdateMember={updateParticipantMember}
-                onDeleteMember={deleteParticipantMember}
-                canEdit={canEditThisParticipant}
-                canDelete={canEdit}
-                canGrant={isGlobalOwner || isCoordinator}
-                proposalId={id}
-                proposalAcronym={proposal?.acronym}
-              />
+              <div className="flex-1 overflow-y-auto">
+                <ParticipantDetailForm
+                  participant={selectedParticipant}
+                  participantMembers={participantMembers}
+                  allParticipants={participants.map(p => ({
+                    id: p.id,
+                    participant_number: p.participantNumber,
+                    organisation_short_name: p.organisationShortName || null,
+                    organisation_name: p.organisationName || '',
+                  }))}
+                  onUpdateParticipant={updateParticipant}
+                  onDeleteParticipant={(id) => {
+                    deleteParticipant(id);
+                    setSelectedParticipantId(null);
+                  }}
+                  onAddMember={addParticipantMember}
+                  onUpdateMember={updateParticipantMember}
+                  onDeleteMember={deleteParticipantMember}
+                  canEdit={canEditThisParticipant}
+                  canDelete={canEdit}
+                  canGrant={isGlobalOwner || isCoordinator}
+                  proposalId={id}
+                  proposalAcronym={proposal?.acronym}
+                />
+              </div>
             );
           }
         }
@@ -1139,7 +1141,7 @@ export function ProposalEditor() {
         </button>
 
         {/* Content Area */}
-        <main className="flex-1 flex flex-col min-h-0">
+        <main className="flex-1 flex flex-col min-h-0 overflow-hidden">
           {renderContent()}
         </main>
       </div>
