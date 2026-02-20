@@ -658,11 +658,8 @@ export function ParticipantListView({
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Header */}
           <div className="flex items-start justify-between gap-4">
-            <div className="space-y-1">
+            <div>
               <h1 className="text-xl font-bold text-foreground">Part A2: Participants</h1>
-              <p className="text-xs text-muted-foreground">
-                Manage consortium partners and their details
-              </p>
             </div>
             <div className="flex gap-2">
               {canAddParticipant && onAddParticipant && (

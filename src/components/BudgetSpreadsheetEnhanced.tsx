@@ -265,12 +265,7 @@ export function BudgetSpreadsheetEnhanced({
                   Saving...
                 </Badge>
               )}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {budgetType === 'traditional' 
-                ? 'Detailed budget breakdown by EU cost categories' 
-                : 'Lump sum budget allocation by work package'}
-            </p>
+          </div>
           </div>
           <div className="flex items-center gap-3">
         
