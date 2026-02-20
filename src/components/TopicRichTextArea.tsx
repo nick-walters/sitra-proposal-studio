@@ -165,7 +165,7 @@ export function TopicRichTextArea({
             const displayNum = footnoteStartNumber + idx;
             return (
               <div key={fn.id} className="flex items-start gap-1.5 text-xs">
-                <span className="text-primary font-semibold text-[10px] shrink-0 leading-normal mt-[1.8px]">{displayNum}</span>
+                <span className="text-primary font-semibold text-[10px] shrink-0 leading-normal" style={{ marginTop: '1.8px' }}>{displayNum}</span>
                 {!disabled ? (
                   <div
                     contentEditable
@@ -233,7 +233,7 @@ export function TopicRichTextReadonly({ html, footnotes = [], emptyMessage = 'â€
         <div className="border-t mt-2 pt-2 space-y-0.5">
           {footnotes.map((fn, idx) => (
             <div key={fn.id} className="flex items-start gap-1.5 text-xs text-muted-foreground">
-              <span className="text-primary font-semibold text-[10px] mt-[1.8px] shrink-0">{footnoteStartNumber + idx}</span>
+              <span className="text-primary font-semibold text-[10px] shrink-0" style={{ marginTop: '1.8px' }}>{footnoteStartNumber + idx}</span>
               <span className="[&_a]:text-primary [&_a]:underline [&_a]:cursor-pointer" dangerouslySetInnerHTML={{ __html: fn.text || 'â€“' }} />
             </div>
           ))}
