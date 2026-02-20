@@ -10,7 +10,7 @@ interface StickyToolbarWrapperProps {
  * Wraps a toolbar so it sticks to the top of its scroll container
  * when the user scrolls past it.
  */
-export function StickyToolbarWrapper({ children, scrollContainerSelector = '.flex-1.overflow-auto' }: StickyToolbarWrapperProps) {
+export function StickyToolbarWrapper({ children, scrollContainerSelector = '.flex-1.overflow-y-auto' }: StickyToolbarWrapperProps) {
   const placeholderRef = useRef<HTMLDivElement>(null);
   const [isStuck, setIsStuck] = useState(false);
   const [style, setStyle] = useState<React.CSSProperties>({});
@@ -33,7 +33,7 @@ export function StickyToolbarWrapper({ children, scrollContainerSelector = '.fle
           top: containerRect.top,
           left: placeholderRect.left,
           width: placeholderRect.width,
-          zIndex: 20,
+          zIndex: 50,
         });
       } else {
         setIsStuck(false);
