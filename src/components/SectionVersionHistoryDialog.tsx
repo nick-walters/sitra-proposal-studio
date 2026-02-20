@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -10,6 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { 
   History, 
   RotateCcw, 
@@ -17,11 +23,18 @@ import {
   Clock, 
   FileText,
   Loader2,
-  ChevronRight
+  ChevronRight,
+  Pin,
+  PinOff,
+  Info,
+  ChevronDown,
+  Star,
+  Tag,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, isToday, isYesterday, differenceInDays, startOfWeek, startOfMonth } from "date-fns";
+import { useProposalRole } from "@/hooks/useProposalRole";
 
 interface SectionVersion {
   id: string;
@@ -30,6 +43,9 @@ interface SectionVersion {
   created_by: string | null;
   version_number: number;
   is_auto_save: boolean;
+  label: string | null;
+  is_pinned: boolean;
+  is_major: boolean;
 }
 
 interface SectionVersionHistoryDialogProps {
@@ -39,6 +55,57 @@ interface SectionVersionHistoryDialogProps {
   sectionId: string;
   sectionTitle: string;
   onRestoreVersion: (content: string) => void;
+}
+
+/** Get byte size of content string */
+function getContentSize(content: string | null): number {
+  if (!content) return 0;
+  return new Blob([content]).size;
+}
+
+/** Format bytes to human-readable */
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  return `${(bytes / 1024).toFixed(1)} KB`;
+}
+
+/** Get word count from HTML content */
+function getWordCount(content: string | null): number {
+  if (!content) return 0;
+  const plainText = content
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return plainText.split(/\s+/).filter(word => word.length > 0).length;
+}
+
+/** Get time group label */
+function getTimeGroup(dateString: string): string {
+  const date = new Date(dateString);
+  if (isToday(date)) return 'Today';
+  if (isYesterday(date)) return 'Yesterday';
+  const now = new Date();
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+  if (date >= weekStart) return 'This Week';
+  const monthStart = startOfMonth(now);
+  if (date >= monthStart) return 'This Month';
+  return 'Older';
+}
+
+function getRelativeTime(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return format(date, "dd MMM");
 }
 
 export function SectionVersionHistoryDialog({
@@ -53,10 +120,18 @@ export function SectionVersionHistoryDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [selectedVersion, setSelectedVersion] = useState<SectionVersion | null>(null);
   const [profiles, setProfiles] = useState<Record<string, string>>({});
+  const [editingLabel, setEditingLabel] = useState(false);
+  const [labelDraft, setLabelDraft] = useState('');
+  const [retentionOpen, setRetentionOpen] = useState(false);
+
+  const { roleTier } = useProposalRole(proposalId);
+  const canManageVersions = roleTier === 'coordinator';
 
   useEffect(() => {
     if (isOpen && proposalId && sectionId) {
       loadVersions();
+      // Run thinning when dialog opens
+      Promise.resolve(supabase.rpc('thin_section_versions' as any, { p_proposal_id: proposalId })).catch(() => {});
     }
   }, [isOpen, proposalId, sectionId]);
 
@@ -69,13 +144,13 @@ export function SectionVersionHistoryDialog({
         .eq('proposal_id', proposalId)
         .eq('section_id', sectionId)
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(200);
 
       if (error) throw error;
 
       // Deduplicate by version_number, keeping the latest entry
-      const seen = new Map<number, typeof data[0]>();
-      for (const v of (data || [])) {
+      const seen = new Map<number, SectionVersion>();
+      for (const v of (data || []) as SectionVersion[]) {
         if (!seen.has(v.version_number)) {
           seen.set(v.version_number, v);
         }
@@ -106,6 +181,45 @@ export function SectionVersionHistoryDialog({
     }
   };
 
+  // Group versions by time period
+  const groupedVersions = useMemo(() => {
+    const groups: { label: string; versions: SectionVersion[] }[] = [];
+    const groupMap = new Map<string, SectionVersion[]>();
+
+    for (const v of versions) {
+      const group = getTimeGroup(v.created_at);
+      if (!groupMap.has(group)) groupMap.set(group, []);
+      groupMap.get(group)!.push(v);
+    }
+
+    const order = ['Today', 'Yesterday', 'This Week', 'This Month', 'Older'];
+    for (const label of order) {
+      const items = groupMap.get(label);
+      if (items && items.length > 0) {
+        groups.push({ label, versions: items });
+      }
+    }
+    return groups;
+  }, [versions]);
+
+  // Build a map of version_number -> previous version for deltas
+  const versionDeltaMap = useMemo(() => {
+    const sorted = [...versions].sort((a, b) => a.version_number - b.version_number);
+    const map = new Map<string, { wordDelta: number; sizeDelta: number }>();
+    for (let i = 0; i < sorted.length; i++) {
+      if (i === 0) {
+        map.set(sorted[i].id, { wordDelta: getWordCount(sorted[i].content), sizeDelta: getContentSize(sorted[i].content) });
+      } else {
+        const prevWords = getWordCount(sorted[i - 1].content);
+        const currWords = getWordCount(sorted[i].content);
+        const prevSize = getContentSize(sorted[i - 1].content);
+        const currSize = getContentSize(sorted[i].content);
+        map.set(sorted[i].id, { wordDelta: currWords - prevWords, sizeDelta: currSize - prevSize });
+      }
+    }
+    return map;
+  }, [versions]);
+
   const handleRestore = async (version: SectionVersion) => {
     try {
       onRestoreVersion(version.content || '');
@@ -122,44 +236,98 @@ export function SectionVersionHistoryDialog({
     return format(date, "dd/MM/yyyy 'at' HH:mm");
   };
 
-  const getRelativeTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
+  const handleSaveLabel = async (version: SectionVersion, newLabel: string) => {
+    const trimmed = newLabel.trim() || null;
+    try {
+      const updateData: Record<string, any> = { label: trimmed };
+      if (trimmed) updateData.is_major = true; // labeling auto-promotes to major
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return format(date, "dd MMM");
+      const { error } = await supabase
+        .from('section_versions')
+        .update(updateData)
+        .eq('id', version.id);
+      if (error) throw error;
+
+      setVersions(prev => prev.map(v =>
+        v.id === version.id ? { ...v, label: trimmed, is_major: trimmed ? true : v.is_major } : v
+      ));
+      setSelectedVersion(prev => prev?.id === version.id ? { ...prev, label: trimmed, is_major: trimmed ? true : prev.is_major } : prev);
+      setEditingLabel(false);
+    } catch (error) {
+      console.error('Error saving label:', error);
+      toast.error("Failed to save label");
+    }
   };
 
-  // Get word count from content
-  const getWordCount = (content: string | null): number => {
-    if (!content) return 0;
-    const plainText = content
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-    return plainText.split(/\s+/).filter(word => word.length > 0).length;
+  const handleTogglePin = async (version: SectionVersion) => {
+    const newPinned = !version.is_pinned;
+    try {
+      const updateData: Record<string, any> = { is_pinned: newPinned };
+      if (newPinned) updateData.is_major = true; // pinning auto-promotes
+
+      const { error } = await supabase
+        .from('section_versions')
+        .update(updateData)
+        .eq('id', version.id);
+      if (error) throw error;
+
+      setVersions(prev => prev.map(v =>
+        v.id === version.id ? { ...v, is_pinned: newPinned, is_major: newPinned ? true : v.is_major } : v
+      ));
+      setSelectedVersion(prev => prev?.id === version.id ? { ...prev, is_pinned: newPinned, is_major: newPinned ? true : prev.is_major } : prev);
+      toast.success(newPinned ? "Version pinned" : "Version unpinned");
+    } catch (error) {
+      console.error('Error toggling pin:', error);
+      toast.error("Failed to update pin");
+    }
+  };
+
+  const formatDelta = (delta: number, unit: string) => {
+    if (delta === 0) return null;
+    const sign = delta > 0 ? '+' : '';
+    return `${sign}${unit === 'size' ? formatSize(Math.abs(delta)) : delta} ${unit === 'size' ? '' : 'words'}`;
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[700px] max-h-[80vh]">
+      <DialogContent className="sm:max-w-[750px] max-h-[80vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <History className="w-5 h-5 text-primary" />
             Version History: {sectionTitle}
           </DialogTitle>
           <DialogDescription>
-            View and restore previous versions of this section. Versions are saved automatically every 5 minutes.
+            View and restore previous versions of this section. Versions are saved automatically every 5 minutes when significant changes are detected.
           </DialogDescription>
         </DialogHeader>
+
+        {/* Retention Policy Info Box */}
+        <Collapsible open={retentionOpen} onOpenChange={setRetentionOpen}>
+          <CollapsibleTrigger className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full">
+            <Info className="w-3 h-3" />
+            <span>How versions are retained</span>
+            <ChevronDown className={`w-3 h-3 transition-transform ${retentionOpen ? 'rotate-180' : ''}`} />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-2">
+            <div className="text-xs text-muted-foreground bg-muted/50 rounded-md p-3 space-y-2">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="text-left py-1 pr-4 font-medium">Age</th>
+                    <th className="text-left py-1 font-medium">Versions kept</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td className="py-0.5 pr-4">0–7 days</td><td>All versions</td></tr>
+                  <tr><td className="py-0.5 pr-4">7–30 days</td><td>1 per hour</td></tr>
+                  <tr><td className="py-0.5 pr-4">30–90 days</td><td>1 per day</td></tr>
+                  <tr><td className="py-0.5 pr-4">90+ days</td><td>1 per week</td></tr>
+                </tbody>
+              </table>
+              <p className="italic">Pinned, labeled, and major versions are never automatically removed.</p>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
 
         <div className="flex gap-4 min-h-[400px]">
           {/* Version List */}
@@ -178,61 +346,134 @@ export function SectionVersionHistoryDialog({
               </div>
             ) : (
               <div className="p-2 space-y-1">
-                {versions.map((version, index) => (
-                  <button
-                    key={version.id}
-                    onClick={() => setSelectedVersion(version)}
-                    className={`w-full text-left p-3 rounded-md transition-colors ${
-                      selectedVersion?.id === version.id
-                        ? 'bg-accent'
-                        : 'hover:bg-muted/50'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium truncate">
-                            Version {version.version_number}
-                          </span>
-                          {index === 0 && (
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                              Latest
-                            </Badge>
-                          )}
-                          {version.is_auto_save && (
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                              Auto
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {getRelativeTime(version.created_at)}
-                          </span>
-                          <span>{getWordCount(version.content)} words</span>
-                          {version.created_by && profiles[version.created_by] && (
-                            <span className="flex items-center gap-1">
-                              <User className="w-3 h-3" />
-                              {profiles[version.created_by]}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    </div>
-                  </button>
+                {groupedVersions.map(group => (
+                  <div key={group.label}>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium px-3 pt-2 pb-1">
+                      {group.label}
+                    </p>
+                    {group.versions.map((version, index) => {
+                      const delta = versionDeltaMap.get(version.id);
+                      const isFirst = index === 0 && group.label === groupedVersions[0]?.label;
+                      return (
+                        <button
+                          key={version.id}
+                          onClick={() => {
+                            setSelectedVersion(version);
+                            setEditingLabel(false);
+                          }}
+                          className={`w-full text-left p-3 rounded-md transition-colors ${
+                            selectedVersion?.id === version.id
+                              ? 'bg-accent'
+                              : 'hover:bg-muted/50'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className={`text-sm truncate ${version.is_major ? 'font-semibold' : 'font-medium text-muted-foreground'}`}>
+                                  Version {version.version_number}
+                                </span>
+                                {isFirst && (
+                                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                    Latest
+                                  </Badge>
+                                )}
+                                {version.is_major && (
+                                  <Badge variant="default" className="text-[10px] px-1.5 py-0">
+                                    <Star className="w-2.5 h-2.5 mr-0.5" />Major
+                                  </Badge>
+                                )}
+                                {version.is_pinned && (
+                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                    <Pin className="w-2.5 h-2.5 mr-0.5" />Pinned
+                                  </Badge>
+                                )}
+                                {version.is_auto_save && !version.is_major && (
+                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                    Auto
+                                  </Badge>
+                                )}
+                              </div>
+                              {version.label && (
+                                <p className="text-xs text-primary mt-0.5 truncate flex items-center gap-1">
+                                  <Tag className="w-3 h-3 flex-shrink-0" />
+                                  {version.label}
+                                </p>
+                              )}
+                              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {getRelativeTime(version.created_at)}
+                                </span>
+                                <span>{getWordCount(version.content)} words</span>
+                                <span>{formatSize(getContentSize(version.content))}</span>
+                                {delta && delta.wordDelta !== 0 && (
+                                  <span className={delta.wordDelta > 0 ? 'text-green-600' : 'text-red-500'}>
+                                    {delta.wordDelta > 0 ? '+' : ''}{delta.wordDelta}w
+                                  </span>
+                                )}
+                                {version.created_by && profiles[version.created_by] && (
+                                  <span className="flex items-center gap-1">
+                                    <User className="w-3 h-3" />
+                                    {profiles[version.created_by]}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 ))}
               </div>
             )}
           </ScrollArea>
 
           {/* Version Details */}
-          <div className="w-64 border border-border rounded-md p-4">
+          <div className="w-72 border border-border rounded-md p-4">
             {selectedVersion ? (
               <div className="space-y-4">
                 <div>
-                  <h4 className="font-medium text-sm">Version {selectedVersion.version_number}</h4>
+                  <h4 className={`text-sm ${selectedVersion.is_major ? 'font-semibold' : 'font-medium'}`}>
+                    Version {selectedVersion.version_number}
+                  </h4>
+
+                  {/* Label display / editing */}
+                  {canManageVersions ? (
+                    editingLabel ? (
+                      <Input
+                        autoFocus
+                        value={labelDraft}
+                        onChange={(e) => setLabelDraft(e.target.value)}
+                        onBlur={() => handleSaveLabel(selectedVersion, labelDraft)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSaveLabel(selectedVersion, labelDraft);
+                          if (e.key === 'Escape') setEditingLabel(false);
+                        }}
+                        placeholder="e.g. Final submitted version"
+                        className="h-7 text-xs mt-1"
+                      />
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setLabelDraft(selectedVersion.label || '');
+                          setEditingLabel(true);
+                        }}
+                        className="text-xs text-muted-foreground hover:text-foreground mt-1 flex items-center gap-1 transition-colors"
+                      >
+                        <Tag className="w-3 h-3" />
+                        {selectedVersion.label || 'Add label…'}
+                      </button>
+                    )
+                  ) : selectedVersion.label ? (
+                    <p className="text-xs text-primary mt-1 flex items-center gap-1">
+                      <Tag className="w-3 h-3" />
+                      {selectedVersion.label}
+                    </p>
+                  ) : null}
+
                   <p className="text-xs text-muted-foreground mt-1">
                     {formatDate(selectedVersion.created_at)}
                   </p>
@@ -240,14 +481,46 @@ export function SectionVersionHistoryDialog({
 
                 <Separator />
 
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Word count</p>
-                  <p className="text-sm font-medium">{getWordCount(selectedVersion.content)} words</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-0.5">Words</p>
+                    <p className="text-sm font-medium">{getWordCount(selectedVersion.content)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-0.5">Size</p>
+                    <p className="text-sm font-medium">{formatSize(getContentSize(selectedVersion.content))}</p>
+                  </div>
                 </div>
+
+                {/* Delta from previous version */}
+                {(() => {
+                  const delta = versionDeltaMap.get(selectedVersion.id);
+                  if (!delta) return null;
+                  const wordStr = formatDelta(delta.wordDelta, 'words');
+                  const sizeStr = formatDelta(delta.sizeDelta, 'size');
+                  if (!wordStr && !sizeStr) return null;
+                  return (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Change from previous</p>
+                      <div className="flex gap-2">
+                        {wordStr && (
+                          <Badge variant="outline" className={`text-[10px] ${delta.wordDelta > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                            {wordStr}
+                          </Badge>
+                        )}
+                        {sizeStr && (
+                          <Badge variant="outline" className={`text-[10px] ${delta.sizeDelta > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                            {sizeStr}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {selectedVersion.created_by && profiles[selectedVersion.created_by] && (
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Saved by</p>
+                    <p className="text-xs text-muted-foreground mb-0.5">Saved by</p>
                     <p className="text-sm flex items-center gap-2">
                       <User className="w-4 h-4" />
                       {profiles[selectedVersion.created_by]}
@@ -268,14 +541,27 @@ export function SectionVersionHistoryDialog({
 
                 <Separator />
 
-                <Button
-                  onClick={() => handleRestore(selectedVersion)}
-                  className="w-full gap-2"
-                  variant="outline"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  Restore This Version
-                </Button>
+                <div className="space-y-2">
+                  {canManageVersions && (
+                    <Button
+                      onClick={() => handleTogglePin(selectedVersion)}
+                      variant="outline"
+                      size="sm"
+                      className="w-full gap-2 text-xs"
+                    >
+                      {selectedVersion.is_pinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+                      {selectedVersion.is_pinned ? 'Unpin Version' : 'Pin Version'}
+                    </Button>
+                  )}
+                  <Button
+                    onClick={() => handleRestore(selectedVersion)}
+                    className="w-full gap-2"
+                    variant="outline"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Restore This Version
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center">

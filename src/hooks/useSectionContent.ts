@@ -11,10 +11,37 @@ interface UseSectionContentProps {
   placeholderContent?: string;
 }
 
-// Minimum interval between version snapshots: 2 minutes
-const VERSION_MIN_INTERVAL = 2 * 60 * 1000;
+// Minimum interval between version snapshots: 5 minutes
+const VERSION_MIN_INTERVAL = 5 * 60 * 1000;
 // Debounce delay for autosave
-const AUTOSAVE_DEBOUNCE = 1000;
+const AUTOSAVE_DEBOUNCE = 5000;
+
+/**
+ * Check if the content change is significant enough to warrant a version snapshot.
+ * Strips HTML and compares word/character differences.
+ */
+function hasSignificantChange(oldContent: string, newContent: string): boolean {
+  const stripHtml = (html: string) =>
+    html.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+
+  const oldText = stripHtml(oldContent);
+  const newText = stripHtml(newContent);
+
+  // Empty ↔ non-empty is always significant
+  if ((!oldText && newText) || (oldText && !newText)) return true;
+
+  // Character difference threshold
+  const charDiff = Math.abs(newText.length - oldText.length);
+  if (charDiff >= 50) return true;
+
+  // Word difference threshold
+  const oldWords = oldText.split(/\s+/).filter(w => w.length > 0);
+  const newWords = newText.split(/\s+/).filter(w => w.length > 0);
+  const wordDiff = Math.abs(newWords.length - oldWords.length);
+  if (wordDiff >= 5) return true;
+
+  return false;
+}
 // Retry config for saves
 const MAX_SAVE_RETRIES = 2;
 const RETRY_DELAY = 1500;
@@ -114,6 +141,9 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
 
     const now = Date.now();
     if (!force && now - lastVersionTimeRef.current < VERSION_MIN_INTERVAL) return;
+
+    // Apply significance threshold for automatic saves (not forced)
+    if (!force && lastVersionContentRef.current && !hasSignificantChange(lastVersionContentRef.current, contentToSave)) return;
 
     try {
       const { data, error } = await supabase.rpc('insert_section_version', {
