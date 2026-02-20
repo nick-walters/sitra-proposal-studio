@@ -106,6 +106,8 @@ export function TopicInformationPage({
   const [importingDestination, setImportingDestination] = useState(false);
   const [pendingBudgetType, setPendingBudgetType] = useState<'traditional' | 'lump_sum' | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [availableDestinations, setAvailableDestinations] = useState(
     proposal?.workProgramme ? getDestinationsForWorkProgramme(proposal.workProgramme) : []
   );
@@ -122,11 +124,18 @@ export function TopicInformationPage({
     }
   }, [editedProposal?.workProgramme]);
 
+  const hasUnsavedChanges = userCanEdit && editedProposal && proposal && JSON.stringify(editedProposal) !== JSON.stringify(proposal);
+
   // Auto-save
   const debouncedSave = useCallback((data: typeof editedProposal) => {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    setSaving(true);
     saveTimeoutRef.current = setTimeout(async () => {
-      if (onUpdateProposal && data) await onUpdateProposal(data);
+      if (onUpdateProposal && data) {
+        await onUpdateProposal(data);
+        setLastSaved(new Date());
+      }
+      setSaving(false);
     }, 1000);
   }, [onUpdateProposal]);
 
@@ -199,7 +208,10 @@ export function TopicInformationPage({
   return (
     <div className="flex-1 overflow-auto p-4 bg-muted/30">
       <div className="max-w-7xl mx-auto space-y-4">
-        <h1 className="text-xl font-bold">Topic information</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl font-bold">Topic information</h1>
+          {userCanEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} hasUnsavedChanges={!!hasUnsavedChanges} />}
+        </div>
 
         {/* General Topic Information Card */}
         <Card>
