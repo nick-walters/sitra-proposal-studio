@@ -180,7 +180,7 @@ function SortableCaseRow({ caseItem, participants, casePrefix, onUpdate, onDelet
 
       {/* Case Lead */}
       <button
-        className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap hover:ring-2 hover:ring-primary/30 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-self-start"
+        className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold italic whitespace-nowrap hover:ring-2 hover:ring-primary/30 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-self-start"
         style={{
           backgroundColor: selectedLead ? '#000000' : 'transparent',
           color: selectedLead ? '#ffffff' : undefined,
@@ -214,7 +214,7 @@ function SortableCaseRow({ caseItem, participants, casePrefix, onUpdate, onDelet
                 >
                   <div className="w-24 shrink-0">
                     <span
-                      className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap"
+                      className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold italic whitespace-nowrap"
                       style={{
                         backgroundColor: '#000000',
                         color: '#ffffff',
