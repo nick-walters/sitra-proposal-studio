@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -136,6 +137,7 @@ export function CreateProposalDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (acronym) {
+      toast.info('Creating your proposal — it will open shortly…', { duration: 5000 });
       onCreateProposal({ 
         acronym, 
         title, 
