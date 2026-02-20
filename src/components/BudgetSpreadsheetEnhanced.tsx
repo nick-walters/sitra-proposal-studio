@@ -257,18 +257,28 @@ export function BudgetSpreadsheetEnhanced({
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-xl font-bold text-foreground">Part A3: Budget</h1>
-              {saving && (
-                <Badge variant="secondary" className="animate-pulse">
-                  Saving...
-                </Badge>
-              )}
-          </div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-bold text-foreground">Part A3: Budget</h1>
+            {saving && (
+              <Badge variant="secondary" className="animate-pulse">
+                Saving...
+              </Badge>
+            )}
+            <PartAGuidelinesDialog
+              sectionTitle="Part A3: Budget"
+              officialGuidelines={[{
+                id: 'budget-info',
+                title: 'Budget Guidelines',
+                content: 'The estimated budget should include all eligible costs for the action.\n\nKey budget categories:\n• A. Personnel costs - Employees, direct contracts, seconded persons, SME owners\n• B. Subcontracting - Tasks performed by third parties\n• C. Purchase costs - Travel, equipment, other goods/services\n• D. Other cost categories - Financial support to third parties (if applicable)\n• E. Indirect costs - Calculated automatically as 25% of eligible direct costs\n\nImportant notes:\n• All costs must be directly linked to the project activities\n• Subcontracting should be limited and justified\n• Indirect costs (overheads) are calculated as a flat rate\n• Budget must be realistic and consistent with the work plan'
+              }]}
+              sitraTips={[{
+                id: 'budget-tip',
+                title: 'Budget planning tips',
+                content: 'Start by estimating person-months per work package, then convert to costs.\n\nCommon pitfalls to avoid:\n• Underestimating travel and meeting costs\n• Forgetting equipment depreciation rules\n• Not accounting for inflation over multi-year projects\n• Overloading budget on one partner\n\nRecommendations:\n• Distribute effort proportionally across partners\n• Include buffer for unexpected costs where rules allow\n• Ensure consistency between budget and work package descriptions'
+              }]}
+            />
           </div>
           <div className="flex items-center gap-3">
-        
             <Badge variant={budgetType === 'lump_sum' ? 'default' : 'secondary'}>
               {budgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}
             </Badge>
@@ -308,21 +318,6 @@ export function BudgetSpreadsheetEnhanced({
             )}
           </div>
         </div>
-
-        {/* Guidelines Button */}
-        <PartAGuidelinesDialog
-          sectionTitle="Part A3: Budget"
-          officialGuidelines={[{
-            id: 'budget-info',
-            title: 'Budget Guidelines',
-            content: 'The estimated budget should include all eligible costs for the action.\n\nKey budget categories:\n• A. Personnel costs - Employees, direct contracts, seconded persons, SME owners\n• B. Subcontracting - Tasks performed by third parties\n• C. Purchase costs - Travel, equipment, other goods/services\n• D. Other cost categories - Financial support to third parties (if applicable)\n• E. Indirect costs - Calculated automatically as 25% of eligible direct costs\n\nImportant notes:\n• All costs must be directly linked to the project activities\n• Subcontracting should be limited and justified\n• Indirect costs (overheads) are calculated as a flat rate\n• Budget must be realistic and consistent with the work plan'
-          }]}
-          sitraTips={[{
-            id: 'budget-tip',
-            title: 'Budget planning tips',
-            content: 'Start by estimating person-months per work package, then convert to costs.\n\nCommon pitfalls to avoid:\n• Underestimating travel and meeting costs\n• Forgetting equipment depreciation rules\n• Not accounting for inflation over multi-year projects\n• Overloading budget on one partner\n\nRecommendations:\n• Distribute effort proportionally across partners\n• Include buffer for unexpected costs where rules allow\n• Ensure consistency between budget and work package descriptions'
-          }]}
-        />
 
         {/* Summary Cards */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
