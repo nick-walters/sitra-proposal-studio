@@ -281,6 +281,13 @@ export function ProposalEditor() {
     }
   }, [allSections, sectionsLoading, activeSection]);
 
+  // Dismiss any "creating proposal" toasts once proposal data has loaded
+  useEffect(() => {
+    if (!loading && proposal) {
+      toast.dismiss();
+    }
+  }, [loading, proposal]);
+
   // Preserve scroll position when switching tabs/apps
   const scrollPositionRef = useRef<number>(0);
   
@@ -443,12 +450,11 @@ export function ProposalEditor() {
   const renderContent = () => {
     if (loading) {
       return (
-        <div className="flex-1 p-6 bg-muted/30">
-          <div className="max-w-7xl mx-auto space-y-6">
-            <Skeleton className="h-8 w-64" />
-            <Skeleton className="h-4 w-48" />
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-32 w-full" />
+        <div className="flex-1 flex items-center justify-center bg-muted/30">
+          <div className="text-center space-y-4">
+            <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto" />
+            <p className="text-lg font-medium text-foreground">Opening proposal…</p>
+            <p className="text-sm text-muted-foreground">Loading sections and data</p>
           </div>
         </div>
       );
