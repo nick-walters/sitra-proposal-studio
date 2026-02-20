@@ -216,6 +216,9 @@ export interface Proposal {
   decisionDateIsEstimated?: boolean;
   expectedProjects?: string;
   usesFstp?: boolean;
+  indicativeBudgetPerProject?: string;
+  fstpBudget?: string;
+  fstpBudgetPerThirdParty?: string;
   reportingPeriods?: { number: number; startMonth: number; endMonth: number }[];
   acronymSegments?: { text: string; color: string }[];
 }

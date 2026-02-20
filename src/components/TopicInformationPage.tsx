@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormattedNumberInput } from '@/components/FormattedNumberInput';
+import { EuroCurrencyInput } from '@/components/EuroCurrencyInput';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,7 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { SaveIndicator } from "./SaveIndicator";
 
 import { Proposal, WORK_PROGRAMMES, DESTINATIONS, getDestinationsForWorkProgramme } from "@/types/proposal";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Target, Euro, Calendar as CalendarIcon, ExternalLink, FileText, FileDown, CheckCircle2, RefreshCw } from "lucide-react";
@@ -48,6 +49,30 @@ function getCallStatus(openingDate?: Date, deadline?: Date): { label: string; va
     return { label: 'Open for submission', variant: 'default', className: 'bg-green-50 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700' };
   }
   return { label: 'Unknown', variant: 'outline', className: '' };
+}
+
+/** Parse a budget string that may be a range like "3,500,000–4,000,000" into [min, max] numbers */
+function parseBudgetRange(val: string): [number, number] | null {
+  if (!val) return null;
+  const parts = val.split('–').map(p => parseFloat(p.replace(/[^0-9.]/g, '')));
+  if (parts.length === 1 && !isNaN(parts[0]) && parts[0] > 0) return [parts[0], parts[0]];
+  if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1]) && parts[0] > 0 && parts[1] > 0) return [parts[0], parts[1]];
+  return null;
+}
+
+function IndicativeProjectsField({ totalBudget, budgetPerProject }: { totalBudget?: number; budgetPerProject: string }) {
+  const computed = useMemo(() => {
+    if (!totalBudget || !budgetPerProject) return '–';
+    const range = parseBudgetRange(budgetPerProject);
+    if (!range) return '–';
+    const [min, max] = range;
+    const high = Math.floor(totalBudget / min);
+    const low = Math.floor(totalBudget / max);
+    if (low === high || min === max) return high.toString();
+    return `${low}–${high}`;
+  }, [totalBudget, budgetPerProject]);
+
+  return <p className="text-sm font-medium">{computed}</p>;
 }
 
 export function TopicInformationPage({
@@ -373,15 +398,19 @@ export function TopicInformationPage({
               Budget overview
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
+            {/* Row 1: Topic budget + Budget type */}
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label className="text-xs text-muted-foreground mb-0.5 block">Budget available (topic)</label>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Indicative budget (topic)</label>
                 {isEditing && editedProposal ? (
-                  <FormattedNumberInput
-                    value={editedProposal.totalBudget || ''}
-                    onChange={(val) => setEditedProposal({ ...editedProposal, totalBudget: val || undefined })}
-                    placeholder="e.g. 5,000,000"
+                  <EuroCurrencyInput
+                    value={editedProposal.totalBudget ? editedProposal.totalBudget.toString() : ''}
+                    onChange={(val) => {
+                      const num = parseFloat(val.replace(/[^0-9]/g, ''));
+                      setEditedProposal({ ...editedProposal, totalBudget: isNaN(num) ? undefined : num });
+                    }}
+                    placeholder="e.g. 21,000,000"
                     className="h-8 text-sm"
                   />
                 ) : (
@@ -429,48 +458,100 @@ export function TopicInformationPage({
                   <p className="text-sm font-medium">{proposal?.budgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}</p>
                 )}
               </div>
+            </div>
+
+            {/* Row 2: Budget per project + Indicative no. projects */}
+            <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label className="text-xs text-muted-foreground mb-0.5 block">№ projects to be funded</label>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Indicative budget per project</label>
                 {isEditing && editedProposal ? (
-                  <Select
-                    value={editedProposal.expectedProjects || ''}
-                    onValueChange={(v) => setEditedProposal({ ...editedProposal, expectedProjects: v })}
-                  >
-                    <SelectTrigger className="w-32 h-8 text-sm">
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
-                        <SelectItem key={num} value={num.toString()}>{num}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <EuroCurrencyInput
+                    value={(editedProposal as any).indicativeBudgetPerProject || ''}
+                    onChange={(val) => setEditedProposal({ ...editedProposal, indicativeBudgetPerProject: val } as any)}
+                    placeholder="e.g. 3,500,000–4,000,000"
+                    className="h-8 text-sm"
+                  />
                 ) : (
-                  <p className="text-sm font-medium">{proposal?.expectedProjects || '–'}</p>
+                  <p className="text-sm font-medium">
+                    {(proposal as any)?.indicativeBudgetPerProject ? `€${(proposal as any).indicativeBudgetPerProject}` : '–'}
+                  </p>
                 )}
               </div>
               <div>
-                {canEdit ? (
-                  <div className="flex items-center space-x-2 mt-4">
-                    <Checkbox
-                      id="uses-fstp-topic"
-                      checked={proposal?.usesFstp || false}
-                      onCheckedChange={(checked) => onUpdateProposal({ usesFstp: checked === true })}
-                    />
-                    <Label htmlFor="uses-fstp-topic" className="text-sm cursor-pointer">
-                      FSTP possible under this topic
-                    </Label>
-                  </div>
-                ) : proposal?.usesFstp ? (
-                  <div className="flex items-center space-x-2 mt-4">
-                    <Checkbox id="uses-fstp-topic-ro" checked disabled />
-                    <Label htmlFor="uses-fstp-topic-ro" className="text-sm text-muted-foreground">
-                      FSTP possible under this topic
-                    </Label>
-                  </div>
-                ) : null}
+                <label className="text-xs text-muted-foreground mb-0.5 block">Indicative № projects to be funded</label>
+                <IndicativeProjectsField
+                  totalBudget={isEditing ? editedProposal?.totalBudget : proposal?.totalBudget}
+                  budgetPerProject={(isEditing ? (editedProposal as any)?.indicativeBudgetPerProject : (proposal as any)?.indicativeBudgetPerProject) || ''}
+                />
               </div>
             </div>
+
+            {/* Row 3: FSTP checkbox */}
+            <div>
+              {canEdit ? (
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="uses-fstp-topic"
+                    checked={editedProposal?.usesFstp || false}
+                    onCheckedChange={(checked) => {
+                      if (isEditing && editedProposal) {
+                        setEditedProposal({ ...editedProposal, usesFstp: checked === true } as any);
+                      } else {
+                        onUpdateProposal({ usesFstp: checked === true });
+                      }
+                    }}
+                  />
+                  <Label htmlFor="uses-fstp-topic" className="text-sm cursor-pointer">
+                    FSTP possible under this topic
+                  </Label>
+                </div>
+              ) : proposal?.usesFstp ? (
+                <div className="flex items-center space-x-2">
+                  <Checkbox id="uses-fstp-topic-ro" checked disabled />
+                  <Label htmlFor="uses-fstp-topic-ro" className="text-sm text-muted-foreground">
+                    FSTP possible under this topic
+                  </Label>
+                </div>
+              ) : null}
+            </div>
+
+            {/* FSTP sub-fields (shown when FSTP is checked) */}
+            {(isEditing ? editedProposal?.usesFstp : proposal?.usesFstp) && (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-0.5 block">Budget available for FSTP</label>
+                  {isEditing && editedProposal ? (
+                    <EuroCurrencyInput
+                      value={(editedProposal as any).fstpBudget || ''}
+                      onChange={(val) => setEditedProposal({ ...editedProposal, fstpBudget: val } as any)}
+                      placeholder="e.g. 1,000,000 or 20%"
+                      className="h-8 text-sm"
+                      allowPercent
+                      showEuroPrefix={!((editedProposal as any).fstpBudget || '').includes('%')}
+                    />
+                  ) : (
+                    <p className="text-sm font-medium">
+                      {(proposal as any)?.fstpBudget || '–'}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-0.5 block">Budget available per third party</label>
+                  {isEditing && editedProposal ? (
+                    <EuroCurrencyInput
+                      value={(editedProposal as any).fstpBudgetPerThirdParty || ''}
+                      onChange={(val) => setEditedProposal({ ...editedProposal, fstpBudgetPerThirdParty: val } as any)}
+                      placeholder="e.g. 60,000–100,000"
+                      className="h-8 text-sm"
+                    />
+                  ) : (
+                    <p className="text-sm font-medium">
+                      {(proposal as any)?.fstpBudgetPerThirdParty ? `€${(proposal as any).fstpBudgetPerThirdParty}` : '–'}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
