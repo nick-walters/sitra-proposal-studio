@@ -309,12 +309,12 @@ export function TopicInformationPage({
                     onValueChange={(v) => setEditedProposal({ ...editedProposal, destination: v })}
                     disabled={!editedProposal.workProgramme}
                   >
-                    <SelectTrigger className="h-8 text-sm">
+                    <SelectTrigger className="h-8 text-sm [&>span]:truncate">
                       <SelectValue placeholder="Select destination" />
                     </SelectTrigger>
                     <SelectContent className="z-50 bg-popover">
                       {availableDestinations.map(d => (
-                        <SelectItem key={d.id} value={d.id} className="!pl-2">
+                        <SelectItem key={d.id} value={d.id}>
                           {d.abbreviation} - {d.fullName}
                         </SelectItem>
                       ))}
