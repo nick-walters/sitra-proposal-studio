@@ -228,6 +228,38 @@ describe('TrackChanges Extension', () => {
       expect(editor.state.doc.textContent).not.toContain('added');
       editor.destroy();
     });
+
+    it('acceptAllChanges handles mixed insertions and deletions', async () => {
+      const editor = createEditor({ enabled: true, content: '<p>Hello world</p>' });
+      // Insert text
+      editor.commands.setTextSelection(12);
+      editor.commands.insertContent(' new');
+      await waitForChanges();
+
+      // Delete text
+      (editor.storage as any).trackChanges.lastInsertionId = null;
+      editor.commands.setTextSelection({ from: 1, to: 6 });
+      editor.commands.deleteSelection();
+      await waitForChanges();
+
+      editor.commands.acceptAllChanges();
+      await waitForChanges();
+
+      // "Hello" should be gone (deletion accepted), "new" should remain (insertion accepted)
+      expect(editor.state.doc.textContent).not.toContain('Hello');
+      expect(editor.state.doc.textContent).toContain('new');
+
+      const insertionType = editor.state.schema.marks.trackInsertion;
+      const deletionType = editor.state.schema.marks.trackDeletion;
+      let hasMarks = false;
+      editor.state.doc.descendants((node) => {
+        if (node.isText && node.marks.some(m => m.type === insertionType || m.type === deletionType)) {
+          hasMarks = true;
+        }
+      });
+      expect(hasMarks).toBe(false);
+      editor.destroy();
+    });
   });
 
   describe('Navigation', () => {
@@ -324,6 +356,60 @@ describe('TrackChanges Extension', () => {
       const editor = createEditor({ enabled: true });
       const result = editor.commands.acceptChangeAtCursor();
       expect(result).toBe(false);
+      editor.destroy();
+    });
+
+    it('acceptChangeAtCursor works on a deletion mark', async () => {
+      const editor = createEditor({ enabled: true, content: '<p>Hello world</p>' });
+      editor.commands.setTextSelection({ from: 7, to: 12 });
+      editor.commands.deleteSelection();
+      await waitForChanges();
+
+      // Cursor should be at the deletion site; place it explicitly on the re-inserted deleted text
+      const deletionType = editor.state.schema.marks.trackDeletion;
+      let delFrom = -1;
+      editor.state.doc.descendants((node, pos) => {
+        if (node.isText && node.marks.some(m => m.type === deletionType) && delFrom === -1) {
+          delFrom = pos;
+        }
+      });
+
+      if (delFrom >= 0) {
+        editor.commands.setTextSelection(delFrom + 1);
+        editor.commands.acceptChangeAtCursor();
+        await waitForChanges();
+        // Accept deletion = text is removed
+        expect(editor.state.doc.textContent).not.toContain('world');
+      }
+      editor.destroy();
+    });
+
+    it('rejectChangeAtCursor works on a deletion mark', async () => {
+      const editor = createEditor({ enabled: true, content: '<p>Hello world</p>' });
+      editor.commands.setTextSelection({ from: 7, to: 12 });
+      editor.commands.deleteSelection();
+      await waitForChanges();
+
+      const deletionType = editor.state.schema.marks.trackDeletion;
+      let delFrom = -1;
+      editor.state.doc.descendants((node, pos) => {
+        if (node.isText && node.marks.some(m => m.type === deletionType) && delFrom === -1) {
+          delFrom = pos;
+        }
+      });
+
+      if (delFrom >= 0) {
+        editor.commands.setTextSelection(delFrom + 1);
+        editor.commands.rejectChangeAtCursor();
+        await waitForChanges();
+        // Reject deletion = text is restored without marks
+        expect(editor.state.doc.textContent).toContain('world');
+        let hasDeletionMark = false;
+        editor.state.doc.descendants((node) => {
+          if (node.isText && node.marks.some(m => m.type === deletionType)) hasDeletionMark = true;
+        });
+        expect(hasDeletionMark).toBe(false);
+      }
       editor.destroy();
     });
   });
