@@ -1,112 +1,201 @@
 
 
-# Comprehensive Plan: Version History, Track Changes, and Code Cleanup
+# Unified Plan: Smart Version History, Track Changes, and Code Cleanup
 
 ---
 
-## Issue 1: Version History Not Saving New Versions
+## Part 1: Autosave and Version History Improvements
 
-### Root Cause Analysis
+### 1a. Increase autosave debounce from 1s to 5s
 
-The database confirms that section `b1-1` was last edited today (Feb 19) but the latest version snapshot is from Feb 9 (version 2). Content autosave works (via `section_content` table), but version snapshots (via `section_versions` table) are not being created.
+**File:** `src/hooks/useSectionContent.ts`
 
-**Critical Bug Found**: The `getAuthToken()` function in `useSectionContent.ts` reads from the wrong localStorage key:
-- It reads: `sb-nfeoyxjstfehwrkgapho-auth-token` (the default Supabase key)
-- The actual key is: `sitra-proposal-studio-auth` (custom `storageKey` set in the Supabase client config)
+Change `AUTOSAVE_DEBOUNCE` from `1000` to `5000`. This only affects writes to `section_content` (the live document). No data loss risk because `beforeunload` and `visibilitychange` handlers still flush immediately.
 
-This means all synchronous XHR saves (on page unload/unmount) silently fail with no auth token, so versions are never created on navigation away.
+### 1b. Increase version snapshot interval from 2 min to 5 min
 
-**Additional Issues**:
-1. The async `saveVersion()` has a 2-minute throttle (`VERSION_MIN_INTERVAL`), but it is only triggered after a successful content save. If the user makes one edit, saves happen, but subsequent edits within 2 minutes are throttled. The periodic interval (every 2 minutes) should catch this, but it checks `pendingContentRef.current ?? contentRef.current` -- if content was already saved (clearing `pendingContentRef`), it compares against `lastVersionContentRef.current` which may already match.
-2. The equality check `contentToSave === lastVersionContentRef.current` can produce false matches because `saveContentImmediately` may renumber captions (producing `finalContent` different from the original `contentToSave`), but `saveVersion` receives `finalContent` while `lastVersionContentRef` was set on version save, not content save.
+**File:** `src/hooks/useSectionContent.ts`
 
-### Fix Plan
+Change `VERSION_MIN_INTERVAL` from `2 * 60 * 1000` to `5 * 60 * 1000`.
 
-1. **Fix `getAuthToken()`**: Change the localStorage key from `sb-nfeoyxjstfehwrkgapho-auth-token` to `sitra-proposal-studio-auth` to match the Supabase client config.
+### 1c. Significance threshold for version creation
 
-2. **Ensure periodic version saving works reliably**: 
-   - After every successful content save, update a ref (`lastSavedContentRef`) with the final content that was actually written to the database.
-   - The periodic interval should compare against `lastVersionContentRef` using this ref, not `pendingContentRef` (which is null after save).
-   - Reduce the throttle check in `saveVersion` to allow the periodic interval to always succeed if content differs from the last version.
+**File:** `src/hooks/useSectionContent.ts`
 
-3. **Force a version save on section navigation**: When the user navigates to a different section (component unmount), always attempt a version save if content differs from the last version -- using the fixed sync XHR.
+Add a `hasSignificantChange(oldContent, newContent)` helper that strips HTML and compares:
+- Word difference >= 5 words, OR
+- Character difference >= 50 characters, OR
+- Content went from empty to non-empty (or vice versa)
+
+The `saveVersion` function will check this before creating a snapshot. Forced saves (unmount, focus loss, manual "Save Version") bypass the threshold but still require non-identical content.
+
+**Important distinction:** This threshold only gates version snapshots (`section_versions` table). Autosave to `section_content` remains unchanged -- every edit is always saved to the live document.
+
+### 1d. Database schema changes
+
+**New migration** adding three columns to `section_versions`:
+
+```text
+label        text     DEFAULT NULL    -- Custom name e.g. "Final submitted version"
+is_pinned    boolean  DEFAULT false   -- Protects from auto-thinning
+is_major     boolean  DEFAULT false   -- Major vs minor categorization
+```
+
+Update the `prevent_section_version_update` trigger to ALLOW changes to `label`, `is_pinned`, and `is_major` while keeping `content`, `version_number`, and `created_at` immutable.
+
+Update the `prevent_section_version_delete` trigger to allow deletion only when `current_setting('app.allow_thinning', true) = 'true'`, so the thinning function can clean up old minor versions while manual deletion remains blocked.
+
+### 1e. Major/minor version categorization
+
+- **Minor versions** (default): Auto-created every 5 minutes when significant changes are detected.
+- **Major versions**: Created when user explicitly clicks "Save Version", or when a version is pinned/labeled. Marked with `is_major = true`.
+
+### 1f. Intelligent retention thinning
+
+**New database function:** `thin_section_versions()`
+
+Automatically prunes redundant minor versions based on age:
+
+| Age | Versions kept |
+|---|---|
+| 0--7 days | All versions |
+| 7--30 days | 1 per hour |
+| 30--90 days | 1 per day |
+| 90+ days | 1 per week |
+
+**Never deleted:** pinned versions, labeled versions, major versions, version 1 (baseline), the latest version per section.
+
+The function sets `app.allow_thinning = 'true'` before deleting, then resets it. Called as an RPC when the version history dialog opens.
 
 ---
 
-## Issue 2: Track Changes Bugs (Make it Work Like Microsoft Word)
+## Part 2: Version History Dialog UI Enhancements
 
-### Current Behavior Analysis
+**File:** `src/components/SectionVersionHistoryDialog.tsx`
 
-The track changes implementation has several issues compared to Word-style behavior:
+### 2a. File size display
 
-1. **Deletion handling is fragile**: When tracking is on and text is deleted, the extension tries to re-insert the deleted text with a deletion mark. But this happens in `appendTransaction`, which operates on the already-modified `newState`. The re-insertion uses `schema.text(deletedText, [deletionMark])` which creates a flat text node, losing any formatting (bold, italic, etc.) the original text had.
+Add `getContentSize(content)` showing bytes/KB alongside word count in the version list and detail panel.
 
-2. **Mixed insertion+deletion (replacement) not handled**: When a user selects text and types over it (replace), both a deletion and insertion happen in the same step. The current code handles `oldEnd > oldStart && newEnd <= newStart` (pure deletion) and `newEnd > newStart && oldEnd <= oldStart` (pure insertion) separately, but a replacement where `oldEnd > oldStart && newEnd > newStart` falls through without proper handling -- the old text is simply replaced without being preserved as a deletion.
+### 2b. Change deltas
 
-3. **Merge window for consecutive insertions**: The 10-second merge window (`MERGE_WINDOW_MS`) groups consecutive keystrokes into one change. This is reasonable but can create confusingly large change blocks if the user types continuously.
+Show difference from previous version: "+12 words", "+1.2 KB" badges on each entry.
 
-4. **Accept/reject all uses stale positions**: `acceptAllChanges` and `rejectAllChanges` scan the document for marks and collect ranges, then apply operations. But removing insertion marks and then deleting deletion ranges uses positions from the original doc scan, which may be invalidated after the first set of operations.
+### 2c. Major/minor visual distinction
 
-### Fix Plan
+- Major versions: bold text, filled badge, prominent styling
+- Minor versions: lighter, smaller text
+- Pinning or labeling auto-promotes to major
 
-1. **Handle replacement operations**: Add a case in `appendTransaction` where `oldEnd > oldStart && newEnd > newStart` (text was replaced). In this case:
-   - Re-insert the old text with a deletion mark before the new text
-   - Mark the new text with an insertion mark
+### 2d. Version labeling (custom name) -- role-restricted
 
-2. **Preserve formatting on tracked deletions**: Instead of creating a flat `schema.text()` node, use `deletedSlice.content` and apply the deletion mark to each text node within it, preserving existing formatting marks.
+Coordinators, admins, and owners can assign a custom descriptive name to any version. This appears as an editable text input in the detail panel (right side), below the version number.
 
-3. **Fix accept/reject all position invalidation**: Process all changes in a single pass using the transaction's mapping to adjust positions, or sort ranges in reverse order and process deletions before mark removals.
+**How it displays:**
+- The version number itself (e.g. "Version 5") is always shown and is never editable.
+- The label appears underneath or beside it, e.g. "Version 5 -- Final submitted version".
+- In the version list (left side), labeled versions show the label as secondary text below the version number.
 
-4. **Improve merge window behavior**: Reduce the merge window to 5 seconds and reset it when the user pauses (no keystroke for > 1 second), making change grouping more intuitive.
+**Role enforcement:**
+- The label input field is only rendered when the current user's role tier is `coordinator` (which includes global admin and owner, per the existing `useProposalRole` hook).
+- Editors and viewers can see labels but cannot edit them.
+- The database update call uses the existing Supabase client with RLS -- since `section_versions` already requires `has_any_proposal_role`, and the update trigger allows label changes, this is safe. An additional RLS policy restricts UPDATE to users with coordinator/admin/owner roles only.
+
+**Interaction:**
+- Clicking the label area reveals an inline text input (or shows an "Add label" placeholder if empty).
+- Pressing Enter or blurring saves the label via a Supabase update to `section_versions.label`.
+- Setting a label automatically sets `is_major = true` on that version.
+- Labels can be cleared by emptying the input (which does NOT revert `is_major`).
+
+### 2e. Version pinning
+
+- Pin/unpin toggle button (pin icon) in the detail panel.
+- Also role-restricted to coordinator tier.
+- Pinning automatically sets `is_major = true`.
+
+### 2f. Time-based grouping
+
+Group versions with section headers: "Today", "Yesterday", "This Week", "This Month", "Older".
+
+### 2g. Retention policy info box
+
+Add a collapsible info section (collapsed by default) below the dialog description using the existing `Collapsible` component. When expanded, it shows:
+
+- A small table explaining the retention tiers (same as Part 1f above)
+- A note: "Pinned, labeled, and major versions are never automatically removed."
+
+Styled with `text-xs text-muted-foreground` to remain subtle.
+
+### 2h. Fetch limit increase
+
+Change from 50 to 200 versions (thinning keeps the list manageable).
 
 ---
 
-## Issue 3: Code Cleanup -- Remove Redundancies
+## Part 3: Track Changes Fixes
 
-### Identified Redundant/Unused Files
+**File:** `src/extensions/TrackChanges.ts`
 
-Based on import analysis, the following files are never imported anywhere:
+### 3a. Handle replacement operations
 
-1. **`src/components/VersionHistoryDialog.tsx`** -- Proposal-level version history dialog. Only `SectionVersionHistoryDialog.tsx` is actually used (imported in `DocumentEditor.tsx`). The proposal-level dialog queries a `versions` table that stores proposal-wide snapshots, which is a separate feature from section versions. However, it is **never imported or rendered**.
+Add a case in `appendTransaction` where `oldEnd > oldStart && newEnd > newStart` (text was replaced). Re-insert old text with a deletion mark before the new text, and mark the new text with an insertion mark.
 
-2. **`src/components/CollaborationPanel.tsx`** -- This component is never imported. The collaboration panel UI (comments + track changes tabs) is implemented directly inline in `DocumentEditor.tsx` (lines 1178-1259). The separate component file is dead code.
+### 3b. Preserve formatting on tracked deletions
 
-3. **`src/components/GrammarChecker.tsx`** -- Never imported. A comment in DocumentEditor.tsx (line 1264) confirms: "GrammarChecker removed - now integrated into WritingAssistantDialog".
+Instead of creating a flat `schema.text()` node, use `deletedSlice.content` and apply the deletion mark to each text node, preserving bold/italic/etc.
 
-4. **`src/components/WordCountBadge.tsx`** -- Never imported anywhere.
+### 3c. Fix accept/reject all position invalidation
 
-5. **`src/hooks/useTrackedChanges.ts`** -- This hook is trivial (just `useState` + `useCallback`). It adds no value over inline state in DocumentEditor. It was originally designed for database persistence of track changes but was simplified to just UI state. It can be inlined.
+Process all changes by sorting ranges in reverse order and processing deletions before mark removals, so earlier positions remain valid.
 
-### Inline Code Redundancy in DocumentEditor.tsx
+### 3d. Improve merge window
 
-The collaboration panel code in `DocumentEditor.tsx` (lines 1178-1259) duplicates the structure of `CollaborationPanel.tsx`. Since the inline version is the one actually used, the standalone component should be deleted.
+Reduce from 10 seconds to 5 seconds and reset when the user pauses for > 1 second.
 
-### Fix Plan
+---
 
-1. **Delete unused files**:
-   - `src/components/VersionHistoryDialog.tsx`
-   - `src/components/CollaborationPanel.tsx`
-   - `src/components/GrammarChecker.tsx`
-   - `src/components/WordCountBadge.tsx`
+## Part 4: Code Cleanup
 
-2. **Inline `useTrackedChanges`**: Replace the hook import in `DocumentEditor.tsx` with direct `useState`/`useCallback` (3 lines of code), then delete `src/hooks/useTrackedChanges.ts`.
+### Delete unused files:
+- `src/components/VersionHistoryDialog.tsx`
+- `src/components/CollaborationPanel.tsx`
+- `src/components/GrammarChecker.tsx`
+- `src/components/WordCountBadge.tsx`
 
-3. **No changes to actively used components**: All other components identified in the codebase are imported and used somewhere.
+### Inline `useTrackedChanges`:
+Replace the hook import in `DocumentEditor.tsx` with direct `useState`/`useCallback`, then delete `src/hooks/useTrackedChanges.ts`.
 
 ---
 
 ## Implementation Order
 
-1. Fix `getAuthToken()` in `useSectionContent.ts` (critical, immediate impact)
-2. Improve version saving reliability in `useSectionContent.ts`
-3. Fix track changes replacement handling and formatting preservation in `TrackChanges.ts`
-4. Fix accept/reject all position bugs in `TrackChanges.ts`
+1. Database migration (add columns, update triggers, create thinning function, add RLS policy for label/pin updates)
+2. Update `useSectionContent.ts` (5s debounce, 5-min interval, significance threshold)
+3. Update `SectionVersionHistoryDialog.tsx` (all UI enhancements including role-gated labeling/pinning and retention info box)
+4. Fix track changes in `TrackChanges.ts`
 5. Delete unused files and inline `useTrackedChanges`
 
-## Risks and Mitigations
+## Technical Details
 
-- **Version history fix**: Existing content that was edited but never versioned will not retroactively get versions. After the fix, new edits will create versions going forward.
-- **Track changes formatting preservation**: The `deletedSlice.content` approach needs careful handling of inline nodes vs text nodes. Will test with bold, italic, and mixed formatting.
-- **Accept/reject all**: The reverse-order processing is a well-known pattern for position-safe ProseMirror mutations and is already partially used in the current code.
-- **Deleting files**: Each file has been verified to have zero imports across the entire `src/` directory.
+### Files Modified
+
+1. **`src/hooks/useSectionContent.ts`** -- debounce, interval, significance threshold
+2. **`src/components/SectionVersionHistoryDialog.tsx`** -- all UI enhancements; receives `proposalId` (already a prop) and uses `useProposalRole(proposalId)` to determine if the user can label/pin
+3. **`src/extensions/TrackChanges.ts`** -- replacement handling, formatting preservation, accept/reject fixes
+4. **`src/components/DocumentEditor.tsx`** -- inline `useTrackedChanges`, remove unused imports
+5. **New migration SQL** -- schema changes, trigger updates, thinning function, RLS update policy
+
+### RLS for Label/Pin Updates
+
+A new RLS policy on `section_versions` for UPDATE:
+- Allows authenticated users who are coordinators/admins/owners on the proposal (via `is_proposal_admin`) to update `label`, `is_pinned`, and `is_major`.
+- The existing trigger ensures `content`, `version_number`, and `created_at` remain immutable regardless.
+
+### Risks and Mitigations
+
+- **Version history**: Existing content edited but never versioned won't retroactively get versions. New edits will create versions going forward.
+- **Track changes formatting**: The `deletedSlice.content` approach needs careful handling of inline vs text nodes.
+- **Deleting files**: Each file verified to have zero imports across `src/`.
+- **Thinning function**: Idempotent and safe to run multiple times. Protected versions are never removed.
+- **Role check for labeling**: Uses the same `useProposalRole` hook already in the codebase, so no new security surface.
 
