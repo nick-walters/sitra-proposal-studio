@@ -65,7 +65,7 @@ function InlineEdit({
 
   return (
     <span className={`cursor-text hover:bg-muted/30 ${className}`} onClick={startEdit}>
-      {value || '—'}
+      {value || '\u00A0'}
     </span>
   );
 }
