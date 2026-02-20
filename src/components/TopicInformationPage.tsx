@@ -363,6 +363,115 @@ export function TopicInformationPage({
           </CardContent>
         </Card>
 
+        {/* Budget Overview Card */}
+        <Card>
+          <CardHeader className="pb-2 pt-4">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Euro className="w-4 h-4" />
+              Budget overview
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Budget available (topic)</label>
+                {isEditing && editedProposal ? (
+                  <FormattedNumberInput
+                    value={editedProposal.totalBudget || ''}
+                    onChange={(val) => setEditedProposal({ ...editedProposal, totalBudget: val || undefined })}
+                    placeholder="e.g. 5,000,000"
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm font-medium">
+                    {proposal?.totalBudget ? `€${proposal.totalBudget.toLocaleString('en-IE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '–'}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-0.5 block">Budget type</label>
+                {isEditing && editedProposal ? (
+                  <>
+                    <Select
+                      value={editedProposal.budgetType}
+                      onValueChange={(v: 'traditional' | 'lump_sum') => {
+                        if (v !== editedProposal.budgetType) setPendingBudgetType(v);
+                      }}
+                    >
+                      <SelectTrigger className="h-8 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="traditional">Actual costs</SelectItem>
+                        <SelectItem value="lump_sum">Lump sum</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <AlertDialog open={!!pendingBudgetType} onOpenChange={(open) => !open && setPendingBudgetType(null)}>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Change budget type?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Changing from <strong>{editedProposal.budgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}</strong> to <strong>{pendingBudgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}</strong>. Are you sure?
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => { if (pendingBudgetType) setEditedProposal({ ...editedProposal, budgetType: pendingBudgetType }); setPendingBudgetType(null); }}>
+                            Change budget type
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </>
+                ) : (
+                  <p className="text-sm font-medium">{proposal?.budgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}</p>
+                )}
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-0.5 block">№ projects to be funded</label>
+                {isEditing && editedProposal ? (
+                  <Select
+                    value={editedProposal.expectedProjects || ''}
+                    onValueChange={(v) => setEditedProposal({ ...editedProposal, expectedProjects: v })}
+                  >
+                    <SelectTrigger className="w-32 h-8 text-sm">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
+                        <SelectItem key={num} value={num.toString()}>{num}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm font-medium">{proposal?.expectedProjects || '–'}</p>
+                )}
+              </div>
+              <div>
+                {canEdit ? (
+                  <div className="flex items-center space-x-2 mt-4">
+                    <Checkbox
+                      id="uses-fstp-topic"
+                      checked={proposal?.usesFstp || false}
+                      onCheckedChange={(checked) => onUpdateProposal({ usesFstp: checked === true })}
+                    />
+                    <Label htmlFor="uses-fstp-topic" className="text-sm cursor-pointer">
+                      FSTP possible under this topic
+                    </Label>
+                  </div>
+                ) : proposal?.usesFstp ? (
+                  <div className="flex items-center space-x-2 mt-4">
+                    <Checkbox id="uses-fstp-topic-ro" checked disabled />
+                    <Label htmlFor="uses-fstp-topic-ro" className="text-sm text-muted-foreground">
+                      FSTP possible under this topic
+                    </Label>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Topic Description Card */}
         <Card>
           <CardHeader className="pb-2 pt-4">
@@ -447,115 +556,6 @@ export function TopicInformationPage({
                 {proposal?.topicDestinationDescription || <span className="text-muted-foreground italic">No destination description available</span>}
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Budget Overview Card */}
-        <Card>
-          <CardHeader className="pb-2 pt-4">
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <Euro className="w-4 h-4" />
-              Budget overview
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <div>
-                <label className="text-xs text-muted-foreground mb-0.5 block">Budget available (topic)</label>
-                {isEditing && editedProposal ? (
-                  <FormattedNumberInput
-                    value={editedProposal.totalBudget || ''}
-                    onChange={(val) => setEditedProposal({ ...editedProposal, totalBudget: val || undefined })}
-                    placeholder="e.g. 5,000,000"
-                    className="h-8 text-sm"
-                  />
-                ) : (
-                  <p className="text-sm font-medium">
-                    {proposal?.totalBudget ? `€${proposal.totalBudget.toLocaleString('en-IE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '–'}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-0.5 block">№ projects to be funded</label>
-                {isEditing && editedProposal ? (
-                  <Select
-                    value={editedProposal.expectedProjects || ''}
-                    onValueChange={(v) => setEditedProposal({ ...editedProposal, expectedProjects: v })}
-                  >
-                    <SelectTrigger className="w-32 h-8 text-sm">
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
-                        <SelectItem key={num} value={num.toString()}>{num}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <p className="text-sm font-medium">{proposal?.expectedProjects || '–'}</p>
-                )}
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-0.5 block">Budget type</label>
-                {isEditing && editedProposal ? (
-                  <>
-                    <Select
-                      value={editedProposal.budgetType}
-                      onValueChange={(v: 'traditional' | 'lump_sum') => {
-                        if (v !== editedProposal.budgetType) setPendingBudgetType(v);
-                      }}
-                    >
-                      <SelectTrigger className="h-8 text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="traditional">Actual costs</SelectItem>
-                        <SelectItem value="lump_sum">Lump sum</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <AlertDialog open={!!pendingBudgetType} onOpenChange={(open) => !open && setPendingBudgetType(null)}>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Change budget type?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Changing from <strong>{editedProposal.budgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}</strong> to <strong>{pendingBudgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}</strong>. Are you sure?
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => { if (pendingBudgetType) setEditedProposal({ ...editedProposal, budgetType: pendingBudgetType }); setPendingBudgetType(null); }}>
-                            Change budget type
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </>
-                ) : (
-                  <p className="text-sm font-medium">{proposal?.budgetType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}</p>
-                )}
-              </div>
-            </div>
-
-            {/* FSTP Checkbox */}
-            {canEdit ? (
-              <div className="flex items-center space-x-2 mt-3 pt-3 border-t">
-                <Checkbox
-                  id="uses-fstp-topic"
-                  checked={proposal?.usesFstp || false}
-                  onCheckedChange={(checked) => onUpdateProposal({ usesFstp: checked === true })}
-                />
-                <Label htmlFor="uses-fstp-topic" className="text-sm cursor-pointer">
-                  Financial support to third parties (FSTP) is possible under this topic
-                </Label>
-              </div>
-            ) : proposal?.usesFstp ? (
-              <div className="flex items-center space-x-2 mt-3 pt-3 border-t">
-                <Checkbox id="uses-fstp-topic-ro" checked disabled />
-                <Label htmlFor="uses-fstp-topic-ro" className="text-sm text-muted-foreground">
-                  Financial support to third parties (FSTP) is possible under this topic
-                </Label>
-              </div>
-            ) : null}
           </CardContent>
         </Card>
       </div>
