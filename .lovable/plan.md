@@ -1,39 +1,60 @@
 
 
-# Enrich Logo Generation with Full Topic Description
+## Fix: Restore Page Scrolling
 
-## Changes
+### Problem
+Pages (Dashboard, participant forms, and other content views within proposals) cannot be scrolled. This was introduced when CSS was modified to fix the "page loads at the bottom" issue. The current `html, body { height: 100%; overflow: auto; }` creates competing scroll containers that can block scrolling in certain browser/layout scenarios.
 
-### 1. Add topic context prop to LogoUpload
+### Root Cause
+In `src/index.css`, both `html` and `body` are set to `height: 100%` with `overflow: auto`. When two nested elements both have fixed heights and `overflow: auto`, the browser can get confused about which element should scroll, especially when content inside `#root` overflows.
 
-Add an optional `topicContext?: string` prop to `LogoUploadProps` in `src/components/LogoUpload.tsx`.
+### Solution
+Update the CSS in `src/index.css` to use a proper scroll chain:
 
-### 2. Pass topic fields from GeneralInfoForm
+- **`html`**: Set to `height: 100%` only (no overflow property) -- this establishes the viewport baseline
+- **`body`**: Set to `min-height: 100%` (not `height: 100%`) so it can grow with content, and remove the explicit `overflow: auto` so scrolling uses the browser's default behavior
+- **`#root`**: Set to `min-height: 100vh` to ensure it fills the viewport but can also grow
 
-In `src/components/GeneralInfoForm.tsx`, the proposal object already contains `topic_expected_outcome`, `topic_scope`, and `destination_description`. Concatenate all non-empty fields into a single string and pass it as `topicContext` to the `LogoUpload` component.
+This allows:
+1. **Dashboard and other full-page views** to scroll naturally via body overflow
+2. **ProposalEditor** to continue managing its own internal scrolling with `h-screen overflow-hidden` and internal `overflow-y-auto` panels (unaffected by this change)
 
-### 3. Update the AI prompt in handleGenerateLogo
+### Technical Details
 
-In `LogoUpload.tsx`, replace the current keyword extraction (`proposalTitle.split(' ').slice(0, 3)`) with the full `topicContext` string -- no truncation. Update the prompt to instruct the model to distill the description into a single simple, bold symbol:
+**File: `src/index.css` (lines 253-265)**
 
-> "Create a simple, bold logo icon for '{acronym}'. [color instructions unchanged]. Flat design with no gradients, the graphic element must be as large as possible filling the entire square canvas edge-to-edge with zero padding. The logo must be a single abstract geometric or symbolic shape -- keep it extremely simple despite the detailed description below. Distill the following project description into one iconic visual concept: {topicContext}. Professional and modern, suitable for EU research project. No text, no letters, just one iconic symbol. The design must bleed to all edges of the canvas with no whitespace border."
+Replace:
+```css
+html, body {
+  height: 100%;
+  overflow: auto;
+}
 
-Key points:
-- The full untruncated topic description is sent to the AI model
-- The prompt explicitly instructs simplicity ("single abstract geometric shape", "extremely simple despite the detailed description", "one iconic visual concept")
-- All existing color logic (acronym segment colors, 2-color fallback) remains unchanged
-- The proposal title is no longer used as the theme source
+body {
+  /* existing tailwind classes */
+  font-family: Arial, Helvetica, sans-serif;
+}
 
-### Technical details
+#root {
+  min-height: 100%;
+}
+```
 
-**`src/components/LogoUpload.tsx`**
-- Add `topicContext?: string` to the props interface
-- In `handleGenerateLogo`, replace `const keywords = proposalTitle.split(' ').slice(0, 3).join(' ')` with usage of `topicContext` (falling back to `proposalTitle` if topic context is empty)
-- Rewrite the prompt string as described above
+With:
+```css
+html {
+  height: 100%;
+}
 
-**`src/components/GeneralInfoForm.tsx`**
-- Where `LogoUpload` is rendered, build the topic context string from the proposal's `topic_expected_outcome`, `topic_scope`, and `destination_description` fields
-- Pass it as `topicContext={topicContext}` to `LogoUpload`
+body {
+  /* existing tailwind classes */
+  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100%;
+}
 
-No database or edge function changes required.
+#root {
+  min-height: 100vh;
+}
+```
 
+This is a single-file, 3-line change that restores the standard scrolling model while keeping the ProposalEditor's contained layout working correctly.
