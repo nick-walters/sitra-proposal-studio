@@ -373,6 +373,25 @@ export interface EthicsAssessment {
   otherEthics: boolean;
   otherEthicsDetails?: string;
 }
+
+// Official EC organisation category types for Horizon Europe
+export type OrganisationCategory = 
+  | 'HES' 
+  | 'RES' 
+  | 'PRC' 
+  | 'PUB' 
+  | 'INT' 
+  | 'OTH';
+
+export const ORGANISATION_CATEGORY_LABELS: Record<OrganisationCategory, string> = {
+  HES: 'Higher or secondary education establishment',
+  RES: 'Research organisation',
+  PRC: 'Private for-profit entity',
+  PUB: 'Public body',
+  INT: 'International organisation',
+  OTH: 'Other',
+};
+
 // Proposal overview (before Part A) - form-based metadata page
 // Part A sections structure based on official HE-RIA-IA Standard Application Form
 export const PART_A_SECTIONS: Section[] = [

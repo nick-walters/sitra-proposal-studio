@@ -18,7 +18,7 @@ import { Loader2, Building2, Info, ChevronsUpDown, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { PARTICIPANT_TYPE_LABELS, ParticipantType } from '@/types/proposal';
 import { EU_MEMBER_STATES, ASSOCIATED_COUNTRIES, THIRD_COUNTRIES } from '@/lib/countries';
-import { ORGANISATION_CATEGORY_LABELS, OrganisationCategory } from '@/components/ParticipantTable';
+import { ORGANISATION_CATEGORY_LABELS, OrganisationCategory } from '@/types/proposal';
 import { cn } from '@/lib/utils';
 
 interface AddParticipantDialogProps {
