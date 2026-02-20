@@ -1,5 +1,5 @@
 import { Extension, Mark } from '@tiptap/core';
-import { Plugin, PluginKey, Transaction } from 'prosemirror-state';
+import { Plugin, PluginKey, Transaction, TextSelection } from 'prosemirror-state';
 import { Mark as PMMark, MarkType, Fragment, Slice } from 'prosemirror-model';
 
 export interface TrackChange {
@@ -436,49 +436,56 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
 
       navigateToNextChange:
         () =>
-        ({ editor, state }) => {
+        ({ editor, tr, state, dispatch }) => {
           const changes = collectChangesFromDoc(state.doc, state.schema);
           if (changes.length === 0) return false;
           const cursorPos = state.selection.from;
-          // Find next change after cursor
           const sorted = [...changes].sort((a, b) => a.from - b.from);
           const next = sorted.find(c => c.from > cursorPos) || sorted[0];
-          editor.commands.setTextSelection(next.from);
-          editor.view.dispatch(editor.state.tr.scrollIntoView());
+          if (dispatch) {
+            const sel = TextSelection.near(state.doc.resolve(next.from));
+            tr.setSelection(sel);
+            tr.scrollIntoView();
+            dispatch(tr);
+          }
           return true;
         },
 
       navigateToPreviousChange:
         () =>
-        ({ editor, state }) => {
+        ({ tr, state, dispatch }) => {
           const changes = collectChangesFromDoc(state.doc, state.schema);
           if (changes.length === 0) return false;
           const cursorPos = state.selection.from;
           const sorted = [...changes].sort((a, b) => b.from - a.from);
           const prev = sorted.find(c => c.from < cursorPos) || sorted[0];
-          editor.commands.setTextSelection(prev.from);
-          editor.view.dispatch(editor.state.tr.scrollIntoView());
+          if (dispatch) {
+            const sel = TextSelection.near(state.doc.resolve(prev.from));
+            tr.setSelection(sel);
+            tr.scrollIntoView();
+            dispatch(tr);
+          }
           return true;
         },
 
       acceptChangeAtCursor:
         () =>
-        ({ editor, state }) => {
+        ({ commands, state }) => {
           const cursorPos = state.selection.from;
           const changes = collectChangesFromDoc(state.doc, state.schema);
           const atCursor = changes.find(c => c.from <= cursorPos && c.to >= cursorPos);
           if (!atCursor) return false;
-          return editor.commands.acceptChange(atCursor.id);
+          return commands.acceptChange(atCursor.id);
         },
 
       rejectChangeAtCursor:
         () =>
-        ({ editor, state }) => {
+        ({ commands, state }) => {
           const cursorPos = state.selection.from;
           const changes = collectChangesFromDoc(state.doc, state.schema);
           const atCursor = changes.find(c => c.from <= cursorPos && c.to >= cursorPos);
           if (!atCursor) return false;
-          return editor.commands.rejectChange(atCursor.id);
+          return commands.rejectChange(atCursor.id);
         },
     };
   },
