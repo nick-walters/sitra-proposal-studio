@@ -165,7 +165,7 @@ export function TopicRichTextArea({
             const displayNum = footnoteStartNumber + idx;
             return (
               <div key={fn.id} className="flex items-start gap-1.5 text-xs">
-                <sup className="text-primary font-semibold text-[10px] relative top-[-0.15em] shrink-0">{displayNum}</sup>
+                <span className="text-primary font-semibold text-[10px] shrink-0 leading-none">{displayNum}</span>
                 {!disabled ? (
                   <div
                     contentEditable
