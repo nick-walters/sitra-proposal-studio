@@ -250,9 +250,18 @@
     @apply border-border;
   }
 
+  html, body {
+    height: 100%;
+    overflow: auto;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
     font-family: Arial, Helvetica, sans-serif;
+  }
+
+  #root {
+    min-height: 100%;
   }
 
   /* Fillable form inputs use Arial */
