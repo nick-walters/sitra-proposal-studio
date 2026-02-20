@@ -129,7 +129,7 @@ export function useSectionLocking({ proposalId, sectionId }: UseSectionLockingPr
 
     try {
       // Get the proposal template
-      const { data: templateData, error: templateError } = await supabase
+      let { data: templateData, error: templateError } = await supabase
         .from('proposal_templates')
         .select('id')
         .eq('proposal_id', proposalId)
@@ -137,9 +137,70 @@ export function useSectionLocking({ proposalId, sectionId }: UseSectionLockingPr
 
       if (templateError && templateError.code !== 'PGRST116') throw templateError;
       
+      // If no template exists, try to auto-create one from the proposal's template type
       if (!templateData) {
-        toast.error('No template found for this proposal');
-        return false;
+        const { data: proposal } = await supabase
+          .from('proposals')
+          .select('template_type_id')
+          .eq('id', proposalId)
+          .maybeSingle();
+
+        if (!proposal?.template_type_id) {
+          toast.error('This proposal has no template configured. Please set a template type first.');
+          return false;
+        }
+
+        const { data: sourceTemplate } = await supabase
+          .from('template_types')
+          .select('base_page_limit, includes_branding, includes_participant_table')
+          .eq('id', proposal.template_type_id)
+          .maybeSingle();
+
+        const { data: newTemplate, error: createErr } = await supabase
+          .from('proposal_templates')
+          .insert({
+            proposal_id: proposalId,
+            source_template_type_id: proposal.template_type_id,
+            base_page_limit: sourceTemplate?.base_page_limit || 45,
+            includes_branding: sourceTemplate?.includes_branding ?? true,
+            includes_participant_table: sourceTemplate?.includes_participant_table ?? true,
+            is_customized: false,
+          })
+          .select('id')
+          .single();
+
+        if (createErr) throw createErr;
+
+        // Copy template sections
+        const { data: sourceSections } = await supabase
+          .from('template_sections')
+          .select('*')
+          .eq('template_type_id', proposal.template_type_id)
+          .eq('is_active', true)
+          .order('order_index');
+
+        if (sourceSections && sourceSections.length > 0) {
+          const sectionInserts = sourceSections.map((s: any) => ({
+            proposal_template_id: newTemplate.id,
+            source_section_id: s.id,
+            section_number: s.section_number,
+            title: s.title,
+            description: s.description,
+            part: s.part,
+            editor_type: s.editor_type,
+            page_limit: s.page_limit,
+            word_limit: s.word_limit,
+            section_tag: s.section_tag,
+            order_index: s.order_index,
+            is_required: s.is_required,
+            is_active: s.is_active,
+            placeholder_content: s.placeholder_content,
+          }));
+
+          await supabase.from('proposal_template_sections').insert(sectionInserts);
+        }
+
+        templateData = newTemplate;
       }
 
       const newLockState = !lockInfo.isLocked;
