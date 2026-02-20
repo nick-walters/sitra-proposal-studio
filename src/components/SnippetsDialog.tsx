@@ -156,7 +156,7 @@ export function SnippetsDialog({
   const normalizedSectionId = sectionId
     ?.toLowerCase()
     .replace(/^[a-z]/, '')
-    .replace('.', '-');
+    .replace(/\./g, '-');
 
   const sectionFilteredSnippets = allSnippets.filter(snippet => {
     if (!snippet.section_ids || snippet.section_ids.length === 0) return true;
