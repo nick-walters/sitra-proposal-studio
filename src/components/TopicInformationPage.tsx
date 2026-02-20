@@ -4,6 +4,7 @@ import { EuroCurrencyInput } from '@/components/EuroCurrencyInput';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { FootnoteTextarea, FootnoteReadonlyView, type Footnote } from "./FootnoteTextarea";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -613,46 +614,55 @@ export function TopicInformationPage({
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Description</label>
               {userCanEdit ? (
-                <Textarea
+                <FootnoteTextarea
                   value={(editedProposal as any)?.topicDescription || ''}
-                  onChange={(e) => setEditedProposal({ ...editedProposal, topicDescription: e.target.value } as any)}
+                  onChange={(val) => setEditedProposal({ ...editedProposal, topicDescription: val } as any)}
+                  footnotes={(editedProposal as any)?.topicFootnotes || []}
+                  onFootnotesChange={(fns) => setEditedProposal({ ...editedProposal, topicFootnotes: fns } as any)}
                   placeholder="Enter the topic description..."
-                  className="min-h-[150px] text-sm resize-none"
                 />
               ) : (
-                <div className="prose prose-sm max-w-none dark:prose-invert text-sm leading-relaxed whitespace-pre-wrap bg-muted/30 rounded-lg p-4 max-h-96 overflow-y-auto">
-                  {proposal?.topicDescription || <span className="text-muted-foreground italic">No topic description available</span>}
-                </div>
+                <FootnoteReadonlyView
+                  text={proposal?.topicDescription}
+                  footnotes={proposal?.topicFootnotes}
+                  emptyMessage="No topic description available"
+                />
               )}
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Expected outcome</label>
               {userCanEdit ? (
-                <Textarea
+                <FootnoteTextarea
                   value={(editedProposal as any)?.topicExpectedOutcome || ''}
-                  onChange={(e) => setEditedProposal({ ...editedProposal, topicExpectedOutcome: e.target.value } as any)}
+                  onChange={(val) => setEditedProposal({ ...editedProposal, topicExpectedOutcome: val } as any)}
+                  footnotes={(editedProposal as any)?.topicFootnotes || []}
+                  onFootnotesChange={(fns) => setEditedProposal({ ...editedProposal, topicFootnotes: fns } as any)}
                   placeholder="Enter the expected outcome..."
-                  className="min-h-[150px] text-sm resize-none"
                 />
               ) : (
-                <div className="prose prose-sm max-w-none dark:prose-invert text-sm leading-relaxed whitespace-pre-wrap bg-muted/30 rounded-lg p-4 max-h-96 overflow-y-auto">
-                  {proposal?.topicExpectedOutcome || <span className="text-muted-foreground italic">No expected outcome available</span>}
-                </div>
+                <FootnoteReadonlyView
+                  text={proposal?.topicExpectedOutcome}
+                  footnotes={proposal?.topicFootnotes}
+                  emptyMessage="No expected outcome available"
+                />
               )}
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Scope</label>
               {userCanEdit ? (
-                <Textarea
+                <FootnoteTextarea
                   value={(editedProposal as any)?.topicScope || ''}
-                  onChange={(e) => setEditedProposal({ ...editedProposal, topicScope: e.target.value } as any)}
+                  onChange={(val) => setEditedProposal({ ...editedProposal, topicScope: val } as any)}
+                  footnotes={(editedProposal as any)?.topicFootnotes || []}
+                  onFootnotesChange={(fns) => setEditedProposal({ ...editedProposal, topicFootnotes: fns } as any)}
                   placeholder="Enter the scope..."
-                  className="min-h-[150px] text-sm resize-none"
                 />
               ) : (
-                <div className="prose prose-sm max-w-none dark:prose-invert text-sm leading-relaxed whitespace-pre-wrap bg-muted/30 rounded-lg p-4 max-h-96 overflow-y-auto">
-                  {proposal?.topicScope || <span className="text-muted-foreground italic">No scope available</span>}
-                </div>
+                <FootnoteReadonlyView
+                  text={proposal?.topicScope}
+                  footnotes={proposal?.topicFootnotes}
+                  emptyMessage="No scope available"
+                />
               )}
             </div>
             {proposal?.topicContentImportedAt && (
@@ -673,16 +683,21 @@ export function TopicInformationPage({
           </CardHeader>
           <CardContent>
             {userCanEdit ? (
-              <Textarea
+              <FootnoteTextarea
                 value={(editedProposal as any)?.topicDestinationDescription || ''}
-                onChange={(e) => setEditedProposal({ ...editedProposal, topicDestinationDescription: e.target.value } as any)}
-                placeholder="Destination description will appear here after fetching from the portal URL, or you can enter it manually..."
-                className="min-h-[200px] text-sm resize-none"
+                onChange={(val) => setEditedProposal({ ...editedProposal, topicDestinationDescription: val } as any)}
+                footnotes={(editedProposal as any)?.destinationFootnotes || []}
+                onFootnotesChange={(fns) => setEditedProposal({ ...editedProposal, destinationFootnotes: fns } as any)}
+                placeholder="Enter the destination description..."
+                minHeight="200px"
               />
             ) : (
-              <div className="prose prose-sm max-w-none dark:prose-invert text-sm leading-relaxed whitespace-pre-wrap bg-muted/30 rounded-lg p-4 max-h-64 overflow-y-auto">
-                {proposal?.topicDestinationDescription || <span className="text-muted-foreground italic">No destination description available</span>}
-              </div>
+              <FootnoteReadonlyView
+                text={proposal?.topicDestinationDescription}
+                footnotes={proposal?.destinationFootnotes}
+                emptyMessage="No destination description available"
+                maxHeight="max-h-64"
+              />
             )}
           </CardContent>
         </Card>
