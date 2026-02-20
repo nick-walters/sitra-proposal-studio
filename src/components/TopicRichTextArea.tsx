@@ -83,14 +83,40 @@ export function TopicRichTextArea({
     }
   }, []);
 
+  // Sync footnotes: remove orphaned footnotes whose markers were deleted from HTML
+  const syncFootnotesWithContent = useCallback(() => {
+    if (!editorRef.current || !onFootnotesChange || !footnotes.length) return;
+    const markers = editorRef.current.querySelectorAll('sup[data-footnote-id]');
+    const presentIds = new Set<string>();
+    markers.forEach(m => {
+      const id = m.getAttribute('data-footnote-id');
+      if (id) presentIds.add(id);
+    });
+    const filtered = footnotes.filter(fn => presentIds.has(fn.id));
+    if (filtered.length !== footnotes.length) {
+      onFootnotesChange(filtered);
+    }
+    // Renumber markers sequentially
+    const startNum = footnoteStartNumber;
+    let idx = 0;
+    markers.forEach(m => {
+      const id = m.getAttribute('data-footnote-id');
+      if (id && filtered.some(fn => fn.id === id)) {
+        m.textContent = `${startNum + idx}`;
+        idx++;
+      }
+    });
+  }, [footnotes, onFootnotesChange, footnoteStartNumber]);
+
   const handleInput = useCallback(() => {
     if (!editorRef.current) return;
+    syncFootnotesWithContent();
     const newValue = editorRef.current.innerHTML;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       onChange(newValue);
     }, 500);
-  }, [onChange]);
+  }, [onChange, syncFootnotesWithContent]);
 
   useEffect(() => {
     return () => {
