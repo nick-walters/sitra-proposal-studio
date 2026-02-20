@@ -234,7 +234,7 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon, is
 
   // Grid view
   return (
-    <Card className={`card-elevated group cursor-pointer hover:border-primary/30 relative ${isPinned ? 'ring-1 ring-primary/40 bg-primary/[0.03]' : ''}`} onClick={onClick}>
+    <Card className={`card-elevated group cursor-pointer hover:border-primary/30 relative h-full ${isPinned ? 'ring-1 ring-primary/40 bg-primary/[0.03]' : ''}`} onClick={onClick}>
       {/* Pin button bottom-right */}
       <div className="absolute bottom-2 right-2 z-10">
         <PinButton isPinned={isPinned} canPin={canPin} onTogglePin={onTogglePin} proposalId={proposal.id} />

@@ -977,7 +977,7 @@ export function Dashboard() {
                         onDragStart={() => handleDragStart(pinIdx)}
                         onDragOver={(e) => handleDragOver(e, pinIdx)}
                         onDragEnd={handleDragEnd}
-                        className="relative"
+                        className="relative h-full"
                       >
                         <ProposalCard
                           proposal={proposal}
