@@ -783,6 +783,11 @@ export function GeneralInfoForm({
                       proposalId={proposalId}
                       proposalAcronym={editedProposal.acronym}
                       proposalTitle={editedProposal.title}
+                      topicContext={[
+                        (proposal as any)?.topicExpectedOutcome,
+                        (proposal as any)?.topicScope,
+                        (proposal as any)?.topicDestinationDescription,
+                      ].filter(Boolean).join(' ') || undefined}
                       acronymSegments={(editedProposal as any).acronymSegments}
                       onUpload={handleLogoChange}
                     />
