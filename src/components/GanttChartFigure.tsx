@@ -398,7 +398,7 @@ export function GanttChartFigure({
                     className="absolute flex items-center font-bold text-white truncate rounded-full"
                     style={{ backgroundColor: wpColor, border: `1.5px solid ${wpColor}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, padding: '0 6px', pointerEvents: 'none', top: 0, bottom: 0, left: 0, right: 0 }}
                   >
-                    WP{wp.number}{wp.shortName ? `: ${wp.shortName}` : ''}{wp.title ? ` – ${wp.title}` : ''}
+                    WP{wp.number}: {wp.shortName || ''}{wp.shortName && wp.title ? ' – ' : ''}{wp.title || ''}
                   </div>
                 </div>
 
