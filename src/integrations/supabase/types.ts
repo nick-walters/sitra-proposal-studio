@@ -245,6 +245,44 @@ export type Database = {
           },
         ]
       }
+      budget_cost_justifications: {
+        Row: {
+          budget_row_id: string
+          category: string
+          created_at: string
+          id: string
+          justification_text: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          budget_row_id: string
+          category: string
+          created_at?: string
+          id?: string
+          justification_text?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          budget_row_id?: string
+          category?: string
+          created_at?: string
+          id?: string
+          justification_text?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_cost_justifications_budget_row_id_fkey"
+            columns: ["budget_row_id"]
+            isOneToOne: false
+            referencedRelation: "budget_rows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budget_items: {
         Row: {
           amount: number
@@ -307,6 +345,90 @@ export type Database = {
           },
           {
             foreignKeyName: "budget_items_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budget_rows: {
+        Row: {
+          created_at: string
+          financial_contributions: number
+          funding_rate_override: number | null
+          id: string
+          income_generated: number
+          indirect_costs_override: number | null
+          internally_invoiced: number
+          is_locked: boolean
+          locked_at: string | null
+          locked_by: string | null
+          own_resources: number
+          participant_id: string
+          personnel_costs: number
+          proposal_id: string
+          purchase_equipment: number
+          purchase_other_goods: number
+          purchase_travel: number
+          role_label: string
+          subcontracting_costs: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          financial_contributions?: number
+          funding_rate_override?: number | null
+          id?: string
+          income_generated?: number
+          indirect_costs_override?: number | null
+          internally_invoiced?: number
+          is_locked?: boolean
+          locked_at?: string | null
+          locked_by?: string | null
+          own_resources?: number
+          participant_id: string
+          personnel_costs?: number
+          proposal_id: string
+          purchase_equipment?: number
+          purchase_other_goods?: number
+          purchase_travel?: number
+          role_label?: string
+          subcontracting_costs?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          financial_contributions?: number
+          funding_rate_override?: number | null
+          id?: string
+          income_generated?: number
+          indirect_costs_override?: number | null
+          internally_invoiced?: number
+          is_locked?: boolean
+          locked_at?: string | null
+          locked_by?: string | null
+          own_resources?: number
+          participant_id?: string
+          personnel_costs?: number
+          proposal_id?: string
+          purchase_equipment?: number
+          purchase_other_goods?: number
+          purchase_travel?: number
+          role_label?: string
+          subcontracting_costs?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_rows_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_rows_proposal_id_fkey"
             columns: ["proposal_id"]
             isOneToOne: false
             referencedRelation: "proposals"
