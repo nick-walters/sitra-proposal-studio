@@ -1184,7 +1184,6 @@ export function useRichTextEditor({
         },
       }),
       // Track changes extension
-      // Track changes extension
       TrackChanges.configure({
         enabled: trackChanges?.enabled || false,
         authorId: trackChanges?.authorId || '',

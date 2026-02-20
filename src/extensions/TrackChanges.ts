@@ -50,10 +50,10 @@ function generateChangeId(): string {
  * a list of TrackChange objects with current positions.
  */
 function collectChangesFromDoc(doc: any, schema: any): TrackChange[] {
-  const changes: TrackChange[] = [];
+  const changeMap = new Map<string, TrackChange>();
   const insertionType = schema.marks.trackInsertion;
   const deletionType = schema.marks.trackDeletion;
-  if (!insertionType && !deletionType) return changes;
+  if (!insertionType && !deletionType) return [];
 
   doc.descendants((node: any, pos: number) => {
     if (!node.isText) return;
@@ -61,13 +61,13 @@ function collectChangesFromDoc(doc: any, schema: any): TrackChange[] {
       if (mark.type === insertionType || mark.type === deletionType) {
         const attrs = mark.attrs;
         const markEnd = pos + node.nodeSize;
-        const existing = changes.find(c => c.id === attrs.changeId);
+        const existing = changeMap.get(attrs.changeId);
         if (existing) {
           existing.from = Math.min(existing.from, pos);
           existing.to = Math.max(existing.to, markEnd);
           existing.content = doc.textBetween(existing.from, existing.to, ' ');
         } else {
-          changes.push({
+          const change: TrackChange = {
             id: attrs.changeId,
             type: mark.type === insertionType ? 'insertion' : 'deletion',
             authorId: attrs.authorId || '',
@@ -77,13 +77,14 @@ function collectChangesFromDoc(doc: any, schema: any): TrackChange[] {
             from: pos,
             to: markEnd,
             content: doc.textBetween(pos, markEnd, ' '),
-          });
+          };
+          changeMap.set(attrs.changeId, change);
         }
       }
     }
   });
 
-  return changes;
+  return Array.from(changeMap.values());
 }
 
 const trackChangeAttributes = () => ({
