@@ -674,7 +674,7 @@ export function GeneralInfoForm({
   return (
     <div className="flex-1 overflow-auto p-4 bg-muted/30">
       <div className="max-w-7xl mx-auto space-y-4">
-        <h1 className="text-xl font-bold">A1. General information (plus project parameters)</h1>
+        <h1 className="text-xl font-bold">A1. General information (including proposal status)</h1>
         {/* Header row with Guidelines button on left, export buttons on right */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
