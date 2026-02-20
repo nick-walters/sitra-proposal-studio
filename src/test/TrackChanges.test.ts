@@ -30,8 +30,7 @@ describe('TrackChanges Extension', () => {
   describe('Insertion tracking', () => {
     it('marks typed text as an insertion when enabled', async () => {
       const editor = createEditor({ enabled: true });
-      // Place cursor at end of "Hello world" and type
-      editor.commands.setTextSelection(12); // end of "Hello world"
+      editor.commands.setTextSelection(12);
       editor.commands.insertContent('!');
       await waitForChanges();
 
@@ -85,7 +84,6 @@ describe('TrackChanges Extension', () => {
       editor.commands.insertContent(' everyone');
       await waitForChanges();
 
-      // Find the change ID
       const insertionType = editor.state.schema.marks.trackInsertion;
       let changeId = '';
       editor.state.doc.descendants((node) => {
@@ -100,9 +98,7 @@ describe('TrackChanges Extension', () => {
       editor.commands.acceptChange(changeId);
       await waitForChanges();
 
-      // Text should still be there
       expect(editor.state.doc.textContent).toContain('everyone');
-      // But no insertion marks
       let hasInsertionMark = false;
       editor.state.doc.descendants((node) => {
         if (node.isText && node.marks.some(m => m.type === insertionType)) {
@@ -115,15 +111,12 @@ describe('TrackChanges Extension', () => {
 
     it('accepts a deletion by removing the deleted text', async () => {
       const editor = createEditor({ enabled: true, content: '<p>Hello world</p>' });
-      // Select "world" and delete it
       editor.commands.setTextSelection({ from: 7, to: 12 });
       editor.commands.deleteSelection();
       await waitForChanges();
 
-      // "world" should still be visible (as tracked deletion)
       expect(editor.state.doc.textContent).toContain('world');
 
-      // Find deletion change
       const deletionType = editor.state.schema.marks.trackDeletion;
       let changeId = '';
       editor.state.doc.descendants((node) => {
@@ -137,7 +130,6 @@ describe('TrackChanges Extension', () => {
       if (changeId) {
         editor.commands.acceptChange(changeId);
         await waitForChanges();
-        // "world" should now be gone
         expect(editor.state.doc.textContent).not.toContain('world');
       }
       editor.destroy();
@@ -168,12 +160,43 @@ describe('TrackChanges Extension', () => {
       }
       editor.destroy();
     });
+
+    it('rejects a deletion by restoring the deleted text', async () => {
+      const editor = createEditor({ enabled: true, content: '<p>Hello world</p>' });
+      editor.commands.setTextSelection({ from: 7, to: 12 });
+      editor.commands.deleteSelection();
+      await waitForChanges();
+
+      const deletionType = editor.state.schema.marks.trackDeletion;
+      let changeId = '';
+      editor.state.doc.descendants((node) => {
+        if (node.isText) {
+          for (const mark of node.marks) {
+            if (mark.type === deletionType) changeId = mark.attrs.changeId;
+          }
+        }
+      });
+
+      expect(changeId).not.toBe('');
+      editor.commands.rejectChange(changeId);
+      await waitForChanges();
+
+      // Text should still be there, but without deletion mark
+      expect(editor.state.doc.textContent).toContain('world');
+      let hasDeletionMark = false;
+      editor.state.doc.descendants((node) => {
+        if (node.isText && node.marks.some(m => m.type === deletionType)) {
+          hasDeletionMark = true;
+        }
+      });
+      expect(hasDeletionMark).toBe(false);
+      editor.destroy();
+    });
   });
 
   describe('Accept/Reject All', () => {
     it('acceptAllChanges removes all marks and deletes tracked deletions', async () => {
       const editor = createEditor({ enabled: true, content: '<p>Hello beautiful world</p>' });
-      // Insert text
       editor.commands.setTextSelection(24);
       editor.commands.insertContent('!');
       await waitForChanges();
@@ -181,7 +204,6 @@ describe('TrackChanges Extension', () => {
       editor.commands.acceptAllChanges();
       await waitForChanges();
 
-      // No track marks should remain
       const insertionType = editor.state.schema.marks.trackInsertion;
       const deletionType = editor.state.schema.marks.trackDeletion;
       let hasMarks = false;
@@ -211,20 +233,16 @@ describe('TrackChanges Extension', () => {
   describe('Navigation', () => {
     it('navigateToNextChange moves cursor to the next change', async () => {
       const editor = createEditor({ enabled: true, content: '<p>Hello world test</p>' });
-      // Insert at two positions
       editor.commands.setTextSelection(6);
       editor.commands.insertContent('X');
-      // Reset merge window
       (editor.storage as any).trackChanges.lastInsertionId = null;
       editor.commands.setTextSelection(18);
       editor.commands.insertContent('Y');
       await waitForChanges();
 
-      // Move cursor to start
       editor.commands.setTextSelection(1);
       editor.commands.navigateToNextChange();
 
-      // Cursor should have moved forward
       expect(editor.state.selection.from).toBeGreaterThan(1);
       editor.destroy();
     });
@@ -238,12 +256,33 @@ describe('TrackChanges Extension', () => {
       editor.commands.insertContent('Y');
       await waitForChanges();
 
-      // Move cursor to end
       editor.commands.setTextSelection(editor.state.doc.content.size - 1);
       const endPos = editor.state.selection.from;
       editor.commands.navigateToPreviousChange();
 
       expect(editor.state.selection.from).toBeLessThan(endPos);
+      editor.destroy();
+    });
+
+    it('navigateToNextChange wraps around to first change', async () => {
+      const editor = createEditor({ enabled: true, content: '<p>Hello world</p>' });
+      editor.commands.setTextSelection(6);
+      editor.commands.insertContent('X');
+      await waitForChanges();
+
+      // Place cursor after all changes, navigation should wrap to first
+      editor.commands.setTextSelection(editor.state.doc.content.size - 1);
+      editor.commands.navigateToNextChange();
+
+      // Should wrap to the change near position 6
+      expect(editor.state.selection.from).toBeLessThan(10);
+      editor.destroy();
+    });
+
+    it('returns false when no changes exist', () => {
+      const editor = createEditor({ enabled: true });
+      const result = editor.commands.navigateToNextChange();
+      expect(result).toBe(false);
       editor.destroy();
     });
   });
@@ -255,7 +294,6 @@ describe('TrackChanges Extension', () => {
       editor.commands.insertContent('!');
       await waitForChanges();
 
-      // Cursor should be right after the insertion
       editor.commands.acceptChangeAtCursor();
       await waitForChanges();
 
@@ -266,6 +304,26 @@ describe('TrackChanges Extension', () => {
         if (node.isText && node.marks.some(m => m.type === insertionType)) hasMarks = true;
       });
       expect(hasMarks).toBe(false);
+      editor.destroy();
+    });
+
+    it('rejectChangeAtCursor rejects the change at cursor position', async () => {
+      const editor = createEditor({ enabled: true });
+      editor.commands.setTextSelection(12);
+      editor.commands.insertContent('!');
+      await waitForChanges();
+
+      editor.commands.rejectChangeAtCursor();
+      await waitForChanges();
+
+      expect(editor.state.doc.textContent).not.toContain('!');
+      editor.destroy();
+    });
+
+    it('returns false when cursor is not on a change', () => {
+      const editor = createEditor({ enabled: true });
+      const result = editor.commands.acceptChangeAtCursor();
+      expect(result).toBe(false);
       editor.destroy();
     });
   });
@@ -294,12 +352,37 @@ describe('TrackChanges Extension', () => {
       expect(attrs.timestamp).toBeTruthy();
       expect(attrs.changeId).toBeTruthy();
       editor.destroy();
+    });
+  });
+
+  describe('Merge window', () => {
+    it('consecutive insertions within 5s share the same changeId', async () => {
+      const editor = createEditor({ enabled: true });
+      editor.commands.setTextSelection(12);
+      editor.commands.insertContent('A');
+      await waitForChanges();
+
+      editor.commands.insertContent('B');
+      await waitForChanges();
+
+      const insertionType = editor.state.schema.marks.trackInsertion;
+      const changeIds = new Set<string>();
+      editor.state.doc.descendants((node) => {
+        if (node.isText) {
+          for (const mark of node.marks) {
+            if (mark.type === insertionType) changeIds.add(mark.attrs.changeId);
+          }
+        }
+      });
+
+      expect(changeIds.size).toBe(1);
+      editor.destroy();
+    });
   });
 
   describe('Replacement tracking', () => {
     it('tracks a replacement as deletion + insertion', async () => {
       const editor = createEditor({ enabled: true, content: '<p>Hello world</p>' });
-      // Select "world" and replace with "earth"
       editor.commands.setTextSelection({ from: 7, to: 12 });
       editor.commands.insertContent('earth');
       await waitForChanges();
@@ -326,15 +409,12 @@ describe('TrackChanges Extension', () => {
   describe('Own insertion deletion', () => {
     it('silently removes own tracked insertions when deleted', async () => {
       const editor = createEditor({ enabled: true });
-      // Insert text
       editor.commands.setTextSelection(12);
       editor.commands.insertContent(' added');
       await waitForChanges();
 
-      // Now delete the inserted text - should vanish without deletion mark
       const docText = editor.state.doc.textContent;
       const addedPos = docText.indexOf(' added');
-      // Select and delete " added"
       editor.commands.setTextSelection({ from: 1 + addedPos, to: 1 + addedPos + 6 });
       editor.commands.deleteSelection();
       await waitForChanges();
@@ -347,53 +427,8 @@ describe('TrackChanges Extension', () => {
         }
       });
 
-      // Should NOT have a deletion mark - own insertions are silently removed
       expect(hasDeletion).toBe(false);
       expect(editor.state.doc.textContent).not.toContain('added');
-      editor.destroy();
-    });
-  });
-
-  describe('Reject at cursor', () => {
-    it('rejectChangeAtCursor rejects the change at cursor position', async () => {
-      const editor = createEditor({ enabled: true });
-      editor.commands.setTextSelection(12);
-      editor.commands.insertContent('!');
-      await waitForChanges();
-
-      // Cursor should be right after the insertion
-      editor.commands.rejectChangeAtCursor();
-      await waitForChanges();
-
-      expect(editor.state.doc.textContent).not.toContain('!');
-      editor.destroy();
-    });
-  });
-});
-
-  describe('Merge window', () => {
-    it('consecutive insertions within 5s share the same changeId', async () => {
-      const editor = createEditor({ enabled: true });
-      editor.commands.setTextSelection(12);
-      editor.commands.insertContent('A');
-      await waitForChanges();
-
-      // Second insertion within merge window
-      editor.commands.insertContent('B');
-      await waitForChanges();
-
-      const insertionType = editor.state.schema.marks.trackInsertion;
-      const changeIds = new Set<string>();
-      editor.state.doc.descendants((node) => {
-        if (node.isText) {
-          for (const mark of node.marks) {
-            if (mark.type === insertionType) changeIds.add(mark.attrs.changeId);
-          }
-        }
-      });
-
-      // Should have exactly 1 changeId (merged)
-      expect(changeIds.size).toBe(1);
       editor.destroy();
     });
   });

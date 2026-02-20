@@ -1,6 +1,6 @@
 import { Extension, Mark } from '@tiptap/core';
-import { Plugin, PluginKey, Transaction, TextSelection } from 'prosemirror-state';
-import { Mark as PMMark, MarkType, Fragment, Slice } from 'prosemirror-model';
+import { Plugin, PluginKey, TextSelection } from 'prosemirror-state';
+import { Mark as PMMark, Fragment } from 'prosemirror-model';
 
 export interface TrackChange {
   id: string;
@@ -84,27 +84,6 @@ function collectChangesFromDoc(doc: any, schema: any): TrackChange[] {
   });
 
   return changes;
-}
-
-/**
- * Apply a mark to all text nodes in a fragment, preserving existing formatting marks.
- */
-function addMarkToFragment(fragment: Fragment, mark: PMMark, schema: any): Fragment {
-  const nodes: any[] = [];
-  fragment.forEach((node: any) => {
-    if (node.isText) {
-      // Add the track mark while preserving existing marks (bold, italic, etc.)
-      const newMarks = mark.addToSet(node.marks);
-      nodes.push(node.mark(newMarks));
-    } else if (node.content && node.content.size > 0) {
-      // Recurse into inline nodes
-      const newContent = addMarkToFragment(node.content, mark, schema);
-      nodes.push(node.copy(newContent));
-    } else {
-      nodes.push(node);
-    }
-  });
-  return Fragment.from(nodes);
 }
 
 const trackChangeAttributes = () => ({
