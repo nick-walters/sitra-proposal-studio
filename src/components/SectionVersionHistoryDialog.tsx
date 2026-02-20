@@ -108,6 +108,72 @@ function getRelativeTime(dateString: string): string {
   return format(date, "dd MMM");
 }
 
+function VersionListItem({ version, isLatest, isSelected, displayNumber, contentSize, relativeTime, profileName, onSelect }: {
+  version: SectionVersion;
+  isLatest: boolean;
+  isSelected: boolean;
+  displayNumber: string;
+  contentSize: string;
+  relativeTime: string;
+  profileName?: string;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      onClick={onSelect}
+      className={`w-full text-left p-3 rounded-md transition-colors ${
+        isSelected ? 'bg-accent' : 'hover:bg-muted/50'
+      }`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`text-sm truncate ${version.is_major ? 'font-semibold' : 'font-medium text-muted-foreground'}`}>
+              Version {displayNumber}
+            </span>
+            {isLatest && (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Latest</Badge>
+            )}
+            {version.is_major && (
+              <Badge variant="default" className="text-[10px] px-1.5 py-0">
+                <Star className="w-2.5 h-2.5 mr-0.5" />Major
+              </Badge>
+            )}
+            {version.is_pinned && (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                <Pin className="w-2.5 h-2.5 mr-0.5" />Pinned
+              </Badge>
+            )}
+            {version.is_auto_save && !version.is_major && (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0">Auto</Badge>
+            )}
+          </div>
+          {version.label && (
+            <p className="text-xs text-primary font-bold mt-0.5 truncate flex items-center gap-1">
+              <Tag className="w-3 h-3 flex-shrink-0" />
+              {version.label}
+            </p>
+          )}
+          <div className="grid grid-cols-3 gap-1 mt-1 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1 truncate">
+              <Clock className="w-3 h-3 flex-shrink-0" />
+              {relativeTime}
+            </span>
+            <span className="truncate">{contentSize}</span>
+            {profileName ? (
+              <span className="flex items-center gap-1 truncate">
+                <User className="w-3 h-3 flex-shrink-0" />
+                {profileName}
+              </span>
+            ) : <span />}
+          </div>
+        </div>
+        <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+      </div>
+    </button>
+  );
+}
+
 export function SectionVersionHistoryDialog({
   isOpen,
   onClose,
@@ -181,12 +247,17 @@ export function SectionVersionHistoryDialog({
     }
   };
 
-  // Group versions by time period
+  // Separate pinned versions and group the rest by time period
+  const pinnedVersions = useMemo(() => {
+    return versions.filter(v => v.is_pinned).sort((a, b) => b.version_number - a.version_number);
+  }, [versions]);
+
   const groupedVersions = useMemo(() => {
+    const unpinned = versions.filter(v => !v.is_pinned);
     const groups: { label: string; versions: SectionVersion[] }[] = [];
     const groupMap = new Map<string, SectionVersion[]>();
 
-    for (const v of versions) {
+    for (const v of unpinned) {
       const group = getTimeGroup(v.created_at);
       if (!groupMap.has(group)) groupMap.set(group, []);
       groupMap.get(group)!.push(v);
@@ -280,6 +351,16 @@ export function SectionVersionHistoryDialog({
 
   const handleTogglePin = async (version: SectionVersion) => {
     const newPinned = !version.is_pinned;
+    
+    // Check pin limit (max 3)
+    if (newPinned) {
+      const currentPinnedCount = versions.filter(v => v.is_pinned).length;
+      if (currentPinnedCount >= 3) {
+        toast.error("Maximum 3 pinned versions allowed. Unpin one first.");
+        return;
+      }
+    }
+    
     try {
       const updateData: Record<string, any> = { is_pinned: newPinned };
       if (newPinned) updateData.is_major = true; // pinning auto-promotes
@@ -309,7 +390,7 @@ export function SectionVersionHistoryDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[750px] max-h-[80vh]">
+      <DialogContent className="sm:max-w-[750px] max-h-[80vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <History className="w-5 h-5 text-primary" />
@@ -348,9 +429,9 @@ export function SectionVersionHistoryDialog({
           </CollapsibleContent>
         </Collapsible>
 
-        <div className="flex gap-4 min-h-[400px]">
+        <div className="flex gap-4 min-h-0 flex-1">
           {/* Version List */}
-          <ScrollArea className="flex-1 border border-border rounded-md max-h-[400px]">
+          <ScrollArea className="flex-1 border border-border rounded-md">
             {isLoading ? (
               <div className="flex items-center justify-center h-40">
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -365,77 +446,50 @@ export function SectionVersionHistoryDialog({
               </div>
             ) : (
               <div className="p-2 space-y-1">
+                {/* Pinned versions at top */}
+                {pinnedVersions.length > 0 && (
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium px-3 pt-2 pb-1 flex items-center gap-1">
+                      <Pin className="w-3 h-3" /> Pinned
+                    </p>
+                    {pinnedVersions.map((version) => {
+                      const isLatest = version.version_number === Math.max(...versions.map(v => v.version_number));
+                      return (
+                        <VersionListItem
+                          key={version.id}
+                          version={version}
+                          isLatest={isLatest}
+                          isSelected={selectedVersion?.id === version.id}
+                          displayNumber={displayVersionNumbers.get(version.id) || String(version.version_number)}
+                          contentSize={formatSize(getContentSize(version.content))}
+                          relativeTime={getRelativeTime(version.created_at)}
+                          profileName={version.created_by ? profiles[version.created_by] : undefined}
+                          onSelect={() => { setSelectedVersion(version); setEditingLabel(false); }}
+                        />
+                      );
+                    })}
+                    <Separator className="my-1" />
+                  </div>
+                )}
                 {groupedVersions.map(group => (
                   <div key={group.label}>
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium px-3 pt-2 pb-1">
                       {group.label}
                     </p>
-                    {group.versions.map((version, index) => {
-                      const delta = versionDeltaMap.get(version.id);
-                      const isFirst = index === 0 && group.label === groupedVersions[0]?.label;
+                    {group.versions.map((version) => {
+                      const isLatest = version.version_number === Math.max(...versions.map(v => v.version_number));
                       return (
-                        <button
+                        <VersionListItem
                           key={version.id}
-                          onClick={() => {
-                            setSelectedVersion(version);
-                            setEditingLabel(false);
-                          }}
-                          className={`w-full text-left p-3 rounded-md transition-colors ${
-                            selectedVersion?.id === version.id
-                              ? 'bg-accent'
-                              : 'hover:bg-muted/50'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className={`text-sm truncate ${version.is_major ? 'font-semibold' : 'font-medium text-muted-foreground'}`}>
-                                  Version {displayVersionNumbers.get(version.id) || version.version_number}
-                                </span>
-                                {isFirst && (
-                                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                                    Latest
-                                  </Badge>
-                                )}
-                                {version.is_major && (
-                                  <Badge variant="default" className="text-[10px] px-1.5 py-0">
-                                    <Star className="w-2.5 h-2.5 mr-0.5" />Major
-                                  </Badge>
-                                )}
-                                {version.is_pinned && (
-                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                                    <Pin className="w-2.5 h-2.5 mr-0.5" />Pinned
-                                  </Badge>
-                                )}
-                                {version.is_auto_save && !version.is_major && (
-                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                                    Auto
-                                  </Badge>
-                                )}
-                              </div>
-                              {version.label && (
-                                <p className="text-xs text-primary font-bold mt-0.5 truncate flex items-center gap-1">
-                                  <Tag className="w-3 h-3 flex-shrink-0" />
-                                  {version.label}
-                                </p>
-                              )}
-                              <div className="grid grid-cols-3 gap-1 mt-1 text-xs text-muted-foreground">
-                                <span className="flex items-center gap-1 truncate">
-                                  <Clock className="w-3 h-3 flex-shrink-0" />
-                                  {getRelativeTime(version.created_at)}
-                                </span>
-                                <span className="truncate">{formatSize(getContentSize(version.content))}</span>
-                                {version.created_by && profiles[version.created_by] ? (
-                                  <span className="flex items-center gap-1 truncate">
-                                    <User className="w-3 h-3 flex-shrink-0" />
-                                    {profiles[version.created_by]}
-                                  </span>
-                                ) : <span />}
-                              </div>
-                            </div>
-                            <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                          </div>
-                        </button>
+                          version={version}
+                          isLatest={isLatest}
+                          isSelected={selectedVersion?.id === version.id}
+                          displayNumber={displayVersionNumbers.get(version.id) || String(version.version_number)}
+                          contentSize={formatSize(getContentSize(version.content))}
+                          relativeTime={getRelativeTime(version.created_at)}
+                          profileName={version.created_by ? profiles[version.created_by] : undefined}
+                          onSelect={() => { setSelectedVersion(version); setEditingLabel(false); }}
+                        />
                       );
                     })}
                   </div>
@@ -445,7 +499,7 @@ export function SectionVersionHistoryDialog({
           </ScrollArea>
 
           {/* Version Details */}
-          <ScrollArea className="w-72 max-h-[400px] border border-border rounded-md p-4">
+          <ScrollArea className="w-72 border border-border rounded-md p-4">
             {selectedVersion ? (
               <div className="space-y-4">
                 <div>
