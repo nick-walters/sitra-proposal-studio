@@ -2531,6 +2531,7 @@ export type Database = {
           topic_title: string | null
           topic_url: string | null
           total_budget: number | null
+          total_budget_text: string | null
           type: Database["public"]["Enums"]["proposal_type"]
           updated_at: string
           use_wp_themes: boolean
@@ -2573,6 +2574,7 @@ export type Database = {
           topic_title?: string | null
           topic_url?: string | null
           total_budget?: number | null
+          total_budget_text?: string | null
           type?: Database["public"]["Enums"]["proposal_type"]
           updated_at?: string
           use_wp_themes?: boolean
@@ -2615,6 +2617,7 @@ export type Database = {
           topic_title?: string | null
           topic_url?: string | null
           total_budget?: number | null
+          total_budget_text?: string | null
           type?: Database["public"]["Enums"]["proposal_type"]
           updated_at?: string
           use_wp_themes?: boolean

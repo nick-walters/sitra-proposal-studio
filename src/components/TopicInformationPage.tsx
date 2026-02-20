@@ -73,17 +73,21 @@ function parseBudgetRange(val: string): [number, number] | null {
   return null;
 }
 
-function IndicativeProjectsField({ totalBudget, budgetPerProject }: { totalBudget?: number; budgetPerProject: string }) {
+function IndicativeProjectsField({ totalBudgetText, totalBudget, budgetPerProject }: { totalBudgetText?: string; totalBudget?: number; budgetPerProject: string }) {
   const computed = useMemo(() => {
-    if (!totalBudget || !budgetPerProject) return '–';
-    const range = parseBudgetRange(budgetPerProject);
-    if (!range) return '–';
-    const [min, max] = range;
-    const high = Math.floor(totalBudget / min);
-    const low = Math.floor(totalBudget / max);
-    if (low === high || min === max) return high.toString();
+    // Parse topic budget: prefer text (supports ranges), fall back to number
+    const topicRange = totalBudgetText ? parseBudgetRange(totalBudgetText) : (totalBudget ? [totalBudget, totalBudget] as [number, number] : null);
+    if (!topicRange || !budgetPerProject) return '–';
+    const perProjectRange = parseBudgetRange(budgetPerProject);
+    if (!perProjectRange) return '–';
+    const [topicMin, topicMax] = topicRange;
+    const [ppMin, ppMax] = perProjectRange;
+    const low = Math.floor(topicMin / ppMax);
+    const high = Math.floor(topicMax / ppMin);
+    if (low === high) return high.toString();
+    if (low > high) return `${high}–${low}`;
     return `${low}–${high}`;
-  }, [totalBudget, budgetPerProject]);
+  }, [totalBudgetText, totalBudget, budgetPerProject]);
 
   return <p className="text-sm font-medium">{computed}</p>;
 }
@@ -428,17 +432,22 @@ export function TopicInformationPage({
                 <label className="text-xs text-muted-foreground mb-0.5 block">Indicative budget (topic)</label>
                 {isEditing && editedProposal ? (
                   <EuroCurrencyInput
-                    value={editedProposal.totalBudget ? editedProposal.totalBudget.toString() : ''}
+                    value={(editedProposal as any).totalBudgetText || (editedProposal.totalBudget ? editedProposal.totalBudget.toString() : '')}
                     onChange={(val) => {
-                      const num = parseFloat(val.replace(/[^0-9]/g, ''));
-                      setEditedProposal({ ...editedProposal, totalBudget: isNaN(num) ? undefined : num });
+                      // Also parse first number for backwards compat with totalBudget (number)
+                      const firstNum = parseFloat(val.replace(/[^0-9]/g, ''));
+                      setEditedProposal({ ...editedProposal, totalBudgetText: val, totalBudget: isNaN(firstNum) ? undefined : firstNum } as any);
                     }}
                     placeholder="e.g. 21,000,000"
                     className="h-8 text-sm"
                   />
                 ) : (
                   <p className="text-sm font-medium">
-                    {proposal?.totalBudget ? `€${proposal.totalBudget.toLocaleString('en-IE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '–'}
+                    {(proposal as any)?.totalBudgetText
+                      ? `€${(proposal as any).totalBudgetText}`
+                      : proposal?.totalBudget
+                        ? `€${proposal.totalBudget.toLocaleString('en-IE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+                        : '–'}
                   </p>
                 )}
               </div>
@@ -503,6 +512,7 @@ export function TopicInformationPage({
               <div>
                 <label className="text-xs text-muted-foreground mb-0.5 block">Indicative № projects to be funded</label>
                 <IndicativeProjectsField
+                  totalBudgetText={isEditing ? (editedProposal as any)?.totalBudgetText : (proposal as any)?.totalBudgetText}
                   totalBudget={isEditing ? editedProposal?.totalBudget : proposal?.totalBudget}
                   budgetPerProject={(isEditing ? (editedProposal as any)?.indicativeBudgetPerProject : (proposal as any)?.indicativeBudgetPerProject) || ''}
                 />
