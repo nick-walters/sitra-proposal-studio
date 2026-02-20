@@ -301,7 +301,7 @@ export function TopicInformationPage({
 
   const renderRichTextField = (
     fieldKey: EditableField,
-    label: string,
+    label: string | null,
     valueKey: string,
     emptyMessage: string,
   ) => {
@@ -314,7 +314,7 @@ export function TopicInformationPage({
     return (
       <div>
         <div className="flex items-center justify-between mb-1">
-          <label className="text-xs font-medium text-muted-foreground">{label}</label>
+          {label && <label className="text-xs font-medium text-muted-foreground">{label}</label>}
           {userCanEdit && !editingField && (
             <Button
               variant="ghost"
@@ -794,7 +794,7 @@ export function TopicInformationPage({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {renderRichTextField('destination', 'Description', 'topicDestinationDescription', 'No destination description available')}
+            {renderRichTextField('destination', null, 'topicDestinationDescription', 'No destination description available')}
           </CardContent>
         </Card>
       </div>
