@@ -17,6 +17,7 @@ import { SaveIndicator } from "./SaveIndicator";
 import { Proposal, WORK_PROGRAMMES, DESTINATIONS, getDestinationsForWorkProgramme } from "@/types/proposal";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { TopicFormattingToolbar } from "./TopicFormattingToolbar";
+import { StickyToolbarWrapper } from "./StickyToolbarWrapper";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Target, Euro, Calendar as CalendarIcon, ExternalLink, FileText, FileDown, CheckCircle2, RefreshCw, Pencil, Save, X } from "lucide-react";
@@ -350,12 +351,12 @@ export function TopicInformationPage({
         )}
         {isThisEditing ? (
           <>
-            <div className="sticky top-0 z-10">
+            <StickyToolbarWrapper>
               <TopicFormattingToolbar
                 onInsertFootnote={handleInsertFootnote}
                 onInsertLink={handleInsertLink}
               />
-            </div>
+            </StickyToolbarWrapper>
             <div className="border rounded-md">
               <TopicRichTextArea
                 value={fieldValue}
