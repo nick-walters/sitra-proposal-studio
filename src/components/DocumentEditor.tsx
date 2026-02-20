@@ -71,6 +71,7 @@ import { TrackChange } from "@/extensions/TrackChanges";
 // usePageEstimate moved to ExportDialog
 import { EditorZoomBar } from "./EditorZoomBar";
 import { useAuth } from "@/hooks/useAuth";
+import { useProposalRole } from "@/hooks/useProposalRole";
 import {
   Tooltip,
   TooltipContent,
@@ -119,6 +120,8 @@ export function DocumentEditor({
   acronymSegments,
 }: DocumentEditorProps) {
   const { user } = useAuth();
+  const { roleTier } = useProposalRole(proposalId);
+  const canUseSnippets = roleTier === 'coordinator';
   const [isCitationOpen, setIsCitationOpen] = useState(false);
   const [isFigureDialogOpen, setIsFigureDialogOpen] = useState(false);
   const [isCrossRefOpen, setIsCrossRefOpen] = useState(false);
@@ -786,6 +789,7 @@ export function DocumentEditor({
                 <Wand2 className="w-3 h-3" />
                 AI tools
               </Button>
+              {canUseSnippets && (
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -796,6 +800,7 @@ export function DocumentEditor({
                 <FileCode className="w-3 h-3" />
                 Snippets
               </Button>
+              )}
               <Button 
                 variant="outline" 
                 size="sm" 
