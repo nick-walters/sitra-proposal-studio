@@ -571,7 +571,7 @@ export function Dashboard() {
       
       // Navigate to the new proposal
       if (newProposalId) {
-        navigate(`/proposal/${newProposalId}`);
+        navigate(`/proposal/${newProposalId}?section=topic-info`);
       }
     } catch (error: any) {
       console.error('Error creating proposal:', error);
