@@ -542,10 +542,11 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                   const deletedSlice = oldState.doc.slice(oldStart, oldEnd);
                   const deletedText = oldState.doc.textBetween(oldStart, oldEnd, ' ');
 
+                  let reinsertedLength = 0;
+
                   if (deletedText.trim()) {
                     // Check each text node individually: only re-insert nodes that are NOT
                     // tracked insertions by the same author (those should just vanish).
-                    const nodesToReinsert: any[] = [];
                     let hasUntrackedContent = false;
                     
                     oldState.doc.nodesBetween(oldStart, oldEnd, (node, nodePos) => {
@@ -580,6 +581,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                             const cleanMarks = node.marks.filter((m: PMMark) => m.type !== insertionType);
                             const newMarks = deletionMark.addToSet(cleanMarks);
                             filteredNodes.push(node.mark(newMarks));
+                            reinsertedLength += node.nodeSize;
                           }
                         } else {
                           filteredNodes.push(node);
@@ -609,8 +611,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                     });
 
                     // Adjust positions: the deletion re-insert shifted things
-                    const offset = modified ? oldEnd - oldStart : 0;
-                    newTr.addMark(newStart + offset, newEnd + offset, mark);
+                    newTr.addMark(newStart + reinsertedLength, newEnd + reinsertedLength, mark);
                     modified = true;
                   }
 
