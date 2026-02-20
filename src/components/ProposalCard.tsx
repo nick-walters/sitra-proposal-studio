@@ -78,6 +78,34 @@ const getCombinedStatusInfo = (proposal: Proposal) => {
   };
 };
 
+function PinButton({ isPinned, canPin, onTogglePin, proposalId, className = '' }: {
+  isPinned?: boolean;
+  canPin?: boolean;
+  onTogglePin?: (id: string) => void;
+  proposalId: string;
+  className?: string;
+}) {
+  if (!onTogglePin) return null;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className={`h-6 w-6 flex-shrink-0 ${className}`}
+          onClick={(e) => { e.stopPropagation(); onTogglePin(proposalId); }}
+          disabled={!isPinned && !canPin}
+        >
+          <Pin className={`w-3.5 h-3.5 ${isPinned ? 'fill-primary text-primary stroke-[2.5]' : 'text-muted-foreground/30 stroke-[1.5]'}`} />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="text-xs">
+        {isPinned ? 'Unpin' : canPin ? 'Pin to top' : 'Max 3 pinned'}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 export function ProposalCard({ proposal, onClick, compact = false, topicIcon, isPinned, canPin, onTogglePin, showDragHandle }: ProposalCardProps) {
   const isDraft = proposal.status === 'draft';
   const isDecided = proposal.status === 'funded' || proposal.status === 'not_funded';
@@ -94,30 +122,13 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon, is
   if (compact) {
     return (
       <Card className={`card-elevated group cursor-pointer hover:border-primary/30 ${isPinned ? 'ring-1 ring-primary/40 bg-primary/[0.03]' : ''}`} onClick={onClick}>
-        <CardContent className="p-2 flex items-center gap-2">
+        <CardContent className="p-1.5 flex items-center gap-1.5">
           {/* Drag handle for pinned */}
           {isPinned && showDragHandle && (
             <GripVertical className="w-3.5 h-3.5 text-muted-foreground/50 cursor-grab flex-shrink-0" />
           )}
           {/* Pin button */}
-          {onTogglePin && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={`h-6 w-6 flex-shrink-0 ${isPinned ? 'text-primary' : 'text-muted-foreground/40 opacity-0 group-hover:opacity-100'}`}
-                  onClick={(e) => { e.stopPropagation(); onTogglePin(proposal.id); }}
-                  disabled={!isPinned && !canPin}
-                >
-                  {isPinned ? <PinOff className="w-3 h-3" /> : <Pin className="w-3 h-3" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="text-xs">
-                {isPinned ? 'Unpin' : canPin ? 'Pin to top' : 'Max 3 pinned'}
-              </TooltipContent>
-            </Tooltip>
-          )}
+          <PinButton isPinned={isPinned} canPin={canPin} onTogglePin={onTogglePin} proposalId={proposal.id} />
           {/* Logo */}
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
             {proposal.logoUrl ? (
@@ -161,7 +172,7 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon, is
           </div>
           
           {/* Dates */}
-          <div className="flex flex-col gap-0 flex-shrink-0 min-w-[145px] text-[9px] text-muted-foreground text-right ml-4 mr-4">
+          <div className="flex flex-col gap-0 flex-shrink-0 min-w-[145px] text-[9px] text-muted-foreground text-right ml-2 mr-1">
             {proposal.deadline && (
               <div className="flex items-center gap-0.5">
                 <Calendar className="w-2.5 h-2.5 text-yellow-600" />
@@ -191,13 +202,13 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon, is
             )}
           </div>
 
-          {/* Action buttons */}
-          <div className="flex items-center gap-1 flex-shrink-0">
-            {proposal.topicUrl && (
+          {/* Topic button - separate column */}
+          <div className="flex-shrink-0 w-[3.5rem]">
+            {proposal.topicUrl ? (
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="h-5 px-1.5 gap-0.5 text-[9px]"
+                className="h-5 w-full px-1.5 gap-0.5 text-[9px]"
                 onClick={(e) => {
                   e.stopPropagation();
                   window.open(proposal.topicUrl, '_blank');
@@ -206,8 +217,12 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon, is
                 Topic
                 <ExternalLink className="w-2 h-2" />
               </Button>
-            )}
-            <Button size="sm" className="h-5 min-w-[3rem] px-2 gap-0.5 text-[9px] bg-foreground text-background hover:bg-foreground/90">
+            ) : <span />}
+          </div>
+
+          {/* Edit/View button - separate column */}
+          <div className="flex-shrink-0 w-[3.5rem]">
+            <Button size="sm" className="h-5 w-full px-2 gap-0.5 text-[9px] bg-foreground text-background hover:bg-foreground/90">
               {isDraft ? 'Edit' : 'View'}
               <ArrowRight className="w-2 h-2" />
             </Button>
@@ -220,25 +235,10 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon, is
   // Grid view
   return (
     <Card className={`card-elevated group cursor-pointer hover:border-primary/30 relative ${isPinned ? 'ring-1 ring-primary/40 bg-primary/[0.03]' : ''}`} onClick={onClick}>
-      {/* Pin button top-right */}
-      {onTogglePin && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className={`absolute top-1.5 right-1.5 h-6 w-6 z-10 ${isPinned ? 'text-primary' : 'text-muted-foreground/40 opacity-0 group-hover:opacity-100'}`}
-              onClick={(e) => { e.stopPropagation(); onTogglePin(proposal.id); }}
-              disabled={!isPinned && !canPin}
-            >
-              {isPinned ? <PinOff className="w-3 h-3" /> : <Pin className="w-3 h-3" />}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="top" className="text-xs">
-            {isPinned ? 'Unpin' : canPin ? 'Pin to top' : 'Max 3 pinned'}
-          </TooltipContent>
-        </Tooltip>
-      )}
+      {/* Pin button top-left */}
+      <div className="absolute top-1.5 right-1.5 z-10">
+        <PinButton isPinned={isPinned} canPin={canPin} onTogglePin={onTogglePin} proposalId={proposal.id} />
+      </div>
       {/* Drag handle for pinned grid cards */}
       {isPinned && showDragHandle && (
         <div className="absolute top-1.5 left-1.5 z-10">
