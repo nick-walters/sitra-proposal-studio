@@ -604,27 +604,10 @@ export function TopicInformationPage({
         {/* Topic Description Card */}
         <Card>
           <CardHeader className="pb-2 pt-4">
-            <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-sm">
                 <FileText className="w-4 h-4" />
                 Topic description
               </CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 h-7 text-xs"
-                onClick={handleFetchTopicDescription}
-                disabled={!proposal?.topicUrl || importingTopic || !userCanEdit}
-              >
-                {importingTopic ? (
-                  <><Loader2 className="w-3 h-3 animate-spin" /> Fetching...</>
-                ) : proposal?.topicDescription ? (
-                  <><RefreshCw className="w-3 h-3" /> Refresh</>
-                ) : (
-                  <><FileDown className="w-3 h-3" /> Fetch info</>
-                )}
-              </Button>
-            </div>
           </CardHeader>
           <CardContent>
             {userCanEdit ? (
@@ -650,27 +633,10 @@ export function TopicInformationPage({
         {/* Destination Description Card */}
         <Card>
           <CardHeader className="pb-2 pt-4">
-            <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-sm">
                 <FileText className="w-4 h-4" />
                 Destination description
               </CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 h-7 text-xs"
-                onClick={handleFetchDestinationDescription}
-                disabled={!proposal?.topicUrl || importingDestination || !userCanEdit}
-              >
-                {importingDestination ? (
-                  <><Loader2 className="w-3 h-3 animate-spin" /> Fetching...</>
-                ) : proposal?.topicDestinationDescription ? (
-                  <><RefreshCw className="w-3 h-3" /> Refresh</>
-                ) : (
-                  <><FileDown className="w-3 h-3" /> Fetch info</>
-                )}
-              </Button>
-            </div>
           </CardHeader>
           <CardContent>
             {userCanEdit ? (
