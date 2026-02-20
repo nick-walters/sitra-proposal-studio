@@ -21,6 +21,8 @@ import {
   XCircle,
   Clock,
   User,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 import { TrackChange } from '@/extensions/TrackChanges';
 import { format } from 'date-fns';
@@ -58,6 +60,14 @@ export function TrackChangesToolbar({
     editor?.commands.rejectAllChanges();
   };
 
+  const handleNextChange = () => {
+    editor?.commands.navigateToNextChange();
+  };
+
+  const handlePrevChange = () => {
+    editor?.commands.navigateToPreviousChange();
+  };
+
   return (
     <div className="flex items-center gap-3">
       {/* Toggle Switch */}
@@ -92,16 +102,37 @@ export function TrackChangesToolbar({
             )}
           </div>
 
-          {/* Changes panel */}
+          {/* Changes panel and navigation */}
           {changes.length > 0 && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5">
-                  <GitBranch className="w-3.5 h-3.5" />
-                  {changes.length} {changes.length === 1 ? 'Change' : 'Changes'}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80 p-0" align="end">
+            <>
+              {/* Next/Previous navigation */}
+              <div className="flex items-center gap-0.5">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-7 w-7" onClick={handlePrevChange}>
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Previous change</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-7 w-7" onClick={handleNextChange}>
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Next change</TooltipContent>
+                </Tooltip>
+              </div>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <GitBranch className="w-3.5 h-3.5" />
+                    {changes.length} {changes.length === 1 ? 'Change' : 'Changes'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0" align="end">
                 <div className="p-3 border-b">
                   <div className="flex items-center justify-between">
                     <h4 className="font-semibold text-sm">Tracked Changes</h4>
@@ -206,8 +237,9 @@ export function TrackChangesToolbar({
                     ))}
                   </div>
                 </ScrollArea>
-              </PopoverContent>
-            </Popover>
+                </PopoverContent>
+              </Popover>
+            </>
           )}
         </>
       )}
