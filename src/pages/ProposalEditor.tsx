@@ -1122,7 +1122,7 @@ export function ProposalEditor() {
           <div className="flex-1 overflow-y-auto overflow-x-hidden">
             <SectionNavigator
               sections={allSections}
-              activeSectionId={activeSection?.id || selectedParticipantId ? `a2-${selectedParticipantId}` : null}
+              activeSectionId={selectedParticipantId ? `a2-${selectedParticipantId}` : (activeSection?.id || null)}
               onSectionClick={handleSectionClick}
               participants={participants}
               isCoordinator={isCoordinator}
