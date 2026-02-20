@@ -31,6 +31,7 @@ interface ProposalData {
   submissionStage?: 'full' | 'stage_1';
   isTwoStageSecondStage?: boolean;
   totalBudget?: number;
+  totalBudgetText?: string;
   deadline?: Date;
   openingDate?: Date;
   description?: string;
@@ -96,6 +97,7 @@ export function useProposalData(proposalId: string) {
         submissionStage: ((data as any).submission_stage as 'full' | 'stage_1') || undefined,
         isTwoStageSecondStage: (data as any).is_two_stage_second_stage || false,
         totalBudget: data.total_budget || undefined,
+        totalBudgetText: (data as any).total_budget_text || undefined,
         deadline: data.deadline ? new Date(data.deadline) : undefined,
         openingDate: (data as any).opening_date ? new Date((data as any).opening_date) : undefined,
         description: data.description || undefined,
@@ -323,6 +325,7 @@ export function useProposalData(proposalId: string) {
     if (updates.topicUrl !== undefined) dbUpdates.topic_url = updates.topicUrl;
     if (updates.topicTitle !== undefined) dbUpdates.topic_title = updates.topicTitle;
     if (updates.totalBudget !== undefined) dbUpdates.total_budget = updates.totalBudget;
+    if (updates.totalBudgetText !== undefined) dbUpdates.total_budget_text = updates.totalBudgetText;
     if (updates.deadline !== undefined) dbUpdates.deadline = updates.deadline?.toISOString();
     if (updates.openingDate !== undefined) dbUpdates.opening_date = updates.openingDate?.toISOString() || null;
     if (updates.decisionDate !== undefined) dbUpdates.decision_date = updates.decisionDate?.toISOString();
