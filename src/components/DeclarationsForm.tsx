@@ -226,19 +226,17 @@ export function DeclarationsForm({ participants, proposalId, canEdit }: Declarat
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div>
+        <div className="flex items-center gap-3">
           <h1 className="text-xl font-bold text-foreground">Part A5: Declarations</h1>
+          <PartAGuidelinesDialog
+            sectionTitle="Part A5: Declarations"
+            officialGuidelines={[{
+              id: 'declarations-info',
+              title: 'Declaration requirements',
+              content: 'These declarations are required by the European Commission. Each participating organisation must confirm all declarations before submission.\n\nDeclarations cover:\n• Truthfulness and accuracy of information\n• Compliance with exclusion criteria\n• Financial and operational capacity\n• Absence of conflicts of interest\n• Data protection compliance\n• Ethics compliance\n• No double funding\n• Ownership and control information'
+            }]}
+          />
         </div>
-
-        {/* Guidelines Button */}
-        <PartAGuidelinesDialog
-          sectionTitle="Part A5: Declarations"
-          officialGuidelines={[{
-            id: 'declarations-info',
-            title: 'Declaration requirements',
-            content: 'These declarations are required by the European Commission. Each participating organisation must confirm all declarations before submission.\n\nDeclarations cover:\n• Truthfulness and accuracy of information\n• Compliance with exclusion criteria\n• Financial and operational capacity\n• Absence of conflicts of interest\n• Data protection compliance\n• Ethics compliance\n• No double funding\n• Ownership and control information'
-          }]}
-        />
 
         {participants.length === 0 ? (
           <Card>
