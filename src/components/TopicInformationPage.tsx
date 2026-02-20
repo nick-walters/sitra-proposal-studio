@@ -612,24 +612,6 @@ export function TopicInformationPage({
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Description</label>
-              {userCanEdit ? (
-                <FootnoteTextarea
-                  value={(editedProposal as any)?.topicDescription || ''}
-                  onChange={(val) => setEditedProposal({ ...editedProposal, topicDescription: val } as any)}
-                  footnotes={(editedProposal as any)?.topicFootnotes || []}
-                  onFootnotesChange={(fns) => setEditedProposal({ ...editedProposal, topicFootnotes: fns } as any)}
-                  placeholder="Enter the topic description..."
-                />
-              ) : (
-                <FootnoteReadonlyView
-                  text={proposal?.topicDescription}
-                  footnotes={proposal?.topicFootnotes}
-                  emptyMessage="No topic description available"
-                />
-              )}
-            </div>
-            <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Expected outcome</label>
               {userCanEdit ? (
                 <FootnoteTextarea
