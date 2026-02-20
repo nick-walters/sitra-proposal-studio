@@ -248,8 +248,8 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
             const computedDuration = getComputedDuration(wp);
             const displayPM = wp.manual_person_months != null ? wp.manual_person_months : (computedPM > 0 ? computedPM : '');
             const displayDuration = wp.manual_duration || computedDuration || '';
-            const shortName = wp.short_name || wp.title || `WP${wp.number}`;
-            const title = wp.title || `Work Package ${wp.number}`;
+            const shortName = wp.short_name || '';
+            const title = wp.title || '';
 
             const isEditingPM = editingCell?.wpId === wp.id && editingCell.field === 'pm';
             const isEditingDur = editingCell?.wpId === wp.id && editingCell.field === 'duration';
@@ -261,7 +261,7 @@ export function B31WPListTable({ wpData, participants, proposalId }: Props) {
                     className="inline-flex items-center rounded-full text-white font-bold whitespace-nowrap"
                     style={{ backgroundColor: wp.color || '#666', border: `1.5px solid ${wp.color || '#666'}`, color: '#ffffff', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
                   >
-                    WP{wp.number}: {shortName} –&nbsp;
+                    WP{wp.number}{shortName ? `: ${shortName}` : ''}{title ? ' –\u00A0' : shortName ? ' –\u00A0' : ''}
                     <InlineEdit
                       value={title}
                       onSave={(val) => saveWPField(wp.id, 'title', val)}

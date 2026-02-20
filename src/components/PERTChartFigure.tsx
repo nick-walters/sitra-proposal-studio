@@ -178,7 +178,7 @@ export function PERTChartFigure({
     return wpDrafts.map((wp) => ({
       id: wp.id,
       number: wp.number,
-      shortName: wp.short_name || `WP${wp.number}`,
+      shortName: wp.short_name || '',
       title: wp.title || '',
       color: wp.color,
       x: nodePositions[wp.id]?.x || 100,
@@ -367,14 +367,16 @@ export function PERTChartFigure({
                       <text x={42} y={14} textAnchor="middle" fill="#FFFFFF" fontSize="10" fontWeight="bold">
                         WP{node.number}
                       </text>
-                      <text x={42} y={27} textAnchor="middle" fill="#FFFFFF" fontSize="10" opacity={0.9}>
-                        {node.shortName.length > 10 ? node.shortName.substring(0, 9) + '…' : node.shortName}
-                      </text>
+                      {node.shortName && (
+                        <text x={42} y={27} textAnchor="middle" fill="#FFFFFF" fontSize="10" opacity={0.9}>
+                          {node.shortName.length > 10 ? node.shortName.substring(0, 9) + '…' : node.shortName}
+                        </text>
+                      )}
                     </g>
                   </TooltipTrigger>
                   <TooltipContent>
                     <div className="text-sm">
-                      <p className="font-semibold">WP{node.number}: {node.shortName}</p>
+                      <p className="font-semibold">WP{node.number}{node.shortName ? `: ${node.shortName}` : ''}</p>
                       {node.title && <p className="text-xs text-muted-foreground">{node.title}</p>}
                     </div>
                   </TooltipContent>

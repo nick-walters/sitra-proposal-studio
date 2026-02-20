@@ -1041,8 +1041,8 @@ export function DocumentEditor({
         />
       </div>
 
-      <div className="flex-1 flex min-w-0">
-        <div className="flex-1 flex min-w-0 overflow-hidden">
+      <div className="flex-1 flex min-w-0 min-h-0">
+        <div className="flex-1 flex min-w-0 min-h-0 overflow-hidden">
         {/* Main content area */}
         <div className={`flex-1 min-w-0 overflow-auto p-6 bg-muted/30 transition-all`}>
           <div className="mx-auto space-y-6" style={{ maxWidth: '56rem', zoom: `${zoomLevel}%` }}>
