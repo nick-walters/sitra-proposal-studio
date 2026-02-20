@@ -2511,7 +2511,10 @@ export type Database = {
           destination: string | null
           duration: number | null
           expected_projects: string | null
+          fstp_budget: string | null
+          fstp_budget_per_third_party: string | null
           id: string
+          indicative_budget_per_project: string | null
           is_two_stage_second_stage: boolean | null
           logo_url: string | null
           opening_date: string | null
@@ -2550,7 +2553,10 @@ export type Database = {
           destination?: string | null
           duration?: number | null
           expected_projects?: string | null
+          fstp_budget?: string | null
+          fstp_budget_per_third_party?: string | null
           id?: string
+          indicative_budget_per_project?: string | null
           is_two_stage_second_stage?: boolean | null
           logo_url?: string | null
           opening_date?: string | null
@@ -2589,7 +2595,10 @@ export type Database = {
           destination?: string | null
           duration?: number | null
           expected_projects?: string | null
+          fstp_budget?: string | null
+          fstp_budget_per_third_party?: string | null
           id?: string
+          indicative_budget_per_project?: string | null
           is_two_stage_second_stage?: boolean | null
           logo_url?: string | null
           opening_date?: string | null
