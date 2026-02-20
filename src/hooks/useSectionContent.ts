@@ -401,6 +401,16 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (pendingContentRef.current !== null && contentIdRef.current && user?.id) {
         syncSaveContent(contentIdRef.current, pendingContentRef.current, user.id);
+
+        // Also save a version snapshot so tab-close edits appear in history
+        const currentContent = pendingContentRef.current;
+        if (
+          currentContent !== lastVersionContentRef.current &&
+          currentContent.trim()
+        ) {
+          syncSaveVersion(proposalId, sectionId, currentContent, user.id);
+        }
+
         e.preventDefault();
         e.returnValue = '';
       }

@@ -174,7 +174,13 @@ export function useNotifications() {
         },
         (payload) => {
           const deleted = payload.old as { id: string };
-          setNotifications(prev => prev.filter(n => n.id !== deleted.id));
+          setNotifications(prev => {
+            const removedNotification = prev.find(n => n.id === deleted.id);
+            if (removedNotification && !removedNotification.is_read) {
+              setUnreadCount(c => Math.max(0, c - 1));
+            }
+            return prev.filter(n => n.id !== deleted.id);
+          });
         }
       )
       .subscribe();
