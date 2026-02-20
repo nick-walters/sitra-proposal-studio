@@ -1,14 +1,19 @@
 import { Proposal, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS } from "@/types/proposal";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, FileText, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink, AlertTriangle, Trophy, HelpCircle } from "lucide-react";
+import { Calendar, FileText, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink, AlertTriangle, Trophy, HelpCircle, Pin, PinOff, GripVertical } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ProposalCardProps {
   proposal: Proposal;
   onClick: () => void;
   compact?: boolean;
   topicIcon?: React.ReactNode;
+  isPinned?: boolean;
+  canPin?: boolean;
+  onTogglePin?: (id: string) => void;
+  showDragHandle?: boolean;
 }
 
 // Get combined status/urgency info
@@ -73,7 +78,7 @@ const getCombinedStatusInfo = (proposal: Proposal) => {
   };
 };
 
-export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: ProposalCardProps) {
+export function ProposalCard({ proposal, onClick, compact = false, topicIcon, isPinned, canPin, onTogglePin, showDragHandle }: ProposalCardProps) {
   const isDraft = proposal.status === 'draft';
   const isDecided = proposal.status === 'funded' || proposal.status === 'not_funded';
   
@@ -85,10 +90,34 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
   const statusInfo = getCombinedStatusInfo(proposal);
   const StatusIcon = statusInfo.icon;
 
+  // Compact / list view
   if (compact) {
     return (
-      <Card className="card-elevated group cursor-pointer hover:border-primary/30" onClick={onClick}>
+      <Card className={`card-elevated group cursor-pointer hover:border-primary/30 ${isPinned ? 'ring-1 ring-primary/40 bg-primary/[0.03]' : ''}`} onClick={onClick}>
         <CardContent className="p-2 flex items-center gap-2">
+          {/* Drag handle for pinned */}
+          {isPinned && showDragHandle && (
+            <GripVertical className="w-3.5 h-3.5 text-muted-foreground/50 cursor-grab flex-shrink-0" />
+          )}
+          {/* Pin button */}
+          {onTogglePin && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-6 w-6 flex-shrink-0 ${isPinned ? 'text-primary' : 'text-muted-foreground/40 opacity-0 group-hover:opacity-100'}`}
+                  onClick={(e) => { e.stopPropagation(); onTogglePin(proposal.id); }}
+                  disabled={!isPinned && !canPin}
+                >
+                  {isPinned ? <PinOff className="w-3 h-3" /> : <Pin className="w-3 h-3" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs">
+                {isPinned ? 'Unpin' : canPin ? 'Pin to top' : 'Max 3 pinned'}
+              </TooltipContent>
+            </Tooltip>
+          )}
           {/* Logo */}
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
             {proposal.logoUrl ? (
@@ -188,8 +217,34 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon }: 
     );
   }
 
+  // Grid view
   return (
-    <Card className="card-elevated group cursor-pointer hover:border-primary/30" onClick={onClick}>
+    <Card className={`card-elevated group cursor-pointer hover:border-primary/30 relative ${isPinned ? 'ring-1 ring-primary/40 bg-primary/[0.03]' : ''}`} onClick={onClick}>
+      {/* Pin button top-right */}
+      {onTogglePin && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`absolute top-1.5 right-1.5 h-6 w-6 z-10 ${isPinned ? 'text-primary' : 'text-muted-foreground/40 opacity-0 group-hover:opacity-100'}`}
+              onClick={(e) => { e.stopPropagation(); onTogglePin(proposal.id); }}
+              disabled={!isPinned && !canPin}
+            >
+              {isPinned ? <PinOff className="w-3 h-3" /> : <Pin className="w-3 h-3" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="text-xs">
+            {isPinned ? 'Unpin' : canPin ? 'Pin to top' : 'Max 3 pinned'}
+          </TooltipContent>
+        </Tooltip>
+      )}
+      {/* Drag handle for pinned grid cards */}
+      {isPinned && showDragHandle && (
+        <div className="absolute top-1.5 left-1.5 z-10">
+          <GripVertical className="w-3.5 h-3.5 text-muted-foreground/50 cursor-grab" />
+        </div>
+      )}
       <CardContent className="p-3">
         {/* Two-column table-like layout */}
         <div className="flex gap-2">

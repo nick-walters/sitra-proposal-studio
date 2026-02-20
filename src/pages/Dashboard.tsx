@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Proposal, ProposalType, ProposalStatus, BudgetType, SubmissionStage, HORIZON_EUROPE_SECTIONS, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS, getDestinationsForWorkProgramme } from "@/types/proposal";
-import { Plus, Search, LayoutGrid, List, X, Filter, Leaf, Brain, Zap, Wheat, Shield, Apple, Atom, HeartPulse, Table2, Columns3, AlertTriangle, Clock, CheckCircle2, Send, Trophy, XCircle } from "lucide-react";
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { Plus, Search, LayoutGrid, List, X, Filter, Leaf, Brain, Zap, Wheat, Shield, Apple, Atom, HeartPulse, Table2, Columns3, AlertTriangle, Clock, CheckCircle2, Send, Trophy, XCircle, GripVertical } from "lucide-react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { usePinnedProposals } from "@/hooks/usePinnedProposals";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -239,6 +240,9 @@ export function Dashboard() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'table' | 'kanban'>('grid');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const { pinnedIds, togglePin, isPinned, canPin, reorderPinned } = usePinnedProposals(user?.id);
+  const dragItemRef = useRef<number | null>(null);
+  const dragOverRef = useRef<number | null>(null);
 
   // Fetch proposals from database
   const fetchProposals = useCallback(async () => {
@@ -933,6 +937,10 @@ export function Dashboard() {
               proposals={filteredProposals}
               onProposalClick={(proposal) => navigate(`/proposal/${proposal.id}`)}
               topicIcons={topicIcons}
+              pinnedIds={pinnedIds}
+              canPin={canPin}
+              onTogglePin={togglePin}
+              onReorderPinned={reorderPinned}
             />
           ) : viewMode === 'kanban' ? (
             <ProposalKanbanView 
@@ -941,17 +949,70 @@ export function Dashboard() {
               topicIcons={topicIcons}
             />
           ) : (
-            <div className={viewMode === 'grid' ? 'grid gap-3 md:grid-cols-2 lg:grid-cols-3' : 'space-y-3'}>
-              {filteredProposals.map((proposal) => (
-                <ProposalCard
-                  key={proposal.id}
-                  proposal={proposal}
-                  onClick={() => navigate(`/proposal/${proposal.id}`)}
-                  compact={viewMode === 'list'}
-                  topicIcon={topicIcons[proposal.acronym]}
-                />
-              ))}
-            </div>
+            (() => {
+              const pinnedProposals = pinnedIds.map(id => filteredProposals.find(p => p.id === id)).filter(Boolean) as Proposal[];
+              const unpinnedProposals = filteredProposals.filter(p => !isPinned(p.id));
+
+              const handleDragStart = (index: number) => { dragItemRef.current = index; };
+              const handleDragOver = (e: React.DragEvent, index: number) => { e.preventDefault(); dragOverRef.current = index; };
+              const handleDragEnd = () => {
+                if (dragItemRef.current !== null && dragOverRef.current !== null && dragItemRef.current !== dragOverRef.current) {
+                  reorderPinned(dragItemRef.current, dragOverRef.current);
+                }
+                dragItemRef.current = null;
+                dragOverRef.current = null;
+              };
+
+              return (
+                <div className="space-y-4">
+                  {/* Pinned proposals */}
+                  {pinnedProposals.length > 0 && (
+                    <div className={viewMode === 'grid' ? 'grid gap-3 md:grid-cols-2 lg:grid-cols-3' : 'space-y-2'}>
+                      {pinnedProposals.map((proposal, index) => (
+                        <div
+                          key={proposal.id}
+                          draggable
+                          onDragStart={() => handleDragStart(index)}
+                          onDragOver={(e) => handleDragOver(e, index)}
+                          onDragEnd={handleDragEnd}
+                          className="relative"
+                        >
+                          <ProposalCard
+                            proposal={proposal}
+                            onClick={() => navigate(`/proposal/${proposal.id}`)}
+                            compact={viewMode === 'list'}
+                            topicIcon={topicIcons[proposal.acronym]}
+                            isPinned={true}
+                            canPin={true}
+                            onTogglePin={togglePin}
+                            showDragHandle={pinnedProposals.length > 1}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {/* Separator */}
+                  {pinnedProposals.length > 0 && unpinnedProposals.length > 0 && (
+                    <div className="border-t border-border" />
+                  )}
+                  {/* Unpinned proposals */}
+                  <div className={viewMode === 'grid' ? 'grid gap-3 md:grid-cols-2 lg:grid-cols-3' : 'space-y-3'}>
+                    {unpinnedProposals.map((proposal) => (
+                      <ProposalCard
+                        key={proposal.id}
+                        proposal={proposal}
+                        onClick={() => navigate(`/proposal/${proposal.id}`)}
+                        compact={viewMode === 'list'}
+                        topicIcon={topicIcons[proposal.acronym]}
+                        isPinned={false}
+                        canPin={canPin}
+                        onTogglePin={togglePin}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })()
           )
         ) : (
           <div className="text-center py-12">
