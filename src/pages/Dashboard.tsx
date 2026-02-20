@@ -963,41 +963,34 @@ export function Dashboard() {
                 dragOverRef.current = null;
               };
 
+              const allOrdered = [...pinnedProposals, ...unpinnedProposals];
+
               return (
-                <div className="space-y-4">
-                  {/* Pinned proposals */}
-                  {pinnedProposals.length > 0 && (
-                    <div className={viewMode === 'grid' ? 'grid gap-3 md:grid-cols-2 lg:grid-cols-3' : 'space-y-2'}>
-                      {pinnedProposals.map((proposal, index) => (
-                        <div
-                          key={proposal.id}
-                          draggable
-                          onDragStart={() => handleDragStart(index)}
-                          onDragOver={(e) => handleDragOver(e, index)}
-                          onDragEnd={handleDragEnd}
-                          className="relative"
-                        >
-                          <ProposalCard
-                            proposal={proposal}
-                            onClick={() => navigate(`/proposal/${proposal.id}`)}
-                            compact={viewMode === 'list'}
-                            topicIcon={topicIcons[proposal.acronym]}
-                            isPinned={true}
-                            canPin={true}
-                            onTogglePin={togglePin}
-                            showDragHandle={pinnedProposals.length > 1}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {/* Separator */}
-                  {pinnedProposals.length > 0 && unpinnedProposals.length > 0 && (
-                    <div className="border-t border-border" />
-                  )}
-                  {/* Unpinned proposals */}
-                  <div className={viewMode === 'grid' ? 'grid gap-3 md:grid-cols-2 lg:grid-cols-3' : 'space-y-3'}>
-                    {unpinnedProposals.map((proposal) => (
+                <div className={viewMode === 'grid' ? 'grid gap-3 md:grid-cols-2 lg:grid-cols-3' : 'space-y-2'}>
+                  {allOrdered.map((proposal) => {
+                    const pinIdx = pinnedProposals.findIndex(p => p.id === proposal.id);
+                    const pinned = pinIdx >= 0;
+                    return pinned ? (
+                      <div
+                        key={proposal.id}
+                        draggable
+                        onDragStart={() => handleDragStart(pinIdx)}
+                        onDragOver={(e) => handleDragOver(e, pinIdx)}
+                        onDragEnd={handleDragEnd}
+                        className="relative"
+                      >
+                        <ProposalCard
+                          proposal={proposal}
+                          onClick={() => navigate(`/proposal/${proposal.id}`)}
+                          compact={viewMode === 'list'}
+                          topicIcon={topicIcons[proposal.acronym]}
+                          isPinned={true}
+                          canPin={true}
+                          onTogglePin={togglePin}
+                          showDragHandle={pinnedProposals.length > 1}
+                        />
+                      </div>
+                    ) : (
                       <ProposalCard
                         key={proposal.id}
                         proposal={proposal}
@@ -1008,8 +1001,8 @@ export function Dashboard() {
                         canPin={canPin}
                         onTogglePin={togglePin}
                       />
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
               );
             })()
