@@ -17,6 +17,7 @@ import { SaveIndicator } from "./SaveIndicator";
 
 import { Proposal, WORK_PROGRAMMES, DESTINATIONS, getDestinationsForWorkProgramme } from "@/types/proposal";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { TopicFormattingToolbar } from "./TopicFormattingToolbar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Target, Euro, Calendar as CalendarIcon, ExternalLink, FileText, FileDown, CheckCircle2, RefreshCw } from "lucide-react";
@@ -113,6 +114,60 @@ export function TopicInformationPage({
     proposal?.workProgramme ? getDestinationsForWorkProgramme(proposal.workProgramme) : []
   );
 
+  // Refs for description textareas (for formatting toolbar)
+  const expectedOutcomeRef = useRef<HTMLTextAreaElement>(null);
+  const scopeRef = useRef<HTMLTextAreaElement>(null);
+  const destinationRef = useRef<HTMLTextAreaElement>(null);
+  const [activeFieldKey, setActiveFieldKey] = useState<'expectedOutcome' | 'scope' | 'destination' | null>(null);
+
+  const activeTextareaRef = useMemo(() => {
+    if (activeFieldKey === 'expectedOutcome') return expectedOutcomeRef;
+    if (activeFieldKey === 'scope') return scopeRef;
+    if (activeFieldKey === 'destination') return destinationRef;
+    return { current: null } as React.RefObject<HTMLTextAreaElement | null>;
+  }, [activeFieldKey]);
+
+  const handleToolbarTextChange = useCallback((newValue: string) => {
+    if (!editedProposal) return;
+    if (activeFieldKey === 'expectedOutcome') {
+      setEditedProposal({ ...editedProposal, topicExpectedOutcome: newValue } as any);
+    } else if (activeFieldKey === 'scope') {
+      setEditedProposal({ ...editedProposal, topicScope: newValue } as any);
+    } else if (activeFieldKey === 'destination') {
+      setEditedProposal({ ...editedProposal, topicDestinationDescription: newValue } as any);
+    }
+  }, [editedProposal, activeFieldKey]);
+
+  const handleToolbarInsertFootnote = useCallback(() => {
+    if (!editedProposal || !activeFieldKey) return;
+    const textarea = activeTextareaRef.current;
+    if (!textarea) return;
+
+    const isDestination = activeFieldKey === 'destination';
+    const footnotes: any[] = isDestination
+      ? ((editedProposal as any)?.destinationFootnotes || [])
+      : ((editedProposal as any)?.topicFootnotes || []);
+    const nextNumber = footnotes.length + 1;
+    const newFootnote = { id: crypto.randomUUID(), text: "" };
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const marker = `[${nextNumber}]`;
+    const fieldKey = activeFieldKey === 'expectedOutcome' ? 'topicExpectedOutcome'
+      : activeFieldKey === 'scope' ? 'topicScope' : 'topicDestinationDescription';
+    const currentVal = (editedProposal as any)?.[fieldKey] || '';
+    const newValue = currentVal.slice(0, start) + marker + currentVal.slice(end);
+
+    const footnotesKey = isDestination ? 'destinationFootnotes' : 'topicFootnotes';
+    setEditedProposal({ ...editedProposal, [fieldKey]: newValue, [footnotesKey]: [...footnotes, newFootnote] } as any);
+
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const newPos = start + marker.length;
+      textarea.setSelectionRange(newPos, newPos);
+    });
+  }, [editedProposal, activeFieldKey, activeTextareaRef]);
+
   const userCanEdit = canEdit && isCoordinator;
 
   useEffect(() => {
@@ -207,8 +262,15 @@ export function TopicInformationPage({
   };
 
   return (
-    <div className="flex-1 overflow-auto p-4 bg-muted/30">
-      <div className="max-w-7xl mx-auto space-y-4">
+    <div className="flex-1 overflow-auto bg-muted/30">
+      {userCanEdit && (
+        <TopicFormattingToolbar
+          activeTextareaRef={activeTextareaRef}
+          onTextChange={handleToolbarTextChange}
+          onInsertFootnote={handleToolbarInsertFootnote}
+        />
+      )}
+      <div className="max-w-7xl mx-auto space-y-4 p-4">
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-bold">Topic information</h1>
           {userCanEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} hasUnsavedChanges={!!hasUnsavedChanges} />}
@@ -620,6 +682,9 @@ export function TopicInformationPage({
                   footnotes={(editedProposal as any)?.topicFootnotes || []}
                   onFootnotesChange={(fns) => setEditedProposal({ ...editedProposal, topicFootnotes: fns } as any)}
                   placeholder=""
+                  hideInlineFootnoteButton
+                  textareaRef={expectedOutcomeRef}
+                  onFocus={() => setActiveFieldKey('expectedOutcome')}
                 />
               ) : (
                 <FootnoteReadonlyView
@@ -638,6 +703,9 @@ export function TopicInformationPage({
                   footnotes={(editedProposal as any)?.topicFootnotes || []}
                   onFootnotesChange={(fns) => setEditedProposal({ ...editedProposal, topicFootnotes: fns } as any)}
                   placeholder=""
+                  hideInlineFootnoteButton
+                  textareaRef={scopeRef}
+                  onFocus={() => setActiveFieldKey('scope')}
                 />
               ) : (
                 <FootnoteReadonlyView
@@ -672,6 +740,9 @@ export function TopicInformationPage({
                 onFootnotesChange={(fns) => setEditedProposal({ ...editedProposal, destinationFootnotes: fns } as any)}
                 placeholder=""
                 minHeight="200px"
+                hideInlineFootnoteButton
+                textareaRef={destinationRef}
+                onFocus={() => setActiveFieldKey('destination')}
               />
             ) : (
               <FootnoteReadonlyView
