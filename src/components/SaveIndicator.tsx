@@ -28,7 +28,7 @@ export function SaveIndicator({ saving, lastSaved, hasUnsavedChanges = false, cl
         ) : (
           <>
             <span className="text-[10px] font-medium text-muted-foreground">Autosaves</span>
-            <span className="text-[10px] text-muted-foreground">every 5 sec</span>
+            <span className="text-[10px] text-muted-foreground">after 5 sec</span>
           </>
         )}
       </div>
