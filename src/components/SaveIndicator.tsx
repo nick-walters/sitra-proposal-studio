@@ -13,25 +13,23 @@ export function SaveIndicator({ saving, lastSaved, hasUnsavedChanges = false, cl
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const getState = () => {
-    if (saving || hasUnsavedChanges) return 'saving';
-    if (lastSaved) return 'saved';
-    return 'idle';
-  };
-
-  const state = getState();
-
-  const iconColor = state === 'saving' ? 'text-muted-foreground' : state === 'saved' ? 'text-green-600' : 'text-foreground';
-  const textColor = state === 'saving' ? 'text-muted-foreground' : state === 'saved' ? 'text-green-600' : 'text-foreground';
-  const label = state === 'saving' ? 'Autosaves every 5 seconds' : state === 'saved' ? 'Autosaved' : 'Autosave';
+  const state = saving || hasUnsavedChanges ? 'saving' : lastSaved ? 'saved' : 'idle';
+  const isSaved = state === 'saved';
 
   return (
     <div className={cn("flex items-center gap-1.5 text-xs text-muted-foreground", className)}>
-      <Cloud className={cn("w-3.5 h-3.5", iconColor)} />
+      <Cloud className={cn("w-3.5 h-3.5", isSaved ? 'text-green-600' : 'text-muted-foreground')} />
       <div className="flex flex-col leading-none">
-        <span className={cn("text-xs font-medium", textColor)}>{label}</span>
-        {state === 'saved' && lastSaved && (
-          <span className="text-[10px] text-muted-foreground">{formatTime(lastSaved)}</span>
+        {isSaved ? (
+          <>
+            <span className="text-xs font-medium text-green-600">Autosaved</span>
+            {lastSaved && <span className="text-[10px] text-muted-foreground">{formatTime(lastSaved)}</span>}
+          </>
+        ) : (
+          <>
+            <span className="text-[10px] font-medium text-muted-foreground">Autosaves</span>
+            <span className="text-[10px] text-muted-foreground">every 5 sec</span>
+          </>
         )}
       </div>
     </div>
