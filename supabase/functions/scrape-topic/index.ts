@@ -75,11 +75,7 @@ Deno.serve(async (req) => {
 
     const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
     if (!apiKey) {
-      console.error('FIRECRAWL_API_KEY not configured');
-      return new Response(
-        JSON.stringify({ success: false, error: 'Firecrawl connector not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.warn('FIRECRAWL_API_KEY not configured, will use direct fetch fallback');
     }
 
     // Format URL
@@ -90,33 +86,81 @@ Deno.serve(async (req) => {
 
     console.log('Scraping topic URL:', formattedUrl);
 
-    // Scrape the topic page using Firecrawl
-    const scrapeResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url: formattedUrl,
-        formats: ['markdown', 'html'],
-        onlyMainContent: true,
-        waitFor: 3000, // Wait for dynamic content
-      }),
-    });
+    let markdown = '';
+    let html = '';
 
-    const scrapeData = await scrapeResponse.json();
+    // Try Firecrawl first, fall back to direct fetch
+    if (apiKey) {
+      try {
+        const scrapeResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            url: formattedUrl,
+            formats: ['markdown', 'html'],
+            onlyMainContent: true,
+            waitFor: 3000,
+          }),
+        });
 
-    if (!scrapeResponse.ok) {
-      console.error('Firecrawl API error:', scrapeData);
-      return new Response(
-        JSON.stringify({ success: false, error: scrapeData.error || `Scrape failed with status ${scrapeResponse.status}` }),
-        { status: scrapeResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+        const scrapeData = await scrapeResponse.json();
+
+        if (scrapeResponse.ok) {
+          markdown = scrapeData.data?.markdown || scrapeData.markdown || '';
+          html = scrapeData.data?.html || scrapeData.html || '';
+          console.log('Firecrawl scrape successful, markdown length:', markdown.length);
+        } else {
+          console.warn('Firecrawl failed, falling back to direct fetch:', scrapeData.error);
+        }
+      } catch (fcError) {
+        console.warn('Firecrawl error, falling back to direct fetch:', fcError);
+      }
     }
 
-    const markdown = scrapeData.data?.markdown || scrapeData.markdown || '';
-    const html = scrapeData.data?.html || scrapeData.html || '';
+    // Fallback: direct fetch if Firecrawl failed or returned empty
+    if (!markdown && !html) {
+      console.log('Using direct fetch fallback...');
+      const directResponse = await fetch(formattedUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+        },
+      });
+
+      if (!directResponse.ok) {
+        return new Response(
+          JSON.stringify({ success: false, error: `Failed to fetch topic page (status ${directResponse.status})` }),
+          { status: directResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      html = await directResponse.text();
+      // Convert HTML to simple markdown-like text by stripping tags
+      markdown = html
+        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+        .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '')
+        .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '')
+        .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '')
+        .replace(/<h([1-6])[^>]*>(.*?)<\/h\1>/gi, (_, level, text) => '#'.repeat(parseInt(level)) + ' ' + text.replace(/<[^>]+>/g, ''))
+        .replace(/<li[^>]*>(.*?)<\/li>/gi, '- $1')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<p[^>]*>(.*?)<\/p>/gi, '$1\n\n')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+      console.log('Direct fetch successful, content length:', markdown.length);
+    }
 
     console.log('Scrape successful, markdown length:', markdown.length);
 
