@@ -92,6 +92,15 @@ export function TopicRichTextArea({
       const id = m.getAttribute('data-footnote-id');
       if (id) presentIds.add(id);
     });
+    // If no tracked markers exist at all, check if content is effectively empty
+    // to clear legacy footnotes that had no data-footnote-id
+    if (presentIds.size === 0) {
+      const allSups = editorRef.current.querySelectorAll('sup.footnote-marker');
+      if (allSups.length === 0) {
+        onFootnotesChange([]);
+        return;
+      }
+    }
     const filtered = footnotes.filter(fn => presentIds.has(fn.id));
     if (filtered.length !== footnotes.length) {
       onFootnotesChange(filtered);
