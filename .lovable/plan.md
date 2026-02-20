@@ -1,29 +1,39 @@
-# SaveIndicator Text Wrapping and Idle State Fix
+
+
+# Enrich Logo Generation with Full Topic Description
 
 ## Changes
 
-### 1. Wrap "Autosaves every 5 seconds" over two lines
+### 1. Add topic context prop to LogoUpload
 
-Split the label into two lines: "Autosaves" on line 1, "every 5 seconds" on line 2. This reduces horizontal space consumption. Both lines use `text-[10px]` or the second line uses a slightly smaller size, keeping the component compact.
+Add an optional `topicContext?: string` prop to `LogoUploadProps` in `src/components/LogoUpload.tsx`.
 
-### 2. Show "Autosaves every 5 seconds" in idle state (before any edits)
+### 2. Pass topic fields from GeneralInfoForm
 
-Currently the `idle` state (no saves yet, no pending changes) shows "Autosave" in black. Change it so that the `idle` state shows the same two-line "Autosaves / every 5 seconds" text in grey (`text-muted-foreground`), matching the saving state. This way, when a user opens an editor before making any changes, they see the informational message instead of a bare "Autosave" label.
+In `src/components/GeneralInfoForm.tsx`, the proposal object already contains `topic_expected_outcome`, `topic_scope`, and `destination_description`. Concatenate all non-empty fields into a single string and pass it as `topicContext` to the `LogoUpload` component.
 
-The three states become:
+### 3. Update the AI prompt in handleGenerateLogo
 
-- **idle** (editor opened, no edits yet): Grey cloud icon, "Autosaves / every 5 sec" in grey
-- **saving** (unsaved changes pending): Same as idle -- grey cloud, "Autosaves / every 5 sec" in grey
-- **saved** (successfully saved): Green cloud icon, "Autosaved" in green, with timestamp below
+In `LogoUpload.tsx`, replace the current keyword extraction (`proposalTitle.split(' ').slice(0, 3)`) with the full `topicContext` string -- no truncation. Update the prompt to instruct the model to distill the description into a single simple, bold symbol:
 
-### 3. Tab close/refresh protection -- already implemented
+> "Create a simple, bold logo icon for '{acronym}'. [color instructions unchanged]. Flat design with no gradients, the graphic element must be as large as possible filling the entire square canvas edge-to-edge with zero padding. The logo must be a single abstract geometric or symbolic shape -- keep it extremely simple despite the detailed description below. Distill the following project description into one iconic visual concept: {topicContext}. Professional and modern, suitable for EU research project. No text, no letters, just one iconic symbol. The design must bleed to all edges of the canvas with no whitespace border."
 
-The `useSectionContent` hook already handles this: the `beforeunload` event listener fires a synchronous XHR save AND triggers the browser's native "Leave site?" confirmation dialog when there are pending unsaved changes. No changes needed here.
+Key points:
+- The full untruncated topic description is sent to the AI model
+- The prompt explicitly instructs simplicity ("single abstract geometric shape", "extremely simple despite the detailed description", "one iconic visual concept")
+- All existing color logic (acronym segment colors, 2-color fallback) remains unchanged
+- The proposal title is no longer used as the theme source
 
-## Technical details
+### Technical details
 
-### File: `src/components/SaveIndicator.tsx`
+**`src/components/LogoUpload.tsx`**
+- Add `topicContext?: string` to the props interface
+- In `handleGenerateLogo`, replace `const keywords = proposalTitle.split(' ').slice(0, 3).join(' ')` with usage of `topicContext` (falling back to `proposalTitle` if topic context is empty)
+- Rewrite the prompt string as described above
 
-- Merge `idle` and `saving` states to show the same text and color
-- Replace the single `label` string with a two-line rendering for the "Autosaves every 5 seconds" case: first line "Autosaves", second line "every 5 seconds" (using `text-[10px]`)
-- The `saved` state remains unchanged (single line "Autosaved" + timestamp)
+**`src/components/GeneralInfoForm.tsx`**
+- Where `LogoUpload` is rendered, build the topic context string from the proposal's `topic_expected_outcome`, `topic_scope`, and `destination_description` fields
+- Pass it as `topicContext={topicContext}` to `LogoUpload`
+
+No database or edge function changes required.
+
