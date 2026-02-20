@@ -303,19 +303,6 @@ export function TopicInformationPage({
   };
 
   const renderEditButton = (fieldKey: EditableField) => {
-    const isThisEditing = editingField === fieldKey;
-    if (isThisEditing) {
-      return (
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" className="h-6 gap-1 text-xs px-2 text-muted-foreground hover:text-foreground" onClick={discardEdits}>
-            <X className="h-3 w-3" /> Discard
-          </Button>
-          <Button variant="default" size="sm" className="h-6 gap-1 text-xs px-2" onClick={saveEdits}>
-            <Save className="h-3 w-3" /> Save edits
-          </Button>
-        </div>
-      );
-    }
     if (userCanEdit && !editingField) {
       return (
         <Button variant="ghost" size="sm" className="h-6 gap-1 text-xs px-2 text-muted-foreground hover:text-foreground" onClick={() => startEditing(fieldKey)}>
@@ -324,6 +311,20 @@ export function TopicInformationPage({
       );
     }
     return null;
+  };
+
+  const renderSaveDiscardButtons = (fieldKey: EditableField) => {
+    if (editingField !== fieldKey) return null;
+    return (
+      <div className="flex items-center justify-end gap-1 mt-2">
+        <Button variant="ghost" size="sm" className="h-6 gap-1 text-xs px-2 text-muted-foreground hover:text-foreground" onClick={discardEdits}>
+          <X className="h-3 w-3" /> Discard
+        </Button>
+        <Button variant="default" size="sm" className="h-6 gap-1 text-xs px-2" onClick={saveEdits}>
+          <Save className="h-3 w-3" /> Save edits
+        </Button>
+      </div>
+    );
   };
 
   const renderRichTextField = (
@@ -348,19 +349,22 @@ export function TopicInformationPage({
           </div>
         )}
         {isThisEditing ? (
-          <div className="border rounded-md overflow-hidden">
-            <TopicFormattingToolbar
-              onInsertFootnote={handleInsertFootnote}
-              onInsertLink={handleInsertLink}
-            />
-            <TopicRichTextArea
-              value={fieldValue}
-              onChange={(val) => setEditedProposal({ ...editedProposal, [valueKey]: val } as any)}
-              footnotes={fieldFootnotes}
-              onFootnotesChange={(fns) => setEditedProposal({ ...editedProposal, [footnotesKey]: fns } as any)}
-              footnoteStartNumber={startNum}
-            />
-          </div>
+          <>
+            <div className="border rounded-md overflow-hidden">
+              <TopicFormattingToolbar
+                onInsertFootnote={handleInsertFootnote}
+                onInsertLink={handleInsertLink}
+              />
+              <TopicRichTextArea
+                value={fieldValue}
+                onChange={(val) => setEditedProposal({ ...editedProposal, [valueKey]: val } as any)}
+                footnotes={fieldFootnotes}
+                onFootnotesChange={(fns) => setEditedProposal({ ...editedProposal, [footnotesKey]: fns } as any)}
+                footnoteStartNumber={startNum}
+              />
+            </div>
+            {renderSaveDiscardButtons(fieldKey)}
+          </>
         ) : (
           <TopicRichTextReadonly
             html={(proposal as any)?.[valueKey]}
