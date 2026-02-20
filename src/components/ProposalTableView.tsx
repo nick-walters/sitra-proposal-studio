@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { Proposal, WORK_PROGRAMMES, DESTINATIONS } from "@/types/proposal";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Calendar, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink, AlertTriangle, Trophy, ArrowUpDown, ArrowUp, ArrowDown, HelpCircle, Pin, PinOff, GripVertical } from "lucide-react";
+import { Calendar, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink, AlertTriangle, Trophy, ArrowUpDown, ArrowUp, ArrowDown, HelpCircle, Pin, GripVertical } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -164,9 +164,9 @@ export function ProposalTableView({ proposals, onProposalClick, topicIcons, pinn
     return sortDirection === 'asc' ? comparison : -comparison;
   });
 
-  const SortableHeader = ({ column, children }: { column: SortColumn; children: React.ReactNode }) => (
+  const SortableHeader = ({ column, children, className = '' }: { column: SortColumn; children: React.ReactNode; className?: string }) => (
     <TableHead 
-      className="font-semibold cursor-pointer hover:bg-muted/70 select-none"
+      className={`font-semibold cursor-pointer hover:bg-muted/70 select-none px-2 ${className}`}
       onClick={() => handleSort(column)}
     >
       <div className="flex items-center">
@@ -210,39 +210,60 @@ export function ProposalTableView({ proposals, onProposalClick, topicIcons, pinn
         onDragOver={options?.dragIndex !== undefined ? (e) => handleDragOver(e, options.dragIndex!) : undefined}
         onDragEnd={pinned ? handleDragEnd : undefined}
       >
-        <TableCell>
-          <div className="flex items-center gap-1">
+        {/* Pin column - on the left */}
+        <TableCell className="px-1 w-8">
+          <div className="flex items-center gap-0.5">
             {pinned && pinnedProposals.length > 1 && (
               <GripVertical className="w-3 h-3 text-muted-foreground/50 cursor-grab flex-shrink-0" />
             )}
-            <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center overflow-hidden">
-              {proposal.logoUrl ? (
-                <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
-              ) : topicIcon ? (
-                <div className="scale-50">{topicIcon}</div>
-              ) : null}
-            </div>
+            {onTogglePin && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={(e) => { e.stopPropagation(); onTogglePin(proposal.id); }}
+                    disabled={!pinned && !canPin}
+                  >
+                    <Pin className={`w-3.5 h-3.5 ${pinned ? 'fill-primary text-primary stroke-[2.5]' : 'text-muted-foreground/30 stroke-[1.5]'}`} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  {pinned ? 'Unpin' : canPin ? 'Pin to top' : 'Max 3 pinned'}
+                </TooltipContent>
+              </Tooltip>
+            )}
           </div>
         </TableCell>
-        <TableCell className="font-semibold">
+        <TableCell className="px-2">
+          <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center overflow-hidden">
+            {proposal.logoUrl ? (
+              <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
+            ) : topicIcon ? (
+              <div className="scale-50">{topicIcon}</div>
+            ) : null}
+          </div>
+        </TableCell>
+        <TableCell className="font-semibold px-2">
           {proposal.acronym}
           {proposal.submissionStage === 'stage_1' && <span className="font-normal text-muted-foreground"> (Stage 1 of 2)</span>}
         </TableCell>
-        <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
+        <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground px-2">
           {proposal.title}
         </TableCell>
-        <TableCell>
+        <TableCell className="px-2">
           <span className={`proposal-badge ${statusInfo.className} flex items-center gap-1 w-fit text-[10px] whitespace-nowrap`}>
             <StatusIcon className="w-3 h-3 flex-shrink-0" />
             <span>{statusInfo.label}{statusInfo.days !== undefined && ` (${statusInfo.days}d)`}</span>
           </span>
         </TableCell>
-        <TableCell>
+        <TableCell className="px-2">
           <span className="proposal-badge bg-white text-foreground border border-foreground text-[10px]">
             {proposal.type}
           </span>
         </TableCell>
-        <TableCell>
+        <TableCell className="px-2">
           {workProgramme ? (
             <span className="proposal-badge bg-gray-300 text-gray-700 text-[10px]">
               {workProgramme.abbreviation}
@@ -251,7 +272,7 @@ export function ProposalTableView({ proposals, onProposalClick, topicIcons, pinn
             <span className="text-muted-foreground text-xs">—</span>
           )}
         </TableCell>
-        <TableCell>
+        <TableCell className="px-2">
           {destination ? (
             <span className="proposal-badge bg-gray-200 text-gray-600 text-[10px]">
               {destination.abbreviation}
@@ -260,7 +281,7 @@ export function ProposalTableView({ proposals, onProposalClick, topicIcons, pinn
             <span className="text-muted-foreground text-xs">—</span>
           )}
         </TableCell>
-        <TableCell>
+        <TableCell className="px-2">
           {proposal.deadline ? (
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <Calendar className="w-3 h-3 text-yellow-600" />
@@ -270,7 +291,7 @@ export function ProposalTableView({ proposals, onProposalClick, topicIcons, pinn
             <span className="text-muted-foreground text-xs">—</span>
           )}
         </TableCell>
-        <TableCell>
+        <TableCell className="px-2">
           {proposal.decisionDate ? (
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               {isDecided ? (
@@ -288,51 +309,35 @@ export function ProposalTableView({ proposals, onProposalClick, topicIcons, pinn
             <span className="text-muted-foreground text-xs">—</span>
           )}
         </TableCell>
-        <TableCell>
-          <div className="flex items-center gap-1">
-            {onTogglePin && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={`h-6 w-6 ${pinned ? 'text-primary' : 'text-muted-foreground/40 opacity-0 group-hover:opacity-100'}`}
-                    onClick={(e) => { e.stopPropagation(); onTogglePin(proposal.id); }}
-                    disabled={!pinned && !canPin}
-                  >
-                    {pinned ? <PinOff className="w-3 h-3" /> : <Pin className="w-3 h-3" />}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="text-xs">
-                  {pinned ? 'Unpin' : canPin ? 'Pin to top' : 'Max 3 pinned'}
-                </TooltipContent>
-              </Tooltip>
-            )}
-            {proposal.topicUrl && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-6 px-2 gap-1 text-[10px]"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  window.open(proposal.topicUrl, '_blank');
-                }}
-              >
-                <ExternalLink className="w-2.5 h-2.5" />
-              </Button>
-            )}
+        {/* Topic column */}
+        <TableCell className="px-1">
+          {proposal.topicUrl && (
             <Button 
+              variant="outline" 
               size="sm" 
-              className="h-6 px-2 gap-1 text-[10px] bg-foreground text-background hover:bg-foreground/90"
+              className="h-6 px-2 gap-1 text-[10px]"
               onClick={(e) => {
                 e.stopPropagation();
-                onProposalClick(proposal);
+                window.open(proposal.topicUrl, '_blank');
               }}
             >
-              {isDraft ? 'Edit' : 'View'}
-              <ArrowRight className="w-2.5 h-2.5" />
+              <ExternalLink className="w-2.5 h-2.5" />
             </Button>
-          </div>
+          )}
+        </TableCell>
+        {/* Edit/View column */}
+        <TableCell className="px-1">
+          <Button 
+            size="sm" 
+            className="h-6 px-2 gap-1 text-[10px] bg-foreground text-background hover:bg-foreground/90"
+            onClick={(e) => {
+              e.stopPropagation();
+              onProposalClick(proposal);
+            }}
+          >
+            {isDraft ? 'Edit' : 'View'}
+            <ArrowRight className="w-2.5 h-2.5" />
+          </Button>
         </TableCell>
       </TableRow>
     );
@@ -343,7 +348,8 @@ export function ProposalTableView({ proposals, onProposalClick, topicIcons, pinn
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50">
-            <TableHead className="w-10"></TableHead>
+            <TableHead className="w-8 px-1"></TableHead>
+            <TableHead className="w-10 px-2"></TableHead>
             <SortableHeader column="acronym">Acronym</SortableHeader>
             <SortableHeader column="title">Title</SortableHeader>
             <SortableHeader column="status">Status</SortableHeader>
@@ -352,14 +358,15 @@ export function ProposalTableView({ proposals, onProposalClick, topicIcons, pinn
             <SortableHeader column="destination">Destination</SortableHeader>
             <SortableHeader column="deadline">Deadline</SortableHeader>
             <SortableHeader column="decision">Decision</SortableHeader>
-            <TableHead className="w-28"></TableHead>
+            <TableHead className="w-12 px-1">Topic</TableHead>
+            <TableHead className="w-14 px-1"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {pinnedProposals.map((proposal, index) => renderRow(proposal, { pinned: true, dragIndex: index }))}
           {pinnedProposals.length > 0 && unpinnedSorted.length > 0 && (
             <TableRow>
-              <TableCell colSpan={10} className="p-0 h-0.5 bg-border" />
+              <TableCell colSpan={12} className="p-0 h-0.5 bg-border" />
             </TableRow>
           )}
           {unpinnedSorted.map((proposal) => renderRow(proposal))}
