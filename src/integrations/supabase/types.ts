@@ -2963,6 +2963,9 @@ export type Database = {
           created_by: string | null
           id: string
           is_auto_save: boolean | null
+          is_major: boolean
+          is_pinned: boolean
+          label: string | null
           proposal_id: string
           section_id: string
           version_number: number
@@ -2973,6 +2976,9 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_auto_save?: boolean | null
+          is_major?: boolean
+          is_pinned?: boolean
+          label?: string | null
           proposal_id: string
           section_id: string
           version_number?: number
@@ -2983,6 +2989,9 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_auto_save?: boolean | null
+          is_major?: boolean
+          is_pinned?: boolean
+          label?: string | null
           proposal_id?: string
           section_id?: string
           version_number?: number
@@ -4111,6 +4120,10 @@ export type Database = {
       is_proposal_admin: {
         Args: { _proposal_id: string; _user_id: string }
         Returns: boolean
+      }
+      thin_section_versions: {
+        Args: { p_proposal_id: string }
+        Returns: number
       }
     }
     Enums: {
