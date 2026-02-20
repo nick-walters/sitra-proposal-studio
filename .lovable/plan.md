@@ -1,23 +1,27 @@
 
 
-## Lower Footnote Number Vertical Alignment
+## Remove section boxes in A4 Ethics form
 
-The footnote numbers in the footnote area are rendered as `<sup>` elements with `relative top-[-0.15em]`, which raises them too high relative to the footnote text content.
+**What changes:**
+The current layout wraps each numbered ethics section (1-9) inside individual Card boxes with full borders, padding, and rounded corners. This will be replaced with a flat, borderless layout where:
 
-### Change
+- Each section is separated by a horizontal line (divider) instead of being in its own box
+- Left and right borders are added to the overall container for visual framing
+- Section-level Card wrappers, padding, and indentation are removed
+- The section headers and question rows flow naturally without card nesting
 
-**File: `src/components/TopicRichTextArea.tsx` (line 168)**
+**Technical details:**
 
-Replace the `<sup>` element with a `<span>` and remove the upward offset so the number aligns with the baseline of the footnote text:
+**File: `src/components/EthicsForm.tsx`**
 
-```
-// Before:
-<sup className="text-primary font-semibold text-[10px] relative top-[-0.15em] shrink-0">{displayNum}</sup>
+1. In the "Ethics issues table" `<CardContent>` (around lines 925-969), replace the inner `<Card>` wrapper per section with a simple `<div>` that has:
+   - A top border (`border-t`) as section separator (except the first section)
+   - No rounded corners, no shadow, no card padding
+   - Left/right borders on the overall container
 
-// After:
-<span className="text-primary font-semibold text-[10px] shrink-0 leading-none">{displayNum}</span>
-```
+2. Remove the `<CardHeader>` and `<CardContent>` nesting inside each section and render the section title and questions directly.
 
-By switching from `<sup>` (which has built-in vertical-align: super) to a regular `<span>`, the number sits at the same baseline as the footnote text. The `leading-none` prevents extra line-height from pushing it around.
+3. The outer "Ethics issues table" Card keeps its wrapper but the inner sections become flat divs separated by horizontal rules.
 
-This is a single-line change in one file.
+4. Similarly update the Security sections (around lines 1061-1160) to match the same flat style.
+
