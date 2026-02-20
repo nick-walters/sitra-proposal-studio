@@ -4378,6 +4378,7 @@ export type Database = {
         }
         Returns: number
       }
+      is_coordinator_or_above: { Args: { _user_id: string }; Returns: boolean }
       is_global_admin: { Args: { _user_id: string }; Returns: boolean }
       is_message_recipient: {
         Args: { _message_id: string; _user_id: string }
