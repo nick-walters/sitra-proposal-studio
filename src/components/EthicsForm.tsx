@@ -995,7 +995,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
 
         {/* ETHICS SELF-ASSESSMENT */}
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader className="py-2 px-3">
             <h3 className="font-semibold text-sm">ETHICS SELF-ASSESSMENT</h3>
             <CardDescription className="text-xs mt-2">
               If you have entered any issues in the ethics issue table, you must perform an ethics self-assessment 
@@ -1011,9 +1011,9 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
               and complete the table below.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 px-3 pt-0 pb-3">
             {/* Ethical dimension */}
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label className="text-sm font-medium">
                 Ethical dimension of the objectives, methodology and likely impact
               </Label>
@@ -1029,13 +1029,13 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
                 value={ethicsData.ethicsSelfAssessmentObjectives || ''}
                 onChange={(e) => onUpdateEthics({ ethicsSelfAssessmentObjectives: e.target.value })}
                 placeholder="Explain the identified ethics issues in relation to objectives, methodology, and potential impact..."
-                className="min-h-[120px] text-sm mt-2"
+                className="min-h-[80px] text-sm mt-1"
                 disabled={!canEdit}
               />
             </div>
 
             {/* Compliance */}
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label className="text-sm font-medium">
                 Compliance with ethical principles and relevant legislations
               </Label>
@@ -1049,7 +1049,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
                 value={ethicsData.ethicsSelfAssessmentCompliance || ''}
                 onChange={(e) => onUpdateEthics({ ethicsSelfAssessmentCompliance: e.target.value })}
                 placeholder="Describe how you will ensure compliance with ethical principles and relevant legislations..."
-                className="min-h-[120px] text-sm mt-2"
+                className="min-h-[80px] text-sm mt-1"
                 disabled={!canEdit}
               />
             </div>
@@ -1161,7 +1161,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
 
         {/* SECURITY SELF-ASSESSMENT */}
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader className="py-2 px-3">
             <h3 className="font-semibold text-sm">SECURITY SELF-ASSESSMENT</h3>
             <CardDescription className="text-xs mt-2">
               If you have answered YES for one or more of the questions indicated above, describe the measures you intend 
@@ -1192,12 +1192,12 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
               </a>.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-3 pt-0 pb-3">
             <Textarea
               value={ethicsData.securitySelfAssessment || ''}
               onChange={(e) => onUpdateEthics({ securitySelfAssessment: e.target.value })}
               placeholder="Describe the measures you intend to take to address the security issues..."
-              className="min-h-[150px] text-sm"
+              className="min-h-[80px] text-sm"
               maxLength={5000}
               disabled={!canEdit}
             />
