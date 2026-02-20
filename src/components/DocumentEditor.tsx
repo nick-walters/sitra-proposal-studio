@@ -1353,7 +1353,7 @@ export function DocumentEditor({
               const originalAuthorColor = '#8B5CF6'; // Purple for AI
               
               // Add the change tracking manually for AI
-              const changeId = `change-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+              const changeId = `change-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
               
               // Store deletion as AI tracked change
               if (selectedText.trim()) {
