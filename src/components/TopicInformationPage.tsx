@@ -302,11 +302,36 @@ export function TopicInformationPage({
     }
   };
 
+  const renderEditButton = (fieldKey: EditableField) => {
+    const isThisEditing = editingField === fieldKey;
+    if (isThisEditing) {
+      return (
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" className="h-6 gap-1 text-xs px-2 text-muted-foreground hover:text-foreground" onClick={discardEdits}>
+            <X className="h-3 w-3" /> Discard
+          </Button>
+          <Button variant="default" size="sm" className="h-6 gap-1 text-xs px-2" onClick={saveEdits}>
+            <Save className="h-3 w-3" /> Save edits
+          </Button>
+        </div>
+      );
+    }
+    if (userCanEdit && !editingField) {
+      return (
+        <Button variant="ghost" size="sm" className="h-6 gap-1 text-xs px-2 text-muted-foreground hover:text-foreground" onClick={() => startEditing(fieldKey)}>
+          <Pencil className="h-3 w-3" /> Edit
+        </Button>
+      );
+    }
+    return null;
+  };
+
   const renderRichTextField = (
     fieldKey: EditableField,
     label: string | null,
     valueKey: string,
     emptyMessage: string,
+    hideEditButton?: boolean,
   ) => {
     const isThisEditing = editingField === fieldKey;
     const fieldValue = (editedProposal as any)?.[valueKey] || '';
@@ -316,42 +341,12 @@ export function TopicInformationPage({
 
     return (
       <div>
-        <div className="flex items-center justify-between mb-1">
-          {label && <label className="text-xs font-medium text-muted-foreground">{label}</label>}
-          {userCanEdit && !editingField && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 gap-1 text-xs px-2 text-muted-foreground hover:text-foreground"
-              onClick={() => startEditing(fieldKey)}
-            >
-              <Pencil className="h-3 w-3" />
-              Edit
-            </Button>
-          )}
-          {isThisEditing && (
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 gap-1 text-xs px-2 text-muted-foreground hover:text-foreground"
-                onClick={discardEdits}
-              >
-                <X className="h-3 w-3" />
-                Discard
-              </Button>
-              <Button
-                variant="default"
-                size="sm"
-                className="h-6 gap-1 text-xs px-2"
-                onClick={saveEdits}
-              >
-                <Save className="h-3 w-3" />
-                Save edits
-              </Button>
-            </div>
-          )}
-        </div>
+        {(label || !hideEditButton) && (
+          <div className="flex items-center justify-between mb-1">
+            {label && <label className="text-xs font-medium text-muted-foreground">{label}</label>}
+            {!hideEditButton && renderEditButton(fieldKey)}
+          </div>
+        )}
         {isThisEditing ? (
           <div className="border rounded-md overflow-hidden">
             <TopicFormattingToolbar
@@ -791,13 +786,16 @@ export function TopicInformationPage({
         {/* Destination Description Card */}
         <Card>
           <CardHeader className="pb-2 pt-4">
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <FileText className="w-4 h-4" />
-              Destination description
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <FileText className="w-4 h-4" />
+                Destination description
+              </CardTitle>
+              {renderEditButton('destination')}
+            </div>
           </CardHeader>
           <CardContent>
-            {renderRichTextField('destination', null, 'topicDestinationDescription', 'No destination description available')}
+            {renderRichTextField('destination', null, 'topicDestinationDescription', 'No destination description available', true)}
           </CardContent>
         </Card>
       </div>
