@@ -253,8 +253,8 @@ export function BudgetSpreadsheetEnhanced({
   };
 
   return (
-    <div className="flex-1 overflow-auto p-4 bg-muted/30">
-      <div className="max-w-7xl mx-auto space-y-4">
+    <div className="flex-1 overflow-auto p-6 bg-muted/30">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Guidelines Button */}
         <PartAGuidelinesDialog
           sectionTitle="Part A3: Budget"
@@ -274,7 +274,7 @@ export function BudgetSpreadsheetEnhanced({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-lg font-semibold text-foreground">Part A3: Budget</h1>
+              <h1 className="text-xl font-bold text-foreground">Part A3: Budget</h1>
               {saving && (
                 <Badge variant="secondary" className="animate-pulse">
                   Saving...
