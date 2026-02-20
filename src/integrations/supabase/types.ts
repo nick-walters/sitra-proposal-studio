@@ -3073,6 +3073,50 @@ export type Database = {
           },
         ]
       }
+      section_reviews: {
+        Row: {
+          comments: string | null
+          created_at: string
+          id: string
+          proposal_id: string
+          reviewer_id: string
+          score: number | null
+          section_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          comments?: string | null
+          created_at?: string
+          id?: string
+          proposal_id: string
+          reviewer_id: string
+          score?: number | null
+          section_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          comments?: string | null
+          created_at?: string
+          id?: string
+          proposal_id?: string
+          reviewer_id?: string
+          score?: number | null
+          section_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "section_reviews_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       section_tracked_changes: {
         Row: {
           author_color: string
@@ -3192,6 +3236,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      snippet_library: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          created_by: string
+          id: string
+          section_ids: string[] | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          content: string
+          created_at?: string
+          created_by: string
+          id?: string
+          section_ids?: string[] | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          section_ids?: string[] | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       table_captions: {
         Row: {
