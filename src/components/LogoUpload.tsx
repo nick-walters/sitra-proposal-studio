@@ -12,6 +12,7 @@ interface LogoUploadProps {
   proposalId: string;
   proposalAcronym: string;
   proposalTitle: string;
+  topicContext?: string;
   acronymSegments?: { text: string; color: string }[];
   disabled?: boolean;
 }
@@ -39,6 +40,7 @@ export function LogoUpload({
   proposalId,
   proposalAcronym,
   proposalTitle,
+  topicContext,
   acronymSegments,
   disabled = false,
 }: LogoUploadProps) {
@@ -97,7 +99,7 @@ export function LogoUpload({
   const handleGenerateLogo = async () => {
     setIsGenerating(true);
     try {
-      const keywords = proposalTitle.split(' ').slice(0, 3).join(' ');
+      const themeSource = topicContext || proposalTitle;
       // Extract unique colors from acronym segments if available
       const uniqueColors = acronymSegments && acronymSegments.length > 0
         ? [...new Set(acronymSegments.map(s => s.color).filter(c => c && c !== '#000000'))]
@@ -107,7 +109,7 @@ export function LogoUpload({
         : 'Use maximum 2 colors only (use one primary color and white or black).';
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: {
-          prompt: `Create a simple, bold logo icon for "${proposalAcronym}". Requirements: ${colorInstruction} Flat design with no gradients, the graphic element must be as large as possible filling the entire square canvas edge-to-edge with zero padding or margin around it, abstract geometric or symbolic shape representing "${keywords}", professional and modern, suitable for EU research project. No text, no letters, just an iconic symbol. The design must bleed to all edges of the canvas with no whitespace border.`,
+          prompt: `Create a simple, bold logo icon for "${proposalAcronym}". ${colorInstruction} Flat design with no gradients, the graphic element must be as large as possible filling the entire square canvas edge-to-edge with zero padding. The logo must be a single abstract geometric or symbolic shape -- keep it extremely simple despite the detailed description below. Distill the following project description into one iconic visual concept: ${themeSource}. Professional and modern, suitable for EU research project. No text, no letters, just one iconic symbol. The design must bleed to all edges of the canvas with no whitespace border.`,
         },
       });
 
