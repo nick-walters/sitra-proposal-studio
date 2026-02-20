@@ -9,11 +9,9 @@ import {
   Header,
   Footer,
   PageNumber,
-  NumberFormat,
   convertMillimetersToTwip,
-  Tab,
-  TabStopType,
-  TabStopPosition,
+  InsertedTextRun,
+  DeletedTextRun,
 } from 'docx';
 import { saveAs } from 'file-saver';
 import { toast } from 'sonner';
@@ -25,29 +23,25 @@ interface SectionContent {
   content: string;
 }
 
+interface TrackedChange {
+  type: 'insertion' | 'deletion';
+  content: string;
+  authorName: string;
+  date: Date;
+}
+
 interface ExportData {
   proposal: Proposal;
   sectionContents: SectionContent[];
   sections: Section[];
   participants?: Participant[];
-}
-
-/**
- * Strip HTML tags and return plain text.
- * For a production-ready version this should parse HTML properly,
- * but this keeps things light and functional.
- */
-function stripHtml(html: string): string {
-  const div = document.createElement('div');
-  div.innerHTML = html;
-  return div.textContent || div.innerText || '';
+  trackedChanges?: Record<string, TrackedChange[]>;
 }
 
 /**
  * Very simple HTML → Paragraph[] converter.
- * Splits on block-level tags and creates paragraphs.
  */
-function htmlToParagraphs(html: string): Paragraph[] {
+function htmlToParagraphs(html: string, sectionTrackedChanges?: TrackedChange[]): Paragraph[] {
   if (!html) return [];
 
   const div = document.createElement('div');
@@ -60,7 +54,7 @@ function htmlToParagraphs(html: string): Paragraph[] {
       if (text) {
         paragraphs.push(
           new Paragraph({
-            children: [new TextRun({ text, font: 'Times New Roman', size: 22 })], // 11pt = 22 half-points
+            children: [new TextRun({ text, font: 'Times New Roman', size: 22 })],
             spacing: { before: 120, after: 120 },
           })
         );
@@ -92,7 +86,7 @@ function htmlToParagraphs(html: string): Paragraph[] {
     }
 
     if (tag === 'p' || tag === 'div') {
-      const runs: TextRun[] = [];
+      const runs: (TextRun | InsertedTextRun | DeletedTextRun)[] = [];
       el.childNodes.forEach((child) => {
         if (child.nodeType === Node.TEXT_NODE) {
           const t = child.textContent || '';
@@ -102,18 +96,50 @@ function htmlToParagraphs(html: string): Paragraph[] {
           const childTag = childEl.tagName?.toLowerCase();
           const text = childEl.textContent || '';
           if (!text.trim()) return;
-          runs.push(
-            new TextRun({
+
+          // Check for track change marks
+          const isInsertion = childEl.classList?.contains('track-insertion') || childEl.getAttribute('data-track-type') === 'insertion';
+          const isDeletion = childEl.classList?.contains('track-deletion') || childEl.getAttribute('data-track-type') === 'deletion';
+          const author = childEl.getAttribute('data-author') || 'Unknown';
+          const dateStr = childEl.getAttribute('data-date');
+          const date = dateStr ? new Date(dateStr) : new Date();
+
+          if (isInsertion) {
+            runs.push(new InsertedTextRun({
               text,
               font: 'Times New Roman',
               size: 22,
               bold: childTag === 'strong' || childTag === 'b',
               italics: childTag === 'em' || childTag === 'i',
-              underline: childTag === 'u' ? {} : undefined,
-              superScript: childTag === 'sup',
-              subScript: childTag === 'sub',
-            })
-          );
+              id: Math.floor(Math.random() * 1000000),
+              author,
+              date: date.toISOString(),
+            }));
+          } else if (isDeletion) {
+            runs.push(new DeletedTextRun({
+              text,
+              font: 'Times New Roman',
+              size: 22,
+              bold: childTag === 'strong' || childTag === 'b',
+              italics: childTag === 'em' || childTag === 'i',
+              id: Math.floor(Math.random() * 1000000),
+              author,
+              date: date.toISOString(),
+            }));
+          } else {
+            runs.push(
+              new TextRun({
+                text,
+                font: 'Times New Roman',
+                size: 22,
+                bold: childTag === 'strong' || childTag === 'b',
+                italics: childTag === 'em' || childTag === 'i',
+                underline: childTag === 'u' ? {} : undefined,
+                superScript: childTag === 'sup',
+                subScript: childTag === 'sub',
+              })
+            );
+          }
         }
       });
       if (runs.length > 0) {
@@ -143,6 +169,38 @@ function htmlToParagraphs(html: string): Paragraph[] {
   };
 
   div.childNodes.forEach(walk);
+
+  // Append tracked changes as revision marks if provided
+  if (sectionTrackedChanges && sectionTrackedChanges.length > 0) {
+    for (const change of sectionTrackedChanges) {
+      if (change.type === 'insertion') {
+        paragraphs.push(new Paragraph({
+          children: [new InsertedTextRun({
+            text: change.content,
+            font: 'Times New Roman',
+            size: 22,
+            id: Math.floor(Math.random() * 1000000),
+            author: change.authorName,
+            date: change.date.toISOString(),
+          })],
+          spacing: { before: 120, after: 120 },
+        }));
+      } else if (change.type === 'deletion') {
+        paragraphs.push(new Paragraph({
+          children: [new DeletedTextRun({
+            text: change.content,
+            font: 'Times New Roman',
+            size: 22,
+            id: Math.floor(Math.random() * 1000000),
+            author: change.authorName,
+            date: change.date.toISOString(),
+          })],
+          spacing: { before: 120, after: 120 },
+        }));
+      }
+    }
+  }
+
   return paragraphs.length > 0 ? paragraphs : [new Paragraph({ children: [] })];
 }
 
@@ -168,13 +226,12 @@ function createWatermarkHeader(): Header {
 export function useDocxExport() {
   const exportProposalToDocx = useCallback(
     async (data: ExportData, options?: { includeWatermark?: boolean }) => {
-      const { proposal, sectionContents, sections } = data;
+      const { proposal, sectionContents, sections, trackedChanges } = data;
       const includeWatermark = options?.includeWatermark ?? true;
 
       try {
         toast.info('Generating DOCX...');
 
-        // Build section paragraphs
         const bodyChildren: Paragraph[] = [];
 
         // Title page
@@ -212,7 +269,6 @@ export function useDocxExport() {
 
         // Sections
         for (const section of sections) {
-          // Section heading
           const sectionLevel = (section.number || '').split('.').filter(Boolean).length;
           const headingLevel = sectionLevel <= 1 ? HeadingLevel.HEADING_1 : HeadingLevel.HEADING_2;
           const fontSize = sectionLevel <= 1 ? 26 : 24;
@@ -232,10 +288,10 @@ export function useDocxExport() {
             })
           );
 
-          // Section content
           const sc = sectionContents.find((c) => c.sectionId === section.id);
           if (sc?.content) {
-            const paras = htmlToParagraphs(sc.content);
+            const sectionChanges = trackedChanges?.[section.id];
+            const paras = htmlToParagraphs(sc.content, sectionChanges);
             bodyChildren.push(...paras);
           }
         }

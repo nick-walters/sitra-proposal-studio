@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
@@ -27,8 +28,13 @@ import {
   Type,
   MessageSquare,
   CheckCircle2,
-  ChevronRight
+  ChevronRight,
+  BarChart3,
+  ThumbsUp,
+  ThumbsDown,
+  Lightbulb,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface WritingAssistantDialogProps {
   isOpen: boolean;
@@ -37,9 +43,10 @@ interface WritingAssistantDialogProps {
   onApply: (newText: string) => void;
   plainText?: string;
   onApplyGrammarSuggestion?: (original: string, replacement: string) => void;
+  sectionId?: string;
 }
 
-type Action = 'improve_clarity' | 'improve_tone' | 'make_concise' | 'expand' | 'eu_language';
+type Action = 'improve_clarity' | 'improve_tone' | 'make_concise' | 'expand' | 'eu_language' | 'evaluate_section';
 
 const actions: { id: Action; label: string; icon: React.ReactNode; description: string }[] = [
   { 
@@ -72,6 +79,12 @@ const actions: { id: Action; label: string; icon: React.ReactNode; description: 
     icon: <Globe className="w-4 h-4" />,
     description: 'Adapt to Horizon Europe style'
   },
+  { 
+    id: 'evaluate_section', 
+    label: 'Evaluate Section', 
+    icon: <BarChart3 className="w-4 h-4" />,
+    description: 'Get evaluator-style feedback'
+  },
 ];
 
 // Grammar types
@@ -80,6 +93,18 @@ interface Suggestion {
   replacement: string;
   type: 'grammar' | 'spelling' | 'style' | 'clarity' | 'wordiness' | 'punctuation';
   explanation: string;
+}
+
+interface EvaluationResult {
+  overallScore: number;
+  criteria: {
+    name: string;
+    score: number;
+    strengths: string[];
+    weaknesses: string[];
+    suggestions: string[];
+  }[];
+  summary: string;
 }
 
 const typeIcons: Record<string, React.ReactNode> = {
@@ -100,6 +125,20 @@ const typeColors: Record<string, string> = {
   punctuation: 'bg-destructive/10 text-destructive border-destructive/20',
 };
 
+function ScoreBar({ score, label }: { score: number; label: string }) {
+  const percentage = (score / 5) * 100;
+  const color = score >= 4 ? 'text-green-600 dark:text-green-400' : score >= 3 ? 'text-amber-600 dark:text-amber-400' : 'text-destructive';
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between text-xs">
+        <span className="font-medium">{label}</span>
+        <span className={cn("font-bold", color)}>{score}/5</span>
+      </div>
+      <Progress value={percentage} className="h-2" />
+    </div>
+  );
+}
+
 export function WritingAssistantDialog({ 
   isOpen, 
   onClose, 
@@ -107,30 +146,40 @@ export function WritingAssistantDialog({
   onApply,
   plainText,
   onApplyGrammarSuggestion,
+  sectionId,
 }: WritingAssistantDialogProps) {
   const [result, setResult] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [activeAction, setActiveAction] = useState<Action | null>(null);
   const [copied, setCopied] = useState(false);
+  const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
 
   // Grammar state
   const [grammarSuggestions, setGrammarSuggestions] = useState<Suggestion[]>([]);
   const [grammarLoading, setGrammarLoading] = useState(false);
   const [appliedSuggestions, setAppliedSuggestions] = useState<Set<number>>(new Set());
 
+  // Derive sectionType from sectionId for criteria context
+  const sectionType = sectionId?.startsWith('b1-1') ? 'b1-1' 
+    : sectionId?.startsWith('b1-2') ? 'b1-2' 
+    : sectionId?.startsWith('b2-1') ? 'b2-1' 
+    : undefined;
+
   const handleAction = useCallback(async (action: Action) => {
-    if (!selectedText.trim()) {
-      toast.error('No text selected');
+    const textToUse = action === 'evaluate_section' ? (plainText || selectedText) : selectedText;
+    if (!textToUse.trim()) {
+      toast.error(action === 'evaluate_section' ? 'No section text to evaluate' : 'No text selected');
       return;
     }
 
     setLoading(true);
     setActiveAction(action);
     setResult('');
+    setEvaluation(null);
 
     try {
       const { data, error } = await supabase.functions.invoke('writing-assistant', {
-        body: { text: selectedText, action },
+        body: { text: textToUse, action, sectionType },
       });
 
       if (error) throw error;
@@ -140,14 +189,30 @@ export function WritingAssistantDialog({
         return;
       }
 
-      setResult(data?.result || '');
+      const resultText = data?.result || '';
+
+      if (action === 'evaluate_section') {
+        try {
+          // Try to parse JSON from the result, handling markdown code blocks
+          let jsonStr = resultText;
+          const jsonMatch = resultText.match(/```(?:json)?\s*([\s\S]*?)```/);
+          if (jsonMatch) jsonStr = jsonMatch[1].trim();
+          const parsed = JSON.parse(jsonStr);
+          setEvaluation(parsed);
+        } catch {
+          // If JSON parsing fails, show as text
+          setResult(resultText);
+        }
+      } else {
+        setResult(resultText);
+      }
     } catch (err) {
       console.error('Writing assistant error:', err);
       toast.error('Failed to process text. Please try again.');
     } finally {
       setLoading(false);
     }
-  }, [selectedText]);
+  }, [selectedText, plainText, sectionType]);
 
   const handleGrammarCheck = useCallback(async () => {
     const text = plainText || '';
@@ -213,8 +278,11 @@ export function WritingAssistantDialog({
   const handleClose = () => {
     setResult('');
     setActiveAction(null);
+    setEvaluation(null);
     onClose();
   };
+
+  const hasEvaluationOrResult = evaluation || result;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -225,15 +293,16 @@ export function WritingAssistantDialog({
             AI Tools
           </DialogTitle>
           <DialogDescription>
-            Grammar checking and AI-powered writing improvements for EU proposals
+            Grammar checking, AI-powered writing improvements, and evaluator-style feedback
           </DialogDescription>
         </DialogHeader>
 
         <Tabs defaultValue="grammar" className="flex-1 flex flex-col min-h-0">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="grammar">Grammar Check</TabsTrigger>
-            <TabsTrigger value="actions">Writing Assistant</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="grammar">Grammar</TabsTrigger>
+            <TabsTrigger value="actions">Writing</TabsTrigger>
             <TabsTrigger value="result" disabled={!result}>Result</TabsTrigger>
+            <TabsTrigger value="evaluation" disabled={!evaluation}>Evaluation</TabsTrigger>
           </TabsList>
 
           {/* Grammar Check Tab */}
@@ -339,7 +408,7 @@ export function WritingAssistantDialog({
                     variant={activeAction === action.id ? "default" : "outline"}
                     className="h-auto py-3 px-4 justify-start"
                     onClick={() => handleAction(action.id)}
-                    disabled={loading || !selectedText.trim()}
+                    disabled={loading || (action.id !== 'evaluate_section' && !selectedText.trim())}
                   >
                     <div className="flex items-center gap-3 w-full">
                       {loading && activeAction === action.id ? (
@@ -360,6 +429,7 @@ export function WritingAssistantDialog({
             </div>
           </TabsContent>
 
+          {/* Result Tab */}
           <TabsContent value="result" className="flex-1 flex flex-col min-h-0 space-y-4">
             <div className="flex items-center gap-2 mb-2">
               <Badge variant="outline" className="gap-1">
@@ -399,6 +469,74 @@ export function WritingAssistantDialog({
                 </Button>
               </div>
             </div>
+          </TabsContent>
+
+          {/* Evaluation Tab */}
+          <TabsContent value="evaluation" className="flex-1 flex flex-col min-h-0 space-y-4">
+            {evaluation && (
+              <ScrollArea className="flex-1 max-h-[450px]">
+                <div className="space-y-4 pr-4">
+                  {/* Overall score */}
+                  <div className="p-4 rounded-lg border bg-card">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-medium flex items-center gap-2">
+                        <BarChart3 className="w-4 h-4 text-primary" />
+                        Overall Score
+                      </h4>
+                      <span className={cn(
+                        "text-2xl font-bold",
+                        evaluation.overallScore >= 4 ? "text-green-600 dark:text-green-400" 
+                          : evaluation.overallScore >= 3 ? "text-amber-600 dark:text-amber-400" 
+                          : "text-destructive"
+                      )}>
+                        {evaluation.overallScore}/5
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{evaluation.summary}</p>
+                  </div>
+
+                  {/* Per-criterion breakdown */}
+                  {evaluation.criteria.map((criterion, idx) => (
+                    <div key={idx} className="p-4 rounded-lg border space-y-3">
+                      <ScoreBar score={criterion.score} label={criterion.name} />
+
+                      {criterion.strengths.length > 0 && (
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium flex items-center gap-1 text-green-600 dark:text-green-400">
+                            <ThumbsUp className="w-3 h-3" /> Strengths
+                          </p>
+                          <ul className="text-xs text-muted-foreground space-y-0.5 ml-4 list-disc">
+                            {criterion.strengths.map((s, i) => <li key={i}>{s}</li>)}
+                          </ul>
+                        </div>
+                      )}
+
+                      {criterion.weaknesses.length > 0 && (
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium flex items-center gap-1 text-destructive">
+                            <ThumbsDown className="w-3 h-3" /> Weaknesses
+                          </p>
+                          <ul className="text-xs text-muted-foreground space-y-0.5 ml-4 list-disc">
+                            {criterion.weaknesses.map((w, i) => <li key={i}>{w}</li>)}
+                          </ul>
+                        </div>
+                      )}
+
+                      {criterion.suggestions.length > 0 && (
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium flex items-center gap-1 text-primary">
+                            <Lightbulb className="w-3 h-3" /> Suggestions
+                          </p>
+                          <ul className="text-xs text-muted-foreground space-y-0.5 ml-4 list-disc">
+                            {criterion.suggestions.map((s, i) => <li key={i}>{s}</li>)}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
           </TabsContent>
         </Tabs>
       </DialogContent>

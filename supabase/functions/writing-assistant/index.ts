@@ -36,7 +36,7 @@ serve(async (req) => {
       );
     }
 
-    const { text, action, context } = await req.json();
+    const { text, action, context, sectionType } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
@@ -53,6 +53,17 @@ serve(async (req) => {
     let systemPrompt = "";
     let userPrompt = "";
 
+    // Determine which evaluation criteria apply based on section
+    const sectionCriteria: Record<string, string> = {
+      'b1-1': 'Excellence (clarity of objectives, soundness of methodology, novelty/ambition, inter/trans-disciplinary approach)',
+      'b1-2': 'Implementation (quality of work plan, appropriateness of management, complementarity of consortium, allocation of resources)',
+      'b2-1': 'Impact (credibility of pathways to impact, sustainability, communication/dissemination/exploitation strategy)',
+    };
+
+    const criteriaContext = sectionType && sectionCriteria[sectionType]
+      ? `\nThis text is for a section evaluated under: ${sectionCriteria[sectionType]}. Tailor your improvements to strengthen alignment with these evaluation criteria.`
+      : '';
+
     switch (action) {
       case "improve_clarity":
         systemPrompt = `You are an expert EU research proposal writer. Improve the clarity of the text while:
@@ -60,7 +71,7 @@ serve(async (req) => {
 - Making complex ideas more accessible to reviewers
 - Avoiding jargon where possible
 - Using active voice where appropriate
-- Keeping the same meaning and technical accuracy
+- Keeping the same meaning and technical accuracy${criteriaContext}
 Return ONLY the improved text, nothing else.`;
         userPrompt = `Improve the clarity of this text:\n\n${text}`;
         break;
@@ -71,7 +82,7 @@ Return ONLY the improved text, nothing else.`;
 - Be professional but not overly technical
 - Be confident and specific about outcomes
 - Use concrete language over abstract terms
-- Focus on impact and benefits
+- Focus on impact and benefits${criteriaContext}
 Return ONLY the improved text, nothing else.`;
         userPrompt = `Improve the tone of this text for a Horizon Europe proposal:\n\n${text}`;
         break;
@@ -81,7 +92,7 @@ Return ONLY the improved text, nothing else.`;
 - Preserving all key information
 - Removing redundancy and filler words
 - Using stronger, more direct language
-- Maintaining academic standards
+- Maintaining academic standards${criteriaContext}
 Return ONLY the concise version, nothing else.`;
         userPrompt = `Make this text more concise:\n\n${text}`;
         break;
@@ -92,7 +103,7 @@ Return ONLY the concise version, nothing else.`;
 - Strengthening arguments
 - Adding supporting evidence where appropriate
 - Making the case more compelling
-${context ? `Context: ${context}` : ""}
+${context ? `Context: ${context}` : ""}${criteriaContext}
 Return ONLY the expanded text, nothing else.`;
         userPrompt = `Expand and strengthen this text:\n\n${text}`;
         break;
@@ -102,13 +113,45 @@ Return ONLY the expanded text, nothing else.`;
 - Using Horizon Europe terminology correctly
 - Referencing appropriate evaluation criteria concepts (Excellence, Impact, Implementation)
 - Following EC proposal writing conventions
-- Including appropriate linking to expected outcomes/impacts where relevant
+- Including appropriate linking to expected outcomes/impacts where relevant${criteriaContext}
 Return ONLY the adapted text, nothing else.`;
         userPrompt = `Adapt this text to proper EU Horizon Europe proposal language:\n\n${text}`;
         break;
 
+      case "evaluate_section":
+        systemPrompt = `You are a senior Horizon Europe proposal evaluator. Evaluate the text against the applicable evaluation criteria and provide structured feedback.
+
+For each applicable criterion area, provide:
+1. A score estimate (1-5 scale matching EC scoring: 1=poor, 2=fair, 3=good, 4=very good, 5=excellent)
+2. Specific strengths
+3. Specific weaknesses
+4. Concrete improvement suggestions
+
+${sectionType && sectionCriteria[sectionType]
+  ? `This section is evaluated under: ${sectionCriteria[sectionType]}`
+  : 'Evaluate against all three Horizon Europe criteria: Excellence, Impact, Implementation'}
+
+Format your response as JSON with this structure:
+{
+  "overallScore": <number 1-5>,
+  "criteria": [
+    {
+      "name": "<criterion name>",
+      "score": <number 1-5>,
+      "strengths": ["..."],
+      "weaknesses": ["..."],
+      "suggestions": ["..."]
+    }
+  ],
+  "summary": "<brief overall assessment>"
+}
+
+Return ONLY valid JSON, nothing else.`;
+        userPrompt = `Evaluate this proposal text:\n\n${text}`;
+        break;
+
       default:
-        systemPrompt = `You are an expert EU research proposal writer. Improve this text for a Horizon Europe proposal.`;
+        systemPrompt = `You are an expert EU research proposal writer. Improve this text for a Horizon Europe proposal.${criteriaContext}`;
         userPrompt = `Improve this text:\n\n${text}`;
     }
 

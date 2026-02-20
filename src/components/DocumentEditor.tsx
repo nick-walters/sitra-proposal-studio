@@ -64,6 +64,7 @@ import { KeyboardShortcutsDialog } from "./KeyboardShortcutsDialog";
 import { WritingAssistantDialog } from "./WritingAssistantDialog";
 import { SnippetsDialog } from "./SnippetsDialog";
 import { SplitViewPanel } from "./SplitViewPanel";
+import { SectionReviewDialog } from "./SectionReviewDialog";
 import { B31DeliverablesTable, B31MilestonesTable, B31RisksTable } from "./B31TablesEditor";
 import { B31SectionContent } from "./B31SectionContent";
 import { TrackChange } from "@/extensions/TrackChanges";
@@ -159,6 +160,7 @@ export function DocumentEditor({
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const [isWritingAssistantOpen, setIsWritingAssistantOpen] = useState(false);
   const [isSnippetsOpen, setIsSnippetsOpen] = useState(false);
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [isSplitViewOpen, setIsSplitViewOpen] = useState(false);
   const [deleteBlockConfirm, setDeleteBlockConfirm] = useState<{ isOpen: boolean; onConfirm: () => void } | null>(null);
   const [isWPRefOpen, setIsWPRefOpen] = useState(false);
@@ -794,6 +796,15 @@ export function DocumentEditor({
                 <FileCode className="w-3 h-3" />
                 Snippets
               </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-6 px-2 text-xs gap-1"
+                onClick={() => setIsReviewOpen(true)}
+              >
+                <MessageSquare className="w-3 h-3" />
+                Review
+              </Button>
               
               <Separator orientation="vertical" className="h-4 mx-1" />
               
@@ -1342,6 +1353,7 @@ export function DocumentEditor({
         onClose={() => setIsWritingAssistantOpen(false)}
         selectedText={selectedText}
         plainText={plainText}
+        sectionId={section?.id}
         onApplyGrammarSuggestion={handleApplyGrammarSuggestion}
         onApply={(newText) => {
           if (editor && selectionRange) {
@@ -1402,6 +1414,14 @@ export function DocumentEditor({
           }
           setIsSnippetsOpen(false);
         }}
+      />
+
+      <SectionReviewDialog
+        isOpen={isReviewOpen}
+        onClose={() => setIsReviewOpen(false)}
+        proposalId={proposalId}
+        sectionId={section?.id || ''}
+        sectionTitle={section?.title || ''}
       />
 
       {/* Block Delete Confirmation Dialog */}

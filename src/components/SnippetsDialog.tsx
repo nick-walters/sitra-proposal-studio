@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,
   DialogContent,
@@ -9,8 +10,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { 
   FileText, 
@@ -18,13 +22,12 @@ import {
   Copy, 
   Plus,
   Target,
-  Users,
-  AlertTriangle,
   Lightbulb,
   TrendingUp,
-  Shield,
-  Leaf,
-  Globe2
+  Globe2,
+  Trash2,
+  Loader2,
+  Save,
 } from 'lucide-react';
 
 interface SnippetsDialogProps {
@@ -40,254 +43,75 @@ interface Snippet {
   content: string;
   category: string;
   tags: string[];
-  sectionIds?: string[]; // e.g., ['b1-1', 'b1-2'] - if empty, available in all sections
+  section_ids?: string[];
+  is_default?: boolean;
 }
-
-const snippets: Snippet[] = [
-  // Impact & Dissemination - B2.1 section
-  {
-    id: 'dissemination-plan',
-    title: 'Dissemination Strategy Overview',
-    category: 'Impact',
-    tags: ['dissemination', 'communication'],
-    sectionIds: ['b2-1'],
-    content: `The dissemination strategy will ensure maximum visibility and uptake of project results through a multi-channel approach:
-
-**Scientific Dissemination:**
-- Publication in high-impact peer-reviewed journals
-- Presentations at international conferences
-- Open access publications in line with Horizon Europe requirements
-
-**Stakeholder Engagement:**
-- Regular workshops with key stakeholders
-- Policy briefs for decision-makers
-- Industry engagement through targeted events
-
-**Public Communication:**
-- Project website with regular updates
-- Social media presence
-- Public engagement activities`,
-  },
-  {
-    id: 'exploitation-plan',
-    title: 'Exploitation Plan Template',
-    category: 'Impact',
-    tags: ['exploitation', 'commercialization'],
-    sectionIds: ['b2-1'],
-    content: `**Exploitation Strategy:**
-
-The consortium has developed a comprehensive exploitation plan to maximize the impact of project outcomes:
-
-1. **IP Management:** Clear IP ownership and licensing framework
-2. **Market Analysis:** Identification of target markets and user segments
-3. **Commercialization Pathway:** Roadmap from TRL advancement to market entry
-4. **Sustainability Plan:** Long-term viability beyond project funding
-
-**Expected Exploitable Results:**
-| Result | Owner | Exploitation Route | Timeline |
-|--------|-------|-------------------|----------|
-| [Result 1] | [Partner] | [Route] | M[X] |`,
-  },
-  {
-    id: 'sustainability-plan',
-    title: 'Sustainability Beyond Funding',
-    category: 'Impact',
-    tags: ['sustainability', 'long-term'],
-    sectionIds: ['b2-1'],
-    content: `**Sustainability Strategy:**
-
-The project has developed a clear sustainability roadmap to ensure continuity beyond EC funding:
-
-**Financial Sustainability:**
-- Revenue generation through licensing/services
-- Follow-up funding applications
-- Industry partnerships
-
-**Institutional Sustainability:**
-- Integration into partner organizations' ongoing activities
-- Establishment of governance structures
-- Knowledge transfer mechanisms
-
-**Community Sustainability:**
-- Open source contributions
-- Active user community building
-- Training and capacity building`,
-  },
-  // Excellence - B1.1 section
-  {
-    id: 'state-of-art',
-    title: 'State-of-the-Art Analysis',
-    category: 'Excellence',
-    tags: ['sota', 'background'],
-    sectionIds: ['b1-1'],
-    content: `**Current State-of-the-Art:**
-
-The project builds upon and advances the current state-of-the-art in [field]:
-
-| Aspect | Current SotA | Project Advancement |
-|--------|-------------|---------------------|
-| [Aspect 1] | [Current] | [Advancement] |
-| [Aspect 2] | [Current] | [Advancement] |
-
-**Key Limitations of Existing Solutions:**
-- [Limitation 1]
-- [Limitation 2]
-
-**How This Project Goes Beyond:**
-The proposed approach addresses these limitations through [methodology], resulting in [expected improvements].`,
-  },
-  {
-    id: 'methodology-overview',
-    title: 'Methodology Framework',
-    category: 'Excellence',
-    tags: ['methodology', 'approach'],
-    sectionIds: ['b1-1', 'b1-2'],
-    content: `**Methodological Approach:**
-
-The project employs a rigorous methodological framework structured around three pillars:
-
-**1. Research Methodology:**
-- [Approach 1]
-- [Approach 2]
-
-**2. Validation Strategy:**
-- Laboratory validation
-- Field testing
-- User validation studies
-
-**3. Quality Assurance:**
-- Peer review processes
-- Milestone-based evaluation
-- External advisory input`,
-  },
-  // Implementation - B1.2 section
-  {
-    id: 'risk-management',
-    title: 'Risk Management Table',
-    category: 'Implementation',
-    tags: ['risks', 'mitigation'],
-    sectionIds: ['b1-2'],
-    content: `**Risk Management Strategy:**
-
-| Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|------------|
-| Technical delays | Medium | High | Buffer time in schedule; parallel development paths |
-| Partner withdrawal | Low | High | Clear commitment agreements; backup expertise |
-| Regulatory changes | Low | Medium | Continuous monitoring; flexible approach |
-| Market changes | Medium | Medium | Regular market analysis; adaptive strategy |
-
-**Contingency Measures:**
-- Regular risk reviews at consortium meetings
-- Early warning indicators established
-- Clear escalation procedures`,
-  },
-  {
-    id: 'consortium-strength',
-    title: 'Consortium Excellence',
-    category: 'Implementation',
-    tags: ['consortium', 'partners'],
-    sectionIds: ['b1-2'],
-    content: `**Consortium Excellence:**
-
-The consortium brings together [X] partners from [Y] countries, combining:
-
-**Complementary Expertise:**
-- Academic excellence in [areas]
-- Industrial leadership in [sectors]
-- Policy/regulatory experience
-
-**Track Record:**
-- Combined €[X]M in relevant EU funding
-- [X] joint publications
-- Previous successful collaborations
-
-**Resource Commitment:**
-The partners commit significant resources to ensure project success, including [specific resources].`,
-  },
-  // Cross-cutting - available in multiple sections
-  {
-    id: 'gender-equality',
-    title: 'Gender Equality Plan',
-    category: 'Cross-cutting',
-    tags: ['gender', 'equality', 'diversity'],
-    sectionIds: ['b1-1', 'b1-2', 'b2-1'],
-    content: `**Gender Dimension:**
-
-The project is committed to promoting gender equality across all activities:
-
-**Team Composition:**
-- [X]% female researchers in project team
-- Gender-balanced management structure
-- Active recruitment of underrepresented groups
-
-**Research Content:**
-- Sex/gender analysis integrated in research design
-- Gender-disaggregated data collection where relevant
-- Consideration of gender-specific impacts
-
-**Working Environment:**
-- Flexible working arrangements
-- Family-friendly meeting scheduling
-- Equal opportunity policies`,
-  },
-  {
-    id: 'open-science',
-    title: 'Open Science Statement',
-    category: 'Cross-cutting',
-    tags: ['open science', 'FAIR', 'data'],
-    sectionIds: ['b1-1', 'b2-1'],
-    content: `**Open Science Practices:**
-
-The project is committed to Open Science principles in line with Horizon Europe requirements:
-
-**Open Access Publications:**
-- All peer-reviewed publications in open access
-- Immediate deposit in open repositories
-- CC-BY licensing for publications
-
-**FAIR Data Management:**
-- Findable: DOIs and rich metadata
-- Accessible: Open repositories (e.g., Zenodo)
-- Interoperable: Standard formats and vocabularies
-- Reusable: Clear licensing and documentation
-
-**Open Source:**
-- Software released under open source licenses where appropriate
-- Active community engagement`,
-  },
-  {
-    id: 'ethics-statement',
-    title: 'Ethics Considerations',
-    category: 'Cross-cutting',
-    tags: ['ethics', 'responsible research'],
-    sectionIds: ['b1-1', 'b1-2'],
-    content: `**Ethical Considerations:**
-
-The project adheres to the highest ethical standards:
-
-**Research Ethics:**
-- Compliance with all relevant national and EU regulations
-- Ethics approval obtained where required
-- Informed consent procedures for human participants
-
-**Data Protection:**
-- GDPR compliance ensured
-- Data Protection Officer appointed
-- Privacy-by-design principles applied
-
-**Responsible Research:**
-- No dual-use concerns identified
-- Environmental impact considered
-- Societal implications assessed`,
-  },
-];
 
 const categoryIcons: Record<string, React.ReactNode> = {
   'Impact': <TrendingUp className="w-4 h-4" />,
   'Excellence': <Lightbulb className="w-4 h-4" />,
   'Implementation': <Target className="w-4 h-4" />,
   'Cross-cutting': <Globe2 className="w-4 h-4" />,
+  'Custom': <FileText className="w-4 h-4" />,
 };
+
+// Default built-in snippets (always available)
+const DEFAULT_SNIPPETS: Snippet[] = [
+  {
+    id: 'dissemination-plan',
+    title: 'Dissemination Strategy Overview',
+    category: 'Impact',
+    tags: ['dissemination', 'communication'],
+    section_ids: ['b2-1'],
+    is_default: true,
+    content: `The dissemination strategy will ensure maximum visibility and uptake of project results through a multi-channel approach:\n\n**Scientific Dissemination:**\n- Publication in high-impact peer-reviewed journals\n- Presentations at international conferences\n- Open access publications in line with Horizon Europe requirements\n\n**Stakeholder Engagement:**\n- Regular workshops with key stakeholders\n- Policy briefs for decision-makers\n- Industry engagement through targeted events`,
+  },
+  {
+    id: 'exploitation-plan',
+    title: 'Exploitation Plan Template',
+    category: 'Impact',
+    tags: ['exploitation', 'commercialization'],
+    section_ids: ['b2-1'],
+    is_default: true,
+    content: `**Exploitation Strategy:**\n\nThe consortium has developed a comprehensive exploitation plan:\n\n1. **IP Management:** Clear IP ownership and licensing framework\n2. **Market Analysis:** Identification of target markets and user segments\n3. **Commercialization Pathway:** Roadmap from TRL advancement to market entry\n4. **Sustainability Plan:** Long-term viability beyond project funding`,
+  },
+  {
+    id: 'state-of-art',
+    title: 'State-of-the-Art Analysis',
+    category: 'Excellence',
+    tags: ['sota', 'background'],
+    section_ids: ['b1-1'],
+    is_default: true,
+    content: `**Current State-of-the-Art:**\n\nThe project builds upon and advances the current state-of-the-art in [field]:\n\n| Aspect | Current SotA | Project Advancement |\n|--------|-------------|---------------------|\n| [Aspect 1] | [Current] | [Advancement] |\n\n**Key Limitations of Existing Solutions:**\n- [Limitation 1]\n- [Limitation 2]\n\n**How This Project Goes Beyond:**\nThe proposed approach addresses these limitations through [methodology].`,
+  },
+  {
+    id: 'risk-management',
+    title: 'Risk Management Table',
+    category: 'Implementation',
+    tags: ['risks', 'mitigation'],
+    section_ids: ['b1-2'],
+    is_default: true,
+    content: `**Risk Management Strategy:**\n\n| Risk | Likelihood | Impact | Mitigation |\n|------|-----------|--------|------------|\n| Technical delays | Medium | High | Buffer time; parallel paths |\n| Partner withdrawal | Low | High | Backup expertise |\n| Regulatory changes | Low | Medium | Continuous monitoring |`,
+  },
+  {
+    id: 'gender-equality',
+    title: 'Gender Equality Plan',
+    category: 'Cross-cutting',
+    tags: ['gender', 'equality', 'diversity'],
+    section_ids: ['b1-1', 'b1-2', 'b2-1'],
+    is_default: true,
+    content: `**Gender Dimension:**\n\nThe project promotes gender equality across all activities:\n\n**Team Composition:** [X]% female researchers, gender-balanced management\n**Research Content:** Sex/gender analysis integrated in research design\n**Working Environment:** Flexible arrangements, equal opportunity policies`,
+  },
+  {
+    id: 'open-science',
+    title: 'Open Science Statement',
+    category: 'Cross-cutting',
+    tags: ['open science', 'FAIR', 'data'],
+    section_ids: ['b1-1', 'b2-1'],
+    is_default: true,
+    content: `**Open Science Practices:**\n\n**Open Access:** All peer-reviewed publications in open access with CC-BY licensing\n**FAIR Data:** DOIs, open repositories (Zenodo), standard formats\n**Open Source:** Software released under open source licenses where appropriate`,
+  },
+];
 
 export function SnippetsDialog({ 
   isOpen, 
@@ -295,22 +119,49 @@ export function SnippetsDialog({
   onInsert,
   sectionId 
 }: SnippetsDialogProps) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [isCreating, setIsCreating] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newContent, setNewContent] = useState('');
+  const [newCategory, setNewCategory] = useState('Custom');
 
-  // Normalize section ID for matching (e.g., 'B1.1' -> 'b1-1', 'b1-1' -> 'b1-1')
+  // Fetch user snippets from DB
+  const { data: dbSnippets = [], isLoading } = useQuery({
+    queryKey: ['snippet-library'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('snippet_library')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data || []).map(s => ({
+        id: s.id,
+        title: s.title,
+        content: s.content,
+        category: s.category || 'Custom',
+        tags: s.tags || [],
+        section_ids: s.section_ids || [],
+        is_default: false,
+      })) as Snippet[];
+    },
+    enabled: isOpen,
+  });
+
+  const allSnippets = [...dbSnippets, ...DEFAULT_SNIPPETS];
+
+  // Normalize section ID
   const normalizedSectionId = sectionId
     ?.toLowerCase()
-    .replace(/^[a-z]/, '') // Remove letter prefix
-    .replace('.', '-'); // Replace dot with dash
+    .replace(/^[a-z]/, '')
+    .replace('.', '-');
 
-  // Filter snippets based on section first
-  const sectionFilteredSnippets = snippets.filter(snippet => {
-    // If no sectionIds specified, show in all sections (backwards compat)
-    if (!snippet.sectionIds || snippet.sectionIds.length === 0) return true;
-    // If we have a sectionId, check if this snippet is available for this section
+  const sectionFilteredSnippets = allSnippets.filter(snippet => {
+    if (!snippet.section_ids || snippet.section_ids.length === 0) return true;
     if (!normalizedSectionId) return true;
-    return snippet.sectionIds.some(sid => sid === normalizedSectionId || sid === sectionId);
+    return snippet.section_ids.some(sid => sid === normalizedSectionId || sid === sectionId);
   });
 
   const categories = ['all', ...Array.from(new Set(sectionFilteredSnippets.map(s => s.category)))];
@@ -320,10 +171,44 @@ export function SnippetsDialog({
       snippet.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       snippet.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
       snippet.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-    
     const matchesCategory = selectedCategory === 'all' || snippet.category === selectedCategory;
-    
     return matchesSearch && matchesCategory;
+  });
+
+  const saveSnippet = useMutation({
+    mutationFn: async () => {
+      if (!user?.id) throw new Error('Not authenticated');
+      if (!newTitle.trim() || !newContent.trim()) throw new Error('Title and content required');
+      const { error } = await supabase.from('snippet_library').insert({
+        title: newTitle.trim(),
+        content: newContent.trim(),
+        category: newCategory,
+        tags: [],
+        section_ids: [],
+        created_by: user.id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['snippet-library'] });
+      setIsCreating(false);
+      setNewTitle('');
+      setNewContent('');
+      toast.success('Snippet saved');
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : 'Failed to save snippet'),
+  });
+
+  const deleteSnippet = useMutation({
+    mutationFn: async (snippetId: string) => {
+      const { error } = await supabase.from('snippet_library').delete().eq('id', snippetId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['snippet-library'] });
+      toast.success('Snippet deleted');
+    },
+    onError: () => toast.error('Failed to delete snippet'),
   });
 
   const handleInsert = useCallback((snippet: Snippet) => {
@@ -343,14 +228,14 @@ export function SnippetsDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-primary" />
-            Templates & Snippets
+            Reusable Content Library
           </DialogTitle>
           <DialogDescription>
-            Pre-written text blocks for common proposal sections
+            Pre-written snippets and your saved content blocks
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex items-center gap-4 py-2">
+        <div className="flex items-center gap-3 py-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -360,7 +245,35 @@ export function SnippetsDialog({
               className="pl-9"
             />
           </div>
+          <Button size="sm" variant="outline" className="gap-1" onClick={() => setIsCreating(!isCreating)}>
+            <Plus className="w-4 h-4" />
+            New
+          </Button>
         </div>
+
+        {/* Create new snippet form */}
+        {isCreating && (
+          <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+            <Input
+              placeholder="Snippet title"
+              value={newTitle}
+              onChange={e => setNewTitle(e.target.value)}
+            />
+            <Textarea
+              placeholder="Snippet content (supports markdown)"
+              value={newContent}
+              onChange={e => setNewContent(e.target.value)}
+              className="min-h-[100px]"
+            />
+            <div className="flex justify-end gap-2">
+              <Button size="sm" variant="ghost" onClick={() => setIsCreating(false)}>Cancel</Button>
+              <Button size="sm" className="gap-1" onClick={() => saveSnippet.mutate()} disabled={saveSnippet.isPending}>
+                {saveSnippet.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                Save
+              </Button>
+            </div>
+          </div>
+        )}
 
         <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="flex-1 flex flex-col min-h-0">
           <TabsList className="w-full justify-start">
@@ -368,7 +281,7 @@ export function SnippetsDialog({
               <TabsTrigger key={cat} value={cat} className="capitalize">
                 {cat === 'all' ? 'All' : (
                   <span className="flex items-center gap-1">
-                    {categoryIcons[cat]}
+                    {categoryIcons[cat] || <FileText className="w-4 h-4" />}
                     {cat}
                   </span>
                 )}
@@ -380,41 +293,42 @@ export function SnippetsDialog({
             <div className="grid gap-3 pr-4">
               {filteredSnippets.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  No snippets found matching your search
+                  No snippets found
                 </div>
               ) : (
                 filteredSnippets.map((snippet) => (
-                  <div
-                    key={snippet.id}
-                    className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
-                  >
+                  <div key={snippet.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
                     <div className="flex items-start justify-between gap-4 mb-2">
                       <div>
                         <h4 className="font-medium">{snippet.title}</h4>
                         <div className="flex items-center gap-2 mt-1">
                           <Badge variant="outline" className="text-xs gap-1">
-                            {categoryIcons[snippet.category]}
+                            {categoryIcons[snippet.category] || <FileText className="w-3 h-3" />}
                             {snippet.category}
                           </Badge>
+                          {snippet.is_default && (
+                            <Badge variant="secondary" className="text-[10px]">Built-in</Badge>
+                          )}
                           {snippet.tags.slice(0, 3).map(tag => (
-                            <Badge key={tag} variant="secondary" className="text-xs">
-                              {tag}
-                            </Badge>
+                            <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
                           ))}
                         </div>
                       </div>
-                      <div className="flex gap-2 shrink-0">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleCopy(snippet)}
-                        >
+                      <div className="flex gap-1 shrink-0">
+                        <Button variant="ghost" size="sm" onClick={() => handleCopy(snippet)}>
                           <Copy className="w-4 h-4" />
                         </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handleInsert(snippet)}
-                        >
+                        {!snippet.is_default && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteSnippet.mutate(snippet.id)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                        <Button size="sm" onClick={() => handleInsert(snippet)}>
                           <Plus className="w-4 h-4 mr-1" />
                           Insert
                         </Button>
