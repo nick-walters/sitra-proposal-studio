@@ -580,7 +580,7 @@ function SortableTaskGroup({
             </span>
             <span className="font-bold text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight flex-1">
               <EditableHeaderText
-                value={task.title || `Task ${task.number}`}
+                value={task.title || ''}
                 onSave={(val) => saveTaskField(task.id, 'title', val)}
               />
             </span>
@@ -735,8 +735,8 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
         className="mb-0"
       />
       {populatedWPs.map((wp, idx) => {
-        const shortName = wp.short_name || wp.title || `WP${wp.number}`;
-        const title = wp.title || `Work Package ${wp.number}`;
+        const shortName = wp.short_name || '';
+        const title = wp.title || '';
         const wpLeader = participants.find(p => p.id === wp.lead_participant_id);
 
         // Compute month range from tasks
