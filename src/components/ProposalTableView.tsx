@@ -1,14 +1,19 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Proposal, WORK_PROGRAMMES, DESTINATIONS } from "@/types/proposal";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Calendar, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink, AlertTriangle, Trophy, ArrowUpDown, ArrowUp, ArrowDown, HelpCircle } from "lucide-react";
+import { Calendar, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink, AlertTriangle, Trophy, ArrowUpDown, ArrowUp, ArrowDown, HelpCircle, Pin, PinOff, GripVertical } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ProposalTableViewProps {
   proposals: Proposal[];
   onProposalClick: (proposal: Proposal) => void;
   topicIcons?: Record<string, React.ReactNode>;
+  pinnedIds?: string[];
+  canPin?: boolean;
+  onTogglePin?: (id: string) => void;
+  onReorderPinned?: (fromIndex: number, toIndex: number) => void;
 }
 
 type SortColumn = 'acronym' | 'title' | 'status' | 'type' | 'workProgramme' | 'destination' | 'deadline' | 'decision';
@@ -84,9 +89,11 @@ const getCombinedStatusInfo = (proposal: Proposal) => {
   };
 };
 
-export function ProposalTableView({ proposals, onProposalClick, topicIcons }: ProposalTableViewProps) {
+export function ProposalTableView({ proposals, onProposalClick, topicIcons, pinnedIds = [], canPin, onTogglePin, onReorderPinned }: ProposalTableViewProps) {
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  const dragItemRef = useRef<number | null>(null);
+  const dragOverRef = useRef<number | null>(null);
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -169,6 +176,168 @@ export function ProposalTableView({ proposals, onProposalClick, topicIcons }: Pr
     </TableHead>
   );
 
+  const pinnedSet = new Set(pinnedIds);
+  const pinnedProposals = pinnedIds.map(id => proposals.find(p => p.id === id)).filter(Boolean) as Proposal[];
+  const unpinnedSorted = sortedProposals.filter(p => !pinnedSet.has(p.id));
+
+  const handleDragStart = (index: number) => { dragItemRef.current = index; };
+  const handleDragOver = (e: React.DragEvent, index: number) => { e.preventDefault(); dragOverRef.current = index; };
+  const handleDragEnd = () => {
+    if (dragItemRef.current !== null && dragOverRef.current !== null && dragItemRef.current !== dragOverRef.current && onReorderPinned) {
+      onReorderPinned(dragItemRef.current, dragOverRef.current);
+    }
+    dragItemRef.current = null;
+    dragOverRef.current = null;
+  };
+
+  const renderRow = (proposal: Proposal, options?: { pinned?: boolean; dragIndex?: number }) => {
+    const workProgramme = WORK_PROGRAMMES.find(wp => wp.id === proposal.workProgramme);
+    const destination = DESTINATIONS.find(d => d.id === proposal.destination);
+    const isDraft = proposal.status === 'draft';
+    const isDecided = proposal.status === 'funded' || proposal.status === 'not_funded';
+    const statusInfo = getCombinedStatusInfo(proposal);
+    const StatusIcon = statusInfo.icon;
+    const topicIcon = topicIcons?.[proposal.acronym];
+    const pinned = options?.pinned ?? false;
+
+    return (
+      <TableRow
+        key={proposal.id}
+        className={`cursor-pointer hover:bg-muted/50 group ${pinned ? 'bg-primary/[0.03]' : ''}`}
+        onClick={() => onProposalClick(proposal)}
+        draggable={pinned && pinnedProposals.length > 1}
+        onDragStart={options?.dragIndex !== undefined ? () => handleDragStart(options.dragIndex!) : undefined}
+        onDragOver={options?.dragIndex !== undefined ? (e) => handleDragOver(e, options.dragIndex!) : undefined}
+        onDragEnd={pinned ? handleDragEnd : undefined}
+      >
+        <TableCell>
+          <div className="flex items-center gap-1">
+            {pinned && pinnedProposals.length > 1 && (
+              <GripVertical className="w-3 h-3 text-muted-foreground/50 cursor-grab flex-shrink-0" />
+            )}
+            <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center overflow-hidden">
+              {proposal.logoUrl ? (
+                <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
+              ) : topicIcon ? (
+                <div className="scale-50">{topicIcon}</div>
+              ) : null}
+            </div>
+          </div>
+        </TableCell>
+        <TableCell className="font-semibold">
+          {proposal.acronym}
+          {proposal.submissionStage === 'stage_1' && <span className="font-normal text-muted-foreground"> (Stage 1 of 2)</span>}
+        </TableCell>
+        <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
+          {proposal.title}
+        </TableCell>
+        <TableCell>
+          <span className={`proposal-badge ${statusInfo.className} flex items-center gap-1 w-fit text-[10px] whitespace-nowrap`}>
+            <StatusIcon className="w-3 h-3 flex-shrink-0" />
+            <span>{statusInfo.label}{statusInfo.days !== undefined && ` (${statusInfo.days}d)`}</span>
+          </span>
+        </TableCell>
+        <TableCell>
+          <span className="proposal-badge bg-white text-foreground border border-foreground text-[10px]">
+            {proposal.type}
+          </span>
+        </TableCell>
+        <TableCell>
+          {workProgramme ? (
+            <span className="proposal-badge bg-gray-300 text-gray-700 text-[10px]">
+              {workProgramme.abbreviation}
+            </span>
+          ) : (
+            <span className="text-muted-foreground text-xs">—</span>
+          )}
+        </TableCell>
+        <TableCell>
+          {destination ? (
+            <span className="proposal-badge bg-gray-200 text-gray-600 text-[10px]">
+              {destination.abbreviation}
+            </span>
+          ) : (
+            <span className="text-muted-foreground text-xs">—</span>
+          )}
+        </TableCell>
+        <TableCell>
+          {proposal.deadline ? (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Calendar className="w-3 h-3 text-yellow-600" />
+              {format(proposal.deadline, 'dd/MM/yyyy')}
+            </div>
+          ) : (
+            <span className="text-muted-foreground text-xs">—</span>
+          )}
+        </TableCell>
+        <TableCell>
+          {proposal.decisionDate ? (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              {isDecided ? (
+                proposal.status === 'funded' ? (
+                  <CheckCircle2 className="w-3 h-3 text-green-600" />
+                ) : (
+                  <XCircle className="w-3 h-3 text-red-600" />
+                )
+              ) : (
+                <Clock className="w-3 h-3 text-yellow-500" />
+              )}
+              {proposal.decisionDateIsEstimated && !isDecided ? 'Est. ' : ''}{format(proposal.decisionDate, 'dd/MM/yyyy')}
+            </div>
+          ) : (
+            <span className="text-muted-foreground text-xs">—</span>
+          )}
+        </TableCell>
+        <TableCell>
+          <div className="flex items-center gap-1">
+            {onTogglePin && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`h-6 w-6 ${pinned ? 'text-primary' : 'text-muted-foreground/40 opacity-0 group-hover:opacity-100'}`}
+                    onClick={(e) => { e.stopPropagation(); onTogglePin(proposal.id); }}
+                    disabled={!pinned && !canPin}
+                  >
+                    {pinned ? <PinOff className="w-3 h-3" /> : <Pin className="w-3 h-3" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  {pinned ? 'Unpin' : canPin ? 'Pin to top' : 'Max 3 pinned'}
+                </TooltipContent>
+              </Tooltip>
+            )}
+            {proposal.topicUrl && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-6 px-2 gap-1 text-[10px]"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(proposal.topicUrl, '_blank');
+                }}
+              >
+                <ExternalLink className="w-2.5 h-2.5" />
+              </Button>
+            )}
+            <Button 
+              size="sm" 
+              className="h-6 px-2 gap-1 text-[10px] bg-foreground text-background hover:bg-foreground/90"
+              onClick={(e) => {
+                e.stopPropagation();
+                onProposalClick(proposal);
+              }}
+            >
+              {isDraft ? 'Edit' : 'View'}
+              <ArrowRight className="w-2.5 h-2.5" />
+            </Button>
+          </div>
+        </TableCell>
+      </TableRow>
+    );
+  };
+
   return (
     <div className="border rounded-lg overflow-hidden">
       <Table>
@@ -183,129 +352,17 @@ export function ProposalTableView({ proposals, onProposalClick, topicIcons }: Pr
             <SortableHeader column="destination">Destination</SortableHeader>
             <SortableHeader column="deadline">Deadline</SortableHeader>
             <SortableHeader column="decision">Decision</SortableHeader>
-            <TableHead className="w-24"></TableHead>
+            <TableHead className="w-28"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {sortedProposals.map((proposal) => {
-            const workProgramme = WORK_PROGRAMMES.find(wp => wp.id === proposal.workProgramme);
-            const destination = DESTINATIONS.find(d => d.id === proposal.destination);
-            const isDraft = proposal.status === 'draft';
-            const isDecided = proposal.status === 'funded' || proposal.status === 'not_funded';
-            const statusInfo = getCombinedStatusInfo(proposal);
-            const StatusIcon = statusInfo.icon;
-            const topicIcon = topicIcons?.[proposal.acronym];
-
-            return (
-              <TableRow 
-                key={proposal.id} 
-                className="cursor-pointer hover:bg-muted/50"
-                onClick={() => onProposalClick(proposal)}
-              >
-                <TableCell>
-                  <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center overflow-hidden">
-                    {proposal.logoUrl ? (
-                      <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
-                    ) : topicIcon ? (
-                      <div className="scale-50">{topicIcon}</div>
-                    ) : null}
-                  </div>
-                </TableCell>
-                <TableCell className="font-semibold">
-                  {proposal.acronym}
-                  {proposal.submissionStage === 'stage_1' && <span className="font-normal text-muted-foreground"> (Stage 1 of 2)</span>}
-                </TableCell>
-                <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
-                  {proposal.title}
-                </TableCell>
-                <TableCell>
-                  <span className={`proposal-badge ${statusInfo.className} flex items-center gap-1 w-fit text-[10px] whitespace-nowrap`}>
-                    <StatusIcon className="w-3 h-3 flex-shrink-0" />
-                    <span>{statusInfo.label}{statusInfo.days !== undefined && ` (${statusInfo.days}d)`}</span>
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <span className="proposal-badge bg-white text-foreground border border-foreground text-[10px]">
-                    {proposal.type}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  {workProgramme ? (
-                    <span className="proposal-badge bg-gray-300 text-gray-700 text-[10px]">
-                      {workProgramme.abbreviation}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground text-xs">—</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {destination ? (
-                    <span className="proposal-badge bg-gray-200 text-gray-600 text-[10px]">
-                      {destination.abbreviation}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground text-xs">—</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {proposal.deadline ? (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Calendar className="w-3 h-3 text-yellow-600" />
-                      {format(proposal.deadline, 'dd/MM/yyyy')}
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground text-xs">—</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {proposal.decisionDate ? (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      {isDecided ? (
-                        proposal.status === 'funded' ? (
-                          <CheckCircle2 className="w-3 h-3 text-green-600" />
-                        ) : (
-                          <XCircle className="w-3 h-3 text-red-600" />
-                        )
-                      ) : (
-                        <Clock className="w-3 h-3 text-yellow-500" />
-                      )}
-                      {proposal.decisionDateIsEstimated && !isDecided ? 'Est. ' : ''}{format(proposal.decisionDate, 'dd/MM/yyyy')}
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground text-xs">—</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-1">
-                    {proposal.topicUrl && (
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="h-6 px-2 gap-1 text-[10px]"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.open(proposal.topicUrl, '_blank');
-                        }}
-                      >
-                        <ExternalLink className="w-2.5 h-2.5" />
-                      </Button>
-                    )}
-                    <Button 
-                      size="sm" 
-                      className="h-6 px-2 gap-1 text-[10px] bg-foreground text-background hover:bg-foreground/90"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onProposalClick(proposal);
-                      }}
-                    >
-                      {isDraft ? 'Edit' : 'View'}
-                      <ArrowRight className="w-2.5 h-2.5" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            );
-          })}
+          {pinnedProposals.map((proposal, index) => renderRow(proposal, { pinned: true, dragIndex: index }))}
+          {pinnedProposals.length > 0 && unpinnedSorted.length > 0 && (
+            <TableRow>
+              <TableCell colSpan={10} className="p-0 h-0.5 bg-border" />
+            </TableRow>
+          )}
+          {unpinnedSorted.map((proposal) => renderRow(proposal))}
         </TableBody>
       </Table>
     </div>
