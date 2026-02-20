@@ -470,16 +470,16 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         partBRoot.subsections = partBRoot.subsections.filter(s => s.id !== 'figures' && s.title !== 'Figures');
       }
       
-      // Build result: Proposal Management, Topic Info, Part A, Part B, then WP Drafts, then Case Drafts, then Figures
+      // Build result: Proposal Management, Topic Info, Part A, Part B, then Figures, then WP Drafts
       const result = [proposalManagementSection, topicInfoSection, ...partASections, ...partBSections];
+      
+      // Add Figures as standalone top-level section (before WP Drafts)
+      result.push(figuresSection);
       
       // Add combined WPs & cases section if there are any WP or case drafts
       if (wpDraftSections.length > 0 || caseDraftSections.length > 0) {
         result.push(wpAndCasesSection);
       }
-      
-      // Add Figures as standalone top-level section (after Case Drafts)
-      result.push(figuresSection);
       
       return result;
     }
@@ -487,13 +487,13 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     // Fallback to hardcoded sections
     const fallbackSections = [proposalManagementSection, topicInfoSection, ...PART_A_SECTIONS, ...HORIZON_EUROPE_SECTIONS];
     
+    // Add Figures before WP Drafts
+    fallbackSections.push(figuresSection);
+    
     // Add combined WPs & cases section
     if (wpDraftSections.length > 0 || caseDraftSections.length > 0) {
       fallbackSections.push(wpAndCasesSection);
     }
-    
-    // Add Figures as standalone top-level section (after Case Drafts)
-    fallbackSections.push(figuresSection);
     
     return fallbackSections;
   }, [templateSections, hasTemplateSections, wpDraftSections, caseDraftSections, useWpThemes, themesData]);
