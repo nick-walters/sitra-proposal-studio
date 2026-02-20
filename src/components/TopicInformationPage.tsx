@@ -350,7 +350,7 @@ export function TopicInformationPage({
         )}
         {isThisEditing ? (
           <>
-            <div className="border rounded-md overflow-hidden">
+            <div className="border rounded-md">
               <TopicFormattingToolbar
                 onInsertFootnote={handleInsertFootnote}
                 onInsertLink={handleInsertLink}
