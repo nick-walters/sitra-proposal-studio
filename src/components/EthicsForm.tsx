@@ -6,7 +6,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { DebouncedTextarea } from '@/components/ui/debounced-textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { AlertTriangle, CheckCircle, Shield, BookOpen } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
 
@@ -898,30 +898,37 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
           </Badge>
         </div>
 
+        {/* Guidelines Button */}
+        <PartAGuidelinesDialog
+          sectionTitle="Part A4: Ethics & Security self-assessment"
+          officialGuidelines={[
+            {
+              id: 'ethics-table-info',
+              title: 'Ethics issues table',
+              content: 'This table should be completed as an essential part of your proposal. Please go through the table and indicate which elements concern your proposal by answering \'Yes\' or \'No\'. If you answer \'Yes\' to any of the questions:\n• indicate in the adjacent box at which page in your full proposal further information relating to that ethics issue can be found, and\n• provide additional information on that ethics issue in the Ethics Self-Assessment section.\n\nFor more information on each of the ethics issues and how to address them, including detailed legal references, see the guidelines \'How to Complete your Ethics Self-Assessment\' (https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/how-to-complete-your-ethics-self-assessment_en.pdf).'
+            },
+            {
+              id: 'ethics-self-assessment-info',
+              title: 'Ethics self-assessment',
+              content: 'If you have entered any issues in the ethics issue table, you must perform an ethics self-assessment in accordance with the guidelines "How to Complete your Ethics Self-Assessment" (https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/how-to-complete-your-ethics-self-assessment_en.pdf) and complete the table below.'
+            },
+            {
+              id: 'security-table-info',
+              title: 'Security issues table',
+              content: 'Please go through the table and indicate which elements concern your proposal by answering YES or NO.\n\nIf you answer YES to any of the questions:\n• indicate in the adjacent box at which page in your full proposal further information relating to that security issue can be found, and\n• provide additional information on this security issue in the Security self-assessment section below.\n\nFor more information on potential security issues and how to address them, see the guidance "How to handle security-sensitive projects" (https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/how-to-handle-security-sensitive-projects_en.pdf) and the programme-specific guidelines "Classification of information in Horizon Europe projects" (https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/classification-of-information-in-he-projects_he_en.pdf).'
+            },
+            {
+              id: 'security-self-assessment-info',
+              title: 'Security self-assessment',
+              content: 'If you have answered YES for one or more of the questions indicated above, describe the measures you intend to take to solve/avoid them. For more information, see the guidelines:\n• Classification of information in Horizon Europe projects (https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/classification-of-information-in-he-projects_he_en.pdf)\n• Classification of information in Digital Europe projects (https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/digital/guidance/classification-of-information-in-dep-projects_dep_en.pdf)\n• Classification of information in EDF projects (https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/edf/guidance/classification-of-information-in-edf-projects_edf_en.pdf)'
+            },
+          ]}
+        />
+
         {/* ETHICS ISSUES TABLE SUBSECTION */}
         <Card>
           <CardHeader className="pb-3">
             <h2 className="font-semibold text-base">Ethics issues table</h2>
-            <CardDescription className="text-xs mt-2 space-y-2">
-              <p>
-                This table should be completed as an essential part of your proposal. Please go through the table and indicate which elements concern your proposal by answering 'Yes' or 'No'. If you answer 'Yes' to any of the questions:
-              </p>
-              <ul className="list-disc pl-5 space-y-1">
-                <li>indicate in the adjacent box at which page in your full proposal further information relating to that ethics issue can be found, and</li>
-                <li>provide additional information on that ethics issue in the Ethics Self-Assessment section.</li>
-              </ul>
-              <p>
-                For more information on each of the ethics issues and how to address them, including detailed legal references, see the guidelines{' '}
-                <a 
-                  href="https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/how-to-complete-your-ethics-self-assessment_en.pdf"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary underline hover:text-primary/80"
-                >
-                  'How to Complete your Ethics Self-Assessment'
-                </a>.
-              </p>
-            </CardDescription>
           </CardHeader>
           <CardContent className="px-6 pt-0 pb-2">
             {/* Sections 1-9 */}
@@ -990,19 +997,6 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
         <Card>
           <CardHeader className="pb-3">
             <h3 className="font-semibold text-sm">ETHICS SELF-ASSESSMENT</h3>
-            <CardDescription className="text-xs mt-2">
-              If you have entered any issues in the ethics issue table, you must perform an ethics self-assessment 
-              in accordance with the guidelines{' '}
-              <a 
-                href="https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/how-to-complete-your-ethics-self-assessment_en.pdf"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary underline hover:text-primary/80"
-              >
-                "How to Complete your Ethics Self-Assessment"
-              </a>{' '}
-              and complete the table below.
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 px-6 pt-0 pb-4">
             {/* Ethical dimension */}
@@ -1061,38 +1055,6 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
                 <AlertTriangle className="w-4 h-4 text-warning" />
               )}
             </div>
-            <CardDescription className="text-xs mt-2 space-y-2">
-              <p>
-                Please go through the table and indicate which elements concern your proposal by answering YES or NO.
-              </p>
-              <p>
-                If you answer YES to any of the questions:
-              </p>
-              <ul className="list-disc pl-5 space-y-1">
-                <li>indicate in the adjacent box at which page in your full proposal further information relating to that security issue can be found, and</li>
-                <li>provide additional information on this security issue in the Security self-assessment section below.</li>
-              </ul>
-              <p>
-                For more information on potential security issues and how to address them, see the guidance{' '}
-                <a 
-                  href="https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/how-to-handle-security-sensitive-projects_en.pdf"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary underline hover:text-primary/80"
-                >
-                  How to handle security-sensitive projects
-                </a>
-                {' '}and the programme-specific guidelines{' '}
-                <a 
-                  href="https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/classification-of-information-in-he-projects_he_en.pdf"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary underline hover:text-primary/80"
-                >
-                  Classification of information in Horizon Europe projects
-                </a>.
-              </p>
-            </CardDescription>
           </CardHeader>
           <CardContent className="px-6 pt-0 pb-2">
             {/* Security Sections */}
@@ -1148,34 +1110,6 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
         <Card>
           <CardHeader className="pb-3">
             <h3 className="font-semibold text-sm">SECURITY SELF-ASSESSMENT</h3>
-            <CardDescription className="text-xs mt-2">
-              If you have answered YES for one or more of the questions indicated above, describe the measures you intend 
-              to take to solve/avoid them. For more information, see the guidelines{' '}
-              <a 
-                href="https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/horizon/guidance/classification-of-information-in-he-projects_he_en.pdf"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary underline hover:text-primary/80"
-              >
-                Classification of information in Horizon Europe projects
-              </a>,{' '}
-              <a 
-                href="https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/digital/guidance/classification-of-information-in-dep-projects_dep_en.pdf"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary underline hover:text-primary/80"
-              >
-                Classification of information in Digital Europe projects
-              </a>,{' '}
-              <a 
-                href="https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/edf/guidance/classification-of-information-in-edf-projects_edf_en.pdf"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary underline hover:text-primary/80"
-              >
-                Classification of information in EDF projects
-              </a>.
-            </CardDescription>
           </CardHeader>
           <CardContent className="px-6 pt-0 pb-4">
             <DebouncedTextarea

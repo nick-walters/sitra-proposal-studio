@@ -656,13 +656,6 @@ export function ParticipantListView({
     <TooltipProvider>
       <div className="flex-1 overflow-auto p-6 bg-muted/30">
         <div className="max-w-7xl mx-auto space-y-6">
-          {/* Guidelines Button */}
-          <PartAGuidelinesDialog
-            sectionTitle="Part A2: Participants"
-            officialGuidelines={officialGuidelines}
-            sitraTips={sitraTips}
-          />
-
           {/* Header */}
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-1">
@@ -686,6 +679,13 @@ export function ParticipantListView({
               )}
             </div>
           </div>
+
+          {/* Guidelines Button */}
+          <PartAGuidelinesDialog
+            sectionTitle="Part A2: Participants"
+            officialGuidelines={officialGuidelines}
+            sitraTips={sitraTips}
+          />
 
           {/* Participants Display */}
           {sortedParticipants.length === 0 ? (
