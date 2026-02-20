@@ -922,25 +922,23 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
               </p>
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="p-0 border-l border-r border-border">
             {/* Sections 1-9 */}
-            {ETHICS_SECTIONS.map((section) => {
+            {ETHICS_SECTIONS.map((section, index) => {
               const sectionHasIssues = section.questions.some(q => ethicsData[q.id] === true);
               
               return (
-                <Card key={section.id} className={cn(sectionHasIssues && 'border-warning/50')}>
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-sm">
-                        {section.number}. {section.title}
-                      </h3>
-                      {sectionHasIssues && (
-                        <AlertTriangle className="w-4 h-4 text-warning" />
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                  {/* Table header */}
+                <div key={section.id} className={cn(index > 0 && 'border-t border-border')}>
+                  <div className="flex items-center justify-between px-3 py-2">
+                    <h3 className="font-semibold text-sm">
+                      {section.number}. {section.title}
+                    </h3>
+                    {sectionHasIssues && (
+                      <AlertTriangle className="w-4 h-4 text-warning" />
+                    )}
+                  </div>
+                  <div className="px-3 pb-2">
+                    {/* Table header */}
                     <div className="grid grid-cols-[1fr,auto,auto] gap-2 items-center py-2 border-b-2 border-border text-xs font-medium text-muted-foreground">
                       <div>Question</div>
                       <div className="w-24 text-center">Answer</div>
@@ -962,8 +960,8 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
                         isVisible={isQuestionVisible(question)}
                       />
                     ))}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               );
             })}
           </CardContent>
@@ -1101,9 +1099,9 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
               </p>
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="p-0 border-l border-r border-border">
             {/* Security Sections */}
-            {SECURITY_SECTIONS.map((section) => {
+            {SECURITY_SECTIONS.map((section, index) => {
               const sectionHasIssues = section.questions.some(q => ethicsData[q.id] === true);
               
               // Helper to check if a security sub-question should be visible
@@ -1113,23 +1111,21 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
               };
               
               return (
-                <Card key={section.id} className={cn(sectionHasIssues && 'border-warning/50')}>
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-sm">
-                        {section.number}. {section.title}
-                      </h3>
-                      {sectionHasIssues && (
-                        <AlertTriangle className="w-4 h-4 text-warning" />
-                      )}
-                    </div>
-                    {section.description && (
-                      <CardDescription className="text-xs mt-2">
-                        {section.description}
-                      </CardDescription>
+                <div key={section.id} className={cn(index > 0 && 'border-t border-border')}>
+                  <div className="flex items-center justify-between px-3 py-2">
+                    <h3 className="font-semibold text-sm">
+                      {section.number}. {section.title}
+                    </h3>
+                    {sectionHasIssues && (
+                      <AlertTriangle className="w-4 h-4 text-warning" />
                     )}
-                  </CardHeader>
-                  <CardContent className="pt-0">
+                  </div>
+                  {section.description && (
+                    <p className="text-xs text-muted-foreground px-3 -mt-1 mb-1">
+                      {section.description}
+                    </p>
+                  )}
+                  <div className="px-3 pb-2">
                     {/* Table header */}
                     <div className="grid grid-cols-[1fr,auto,auto] gap-2 items-center py-2 border-b-2 border-border text-xs font-medium text-muted-foreground">
                       <div>Question</div>
@@ -1152,8 +1148,8 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
                         isVisible={isSecurityQuestionVisible(question)}
                       />
                     ))}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               );
             })}
           </CardContent>
