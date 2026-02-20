@@ -619,7 +619,7 @@ export function TopicInformationPage({
                   onChange={(val) => setEditedProposal({ ...editedProposal, topicExpectedOutcome: val } as any)}
                   footnotes={(editedProposal as any)?.topicFootnotes || []}
                   onFootnotesChange={(fns) => setEditedProposal({ ...editedProposal, topicFootnotes: fns } as any)}
-                  placeholder="Enter the expected outcome..."
+                  placeholder=""
                 />
               ) : (
                 <FootnoteReadonlyView
@@ -637,7 +637,7 @@ export function TopicInformationPage({
                   onChange={(val) => setEditedProposal({ ...editedProposal, topicScope: val } as any)}
                   footnotes={(editedProposal as any)?.topicFootnotes || []}
                   onFootnotesChange={(fns) => setEditedProposal({ ...editedProposal, topicFootnotes: fns } as any)}
-                  placeholder="Enter the scope..."
+                  placeholder=""
                 />
               ) : (
                 <FootnoteReadonlyView
@@ -670,7 +670,7 @@ export function TopicInformationPage({
                 onChange={(val) => setEditedProposal({ ...editedProposal, topicDestinationDescription: val } as any)}
                 footnotes={(editedProposal as any)?.destinationFootnotes || []}
                 onFootnotesChange={(fns) => setEditedProposal({ ...editedProposal, destinationFootnotes: fns } as any)}
-                placeholder="Enter the destination description..."
+                placeholder=""
                 minHeight="200px"
               />
             ) : (
