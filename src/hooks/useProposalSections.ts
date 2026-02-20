@@ -269,7 +269,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       return {
         id: `wp-${wp.id}`,
         number: `WP${wp.number}`,
-        title: wp.short_name || wp.title || `Work Package ${wp.number}`,
+        title: wp.short_name || wp.title || '',
         wpId: wp.id,
         wpNumber: wp.number,
         wpColor: effectiveColor,
@@ -310,7 +310,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     return caseDraftsData.map(c => ({
       id: `case-${c.id}`,
       number: `${getCasePrefix(c.case_type)}${c.number}`,
-      title: c.short_name || c.title || `Case ${c.number}`,
+      title: c.short_name || c.title || '',
       caseId: c.id,
       caseNumber: c.number,
       caseColor: c.color,
