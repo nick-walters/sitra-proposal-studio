@@ -96,7 +96,7 @@ export function CreateProposalDialog({
   const [deadline, setDeadline] = useState<Date | undefined>(undefined);
   const [templateTypeId, setTemplateTypeId] = useState<string>('');
   const [usesFstp, setUsesFstp] = useState<boolean>(false);
-  const [isTwoStageSecondStage, setIsTwoStageSecondStage] = useState<boolean | null>(null);
+  const [isTwoStageSecondStage, setIsTwoStageSecondStage] = useState<boolean>(false);
 
   // Get destinations filtered by selected work programme
   const availableDestinations = useMemo(() => {
@@ -134,39 +134,40 @@ export function CreateProposalDialog({
     setDestination(''); // Reset destination when work programme changes
   };
 
+  const canSubmit = acronym && type && submissionStage && templateTypeId;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (acronym) {
-      toast.info('Creating your proposal — it will open shortly…', { duration: 5000 });
-      onCreateProposal({ 
-        acronym, 
-        title, 
-        type,
-        budgetType,
-        submissionStage,
-        workProgramme: workProgramme || undefined,
-        destination: destination || undefined,
-        topicUrl: topicUrl || undefined,
-        deadline: deadline || undefined,
-        templateTypeId: templateTypeId || undefined,
-        usesFstp,
-        isTwoStageSecondStage: submissionStage === 'full' ? (isTwoStageSecondStage ?? false) : false,
-      });
-      // Reset form
-      setAcronym('');
-      setTitle('');
-      setType('RIA');
-      setBudgetType('traditional');
-      setSubmissionStage('full');
-      setWorkProgramme('');
-      setDestination('');
-      setTopicUrl('');
-      setDeadline(undefined);
-      setTemplateTypeId('');
-      setUsesFstp(false);
-      setIsTwoStageSecondStage(null);
-      onOpenChange(false);
-    }
+    if (!canSubmit) return;
+    toast.info('Creating your proposal — it will open shortly…', { duration: 5000 });
+    onCreateProposal({ 
+      acronym, 
+      title, 
+      type,
+      budgetType,
+      submissionStage,
+      workProgramme: workProgramme || undefined,
+      destination: destination || undefined,
+      topicUrl: topicUrl || undefined,
+      deadline: deadline || undefined,
+      templateTypeId: templateTypeId || undefined,
+      usesFstp,
+      isTwoStageSecondStage: submissionStage === 'full' ? isTwoStageSecondStage : false,
+    });
+    // Reset form
+    setAcronym('');
+    setTitle('');
+    setType('RIA');
+    setBudgetType('traditional');
+    setSubmissionStage('full');
+    setWorkProgramme('');
+    setDestination('');
+    setTopicUrl('');
+    setDeadline(undefined);
+    setTemplateTypeId('');
+    setUsesFstp(false);
+    setIsTwoStageSecondStage(false);
+    onOpenChange(false);
   };
 
   return (
@@ -213,15 +214,12 @@ export function CreateProposalDialog({
             <div className="grid gap-3">
               <Label className="flex items-center gap-2">
                 <Layers className="w-4 h-4 text-muted-foreground" />
-                Submission Stage
+                Submission Stage *
               </Label>
               <RadioGroup 
                 value={submissionStage} 
                 onValueChange={(v) => {
                   setSubmissionStage(v as SubmissionStage);
-                  if (v === 'stage_1') {
-                    setIsTwoStageSecondStage(null);
-                  }
                 }}
                 className="grid grid-cols-2 gap-3"
               >
@@ -245,10 +243,10 @@ export function CreateProposalDialog({
               {submissionStage === 'full' && (
                 <div className="mt-2 p-3 border rounded-lg bg-muted/30">
                   <Label className="text-sm font-medium">
-                    Is this proposal a one-stage proposal, or the second stage in a two-stage proposal?
+                    Is this a one-stage or second-stage proposal?
                   </Label>
                   <RadioGroup 
-                    value={isTwoStageSecondStage === true ? 'two_stage' : isTwoStageSecondStage === false ? 'one_stage' : ''}
+                    value={isTwoStageSecondStage ? 'two_stage' : 'one_stage'}
                     onValueChange={(v) => setIsTwoStageSecondStage(v === 'two_stage')}
                     className="mt-2 flex gap-4"
                   >
@@ -271,7 +269,7 @@ export function CreateProposalDialog({
 
             {/* Proposal Type */}
             <div className="grid gap-2">
-              <Label>Action Type</Label>
+              <Label>Action Type *</Label>
               <Select value={type} onValueChange={(v) => setType(v as ProposalType)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select action type" />
@@ -297,7 +295,7 @@ export function CreateProposalDialog({
               <div className="grid gap-2">
                 <Label className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-muted-foreground" />
-                  Proposal Template
+                  Proposal Template *
                 </Label>
                 <Select value={templateTypeId} onValueChange={setTemplateTypeId}>
                   <SelectTrigger>
@@ -474,7 +472,7 @@ export function CreateProposalDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!acronym}>
+            <Button type="submit" disabled={!canSubmit}>
               Create Proposal
             </Button>
           </DialogFooter>
