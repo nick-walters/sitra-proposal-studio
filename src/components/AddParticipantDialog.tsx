@@ -105,6 +105,7 @@ export function AddParticipantDialog({
         country: form.country || undefined,
         isSme: false,
         organisationCategory: form.organisationCategory || undefined,
+        legalEntityType: form.organisationCategory || undefined,
         logoUrl: form.logoUrl || undefined,
       });
       handleClose();
