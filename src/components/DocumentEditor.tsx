@@ -704,7 +704,7 @@ export function DocumentEditor({
    // Page estimate removed - now shown in ExportDialog
 
   // State for collaboration panel - must be before early return
-  const [isCollaborationPanelOpen, setIsCollaborationPanelOpen] = useState(true);
+  const [isCollaborationPanelOpen, setIsCollaborationPanelOpen] = useState(false);
 
   if (!section) {
     return (
@@ -1175,17 +1175,9 @@ export function DocumentEditor({
         {/* Right-hand Collaboration Panel */}
         {isCollaborationPanelOpen && (
           <div className="w-80 shrink-0 h-full border-l border-border bg-card flex flex-col">
-            {/* Panel Header with close button */}
-            <div className="flex items-center justify-between px-3 py-1.5 border-b border-border">
+            {/* Panel Header */}
+            <div className="flex items-center px-3 py-1.5 border-b border-border">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Collaboration</span>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsCollaborationPanelOpen(false)}>
-                    <PanelRightClose className="w-3.5 h-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="left">Hide panel</TooltipContent>
-              </Tooltip>
             </div>
             {/* Panel Tabs */}
             <div className="flex border-b border-border">
@@ -1211,19 +1203,6 @@ export function DocumentEditor({
                 <GitCompare className="w-3 h-3 inline mr-1.5" />
                 Track Changes
               </button>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 ml-auto"
-                    onClick={() => setIsCollaborationPanelOpen(false)}
-                  >
-                    <PanelRightClose className="w-3 h-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Hide panel</TooltipContent>
-              </Tooltip>
             </div>
 
             {/* Panel Content */}
