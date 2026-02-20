@@ -453,7 +453,7 @@ export function CreateProposalDialog({
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {deadline ? format(deadline, "PPP") : <span>Select deadline (optional)</span>}
+                    {deadline ? format(deadline, "do MMMM yyyy") : <span>Select deadline (optional)</span>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">

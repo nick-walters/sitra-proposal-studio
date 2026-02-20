@@ -359,7 +359,7 @@ export function TopicInformationPage({
                     <PopoverTrigger asChild>
                       <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-8 text-sm", !(editedProposal as any).openingDate && "text-muted-foreground")}>
                         <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                        {(editedProposal as any).openingDate ? format((editedProposal as any).openingDate, 'PPP') : 'Select date'}
+                        {(editedProposal as any).openingDate ? format((editedProposal as any).openingDate, 'do MMMM yyyy') : 'Select date'}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0 z-50 bg-popover" align="start">
@@ -378,7 +378,7 @@ export function TopicInformationPage({
                   </Popover>
                 ) : (
                   <p className="text-sm font-medium">
-                    {(proposal as any)?.openingDate ? format((proposal as any).openingDate, 'dd MMM yyyy') : 'Not set'}
+                    {(proposal as any)?.openingDate ? format((proposal as any).openingDate, 'do MMMM yyyy') : 'Not set'}
                   </p>
                 )}
               </div>
@@ -390,7 +390,7 @@ export function TopicInformationPage({
                     <PopoverTrigger asChild>
                       <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-8 text-sm", !editedProposal.deadline && "text-muted-foreground")}>
                         <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                        {editedProposal.deadline ? format(editedProposal.deadline, 'PPP') : 'Select date'}
+                        {editedProposal.deadline ? format(editedProposal.deadline, 'do MMMM yyyy') : 'Select date'}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0 z-50 bg-popover" align="start">
@@ -410,7 +410,7 @@ export function TopicInformationPage({
                   </Popover>
                 ) : (
                   <p className="text-sm font-medium">
-                    {proposal?.deadline ? format(proposal.deadline, 'dd MMM yyyy') : 'Not set'}
+                    {proposal?.deadline ? format(proposal.deadline, 'do MMMM yyyy') : 'Not set'}
                   </p>
                 )}
               </div>
