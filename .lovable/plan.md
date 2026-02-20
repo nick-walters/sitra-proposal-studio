@@ -1,201 +1,73 @@
 
 
-# Unified Plan: Smart Version History, Track Changes, and Code Cleanup
+# Version History UI Fixes and Save Indicator Update
 
----
+## Changes
 
-## Part 1: Autosave and Version History Improvements
+### 1. Fix version list scrollability
 
-### 1a. Increase autosave debounce from 1s to 5s
+The `ScrollArea` wrapping the version list (line 334) needs a fixed height so the scroll container works. Currently it has `flex-1` but the parent `div` uses `min-h-[400px]` which doesn't constrain the ScrollArea's max height. Add `max-h-[400px]` (or similar) to the ScrollArea so overflow triggers scrolling.
 
-**File:** `src/hooks/useSectionContent.ts`
+### 2. Reorganize left panel version items into aligned columns
 
-Change `AUTOSAVE_DEBOUNCE` from `1000` to `5000`. This only affects writes to `section_content` (the live document). No data loss risk because `beforeunload` and `visibilitychange` handlers still flush immediately.
+Remove the inline "X words" and "+Xw" delta text from the metadata row. Instead, arrange the remaining metadata (relative time, file size, editor name) in a structured grid/table-like layout so they align vertically across entries.
 
-### 1b. Increase version snapshot interval from 2 min to 5 min
-
-**File:** `src/hooks/useSectionContent.ts`
-
-Change `VERSION_MIN_INTERVAL` from `2 * 60 * 1000` to `5 * 60 * 1000`.
-
-### 1c. Significance threshold for version creation
-
-**File:** `src/hooks/useSectionContent.ts`
-
-Add a `hasSignificantChange(oldContent, newContent)` helper that strips HTML and compares:
-- Word difference >= 5 words, OR
-- Character difference >= 50 characters, OR
-- Content went from empty to non-empty (or vice versa)
-
-The `saveVersion` function will check this before creating a snapshot. Forced saves (unmount, focus loss, manual "Save Version") bypass the threshold but still require non-identical content.
-
-**Important distinction:** This threshold only gates version snapshots (`section_versions` table). Autosave to `section_content` remains unchanged -- every edit is always saved to the live document.
-
-### 1d. Database schema changes
-
-**New migration** adding three columns to `section_versions`:
-
-```text
-label        text     DEFAULT NULL    -- Custom name e.g. "Final submitted version"
-is_pinned    boolean  DEFAULT false   -- Protects from auto-thinning
-is_major     boolean  DEFAULT false   -- Major vs minor categorization
+Current layout (line 403-421):
+```
+Clock 3m ago | 245 words | 12.4 KB | +5w | User Name
 ```
 
-Update the `prevent_section_version_update` trigger to ALLOW changes to `label`, `is_pinned`, and `is_major` while keeping `content`, `version_number`, and `created_at` immutable.
+New layout -- a compact grid under each version title:
+```
+Version 5                    [Major] [Pinned]
+  Final submitted version
+  3m ago        12.4 KB        John Smith
+```
 
-Update the `prevent_section_version_delete` trigger to allow deletion only when `current_setting('app.allow_thinning', true) = 'true'`, so the thinning function can clean up old minor versions while manual deletion remains blocked.
+Each row uses a 3-column CSS grid (`grid grid-cols-3`) with consistent widths so time, size, and name line up across all version entries.
 
-### 1e. Major/minor version categorization
+### 3. Make user-added label text bold
 
-- **Minor versions** (default): Auto-created every 5 minutes when significant changes are detected.
-- **Major versions**: Created when user explicitly clicks "Save Version", or when a version is pinned/labeled. Marked with `is_major = true`.
+Change the label display in the version list (line 398) from `text-xs text-primary` to `text-xs text-primary font-bold`.
 
-### 1f. Intelligent retention thinning
+### 4. Major/minor sub-numbering (Version 1.0, 1.1, 1.2, Version 2.0)
 
-**New database function:** `thin_section_versions()`
+Currently all versions use a flat incrementing `version_number`. The plan introduces composite numbering:
 
-Automatically prunes redundant minor versions based on age:
+- **Major versions** (`is_major = true`): Increment the major number, reset minor to 0. Display as "Version 2.0", "Version 3.0".
+- **Minor versions** (`is_major = false`): Keep the same major number, increment minor. Display as "Version 2.1", "Version 2.2".
 
-| Age | Versions kept |
-|---|---|
-| 0--7 days | All versions |
-| 7--30 days | 1 per hour |
-| 30--90 days | 1 per day |
-| 90+ days | 1 per week |
+This is a **display-only** computation -- no schema changes needed. The raw `version_number` stays as-is in the database. A `useMemo` will compute a map of `version.id -> "X.Y"` string by iterating versions sorted by `version_number` ascending:
+- Start at major=1, minor=0
+- For each version: if `is_major`, increment major, set minor=0; else increment minor
+- Store the formatted string "major.minor"
 
-**Never deleted:** pinned versions, labeled versions, major versions, version 1 (baseline), the latest version per section.
+The "Major" badge stays alongside the new numbering for extra clarity.
 
-The function sets `app.allow_thinning = 'true'` before deleting, then resets it. Called as an RPC when the version history dialog opens.
+### 5. Save indicator: grey "Autosaves every 5 seconds" instead of red
 
----
-
-## Part 2: Version History Dialog UI Enhancements
-
-**File:** `src/components/SectionVersionHistoryDialog.tsx`
-
-### 2a. File size display
-
-Add `getContentSize(content)` showing bytes/KB alongside word count in the version list and detail panel.
-
-### 2b. Change deltas
-
-Show difference from previous version: "+12 words", "+1.2 KB" badges on each entry.
-
-### 2c. Major/minor visual distinction
-
-- Major versions: bold text, filled badge, prominent styling
-- Minor versions: lighter, smaller text
-- Pinning or labeling auto-promotes to major
-
-### 2d. Version labeling (custom name) -- role-restricted
-
-Coordinators, admins, and owners can assign a custom descriptive name to any version. This appears as an editable text input in the detail panel (right side), below the version number.
-
-**How it displays:**
-- The version number itself (e.g. "Version 5") is always shown and is never editable.
-- The label appears underneath or beside it, e.g. "Version 5 -- Final submitted version".
-- In the version list (left side), labeled versions show the label as secondary text below the version number.
-
-**Role enforcement:**
-- The label input field is only rendered when the current user's role tier is `coordinator` (which includes global admin and owner, per the existing `useProposalRole` hook).
-- Editors and viewers can see labels but cannot edit them.
-- The database update call uses the existing Supabase client with RLS -- since `section_versions` already requires `has_any_proposal_role`, and the update trigger allows label changes, this is safe. An additional RLS policy restricts UPDATE to users with coordinator/admin/owner roles only.
-
-**Interaction:**
-- Clicking the label area reveals an inline text input (or shows an "Add label" placeholder if empty).
-- Pressing Enter or blurring saves the label via a Supabase update to `section_versions.label`.
-- Setting a label automatically sets `is_major = true` on that version.
-- Labels can be cleared by emptying the input (which does NOT revert `is_major`).
-
-### 2e. Version pinning
-
-- Pin/unpin toggle button (pin icon) in the detail panel.
-- Also role-restricted to coordinator tier.
-- Pinning automatically sets `is_major = true`.
-
-### 2f. Time-based grouping
-
-Group versions with section headers: "Today", "Yesterday", "This Week", "This Month", "Older".
-
-### 2g. Retention policy info box
-
-Add a collapsible info section (collapsed by default) below the dialog description using the existing `Collapsible` component. When expanded, it shows:
-
-- A small table explaining the retention tiers (same as Part 1f above)
-- A note: "Pinned, labeled, and major versions are never automatically removed."
-
-Styled with `text-xs text-muted-foreground` to remain subtle.
-
-### 2h. Fetch limit increase
-
-Change from 50 to 200 versions (thinning keeps the list manageable).
+In `SaveIndicator.tsx`, change the `saving` / `hasUnsavedChanges` state:
+- Remove the red (`text-destructive`) color and `animate-pulse`
+- Use grey (`text-muted-foreground`) for both icon and text
+- Change the label from "Autosaving" to "Autosaves every 5 seconds"
+- Keep the `saved` state green with "Autosaved" + timestamp as-is
+- Keep the `idle` state unchanged
 
 ---
-
-## Part 3: Track Changes Fixes
-
-**File:** `src/extensions/TrackChanges.ts`
-
-### 3a. Handle replacement operations
-
-Add a case in `appendTransaction` where `oldEnd > oldStart && newEnd > newStart` (text was replaced). Re-insert old text with a deletion mark before the new text, and mark the new text with an insertion mark.
-
-### 3b. Preserve formatting on tracked deletions
-
-Instead of creating a flat `schema.text()` node, use `deletedSlice.content` and apply the deletion mark to each text node, preserving bold/italic/etc.
-
-### 3c. Fix accept/reject all position invalidation
-
-Process all changes by sorting ranges in reverse order and processing deletions before mark removals, so earlier positions remain valid.
-
-### 3d. Improve merge window
-
-Reduce from 10 seconds to 5 seconds and reset when the user pauses for > 1 second.
-
----
-
-## Part 4: Code Cleanup
-
-### Delete unused files:
-- `src/components/VersionHistoryDialog.tsx`
-- `src/components/CollaborationPanel.tsx`
-- `src/components/GrammarChecker.tsx`
-- `src/components/WordCountBadge.tsx`
-
-### Inline `useTrackedChanges`:
-Replace the hook import in `DocumentEditor.tsx` with direct `useState`/`useCallback`, then delete `src/hooks/useTrackedChanges.ts`.
-
----
-
-## Implementation Order
-
-1. Database migration (add columns, update triggers, create thinning function, add RLS policy for label/pin updates)
-2. Update `useSectionContent.ts` (5s debounce, 5-min interval, significance threshold)
-3. Update `SectionVersionHistoryDialog.tsx` (all UI enhancements including role-gated labeling/pinning and retention info box)
-4. Fix track changes in `TrackChanges.ts`
-5. Delete unused files and inline `useTrackedChanges`
 
 ## Technical Details
 
-### Files Modified
+### Files modified
 
-1. **`src/hooks/useSectionContent.ts`** -- debounce, interval, significance threshold
-2. **`src/components/SectionVersionHistoryDialog.tsx`** -- all UI enhancements; receives `proposalId` (already a prop) and uses `useProposalRole(proposalId)` to determine if the user can label/pin
-3. **`src/extensions/TrackChanges.ts`** -- replacement handling, formatting preservation, accept/reject fixes
-4. **`src/components/DocumentEditor.tsx`** -- inline `useTrackedChanges`, remove unused imports
-5. **New migration SQL** -- schema changes, trigger updates, thinning function, RLS update policy
+1. **`src/components/SectionVersionHistoryDialog.tsx`**
+   - Add `max-h-[400px]` to the ScrollArea for the version list
+   - Add a `useMemo` to compute `displayVersionNumber` map (id to "X.Y" string)
+   - Replace flat `Version {version_number}` with `Version {displayVersionNumber}`
+   - Restructure the metadata row into a `grid grid-cols-3` layout with time, size, and name columns (remove words and word-delta)
+   - Make label text bold (`font-bold`)
 
-### RLS for Label/Pin Updates
-
-A new RLS policy on `section_versions` for UPDATE:
-- Allows authenticated users who are coordinators/admins/owners on the proposal (via `is_proposal_admin`) to update `label`, `is_pinned`, and `is_major`.
-- The existing trigger ensures `content`, `version_number`, and `created_at` remain immutable regardless.
-
-### Risks and Mitigations
-
-- **Version history**: Existing content edited but never versioned won't retroactively get versions. New edits will create versions going forward.
-- **Track changes formatting**: The `deletedSlice.content` approach needs careful handling of inline vs text nodes.
-- **Deleting files**: Each file verified to have zero imports across `src/`.
-- **Thinning function**: Idempotent and safe to run multiple times. Protected versions are never removed.
-- **Role check for labeling**: Uses the same `useProposalRole` hook already in the codebase, so no new security surface.
+2. **`src/components/SaveIndicator.tsx`**
+   - Change `saving` state colors from `text-destructive` to `text-muted-foreground`
+   - Remove `animate-pulse` from saving state
+   - Change label from "Autosaving" to "Autosaves every 5 seconds"
 
