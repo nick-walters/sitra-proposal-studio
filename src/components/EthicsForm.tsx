@@ -804,7 +804,7 @@ function EthicsQuestionRow({
           value={pageValue || ''}
           onChange={(e) => onPageChange(e.target.value)}
           placeholder="Page"
-          className="h-7 w-16 text-xs px-2"
+          className="h-7 w-16 text-xs px-2 -mt-0.5"
           disabled={!canEdit || value !== true}
         />
       </div>
@@ -987,7 +987,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
 
         {/* ETHICS SELF-ASSESSMENT */}
         <Card>
-          <CardHeader className="py-2 px-3">
+          <CardHeader className="pb-3">
             <h3 className="font-semibold text-sm">ETHICS SELF-ASSESSMENT</h3>
             <CardDescription className="text-xs mt-2">
               If you have entered any issues in the ethics issue table, you must perform an ethics self-assessment 
@@ -1003,7 +1003,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
               and complete the table below.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3 px-3 pt-0 pb-3">
+          <CardContent className="space-y-3 px-6 pt-0 pb-4">
             {/* Ethical dimension */}
             <div className="space-y-1">
               <Label className="text-sm font-medium">
@@ -1145,7 +1145,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
 
         {/* SECURITY SELF-ASSESSMENT */}
         <Card>
-          <CardHeader className="py-2 px-3">
+          <CardHeader className="pb-3">
             <h3 className="font-semibold text-sm">SECURITY SELF-ASSESSMENT</h3>
             <CardDescription className="text-xs mt-2">
               If you have answered YES for one or more of the questions indicated above, describe the measures you intend 
@@ -1176,7 +1176,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
               </a>.
             </CardDescription>
           </CardHeader>
-          <CardContent className="px-3 pt-0 pb-3">
+          <CardContent className="px-6 pt-0 pb-4">
             <Textarea
               value={ethicsData.securitySelfAssessment || ''}
               onChange={(e) => onUpdateEthics({ securitySelfAssessment: e.target.value })}
