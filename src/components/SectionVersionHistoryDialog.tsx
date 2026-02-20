@@ -445,7 +445,7 @@ export function SectionVersionHistoryDialog({
           </ScrollArea>
 
           {/* Version Details */}
-          <div className="w-72 border border-border rounded-md p-4">
+          <ScrollArea className="w-72 max-h-[400px] border border-border rounded-md p-4">
             {selectedVersion ? (
               <div className="space-y-4">
                 <div>
@@ -584,7 +584,7 @@ export function SectionVersionHistoryDialog({
                 </p>
               </div>
             )}
-          </div>
+          </ScrollArea>
         </div>
       </DialogContent>
     </Dialog>
