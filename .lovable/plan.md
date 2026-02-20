@@ -1,27 +1,45 @@
 
 
-## Remove section boxes in A4 Ethics form
+# Codebase Cleanup Plan
 
-**What changes:**
-The current layout wraps each numbered ethics section (1-9) inside individual Card boxes with full borders, padding, and rounded corners. This will be replaced with a flat, borderless layout where:
+## 1. Delete Unused Files
 
-- Each section is separated by a horizontal line (divider) instead of being in its own box
-- Left and right borders are added to the overall container for visual framing
-- Section-level Card wrappers, padding, and indentation are removed
-- The section headers and question rows flow naturally without card nesting
+The following files are not imported or rendered anywhere in the project:
 
-**Technical details:**
+**Components:**
+- `src/components/TeamMemberCard.tsx` -- never imported
+- `src/components/NavLink.tsx` -- never imported
+- `src/components/FootnoteTextarea.tsx` -- never imported
+- `src/components/EffortToBudgetSummary.tsx` -- never imported
 
-**File: `src/components/EthicsForm.tsx`**
+**Hooks:**
+- `src/hooks/useRealtimePresence.ts` -- never imported (superseded by `useCollaborativeCursors` / block locking)
+- `src/hooks/useTemplateSystem.ts` -- never imported (template logic lives in `useTemplates` and `useProposalTemplateCreation`)
+- `src/hooks/useEffortToBudget.ts` -- only consumer was `EffortToBudgetSummary` (also being deleted)
 
-1. In the "Ethics issues table" `<CardContent>` (around lines 925-969), replace the inner `<Card>` wrapper per section with a simple `<div>` that has:
-   - A top border (`border-t`) as section separator (except the first section)
-   - No rounded corners, no shadow, no card padding
-   - Left/right borders on the overall container
+## 2. Refactor ParticipantTable Into a Constants-Only Module
 
-2. Remove the `<CardHeader>` and `<CardContent>` nesting inside each section and render the section title and questions directly.
+`src/components/ParticipantTable.tsx` is a 660-line component that is **never rendered**. However, two exported constants (`ORGANISATION_CATEGORY_LABELS` and `OrganisationCategory` type) are imported by `AddParticipantDialog` and `ParticipantDetailForm`.
 
-3. The outer "Ethics issues table" Card keeps its wrapper but the inner sections become flat divs separated by horizontal rules.
+**Action:** Move `ORGANISATION_CATEGORY_LABELS` and `OrganisationCategory` into `src/types/proposal.ts` (where other participant types already live), update the two import sites, then delete `ParticipantTable.tsx`.
 
-4. Similarly update the Security sections (around lines 1061-1160) to match the same flat style.
+## 3. Summary of Files Affected
+
+| Action | File |
+|--------|------|
+| Delete | `src/components/TeamMemberCard.tsx` |
+| Delete | `src/components/NavLink.tsx` |
+| Delete | `src/components/FootnoteTextarea.tsx` |
+| Delete | `src/components/EffortToBudgetSummary.tsx` |
+| Delete | `src/hooks/useRealtimePresence.ts` |
+| Delete | `src/hooks/useTemplateSystem.ts` |
+| Delete | `src/hooks/useEffortToBudget.ts` |
+| Delete | `src/components/ParticipantTable.tsx` |
+| Edit | `src/types/proposal.ts` -- add `OrganisationCategory` and `ORGANISATION_CATEGORY_LABELS` |
+| Edit | `src/components/AddParticipantDialog.tsx` -- update import path |
+| Edit | `src/components/ParticipantDetailForm.tsx` -- update import path |
+
+**Total: 8 files deleted, 3 files edited.**
+
+No functional behavior changes -- this is purely removing dead code and relocating shared constants.
 
