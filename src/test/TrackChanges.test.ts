@@ -228,6 +228,24 @@ describe('TrackChanges Extension', () => {
       expect(editor.state.selection.from).toBeGreaterThan(1);
       editor.destroy();
     });
+
+    it('navigateToPreviousChange moves cursor to the previous change', async () => {
+      const editor = createEditor({ enabled: true, content: '<p>Hello world test</p>' });
+      editor.commands.setTextSelection(6);
+      editor.commands.insertContent('X');
+      (editor.storage as any).trackChanges.lastInsertionId = null;
+      editor.commands.setTextSelection(18);
+      editor.commands.insertContent('Y');
+      await waitForChanges();
+
+      // Move cursor to end
+      editor.commands.setTextSelection(editor.state.doc.content.size - 1);
+      const endPos = editor.state.selection.from;
+      editor.commands.navigateToPreviousChange();
+
+      expect(editor.state.selection.from).toBeLessThan(endPos);
+      editor.destroy();
+    });
   });
 
   describe('Cursor commands', () => {
@@ -276,8 +294,82 @@ describe('TrackChanges Extension', () => {
       expect(attrs.timestamp).toBeTruthy();
       expect(attrs.changeId).toBeTruthy();
       editor.destroy();
+  });
+
+  describe('Replacement tracking', () => {
+    it('tracks a replacement as deletion + insertion', async () => {
+      const editor = createEditor({ enabled: true, content: '<p>Hello world</p>' });
+      // Select "world" and replace with "earth"
+      editor.commands.setTextSelection({ from: 7, to: 12 });
+      editor.commands.insertContent('earth');
+      await waitForChanges();
+
+      const insertionType = editor.state.schema.marks.trackInsertion;
+      const deletionType = editor.state.schema.marks.trackDeletion;
+      let hasInsertion = false;
+      let hasDeletion = false;
+      editor.state.doc.descendants((node) => {
+        if (node.isText) {
+          if (node.marks.some(m => m.type === insertionType)) hasInsertion = true;
+          if (node.marks.some(m => m.type === deletionType)) hasDeletion = true;
+        }
+      });
+
+      expect(hasInsertion).toBe(true);
+      expect(hasDeletion).toBe(true);
+      expect(editor.state.doc.textContent).toContain('earth');
+      expect(editor.state.doc.textContent).toContain('world');
+      editor.destroy();
     });
   });
+
+  describe('Own insertion deletion', () => {
+    it('silently removes own tracked insertions when deleted', async () => {
+      const editor = createEditor({ enabled: true });
+      // Insert text
+      editor.commands.setTextSelection(12);
+      editor.commands.insertContent(' added');
+      await waitForChanges();
+
+      // Now delete the inserted text - should vanish without deletion mark
+      const docText = editor.state.doc.textContent;
+      const addedPos = docText.indexOf(' added');
+      // Select and delete " added"
+      editor.commands.setTextSelection({ from: 1 + addedPos, to: 1 + addedPos + 6 });
+      editor.commands.deleteSelection();
+      await waitForChanges();
+
+      const deletionType = editor.state.schema.marks.trackDeletion;
+      let hasDeletion = false;
+      editor.state.doc.descendants((node) => {
+        if (node.isText && node.marks.some(m => m.type === deletionType)) {
+          hasDeletion = true;
+        }
+      });
+
+      // Should NOT have a deletion mark - own insertions are silently removed
+      expect(hasDeletion).toBe(false);
+      expect(editor.state.doc.textContent).not.toContain('added');
+      editor.destroy();
+    });
+  });
+
+  describe('Reject at cursor', () => {
+    it('rejectChangeAtCursor rejects the change at cursor position', async () => {
+      const editor = createEditor({ enabled: true });
+      editor.commands.setTextSelection(12);
+      editor.commands.insertContent('!');
+      await waitForChanges();
+
+      // Cursor should be right after the insertion
+      editor.commands.rejectChangeAtCursor();
+      await waitForChanges();
+
+      expect(editor.state.doc.textContent).not.toContain('!');
+      editor.destroy();
+    });
+  });
+});
 
   describe('Merge window', () => {
     it('consecutive insertions within 5s share the same changeId', async () => {
