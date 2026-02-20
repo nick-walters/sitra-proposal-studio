@@ -1,14 +1,16 @@
-import { Bold, Italic, Underline, List, ListOrdered } from "lucide-react";
+import { Bold, Italic, Underline, List, ListOrdered, Link } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface TopicFormattingToolbarProps {
   onInsertFootnote?: () => void;
+  onInsertLink?: () => void;
 }
 
 export function TopicFormattingToolbar({
   onInsertFootnote,
+  onInsertLink,
 }: TopicFormattingToolbarProps) {
   const exec = (command: string) => {
     document.execCommand(command, false);
@@ -16,7 +18,6 @@ export function TopicFormattingToolbar({
 
   return (
     <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b flex items-center gap-0.5 p-1.5 flex-wrap">
-      {/* Bold */}
       <Tooltip>
         <TooltipTrigger asChild>
           <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => exec('bold')}>
@@ -26,7 +27,6 @@ export function TopicFormattingToolbar({
         <TooltipContent side="bottom" className="text-xs">Bold (Ctrl+B)</TooltipContent>
       </Tooltip>
 
-      {/* Italic */}
       <Tooltip>
         <TooltipTrigger asChild>
           <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => exec('italic')}>
@@ -36,7 +36,6 @@ export function TopicFormattingToolbar({
         <TooltipContent side="bottom" className="text-xs">Italic (Ctrl+I)</TooltipContent>
       </Tooltip>
 
-      {/* Underline */}
       <Tooltip>
         <TooltipTrigger asChild>
           <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => exec('underline')}>
@@ -48,29 +47,35 @@ export function TopicFormattingToolbar({
 
       <Separator orientation="vertical" className="h-5 mx-1" />
 
-      {/* Bullet List */}
       <Tooltip>
         <TooltipTrigger asChild>
           <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => exec('insertUnorderedList')}>
             <List className="h-4 w-4" />
           </Button>
         </TooltipTrigger>
-        <TooltipContent side="bottom" className="text-xs">Bullet List</TooltipContent>
+        <TooltipContent side="bottom" className="text-xs">Bullet list</TooltipContent>
       </Tooltip>
 
-      {/* Numbered List */}
       <Tooltip>
         <TooltipTrigger asChild>
           <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => exec('insertOrderedList')}>
             <ListOrdered className="h-4 w-4" />
           </Button>
         </TooltipTrigger>
-        <TooltipContent side="bottom" className="text-xs">Numbered List</TooltipContent>
+        <TooltipContent side="bottom" className="text-xs">Numbered list</TooltipContent>
       </Tooltip>
 
       <Separator orientation="vertical" className="h-5 mx-1" />
 
-      {/* Footnote */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={onInsertLink}>
+            <Link className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="text-xs">Insert link</TooltipContent>
+      </Tooltip>
+
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
@@ -80,11 +85,11 @@ export function TopicFormattingToolbar({
             className="h-7 gap-1 text-xs px-2"
             onClick={onInsertFootnote}
           >
-            <sup className="text-[10px] font-bold">n</sup>
+            <sup className="text-[10px] font-bold">1</sup>
             Footnote
           </Button>
         </TooltipTrigger>
-        <TooltipContent side="bottom" className="text-xs">Insert Footnote</TooltipContent>
+        <TooltipContent side="bottom" className="text-xs">Insert footnote</TooltipContent>
       </Tooltip>
     </div>
   );

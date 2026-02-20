@@ -3,8 +3,7 @@ import { FormattedNumberInput } from '@/components/FormattedNumberInput';
 import { EuroCurrencyInput } from '@/components/EuroCurrencyInput';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FootnoteReadonlyView, type Footnote } from "./FootnoteTextarea";
-import { TopicRichTextArea } from "./TopicRichTextArea";
+import { TopicRichTextArea, TopicRichTextReadonly } from "./TopicRichTextArea";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -20,7 +19,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { TopicFormattingToolbar } from "./TopicFormattingToolbar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Target, Euro, Calendar as CalendarIcon, ExternalLink, FileText, FileDown, CheckCircle2, RefreshCw } from "lucide-react";
+import { Loader2, Target, Euro, Calendar as CalendarIcon, ExternalLink, FileText, FileDown, CheckCircle2, RefreshCw, Pencil, Save, X } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -35,18 +34,9 @@ interface TopicInformationPageProps {
 }
 
 function getCallStatus(openingDate?: Date, deadline?: Date): { label: string; variant: 'default' | 'destructive' | 'secondary' | 'outline'; className: string } | null {
-  if (!openingDate) return null; // No badge when opening date not defined
-
+  if (!openingDate) return null;
   const now = new Date();
-
-  // Check if past 17:00 Brussels time on deadline date
   if (deadline) {
-    const brusselsDeadline = new Date(deadline.toLocaleString('en-US', { timeZone: 'Europe/Brussels' }));
-    brusselsDeadline.setHours(17, 0, 0, 0);
-    // Convert back: get the Brussels 17:00 as a UTC-comparable timestamp
-    const deadlineCutoff = new Date(deadline);
-    deadlineCutoff.setHours(17, 0, 0, 0);
-    // Use Intl to get accurate Brussels time comparison
     const nowBrussels = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Brussels' }));
     const deadlineBrussels = new Date(deadline.toLocaleString('en-US', { timeZone: 'Europe/Brussels' }));
     deadlineBrussels.setHours(17, 0, 0, 0);
@@ -54,19 +44,15 @@ function getCallStatus(openingDate?: Date, deadline?: Date): { label: string; va
       return { label: 'Closed', variant: 'destructive', className: 'bg-destructive/10 text-destructive border-destructive/30' };
     }
   }
-
   if (now < openingDate) {
     return { label: 'Upcoming', variant: 'secondary', className: 'bg-muted text-muted-foreground' };
   }
-
   if (openingDate && now >= openingDate) {
     return { label: 'Open for submission', variant: 'default', className: 'bg-green-50 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700' };
   }
-
   return null;
 }
 
-/** Parse a budget string that may be a range like "3,500,000–4,000,000" into [min, max] numbers */
 function parseBudgetRange(val: string): [number, number] | null {
   if (!val) return null;
   const parts = val.split('–').map(p => parseFloat(p.replace(/[^0-9.]/g, '')));
@@ -77,7 +63,6 @@ function parseBudgetRange(val: string): [number, number] | null {
 
 function IndicativeProjectsField({ totalBudgetText, totalBudget, budgetPerProject }: { totalBudgetText?: string; totalBudget?: number; budgetPerProject: string }) {
   const computed = useMemo(() => {
-    // Parse topic budget: prefer text (supports ranges), fall back to number
     const topicRange = totalBudgetText ? parseBudgetRange(totalBudgetText) : (totalBudget ? [totalBudget, totalBudget] as [number, number] : null);
     if (!topicRange || !budgetPerProject) return '–';
     const perProjectRange = parseBudgetRange(budgetPerProject);
@@ -90,9 +75,10 @@ function IndicativeProjectsField({ totalBudgetText, totalBudget, budgetPerProjec
     if (low > high) return `${high}–${low}`;
     return `${low}–${high}`;
   }, [totalBudgetText, totalBudget, budgetPerProject]);
-
   return <p className="text-sm font-medium">{computed}</p>;
 }
+
+type EditableField = 'expectedOutcome' | 'scope' | 'destination' | null;
 
 export function TopicInformationPage({
   proposalId,
@@ -114,29 +100,69 @@ export function TopicInformationPage({
     proposal?.workProgramme ? getDestinationsForWorkProgramme(proposal.workProgramme) : []
   );
 
-  // Track which field is active for footnote insertion
-  const [activeFieldKey, setActiveFieldKey] = useState<'expectedOutcome' | 'scope' | 'destination' | null>(null);
+  // Which rich text field is currently being edited (only one at a time)
+  const [editingField, setEditingField] = useState<EditableField>(null);
+  // Snapshot of field values when editing started (for discard)
+  const [editSnapshot, setEditSnapshot] = useState<Record<string, any> | null>(null);
 
-  const handleToolbarInsertFootnote = useCallback(() => {
-    if (!editedProposal || !activeFieldKey) return;
+  const userCanEdit = canEdit && isCoordinator;
 
-    const isDestination = activeFieldKey === 'destination';
+  const startEditing = (field: EditableField) => {
+    if (!userCanEdit || !editedProposal) return;
+    // Save snapshot for discard
+    setEditSnapshot({
+      topicExpectedOutcome: (editedProposal as any)?.topicExpectedOutcome || '',
+      topicScope: (editedProposal as any)?.topicScope || '',
+      topicDestinationDescription: (editedProposal as any)?.topicDestinationDescription || '',
+      topicFootnotes: (editedProposal as any)?.topicFootnotes || [],
+      destinationFootnotes: (editedProposal as any)?.destinationFootnotes || [],
+    });
+    setEditingField(field);
+  };
+
+  const saveEdits = async () => {
+    if (editedProposal && onUpdateProposal) {
+      setSaving(true);
+      await onUpdateProposal(editedProposal);
+      setLastSaved(new Date());
+      setSaving(false);
+    }
+    setEditingField(null);
+    setEditSnapshot(null);
+  };
+
+  const discardEdits = () => {
+    if (editSnapshot && editedProposal) {
+      setEditedProposal({
+        ...editedProposal,
+        topicExpectedOutcome: editSnapshot.topicExpectedOutcome,
+        topicScope: editSnapshot.topicScope,
+        topicDestinationDescription: editSnapshot.topicDestinationDescription,
+        topicFootnotes: editSnapshot.topicFootnotes,
+        destinationFootnotes: editSnapshot.destinationFootnotes,
+      } as any);
+    }
+    setEditingField(null);
+    setEditSnapshot(null);
+  };
+
+  const handleInsertFootnote = useCallback(() => {
+    if (!editedProposal || !editingField) return;
+    const isDestination = editingField === 'destination';
     const footnotes: any[] = isDestination
       ? ((editedProposal as any)?.destinationFootnotes || [])
       : ((editedProposal as any)?.topicFootnotes || []);
     const nextNumber = footnotes.length + 1;
     const newFootnote = { id: crypto.randomUUID(), text: "" };
 
-    // Insert superscript marker at cursor in contentEditable
     const sel = window.getSelection();
     if (sel && sel.rangeCount > 0) {
       const range = sel.getRangeAt(0);
       const marker = document.createElement('sup');
       marker.className = 'text-primary font-semibold text-[10px]';
-      marker.textContent = `[${nextNumber}]`;
+      marker.textContent = `${nextNumber}`;
       range.deleteContents();
       range.insertNode(marker);
-      // Move cursor after marker
       range.setStartAfter(marker);
       range.collapse(true);
       sel.removeAllRanges();
@@ -145,9 +171,27 @@ export function TopicInformationPage({
 
     const footnotesKey = isDestination ? 'destinationFootnotes' : 'topicFootnotes';
     setEditedProposal({ ...editedProposal, [footnotesKey]: [...footnotes, newFootnote] } as any);
-  }, [editedProposal, activeFieldKey]);
+  }, [editedProposal, editingField]);
 
-  const userCanEdit = canEdit && isCoordinator;
+  const handleInsertLink = useCallback(() => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const selectedText = sel.toString();
+    const url = prompt('Enter URL:', 'https://');
+    if (!url) return;
+    const range = sel.getRangeAt(0);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.target = '_blank';
+    anchor.rel = 'noopener noreferrer';
+    anchor.textContent = selectedText || url;
+    range.deleteContents();
+    range.insertNode(anchor);
+    range.setStartAfter(anchor);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }, []);
 
   useEffect(() => {
     if (proposal) setEditedProposal(proposal);
@@ -161,7 +205,7 @@ export function TopicInformationPage({
 
   const hasUnsavedChanges = userCanEdit && editedProposal && proposal && JSON.stringify(editedProposal) !== JSON.stringify(proposal);
 
-  // Auto-save
+  // Auto-save for non-rich-text fields
   const debouncedSave = useCallback((data: typeof editedProposal) => {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     setSaving(true);
@@ -175,11 +219,12 @@ export function TopicInformationPage({
   }, [onUpdateProposal]);
 
   useEffect(() => {
-    if (userCanEdit && editedProposal && proposal && JSON.stringify(editedProposal) !== JSON.stringify(proposal)) {
+    // Only auto-save when NOT editing a rich text field (rich text uses explicit save)
+    if (!editingField && userCanEdit && editedProposal && proposal && JSON.stringify(editedProposal) !== JSON.stringify(proposal)) {
       debouncedSave(editedProposal);
     }
     return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
-  }, [editedProposal, userCanEdit, proposal, debouncedSave]);
+  }, [editedProposal, userCanEdit, proposal, debouncedSave, editingField]);
 
   const workProgramme = WORK_PROGRAMMES.find(wp => wp.id === proposal?.workProgramme);
   const destination = DESTINATIONS.find(d => d.id === proposal?.destination);
@@ -188,7 +233,6 @@ export function TopicInformationPage({
 
   const callStatus = getCallStatus(proposal?.openingDate, proposal?.deadline);
 
-  // Fetch topic description
   const handleFetchTopicDescription = async () => {
     if (!proposal?.topicUrl || !proposalId) {
       toast.error('No topic URL configured');
@@ -214,7 +258,6 @@ export function TopicInformationPage({
     }
   };
 
-  // For destination, reuse same function (it fetches both)
   const handleFetchDestinationDescription = async () => {
     if (!proposal?.topicUrl || !proposalId) {
       toast.error('No topic URL configured');
@@ -240,13 +283,82 @@ export function TopicInformationPage({
     }
   };
 
+  /** Render an editable rich text field with edit/save/discard controls */
+  const renderRichTextField = (
+    fieldKey: EditableField,
+    label: string,
+    valueKey: string,
+    footnotesKey: string,
+    emptyMessage: string,
+  ) => {
+    const isThisEditing = editingField === fieldKey;
+    const fieldValue = (editedProposal as any)?.[valueKey] || '';
+    const fieldFootnotes = (editedProposal as any)?.[footnotesKey] || [];
+
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <label className="text-xs font-medium text-muted-foreground">{label}</label>
+          {userCanEdit && !editingField && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 gap-1 text-xs px-2 text-muted-foreground hover:text-foreground"
+              onClick={() => startEditing(fieldKey)}
+            >
+              <Pencil className="h-3 w-3" />
+              Edit
+            </Button>
+          )}
+          {isThisEditing && (
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 gap-1 text-xs px-2 text-muted-foreground hover:text-foreground"
+                onClick={discardEdits}
+              >
+                <X className="h-3 w-3" />
+                Discard
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                className="h-6 gap-1 text-xs px-2"
+                onClick={saveEdits}
+              >
+                <Save className="h-3 w-3" />
+                Save edits
+              </Button>
+            </div>
+          )}
+        </div>
+        {isThisEditing ? (
+          <div className="border rounded-md overflow-hidden">
+            <TopicFormattingToolbar
+              onInsertFootnote={handleInsertFootnote}
+              onInsertLink={handleInsertLink}
+            />
+            <TopicRichTextArea
+              value={fieldValue}
+              onChange={(val) => setEditedProposal({ ...editedProposal, [valueKey]: val } as any)}
+              footnotes={fieldFootnotes}
+              onFootnotesChange={(fns) => setEditedProposal({ ...editedProposal, [footnotesKey]: fns } as any)}
+            />
+          </div>
+        ) : (
+          <TopicRichTextReadonly
+            html={(proposal as any)?.[valueKey]}
+            footnotes={(proposal as any)?.[footnotesKey] || []}
+            emptyMessage={emptyMessage}
+          />
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="flex-1 overflow-auto bg-muted/30">
-      {userCanEdit && (
-        <TopicFormattingToolbar
-          onInsertFootnote={handleToolbarInsertFootnote}
-        />
-      )}
       <div className="max-w-7xl mx-auto space-y-4 p-4">
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-bold">Topic information</h1>
@@ -479,7 +591,6 @@ export function TopicInformationPage({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {/* Row 1: Topic budget + Budget type */}
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label className="text-xs text-muted-foreground mb-0.5 block">Indicative budget (topic)</label>
@@ -487,7 +598,6 @@ export function TopicInformationPage({
                   <EuroCurrencyInput
                     value={(editedProposal as any).totalBudgetText || (editedProposal.totalBudget ? editedProposal.totalBudget.toString() : '')}
                     onChange={(val) => {
-                      // Also parse first number for backwards compat with totalBudget (number)
                       const firstNum = parseFloat(val.replace(/[^0-9]/g, ''));
                       setEditedProposal({ ...editedProposal, totalBudgetText: val, totalBudget: isNaN(firstNum) ? undefined : firstNum } as any);
                     }}
@@ -545,7 +655,6 @@ export function TopicInformationPage({
               </div>
             </div>
 
-            {/* Row 2: Budget per project + Indicative no. projects */}
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label className="text-xs text-muted-foreground mb-0.5 block">Indicative budget per project</label>
@@ -572,7 +681,6 @@ export function TopicInformationPage({
               </div>
             </div>
 
-            {/* Row 3: FSTP checkbox */}
             <div>
               {canEdit ? (
                 <div className="flex items-center space-x-2">
@@ -601,7 +709,6 @@ export function TopicInformationPage({
               ) : null}
             </div>
 
-            {/* FSTP sub-fields (shown when FSTP is checked) */}
             {(isEditing ? editedProposal?.usesFstp : proposal?.usesFstp) && (
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
@@ -644,44 +751,14 @@ export function TopicInformationPage({
         {/* Topic Description Card */}
         <Card>
           <CardHeader className="pb-2 pt-4">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <FileText className="w-4 h-4" />
-                Topic description
-              </CardTitle>
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <FileText className="w-4 h-4" />
+              Topic description
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Expected outcome</label>
-              {userCanEdit ? (
-                <TopicRichTextArea
-                  value={(editedProposal as any)?.topicExpectedOutcome || ''}
-                  onChange={(val) => setEditedProposal({ ...editedProposal, topicExpectedOutcome: val } as any)}
-                  onFocus={() => setActiveFieldKey('expectedOutcome')}
-                />
-              ) : (
-                <FootnoteReadonlyView
-                  text={proposal?.topicExpectedOutcome}
-                  footnotes={proposal?.topicFootnotes}
-                  emptyMessage="No expected outcome available"
-                />
-              )}
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Scope</label>
-              {userCanEdit ? (
-                <TopicRichTextArea
-                  value={(editedProposal as any)?.topicScope || ''}
-                  onChange={(val) => setEditedProposal({ ...editedProposal, topicScope: val } as any)}
-                  onFocus={() => setActiveFieldKey('scope')}
-                />
-              ) : (
-                <FootnoteReadonlyView
-                  text={proposal?.topicScope}
-                  footnotes={proposal?.topicFootnotes}
-                  emptyMessage="No scope available"
-                />
-              )}
-            </div>
+            {renderRichTextField('expectedOutcome', 'Expected outcome', 'topicExpectedOutcome', 'topicFootnotes', 'No expected outcome available')}
+            {renderRichTextField('scope', 'Scope', 'topicScope', 'topicFootnotes', 'No scope available')}
             {proposal?.topicContentImportedAt && (
               <p className="text-xs text-muted-foreground italic">
                 Last imported: {format(proposal.topicContentImportedAt, 'dd MMM yyyy, HH:mm')}
@@ -693,27 +770,13 @@ export function TopicInformationPage({
         {/* Destination Description Card */}
         <Card>
           <CardHeader className="pb-2 pt-4">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <FileText className="w-4 h-4" />
-                Destination description
-              </CardTitle>
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <FileText className="w-4 h-4" />
+              Destination description
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            {userCanEdit ? (
-              <TopicRichTextArea
-                value={(editedProposal as any)?.topicDestinationDescription || ''}
-                onChange={(val) => setEditedProposal({ ...editedProposal, topicDestinationDescription: val } as any)}
-                minHeight="200px"
-                onFocus={() => setActiveFieldKey('destination')}
-              />
-            ) : (
-              <FootnoteReadonlyView
-                text={proposal?.topicDestinationDescription}
-                footnotes={proposal?.destinationFootnotes}
-                emptyMessage="No destination description available"
-                maxHeight="max-h-64"
-              />
-            )}
+            {renderRichTextField('destination', 'Description', 'topicDestinationDescription', 'destinationFootnotes', 'No destination description available')}
           </CardContent>
         </Card>
       </div>

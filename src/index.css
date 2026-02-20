@@ -942,3 +942,11 @@
 .lucide-trash {
   color: hsl(var(--destructive));
 }
+
+/* Topic rich text paragraph spacing: 3pt after */
+.topic-rich-text-content p {
+  margin-bottom: 4px; /* ~3pt */
+}
+.topic-rich-text-content p:last-child {
+  margin-bottom: 0;
+}

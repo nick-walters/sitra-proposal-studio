@@ -8,6 +8,8 @@ interface TopicRichTextAreaProps {
   disabled?: boolean;
   minHeight?: string;
   onFocus?: () => void;
+  footnotes?: { id: string; text: string }[];
+  onFootnotesChange?: (footnotes: { id: string; text: string }[]) => void;
 }
 
 export function TopicRichTextArea({
@@ -17,6 +19,8 @@ export function TopicRichTextArea({
   disabled = false,
   minHeight = '150px',
   onFocus,
+  footnotes = [],
+  onFootnotesChange,
 }: TopicRichTextAreaProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState(false);
@@ -41,6 +45,42 @@ export function TopicRichTextArea({
     }
   }, [value, isFocused]);
 
+  // Handle paste: strip font sizes, keep structure
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const html = e.clipboardData.getData('text/html');
+    const text = e.clipboardData.getData('text/plain');
+
+    if (html) {
+      // Parse HTML, strip font-size and font-family styles but keep structure
+      const temp = document.createElement('div');
+      temp.innerHTML = html;
+      // Remove font-size and font-family from all elements
+      temp.querySelectorAll('*').forEach(el => {
+        const htmlEl = el as HTMLElement;
+        if (htmlEl.style) {
+          htmlEl.style.fontSize = '';
+          htmlEl.style.fontFamily = '';
+          htmlEl.style.lineHeight = '';
+        }
+        // Remove font tags
+        if (el.tagName === 'FONT') {
+          const span = document.createElement('span');
+          span.innerHTML = el.innerHTML;
+          el.replaceWith(span);
+        }
+      });
+      document.execCommand('insertHTML', false, temp.innerHTML);
+    } else {
+      // Plain text: convert line breaks to paragraphs
+      const paragraphs = text.split(/\n\n|\r\n\r\n/).map(p => {
+        const lines = p.split(/\n|\r\n/).join('<br>');
+        return `<p>${lines}</p>`;
+      }).join('');
+      document.execCommand('insertHTML', false, paragraphs || text);
+    }
+  }, []);
+
   const handleInput = useCallback(() => {
     if (!editorRef.current) return;
     const newValue = editorRef.current.innerHTML;
@@ -64,11 +104,13 @@ export function TopicRichTextArea({
         ref={editorRef}
         contentEditable={!disabled}
         onInput={handleInput}
+        onPaste={handlePaste}
         onFocus={() => { setIsFocused(true); onFocus?.(); }}
         onBlur={() => setIsFocused(false)}
         className={cn(
-          "p-3 outline-none resize-y overflow-auto text-sm",
+          "p-3 outline-none resize-y overflow-auto text-sm topic-rich-text-content",
           "[&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4",
+          "[&_a]:text-primary [&_a]:underline [&_a]:cursor-pointer",
           disabled && "cursor-not-allowed opacity-50"
         )}
         style={{ minHeight, fontFamily: 'Arial, Helvetica, sans-serif' }}
@@ -77,6 +119,81 @@ export function TopicRichTextArea({
       {showPlaceholder && (
         <div className="absolute top-3 left-3 text-muted-foreground text-sm pointer-events-none">
           {placeholder}
+        </div>
+      )}
+      {/* Footnotes area */}
+      {footnotes.length > 0 && (
+        <div className="border-t px-3 py-2 space-y-1 bg-muted/30">
+          {footnotes.map((fn, idx) => (
+            <div key={fn.id} className="flex items-start gap-1.5 text-xs">
+              <sup className="text-primary font-semibold text-[10px] mt-0.5 shrink-0">{idx + 1}</sup>
+              {!disabled ? (
+                <input
+                  className="flex-1 bg-transparent border-b border-dashed border-muted-foreground/30 outline-none text-xs py-0.5 focus:border-primary"
+                  placeholder="Enter reference..."
+                  value={fn.text}
+                  onChange={(e) => {
+                    if (onFootnotesChange) {
+                      const updated = [...footnotes];
+                      updated[idx] = { ...fn, text: e.target.value };
+                      onFootnotesChange(updated);
+                    }
+                  }}
+                />
+              ) : (
+                <span className="text-muted-foreground">{fn.text || '–'}</span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Read-only view for rich text with clickable links */
+export function TopicRichTextReadonly({ html, footnotes = [], emptyMessage = '–' }: {
+  html?: string;
+  footnotes?: { id: string; text: string }[];
+  emptyMessage?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Make links clickable in read-only mode
+  useEffect(() => {
+    if (!ref.current) return;
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const anchor = target.closest('a');
+      if (anchor) {
+        e.preventDefault();
+        window.open(anchor.href, '_blank', 'noopener,noreferrer');
+      }
+    };
+    ref.current.addEventListener('click', handleClick);
+    return () => ref.current?.removeEventListener('click', handleClick);
+  }, []);
+
+  if (!html) {
+    return <p className="text-sm text-muted-foreground italic">{emptyMessage}</p>;
+  }
+
+  return (
+    <div>
+      <div
+        ref={ref}
+        className="text-sm topic-rich-text-content [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4 [&_a]:text-primary [&_a]:underline [&_a]:cursor-pointer"
+        style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+      {footnotes.length > 0 && (
+        <div className="border-t mt-2 pt-2 space-y-0.5">
+          {footnotes.map((fn, idx) => (
+            <div key={fn.id} className="flex items-start gap-1.5 text-xs text-muted-foreground">
+              <sup className="text-primary font-semibold text-[10px] mt-0.5">{idx + 1}</sup>
+              <span>{fn.text || '–'}</span>
+            </div>
+          ))}
         </div>
       )}
     </div>
