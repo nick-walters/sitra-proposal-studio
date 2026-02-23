@@ -677,10 +677,12 @@ export function ParticipantListView({
             <div className="flex gap-2">
               {canAddParticipant && onAddParticipant && (
                 <>
+                  {/* Bulk PIC Lookup - temporarily disabled until PIC lookup is fixed
                   <Button size="sm" onClick={() => setIsBulkPicOpen(true)} variant="outline" className="gap-1.5 h-8">
                     <Hash className="w-3.5 h-3.5" />
                     Bulk PIC Lookup
                   </Button>
+                  */}
                   <Button size="sm" onClick={() => setIsAddParticipantDialogOpen(true)} className="gap-1.5 h-8">
                     <Plus className="w-3.5 h-3.5" />
                     Add Participant
