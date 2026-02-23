@@ -483,7 +483,10 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           let hasUserChange = false;
           for (const tr of transactions) {
             if (tr.getMeta('blockReorder')) return null;
-            if (tr.docChanged && !tr.getMeta('trackChangesInternal')) {
+            if (tr.getMeta('trackChangesInternal')) continue;
+            // Skip setContent transactions (full document replacement)
+            if (tr.getMeta('setContent')) continue;
+            if (tr.docChanged) {
               hasUserChange = true;
               break;
             }

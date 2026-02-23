@@ -1242,7 +1242,13 @@ export function useRichTextEditor({
   useEffect(() => {
     if (editor && content !== lastSetContentRef.current) {
       lastSetContentRef.current = content;
+      // Temporarily disable track changes during setContent to prevent
+      // the entire document being marked as insertions
+      const storage = (editor.storage as any)?.trackChanges;
+      const wasEnabled = storage?.enabled;
+      if (storage) storage.enabled = false;
       editor.commands.setContent(content, { emitUpdate: false });
+      if (storage) storage.enabled = wasEnabled;
     }
   }, [editor, content]);
 
