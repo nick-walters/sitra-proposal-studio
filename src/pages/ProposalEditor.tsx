@@ -25,7 +25,6 @@ import { ProposalProgressTracker } from "@/components/ProposalProgressTracker";
 import { WorkloadDashboard } from "@/components/WorkloadDashboard";
 import { ProposalScoringAssessment } from "@/components/ProposalScoringAssessment";
 import { CrossReferenceChecker } from "@/components/CrossReferenceChecker";
-import { ParticipantCompletenessChecker } from "@/components/ParticipantCompletenessChecker";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -514,13 +513,6 @@ export function ProposalEditor() {
       return (
         <div className="flex-1 overflow-y-auto p-6">
           <CrossReferenceChecker proposalId={id || ''} isOpen={true} onClose={() => {}} />
-        </div>
-      );
-    }
-    if (activeSection.id === 'participant-checker') {
-      return (
-        <div className="flex-1 overflow-y-auto">
-          <ParticipantCompletenessChecker proposalId={id || ''} />
         </div>
       );
     }

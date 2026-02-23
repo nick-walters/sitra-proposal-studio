@@ -441,7 +441,6 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         { id: 'workload-dashboard', number: '', title: 'Workload' },
         { id: 'scoring-assessment', number: '', title: 'Scoring' },
         { id: 'cross-ref-checker', number: '', title: 'Cross-references' },
-        { id: 'participant-checker', number: '', title: 'Completeness' },
       ],
     };
 
