@@ -1,78 +1,68 @@
 
 
-# Feature Improvement Suggestions for Sitra Proposal Studio
+## Plan: Fix Track Changes Toggle + Anchor Comments to Selected Text
 
-After a thorough review of the codebase, here are actionable improvements grouped by area.
+### Issue 1: Track Changes Stays Active After Toggle Off
 
----
+**Root Cause Analysis**
 
-## 1. Notification Center -- Delete button never visible
+The track changes extension uses `appendTransaction` in ProseMirror to intercept all document changes and apply insertion/deletion marks. The enabled state flows through multiple paths that can conflict:
 
-**Problem:** In `NotificationCenter.tsx`, the delete button (Trash icon) has class `opacity-0 group-hover:opacity-100`, but the parent `<div>` on line 34 lacks the `group` class. The button is permanently invisible.
+1. `TrackChanges.configure({ enabled: ... })` sets the initial `options.enabled`
+2. `addStorage()` copies it to `storage.enabled` once at creation
+3. `appendTransaction` reads `extension.storage.enabled` on every transaction
+4. Two separate `useEffect` hooks (one in `DocumentEditor`, one in `useRichTextEditor`) both try to sync the React state to `storage.enabled`
 
-**Fix:** Add `group` to the notification item wrapper div's className.
+The critical bug: when `editor.commands.setContent()` is called (e.g., from real-time sync or initial DB load), it creates a ProseMirror transaction with `docChanged = true` and NO `trackChangesInternal` meta. The `appendTransaction` treats this as a user edit and applies insertion marks to ALL the newly-set content. This means every time content syncs from the database while tracking is on, the entire document gets re-marked as insertions -- explaining why text appears green even after toggling off (the marks were already baked in by a previous `setContent` cycle).
 
----
+Additionally, there's a race between two competing `useEffect` hooks syncing the same value, and the empty-transaction dispatch can trigger unnecessary re-processing.
 
-## 2. Search & Replace -- Stale decorations after replace
+**Fix**
 
-**Problem:** In `SearchReplaceDialog.tsx`, after `replaceCurrent()` or `replaceAll()`, the match list refreshes via `setTimeout(findMatches, 50)`, but the decoration plugin still holds the old positions until the effect re-runs. This can cause decorations to highlight wrong text briefly.
+- In `useRichTextEditor`: wrap `editor.commands.setContent(...)` calls with a `trackChangesInternal` meta so `appendTransaction` skips them. This is done by dispatching the setContent transaction manually with the meta flag, or by temporarily disabling storage before setContent and restoring after.
+- Remove the duplicate `useEffect` in `DocumentEditor` (lines 329-337) since `useRichTextEditor` already has a sync effect (lines 1249-1268). Having two effects fighting over the same value creates subtle timing issues.
+- In `appendTransaction`, add an additional guard: check if the transaction was dispatched by Tiptap's internal `setContent` command (checking for a `setContent` meta or full-document replacement pattern).
 
-**Fix:** Clear `matches` state immediately before the timeout, so stale decorations are removed instantly.
-
----
-
-## 3. Search & Replace -- replaceAll uses individual chain calls
-
-**Problem:** `replaceAll()` loops through matches calling `editor.chain()...run()` once per match. This fires N separate transactions, which is slow on large documents and can cause undo-history bloat.
-
-**Fix:** Wrap all replacements in a single chained transaction by accumulating all operations.
-
----
-
-## 4. Notification hook -- unreadCount can desync on realtime DELETE
-
-**Problem:** In `useNotifications.ts`, the DELETE handler removes the notification from state but never decrements `unreadCount` if the deleted notification was unread.
-
-**Fix:** In the DELETE realtime handler, check if the removed notification was unread and decrement the count.
+**Files to change:**
+- `src/components/RichTextEditor.tsx` -- fix `setContent` to mark transactions as internal; keep the single authoritative sync effect
+- `src/components/DocumentEditor.tsx` -- remove the duplicate storage sync `useEffect`
+- `src/extensions/TrackChanges.ts` -- add a guard in `appendTransaction` to skip full-document replacements (setContent)
 
 ---
 
-## 5. SaveIndicator -- no "saving" spinner state
+### Issue 2: Comments Not Anchored to Selected Text
 
-**Problem:** `SaveIndicator.tsx` treats `saving=true` and `hasUnsavedChanges=true` identically (just shows "Autosaves after 5 sec"). There's no visual feedback while an active save is in progress vs content simply being dirty.
+**Root Cause Analysis**
 
-**Fix:** Add a third visual state with a spinner/pulsing icon when `saving` is true, distinct from the idle "Autosaves after 5 sec" state.
+The current flow:
+1. User selects text in the editor
+2. `selectionUpdate` fires, setting `selectedText` and `selectionRange` state in `DocumentEditor`
+3. User clicks "Review panel" to open the sidebar, or the sidebar is already open
+4. User clicks into the comment textarea to type
+5. This moves focus away from the editor, clearing the editor selection
+6. `selectionUpdate` fires again with `from === to`, clearing `selectedText` and `selectionRange`
+
+The comment is saved with `selected_text` and position info, but by the time the user submits, those values have been cleared. Even if they persist, the comment just shows a quote block in the sidebar -- there's no visual highlight in the editor showing where the comment is anchored.
+
+**Fix**
+
+- Preserve the selected text and range when the user explicitly intends to comment: latch the values when the sidebar gains focus (or when the user starts typing in the comment box), so that subsequent editor blur doesn't clear them.
+- Only clear `selectedText`/`selectionRange` when the comment is submitted or explicitly dismissed -- not on every selection change.
+- Add a visual highlight (e.g., a yellow background mark or CSS-based decoration) on the editor text that has been selected for commenting, so users can see what text the pending comment refers to.
+- When rendering existing comments with `selection_start`/`selection_end`, optionally scroll to and briefly highlight the referenced text when a comment is clicked.
+
+**Files to change:**
+- `src/components/DocumentEditor.tsx` -- change `handleTextSelection` to latch selection state; don't clear it on blur; add a ProseMirror decoration for the pending comment range
+- `src/components/CommentsSidebar.tsx` -- display the selected text quote prominently when composing; support click-to-highlight for existing comments
 
 ---
 
-## 6. useSectionContent -- beforeunload handler doesn't save version
+### Technical Summary
 
-**Problem:** The `beforeunload` handler saves content via sync XHR but does NOT save a version snapshot. The unmount cleanup does both, but `beforeunload` (tab close) skips the version. This means the last edits before closing the tab may not appear in version history.
-
-**Fix:** Also call `syncSaveVersion` in the `beforeunload` handler when content has changed from the last version.
-
----
-
-## 7. useAuth -- sessionStorage caching stores full User object
-
-**Problem:** The entire Supabase `User` object (which can be large with metadata) is stored in `sessionStorage`. This is used only to prevent a loading flash, so only `id` and `email` are needed.
-
-**Fix:** Cache only `{ id, email }` in sessionStorage for the hydration check, and let the real session restore the full object.
-
----
-
-## Technical Implementation Details
-
-| # | File | Change Type | Complexity |
-|---|------|-------------|------------|
-| 1 | `NotificationCenter.tsx` | Add `group` class | Trivial |
-| 2 | `SearchReplaceDialog.tsx` | Clear matches before timeout | Small |
-| 3 | `SearchReplaceDialog.tsx` | Single-transaction replaceAll | Medium |
-| 4 | `useNotifications.ts` | Fix DELETE handler unread count | Small |
-| 5 | `SaveIndicator.tsx` | Add spinner for saving state | Small |
-| 6 | `useSectionContent.ts` | Add syncSaveVersion to beforeunload | Small |
-| 7 | `useAuth.tsx` | Slim sessionStorage cache | Small |
-
-All changes are backwards-compatible and require no database migrations.
+| File | Change | Complexity |
+|------|--------|------------|
+| `src/extensions/TrackChanges.ts` | Guard `appendTransaction` against `setContent` transactions | Low |
+| `src/components/RichTextEditor.tsx` | Mark `setContent` calls with internal meta; keep single sync effect | Medium |
+| `src/components/DocumentEditor.tsx` | Remove duplicate sync effect; latch comment selection state; add pending-comment decoration | Medium |
+| `src/components/CommentsSidebar.tsx` | Show anchored text quote; support click-to-highlight | Low |
 
