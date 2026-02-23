@@ -326,6 +326,16 @@ export function DocumentEditor({
     },
   });
 
+  // Sync trackChangesEnabled state to the ProseMirror extension storage
+  useEffect(() => {
+    if (!editor) return;
+    const storage = (editor.storage as any)?.trackChanges;
+    if (storage && storage.enabled !== trackChangesEnabled) {
+      storage.enabled = trackChangesEnabled;
+      editor.view.dispatch(editor.state.tr);
+    }
+  }, [editor, trackChangesEnabled]);
+
   // Scroll to top when section changes
   useEffect(() => {
     scrollContainerRef.current?.scrollTo({ top: 0 });
