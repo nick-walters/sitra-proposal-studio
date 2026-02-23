@@ -35,6 +35,7 @@ interface CommentsSidebarProps {
   selectionRange?: { start: number; end: number };
   onClearSelection?: () => void;
   onCommentClick?: (selectionStart: number | null, selectionEnd: number | null) => void;
+  onFocusEditor?: () => void;
   compact?: boolean;
 }
 
@@ -337,6 +338,7 @@ export function CommentsSidebar({
   selectionRange,
   onClearSelection,
   onCommentClick,
+  onFocusEditor,
   compact = false,
 }: CommentsSidebarProps) {
   const { user } = useAuth();
@@ -430,6 +432,8 @@ export function CommentsSidebar({
 
     setNewComment('');
     onClearSelection?.();
+    // Return focus to the editor
+    onFocusEditor?.();
   };
 
   const handleSubmitReply = async (parentId: string) => {
@@ -455,6 +459,7 @@ export function CommentsSidebar({
 
     setReplyContent('');
     setReplyingTo(null);
+    onFocusEditor?.();
   };
 
   const filteredComments = comments.filter((c) => {
@@ -502,8 +507,8 @@ export function CommentsSidebar({
                       comment={comment}
                       currentUserId={user?.id}
                       onReply={(id) => setReplyingTo(id)}
-                      onResolve={(id) => updateCommentStatus(id, 'resolved')}
-                      onDelete={deleteComment}
+                      onResolve={(id) => { updateCommentStatus(id, 'resolved'); onFocusEditor?.(); }}
+                      onDelete={(id) => { deleteComment(id); onFocusEditor?.(); }}
                       onClickHighlight={onCommentClick ? (start, end) => onCommentClick(start, end) : undefined}
                     />
                     {/* Reply input */}
