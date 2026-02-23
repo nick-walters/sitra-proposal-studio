@@ -253,7 +253,7 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
 
   if (isLoading) {
     return (
-      <div className="p-6 space-y-4">
+      <div className="space-y-4">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-64 w-full" />
       </div>
@@ -261,12 +261,8 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
   }
 
   return (
-    <div className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Tasks</h2>
-          <p className="text-muted-foreground text-sm">Plan and track proposal preparation tasks</p>
-        </div>
+    <div className="space-y-4">
+      <div className="flex items-center justify-end">
         {isCoordinator && (
           <Button onClick={openCreate} size="sm">
             <Plus className="h-4 w-4 mr-1" /> Add Task

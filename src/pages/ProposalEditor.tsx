@@ -491,15 +491,22 @@ export function ProposalEditor() {
     }
     if (activeSection.id === 'task-allocator') {
       return (
-        <div className="flex-1 overflow-y-auto">
-          <ProposalTaskAllocator proposalId={id || ''} isCoordinator={isCoordinator} />
-        </div>
-      );
-    }
-    if (activeSection.id === 'workload-dashboard') {
-      return (
-        <div className="flex-1 overflow-y-auto">
-          <WorkloadDashboard proposalId={id || ''} />
+        <div className="flex-1 overflow-y-auto p-6 bg-muted/30">
+          <div className="max-w-7xl mx-auto space-y-6">
+            <h1 className="text-xl font-bold text-foreground">Tasks & Workload</h1>
+            <Tabs defaultValue="tasks">
+              <TabsList>
+                <TabsTrigger value="tasks">Tasks</TabsTrigger>
+                <TabsTrigger value="workload">Workload</TabsTrigger>
+              </TabsList>
+              <TabsContent value="tasks">
+                <ProposalTaskAllocator proposalId={id || ''} isCoordinator={isCoordinator} />
+              </TabsContent>
+              <TabsContent value="workload">
+                <WorkloadDashboard proposalId={id || ''} />
+              </TabsContent>
+            </Tabs>
+          </div>
         </div>
       );
     }
