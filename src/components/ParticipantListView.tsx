@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Participant, ParticipantMember, Section, ParticipantType } from '@/types/proposal';
 import { Building2, GripVertical, UserPlus, Plus, Search, Check, Upload, X, Loader2, Hash } from 'lucide-react';
 import { BulkPicLookupDialog } from './BulkPicLookupDialog';
+import { ParticipantCompletenessChecker } from './ParticipantCompletenessChecker';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { ParticipantListTable } from './ParticipantListTable';
 import { generateParticipantLogoPath, uploadProposalFile } from '@/lib/proposalStorage';
 import { CountrySelect } from './CountrySelect';
@@ -15,6 +17,7 @@ import { InviteToProposalDialog } from './InviteToProposalDialog';
 import { AddParticipantDialog } from './AddParticipantDialog';
 import { getContrastingTextColor } from '@/lib/wpColors';
 import { supabase } from '@/integrations/supabase/client';
+import { useProposalRole } from '@/hooks/useProposalRole';
 import { toast } from 'sonner';
 import {
   DndContext,
@@ -568,6 +571,9 @@ export function ParticipantListView({
   const [isAddParticipantDialogOpen, setIsAddParticipantDialogOpen] = useState(false);
   const [isBulkPicOpen, setIsBulkPicOpen] = useState(false);
   const [fetchingLogoFor, setFetchingLogoFor] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('participants');
+  const { roleTier } = useProposalRole(proposalId);
+  const isAdmin = roleTier === 'coordinator';
 
   // Extract guidelines from section
   const officialGuidelines = useMemo(() => {
@@ -690,101 +696,109 @@ export function ParticipantListView({
             </div>
           </div>
 
-          {/* Participants Display */}
-          {sortedParticipants.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center">
-                <Building2 className="w-10 h-10 mx-auto mb-3 text-muted-foreground opacity-50" />
-                <h3 className="text-base font-medium text-muted-foreground">No participants yet</h3>
-                <p className="text-xs text-muted-foreground/70 mt-1">
-                  {canAddParticipant ? 'Click "Add Participant" to add your first partner' : 'Participants will appear here once added'}
-                </p>
-              </CardContent>
-            </Card>
-          ) : !canEdit && !canReorder ? (
-            /* Read-only view: Use Part B-style table */
-            <div className="bg-white rounded-lg border p-4">
-              <ParticipantListTable
-                participants={sortedParticipants}
-                wpLeadership={wpLeadership}
-                caseLeadership={caseLeadership}
-                onRowClick={onSelectParticipant}
-              />
-            </div>
-          ) : canReorder && onReorderParticipants ? (
-            /* Edit mode with reordering */
-            <div>
-              {/* Column Headers for card view */}
-              <div className="flex items-center gap-1.5 px-2 pb-[3px] text-xs text-muted-foreground font-bold">
-                {canReorder && <div className="w-4" />}
-                <div className="w-24 text-left"># / Short</div>
-                <div className="flex-1 min-w-0 text-left">Organisation</div>
-                <div className="w-20 text-left">Lead roles</div>
-                <div className="w-10 text-left">Logo</div>
-                <div className="text-left" style={{ width: '140px' }}>Country</div>
-                <div className="w-10" />
-              </div>
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={sortedParticipants.map((p) => p.id)}
-                  strategy={verticalListSortingStrategy}
-                >
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList>
+              <TabsTrigger value="participants">Participants</TabsTrigger>
+              {isAdmin && <TabsTrigger value="completeness">Completeness</TabsTrigger>}
+            </TabsList>
+
+            <TabsContent value="participants">
+              {sortedParticipants.length === 0 ? (
+                <Card>
+                  <CardContent className="py-8 text-center">
+                    <Building2 className="w-10 h-10 mx-auto mb-3 text-muted-foreground opacity-50" />
+                    <h3 className="text-base font-medium text-muted-foreground">No participants yet</h3>
+                    <p className="text-xs text-muted-foreground/70 mt-1">
+                      {canAddParticipant ? 'Click "Add Participant" to add your first partner' : 'Participants will appear here once added'}
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : !canEdit && !canReorder ? (
+                <div className="bg-white rounded-lg border p-4">
+                  <ParticipantListTable
+                    participants={sortedParticipants}
+                    wpLeadership={wpLeadership}
+                    caseLeadership={caseLeadership}
+                    onRowClick={onSelectParticipant}
+                  />
+                </div>
+              ) : canReorder && onReorderParticipants ? (
+                <div>
+                  <div className="flex items-center gap-1.5 px-2 pb-[3px] text-xs text-muted-foreground font-bold">
+                    {canReorder && <div className="w-4" />}
+                    <div className="w-24 text-left"># / Short</div>
+                    <div className="flex-1 min-w-0 text-left">Organisation</div>
+                    <div className="w-20 text-left">Lead roles</div>
+                    <div className="w-10 text-left">Logo</div>
+                    <div className="text-left" style={{ width: '140px' }}>Country</div>
+                    <div className="w-10" />
+                  </div>
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext
+                      items={sortedParticipants.map((p) => p.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="space-y-1.5">
+                        {sortedParticipants.map((participant) => (
+                          <SortableParticipantCard
+                            key={participant.id}
+                            participant={participant}
+                            proposalId={proposalId}
+                            onSelect={() => onSelectParticipant(participant)}
+                            canReorder={canReorder}
+                            canEdit={canEdit}
+                            wpLeadership={wpLeadership[participant.id]}
+                            caseLeadership={caseLeadership[participant.id]}
+                            onFetchLogo={() => handleFetchLogo(participant)}
+                            isFetchingLogo={fetchingLogoFor === participant.id}
+                            onUpdateParticipant={onUpdateParticipant}
+                          />
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex items-center gap-1.5 px-2 pb-[3px] text-xs text-muted-foreground font-bold">
+                    <div className="w-24 text-left"># / Short</div>
+                    <div className="flex-1 min-w-0 text-left">Organisation</div>
+                    <div className="w-20 text-left">Lead roles</div>
+                    <div className="w-10 text-left">Logo</div>
+                    <div className="text-left" style={{ width: '140px' }}>Country</div>
+                    <div className="w-10" />
+                  </div>
                   <div className="space-y-1.5">
                     {sortedParticipants.map((participant) => (
-                      <SortableParticipantCard
+                      <ParticipantCard
                         key={participant.id}
                         participant={participant}
                         proposalId={proposalId}
                         onSelect={() => onSelectParticipant(participant)}
-                        canReorder={canReorder}
+                        canReorder={false}
                         canEdit={canEdit}
                         wpLeadership={wpLeadership[participant.id]}
                         caseLeadership={caseLeadership[participant.id]}
-                        onFetchLogo={() => handleFetchLogo(participant)}
+                        onFetchLogo={onUpdateParticipant ? () => handleFetchLogo(participant) : undefined}
                         isFetchingLogo={fetchingLogoFor === participant.id}
                         onUpdateParticipant={onUpdateParticipant}
                       />
                     ))}
                   </div>
-                </SortableContext>
-              </DndContext>
-            </div>
-          ) : (
-            /* Edit mode without reordering (card view) */
-            <div>
-              {/* Column Headers for card view */}
-              <div className="flex items-center gap-1.5 px-2 pb-[3px] text-xs text-muted-foreground font-bold">
-                <div className="w-24 text-left"># / Short</div>
-                <div className="flex-1 min-w-0 text-left">Organisation</div>
-                <div className="w-20 text-left">Lead roles</div>
-                <div className="w-10 text-left">Logo</div>
-                <div className="text-left" style={{ width: '140px' }}>Country</div>
-                <div className="w-10" />
-              </div>
-              <div className="space-y-1.5">
-                {sortedParticipants.map((participant) => (
-                  <ParticipantCard
-                    key={participant.id}
-                    participant={participant}
-                    proposalId={proposalId}
-                    onSelect={() => onSelectParticipant(participant)}
-                    canReorder={false}
-                    canEdit={canEdit}
-                    wpLeadership={wpLeadership[participant.id]}
-                    caseLeadership={caseLeadership[participant.id]}
-                    onFetchLogo={onUpdateParticipant ? () => handleFetchLogo(participant) : undefined}
-                    isFetchingLogo={fetchingLogoFor === participant.id}
-                    onUpdateParticipant={onUpdateParticipant}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+                </div>
+              )}
+            </TabsContent>
 
+            {isAdmin && (
+              <TabsContent value="completeness">
+                <ParticipantCompletenessChecker proposalId={proposalId} />
+              </TabsContent>
+            )}
+          </Tabs>
         </div>
 
         {/* Invite to Proposal Dialog */}
