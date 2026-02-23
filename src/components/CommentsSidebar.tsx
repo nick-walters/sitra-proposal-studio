@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useSectionComments, Comment } from '@/hooks/useSectionComments';
 import { useAuth } from '@/hooks/useAuth';
+import { useProposalRole } from '@/hooks/useProposalRole';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -23,6 +24,7 @@ import {
   ChevronUp,
   Send,
   AtSign,
+  RotateCcw,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -49,16 +51,22 @@ interface TeamMember {
 function CommentCard({
   comment,
   currentUserId,
+  isCoordinator,
   onReply,
   onResolve,
+  onReopen,
   onDelete,
+  onDeleteReply,
   onClickHighlight,
 }: {
   comment: Comment;
   currentUserId?: string;
+  isCoordinator: boolean;
   onReply: (commentId: string) => void;
   onResolve: (commentId: string) => void;
+  onReopen: (commentId: string) => void;
   onDelete: (commentId: string) => void;
+  onDeleteReply: (replyId: string) => void;
   onClickHighlight?: (start: number, end: number) => void;
 }) {
   const [showReplies, setShowReplies] = useState(true);
@@ -159,31 +167,38 @@ function CommentCard({
 
       {comment.status === 'open' && (
         <div className="flex items-center gap-1 pt-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2 text-xs"
-            onClick={() => onReply(comment.id)}
-          >
-            <Reply className="w-3 h-3 mr-1" />
-            Reply
+          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => onReply(comment.id)}>
+            <Reply className="w-3 h-3 mr-1" /> Reply
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-            onClick={() => onResolve(comment.id)}
-          >
-            <Check className="w-3 h-3 mr-1" />
-            Resolve
+          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground" onClick={() => onResolve(comment.id)}>
+            <Check className="w-3 h-3 mr-1" /> Resolve
           </Button>
-          {isOwn && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10 ml-auto"
-              onClick={() => onDelete(comment.id)}
-            >
+          {(isOwn || isCoordinator) && (
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10 ml-auto" onClick={() => onDelete(comment.id)}>
+              <Trash2 className="w-3 h-3" />
+            </Button>
+          )}
+        </div>
+      )}
+
+      {isResolved && (
+        <div className="flex items-center gap-1 pt-1">
+          {isOwn ? (
+            <>
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => onReopen(comment.id)}>
+                <RotateCcw className="w-3 h-3 mr-1" /> Reopen
+              </Button>
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10 ml-auto" onClick={() => onDelete(comment.id)}>
+                <Trash2 className="w-3 h-3" />
+              </Button>
+            </>
+          ) : (
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => onReply(comment.id)}>
+              <Reply className="w-3 h-3 mr-1" /> Reply to reopen
+            </Button>
+          )}
+          {!isOwn && isCoordinator && (
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10 ml-auto" onClick={() => onDelete(comment.id)}>
               <Trash2 className="w-3 h-3" />
             </Button>
           )}
@@ -204,22 +219,35 @@ function CommentCard({
           </Button>
           {showReplies && (
             <div className="ml-4 mt-2 space-y-2 border-l-2 border-muted pl-3">
-              {comment.replies.map((reply) => (
-                <div key={reply.id} className="text-sm">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Avatar className="h-5 w-5">
-                      <AvatarFallback className="text-xs bg-primary/10">
-                        {getInitials(reply.user_name || 'U')}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="font-medium text-xs">{reply.user_name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(reply.created_at), { addSuffix: true })}
-                    </span>
+              {comment.replies.map((reply) => {
+                const isReplyOwn = reply.user_id === currentUserId;
+                return (
+                  <div key={reply.id} className="text-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Avatar className="h-5 w-5">
+                        <AvatarFallback className="text-xs bg-primary/10">
+                          {getInitials(reply.user_name || 'U')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="font-medium text-xs">{reply.user_name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(reply.created_at), { addSuffix: true })}
+                      </span>
+                      {(isReplyOwn || isCoordinator) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 w-5 p-0 text-destructive hover:text-destructive hover:bg-destructive/10 ml-auto"
+                          onClick={() => onDeleteReply(reply.id)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-muted-foreground">{renderContent(reply.content)}</p>
                   </div>
-                  <p className="text-muted-foreground">{renderContent(reply.content)}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -342,6 +370,7 @@ export function CommentsSidebar({
   compact = false,
 }: CommentsSidebarProps) {
   const { user } = useAuth();
+  const { roleTier } = useProposalRole(proposalId);
   const {
     comments,
     loading,
@@ -441,6 +470,12 @@ export function CommentsSidebar({
 
     const mentionedIds = extractMentionedUserIds(replyContent);
     
+    // If the parent comment is resolved, reopen it when a reply is added
+    const parentComment = comments.find(c => c.id === parentId);
+    if (parentComment?.status === 'resolved') {
+      await updateCommentStatus(parentId, 'open');
+    }
+
     await addComment(replyContent, { parentCommentId: parentId });
 
     // Create notifications for mentioned users in reply
@@ -506,9 +541,12 @@ export function CommentsSidebar({
                     <CommentCard
                       comment={comment}
                       currentUserId={user?.id}
+                      isCoordinator={roleTier === 'coordinator'}
                       onReply={(id) => setReplyingTo(id)}
                       onResolve={(id) => { updateCommentStatus(id, 'resolved'); onFocusEditor?.(); }}
+                      onReopen={(id) => { updateCommentStatus(id, 'open'); onFocusEditor?.(); }}
                       onDelete={(id) => { deleteComment(id); onFocusEditor?.(); }}
+                      onDeleteReply={(id) => { deleteComment(id); onFocusEditor?.(); }}
                       onClickHighlight={onCommentClick ? (start, end) => onCommentClick(start, end) : undefined}
                     />
                     {/* Reply input */}
