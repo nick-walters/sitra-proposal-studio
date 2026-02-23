@@ -478,8 +478,6 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
         key: trackChangesPluginKey,
 
         appendTransaction(transactions, oldState, newState) {
-          if (!extension.storage.enabled) return null;
-
           let hasUserChange = false;
           for (const tr of transactions) {
             if (tr.getMeta('blockReorder')) return null;
@@ -493,12 +491,43 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           }
           if (!hasUserChange) return null;
 
-          const authorId = extension.options.authorId;
-          const authorName = extension.options.authorName;
-          const authorColor = extension.options.authorColor;
           const schema = newState.schema;
           const insertionType = schema.marks.trackInsertion;
           const deletionType = schema.marks.trackDeletion;
+
+          // When tracking is OFF, strip any inherited track marks from new insertions
+          if (!extension.storage.enabled) {
+            if (!insertionType && !deletionType) return null;
+            const cleanTr = newState.tr;
+            cleanTr.setMeta('trackChangesInternal', true);
+            cleanTr.setMeta('addToHistory', false);
+            let cleaned = false;
+
+            for (const tr of transactions) {
+              if (!tr.docChanged || tr.getMeta('trackChangesInternal')) continue;
+              tr.steps.forEach((step) => {
+                const stepMap = step.getMap();
+                stepMap.forEach((_oldStart: number, _oldEnd: number, newStart: number, newEnd: number) => {
+                  if (newEnd > newStart) {
+                    // New content was inserted — remove any inherited track marks
+                    if (insertionType) {
+                      cleanTr.removeMark(newStart, newEnd, insertionType);
+                      cleaned = true;
+                    }
+                    if (deletionType) {
+                      cleanTr.removeMark(newStart, newEnd, deletionType);
+                      cleaned = true;
+                    }
+                  }
+                });
+              });
+            }
+            return cleaned ? cleanTr : null;
+          }
+
+          const authorId = extension.options.authorId;
+          const authorName = extension.options.authorName;
+          const authorColor = extension.options.authorColor;
 
           if (!insertionType) return null;
 
