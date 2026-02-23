@@ -185,7 +185,6 @@ function SectionItem({
   // Note: WP Drafts is NOT a collapsible heading - it should navigate to WP Manager/Tracker
   const isCollapsibleHeading = hasSubsections && (
     section.id === 'part-a' || 
-    section.id === 'part-b' || 
     section.id === 'b1' || 
     section.id === 'b2' ||
     section.id === 'proposal-management'
@@ -232,7 +231,7 @@ function SectionItem({
               for (const sub of subs) {
                 const subHasSubs = sub.subsections && sub.subsections.length > 0;
                 const isSubCollapsible = subHasSubs && (
-                  sub.id === 'part-a' || sub.id === 'part-b' || 
+                  sub.id === 'part-a' || 
                   sub.id === 'b1' || sub.id === 'b2'
                 );
                 if (!isSubCollapsible) {

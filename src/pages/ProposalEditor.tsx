@@ -1,4 +1,5 @@
 import { Header } from "@/components/Header";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SectionNavigator } from "@/components/SectionNavigator";
 import { DocumentEditor } from "@/components/DocumentEditor";
 // ProposalSummaryPage removed - content merged into GeneralInfoForm
@@ -502,17 +503,24 @@ export function ProposalEditor() {
         </div>
       );
     }
-    if (activeSection.id === 'scoring-assessment') {
+    if (activeSection.id === 'part-b') {
       return (
-        <div className="flex-1 overflow-y-auto">
-          <ProposalScoringAssessment proposalId={id || ''} />
-        </div>
-      );
-    }
-    if (activeSection.id === 'cross-ref-checker') {
-      return (
-        <div className="flex-1 overflow-y-auto p-6">
-          <CrossReferenceChecker proposalId={id || ''} isOpen={true} onClose={() => {}} />
+        <div className="flex-1 overflow-y-auto p-6 bg-muted/30">
+          <div className="max-w-7xl mx-auto space-y-6">
+            <h1 className="text-xl font-bold text-foreground">Part B: Technical Description</h1>
+            <Tabs defaultValue="scoring">
+              <TabsList>
+                <TabsTrigger value="scoring">Scoring</TabsTrigger>
+                <TabsTrigger value="cross-refs">Cross-references</TabsTrigger>
+              </TabsList>
+              <TabsContent value="scoring">
+                <ProposalScoringAssessment proposalId={id || ''} />
+              </TabsContent>
+              <TabsContent value="cross-refs">
+                <CrossReferenceChecker proposalId={id || ''} isOpen={true} onClose={() => {}} />
+              </TabsContent>
+            </Tabs>
+          </div>
         </div>
       );
     }
