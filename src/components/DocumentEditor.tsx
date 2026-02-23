@@ -155,7 +155,7 @@ export function DocumentEditor({
       localStorage.setItem(`track-changes-${user.id}`, String(enabled));
     }
     // Return focus to editor after toggling
-    setTimeout(() => editorRef.current?.commands.focus(), 0);
+    setTimeout(() => editor?.commands.focus(), 50);
   }, [user?.id]);
   const [zoomLevel, setZoomLevel] = useState(100);
   const [trackedChanges, setTrackedChanges] = useState<TrackChange[]>([]);
@@ -191,8 +191,6 @@ export function DocumentEditor({
     currentSectionId: section?.id || null,
   });
 
-  // Create a temporary editor ref for block locking initialization
-  const editorRef = useRef<any>(null);
 
   // Get user color for track changes
   const userColor = user ? getColorForUser(user.id) : '#3B82F6';
@@ -1254,7 +1252,7 @@ export function DocumentEditor({
                             // positions may be stale
                           }
                         }}
-                        onFocusEditor={() => editor?.commands.focus()}
+                        onFocusEditor={() => setTimeout(() => editor?.commands.focus(), 50)}
                         compact
                       />
                     </div>
