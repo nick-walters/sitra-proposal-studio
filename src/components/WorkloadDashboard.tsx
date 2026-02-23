@@ -150,16 +150,9 @@ export function WorkloadDashboard({ proposalId }: WorkloadDashboardProps) {
   }, [assignments]);
 
   return (
-    <div className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-primary" />
-            Workload Dashboard
-          </h2>
-          <p className="text-sm text-muted-foreground">Section assignments and deadline tracking</p>
-        </div>
-        <Button onClick={loadData} disabled={loading} className="gap-2">
+    <div className="space-y-4">
+      <div className="flex items-center justify-end">
+        <Button onClick={loadData} disabled={loading} variant="outline" size="sm" className="gap-2">
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
           {hasRun ? 'Refresh' : 'Load data'}
         </Button>
