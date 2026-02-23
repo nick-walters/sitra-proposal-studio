@@ -154,6 +154,8 @@ export function DocumentEditor({
     if (user?.id) {
       localStorage.setItem(`track-changes-${user.id}`, String(enabled));
     }
+    // Return focus to editor after toggling
+    setTimeout(() => editorRef.current?.commands.focus(), 0);
   }, [user?.id]);
   const [zoomLevel, setZoomLevel] = useState(100);
   const [trackedChanges, setTrackedChanges] = useState<TrackChange[]>([]);
@@ -1252,6 +1254,8 @@ export function DocumentEditor({
                             // positions may be stale
                           }
                         }}
+                        onFocusEditor={() => editor?.commands.focus()}
+                        compact
                       />
                     </div>
                   </ScrollArea>
