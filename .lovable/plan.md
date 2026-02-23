@@ -1,68 +1,28 @@
 
 
-## Plan: Fix Track Changes Toggle + Anchor Comments to Selected Text
+## Fix: Cursor Not Returning to Editor
 
-### Issue 1: Track Changes Stays Active After Toggle Off
+### Root Cause
 
-**Root Cause Analysis**
+The `editorRef` (line 195) is a `useRef` that is **never assigned** the editor instance. It stays `null` forever. The track changes toggle (line 158) calls `editorRef.current?.commands.focus()` which silently does nothing because `current` is `null`.
 
-The track changes extension uses `appendTransaction` in ProseMirror to intercept all document changes and apply insertion/deletion marks. The enabled state flows through multiple paths that can conflict:
+The `onFocusEditor` prop passed to `CommentsSidebar` (line 1257) uses `editor?.commands.focus()` directly, which should work. If it's also not working, it may be because `editor.commands.focus()` alone doesn't reliably bring focus back when another element (like a button in the sidebar) just received the click -- the browser may re-focus the clicked element after the synchronous `.focus()` call completes.
 
-1. `TrackChanges.configure({ enabled: ... })` sets the initial `options.enabled`
-2. `addStorage()` copies it to `storage.enabled` once at creation
-3. `appendTransaction` reads `extension.storage.enabled` on every transaction
-4. Two separate `useEffect` hooks (one in `DocumentEditor`, one in `useRichTextEditor`) both try to sync the React state to `storage.enabled`
+### Fix
 
-The critical bug: when `editor.commands.setContent()` is called (e.g., from real-time sync or initial DB load), it creates a ProseMirror transaction with `docChanged = true` and NO `trackChangesInternal` meta. The `appendTransaction` treats this as a user edit and applies insertion marks to ALL the newly-set content. This means every time content syncs from the database while tracking is on, the entire document gets re-marked as insertions -- explaining why text appears green even after toggling off (the marks were already baked in by a previous `setContent` cycle).
+1. **`src/components/DocumentEditor.tsx`** -- Replace all `editorRef.current?.commands.focus()` calls with `editor?.commands.focus()`, and wrap them in a short `setTimeout` to ensure the browser has finished processing the click event before we steal focus back to the editor.
 
-Additionally, there's a race between two competing `useEffect` hooks syncing the same value, and the empty-transaction dispatch can trigger unnecessary re-processing.
+   - Line 158: change `editorRef.current?.commands.focus()` to `editor?.commands.focus()` (already inside setTimeout -- good)
+   - Line 1257: change `onFocusEditor` to use `setTimeout(() => editor?.commands.focus(), 50)` for reliable refocusing after sidebar button clicks
 
-**Fix**
+2. **`src/components/CommentsSidebar.tsx`** -- Ensure all `onFocusEditor?.()` calls are wrapped in a small delay where they aren't already, so the browser finishes processing the current click before refocusing the editor.
 
-- In `useRichTextEditor`: wrap `editor.commands.setContent(...)` calls with a `trackChangesInternal` meta so `appendTransaction` skips them. This is done by dispatching the setContent transaction manually with the meta flag, or by temporarily disabling storage before setContent and restoring after.
-- Remove the duplicate `useEffect` in `DocumentEditor` (lines 329-337) since `useRichTextEditor` already has a sync effect (lines 1249-1268). Having two effects fighting over the same value creates subtle timing issues.
-- In `appendTransaction`, add an additional guard: check if the transaction was dispatched by Tiptap's internal `setContent` command (checking for a `setContent` meta or full-document replacement pattern).
+### Technical Details
 
-**Files to change:**
-- `src/components/RichTextEditor.tsx` -- fix `setContent` to mark transactions as internal; keep the single authoritative sync effect
-- `src/components/DocumentEditor.tsx` -- remove the duplicate storage sync `useEffect`
-- `src/extensions/TrackChanges.ts` -- add a guard in `appendTransaction` to skip full-document replacements (setContent)
+| Location | Current Code | Fix |
+|---|---|---|
+| `DocumentEditor.tsx:158` | `editorRef.current?.commands.focus()` | `editor?.commands.focus()` |
+| `DocumentEditor.tsx:1257` | `() => editor?.commands.focus()` | `() => setTimeout(() => editor?.commands.focus(), 50)` |
 
----
-
-### Issue 2: Comments Not Anchored to Selected Text
-
-**Root Cause Analysis**
-
-The current flow:
-1. User selects text in the editor
-2. `selectionUpdate` fires, setting `selectedText` and `selectionRange` state in `DocumentEditor`
-3. User clicks "Review panel" to open the sidebar, or the sidebar is already open
-4. User clicks into the comment textarea to type
-5. This moves focus away from the editor, clearing the editor selection
-6. `selectionUpdate` fires again with `from === to`, clearing `selectedText` and `selectionRange`
-
-The comment is saved with `selected_text` and position info, but by the time the user submits, those values have been cleared. Even if they persist, the comment just shows a quote block in the sidebar -- there's no visual highlight in the editor showing where the comment is anchored.
-
-**Fix**
-
-- Preserve the selected text and range when the user explicitly intends to comment: latch the values when the sidebar gains focus (or when the user starts typing in the comment box), so that subsequent editor blur doesn't clear them.
-- Only clear `selectedText`/`selectionRange` when the comment is submitted or explicitly dismissed -- not on every selection change.
-- Add a visual highlight (e.g., a yellow background mark or CSS-based decoration) on the editor text that has been selected for commenting, so users can see what text the pending comment refers to.
-- When rendering existing comments with `selection_start`/`selection_end`, optionally scroll to and briefly highlight the referenced text when a comment is clicked.
-
-**Files to change:**
-- `src/components/DocumentEditor.tsx` -- change `handleTextSelection` to latch selection state; don't clear it on blur; add a ProseMirror decoration for the pending comment range
-- `src/components/CommentsSidebar.tsx` -- display the selected text quote prominently when composing; support click-to-highlight for existing comments
-
----
-
-### Technical Summary
-
-| File | Change | Complexity |
-|------|--------|------------|
-| `src/extensions/TrackChanges.ts` | Guard `appendTransaction` against `setContent` transactions | Low |
-| `src/components/RichTextEditor.tsx` | Mark `setContent` calls with internal meta; keep single sync effect | Medium |
-| `src/components/DocumentEditor.tsx` | Remove duplicate sync effect; latch comment selection state; add pending-comment decoration | Medium |
-| `src/components/CommentsSidebar.tsx` | Show anchored text quote; support click-to-highlight | Low |
+The `editorRef` can then be removed entirely if it has no other uses (confirmed: only used at line 158 and declared at line 195).
 
