@@ -1,6 +1,7 @@
 import { useBudgetRows } from '@/hooks/useBudgetRows';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { formatNumber, formatCurrency } from '@/lib/formatNumber';
+import { BudgetValidationEngine } from '@/components/BudgetValidationEngine';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -239,6 +240,7 @@ export function BudgetPortalSheet({
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="summary">Summary by Participant</TabsTrigger>
+            {isAdmin && <TabsTrigger value="validation">Validation</TabsTrigger>}
           </TabsList>
 
           {/* Overview Tab - Budget by Category */}
@@ -383,6 +385,12 @@ export function BudgetPortalSheet({
               </CardContent>
             </Card>
           </TabsContent>
+
+          {isAdmin && (
+            <TabsContent value="validation">
+              <BudgetValidationEngine proposalId={proposalId} />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </div>
