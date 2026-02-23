@@ -34,6 +34,7 @@ interface CommentsSidebarProps {
   selectedText?: string;
   selectionRange?: { start: number; end: number };
   onClearSelection?: () => void;
+  onCommentClick?: (selectionStart: number | null, selectionEnd: number | null) => void;
   compact?: boolean;
 }
 
@@ -50,12 +51,14 @@ function CommentCard({
   onReply,
   onResolve,
   onDelete,
+  onClickHighlight,
 }: {
   comment: Comment;
   currentUserId?: string;
   onReply: (commentId: string) => void;
   onResolve: (commentId: string) => void;
   onDelete: (commentId: string) => void;
+  onClickHighlight?: (start: number, end: number) => void;
 }) {
   const [showReplies, setShowReplies] = useState(true);
   const isOwn = comment.user_id === currentUserId;
@@ -133,9 +136,18 @@ function CommentCard({
 
       {/* Selected text quote */}
       {comment.selected_text && (
-        <div className="text-xs bg-muted/50 p-2 rounded border-l-2 border-primary/30 italic text-muted-foreground">
+        <button
+          type="button"
+          className="w-full text-left text-xs bg-muted/50 p-2 rounded border-l-2 border-primary/30 italic text-muted-foreground hover:bg-muted/80 transition-colors cursor-pointer"
+          onClick={() => {
+            if (onClickHighlight && comment.selection_start != null && comment.selection_end != null) {
+              onClickHighlight(comment.selection_start, comment.selection_end);
+            }
+          }}
+          title="Click to highlight in editor"
+        >
           "{comment.selected_text}"
-        </div>
+        </button>
       )}
 
       {/* Comment content with @mentions */}
@@ -324,6 +336,7 @@ export function CommentsSidebar({
   selectedText,
   selectionRange,
   onClearSelection,
+  onCommentClick,
   compact = false,
 }: CommentsSidebarProps) {
   const { user } = useAuth();
@@ -491,6 +504,7 @@ export function CommentsSidebar({
                       onReply={(id) => setReplyingTo(id)}
                       onResolve={(id) => updateCommentStatus(id, 'resolved')}
                       onDelete={deleteComment}
+                      onClickHighlight={onCommentClick ? (start, end) => onCommentClick(start, end) : undefined}
                     />
                     {/* Reply input */}
                     {replyingTo === comment.id && (

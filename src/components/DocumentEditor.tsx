@@ -326,15 +326,7 @@ export function DocumentEditor({
     },
   });
 
-  // Sync trackChangesEnabled state to the ProseMirror extension storage
-  useEffect(() => {
-    if (!editor) return;
-    const storage = (editor.storage as any)?.trackChanges;
-    if (storage && storage.enabled !== trackChangesEnabled) {
-      storage.enabled = trackChangesEnabled;
-      editor.view.dispatch(editor.state.tr);
-    }
-  }, [editor, trackChangesEnabled]);
+  // Note: trackChangesEnabled sync is handled by useRichTextEditor's own effect (lines 1249-1268)
 
   // Scroll to top when section changes
   useEffect(() => {
@@ -682,15 +674,18 @@ export function DocumentEditor({
     setContent(newContent);
   }, [content, setContent]);
 
-  // Handle text selection for comments
+  // Handle text selection for comments — latch selection so it persists
+  // when focus moves to the comment sidebar textarea
   const handleTextSelection = useCallback(() => {
     if (!editor) return;
     
     const { from, to } = editor.state.selection;
     if (from === to) {
-      // No selection
-      setSelectedText('');
-      setSelectionRange(undefined);
+      // Only clear if editor is focused (not when focus moves to sidebar)
+      if (editor.isFocused) {
+        setSelectedText('');
+        setSelectionRange(undefined);
+      }
       return;
     }
 
@@ -1240,6 +1235,23 @@ export function DocumentEditor({
                       <CommentsSidebar
                         proposalId={proposalId}
                         sectionId={section?.id || ''}
+                        selectedText={selectedText}
+                        selectionRange={selectionRange}
+                        onClearSelection={() => {
+                          setSelectedText('');
+                          setSelectionRange(undefined);
+                        }}
+                        onCommentClick={(start, end) => {
+                          if (!editor || start == null || end == null) return;
+                          try {
+                            const docSize = editor.state.doc.content.size;
+                            if (start >= 0 && end <= docSize && start < end) {
+                              editor.chain().focus().setTextSelection({ from: start, to: end }).scrollIntoView().run();
+                            }
+                          } catch {
+                            // positions may be stale
+                          }
+                        }}
                       />
                     </div>
                   </ScrollArea>
