@@ -33,6 +33,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   });
 
   // Password state
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
@@ -69,6 +70,10 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   };
 
   const handleUpdatePassword = async () => {
+    if (!currentPassword) {
+      toast.error('Please enter your current password');
+      return;
+    }
     if (!newPassword) {
       toast.error('Please enter a new password');
       return;
@@ -84,9 +89,23 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
     setPasswordLoading(true);
     try {
+      // Verify current password first
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) throw new Error('Unable to verify identity');
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+      if (signInError) {
+        toast.error('Current password is incorrect');
+        return;
+      }
+
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
       toast.success('Password updated successfully');
+      setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error: any) {
@@ -337,6 +356,15 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               
               <div className="grid gap-3 max-w-sm">
                 <div>
+                  <Label>Current Password</Label>
+                  <Input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Enter current password"
+                  />
+                </div>
+                <div>
                   <Label>New Password</Label>
                   <Input
                     type="password"
@@ -357,7 +385,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 <Button
                   className="w-fit"
                   onClick={handleUpdatePassword}
-                  disabled={passwordLoading || !newPassword || !confirmPassword}
+                  disabled={passwordLoading || !currentPassword || !newPassword || !confirmPassword}
                 >
                   {passwordLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                   Update Password
