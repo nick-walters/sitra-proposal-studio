@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,10 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Settings, Bell, Palette, Shield } from "lucide-react";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { Settings, Bell, Palette, Shield, Loader2, CheckCircle, Copy } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -28,6 +31,128 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     dateFormat: 'dd/MM/yyyy',
     autoSave: true,
   });
+
+  // Password state
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  // 2FA state
+  const [mfaFactors, setMfaFactors] = useState<any[]>([]);
+  const [mfaLoading, setMfaLoading] = useState(false);
+  const [enrollStep, setEnrollStep] = useState<'idle' | 'qr' | 'verify'>('idle');
+  const [qrUri, setQrUri] = useState('');
+  const [totpSecret, setTotpSecret] = useState('');
+  const [factorId, setFactorId] = useState('');
+  const [verifyCode, setVerifyCode] = useState('');
+  const [verifyLoading, setVerifyLoading] = useState(false);
+
+  // Fetch MFA factors when dialog opens
+  useEffect(() => {
+    if (open) {
+      fetchMfaFactors();
+    } else {
+      // Reset enrollment state when dialog closes
+      setEnrollStep('idle');
+      setQrUri('');
+      setTotpSecret('');
+      setFactorId('');
+      setVerifyCode('');
+    }
+  }, [open]);
+
+  const fetchMfaFactors = async () => {
+    const { data, error } = await supabase.auth.mfa.listFactors();
+    if (!error && data) {
+      setMfaFactors(data.totp || []);
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!newPassword) {
+      toast.error('Please enter a new password');
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast.success('Password updated successfully');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update password');
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const handleEnroll2FA = async () => {
+    setMfaLoading(true);
+    try {
+      const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp' });
+      if (error) throw error;
+      setQrUri(data.totp.qr_code);
+      setTotpSecret(data.totp.secret);
+      setFactorId(data.id);
+      setEnrollStep('qr');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to start 2FA setup');
+    } finally {
+      setMfaLoading(false);
+    }
+  };
+
+  const handleVerify2FA = async () => {
+    if (verifyCode.length !== 6) {
+      toast.error('Please enter the 6-digit code');
+      return;
+    }
+    setVerifyLoading(true);
+    try {
+      const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId });
+      if (challengeError) throw challengeError;
+
+      const { error: verifyError } = await supabase.auth.mfa.verify({
+        factorId,
+        challengeId: challenge.id,
+        code: verifyCode,
+      });
+      if (verifyError) throw verifyError;
+
+      toast.success('Two-factor authentication enabled successfully');
+      setEnrollStep('idle');
+      setVerifyCode('');
+      fetchMfaFactors();
+    } catch (error: any) {
+      toast.error(error.message || 'Verification failed. Please try again.');
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
+
+  const handleUnenroll2FA = async (id: string) => {
+    try {
+      const { error } = await supabase.auth.mfa.unenroll({ factorId: id });
+      if (error) throw error;
+      toast.success('Two-factor authentication disabled');
+      fetchMfaFactors();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to disable 2FA');
+    }
+  };
+
+  const verifiedFactors = mfaFactors.filter(f => f.status === 'verified');
+  const has2FA = verifiedFactors.length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -208,22 +333,35 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           {/* Security Settings */}
           <TabsContent value="security" className="space-y-6 mt-4">
             <div className="space-y-4">
-              <h3 className="font-medium">Password</h3>
+              <h3 className="font-medium">Change Password</h3>
               
               <div className="grid gap-3 max-w-sm">
                 <div>
-                  <Label>Current Password</Label>
-                  <Input type="password" />
-                </div>
-                <div>
                   <Label>New Password</Label>
-                  <Input type="password" />
+                  <Input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                  />
                 </div>
                 <div>
                   <Label>Confirm New Password</Label>
-                  <Input type="password" />
+                  <Input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Re-enter new password"
+                  />
                 </div>
-                <Button className="w-fit">Update Password</Button>
+                <Button
+                  className="w-fit"
+                  onClick={handleUpdatePassword}
+                  disabled={passwordLoading || !newPassword || !confirmPassword}
+                >
+                  {passwordLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Update Password
+                </Button>
               </div>
             </div>
 
@@ -231,10 +369,84 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
             <div className="space-y-4">
               <h3 className="font-medium">Two-Factor Authentication</h3>
-              <p className="text-sm text-muted-foreground">
-                Add an extra layer of security to your account.
-              </p>
-              <Button variant="outline">Enable 2FA</Button>
+
+              {has2FA ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm text-green-600">
+                    <CheckCircle className="w-4 h-4" />
+                    Two-factor authentication is enabled
+                  </div>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleUnenroll2FA(verifiedFactors[0].id)}
+                  >
+                    Disable 2FA
+                  </Button>
+                </div>
+              ) : enrollStep === 'idle' ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Add an extra layer of security to your account using a TOTP authenticator app.
+                  </p>
+                  <Button variant="outline" onClick={handleEnroll2FA} disabled={mfaLoading}>
+                    {mfaLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    Enable 2FA
+                  </Button>
+                </div>
+              ) : enrollStep === 'qr' ? (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Scan this QR code with your authenticator app (e.g. Google Authenticator, Authy), then enter the 6-digit code below.
+                  </p>
+                  <div className="flex justify-center">
+                    <img src={qrUri} alt="2FA QR Code" className="w-48 h-48 rounded border" />
+                  </div>
+                  {totpSecret && (
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Or enter this secret manually:</p>
+                      <div className="flex items-center gap-2">
+                        <code className="text-xs bg-muted px-2 py-1 rounded font-mono select-all break-all">
+                          {totpSecret}
+                        </code>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => {
+                            navigator.clipboard.writeText(totpSecret);
+                            toast.success('Secret copied');
+                          }}
+                        >
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <Label>Verification Code</Label>
+                    <InputOTP maxLength={6} value={verifyCode} onChange={setVerifyCode}>
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} />
+                        <InputOTPSlot index={1} />
+                        <InputOTPSlot index={2} />
+                        <InputOTPSlot index={3} />
+                        <InputOTPSlot index={4} />
+                        <InputOTPSlot index={5} />
+                      </InputOTPGroup>
+                    </InputOTP>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={handleVerify2FA} disabled={verifyLoading || verifyCode.length !== 6}>
+                      {verifyLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                      Verify & Enable
+                    </Button>
+                    <Button variant="ghost" onClick={() => setEnrollStep('idle')}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </TabsContent>
         </Tabs>
