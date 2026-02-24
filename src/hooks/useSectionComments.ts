@@ -156,38 +156,59 @@ export function useSectionComments({ proposalId, sectionId }: UseSectionComments
     }
   }, [user, proposalId, sectionId]);
 
-  // Update comment status (resolve/reject suggestion)
+  // Update comment status (resolve/reject suggestion) - optimistic
   const updateCommentStatus = useCallback(async (
     commentId: string,
     status: 'open' | 'resolved' | 'rejected'
   ) => {
+    // Optimistic update
+    setComments(prev => prev.map(c => c.id === commentId ? { ...c, status } : c));
+
     try {
       const { error } = await supabase
         .from('section_comments')
         .update({ status })
         .eq('id', commentId);
 
-      if (error) throw error;
+      if (error) {
+        fetchComments(); // revert
+        throw error;
+      }
     } catch (error) {
       console.error('Error updating comment:', error);
       toast.error('Failed to update comment');
     }
-  }, []);
+  }, [fetchComments]);
 
-  // Delete a comment
+  // Delete a comment (with optimistic removal)
   const deleteComment = useCallback(async (commentId: string) => {
+    // Optimistically remove from UI immediately
+    setComments(prev => {
+      // Remove if it's a top-level comment
+      const filtered = prev.filter(c => c.id !== commentId);
+      // Also remove from replies
+      return filtered.map(c => ({
+        ...c,
+        replies: c.replies?.filter(r => r.id !== commentId) || [],
+      }));
+    });
+
     try {
       const { error } = await supabase
         .from('section_comments')
         .delete()
         .eq('id', commentId);
 
-      if (error) throw error;
+      if (error) {
+        // Revert on failure
+        fetchComments();
+        throw error;
+      }
     } catch (error) {
       console.error('Error deleting comment:', error);
       toast.error('Failed to delete comment');
     }
-  }, []);
+  }, [fetchComments]);
 
   // Get comment counts
   const openCount = comments.filter(c => c.status === 'open').length;
