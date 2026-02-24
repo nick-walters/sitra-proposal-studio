@@ -110,6 +110,7 @@ export function ProposalEditor() {
   const [isAddParticipantOpen, setIsAddParticipantOpen] = useState(false);
   const [isSubmitConfirmOpen, setIsSubmitConfirmOpen] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [openPanel, setOpenPanel] = useState<'comments' | 'changes' | null>(null);
   const { exportToPdf, exportProposalToPdf } = usePdfExport();
   const { exportProposalToDocx } = useDocxExport();
 
@@ -258,11 +259,15 @@ export function ProposalEditor() {
   useEffect(() => {
     if (sectionsLoading || allSections.length === 0) return;
     const urlSection = searchParams.get('section');
+    const urlPanel = searchParams.get('panel') as 'comments' | 'changes' | null;
     if (!urlSection) return;
     
     const found = findSectionById(allSections, urlSection);
     if (found) {
       setActiveSection(found);
+    }
+    if (urlPanel) {
+      setOpenPanel(urlPanel);
     }
     setSearchParams({}, { replace: true });
   }, [searchParams, allSections, sectionsLoading, findSectionById]);
@@ -797,7 +802,8 @@ export function ProposalEditor() {
           topicId={proposal?.topicId}
           workProgramme={proposal?.workProgramme}
           destination={proposal?.destination}
-          acronymSegments={(proposal as any)?.acronymSegments}
+           acronymSegments={(proposal as any)?.acronymSegments}
+           openPanel={openPanel}
         />
       );
     }
@@ -941,6 +947,7 @@ export function ProposalEditor() {
         workProgramme={proposal?.workProgramme}
         destination={proposal?.destination}
         acronymSegments={(proposal as any)?.acronymSegments}
+        openPanel={openPanel}
       />
     );
   };

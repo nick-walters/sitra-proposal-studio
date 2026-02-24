@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { MentionTextarea, extractMentionedUserIds, renderMentionContent } from '@/components/MentionTextarea';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Label } from '@/components/ui/label';
@@ -163,6 +163,22 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
         await supabase.from('proposal_task_assignees')
           .insert(data.assignee_ids.map(uid => ({ task_id: task.id, user_id: uid })));
       }
+      // Create notifications for @mentions in description
+      if (data.description) {
+        const mentionedIds = extractMentionedUserIds(data.description);
+        if (mentionedIds.length > 0) {
+          await supabase.from('notifications').insert(
+            mentionedIds.map((userId) => ({
+              user_id: userId,
+              proposal_id: proposalId,
+              type: 'mention',
+              title: 'You were mentioned in a task',
+              message: `${user?.user_metadata?.full_name || 'Someone'} mentioned you in task "${data.title}"`,
+              metadata: { source: 'task', task_id: task.id },
+            }))
+          );
+        }
+      }
       return task;
     },
     onSuccess: () => {
@@ -193,6 +209,22 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
       if (data.assignee_ids.length > 0) {
         await supabase.from('proposal_task_assignees')
           .insert(data.assignee_ids.map(uid => ({ task_id: id, user_id: uid })));
+      }
+      // Create notifications for @mentions in description
+      if (data.description) {
+        const mentionedIds = extractMentionedUserIds(data.description);
+        if (mentionedIds.length > 0) {
+          await supabase.from('notifications').insert(
+            mentionedIds.map((userId) => ({
+              user_id: userId,
+              proposal_id: proposalId,
+              type: 'mention',
+              title: 'You were mentioned in a task',
+              message: `${user?.user_metadata?.full_name || 'Someone'} mentioned you in task "${data.title}"`,
+              metadata: { source: 'task', task_id: id },
+            }))
+          );
+        }
       }
     },
     onSuccess: () => {
@@ -407,8 +439,13 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
               <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Task title" />
             </div>
             <div>
-              <Label>Description</Label>
-              <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Optional description" />
+              <Label>Description (type @ to mention)</Label>
+              <MentionTextarea
+                value={form.description}
+                onChange={v => setForm(f => ({ ...f, description: v }))}
+                placeholder="Optional description"
+                teamMembers={members.map(m => ({ id: m.id, full_name: m.full_name, email: m.email, avatar_url: m.avatar_url }))}
+              />
             </div>
             <div>
               <Label>Duration</Label>
