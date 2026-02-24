@@ -60,17 +60,16 @@ export default function Index() {
   ];
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white flex flex-col">
       {/* Hero Section */}
-      <section className="relative">
-
-        <div className="relative container py-24 lg:py-32">
+      <section className="relative flex-1 flex items-center justify-center">
+        <div className="relative container py-32 lg:py-40">
           <div className="max-w-3xl mx-auto text-center">
-            <div className="flex items-center justify-center mb-8 animate-fade-in">
+            <div className="flex items-center justify-center mb-10 animate-fade-in">
               <img src={sitraLogo} alt="Sitra Proposal Studio" className="h-16 w-auto object-contain flex-shrink-0" />
             </div>
 
-            <p className="text-lg sm:text-xl text-muted-foreground mb-8 animate-slide-up max-w-2xl mx-auto">
+            <p className="text-lg sm:text-xl text-muted-foreground mb-10 animate-slide-up max-w-2xl mx-auto">
               Sitra's collaborative platform for co-developing funding proposals
               with consortium partners. Real-time editing, change tracking, and publication-ready exports.
             </p>
@@ -86,16 +85,18 @@ export default function Index() {
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </div>
-
-            {/* Trust indicator */}
-            <div className="mt-12 pt-8 border-t border-border animate-fade-in" style={{ animationDelay: '0.3s' }}>
-              <p className="text-sm text-muted-foreground">
-                An internal tool by <span className="font-semibold text-foreground">Sitra</span> — The Finnish Innovation Fund
-              </p>
-            </div>
           </div>
         </div>
       </section>
+
+      {/* Footer */}
+      <footer className="py-6 border-t border-border">
+        <div className="container text-center">
+          <p className="text-sm text-muted-foreground">
+            An internal tool by <span className="font-semibold text-foreground">Sitra</span> — The Finnish Innovation Fund
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
