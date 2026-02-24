@@ -69,10 +69,6 @@ export default function Index() {
             <div className="flex items-center justify-center mb-8 animate-fade-in">
               <img src={sitraLogo} alt="Sitra Proposal Studio" className="h-16 w-auto object-contain flex-shrink-0" />
             </div>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6 animate-fade-in">
-              <Star className="w-4 h-4" />
-              A Sitra internal tool for funding proposals
-            </div>
 
             <p className="text-lg sm:text-xl text-muted-foreground mb-8 animate-slide-up max-w-2xl mx-auto">
               Sitra's collaborative platform for co-developing funding proposals
@@ -89,10 +85,6 @@ export default function Index() {
                 Sign In
                 <ArrowRight className="w-5 h-5" />
               </Button>
-              <Button size="xl" variant="outline" className="gap-2">
-                <FileText className="w-5 h-5" />
-                View Demo
-              </Button>
             </div>
 
             {/* Trust indicator */}
@@ -105,35 +97,6 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-20 bg-muted/30">
-        <div className="container">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground mb-4">
-              Everything You Need for Proposal Success
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              From initial drafts to final submission, our platform supports every step of your proposal journey.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((feature, idx) => (
-              <div
-                key={feature.title}
-                className="card-elevated p-6 animate-fade-in"
-                style={{ animationDelay: `${idx * 0.1}s` }}
-              >
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                  <feature.icon className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">{feature.title}</h3>
-                <p className="text-muted-foreground">{feature.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* Document Format Section */}
       <section className="py-20">
