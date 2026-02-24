@@ -304,10 +304,10 @@ export function CommentsSidebar({
 
     // Create notifications for mentioned users
     if (mentionedIds.length > 0) {
-      const otherIds = mentionedIds.filter(id => id !== user?.id);
-      if (otherIds.length > 0) {
+      const targetIds = mentionedIds;
+      if (targetIds.length > 0) {
         const { error } = await supabase.from('notifications').insert(
-          otherIds.map((userId) => ({
+          targetIds.map((userId) => ({
             user_id: userId,
             proposal_id: proposalId,
             section_id: sectionId,
@@ -345,10 +345,10 @@ export function CommentsSidebar({
 
     // Create notifications for mentioned users in reply
     if (mentionedIds.length > 0) {
-      const otherIds = mentionedIds.filter(id => id !== user?.id);
-      if (otherIds.length > 0) {
+      const targetIds = mentionedIds;
+      if (targetIds.length > 0) {
         await supabase.from('notifications').insert(
-          otherIds.map((userId) => ({
+          targetIds.map((userId) => ({
             user_id: userId,
             proposal_id: proposalId,
             section_id: sectionId,
