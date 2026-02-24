@@ -299,12 +299,12 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon, is
           </div>
 
           {/* Right column: Action buttons and dates */}
-          <div className="flex flex-col gap-1 flex-shrink-0 w-[9rem] items-stretch">
+          <div className="flex flex-col gap-1 flex-shrink-0 w-24 items-stretch">
             {proposal.topicUrl && (
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="h-6 w-full px-2 gap-1 text-[10px]"
+                className="h-6 w-full px-1.5 gap-0.5 text-[10px]"
                 onClick={(e) => {
                   e.stopPropagation();
                   window.open(proposal.topicUrl, '_blank');
@@ -314,38 +314,47 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon, is
                 <ExternalLink className="w-2.5 h-2.5" />
               </Button>
             )}
-            <Button size="sm" className="h-6 w-full px-2 gap-1 text-[10px] bg-foreground text-background hover:bg-foreground/90">
+            <Button size="sm" className="h-6 w-full px-1.5 gap-0.5 text-[10px] bg-foreground text-background hover:bg-foreground/90">
               {isDraft ? 'Edit' : 'View'}
               <ArrowRight className="w-2.5 h-2.5" />
             </Button>
-            {/* Dates below buttons - left aligned so icons stack */}
-            <div className="flex flex-col gap-0.5 mt-3 text-[9px] text-muted-foreground">
+            {/* Dates below buttons */}
+            <div className="flex flex-col gap-0.5 mt-2 text-[9px] text-muted-foreground">
               {proposal.deadline && (
-                <div className="flex items-center gap-0.5">
-                  <Calendar className="w-2.5 h-2.5 text-yellow-600" />
-                  <span className="font-bold">Deadline:</span> {format(proposal.deadline, 'dd/MM/yyyy')}
-                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-2.5 h-2.5 text-yellow-600 flex-shrink-0" />
+                      <span>{format(proposal.deadline, 'dd/MM/yyyy')}</span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="left" className="text-xs">Deadline</TooltipContent>
+                </Tooltip>
               )}
-              {/* Show decision date if available */}
               {proposal.decisionDate && (
-                <div className="flex items-center gap-0.5">
-                  {isDecided ? (
-                    proposal.status === 'funded' ? (
-                      <CheckCircle2 className="w-2.5 h-2.5 text-green-600" />
-                    ) : (
-                      <XCircle className="w-2.5 h-2.5 text-red-600" />
-                    )
-                  ) : (
-                    <Clock className="w-2.5 h-2.5 text-muted-foreground" />
-                  )}
-                  <span className="font-bold">Decision:</span> {format(proposal.decisionDate, 'dd/MM/yyyy')}
-                  {proposal.decisionDateIsEstimated && !isDecided && (
-                    <span className="inline-flex items-center gap-0.5 ml-1 px-1 py-0 text-[8px] font-medium bg-white text-blue-600 border border-blue-400 rounded">
-                      <HelpCircle className="w-2 h-2" />
-                      Est.
-                    </span>
-                  )}
-                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1">
+                      {isDecided ? (
+                        proposal.status === 'funded' ? (
+                          <CheckCircle2 className="w-2.5 h-2.5 text-green-600 flex-shrink-0" />
+                        ) : (
+                          <XCircle className="w-2.5 h-2.5 text-red-600 flex-shrink-0" />
+                        )
+                      ) : (
+                        <Clock className="w-2.5 h-2.5 text-muted-foreground flex-shrink-0" />
+                      )}
+                      <span>{format(proposal.decisionDate, 'dd/MM/yyyy')}</span>
+                      {proposal.decisionDateIsEstimated && !isDecided && (
+                        <span className="inline-flex items-center gap-0.5 px-1 py-0 text-[8px] font-medium bg-white text-blue-600 border border-blue-400 rounded">
+                          <HelpCircle className="w-2 h-2" />
+                          Est.
+                        </span>
+                      )}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="left" className="text-xs">Decision date</TooltipContent>
+                </Tooltip>
               )}
             </div>
           </div>
