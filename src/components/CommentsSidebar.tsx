@@ -312,13 +312,18 @@ function MentionTextarea({
     
     const mentionText = `@[${member.full_name}](${member.id})`;
     const newValue = beforeMention + mentionText + ' ' + afterCursor;
+    const newCursorPos = atIndex + mentionText.length + 1; // +1 for space
     
     onChange(newValue);
     setShowMentions(false);
     
-    // Focus back on textarea
+    // Focus back on textarea and set cursor after the mention
     setTimeout(() => {
-      textareaRef.current?.focus();
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        textareaRef.current.selectionStart = newCursorPos;
+        textareaRef.current.selectionEnd = newCursorPos;
+      }
     }, 0);
   };
 
