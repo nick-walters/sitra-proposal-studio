@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { UserAvatarMenu } from "@/components/UserAvatarMenu";
 import { CollaboratorsDialog } from "@/components/CollaboratorsDialog";
 import { NotificationCenter } from "@/components/NotificationCenter";
+import { Notification } from "@/hooks/useNotifications";
 import { Users, Database, Columns3 } from "lucide-react";
 import sitraLogo from "@/assets/sitra-proposal-studio-logo.png";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 
@@ -14,7 +15,34 @@ export function Header() {
   const { isOwner, hasAnyCoordinatorRole, isGlobalAdmin } = useUserRole();
   const [isCollaboratorsOpen, setIsCollaboratorsOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const isCompact = location.pathname.startsWith('/proposal/');
+
+  const handleNotificationClick = useCallback((notification: Notification) => {
+    if (!notification.proposal_id) return;
+    const meta = notification.metadata || {};
+    
+    // Message board mentions
+    if (meta.source === 'message_board') {
+      navigate(`/proposal/${notification.proposal_id}?section=messaging`);
+      return;
+    }
+    
+    // Comment mentions - navigate to the section
+    if (notification.type === 'mention' && notification.section_id) {
+      navigate(`/proposal/${notification.proposal_id}?section=${notification.section_id}`);
+      return;
+    }
+    
+    // Section assignments / due dates
+    if (notification.section_id) {
+      navigate(`/proposal/${notification.proposal_id}?section=${notification.section_id}`);
+      return;
+    }
+    
+    // Fallback: just navigate to the proposal
+    navigate(`/proposal/${notification.proposal_id}`);
+  }, [navigate]);
 
   return (
     <>
@@ -57,7 +85,7 @@ export function Header() {
 
           {/* Right: Notifications, Avatar */}
           <div className="flex items-center gap-2 w-[220px] shrink-0 justify-end">
-            {user && <NotificationCenter />}
+            {user && <NotificationCenter onNotificationClick={handleNotificationClick} />}
             {user && (
               <UserAvatarMenu 
                 userId={user.id}

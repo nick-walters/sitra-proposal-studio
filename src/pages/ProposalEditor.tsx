@@ -242,33 +242,35 @@ export function ProposalEditor() {
     return mapping;
   }, [caseLeadershipData]);
 
-  // Auto-select section on initial load: URL param > localStorage > A1
+  // Helper to find section by id
+  const findSectionById = useCallback((sections: Section[], targetId: string): Section | undefined => {
+    for (const section of sections) {
+      if (section.id === targetId) return section;
+      if (section.subsections) {
+        const found = findSectionById(section.subsections, targetId);
+        if (found) return found;
+      }
+    }
+    return undefined;
+  }, []);
+
+  // React to URL search param changes (for notification navigation)
+  useEffect(() => {
+    if (sectionsLoading || allSections.length === 0) return;
+    const urlSection = searchParams.get('section');
+    if (!urlSection) return;
+    
+    const found = findSectionById(allSections, urlSection);
+    if (found) {
+      setActiveSection(found);
+    }
+    setSearchParams({}, { replace: true });
+  }, [searchParams, allSections, sectionsLoading, findSectionById]);
+
+  // Auto-select section on initial load: localStorage > A1
   useEffect(() => {
     if (!sectionsLoading && allSections.length > 0 && !activeSection) {
-      const findSectionById = (sections: Section[], targetId: string): Section | undefined => {
-        for (const section of sections) {
-          if (section.id === targetId) return section;
-          if (section.subsections) {
-            const found = findSectionById(section.subsections, targetId);
-            if (found) return found;
-          }
-        }
-        return undefined;
-      };
-
-      // 1. Check URL search param (e.g. ?section=topic-info)
-      const urlSection = searchParams.get('section');
-      if (urlSection) {
-        const found = findSectionById(allSections, urlSection);
-        if (found) {
-          setActiveSection(found);
-          // Clear the param so it doesn't persist on refresh
-          setSearchParams({}, { replace: true });
-          return;
-        }
-      }
-
-      // 2. Check localStorage for last visited section
+      // Check localStorage for last visited section
       const lastSectionId = localStorage.getItem(`proposal-${id}-lastSection`);
       if (lastSectionId) {
         const found = findSectionById(allSections, lastSectionId);
@@ -278,13 +280,13 @@ export function ProposalEditor() {
         }
       }
 
-      // 3. Default to A1
+      // Default to A1
       const a1Section = findSectionById(allSections, 'a1');
       if (a1Section) {
         setActiveSection(a1Section);
       }
     }
-  }, [allSections, sectionsLoading, activeSection]);
+  }, [allSections, sectionsLoading, activeSection, findSectionById]);
 
   // Dismiss any "creating proposal" toasts once proposal data has loaded
   useEffect(() => {

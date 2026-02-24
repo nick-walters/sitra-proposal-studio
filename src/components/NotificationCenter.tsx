@@ -1,4 +1,5 @@
-import { Bell, Check, CheckCheck, Trash2, Clock, AlertTriangle, UserPlus, X } from "lucide-react";
+import { useState } from "react";
+import { Bell, Check, CheckCheck, Trash2, Clock, AlertTriangle, UserPlus, X, AtSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -17,6 +18,7 @@ const notificationIcons: Record<NotificationType, React.ReactNode> = {
   overdue: <AlertTriangle className="w-4 h-4 text-destructive" />,
   assignment_changed: <UserPlus className="w-4 h-4 text-blue-500" />,
   assignment_removed: <X className="w-4 h-4 text-muted-foreground" />,
+  mention: <AtSign className="w-4 h-4 text-primary" />,
 };
 
 function NotificationItem({ 
@@ -82,6 +84,7 @@ interface NotificationCenterProps {
 }
 
 export function NotificationCenter({ onNotificationClick }: NotificationCenterProps) {
+  const [open, setOpen] = useState(false);
   const { 
     notifications, 
     unreadCount, 
@@ -93,7 +96,7 @@ export function NotificationCenter({ onNotificationClick }: NotificationCenterPr
   } = useNotifications();
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
@@ -154,7 +157,7 @@ export function NotificationCenter({ onNotificationClick }: NotificationCenterPr
                   notification={notification}
                   onMarkRead={markAsRead}
                   onDelete={deleteNotification}
-                  onClick={onNotificationClick}
+                  onClick={(n) => { onNotificationClick?.(n); setOpen(false); }}
                 />
               ))}
             </div>

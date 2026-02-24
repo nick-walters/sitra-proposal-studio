@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { MentionTextarea, extractMentionedUserIds, renderMentionContent } from '@/components/MentionTextarea';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -307,29 +308,63 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
 
   const cyclePriority = (current: number) => (current % 3) + 1;
 
-  const handleSendNew = () => {
+  const handleSendNew = async () => {
     if (!newMessage.trim()) return;
-    sendMessage.mutate({
+    const mentionedIds = extractMentionedUserIds(newMessage);
+    const result = await sendMessage.mutateAsync({
       content: newMessage.trim(),
       visibility: newVisibility,
       priorityLevel: newPriority,
       tagged: taggedUserIds,
     });
+    // Create notifications for mentioned users
+    if (mentionedIds.length > 0 && result) {
+      const otherIds = mentionedIds.filter(id => id !== user?.id);
+      if (otherIds.length > 0) {
+        await supabase.from('notifications').insert(
+          otherIds.map((userId) => ({
+            user_id: userId,
+            proposal_id: proposalId,
+            type: 'mention',
+            title: 'You were mentioned',
+            message: `${user?.user_metadata?.full_name || 'Someone'} mentioned you in a message`,
+            metadata: { source: 'message_board', message_id: result.id },
+          }))
+        );
+      }
+    }
     setNewMessage('');
     setNewPriority(1);
     setNewVisibility('all');
     setTaggedUserIds([]);
   };
 
-  const handleSendReply = (parentId: string) => {
+  const handleSendReply = async (parentId: string) => {
     if (!replyContent.trim()) return;
-    sendMessage.mutate({
+    const mentionedIds = extractMentionedUserIds(replyContent);
+    const result = await sendMessage.mutateAsync({
       content: replyContent.trim(),
       parentId,
       visibility: 'all',
       priorityLevel: 1,
       tagged: [],
     });
+    // Create notifications for mentioned users in reply
+    if (mentionedIds.length > 0 && result) {
+      const otherIds = mentionedIds.filter(id => id !== user?.id);
+      if (otherIds.length > 0) {
+        await supabase.from('notifications').insert(
+          otherIds.map((userId) => ({
+            user_id: userId,
+            proposal_id: proposalId,
+            type: 'mention',
+            title: 'You were mentioned',
+            message: `${user?.user_metadata?.full_name || 'Someone'} mentioned you in a reply`,
+            metadata: { source: 'message_board', message_id: result.id, parent_id: parentId },
+          }))
+        );
+      }
+    }
     setReplyContent('');
     setReplyingTo(null);
   };
@@ -484,7 +519,7 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
               </div>
             </div>
           ) : (
-            <p className="text-sm mt-0.5 whitespace-pre-wrap">{msg.content}</p>
+            <p className="text-sm mt-0.5 whitespace-pre-wrap">{renderMentionContent(msg.content)}</p>
           )}
           {!isEditing && (
             <div className="flex items-center gap-1 mt-1">
@@ -562,11 +597,12 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
       {/* Compose */}
       <Card>
         <CardContent className="pt-4 pb-3 space-y-3">
-          <Textarea
-            placeholder="Start a new thread..."
+          <MentionTextarea
+            placeholder="Start a new thread... (type @ to mention)"
             value={newMessage}
-            onChange={e => setNewMessage(e.target.value)}
+            onChange={setNewMessage}
             className="min-h-[80px]"
+            teamMembers={members.map(m => ({ ...m, full_name: m.full_name || m.email }))}
           />
           <div className="flex items-center gap-2 flex-wrap">
             <Select value={newVisibility} onValueChange={(v: 'all' | 'private') => setNewVisibility(v)}>
@@ -648,11 +684,12 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
                   )}
                   {replyingTo === thread.id && (
                     <div className="flex gap-2 ml-11 mt-2">
-                      <Textarea
-                        placeholder="Write a reply..."
+                      <MentionTextarea
+                        placeholder="Write a reply... (type @ to mention)"
                         value={replyContent}
-                        onChange={e => setReplyContent(e.target.value)}
+                        onChange={setReplyContent}
                         className="min-h-[50px] text-sm"
+                        teamMembers={members.map(m => ({ ...m, full_name: m.full_name || m.email }))}
                         autoFocus
                       />
                       <div className="flex flex-col gap-1">
