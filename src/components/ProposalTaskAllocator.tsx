@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MentionTextarea, extractMentionedUserIds, renderMentionContent } from '@/components/MentionTextarea';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Label } from '@/components/ui/label';
@@ -163,27 +163,25 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
         await supabase.from('proposal_task_assignees')
           .insert(data.assignee_ids.map(uid => ({ task_id: task.id, user_id: uid })));
       }
-      // Create notifications for @mentions in description
-      console.log('Task create - description for notifications:', data.description);
-      if (data.description) {
-        const mentionedIds = extractMentionedUserIds(data.description);
-        console.log('Task create - extracted mention IDs:', mentionedIds);
-        if (mentionedIds.length > 0) {
-          const targetIds = [...new Set(mentionedIds)];
-          const { error: notifError } = await supabase.from('notifications').insert(
-            targetIds.map((userId) => ({
-              user_id: userId,
-              proposal_id: proposalId,
-              type: 'mention',
-              title: 'You were mentioned in a task',
-              message: `${user?.user_metadata?.full_name || 'Someone'} mentioned you in task "${data.title}"`,
-              metadata: { source: 'task', task_id: task.id },
-            }))
-          );
-          if (notifError) {
-            console.error('Task mention notification error:', notifError);
-            toast.error('Failed to send mention notification');
-          }
+      // Notify assigned users
+      const allAssignedIds = [...new Set([
+        ...(data.responsible_user_id ? [data.responsible_user_id] : []),
+        ...data.assignee_ids,
+      ])];
+      if (allAssignedIds.length > 0) {
+        const { error: notifError } = await supabase.from('notifications').insert(
+          allAssignedIds.map((userId) => ({
+            user_id: userId,
+            proposal_id: proposalId,
+            type: 'mention',
+            title: 'You were assigned a task',
+            message: `${user?.user_metadata?.full_name || 'Someone'} assigned you to task "${data.title}"`,
+            metadata: { source: 'task', task_id: task.id },
+          }))
+        );
+        if (notifError) {
+          console.error('Task assignment notification error:', notifError);
+          toast.error('Failed to send assignment notification');
         }
       }
       return task;
@@ -217,27 +215,25 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
         await supabase.from('proposal_task_assignees')
           .insert(data.assignee_ids.map(uid => ({ task_id: id, user_id: uid })));
       }
-      // Create notifications for @mentions in description
-      console.log('Task update - description for notifications:', data.description);
-      if (data.description) {
-        const mentionedIds = extractMentionedUserIds(data.description);
-        console.log('Task update - extracted mention IDs:', mentionedIds);
-        if (mentionedIds.length > 0) {
-          const targetIds = [...new Set(mentionedIds)];
-          const { error: notifError } = await supabase.from('notifications').insert(
-            targetIds.map((userId) => ({
-              user_id: userId,
-              proposal_id: proposalId,
-              type: 'mention',
-              title: 'You were mentioned in a task',
-              message: `${user?.user_metadata?.full_name || 'Someone'} mentioned you in task "${data.title}"`,
-              metadata: { source: 'task', task_id: id },
-            }))
-          );
-          if (notifError) {
-            console.error('Task update mention notification error:', notifError);
-            toast.error('Failed to send mention notification');
-          }
+      // Notify assigned users
+      const allAssignedIds = [...new Set([
+        ...(data.responsible_user_id ? [data.responsible_user_id] : []),
+        ...data.assignee_ids,
+      ])];
+      if (allAssignedIds.length > 0) {
+        const { error: notifError } = await supabase.from('notifications').insert(
+          allAssignedIds.map((userId) => ({
+            user_id: userId,
+            proposal_id: proposalId,
+            type: 'mention',
+            title: 'You were assigned a task',
+            message: `${user?.user_metadata?.full_name || 'Someone'} assigned you to task "${data.title}"`,
+            metadata: { source: 'task', task_id: id },
+          }))
+        );
+        if (notifError) {
+          console.error('Task update assignment notification error:', notifError);
+          toast.error('Failed to send assignment notification');
         }
       }
     },
@@ -453,12 +449,12 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
               <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Task title" />
             </div>
             <div>
-              <Label>Description (type @ to mention)</Label>
-              <MentionTextarea
+              <Label>Description</Label>
+              <Textarea
                 value={form.description}
-                onChange={v => setForm(f => ({ ...f, description: v }))}
+                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 placeholder="Optional description"
-                teamMembers={members.map(m => ({ id: m.id, full_name: m.full_name, email: m.email, avatar_url: m.avatar_url }))}
+                rows={3}
               />
             </div>
             <div>
