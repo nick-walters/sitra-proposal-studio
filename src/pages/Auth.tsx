@@ -73,7 +73,7 @@ export default function Auth() {
   // Show loading while checking auth
   if (isCheckingAuth) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -186,7 +186,7 @@ export default function Auth() {
   // Show new password form after recovery
   if (showNewPassword) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <img src={sitraLogo} alt="Sitra Proposal Studio" className="h-12 mx-auto mb-4" />
@@ -247,7 +247,7 @@ export default function Auth() {
 
   if (showResetPassword) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <img src={sitraLogo} alt="Sitra Proposal Studio" className="h-12 mx-auto mb-4" />
@@ -301,7 +301,7 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <img src={sitraLogo} alt="Sitra Proposal Studio" className="h-12 mx-auto mb-4" />
