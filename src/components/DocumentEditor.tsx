@@ -1269,6 +1269,75 @@ export function DocumentEditor({
                       changes={trackedChanges}
                     />
                   </div>
+                  {/* Inline changes list */}
+                  <ScrollArea className="flex-1">
+                    <div className="p-3 space-y-2">
+                      {trackedChanges.length === 0 ? (
+                        <div className="text-sm text-muted-foreground text-center py-8">
+                          No tracked changes
+                        </div>
+                      ) : (
+                        trackedChanges.map((change) => (
+                          <div
+                            key={change.id}
+                            className={`p-2.5 rounded-md text-xs border ${
+                              change.type === 'insertion'
+                                ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                                : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-1.5">
+                                <div
+                                  className="w-2 h-2 rounded-full shrink-0"
+                                  style={{ backgroundColor: change.authorColor }}
+                                />
+                                <span className="font-medium truncate">{change.authorName}</span>
+                                <Badge
+                                  variant="outline"
+                                  className={`text-[10px] py-0 shrink-0 ${
+                                    change.type === 'insertion'
+                                      ? 'border-green-300 text-green-700 dark:border-green-600 dark:text-green-400'
+                                      : 'border-red-300 text-red-700 dark:border-red-600 dark:text-red-400'
+                                  }`}
+                                >
+                                  {change.type === 'insertion' ? 'Added' : 'Deleted'}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-0.5 shrink-0">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 text-green-600 hover:text-green-700 hover:bg-green-100 dark:hover:bg-green-900/40"
+                                  onClick={() => editor?.commands.acceptChange(change.id)}
+                                  title="Accept"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/40"
+                                  onClick={() => editor?.commands.rejectChange(change.id)}
+                                  title="Reject"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                            {change.content && (
+                              <div className="mt-1 text-muted-foreground italic truncate">
+                                "{change.content}"
+                              </div>
+                            )}
+                            <div className="mt-1 text-muted-foreground flex items-center gap-1">
+                              <span>{new Date(change.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}, {new Date(change.timestamp).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </ScrollArea>
                 </div>
               )}
             </div>
