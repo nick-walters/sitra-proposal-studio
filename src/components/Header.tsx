@@ -28,9 +28,21 @@ export function Header() {
       return;
     }
     
-    // Comment mentions - navigate to the section
+    // Comment mentions - navigate to the section with review panel open
+    if (notification.type === 'mention' && notification.section_id && meta.source === 'comment') {
+      navigate(`/proposal/${notification.proposal_id}?section=${notification.section_id}&panel=comments`);
+      return;
+    }
+
+    // Other section-based mentions
     if (notification.type === 'mention' && notification.section_id) {
       navigate(`/proposal/${notification.proposal_id}?section=${notification.section_id}`);
+      return;
+    }
+    
+    // Task mentions
+    if (meta.source === 'task') {
+      navigate(`/proposal/${notification.proposal_id}?section=task-allocator`);
       return;
     }
     

@@ -102,6 +102,7 @@ interface DocumentEditorProps {
   destination?: string;
   allSections?: Section[];
   acronymSegments?: { text: string; color: string }[];
+  openPanel?: 'comments' | 'changes' | null;
 }
 
 export function DocumentEditor({ 
@@ -118,6 +119,7 @@ export function DocumentEditor({
   destination,
   allSections = [],
   acronymSegments,
+  openPanel,
 }: DocumentEditorProps) {
   const { user } = useAuth();
   const { roleTier } = useProposalRole(proposalId);
@@ -715,6 +717,14 @@ export function DocumentEditor({
 
   // State for collaboration panel - must be before early return
   const [isCollaborationPanelOpen, setIsCollaborationPanelOpen] = useState(false);
+  
+  // Open panel when triggered by notification navigation
+  useEffect(() => {
+    if (openPanel) {
+      setIsCollaborationPanelOpen(true);
+      setCollaborationTab(openPanel);
+    }
+  }, [openPanel, section?.id]);
 
   if (!section) {
     return (
