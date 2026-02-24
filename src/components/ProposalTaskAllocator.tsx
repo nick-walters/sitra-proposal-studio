@@ -167,8 +167,10 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
       if (data.description) {
         const mentionedIds = extractMentionedUserIds(data.description);
         if (mentionedIds.length > 0) {
+          // Send to all mentioned users including self
+          const targetIds = [...new Set(mentionedIds)];
           await supabase.from('notifications').insert(
-            mentionedIds.map((userId) => ({
+            targetIds.map((userId) => ({
               user_id: userId,
               proposal_id: proposalId,
               type: 'mention',
@@ -214,8 +216,10 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
       if (data.description) {
         const mentionedIds = extractMentionedUserIds(data.description);
         if (mentionedIds.length > 0) {
+          // Send to all mentioned users including self
+          const targetIds = [...new Set(mentionedIds)];
           await supabase.from('notifications').insert(
-            mentionedIds.map((userId) => ({
+            targetIds.map((userId) => ({
               user_id: userId,
               proposal_id: proposalId,
               type: 'mention',
