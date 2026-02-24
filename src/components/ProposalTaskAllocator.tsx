@@ -164,12 +164,13 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
           .insert(data.assignee_ids.map(uid => ({ task_id: task.id, user_id: uid })));
       }
       // Create notifications for @mentions in description
+      console.log('Task create - description for notifications:', data.description);
       if (data.description) {
         const mentionedIds = extractMentionedUserIds(data.description);
+        console.log('Task create - extracted mention IDs:', mentionedIds);
         if (mentionedIds.length > 0) {
-          // Send to all mentioned users including self
           const targetIds = [...new Set(mentionedIds)];
-          await supabase.from('notifications').insert(
+          const { error: notifError } = await supabase.from('notifications').insert(
             targetIds.map((userId) => ({
               user_id: userId,
               proposal_id: proposalId,
@@ -179,6 +180,7 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
               metadata: { source: 'task', task_id: task.id },
             }))
           );
+          if (notifError) console.error('Task mention notification error:', notifError);
         }
       }
       return task;
@@ -213,12 +215,13 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
           .insert(data.assignee_ids.map(uid => ({ task_id: id, user_id: uid })));
       }
       // Create notifications for @mentions in description
+      console.log('Task update - description for notifications:', data.description);
       if (data.description) {
         const mentionedIds = extractMentionedUserIds(data.description);
+        console.log('Task update - extracted mention IDs:', mentionedIds);
         if (mentionedIds.length > 0) {
-          // Send to all mentioned users including self
           const targetIds = [...new Set(mentionedIds)];
-          await supabase.from('notifications').insert(
+          const { error: notifError } = await supabase.from('notifications').insert(
             targetIds.map((userId) => ({
               user_id: userId,
               proposal_id: proposalId,
@@ -228,6 +231,7 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
               metadata: { source: 'task', task_id: id },
             }))
           );
+          if (notifError) console.error('Task update mention notification error:', notifError);
         }
       }
     },
