@@ -448,19 +448,23 @@ export function CommentsSidebar({
 
     // Create notifications for mentioned users
     if (mentionedIds.length > 0) {
-      const { error } = await supabase.from('notifications').insert(
-        mentionedIds.map((userId) => ({
-          user_id: userId,
-          proposal_id: proposalId,
-          section_id: sectionId,
-          type: 'mention',
-          title: 'You were mentioned',
-          message: `${user?.user_metadata?.full_name || 'Someone'} mentioned you in a comment`,
-        }))
-      );
-      
-      if (error) {
-        console.error('Error creating mention notifications:', error);
+      const otherIds = mentionedIds.filter(id => id !== user?.id);
+      if (otherIds.length > 0) {
+        const { error } = await supabase.from('notifications').insert(
+          otherIds.map((userId) => ({
+            user_id: userId,
+            proposal_id: proposalId,
+            section_id: sectionId,
+            type: 'mention',
+            title: 'You were mentioned',
+            message: `${user?.user_metadata?.full_name || 'Someone'} mentioned you in a comment`,
+            metadata: { source: 'comment' },
+          }))
+        );
+        
+        if (error) {
+          console.error('Error creating mention notifications:', error);
+        }
       }
     }
 
@@ -485,16 +489,20 @@ export function CommentsSidebar({
 
     // Create notifications for mentioned users in reply
     if (mentionedIds.length > 0) {
-      await supabase.from('notifications').insert(
-        mentionedIds.map((userId) => ({
-          user_id: userId,
-          proposal_id: proposalId,
-          section_id: sectionId,
-          type: 'mention',
-          title: 'You were mentioned',
-          message: `${user?.user_metadata?.full_name || 'Someone'} mentioned you in a reply`,
-        }))
-      );
+      const otherIds = mentionedIds.filter(id => id !== user?.id);
+      if (otherIds.length > 0) {
+        await supabase.from('notifications').insert(
+          otherIds.map((userId) => ({
+            user_id: userId,
+            proposal_id: proposalId,
+            section_id: sectionId,
+            type: 'mention',
+            title: 'You were mentioned',
+            message: `${user?.user_metadata?.full_name || 'Someone'} mentioned you in a reply`,
+            metadata: { source: 'comment' },
+          }))
+        );
+      }
     }
 
     setReplyContent('');
