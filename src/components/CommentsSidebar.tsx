@@ -4,8 +4,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { MentionTextarea, extractMentionedUserIds, renderMentionContent } from '@/components/MentionTextarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -84,33 +84,7 @@ function CommentCard({
   };
 
   // Render content with @mentions highlighted
-  const renderContent = (text: string) => {
-    const mentionRegex = /@\[([^\]]+)\]\(([^)]+)\)/g;
-    const parts: (string | JSX.Element)[] = [];
-    let lastIndex = 0;
-    let match;
-
-    while ((match = mentionRegex.exec(text)) !== null) {
-      if (match.index > lastIndex) {
-        parts.push(text.slice(lastIndex, match.index));
-      }
-      parts.push(
-        <span
-          key={match.index}
-          className="text-primary font-medium bg-primary/10 px-1 rounded"
-        >
-          @{match[1]}
-        </span>
-      );
-      lastIndex = match.index + match[0].length;
-    }
-
-    if (lastIndex < text.length) {
-      parts.push(text.slice(lastIndex));
-    }
-
-    return parts.length > 0 ? parts : text;
-  };
+  const renderContent = (text: string) => renderMentionContent(text);
 
   return (
     <div
@@ -256,114 +230,7 @@ function CommentCard({
   );
 }
 
-// Mention input component
-function MentionTextarea({
-  value,
-  onChange,
-  placeholder,
-  className,
-  teamMembers,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  className?: string;
-  teamMembers: TeamMember[];
-}) {
-  const [showMentions, setShowMentions] = useState(false);
-  const [mentionQuery, setMentionQuery] = useState('');
-  const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 });
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const filteredMembers = teamMembers.filter(
-    (m) =>
-      m.full_name?.toLowerCase().includes(mentionQuery.toLowerCase()) ||
-      m.email?.toLowerCase().includes(mentionQuery.toLowerCase())
-  );
-
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const text = e.target.value;
-    const cursorPos = e.target.selectionStart;
-    
-    // Check if we're typing a mention
-    const textBeforeCursor = text.slice(0, cursorPos);
-    const atIndex = textBeforeCursor.lastIndexOf('@');
-    
-    if (atIndex !== -1 && (atIndex === 0 || textBeforeCursor[atIndex - 1] === ' ')) {
-      const query = textBeforeCursor.slice(atIndex + 1);
-      if (!query.includes(' ')) {
-        setMentionQuery(query);
-        setShowMentions(true);
-        return onChange(text);
-      }
-    }
-    
-    setShowMentions(false);
-    onChange(text);
-  };
-
-  const insertMention = (member: TeamMember) => {
-    const cursorPos = textareaRef.current?.selectionStart || 0;
-    const textBeforeCursor = value.slice(0, cursorPos);
-    const atIndex = textBeforeCursor.lastIndexOf('@');
-    
-    const beforeMention = value.slice(0, atIndex);
-    const afterCursor = value.slice(cursorPos);
-    
-    const mentionText = `@[${member.full_name}](${member.id})`;
-    const newValue = beforeMention + mentionText + ' ' + afterCursor;
-    const newCursorPos = atIndex + mentionText.length + 1; // +1 for space
-    
-    onChange(newValue);
-    setShowMentions(false);
-    
-    // Focus back on textarea and set cursor after the mention
-    setTimeout(() => {
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-        textareaRef.current.selectionStart = newCursorPos;
-        textareaRef.current.selectionEnd = newCursorPos;
-      }
-    }, 0);
-  };
-
-  return (
-    <div className="relative">
-      <Textarea
-        ref={textareaRef}
-        value={value}
-        onChange={handleChange}
-        placeholder={placeholder}
-        className={className}
-      />
-      
-      {showMentions && filteredMembers.length > 0 && (
-        <div className="absolute bottom-full left-0 mb-1 w-full bg-popover border rounded-md shadow-lg z-50 max-h-48 overflow-y-auto">
-          {filteredMembers.map((member) => (
-            <button
-              key={member.id}
-              type="button"
-              className="w-full flex items-center gap-2 p-2 hover:bg-muted text-left transition-colors"
-              onClick={() => insertMention(member)}
-            >
-              <Avatar className="h-6 w-6">
-                <AvatarImage src={member.avatar_url} />
-                <AvatarFallback className="text-xs">
-                  {member.full_name?.slice(0, 2).toUpperCase() || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium truncate">{member.full_name}</div>
-                <div className="text-xs text-muted-foreground truncate">{member.email}</div>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
+// Local MentionTextarea removed — using shared component from @/components/MentionTextarea
 export function CommentsSidebar({
   proposalId,
   sectionId,
@@ -422,17 +289,6 @@ export function CommentsSidebar({
 
     fetchTeamMembers();
   }, [proposalId]);
-
-  // Extract mentioned user IDs from comment text
-  const extractMentionedUserIds = (text: string): string[] => {
-    const mentionRegex = /@\[([^\]]+)\]\(([^)]+)\)/g;
-    const ids: string[] = [];
-    let match;
-    while ((match = mentionRegex.exec(text)) !== null) {
-      ids.push(match[2]);
-    }
-    return ids;
-  };
 
   const handleSubmitComment = async () => {
     if (!newComment.trim()) return;
