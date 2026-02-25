@@ -14,7 +14,13 @@ import { UserRightsAdmin } from "./pages/admin/UserRightsAdmin";
 import { InitialSetup } from "./pages/admin/InitialSetup";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
