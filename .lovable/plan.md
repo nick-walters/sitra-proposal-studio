@@ -1,92 +1,72 @@
 
 
-# Fix: Task Self-Tag Notifications -- Root Cause Analysis and Solution
+## Revised Plan: Fix Tab-Switch Refresh Issue
 
-## Investigation Findings
+After a thorough re-review, the original 3-fix plan is **correct and complete**. Here is the confirmed assessment:
 
-### Database Evidence
-- The only task in the database ("Tezt", created Feb 12) has a **null description** -- the @mention text was never saved.
-- The `notifications` table schema is correct and has all required columns.
-- RLS policies on `notifications` allow inserts for users who can edit the proposal (confirmed working for comments and messages).
-- RLS policies on `proposal_tasks` require `created_by = auth.uid()` for inserts, which is correctly set.
+### Architecture Analysis
 
-### Root Cause
-The `description` field is stored as `null` in the database. This means `data.description` evaluates to falsy, and the entire notification block inside `if (data.description)` is skipped. The @mention text entered via MentionTextarea is either:
+The app has two data-fetching patterns:
+1. **TanStack React Query** (`useQuery`) — used in `ProposalEditor.tsx` for WP/Case leadership data. Default `refetchOnWindowFocus: true` causes refetch on tab return.
+2. **Manual `useState`/`useEffect`** — used in `useProposalData`, `Dashboard.tsx`. These depend on `useAuth`'s `user` state. If `user` state object changes reference on token refresh, these hooks re-run their effects and re-fetch everything.
 
-1. **Not persisting in form state** -- the `onChange` fires but `form.description` reverts to empty before submission (unlikely given identical wiring to comments/messages), OR
-2. **The user is not entering description text** -- the mention may be typed in the title field, or the task is created without filling in the description field at all.
+Both patterns are triggered on tab switch, and both need fixing.
 
-Since the diagnostic `console.log` statements added in the last edit have not yet produced any output (no new tasks created since the code deployed), we cannot distinguish between these two scenarios from logs alone.
+### Confirmed Changes (No Additions Needed)
 
-## Solution: Belt-and-Suspenders Fix
-
-Rather than continuing to debug incrementally, implement a comprehensive fix that guarantees notifications work regardless of the failure point.
-
-### Step 1: Add a pre-submit log to confirm form state
-
-**File:** `src/components/ProposalTaskAllocator.tsx`
-
-Add a `console.log` right at the button click handler (before calling `mutate`) to confirm the form values at the moment of submission. This logs the state before it enters the async mutation, removing any doubt about timing.
+**1. `src/App.tsx` — Disable `refetchOnWindowFocus` globally**
 
 ```typescript
-onClick={() => {
-  console.log('Task form at submit:', JSON.stringify(form));
-  if (!form.title.trim()) { ... }
-  ...
-}
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 ```
 
-### Step 2: Guard against empty-string description being saved as null
+Prevents the `useQuery` calls in `ProposalEditor.tsx` (and any future ones) from auto-refetching.
 
-**File:** `src/components/ProposalTaskAllocator.tsx`
+**2. `src/hooks/useAuth.tsx` — Stabilize state on token refresh**
 
-Change the insert to preserve the description text even when it's just whitespace with a mention:
+Two sub-changes:
+- In `onAuthStateChange`: skip full state update for `TOKEN_REFRESHED` (just update session silently)
+- In `updateAuthState`: use functional `setUser` to return the previous reference if the user ID hasn't changed
 
-```typescript
-// Before (current):
-description: data.description || null,
+This prevents `useProposalData` and other hooks that depend on `user` from seeing a new object reference and re-running their effects.
 
-// After:
-description: data.description?.trim() ? data.description : null,
-```
+**3. `src/hooks/useUserRole.ts` — Filter auth events**
 
-This prevents `"@[Name](uuid) "` from being falsy while still saving null for truly empty descriptions.
+Only call `checkRoles()` on `SIGNED_IN` or `SIGNED_OUT`, not on every auth event including token refreshes.
 
-### Step 3: Move the notification check to use the form value directly, not the DB-saved value
+**4. `src/hooks/useTemplates.ts` — Filter auth events**
 
-The notification code currently runs after the task insert and checks `data.description`. This is correct, but add a fallback that also checks `form.description` isn't silently different. Since `data === form` in the create path, this is a safety net.
+Same pattern: only call `checkOwner()` on meaningful auth events.
 
-No code change needed here -- just confirming the architecture is sound.
+### Why No Additional Changes Are Needed
 
-### Step 4: Add an error boundary toast for notification failures
+- **Scroll position**: `ProposalEditor.tsx` already has scroll preservation code (lines 303-339) that saves/restores scroll on visibility change and blur/focus. This will work correctly once the re-render cascade is stopped.
+- **`useSectionContent`**: Already handles visibility changes by flushing pending saves — no destructive behavior.
+- **`useWindowFocus`**: Already prevents dialogs/popovers from closing on tab switch — no changes needed.
+- **Dashboard**: Uses manual fetch triggered by `user` dependency — fixed by the auth stabilization in change 2.
+- **`Auth.tsx`**: Its `onAuthStateChange` listener only acts on `PASSWORD_RECOVERY` and `SIGNED_IN` — already filtered, no fix needed.
 
-**File:** `src/components/ProposalTaskAllocator.tsx`
+### Risk Assessment
 
-Upgrade the `console.error` to also show a user-visible toast so failures aren't invisible:
+These changes are low-risk:
+- Disabling `refetchOnWindowFocus` is a standard production configuration. Data still refreshes on navigation and after mutations.
+- The auth state guard only prevents redundant re-renders — actual sign-in/sign-out flows are unaffected.
+- The role/template hooks still check on meaningful auth events.
 
-```typescript
-if (notifError) {
-  console.error('Task mention notification error:', notifError);
-  toast.error('Failed to send mention notification');
-}
-```
+### Summary
 
-### Step 5: Remove debug logs after confirmation
+| File | Change | Purpose |
+|------|--------|---------|
+| `src/App.tsx` | `refetchOnWindowFocus: false` | Stop React Query refetches on tab return |
+| `src/hooks/useAuth.tsx` | Guard `TOKEN_REFRESHED` + stable user reference | Stop re-render cascade through all auth-dependent hooks |
+| `src/hooks/useUserRole.ts` | Filter to `SIGNED_IN`/`SIGNED_OUT` only | Stop unnecessary role re-checks |
+| `src/hooks/useTemplates.ts` | Filter to `SIGNED_IN`/`SIGNED_OUT` only | Stop unnecessary owner re-checks |
 
-Once the fix is confirmed working, remove the temporary `console.log` statements from the mutation functions.
-
-## Summary of Changes
-
-| File | Change |
-|------|--------|
-| `src/components/ProposalTaskAllocator.tsx` | Add pre-submit log at button click, fix empty-string-to-null conversion, add user-visible toast on notification failure |
-
-## Testing Instructions
-
-After these changes, create a new task with a self-mention in the description field. The browser console should show:
-1. `Task form at submit: { ... description: "@[YourName](your-id) ..." ... }`
-2. `Task create - description for notifications: @[YourName](your-id) ...`
-3. `Task create - extracted mention IDs: ["your-id"]`
-
-And a notification should appear in the notification center.
+4 files, 4 surgical changes. The plan is robust and complete.
 
