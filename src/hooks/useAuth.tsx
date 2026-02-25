@@ -25,11 +25,15 @@ export function useAuth() {
 
   const updateAuthState = useCallback((newSession: Session | null) => {
     setSession(newSession);
-    setUser(newSession?.user ?? null);
+    const newUser = newSession?.user ?? null;
+    setUser(prev => {
+      // Keep same reference if user ID unchanged — prevents re-render cascade
+      if (prev?.id === newUser?.id) return prev;
+      return newUser;
+    });
     // Cache user for instant hydration on page refresh
     if (newSession?.user) {
       try {
-        // Only cache minimal fields needed to prevent loading flash
         const { id, email } = newSession.user;
         sessionStorage.setItem('auth-user', JSON.stringify({ id, email }));
       } catch {
@@ -45,6 +49,11 @@ export function useAuth() {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        if (event === 'TOKEN_REFRESHED') {
+          // Token refreshed on tab focus — update session silently, skip re-render
+          setSession(session);
+          return;
+        }
         updateAuthState(session);
       }
     );

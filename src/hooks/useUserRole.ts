@@ -72,8 +72,10 @@ export function useUserRole(): UserRoleState {
 
     checkRoles();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      checkRoles();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        checkRoles();
+      }
     });
 
     return () => subscription.unsubscribe();
