@@ -482,8 +482,8 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           for (const tr of transactions) {
             if (tr.getMeta('blockReorder')) return null;
             if (tr.getMeta('trackChangesInternal')) continue;
-            // Skip setContent transactions (full document replacement)
-            if (tr.getMeta('setContent')) continue;
+            // Skip setContent transactions — Tiptap sets preventUpdate meta on setContent
+            if (tr.getMeta('setContent') || tr.getMeta('preventUpdate') !== undefined) continue;
             if (tr.docChanged) {
               hasUserChange = true;
               break;
