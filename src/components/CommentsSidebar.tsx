@@ -35,6 +35,7 @@ interface CommentsSidebarProps {
   sectionId: string;
   selectedText?: string;
   selectionRange?: { start: number; end: number };
+  onCommentFieldPointerDown?: () => void;
   onClearSelection?: () => void;
   onCommentClick?: (selectionStart: number | null, selectionEnd: number | null) => void;
   onFocusEditor?: () => void;
@@ -251,6 +252,7 @@ export function CommentsSidebar({
   sectionId,
   selectedText,
   selectionRange,
+  onCommentFieldPointerDown,
   onClearSelection,
   onCommentClick,
   onFocusEditor,
@@ -500,13 +502,15 @@ export function CommentsSidebar({
           Type @ to mention
         </span>
 
-        <MentionTextarea
-          value={newComment}
-          onChange={setNewComment}
-          placeholder="Add a comment..."
-          className="text-sm min-h-[60px]"
-          teamMembers={teamMembers}
-        />
+        <div onMouseDownCapture={onCommentFieldPointerDown}>
+          <MentionTextarea
+            value={newComment}
+            onChange={setNewComment}
+            placeholder="Add a comment..."
+            className="text-sm min-h-[60px]"
+            teamMembers={teamMembers}
+          />
+        </div>
 
         <Button
           className="w-full"
