@@ -777,37 +777,10 @@ export function DocumentEditor({
   }, []);
 
   const handleCommentFieldPointerDown = useCallback(() => {
-    // Always clear stale anchor first, then capture fresh selection.
-    pendingAnchorRef.current = null;
+    // If user already has a B3.1 anchor pending, keep it unless we capture a fresh valid selection.
+    const existingAnchor = pendingAnchorRef.current;
 
-    // 1) Try TipTap selection first
-    if (editor) {
-      const { from, to } = editor.state.selection;
-      if (from !== to) {
-        const text = editor.state.doc.textBetween(from, to, ' ');
-        if (text.trim()) {
-          const docText = editor.state.doc.textContent;
-          const contextBefore = docText.slice(Math.max(0, from - 40), from);
-          const contextAfter = docText.slice(to, to + 40);
-
-          preserveSelectionOnCommentFieldRef.current = true;
-          setSelectedText(text);
-          setSelectionRange({ start: from, end: to });
-          pendingAnchorRef.current = {
-            type: 'editor_text',
-            payload: { from, to, quote: text, contextBefore, contextAfter },
-            selectedText: text,
-          };
-
-          window.setTimeout(() => {
-            preserveSelectionOnCommentFieldRef.current = false;
-          }, 500);
-          return;
-        }
-      }
-    }
-
-    // 2) Try active input/textarea selection (e.g. editable captions)
+    // 1) Try active input/textarea selection first (e.g. editable captions)
     const activeEl = document.activeElement as HTMLInputElement | HTMLTextAreaElement | null;
     if (
       activeEl &&
@@ -839,7 +812,7 @@ export function DocumentEditor({
       }
     }
 
-    // 3) Try DOM selection (B3.1 table/caption content)
+    // 2) Try DOM selection (B3.1 table/caption content)
     const sel = window.getSelection();
     if (sel && !sel.isCollapsed && setB31PendingAnchorFromSelection(sel)) {
       preserveSelectionOnCommentFieldRef.current = true;
@@ -849,9 +822,31 @@ export function DocumentEditor({
       return;
     }
 
-    // No valid current selection => avoid reusing old quoted text.
-    setSelectedText('');
-    setSelectionRange(undefined);
+    // 3) Only fallback to TipTap selection when no B3.1 anchor is already pending.
+    if (existingAnchor?.type !== 'b31_dom' && editor) {
+      const { from, to } = editor.state.selection;
+      if (from !== to) {
+        const text = editor.state.doc.textBetween(from, to, ' ');
+        if (text.trim()) {
+          const docText = editor.state.doc.textContent;
+          const contextBefore = docText.slice(Math.max(0, from - 40), from);
+          const contextAfter = docText.slice(to, to + 40);
+
+          preserveSelectionOnCommentFieldRef.current = true;
+          setSelectedText(text);
+          setSelectionRange({ start: from, end: to });
+          pendingAnchorRef.current = {
+            type: 'editor_text',
+            payload: { from, to, quote: text, contextBefore, contextAfter },
+            selectedText: text,
+          };
+
+          window.setTimeout(() => {
+            preserveSelectionOnCommentFieldRef.current = false;
+          }, 500);
+        }
+      }
+    }
   }, [editor, setB31PendingAnchorFromSelection]);
 
   // Handle text selection for comments — latch selection so it persists
