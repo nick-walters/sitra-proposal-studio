@@ -249,6 +249,12 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
 
   const deleteTask = useMutation({
     mutationFn: async (id: string) => {
+      // Delete associated notifications
+      await supabase
+        .from('notifications')
+        .delete()
+        .contains('metadata', { task_id: id });
+
       const { error } = await supabase.from('proposal_tasks').delete().eq('id', id);
       if (error) throw error;
     },

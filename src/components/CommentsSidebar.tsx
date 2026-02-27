@@ -296,14 +296,14 @@ export function CommentsSidebar({
     // Check for mentions and notify
     const mentionedIds = extractMentionedUserIds(newComment);
     
-    await addComment(newComment, {
+    const newCommentData = await addComment(newComment, {
       selectionStart: selectionRange?.start,
       selectionEnd: selectionRange?.end,
       selectedText: selectedText,
     });
 
     // Create notifications for mentioned users
-    if (mentionedIds.length > 0) {
+    if (mentionedIds.length > 0 && newCommentData) {
       const targetIds = mentionedIds;
       if (targetIds.length > 0) {
         const { error } = await supabase.from('notifications').insert(
@@ -314,7 +314,7 @@ export function CommentsSidebar({
             type: 'mention',
             title: 'You were mentioned',
             message: `${user?.user_metadata?.full_name || 'Someone'} mentioned you in a comment`,
-            metadata: { source: 'comment' },
+            metadata: { source: 'comment', comment_id: newCommentData.id },
           }))
         );
         
@@ -341,10 +341,10 @@ export function CommentsSidebar({
       await updateCommentStatus(parentId, 'open');
     }
 
-    await addComment(replyContent, { parentCommentId: parentId });
+    const replyData = await addComment(replyContent, { parentCommentId: parentId });
 
     // Create notifications for mentioned users in reply
-    if (mentionedIds.length > 0) {
+    if (mentionedIds.length > 0 && replyData) {
       const targetIds = mentionedIds;
       if (targetIds.length > 0) {
         await supabase.from('notifications').insert(
@@ -355,7 +355,7 @@ export function CommentsSidebar({
             type: 'mention',
             title: 'You were mentioned',
             message: `${user?.user_metadata?.full_name || 'Someone'} mentioned you in a reply`,
-            metadata: { source: 'comment' },
+            metadata: { source: 'comment', comment_id: replyData.id },
           }))
         );
       }

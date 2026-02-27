@@ -259,6 +259,12 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
 
   const deleteMessage = useMutation({
     mutationFn: async (id: string) => {
+      // Delete associated notifications
+      await supabase
+        .from('notifications')
+        .delete()
+        .contains('metadata', { message_id: id });
+
       const { error } = await supabase
         .from('proposal_messages')
         .delete()
