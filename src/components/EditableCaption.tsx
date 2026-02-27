@@ -71,11 +71,12 @@ export function EditableCaption({
   }, [editValue, caption, proposalId, tableKey]);
 
   return (
-    <p className={`${tableStyles} italic ${className}`}>
+    <p className={`${tableStyles} italic ${className}`} data-commentable={`caption-${tableKey}`}>
       <span className="font-bold italic">{label}</span>{' '}
       {editing ? (
         <input
           type="text"
+          data-commentable={`caption-${tableKey}`}
           className={`${tableStyles} italic bg-transparent outline-none border-b border-dashed border-muted-foreground p-0 m-0`}
           value={editValue}
           onChange={e => setEditValue(e.target.value)}
@@ -89,6 +90,7 @@ export function EditableCaption({
         />
       ) : (
         <span
+          data-commentable={`caption-${tableKey}`}
           className={canEdit ? 'cursor-text hover:bg-muted/30 rounded px-0.5' : ''}
           onClick={startEdit}
         >

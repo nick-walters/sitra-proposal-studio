@@ -733,7 +733,53 @@ export function DocumentEditor({
     setContent(newContent);
   }, [content, setContent]);
 
+  const setB31PendingAnchorFromSelection = useCallback((sel: Selection) => {
+    const text = sel.toString().trim();
+    if (!text) return false;
+
+    const anchorEl = sel.anchorNode?.parentElement?.closest('[data-commentable]');
+    const focusEl = sel.focusNode?.parentElement?.closest('[data-commentable]');
+    const commentableEl = anchorEl || focusEl;
+    const fallbackEl = sel.anchorNode?.parentElement?.closest('td, th, caption, p, li, h1, h2, h3, h4, h5, h6, div, span');
+
+    const commentableKey =
+      commentableEl?.getAttribute('data-commentable') ||
+      fallbackEl?.getAttribute('data-commentable') ||
+      'b31-quote-only';
+
+    let startOffset = 0;
+    let endOffset = text.length;
+
+    if (commentableEl) {
+      try {
+        const range = sel.getRangeAt(0);
+        const preRange = document.createRange();
+        preRange.selectNodeContents(commentableEl);
+        preRange.setEnd(range.startContainer, range.startOffset);
+        startOffset = preRange.toString().length;
+        endOffset = startOffset + text.length;
+      } catch {
+        // fallback offsets
+      }
+    }
+
+    setSelectedText(text);
+    const hashBase = `${commentableKey}:${text}`;
+    const hash = hashBase.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+    setSelectionRange({ start: -(hash + 1), end: -(hash + 2) });
+    pendingAnchorRef.current = {
+      type: 'b31_dom',
+      payload: { commentableKey, quote: text, startOffset, endOffset },
+      selectedText: text,
+    };
+
+    return true;
+  }, []);
+
   const handleCommentFieldPointerDown = useCallback(() => {
+    // Always clear stale anchor first, then capture fresh selection.
+    pendingAnchorRef.current = null;
+
     // 1) Try TipTap selection first
     if (editor) {
       const { from, to } = editor.state.selection;
@@ -743,7 +789,7 @@ export function DocumentEditor({
           const docText = editor.state.doc.textContent;
           const contextBefore = docText.slice(Math.max(0, from - 40), from);
           const contextAfter = docText.slice(to, to + 40);
-          
+
           preserveSelectionOnCommentFieldRef.current = true;
           setSelectedText(text);
           setSelectionRange({ start: from, end: to });
@@ -761,34 +807,28 @@ export function DocumentEditor({
       }
     }
 
-    // 2) Try DOM selection (B3.1 commentable elements)
-    const sel = window.getSelection();
-    if (sel && !sel.isCollapsed && sel.toString().trim()) {
-      const anchorEl = sel.anchorNode?.parentElement?.closest('[data-commentable]');
-      const focusEl = sel.focusNode?.parentElement?.closest('[data-commentable]');
-      const commentableEl = anchorEl || focusEl;
-      if (commentableEl) {
-        const commentableKey = commentableEl.getAttribute('data-commentable') || 'b31-element';
-        const text = sel.toString().trim();
-        
-        // Compute offsets within the commentable element
-        let startOffset = 0;
-        let endOffset = text.length;
-        try {
-          const range = sel.getRangeAt(0);
-          const preRange = document.createRange();
-          preRange.selectNodeContents(commentableEl);
-          preRange.setEnd(range.startContainer, range.startOffset);
-          startOffset = preRange.toString().length;
-          endOffset = startOffset + text.length;
-        } catch { /* fallback offsets */ }
+    // 2) Try active input/textarea selection (e.g. editable captions)
+    const activeEl = document.activeElement as HTMLInputElement | HTMLTextAreaElement | null;
+    if (
+      activeEl &&
+      (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA') &&
+      activeEl.selectionStart != null &&
+      activeEl.selectionEnd != null &&
+      activeEl.selectionEnd > activeEl.selectionStart
+    ) {
+      const text = activeEl.value.slice(activeEl.selectionStart, activeEl.selectionEnd).trim();
+      if (text) {
+        const commentableEl = activeEl.closest('[data-commentable]');
+        const commentableKey = commentableEl?.getAttribute('data-commentable') || 'b31-quote-only';
 
         preserveSelectionOnCommentFieldRef.current = true;
         setSelectedText(text);
-        setSelectionRange({ start: -(commentableKey.split('').reduce((a, c) => a + c.charCodeAt(0), 0) + 1), end: 0 });
+        const hashBase = `${commentableKey}:${text}`;
+        const hash = hashBase.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+        setSelectionRange({ start: -(hash + 1), end: -(hash + 2) });
         pendingAnchorRef.current = {
           type: 'b31_dom',
-          payload: { commentableKey, quote: text, startOffset, endOffset },
+          payload: { commentableKey, quote: text, startOffset: activeEl.selectionStart, endOffset: activeEl.selectionEnd },
           selectedText: text,
         };
 
@@ -798,13 +838,27 @@ export function DocumentEditor({
         return;
       }
     }
-  }, [editor]);
+
+    // 3) Try DOM selection (B3.1 table/caption content)
+    const sel = window.getSelection();
+    if (sel && !sel.isCollapsed && setB31PendingAnchorFromSelection(sel)) {
+      preserveSelectionOnCommentFieldRef.current = true;
+      window.setTimeout(() => {
+        preserveSelectionOnCommentFieldRef.current = false;
+      }, 500);
+      return;
+    }
+
+    // No valid current selection => avoid reusing old quoted text.
+    setSelectedText('');
+    setSelectionRange(undefined);
+  }, [editor, setB31PendingAnchorFromSelection]);
 
   // Handle text selection for comments — latch selection so it persists
   // when focus moves to the comment sidebar textarea
   const handleTextSelection = useCallback(() => {
     if (!editor) return;
-    
+
     const { from, to } = editor.state.selection;
     if (from === to) {
       // Only clear if editor is focused (not when focus moves to sidebar)
@@ -825,7 +879,7 @@ export function DocumentEditor({
   // Track selection changes
   useEffect(() => {
     if (!editor) return;
-    
+
     editor.on('selectionUpdate', handleTextSelection);
     return () => {
       editor.off('selectionUpdate', handleTextSelection);
@@ -839,38 +893,9 @@ export function DocumentEditor({
 
     const handleMouseUp = () => {
       const sel = window.getSelection();
-      if (!sel || sel.isCollapsed || !sel.toString().trim()) return;
+      if (!sel || sel.isCollapsed) return;
 
-      const anchor = sel.anchorNode?.parentElement?.closest('[data-commentable]');
-      const focus = sel.focusNode?.parentElement?.closest('[data-commentable]');
-      if (!anchor && !focus) return;
-
-      const commentableEl = anchor || focus;
-      const commentableKey = commentableEl?.getAttribute('data-commentable') || 'b31-element';
-      const text = sel.toString().trim();
-      if (text) {
-        // Compute offsets within the commentable element
-        let startOffset = 0;
-        let endOffset = text.length;
-        try {
-          const range = sel.getRangeAt(0);
-          const preRange = document.createRange();
-          preRange.selectNodeContents(commentableEl!);
-          preRange.setEnd(range.startContainer, range.startOffset);
-          startOffset = preRange.toString().length;
-          endOffset = startOffset + text.length;
-        } catch { /* fallback offsets */ }
-
-        setSelectedText(text);
-        // Keep synthetic negative range for backward compat sorting
-        const hash = commentableKey.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-        setSelectionRange({ start: -(hash + 1), end: -(hash + 2) });
-        pendingAnchorRef.current = {
-          type: 'b31_dom',
-          payload: { commentableKey, quote: text, startOffset, endOffset },
-          selectedText: text,
-        };
-        // Switch to comments tab
+      if (setB31PendingAnchorFromSelection(sel)) {
         setCollaborationTab('comments');
         setIsCollaborationPanelOpen(true);
       }
@@ -878,7 +903,7 @@ export function DocumentEditor({
 
     container.addEventListener('mouseup', handleMouseUp);
     return () => container.removeEventListener('mouseup', handleMouseUp);
-  }, [section?.id]);
+  }, [section?.id, setB31PendingAnchorFromSelection]);
 
   // Check if this is the B2.1 section (impact pathways)
   const isImpactSection = section?.id === 'b2-1' || section?.number === '2.1';
@@ -1486,15 +1511,40 @@ export function DocumentEditor({
                           }
 
                           if (anchorType === 'b31_dom' && anchorPayload) {
-                            const { commentableKey, quote, startOffset, endOffset } = anchorPayload;
-                            const el = document.querySelector(`[data-commentable="${commentableKey}"]`);
-                            if (el) {
-                              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                              // Temporary highlight
-                              el.classList.add('ring-2', 'ring-primary', 'ring-offset-1');
-                              setTimeout(() => el.classList.remove('ring-2', 'ring-primary', 'ring-offset-1'), 2000);
+                            const { commentableKey, quote } = anchorPayload;
+                            const pageRoot = documentPageRef.current || document.querySelector('.document-page');
+
+                            const highlightAndScroll = (target: Element) => {
+                              target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              target.classList.add('ring-2', 'ring-primary', 'ring-offset-1');
+                              setTimeout(() => target.classList.remove('ring-2', 'ring-primary', 'ring-offset-1'), 2000);
+                            };
+
+                            const directEl = commentableKey
+                              ? document.querySelector(`[data-commentable="${commentableKey}"]`)
+                              : null;
+
+                            if (directEl) {
+                              highlightAndScroll(directEl);
                               return;
                             }
+
+                            if (quote && pageRoot) {
+                              const candidates = Array.from(pageRoot.querySelectorAll('[data-commentable], td, th, caption, p, li, h1, h2, h3, h4, h5, h6, span, div'))
+                                .filter((node) => (node.textContent || '').includes(quote));
+
+                              const best = candidates.sort((a, b) => {
+                                const aLen = (a.textContent || '').length;
+                                const bLen = (b.textContent || '').length;
+                                return aLen - bLen;
+                              })[0];
+
+                              if (best) {
+                                highlightAndScroll(best);
+                                return;
+                              }
+                            }
+
                             toast.error('Anchor moved; closest match not found');
                             return;
                           }
