@@ -99,9 +99,13 @@ function CommentCard({
       className={cn(
         'border rounded-lg p-3 space-y-2 transition-all',
         isResolved && 'opacity-60 bg-muted/30 border-muted',
-        hasAnchor && 'cursor-pointer hover:border-primary/50 hover:shadow-sm'
+        hasAnchor && 'cursor-pointer hover:border-primary hover:shadow-sm'
       )}
-      onClick={handleCardClick}
+      onClick={(e) => {
+        // Don't jump if clicking on buttons/inputs inside
+        if ((e.target as HTMLElement).closest('button, textarea, input')) return;
+        handleCardClick();
+      }}
       title={hasAnchor ? 'Click to jump to position in editor' : undefined}
     >
       {/* Header */}
