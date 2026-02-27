@@ -50,15 +50,14 @@ export function TrackChangeTooltip({ editor, containerRef }: TrackChangeTooltipP
     }
 
     const rect = el.getBoundingClientRect();
-    const containerRect = containerRef.current.getBoundingClientRect();
 
     setTooltip({
       changeId,
       type,
       authorName,
       timestamp,
-      x: rect.left - containerRect.left + rect.width / 2,
-      y: rect.top - containerRect.top - 4,
+      x: rect.left + rect.width / 2,
+      y: rect.top - 4,
     });
   }, [editor, containerRef]);
 
@@ -119,7 +118,7 @@ export function TrackChangeTooltip({ editor, containerRef }: TrackChangeTooltipP
   return (
     <div
       ref={tooltipRef}
-      className="absolute z-50 flex items-center gap-1 rounded-md border border-border bg-popover px-2 py-1 shadow-md"
+      className="fixed z-[9999] flex items-center gap-1 rounded-md border border-border bg-popover px-2 py-1 shadow-md pointer-events-auto"
       style={{
         left: `${tooltip.x}px`,
         top: `${tooltip.y}px`,

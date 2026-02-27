@@ -578,7 +578,7 @@ function SortableTaskGroup({
             >
               T{wp.number}.{task.number}
             </span>
-            <span className="font-bold text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight flex-1">
+            <span className="font-bold text-[11pt] font-['Times_New_Roman',Times,serif] leading-tight flex-1" data-commentable={`task-title-${wp.number}-${task.number}`}>
               <EditableHeaderText
                 value={task.title || ''}
                 onSave={(val) => saveTaskField(task.id, 'title', val)}
@@ -590,7 +590,7 @@ function SortableTaskGroup({
 
       {/* Task metadata row: duration | leader | partners */}
       <tr>
-        <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0" style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }}>
+        <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0" style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }} data-commentable={`task-meta-${wp.number}-${task.number}`}>
           <div className="flex items-center flex-wrap gap-0.5">
             <MonthRangePicker taskId={task.id} startMonth={task.start_month} endMonth={task.end_month} proposalId={proposalId} projectDuration={projectDuration} />
             <span className="font-['Times_New_Roman',Times,serif] text-[11pt] text-muted-foreground mx-1">&nbsp;|&nbsp;</span>

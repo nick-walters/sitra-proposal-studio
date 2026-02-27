@@ -366,10 +366,17 @@ export function CommentsSidebar({
     onFocusEditor?.();
   };
 
-  const filteredComments = comments.filter((c) => {
-    if (activeTab === 'resolved') return c.status === 'resolved';
-    return c.status === 'open';
-  });
+  const filteredComments = comments
+    .filter((c) => {
+      if (activeTab === 'resolved') return c.status === 'resolved';
+      return c.status === 'open';
+    })
+    .sort((a, b) => {
+      const aPos = a.selection_start ?? Infinity;
+      const bPos = b.selection_start ?? Infinity;
+      if (aPos !== bPos) return aPos - bPos;
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    });
 
   return (
     <div className={cn("h-full flex flex-col bg-background", !compact && "border-l")}>
