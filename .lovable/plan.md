@@ -1,80 +1,58 @@
 
 
-## Plan: Fix Track Changes, Tooltip, Comments, and B3.1 Commenting
+## Plan: Fix 5 Outstanding Issues
 
-### 1. Author name persists as "Anonymous" after refresh
+### 1. Empty task titles not editable in B3.1
 
-**Root cause**: `DocumentEditor.tsx` line 312 uses `user?.user_metadata?.full_name`, but after refresh the cached user from `sessionStorage` only has `{ id, email }` — no `user_metadata`. So the author name falls back to email prefix or "Anonymous".
+**Root cause**: `EditableHeaderText` renders `{value}` as children. When `value` is empty string, the span has zero width/height, making it impossible to click into.
 
-**Fix**: Query the `profiles` table for the current user's `full_name` and use that as the authorName. Add a `useQuery` or `useEffect` that fetches the profile once on mount, then use that name in the track changes config.
+**Fix** in `src/components/B31WPDescriptionTables.tsx`, `EditableHeaderText` component (lines 439-449):
+- When value is empty, render a placeholder text like "Click to add title" with muted styling
+- Add `min-width` and `min-height` to the span so it's always clickable
+- Add hover styling to indicate it's editable (e.g. `hover:bg-muted/30 cursor-text`)
 
-**File**: `src/components/DocumentEditor.tsx`
-- Add a query: `supabase.from('profiles').select('full_name').eq('id', user.id).single()`
-- Use the profile's `full_name` as the primary source, falling back to `user_metadata`, then email prefix
+### 2. Track change tooltip not appearing
 
-### 2. Changes merge across tracking gaps
+**Root cause**: The `TrackChangeTooltip` attaches `mouseover`/`mouseout` listeners to `editorContainerRef`. However, ProseMirror renders its content inside a deeply nested `.ProseMirror` div. The event delegation should work via bubbling, but the issue is likely that TipTap's `EditorContent` renders the ProseMirror DOM inside a child component that may not be inside `editorContainerRef` at the time the effect runs, or the events are being swallowed.
 
-**Root cause**: `toggleTrackChanges` (line 206) doesn't reset the merge window state. When tracking is toggled off then on, `lastInsertionId` persists and new changes merge with old ones.
+**Diagnostic check needed**: The `containerRef.current` is the `div` wrapping `EditorContent`, and events bubble up from the ProseMirror spans. The code looks correct. The real issue could be that the tooltip renders but gets clipped — however it uses `fixed` positioning with `z-[9999]`.
 
-**Fix**: Reset merge state in `toggleTrackChanges` command.
+**Alternative root cause**: The tooltip component IS rendered inside the `editorContainerRef` div. But the scroll container at line 1167 (`overflow-auto`) clips `fixed` positioned elements in some browsers? No — `fixed` is relative to viewport, never clipped by `overflow`.
 
-**File**: `src/extensions/TrackChanges.ts` (line ~206)
-```typescript
-this.storage.lastInsertionId = null;
-this.storage.lastInsertionTime = 0;
-```
+**Most likely root cause**: The `mouseover` event fires but `e.target` is a text node inside a `<p>` inside the `<span data-track-insertion>`. The code normalizes text nodes at line 67. Then it calls `.closest('[data-track-insertion], [data-track-deletion]')`. This should work. But wait — ProseMirror may render track insertion marks as inline `<span>` elements, and the `closest()` traversal should find them. Let me look more carefully...
 
-### 3. Review panel change cards overflow
+Actually, the issue could be that the **effect dependency** on `containerRef` never re-runs because `containerRef` is a `RefObject` whose `.current` changes without triggering re-render. If `containerRef.current` is `null` when the effect first runs (because the editor hasn't loaded yet), the listeners are never attached.
 
-**Root cause**: The change cards in the review panel (lines 1290-1346) don't constrain content width. Long author names or content text can overflow the fixed `w-80` panel.
+**Fix** in `src/components/TrackChangeTooltip.tsx`:
+- Change the effect to also depend on `containerRef.current` or use a callback ref pattern
+- Add a `MutationObserver` or use `editor` dependency to re-attach when content loads
+- Simpler fix: attach the listener to `document` and check if the target is within the container, avoiding the stale ref problem entirely
 
-**Fix**: Add `min-w-0 overflow-hidden` to the card container and ensure the header row uses `min-w-0` with truncation.
+### 3. Reduce notification polling to 5 seconds
 
-**File**: `src/components/DocumentEditor.tsx` (lines ~1291-1346)
-- Add `min-w-0 overflow-hidden` to the outer card div
-- Add `min-w-0` and `overflow-hidden` to the flex row containing author name and badge
-- Add `max-w-[120px]` to the author name span
+5-second polling is fine — it's a single lightweight SELECT query. No performance concern.
 
-### 4. Track change hover tooltip not appearing
+**Fix** in `src/hooks/useNotifications.ts` (line 191): Change `15000` to `5000`.
 
-**Root cause**: The tooltip is rendered as `absolute` inside `editorContainerRef`, but the parent wrapper at line 1082 has `overflow-hidden`. When the tooltip positions itself above the first line of text (negative `top` value relative to container), it gets clipped by the parent's overflow.
+### 4. Comments not clickable / don't jump to position
 
-**Fix**: Two changes:
-1. Change the tooltip to use `fixed` positioning (viewport-relative) instead of `absolute`, using `getBoundingClientRect()` directly without subtracting the container rect
-2. This eliminates clipping by any parent overflow
+**Root cause**: The `onCommentClick` callback in `DocumentEditor.tsx` (lines 1337-1346) correctly calls `editor.chain().focus().setTextSelection(...)`. But the `CommentCard` only triggers `onClickHighlight` when clicking the **quoted text button** (line 122-129). There's no click handler on the **comment card itself**.
 
-**File**: `src/components/TrackChangeTooltip.tsx`
-- Change position calculation to use `rect` directly (viewport coords)
-- Change CSS from `absolute` to `fixed`
-- Add `pointer-events: auto` to ensure hover interaction works
+**Fix**: Make the entire `CommentCard` clickable, or add a visible "Jump to" affordance. The simplest approach: make clicking the quoted text more discoverable (it already works via `onClickHighlight`), AND also make the comment card border glow or add a small icon indicating the comment is linked to a position. Also ensure `onCommentClick` is actually wired — verify `onClickHighlight` prop is passed correctly.
 
-### 5. Comments not ordered by document position
+Wait, looking again at lines 1337-1346, `onCommentClick` IS passed to `CommentsSidebar`, which passes it as `onClickHighlight` to `CommentCard`. And `CommentCard` uses it on the quoted text button (line 126). So clicking the quoted text SHOULD jump to position. The user says it doesn't work.
 
-**Root cause**: `CommentsSidebar.tsx` line 369 filters comments but doesn't sort them. They appear in creation order, not document order.
+The issue is likely that `selection_start` and `selection_end` positions become stale after edits. When the document content changes, the character offsets stored in the DB no longer correspond to the correct positions. This is a fundamental limitation of storing absolute character positions.
 
-**Fix**: Sort `filteredComments` by `selection_start` position, with nulls last.
+For now, the pragmatic fix: make the click handler more visible (style the quote as clearly clickable), and ensure the `setTextSelection` call at least tries to focus near the position even if exact range is stale. Also add a visual indicator (e.g., cursor pointer, underline on hover) to make it obvious the quote is clickable.
 
-**File**: `src/components/CommentsSidebar.tsx` (line ~369)
-```typescript
-const filteredComments = comments
-  .filter(c => activeTab === 'resolved' ? c.status === 'resolved' : c.status === 'open')
-  .sort((a, b) => {
-    const aPos = a.selection_start ?? Infinity;
-    const bPos = b.selection_start ?? Infinity;
-    if (aPos !== bPos) return aPos - bPos;
-    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-  });
-```
+### 5. Review panel stays expanded/collapsed across section switches
 
-### 6. Cannot comment on B3.1 task titles, participants, duration
+**Root cause**: `isCollaborationPanelOpen` is initialized as `useState(false)` at line 802. It resets every time the `DocumentEditor` component remounts — which happens when switching sections because `ProposalEditor` renders a new `DocumentEditor` for each section.
 
-**Root cause**: These elements are outside the Tiptap editor, so the editor-based selection/commenting mechanism doesn't apply.
-
-**Fix**: Add `data-commentable` attributes to task title, participant, and duration elements in `B31WPDescriptionTables.tsx`. Add a `mouseup` listener in `DocumentEditor.tsx` on the B3.1 container that checks `window.getSelection()` for text within `[data-commentable]` elements, and pipes the selected text + a synthetic position identifier into the existing `selectedText`/`selectionRange` state used by `CommentsSidebar`.
-
-**Files**:
-- `src/components/B31WPDescriptionTables.tsx` — add `data-commentable="task-title"` etc. to task title, leader, and duration elements
-- `src/components/DocumentEditor.tsx` — add mouseup handler on the B3.1 section area that detects selection in commentable elements and sets `selectedText`/`selectionRange`
+**Fix**: Persist `isCollaborationPanelOpen` in `localStorage` (keyed per user) or lift the state up to `ProposalEditor` and pass it as a prop. The simpler approach is localStorage:
+- In `DocumentEditor.tsx` line 802, initialize from `localStorage`
+- On toggle (line 949), persist to `localStorage`
 
 ---
 
@@ -82,12 +60,9 @@ const filteredComments = comments
 
 | # | File | Change |
 |---|------|--------|
-| 1 | `DocumentEditor.tsx` | Fetch profile `full_name` for track changes author |
-| 2 | `TrackChanges.ts` | Reset merge state on toggle |
-| 3 | `DocumentEditor.tsx` | Fix overflow on review panel cards |
-| 4 | `TrackChangeTooltip.tsx` | Use fixed positioning to avoid parent clipping |
-| 5 | `CommentsSidebar.tsx` | Sort comments by document position |
-| 6 | `B31WPDescriptionTables.tsx` + `DocumentEditor.tsx` | Enable commenting on B3.1 task fields |
-
-6 changes across 4 files.
+| 1 | `B31WPDescriptionTables.tsx` | Add placeholder + min-width to `EditableHeaderText` for empty titles |
+| 2 | `TrackChangeTooltip.tsx` | Attach listener to `document` instead of container ref to avoid stale ref |
+| 3 | `useNotifications.ts` | Change poll interval from 15s to 5s |
+| 4 | `CommentsSidebar.tsx` + `DocumentEditor.tsx` | Improve click-to-jump affordance and resilience |
+| 5 | `DocumentEditor.tsx` | Persist `isCollaborationPanelOpen` in localStorage |
 
