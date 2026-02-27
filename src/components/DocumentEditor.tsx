@@ -193,6 +193,7 @@ export function DocumentEditor({
   
   // Editor container ref for cursor overlays
   const editorContainerRef = useRef<HTMLDivElement>(null);
+  const documentPageRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const preserveSelectionOnCommentFieldRef = useRef(false);
   const pendingAnchorRef = useRef<{
@@ -833,7 +834,7 @@ export function DocumentEditor({
 
   // Handle text selection in B3.1 commentable elements (outside Tiptap)
   useEffect(() => {
-    const container = editorContainerRef.current?.closest('.document-page');
+    const container = documentPageRef.current;
     if (!container) return;
 
     const handleMouseUp = () => {
@@ -1273,7 +1274,7 @@ export function DocumentEditor({
             )}
 
             {/* Document Page with Rich Text Editor */}
-            <div className="document-page animate-fade-in">
+            <div ref={documentPageRef} className="document-page animate-fade-in">
               {/* Page Header - centered, shows Topic ID: Topic title (type of action) */}
               <div className="document-page-header">
                 <span className="w-full text-center">

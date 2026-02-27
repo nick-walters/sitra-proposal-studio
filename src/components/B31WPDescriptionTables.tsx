@@ -626,6 +626,7 @@ function SortableTaskGroup({
           colSpan={2}
           className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0 cursor-text hover:bg-muted/30"
           style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }}
+          data-commentable={`task-desc-${wp.number}-${task.number}`}
         >
           <EditableText
             value={task.description || ''}
@@ -815,7 +816,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
 
                 {/* Objectives */}
                 <tr>
-                  <td colSpan={2} className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0" style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }}>
+                  <td colSpan={2} className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0" style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }} data-commentable={`wp-objectives-${wp.number}`}>
                     <span className="font-bold italic">Objectives: </span>
                     <EditableText
                       inline
