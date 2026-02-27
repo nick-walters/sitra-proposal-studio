@@ -133,6 +133,7 @@ export function DocumentEditor({
         if (data?.full_name) setProfileFullName(data.full_name);
       });
   }, [user?.id]);
+
   const canUseSnippets = roleTier === 'coordinator';
   const [isCitationOpen, setIsCitationOpen] = useState(false);
   const [isFigureDialogOpen, setIsFigureDialogOpen] = useState(false);
@@ -338,7 +339,45 @@ export function DocumentEditor({
     },
   });
 
-  // Note: trackChangesEnabled sync is handled by useRichTextEditor's own effect (lines 1249-1268)
+  // Note: trackChangesEnabled sync is handled by useRichTextEditor's own effect
+
+  // Backfill "Anonymous" marks with real author name after editor loads
+  useEffect(() => {
+    if (!editor || !profileFullName || !user?.id) return;
+    const timer = setTimeout(() => {
+      const doc = editor.state.doc;
+      const schema = editor.state.schema;
+      const insertionType = schema.marks.trackInsertion;
+      const deletionType = schema.marks.trackDeletion;
+      if (!insertionType || !deletionType) return;
+
+      let needsUpdate = false;
+      const tr = editor.state.tr;
+
+      doc.descendants((node: any, pos: number) => {
+        if (!node.isText) return;
+        for (const mark of node.marks) {
+          if (
+            (mark.type === insertionType || mark.type === deletionType) &&
+            mark.attrs.authorId === user.id &&
+            (mark.attrs.authorName === 'Anonymous' || !mark.attrs.authorName)
+          ) {
+            const newMark = mark.type.create({ ...mark.attrs, authorName: profileFullName });
+            tr.removeMark(pos, pos + node.nodeSize, mark);
+            tr.addMark(pos, pos + node.nodeSize, newMark);
+            needsUpdate = true;
+          }
+        }
+      });
+
+      if (needsUpdate) {
+        tr.setMeta('trackChangesInternal', true);
+        tr.setMeta('preventUpdate', true);
+        editor.view.dispatch(tr);
+      }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [editor, profileFullName, user?.id]);
 
   // Scroll to top when section changes
   useEffect(() => {
@@ -726,6 +765,10 @@ export function DocumentEditor({
     const handleMouseUp = () => {
       const sel = window.getSelection();
       if (!sel || sel.isCollapsed || !sel.toString().trim()) return;
+
+      // Don't interfere with contentEditable editing within the commentable element
+      const activeEl = document.activeElement;
+      if (activeEl && (activeEl as HTMLElement).isContentEditable) return;
 
       const anchor = sel.anchorNode?.parentElement?.closest('[data-commentable]');
       const focus = sel.focusNode?.parentElement?.closest('[data-commentable]');
