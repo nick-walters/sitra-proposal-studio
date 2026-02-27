@@ -1,68 +1,89 @@
 
+Goal: make comment anchors reliably bind to selected text and remain navigable.
 
-## Plan: Fix 5 Outstanding Issues
+1) Current failure analysis (what is breaking now)
+- Data check confirms anchors are not being saved at all for recent comments in this proposal (latest rows have `selected_text`, `selection_start`, `selection_end` all null), so click-to-jump has nothing to resolve.
+- `handleCommentFieldPointerDown` currently reads only TipTap selection (`editor.state.selection`). That works only for rich-text selections, not B3.1 DOM/contentEditable selections.
+- B3.1 capture currently depends on a `mouseup` listener inside `.document-page`; when users select text then click the sidebar input, selection collapses before a stable anchor is captured.
+- B3.1 capture also exits early when `document.activeElement.isContentEditable` is true; this prevents anchor capture for task-title selections (exact area user is commenting on).
+- Jump handler currently ignores negative/synthetic anchors (`if start < 0 || end < 0 return`), so even saved B3.1 synthetic anchors cannot navigate.
 
-### 1. Empty task titles not editable in B3.1
+2) Anchor model to implement (durable and explicit)
+- Replace overloaded numeric/synthetic range model with a typed anchor object per comment:
+  - `anchor_type`: `editor_text` | `b31_dom`
+  - `anchor_payload` (JSON):
+    - For `editor_text`: `{ from, to, quote, contextBefore, contextAfter }`
+    - For `b31_dom`: `{ commentableKey, quote, startOffset, endOffset }`
+- Keep existing columns for backward compatibility during migration, but switch runtime to prefer `anchor_type + anchor_payload`.
+- Why this fixes root cause: selection origin is explicit, and resolution logic can be specialized per origin instead of forcing both into one integer range.
 
-**Root cause**: `EditableHeaderText` renders `{value}` as children. When `value` is empty string, the span has zero width/height, making it impossible to click into.
+3) Selection capture redesign (before focus leaves source)
+- Introduce a unified `capturePendingAnchor()` used by:
+  - TipTap selection updates
+  - B3.1 selection events
+  - Comment field `pointerdown` capture
+- On comment field pointer-down:
+  - First try TipTap selection if non-collapsed.
+  - Otherwise read `window.getSelection()` and detect nearest `[data-commentable]`.
+  - Compute text offsets within that element for `b31_dom` anchor.
+  - Store a `pendingAnchorRef` + UI preview in sidebar.
+- Do not clear pending selection on editor blur if capture was initiated by comment-field pointer interaction.
+- Remove fragile timeout-based latch as primary mechanism; keep only as safety fallback.
 
-**Fix** in `src/components/B31WPDescriptionTables.tsx`, `EditableHeaderText` component (lines 439-449):
-- When value is empty, render a placeholder text like "Click to add title" with muted styling
-- Add `min-width` and `min-height` to the span so it's always clickable
-- Add hover styling to indicate it's editable (e.g. `hover:bg-muted/30 cursor-text`)
+4) Jump-to-anchor resolution logic
+- In comment click handler:
+  - If `editor_text`: try exact `{from,to}`; if stale, fallback to quote/context search near prior range; then global quote search.
+  - If `b31_dom`: find element by `data-commentable=commentableKey`, reconstruct DOM Range from offsets, scroll and temporary highlight.
+- Add resilient fallback order:
+  1) exact anchor
+  2) quote+context match
+  3) quote-only match
+  4) scroll to section top + warning toast (“Anchor moved; closest match not found”).
 
-### 2. Track change tooltip not appearing
+5) B3.1-specific hardening
+- Ensure all commentable B3.1 targets have stable `data-commentable` keys (task title, metadata, description where needed).
+- Stop blocking anchor capture solely because active element is contentEditable; instead guard against interfering with live typing by checking actual selection validity.
+- Add visual anchor affordance in sidebar cards:
+  - entire card clickable
+  - blue hover border
+  - small “linked” indicator only when anchor is resolvable.
 
-**Root cause**: The `TrackChangeTooltip` attaches `mouseover`/`mouseout` listeners to `editorContainerRef`. However, ProseMirror renders its content inside a deeply nested `.ProseMirror` div. The event delegation should work via bubbling, but the issue is likely that TipTap's `EditorContent` renders the ProseMirror DOM inside a child component that may not be inside `editorContainerRef` at the time the effect runs, or the events are being swallowed.
+6) Data migration / compatibility
+- Backfill strategy:
+  - Existing comments with numeric `selection_start/end` become `editor_text` payload.
+  - Existing comments with null anchors remain unanchored (no guessing).
+- Runtime read order:
+  1) new `anchor_type/anchor_payload`
+  2) legacy numeric range fallback
+- Runtime write: new comments always write typed anchor payload.
 
-**Diagnostic check needed**: The `containerRef.current` is the `div` wrapping `EditorContent`, and events bubble up from the ProseMirror spans. The code looks correct. The real issue could be that the tooltip renders but gets clipped — however it uses `fixed` positioning with `z-[9999]`.
+7) File-level implementation plan
+- `src/components/DocumentEditor.tsx`
+  - add unified capture + pending anchor state
+  - replace current `handleCommentFieldPointerDown` and B3.1 `mouseup` behavior
+  - implement typed jump resolver with fallback search
+- `src/components/CommentsSidebar.tsx`
+  - submit typed anchor payload with comment
+  - render anchor status + keep full-card click behavior
+- `src/hooks/useSectionComments.ts`
+  - extend insert/select mapping to include new anchor fields
+  - keep legacy read compatibility
+- `src/components/B31WPDescriptionTables.tsx`
+  - verify/normalize `data-commentable` coverage and key stability
+- `supabase/migrations/*`
+  - add `anchor_type text` + `anchor_payload jsonb` to `section_comments`
+  - index as needed for lookups (proposal/section still primary)
 
-**Alternative root cause**: The tooltip component IS rendered inside the `editorContainerRef` div. But the scroll container at line 1167 (`overflow-auto`) clips `fixed` positioned elements in some browsers? No — `fixed` is relative to viewport, never clipped by `overflow`.
+8) Validation checklist (must pass)
+- Rich-text: select text -> click comment field -> submit -> reopen page -> comment still jumps to selected text.
+- B3.1 task title (contentEditable): select text -> click comment field -> submit -> click card -> jumps/highlights same field text.
+- B3.1 metadata row: same flow as above.
+- Editing after comment creation: jump still resolves via fallback quote/context.
+- Legacy comments (old numeric anchors) still jump.
+- Unanchored comments show no false “linked” affordance.
 
-**Most likely root cause**: The `mouseover` event fires but `e.target` is a text node inside a `<p>` inside the `<span data-track-insertion>`. The code normalizes text nodes at line 67. Then it calls `.closest('[data-track-insertion], [data-track-deletion]')`. This should work. But wait — ProseMirror may render track insertion marks as inline `<span>` elements, and the `closest()` traversal should find them. Let me look more carefully...
-
-Actually, the issue could be that the **effect dependency** on `containerRef` never re-runs because `containerRef` is a `RefObject` whose `.current` changes without triggering re-render. If `containerRef.current` is `null` when the effect first runs (because the editor hasn't loaded yet), the listeners are never attached.
-
-**Fix** in `src/components/TrackChangeTooltip.tsx`:
-- Change the effect to also depend on `containerRef.current` or use a callback ref pattern
-- Add a `MutationObserver` or use `editor` dependency to re-attach when content loads
-- Simpler fix: attach the listener to `document` and check if the target is within the container, avoiding the stale ref problem entirely
-
-### 3. Reduce notification polling to 5 seconds
-
-5-second polling is fine — it's a single lightweight SELECT query. No performance concern.
-
-**Fix** in `src/hooks/useNotifications.ts` (line 191): Change `15000` to `5000`.
-
-### 4. Comments not clickable / don't jump to position
-
-**Root cause**: The `onCommentClick` callback in `DocumentEditor.tsx` (lines 1337-1346) correctly calls `editor.chain().focus().setTextSelection(...)`. But the `CommentCard` only triggers `onClickHighlight` when clicking the **quoted text button** (line 122-129). There's no click handler on the **comment card itself**.
-
-**Fix**: Make the entire `CommentCard` clickable, or add a visible "Jump to" affordance. The simplest approach: make clicking the quoted text more discoverable (it already works via `onClickHighlight`), AND also make the comment card border glow or add a small icon indicating the comment is linked to a position. Also ensure `onCommentClick` is actually wired — verify `onClickHighlight` prop is passed correctly.
-
-Wait, looking again at lines 1337-1346, `onCommentClick` IS passed to `CommentsSidebar`, which passes it as `onClickHighlight` to `CommentCard`. And `CommentCard` uses it on the quoted text button (line 126). So clicking the quoted text SHOULD jump to position. The user says it doesn't work.
-
-The issue is likely that `selection_start` and `selection_end` positions become stale after edits. When the document content changes, the character offsets stored in the DB no longer correspond to the correct positions. This is a fundamental limitation of storing absolute character positions.
-
-For now, the pragmatic fix: make the click handler more visible (style the quote as clearly clickable), and ensure the `setTextSelection` call at least tries to focus near the position even if exact range is stale. Also add a visual indicator (e.g., cursor pointer, underline on hover) to make it obvious the quote is clickable.
-
-### 5. Review panel stays expanded/collapsed across section switches
-
-**Root cause**: `isCollaborationPanelOpen` is initialized as `useState(false)` at line 802. It resets every time the `DocumentEditor` component remounts — which happens when switching sections because `ProposalEditor` renders a new `DocumentEditor` for each section.
-
-**Fix**: Persist `isCollaborationPanelOpen` in `localStorage` (keyed per user) or lift the state up to `ProposalEditor` and pass it as a prop. The simpler approach is localStorage:
-- In `DocumentEditor.tsx` line 802, initialize from `localStorage`
-- On toggle (line 949), persist to `localStorage`
-
----
-
-### Summary
-
-| # | File | Change |
-|---|------|--------|
-| 1 | `B31WPDescriptionTables.tsx` | Add placeholder + min-width to `EditableHeaderText` for empty titles |
-| 2 | `TrackChangeTooltip.tsx` | Attach listener to `document` instead of container ref to avoid stale ref |
-| 3 | `useNotifications.ts` | Change poll interval from 15s to 5s |
-| 4 | `CommentsSidebar.tsx` + `DocumentEditor.tsx` | Improve click-to-jump affordance and resilience |
-| 5 | `DocumentEditor.tsx` | Persist `isCollaborationPanelOpen` in localStorage |
-
+```text
+Selection source
+   ├─ TipTap range ──────> anchor_type=editor_text ──> exact/fuzzy resolve in editor
+   └─ B3.1 DOM range ────> anchor_type=b31_dom ─────> resolve via data-commentable + offsets
+```
