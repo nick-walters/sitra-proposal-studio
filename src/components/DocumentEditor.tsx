@@ -1342,13 +1342,21 @@ export function DocumentEditor({
                         }}
                         onCommentClick={(start, end) => {
                           if (!editor || start == null || end == null) return;
+                          // Negative positions are synthetic (B3.1 non-editor fields) — skip
+                          if (start < 0 || end < 0) return;
                           try {
                             const docSize = editor.state.doc.content.size;
-                            if (start >= 0 && end <= docSize && start < end) {
-                              editor.chain().focus().setTextSelection({ from: start, to: end }).scrollIntoView().run();
+                            const clampedStart = Math.min(start, docSize - 1);
+                            const clampedEnd = Math.min(end, docSize);
+                            if (clampedStart >= 0 && clampedStart < clampedEnd) {
+                              editor.chain().focus().setTextSelection({ from: clampedStart, to: clampedEnd }).scrollIntoView().run();
+                            } else {
+                              // Fall back to just focusing near the position
+                              editor.chain().focus().setTextSelection(Math.max(0, Math.min(clampedStart, docSize - 1))).scrollIntoView().run();
                             }
                           } catch {
-                            // positions may be stale
+                            // positions may be stale — focus editor at least
+                            editor.commands.focus();
                           }
                         }}
                         onFocusEditor={() => setTimeout(() => editor?.commands.focus(), 50)}

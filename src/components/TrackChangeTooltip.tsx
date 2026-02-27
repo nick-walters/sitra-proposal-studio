@@ -97,13 +97,17 @@ export function TrackChangeTooltip({ editor, containerRef }: TrackChangeTooltipP
 
   useEffect(() => {
     // Attach to document to avoid stale containerRef.current issues.
-    // Filter events to only those within the container.
     const onOver = (e: MouseEvent) => {
-      if (!containerRef.current?.contains(e.target as Node)) return;
+      let target = e.target as Node;
+      // Normalize text nodes for contains() check
+      if (target.nodeType === Node.TEXT_NODE) target = target.parentElement!;
+      if (!target || !containerRef.current?.contains(target)) return;
       handleMouseOver(e);
     };
     const onOut = (e: MouseEvent) => {
-      if (!containerRef.current?.contains(e.target as Node)) return;
+      let target = e.target as Node;
+      if (target.nodeType === Node.TEXT_NODE) target = target.parentElement!;
+      if (!target || !containerRef.current?.contains(target)) return;
       handleMouseOut(e);
     };
 
@@ -114,7 +118,7 @@ export function TrackChangeTooltip({ editor, containerRef }: TrackChangeTooltipP
       document.removeEventListener('mouseout', onOut, true);
       clearTimeout(hideTimeout.current);
     };
-  }, [containerRef, handleMouseOver, handleMouseOut]);
+  }, [handleMouseOver, handleMouseOut]);
 
   const handleAccept = useCallback(() => {
     if (!editor || !tooltip) return;
