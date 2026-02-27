@@ -193,6 +193,7 @@ export function DocumentEditor({
   // Editor container ref for cursor overlays
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const preserveSelectionOnCommentFieldRef = useRef(false);
   
   // Collaborative cursors hook
   const { 
@@ -725,6 +726,23 @@ export function DocumentEditor({
     setContent(newContent);
   }, [content, setContent]);
 
+  const handleCommentFieldPointerDown = useCallback(() => {
+    if (!editor) return;
+    const { from, to } = editor.state.selection;
+    if (from === to) return;
+
+    const text = editor.state.doc.textBetween(from, to, ' ');
+    if (!text.trim()) return;
+
+    preserveSelectionOnCommentFieldRef.current = true;
+    setSelectedText(text);
+    setSelectionRange({ start: from, end: to });
+
+    window.setTimeout(() => {
+      preserveSelectionOnCommentFieldRef.current = false;
+    }, 300);
+  }, [editor]);
+
   // Handle text selection for comments — latch selection so it persists
   // when focus moves to the comment sidebar textarea
   const handleTextSelection = useCallback(() => {
@@ -733,7 +751,7 @@ export function DocumentEditor({
     const { from, to } = editor.state.selection;
     if (from === to) {
       // Only clear if editor is focused (not when focus moves to sidebar)
-      if (editor.isFocused) {
+      if (editor.isFocused && !preserveSelectionOnCommentFieldRef.current) {
         setSelectedText('');
         setSelectionRange(undefined);
       }
@@ -1336,6 +1354,7 @@ export function DocumentEditor({
                         sectionId={section?.id || ''}
                         selectedText={selectedText}
                         selectionRange={selectionRange}
+                        onCommentFieldPointerDown={handleCommentFieldPointerDown}
                         onClearSelection={() => {
                           setSelectedText('');
                           setSelectionRange(undefined);
