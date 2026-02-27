@@ -543,7 +543,7 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
             <Button
               onClick={() => {
-                console.log('Task form at submit:', JSON.stringify(form));
+                
                 if (!form.title.trim()) { toast.error('Title is required'); return; }
                 if (editingTask) {
                   updateTask.mutate({ id: editingTask.id, data: form });

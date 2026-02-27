@@ -689,31 +689,24 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
 
     const reordered = arrayMove(wp.tasks, oldIndex, newIndex);
 
-    const applyOrder = async (taskIds: string[], label: string) => {
-      console.log(`[applyOrder] ${label} - updating ${taskIds.length} tasks:`, taskIds);
+    const applyOrder = async (taskIds: string[], _label: string) => {
       for (let i = 0; i < taskIds.length; i++) {
-        const { error, data } = await supabase
+        const { error } = await supabase
           .from('wp_draft_tasks')
           .update({ order_index: i, number: i + 1 })
-          .eq('id', taskIds[i])
-          .select();
-        console.log(`[applyOrder] ${label} - task ${taskIds[i]}: order_index=${i}, number=${i+1}`, error ? `ERROR: ${error.message}` : `OK (${data?.length} rows)`);
+          .eq('id', taskIds[i]);
         if (error) {
           toast.error('Failed to reorder tasks');
           return false;
         }
       }
-      console.log(`[applyOrder] ${label} - invalidating queries`);
       await queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
       await queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] });
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
-      console.log(`[applyOrder] ${label} - done`);
       return true;
     };
 
     const reorderedIds = reordered.map(t => t.id);
-    console.log('[handleTaskDragEnd] previousOrder:', previousOrder);
-    console.log('[handleTaskDragEnd] reorderedIds:', reorderedIds);
     const success = await applyOrder(reorderedIds, 'reorder');
     if (success) {
       toast.success('Tasks reordered', {
@@ -721,7 +714,6 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
         action: {
           label: 'Undo',
           onClick: async () => {
-            console.log('[Undo] clicked, previousOrder:', previousOrder);
             const undone = await applyOrder(previousOrder, 'undo');
             if (undone) {
               toast.success('Reorder undone');
