@@ -1,69 +1,93 @@
 
 
-## Diagnosis: Why Track Changes Are Lost on Refresh
+## Plan: Fix Track Changes, Tooltip, Comments, and B3.1 Commenting
 
-### Root Cause
+### 1. Author name persists as "Anonymous" after refresh
 
-When the editor loads content (on mount or refresh), the flow is:
+**Root cause**: `DocumentEditor.tsx` line 312 uses `user?.user_metadata?.full_name`, but after refresh the cached user from `sessionStorage` only has `{ id, email }` — no `user_metadata`. So the author name falls back to email prefix or "Anonymous".
 
-1. Content with track change HTML spans (`data-track-insertion`, `data-track-deletion`) is fetched from the database
-2. `useRichTextEditor` calls `editor.commands.setContent(content)` with tracking temporarily disabled (`storage.enabled = false`)
-3. Tiptap's `setContent` generates a transaction that replaces the entire document — this transaction has `docChanged = true`
-4. The TrackChanges extension's `appendTransaction` fires, sees `!extension.storage.enabled`, and enters the **mark-stripping branch** (lines 498-526 of `TrackChanges.ts`)
-5. This branch removes ALL `trackInsertion` and `trackDeletion` marks from the document
-6. The track change marks that were correctly parsed from the saved HTML are immediately stripped out
+**Fix**: Query the `profiles` table for the current user's `full_name` and use that as the authorName. Add a `useQuery` or `useEffect` that fetches the profile once on mount, then use that name in the track changes config.
 
-The stripping code was designed to clean inherited marks from new typing when tracking is off, but it also fires on `setContent` because Tiptap does NOT tag `setContent` transactions with any metadata that the plugin checks — the `tr.getMeta('setContent')` check at line 486 never matches because Tiptap never sets that meta.
+**File**: `src/components/DocumentEditor.tsx`
+- Add a query: `supabase.from('profiles').select('full_name').eq('id', user.id).single()`
+- Use the profile's `full_name` as the primary source, falling back to `user_metadata`, then email prefix
 
-### Fix Plan
+### 2. Changes merge across tracking gaps
 
-**File: `src/components/RichTextEditor.tsx` (line ~1250)**
+**Root cause**: `toggleTrackChanges` (line 206) doesn't reset the merge window state. When tracking is toggled off then on, `lastInsertionId` persists and new changes merge with old ones.
 
-When calling `setContent` during external content sync, tag the transaction so the TrackChanges plugin can skip it. Change from:
+**Fix**: Reset merge state in `toggleTrackChanges` command.
 
+**File**: `src/extensions/TrackChanges.ts` (line ~206)
 ```typescript
-editor.commands.setContent(content, { emitUpdate: false });
+this.storage.lastInsertionId = null;
+this.storage.lastInsertionTime = 0;
 ```
 
-To dispatching a transaction with `setContent` metadata manually, OR simpler: wrap the `setContent` call so the generated transaction carries the `setContent` meta that the plugin already checks for.
+### 3. Review panel change cards overflow
 
-The simplest approach: instead of disabling `storage.enabled`, use the editor's `chain` to set a meta flag before calling `setContent`. However, since `setContent` is a single command that dispatches internally, the cleanest fix is:
+**Root cause**: The change cards in the review panel (lines 1290-1346) don't constrain content width. Long author names or content text can overflow the fixed `w-80` panel.
 
-**Wrap the `setContent` call to dispatch with correct metadata:**
+**Fix**: Add `min-w-0 overflow-hidden` to the card container and ensure the header row uses `min-w-0` with truncation.
 
-In the `useEffect` at line 1242, replace the current approach of toggling `storage.enabled` with registering a temporary transaction filter or dispatching `setContent` manually with `setContent` metadata. Concretely:
+**File**: `src/components/DocumentEditor.tsx` (lines ~1291-1346)
+- Add `min-w-0 overflow-hidden` to the outer card div
+- Add `min-w-0` and `overflow-hidden` to the flex row containing author name and badge
+- Add `max-w-[120px]` to the author name span
 
+### 4. Track change hover tooltip not appearing
+
+**Root cause**: The tooltip is rendered as `absolute` inside `editorContainerRef`, but the parent wrapper at line 1082 has `overflow-hidden`. When the tooltip positions itself above the first line of text (negative `top` value relative to container), it gets clipped by the parent's overflow.
+
+**Fix**: Two changes:
+1. Change the tooltip to use `fixed` positioning (viewport-relative) instead of `absolute`, using `getBoundingClientRect()` directly without subtracting the container rect
+2. This eliminates clipping by any parent overflow
+
+**File**: `src/components/TrackChangeTooltip.tsx`
+- Change position calculation to use `rect` directly (viewport coords)
+- Change CSS from `absolute` to `fixed`
+- Add `pointer-events: auto` to ensure hover interaction works
+
+### 5. Comments not ordered by document position
+
+**Root cause**: `CommentsSidebar.tsx` line 369 filters comments but doesn't sort them. They appear in creation order, not document order.
+
+**Fix**: Sort `filteredComments` by `selection_start` position, with nulls last.
+
+**File**: `src/components/CommentsSidebar.tsx` (line ~369)
 ```typescript
-// Before setContent, temporarily set a flag the plugin can check
-const storage = (editor.storage as any)?.trackChanges;
-if (storage) storage._skipNextTransaction = true;
-editor.commands.setContent(content, { emitUpdate: false });
+const filteredComments = comments
+  .filter(c => activeTab === 'resolved' ? c.status === 'resolved' : c.status === 'open')
+  .sort((a, b) => {
+    const aPos = a.selection_start ?? Infinity;
+    const bPos = b.selection_start ?? Infinity;
+    if (aPos !== bPos) return aPos - bPos;
+    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+  });
 ```
 
-And in `TrackChanges.ts` `appendTransaction`, check for this flag at the top of the mark-stripping branch.
+### 6. Cannot comment on B3.1 task titles, participants, duration
 
-**Actually, the simplest fix that requires minimal changes:**
+**Root cause**: These elements are outside the Tiptap editor, so the editor-based selection/commenting mechanism doesn't apply.
 
-**File: `src/extensions/TrackChanges.ts` (lines 480-492)**
+**Fix**: Add `data-commentable` attributes to task title, participant, and duration elements in `B31WPDescriptionTables.tsx`. Add a `mouseup` listener in `DocumentEditor.tsx` on the B3.1 container that checks `window.getSelection()` for text within `[data-commentable]` elements, and pipes the selected text + a synthetic position identifier into the existing `selectedText`/`selectionRange` state used by `CommentsSidebar`.
 
-Add a check: when tracking is disabled AND a transaction replaces the entire document (position 0 to doc end), skip stripping. Or better, check for the `preventUpdate` meta that Tiptap's `setContent` does set:
+**Files**:
+- `src/components/B31WPDescriptionTables.tsx` — add `data-commentable="task-title"` etc. to task title, leader, and duration elements
+- `src/components/DocumentEditor.tsx` — add mouseup handler on the B3.1 section area that detects selection in commentable elements and sets `selectedText`/`selectionRange`
 
-In the `appendTransaction` function, add at the top before the `hasUserChange` loop:
-
-```typescript
-// Skip setContent transactions (they already set preventUpdate meta)
-for (const tr of transactions) {
-  if (tr.getMeta('preventUpdate') !== undefined) return null;
-}
-```
-
-This is the safest single-line fix because Tiptap's `setContent` always sets `preventUpdate` meta, and no user typing ever sets it.
+---
 
 ### Summary
 
-| File | Change | Purpose |
-|------|--------|---------|
-| `src/extensions/TrackChanges.ts` | Skip `appendTransaction` when transaction has `preventUpdate` meta (set by Tiptap's `setContent`) | Prevent track change marks from being stripped when content is loaded from DB |
+| # | File | Change |
+|---|------|--------|
+| 1 | `DocumentEditor.tsx` | Fetch profile `full_name` for track changes author |
+| 2 | `TrackChanges.ts` | Reset merge state on toggle |
+| 3 | `DocumentEditor.tsx` | Fix overflow on review panel cards |
+| 4 | `TrackChangeTooltip.tsx` | Use fixed positioning to avoid parent clipping |
+| 5 | `CommentsSidebar.tsx` | Sort comments by document position |
+| 6 | `B31WPDescriptionTables.tsx` + `DocumentEditor.tsx` | Enable commenting on B3.1 task fields |
 
-One surgical change, one file. The track change marks are already correctly serialized to HTML and parsed back — they just get stripped immediately after parsing.
+6 changes across 4 files.
 
