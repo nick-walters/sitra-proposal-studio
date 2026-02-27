@@ -1,72 +1,69 @@
 
 
-## Revised Plan: Fix Tab-Switch Refresh Issue
+## Diagnosis: Why Track Changes Are Lost on Refresh
 
-After a thorough re-review, the original 3-fix plan is **correct and complete**. Here is the confirmed assessment:
+### Root Cause
 
-### Architecture Analysis
+When the editor loads content (on mount or refresh), the flow is:
 
-The app has two data-fetching patterns:
-1. **TanStack React Query** (`useQuery`) — used in `ProposalEditor.tsx` for WP/Case leadership data. Default `refetchOnWindowFocus: true` causes refetch on tab return.
-2. **Manual `useState`/`useEffect`** — used in `useProposalData`, `Dashboard.tsx`. These depend on `useAuth`'s `user` state. If `user` state object changes reference on token refresh, these hooks re-run their effects and re-fetch everything.
+1. Content with track change HTML spans (`data-track-insertion`, `data-track-deletion`) is fetched from the database
+2. `useRichTextEditor` calls `editor.commands.setContent(content)` with tracking temporarily disabled (`storage.enabled = false`)
+3. Tiptap's `setContent` generates a transaction that replaces the entire document — this transaction has `docChanged = true`
+4. The TrackChanges extension's `appendTransaction` fires, sees `!extension.storage.enabled`, and enters the **mark-stripping branch** (lines 498-526 of `TrackChanges.ts`)
+5. This branch removes ALL `trackInsertion` and `trackDeletion` marks from the document
+6. The track change marks that were correctly parsed from the saved HTML are immediately stripped out
 
-Both patterns are triggered on tab switch, and both need fixing.
+The stripping code was designed to clean inherited marks from new typing when tracking is off, but it also fires on `setContent` because Tiptap does NOT tag `setContent` transactions with any metadata that the plugin checks — the `tr.getMeta('setContent')` check at line 486 never matches because Tiptap never sets that meta.
 
-### Confirmed Changes (No Additions Needed)
+### Fix Plan
 
-**1. `src/App.tsx` — Disable `refetchOnWindowFocus` globally**
+**File: `src/components/RichTextEditor.tsx` (line ~1250)**
+
+When calling `setContent` during external content sync, tag the transaction so the TrackChanges plugin can skip it. Change from:
 
 ```typescript
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+editor.commands.setContent(content, { emitUpdate: false });
 ```
 
-Prevents the `useQuery` calls in `ProposalEditor.tsx` (and any future ones) from auto-refetching.
+To dispatching a transaction with `setContent` metadata manually, OR simpler: wrap the `setContent` call so the generated transaction carries the `setContent` meta that the plugin already checks for.
 
-**2. `src/hooks/useAuth.tsx` — Stabilize state on token refresh**
+The simplest approach: instead of disabling `storage.enabled`, use the editor's `chain` to set a meta flag before calling `setContent`. However, since `setContent` is a single command that dispatches internally, the cleanest fix is:
 
-Two sub-changes:
-- In `onAuthStateChange`: skip full state update for `TOKEN_REFRESHED` (just update session silently)
-- In `updateAuthState`: use functional `setUser` to return the previous reference if the user ID hasn't changed
+**Wrap the `setContent` call to dispatch with correct metadata:**
 
-This prevents `useProposalData` and other hooks that depend on `user` from seeing a new object reference and re-running their effects.
+In the `useEffect` at line 1242, replace the current approach of toggling `storage.enabled` with registering a temporary transaction filter or dispatching `setContent` manually with `setContent` metadata. Concretely:
 
-**3. `src/hooks/useUserRole.ts` — Filter auth events**
+```typescript
+// Before setContent, temporarily set a flag the plugin can check
+const storage = (editor.storage as any)?.trackChanges;
+if (storage) storage._skipNextTransaction = true;
+editor.commands.setContent(content, { emitUpdate: false });
+```
 
-Only call `checkRoles()` on `SIGNED_IN` or `SIGNED_OUT`, not on every auth event including token refreshes.
+And in `TrackChanges.ts` `appendTransaction`, check for this flag at the top of the mark-stripping branch.
 
-**4. `src/hooks/useTemplates.ts` — Filter auth events**
+**Actually, the simplest fix that requires minimal changes:**
 
-Same pattern: only call `checkOwner()` on meaningful auth events.
+**File: `src/extensions/TrackChanges.ts` (lines 480-492)**
 
-### Why No Additional Changes Are Needed
+Add a check: when tracking is disabled AND a transaction replaces the entire document (position 0 to doc end), skip stripping. Or better, check for the `preventUpdate` meta that Tiptap's `setContent` does set:
 
-- **Scroll position**: `ProposalEditor.tsx` already has scroll preservation code (lines 303-339) that saves/restores scroll on visibility change and blur/focus. This will work correctly once the re-render cascade is stopped.
-- **`useSectionContent`**: Already handles visibility changes by flushing pending saves — no destructive behavior.
-- **`useWindowFocus`**: Already prevents dialogs/popovers from closing on tab switch — no changes needed.
-- **Dashboard**: Uses manual fetch triggered by `user` dependency — fixed by the auth stabilization in change 2.
-- **`Auth.tsx`**: Its `onAuthStateChange` listener only acts on `PASSWORD_RECOVERY` and `SIGNED_IN` — already filtered, no fix needed.
+In the `appendTransaction` function, add at the top before the `hasUserChange` loop:
 
-### Risk Assessment
+```typescript
+// Skip setContent transactions (they already set preventUpdate meta)
+for (const tr of transactions) {
+  if (tr.getMeta('preventUpdate') !== undefined) return null;
+}
+```
 
-These changes are low-risk:
-- Disabling `refetchOnWindowFocus` is a standard production configuration. Data still refreshes on navigation and after mutations.
-- The auth state guard only prevents redundant re-renders — actual sign-in/sign-out flows are unaffected.
-- The role/template hooks still check on meaningful auth events.
+This is the safest single-line fix because Tiptap's `setContent` always sets `preventUpdate` meta, and no user typing ever sets it.
 
 ### Summary
 
 | File | Change | Purpose |
 |------|--------|---------|
-| `src/App.tsx` | `refetchOnWindowFocus: false` | Stop React Query refetches on tab return |
-| `src/hooks/useAuth.tsx` | Guard `TOKEN_REFRESHED` + stable user reference | Stop re-render cascade through all auth-dependent hooks |
-| `src/hooks/useUserRole.ts` | Filter to `SIGNED_IN`/`SIGNED_OUT` only | Stop unnecessary role re-checks |
-| `src/hooks/useTemplates.ts` | Filter to `SIGNED_IN`/`SIGNED_OUT` only | Stop unnecessary owner re-checks |
+| `src/extensions/TrackChanges.ts` | Skip `appendTransaction` when transaction has `preventUpdate` meta (set by Tiptap's `setContent`) | Prevent track change marks from being stripped when content is loaded from DB |
 
-4 files, 4 surgical changes. The plan is robust and complete.
+One surgical change, one file. The track change marks are already correctly serialized to HTML and parsed back — they just get stripped immediately after parsing.
 
