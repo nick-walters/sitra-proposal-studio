@@ -123,6 +123,16 @@ export function DocumentEditor({
 }: DocumentEditorProps) {
   const { user } = useAuth();
   const { roleTier } = useProposalRole(proposalId);
+
+  // Fetch profile full_name from DB for reliable author name in track changes
+  const [profileFullName, setProfileFullName] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase.from('profiles').select('full_name').eq('id', user.id).single()
+      .then(({ data }) => {
+        if (data?.full_name) setProfileFullName(data.full_name);
+      });
+  }, [user?.id]);
   const canUseSnippets = roleTier === 'coordinator';
   const [isCitationOpen, setIsCitationOpen] = useState(false);
   const [isFigureDialogOpen, setIsFigureDialogOpen] = useState(false);
@@ -309,7 +319,7 @@ export function DocumentEditor({
     trackChanges: {
       enabled: trackChangesEnabled,
       authorId: user?.id || '',
-      authorName: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Anonymous',
+      authorName: profileFullName || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Anonymous',
       authorColor: userColor,
       onChangesUpdate: setTrackedChanges,
     },
@@ -707,6 +717,36 @@ export function DocumentEditor({
       editor.off('selectionUpdate', handleTextSelection);
     };
   }, [editor, handleTextSelection]);
+
+  // Handle text selection in B3.1 commentable elements (outside Tiptap)
+  useEffect(() => {
+    const container = editorContainerRef.current?.closest('.document-page');
+    if (!container) return;
+
+    const handleMouseUp = () => {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed || !sel.toString().trim()) return;
+
+      const anchor = sel.anchorNode?.parentElement?.closest('[data-commentable]');
+      const focus = sel.focusNode?.parentElement?.closest('[data-commentable]');
+      if (!anchor && !focus) return;
+
+      const commentableAttr = (anchor || focus)?.getAttribute('data-commentable') || 'b31-element';
+      const text = sel.toString().trim();
+      if (text) {
+        setSelectedText(text);
+        // Use negative positions as synthetic identifiers for non-editor comments
+        const hash = commentableAttr.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+        setSelectionRange({ start: -(hash + 1), end: -(hash + 2) });
+        // Switch to comments tab
+        setCollaborationTab('comments');
+        setIsCollaborationPanelOpen(true);
+      }
+    };
+
+    container.addEventListener('mouseup', handleMouseUp);
+    return () => container.removeEventListener('mouseup', handleMouseUp);
+  }, [section?.id]);
 
   // Check if this is the B2.1 section (impact pathways)
   const isImpactSection = section?.id === 'b2-1' || section?.number === '2.1';
@@ -1287,22 +1327,22 @@ export function DocumentEditor({
                           No tracked changes
                         </div>
                       ) : (
-                        trackedChanges.map((change) => (
+                         trackedChanges.map((change) => (
                           <div
                             key={change.id}
-                            className={`p-2.5 rounded-md text-xs border ${
+                            className={`p-2.5 rounded-md text-xs border min-w-0 overflow-hidden ${
                               change.type === 'insertion'
                                 ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
                                 : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
                             }`}
                           >
-                            <div className="flex items-center justify-between mb-1">
-                              <div className="flex items-center gap-1.5">
+                            <div className="flex items-center justify-between mb-1 min-w-0">
+                              <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
                                 <div
                                   className="w-2 h-2 rounded-full shrink-0"
                                   style={{ backgroundColor: change.authorColor }}
                                 />
-                                <span className="font-medium truncate">{change.authorName}</span>
+                                <span className="font-medium truncate max-w-[120px]">{change.authorName}</span>
                                 <Badge
                                   variant="outline"
                                   className={`text-[10px] py-0 shrink-0 ${

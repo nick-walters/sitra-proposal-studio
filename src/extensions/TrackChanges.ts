@@ -204,6 +204,9 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
         () =>
         ({ editor }) => {
           this.storage.enabled = !this.storage.enabled;
+          // Reset merge window so new changes don't merge with pre-toggle changes
+          this.storage.lastInsertionId = null;
+          this.storage.lastInsertionTime = 0;
           editor.view.dispatch(editor.state.tr);
           return true;
         },
