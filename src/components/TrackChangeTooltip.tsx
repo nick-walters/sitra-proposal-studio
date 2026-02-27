@@ -62,7 +62,11 @@ export function TrackChangeTooltip({ editor, containerRef }: TrackChangeTooltipP
   }, [editor, containerRef]);
 
   const handleMouseOver = useCallback((e: MouseEvent) => {
-    const target = (e.target as HTMLElement).closest('[data-track-insertion], [data-track-deletion]') as HTMLElement | null;
+    // Normalize text nodes to their parent element so .closest() works
+    let node = e.target as Node;
+    if (node.nodeType === Node.TEXT_NODE) node = node.parentElement!;
+    if (!node || !(node as HTMLElement).closest) return;
+    const target = (node as HTMLElement).closest('[data-track-insertion], [data-track-deletion]') as HTMLElement | null;
     if (target) {
       clearTimeout(hideTimeout.current);
       showTooltip(target);
@@ -70,11 +74,14 @@ export function TrackChangeTooltip({ editor, containerRef }: TrackChangeTooltipP
   }, [showTooltip]);
 
   const handleMouseOut = useCallback((e: MouseEvent) => {
-    const related = e.relatedTarget as HTMLElement | null;
+    let related = e.relatedTarget as Node | null;
+    // Normalize text nodes
+    if (related && related.nodeType === Node.TEXT_NODE) related = related.parentElement;
+    const relatedEl = related as HTMLElement | null;
     // Don't hide if moving to the tooltip itself
-    if (related && tooltipRef.current?.contains(related)) return;
+    if (relatedEl && tooltipRef.current?.contains(relatedEl)) return;
     // Don't hide if moving to another tracked change
-    if (related?.closest('[data-track-insertion], [data-track-deletion]')) return;
+    if (relatedEl?.closest?.('[data-track-insertion], [data-track-deletion]')) return;
 
     hideTimeout.current = setTimeout(() => setTooltip(null), 150);
   }, []);

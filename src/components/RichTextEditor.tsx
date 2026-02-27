@@ -1258,9 +1258,12 @@ export function useRichTextEditor({
     trackChangesRef.current = trackChanges;
     const storage = (editor.storage as any).trackChanges;
     if (storage && storage.enabled !== trackChanges?.enabled) {
-      storage.enabled = trackChanges?.enabled || false;
-      // Force re-render of decorations
-      editor.view.dispatch(editor.state.tr);
+      // Use the command to toggle so merge state is properly reset
+      editor.commands.toggleTrackChanges();
+      // If the command toggled to the wrong state, toggle again
+      if (storage.enabled !== (trackChanges?.enabled || false)) {
+        editor.commands.toggleTrackChanges();
+      }
     }
     // Keep all track change options in sync (author info + callbacks)
     const ext = editor.extensionManager.extensions.find(e => e.name === 'trackChanges');
