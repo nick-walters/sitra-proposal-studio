@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
@@ -63,7 +63,11 @@ export function useSectionComments({ proposalId, sectionId }: UseSectionComments
       const { data, error } = await supabase
         .from('section_comments')
         .select(`
-          *,
+          id, proposal_id, section_id, user_id, content,
+          selection_start, selection_end, selected_text,
+          anchor_type, anchor_payload,
+          is_suggestion, suggested_text, status,
+          parent_comment_id, created_at, updated_at,
           profiles:user_id (full_name, email)
         `)
         .eq('proposal_id', proposalId)
@@ -81,16 +85,19 @@ export function useSectionComments({ proposalId, sectionId }: UseSectionComments
         status: c.status || 'open',
       }));
 
-      // Organize into threads (parent comments with replies)
-      const parentComments = allComments.filter((c: Comment) => !c.parent_comment_id);
+      // Organize into threads (parent comments with replies) - single-pass
+      const parentComments: Comment[] = [];
       const replyMap = new Map<string, Comment[]>();
-      
-      allComments
-        .filter((c: Comment) => c.parent_comment_id)
-        .forEach((reply: Comment) => {
-          const existing = replyMap.get(reply.parent_comment_id!) || [];
-          replyMap.set(reply.parent_comment_id!, [...existing, reply]);
-        });
+
+      for (const c of allComments) {
+        if (c.parent_comment_id) {
+          const arr = replyMap.get(c.parent_comment_id);
+          if (arr) arr.push(c);
+          else replyMap.set(c.parent_comment_id, [c]);
+        } else {
+          parentComments.push(c);
+        }
+      }
 
       const threaded = parentComments.map((parent: Comment) => ({
         ...parent,
@@ -110,7 +117,8 @@ export function useSectionComments({ proposalId, sectionId }: UseSectionComments
     fetchComments();
   }, [fetchComments]);
 
-  // Real-time subscription
+  // Real-time subscription with debounce to prevent refetch storms
+  const realtimeTimerRef = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => {
     if (!proposalId || !sectionId) return;
 
@@ -125,13 +133,15 @@ export function useSectionComments({ proposalId, sectionId }: UseSectionComments
           filter: `proposal_id=eq.${proposalId}`,
         },
         () => {
-          // Refetch to get updated data with joins
-          fetchComments();
+          // Debounce: wait 300ms before refetching to batch rapid changes
+          clearTimeout(realtimeTimerRef.current);
+          realtimeTimerRef.current = setTimeout(() => fetchComments(), 300);
         }
       )
       .subscribe();
 
     return () => {
+      clearTimeout(realtimeTimerRef.current);
       supabase.removeChannel(channel);
     };
   }, [proposalId, sectionId, fetchComments]);

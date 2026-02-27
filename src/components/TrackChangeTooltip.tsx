@@ -24,7 +24,6 @@ export function TrackChangeTooltip({ editor, containerRef }: TrackChangeTooltipP
   const tooltipRef = useRef<HTMLDivElement>(null);
 
   const showTooltip = useCallback((el: HTMLElement) => {
-    if (!containerRef.current) return;
 
     const changeId = el.getAttribute('data-change-id');
     if (!changeId) return;
@@ -96,18 +95,23 @@ export function TrackChangeTooltip({ editor, containerRef }: TrackChangeTooltipP
   }, []);
 
   useEffect(() => {
-    // Attach to document to avoid stale containerRef.current issues.
+    // Use document-level listeners filtering by data-track-* attributes.
+    // We avoid containerRef.current?.contains() because the ref may be null
+    // during conditional rendering (loading states) causing silent early exits.
     const onOver = (e: MouseEvent) => {
       let target = e.target as Node;
-      // Normalize text nodes for contains() check
       if (target.nodeType === Node.TEXT_NODE) target = target.parentElement!;
-      if (!target || !containerRef.current?.contains(target)) return;
+      if (!target) return;
+      const el = target as HTMLElement;
+      // Only process if inside the containerRef (when available) or inside any .tiptap element
+      if (containerRef.current && !containerRef.current.contains(el)) return;
+      if (!containerRef.current && !el.closest('.tiptap, .ProseMirror')) return;
       handleMouseOver(e);
     };
     const onOut = (e: MouseEvent) => {
       let target = e.target as Node;
       if (target.nodeType === Node.TEXT_NODE) target = target.parentElement!;
-      if (!target || !containerRef.current?.contains(target)) return;
+      if (!target) return;
       handleMouseOut(e);
     };
 
@@ -118,7 +122,7 @@ export function TrackChangeTooltip({ editor, containerRef }: TrackChangeTooltipP
       document.removeEventListener('mouseout', onOut, true);
       clearTimeout(hideTimeout.current);
     };
-  }, [handleMouseOver, handleMouseOut]);
+  }, [handleMouseOver, handleMouseOut, containerRef]);
 
   const handleAccept = useCallback(() => {
     if (!editor || !tooltip) return;

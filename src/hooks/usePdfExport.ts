@@ -591,7 +591,7 @@ export function usePdfExport() {
       // Table captions: 6pt before, 1pt after (appear above table)
       // Figure captions: 0pt before, 6pt after (appear below figure)
       const addCaption = (text: string, captionType: 'figure' | 'table') => {
-        console.log('PDF Export - Caption text:', text, 'Type:', captionType);
+        
         
         // Table captions need spacing before (6pt), figure captions need 0pt before
         if (captionType === 'table') {
@@ -606,12 +606,12 @@ export function usePdfExport() {
         // Find the label part (e.g., "Figure 1.1.a." or "Table 1.1.a.")
         // Match patterns like "Figure 1.1.a.", "Table 2.3.b", "Figure 1.1.a" (with or without final period)
         const labelMatch = text.match(/^((?:Figure|Table)\s+[\d.]+[a-z]?\.?)\s*/i);
-        console.log('PDF Export - Label match:', labelMatch);
+        
         
         if (labelMatch) {
           const label = labelMatch[1].endsWith('.') ? labelMatch[1] : labelMatch[1] + '.';
           const rest = text.substring(labelMatch[0].length).trim();
-          console.log('PDF Export - Label:', label, 'Rest:', rest);
+          
           
           // Draw label in bold-italic (jsPDF supports this for Times)
           pdf.setFont('times', 'bolditalic');
@@ -645,7 +645,7 @@ export function usePdfExport() {
           }
         } else {
           // No label found, just italic text
-          console.log('PDF Export - No label match, using plain italic');
+          
           pdf.setFont('times', 'italic');
           const lines = pdf.splitTextToSize(text, contentWidth);
           for (const line of lines) {

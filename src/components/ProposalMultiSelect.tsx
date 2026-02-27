@@ -42,7 +42,7 @@ export function ProposalMultiSelect({
         if (!error && data && data.length > 0) {
           setProposals(data);
         } else {
-          console.log('Using sample proposals - no database proposals found or error:', error);
+          // Fallback to sample proposals
           setProposals(SAMPLE_PROPOSALS_BASIC);
         }
       } catch (err) {
