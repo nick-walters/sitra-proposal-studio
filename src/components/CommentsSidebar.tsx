@@ -388,9 +388,11 @@ export function CommentsSidebar({
       return c.status === 'open';
     })
     .sort((a, b) => {
-      const aPos = a.selection_start ?? Infinity;
-      const bPos = b.selection_start ?? Infinity;
+      // Positive selection_start = editor position, negative/null = B3.1/unanchored
+      const aPos = a.selection_start != null && a.selection_start >= 0 ? a.selection_start : Infinity;
+      const bPos = b.selection_start != null && b.selection_start >= 0 ? b.selection_start : Infinity;
       if (aPos !== bPos) return aPos - bPos;
+      // Both are editor-anchored at same pos, or both are B3.1/unanchored: sort by creation time
       return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
     });
 
