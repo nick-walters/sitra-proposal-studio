@@ -194,6 +194,12 @@ export function useSectionComments({ proposalId, sectionId }: UseSectionComments
     });
 
     try {
+      // Delete associated notifications
+      await supabase
+        .from('notifications')
+        .delete()
+        .contains('metadata', { comment_id: commentId });
+
       const { error } = await supabase
         .from('section_comments')
         .delete()
