@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useSectionComments, Comment } from '@/hooks/useSectionComments';
+import { useSectionComments, Comment, AnchorType, AnchorPayload } from '@/hooks/useSectionComments';
 import { useAuth } from '@/hooks/useAuth';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,6 +25,7 @@ import {
   Send,
   AtSign,
   RotateCcw,
+  Link2,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -35,9 +36,10 @@ interface CommentsSidebarProps {
   sectionId: string;
   selectedText?: string;
   selectionRange?: { start: number; end: number };
+  pendingAnchor?: { type: AnchorType; payload: any; selectedText: string } | null;
   onCommentFieldPointerDown?: () => void;
   onClearSelection?: () => void;
-  onCommentClick?: (selectionStart: number | null, selectionEnd: number | null) => void;
+  onCommentClick?: (comment: Comment) => void;
   onFocusEditor?: () => void;
   compact?: boolean;
 }
@@ -58,7 +60,7 @@ function CommentCard({
   onReopen,
   onDelete,
   onDeleteReply,
-  onClickHighlight,
+  onClickComment,
 }: {
   comment: Comment;
   currentUserId?: string;
@@ -68,7 +70,7 @@ function CommentCard({
   onReopen: (commentId: string) => void;
   onDelete: (commentId: string) => void;
   onDeleteReply: (replyId: string) => void;
-  onClickHighlight?: (start: number, end: number) => void;
+  onClickComment?: (comment: Comment) => void;
 }) {
   const [showReplies, setShowReplies] = useState(true);
   const isOwn = comment.user_id === currentUserId;
@@ -87,11 +89,12 @@ function CommentCard({
   // Render content with @mentions highlighted
   const renderContent = (text: string) => renderMentionContent(text);
 
-  const hasAnchor = comment.selection_start != null && comment.selection_end != null;
+  const hasAnchor = !!(comment.anchor_type && comment.anchor_payload) ||
+    (comment.selection_start != null && comment.selection_end != null && comment.selection_start >= 0);
 
   const handleCardClick = () => {
-    if (hasAnchor && onClickHighlight) {
-      onClickHighlight(comment.selection_start!, comment.selection_end!);
+    if (hasAnchor && onClickComment) {
+      onClickComment(comment);
     }
   };
 
@@ -125,6 +128,9 @@ function CommentCard({
           </div>
         </div>
         <div className="flex items-center gap-1">
+          {hasAnchor && (
+            <Link2 className="w-3 h-3 text-primary/60" />
+          )}
           {isResolved && (
             <Badge variant="secondary" className="text-xs">
               Resolved
@@ -139,8 +145,8 @@ function CommentCard({
           type="button"
           className="w-full text-left text-xs bg-muted/50 p-2 rounded border-l-2 border-primary/30 italic text-muted-foreground hover:bg-muted/80 transition-colors cursor-pointer"
           onClick={() => {
-            if (onClickHighlight && comment.selection_start != null && comment.selection_end != null) {
-              onClickHighlight(comment.selection_start, comment.selection_end);
+            if (onClickComment) {
+              onClickComment(comment);
             }
           }}
           title="Click to highlight in editor"
@@ -151,9 +157,6 @@ function CommentCard({
 
       {/* Comment content with @mentions */}
       <p className="text-sm">{renderContent(comment.content)}</p>
-
-
-
 
       {comment.status === 'open' && (
         <div className="flex items-center gap-1 pt-1" onClick={e => e.stopPropagation()}>
@@ -198,46 +201,41 @@ function CommentCard({
       {/* Replies */}
       {comment.replies && comment.replies.length > 0 && (
         <div className="pt-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 px-2 text-xs text-muted-foreground"
-            onClick={() => setShowReplies(!showReplies)}
+          <button
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mb-2"
+            onClick={(e) => { e.stopPropagation(); setShowReplies(!showReplies); }}
           >
-            {showReplies ? <ChevronUp className="w-3 h-3 mr-1" /> : <ChevronDown className="w-3 h-3 mr-1" />}
+            {showReplies ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             {comment.replies.length} {comment.replies.length === 1 ? 'reply' : 'replies'}
-          </Button>
+          </button>
           {showReplies && (
-            <div className="ml-4 mt-2 space-y-2 border-l-2 border-muted pl-3">
-              {comment.replies.map((reply) => {
-                const isReplyOwn = reply.user_id === currentUserId;
-                return (
-                  <div key={reply.id} className="text-sm">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Avatar className="h-5 w-5">
-                        <AvatarFallback className="text-xs bg-primary/10">
-                          {getInitials(reply.user_name || 'U')}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="font-medium text-xs">{reply.user_name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(reply.created_at), { addSuffix: true })}
-                      </span>
-                      {(isReplyOwn || isCoordinator) && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-5 w-5 p-0 text-destructive hover:text-destructive hover:bg-destructive/10 ml-auto"
-                          onClick={() => onDeleteReply(reply.id)}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      )}
-                    </div>
-                    <p className="text-muted-foreground">{renderContent(reply.content)}</p>
+            <div className="space-y-2 pl-3 border-l-2 border-muted">
+              {comment.replies.map((reply) => (
+                <div key={reply.id} className="text-sm space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Avatar className="h-5 w-5">
+                      <AvatarFallback className="text-[10px] bg-primary/10">
+                        {getInitials(reply.user_name || 'U')}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-xs font-medium">{reply.user_name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(reply.created_at), { addSuffix: true })}
+                    </span>
+                    {(reply.user_id === currentUserId || isCoordinator) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-5 w-5 p-0 text-destructive hover:text-destructive hover:bg-destructive/10 ml-auto"
+                        onClick={(e) => { e.stopPropagation(); onDeleteReply(reply.id); }}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    )}
                   </div>
-                );
-              })}
+                  <p className="text-xs text-muted-foreground pl-7">{renderContent(reply.content)}</p>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -246,12 +244,12 @@ function CommentCard({
   );
 }
 
-// Local MentionTextarea removed — using shared component from @/components/MentionTextarea
 export function CommentsSidebar({
   proposalId,
   sectionId,
   selectedText,
   selectionRange,
+  pendingAnchor,
   onCommentFieldPointerDown,
   onClearSelection,
   onCommentClick,
@@ -281,7 +279,6 @@ export function CommentsSidebar({
       if (!proposalId) return;
       
       try {
-        // Get all users with roles on this proposal
         const { data: roles, error: rolesError } = await supabase
           .from('user_roles')
           .select('user_id')
@@ -317,6 +314,8 @@ export function CommentsSidebar({
       selectionStart: selectionRange?.start,
       selectionEnd: selectionRange?.end,
       selectedText: selectedText,
+      anchorType: pendingAnchor?.type,
+      anchorPayload: pendingAnchor?.payload,
     });
 
     // Create notifications for mentioned users
@@ -440,7 +439,7 @@ export function CommentsSidebar({
                       onReopen={(id) => { updateCommentStatus(id, 'open'); onFocusEditor?.(); }}
                       onDelete={(id) => { deleteComment(id); onFocusEditor?.(); }}
                       onDeleteReply={(id) => { deleteComment(id); onFocusEditor?.(); }}
-                      onClickHighlight={onCommentClick ? (start, end) => onCommentClick(start, end) : undefined}
+                      onClickComment={onCommentClick}
                     />
                     {/* Reply input */}
                     {replyingTo === comment.id && (

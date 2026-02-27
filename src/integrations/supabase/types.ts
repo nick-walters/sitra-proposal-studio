@@ -2874,6 +2874,8 @@ export type Database = {
       }
       section_comments: {
         Row: {
+          anchor_payload: Json | null
+          anchor_type: string | null
           content: string
           created_at: string
           id: string
@@ -2890,6 +2892,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          anchor_payload?: Json | null
+          anchor_type?: string | null
           content: string
           created_at?: string
           id?: string
@@ -2906,6 +2910,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          anchor_payload?: Json | null
+          anchor_type?: string | null
           content?: string
           created_at?: string
           id?: string

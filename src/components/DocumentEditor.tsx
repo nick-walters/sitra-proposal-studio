@@ -2,6 +2,7 @@ import { TextSelection } from '@tiptap/pm/state';
 import { Section } from "@/types/proposal";
 import { supabase } from "@/integrations/supabase/client";
 import DOMPurify from "dompurify";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sparkles, BookOpen, Route, History, Info, Image, Lock, Unlock, MessageSquare, PanelRightClose, PanelRight, UserPlus, CalendarClock, User, FileText, X, Search, GitCompare, Keyboard, Wand2, FileCode, SplitSquareHorizontal, Layers, Building2, FlaskConical, Check, Link2, Table2 } from "lucide-react";
@@ -194,6 +195,11 @@ export function DocumentEditor({
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const preserveSelectionOnCommentFieldRef = useRef(false);
+  const pendingAnchorRef = useRef<{
+    type: 'editor_text' | 'b31_dom';
+    payload: any;
+    selectedText: string;
+  } | null>(null);
   
   // Collaborative cursors hook
   const { 
@@ -727,20 +733,70 @@ export function DocumentEditor({
   }, [content, setContent]);
 
   const handleCommentFieldPointerDown = useCallback(() => {
-    if (!editor) return;
-    const { from, to } = editor.state.selection;
-    if (from === to) return;
+    // 1) Try TipTap selection first
+    if (editor) {
+      const { from, to } = editor.state.selection;
+      if (from !== to) {
+        const text = editor.state.doc.textBetween(from, to, ' ');
+        if (text.trim()) {
+          const docText = editor.state.doc.textContent;
+          const contextBefore = docText.slice(Math.max(0, from - 40), from);
+          const contextAfter = docText.slice(to, to + 40);
+          
+          preserveSelectionOnCommentFieldRef.current = true;
+          setSelectedText(text);
+          setSelectionRange({ start: from, end: to });
+          pendingAnchorRef.current = {
+            type: 'editor_text',
+            payload: { from, to, quote: text, contextBefore, contextAfter },
+            selectedText: text,
+          };
 
-    const text = editor.state.doc.textBetween(from, to, ' ');
-    if (!text.trim()) return;
+          window.setTimeout(() => {
+            preserveSelectionOnCommentFieldRef.current = false;
+          }, 500);
+          return;
+        }
+      }
+    }
 
-    preserveSelectionOnCommentFieldRef.current = true;
-    setSelectedText(text);
-    setSelectionRange({ start: from, end: to });
+    // 2) Try DOM selection (B3.1 commentable elements)
+    const sel = window.getSelection();
+    if (sel && !sel.isCollapsed && sel.toString().trim()) {
+      const anchorEl = sel.anchorNode?.parentElement?.closest('[data-commentable]');
+      const focusEl = sel.focusNode?.parentElement?.closest('[data-commentable]');
+      const commentableEl = anchorEl || focusEl;
+      if (commentableEl) {
+        const commentableKey = commentableEl.getAttribute('data-commentable') || 'b31-element';
+        const text = sel.toString().trim();
+        
+        // Compute offsets within the commentable element
+        let startOffset = 0;
+        let endOffset = text.length;
+        try {
+          const range = sel.getRangeAt(0);
+          const preRange = document.createRange();
+          preRange.selectNodeContents(commentableEl);
+          preRange.setEnd(range.startContainer, range.startOffset);
+          startOffset = preRange.toString().length;
+          endOffset = startOffset + text.length;
+        } catch { /* fallback offsets */ }
 
-    window.setTimeout(() => {
-      preserveSelectionOnCommentFieldRef.current = false;
-    }, 300);
+        preserveSelectionOnCommentFieldRef.current = true;
+        setSelectedText(text);
+        setSelectionRange({ start: -(commentableKey.split('').reduce((a, c) => a + c.charCodeAt(0), 0) + 1), end: 0 });
+        pendingAnchorRef.current = {
+          type: 'b31_dom',
+          payload: { commentableKey, quote: text, startOffset, endOffset },
+          selectedText: text,
+        };
+
+        window.setTimeout(() => {
+          preserveSelectionOnCommentFieldRef.current = false;
+        }, 500);
+        return;
+      }
+    }
   }, [editor]);
 
   // Handle text selection for comments — latch selection so it persists
@@ -784,21 +840,35 @@ export function DocumentEditor({
       const sel = window.getSelection();
       if (!sel || sel.isCollapsed || !sel.toString().trim()) return;
 
-      // Don't interfere with contentEditable editing within the commentable element
-      const activeEl = document.activeElement;
-      if (activeEl && (activeEl as HTMLElement).isContentEditable) return;
-
       const anchor = sel.anchorNode?.parentElement?.closest('[data-commentable]');
       const focus = sel.focusNode?.parentElement?.closest('[data-commentable]');
       if (!anchor && !focus) return;
 
-      const commentableAttr = (anchor || focus)?.getAttribute('data-commentable') || 'b31-element';
+      const commentableEl = anchor || focus;
+      const commentableKey = commentableEl?.getAttribute('data-commentable') || 'b31-element';
       const text = sel.toString().trim();
       if (text) {
+        // Compute offsets within the commentable element
+        let startOffset = 0;
+        let endOffset = text.length;
+        try {
+          const range = sel.getRangeAt(0);
+          const preRange = document.createRange();
+          preRange.selectNodeContents(commentableEl!);
+          preRange.setEnd(range.startContainer, range.startOffset);
+          startOffset = preRange.toString().length;
+          endOffset = startOffset + text.length;
+        } catch { /* fallback offsets */ }
+
         setSelectedText(text);
-        // Use negative positions as synthetic identifiers for non-editor comments
-        const hash = commentableAttr.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+        // Keep synthetic negative range for backward compat sorting
+        const hash = commentableKey.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
         setSelectionRange({ start: -(hash + 1), end: -(hash + 2) });
+        pendingAnchorRef.current = {
+          type: 'b31_dom',
+          payload: { commentableKey, quote: text, startOffset, endOffset },
+          selectedText: text,
+        };
         // Switch to comments tab
         setCollaborationTab('comments');
         setIsCollaborationPanelOpen(true);
@@ -1354,14 +1424,84 @@ export function DocumentEditor({
                         sectionId={section?.id || ''}
                         selectedText={selectedText}
                         selectionRange={selectionRange}
+                        pendingAnchor={pendingAnchorRef.current}
                         onCommentFieldPointerDown={handleCommentFieldPointerDown}
                         onClearSelection={() => {
                           setSelectedText('');
                           setSelectionRange(undefined);
+                          pendingAnchorRef.current = null;
                         }}
-                        onCommentClick={(start, end) => {
+                        onCommentClick={(comment) => {
+                          // Typed anchor resolution
+                          const anchorType = comment.anchor_type;
+                          const anchorPayload = comment.anchor_payload as any;
+
+                          if (anchorType === 'editor_text' && editor && anchorPayload) {
+                            const resolveEditorAnchor = () => {
+                              const docSize = editor.state.doc.content.size;
+                              const { from, to, quote, contextBefore, contextAfter } = anchorPayload;
+                              
+                              // 1) Try exact positions
+                              if (from >= 0 && to <= docSize && from < to) {
+                                try {
+                                  const currentText = editor.state.doc.textBetween(from, to, ' ');
+                                  if (currentText === quote) {
+                                    editor.chain().focus().setTextSelection({ from, to }).scrollIntoView().run();
+                                    return true;
+                                  }
+                                } catch { /* stale */ }
+                              }
+                              
+                              // 2) Fuzzy: search for quote near original position
+                              const fullText = editor.state.doc.textContent;
+                              const quoteIdx = fullText.indexOf(quote);
+                              if (quoteIdx >= 0) {
+                                // Find the actual doc position (accounting for nodes)
+                                // Simple approach: walk doc to find text position
+                                let found = false;
+                                editor.state.doc.descendants((node, pos) => {
+                                  if (found || !node.isText) return;
+                                  const nodeText = node.text || '';
+                                  const idx = nodeText.indexOf(quote);
+                                  if (idx >= 0) {
+                                    const matchFrom = pos + idx;
+                                    const matchTo = matchFrom + quote.length;
+                                    editor.chain().focus().setTextSelection({ from: matchFrom, to: matchTo }).scrollIntoView().run();
+                                    found = true;
+                                  }
+                                });
+                                if (found) return true;
+                              }
+
+                              // 3) Fallback: scroll to approximate position
+                              if (from >= 0 && from < docSize) {
+                                editor.chain().focus().setTextSelection(Math.min(from, docSize - 1)).scrollIntoView().run();
+                                return true;
+                              }
+                              return false;
+                            };
+                            resolveEditorAnchor();
+                            return;
+                          }
+
+                          if (anchorType === 'b31_dom' && anchorPayload) {
+                            const { commentableKey, quote, startOffset, endOffset } = anchorPayload;
+                            const el = document.querySelector(`[data-commentable="${commentableKey}"]`);
+                            if (el) {
+                              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              // Temporary highlight
+                              el.classList.add('ring-2', 'ring-primary', 'ring-offset-1');
+                              setTimeout(() => el.classList.remove('ring-2', 'ring-primary', 'ring-offset-1'), 2000);
+                              return;
+                            }
+                            toast.error('Anchor moved; closest match not found');
+                            return;
+                          }
+
+                          // Legacy fallback: numeric positions
+                          const start = comment.selection_start;
+                          const end = comment.selection_end;
                           if (!editor || start == null || end == null) return;
-                          // Negative positions are synthetic (B3.1 non-editor fields) — skip
                           if (start < 0 || end < 0) return;
                           try {
                             const docSize = editor.state.doc.content.size;
@@ -1369,12 +1509,8 @@ export function DocumentEditor({
                             const clampedEnd = Math.min(end, docSize);
                             if (clampedStart >= 0 && clampedStart < clampedEnd) {
                               editor.chain().focus().setTextSelection({ from: clampedStart, to: clampedEnd }).scrollIntoView().run();
-                            } else {
-                              // Fall back to just focusing near the position
-                              editor.chain().focus().setTextSelection(Math.max(0, Math.min(clampedStart, docSize - 1))).scrollIntoView().run();
                             }
                           } catch {
-                            // positions may be stale — focus editor at least
                             editor.commands.focus();
                           }
                         }}

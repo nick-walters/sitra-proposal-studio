@@ -3,6 +3,25 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 
+export type AnchorType = 'editor_text' | 'b31_dom';
+
+export interface EditorTextAnchorPayload {
+  from: number;
+  to: number;
+  quote: string;
+  contextBefore?: string;
+  contextAfter?: string;
+}
+
+export interface B31DomAnchorPayload {
+  commentableKey: string;
+  quote: string;
+  startOffset?: number;
+  endOffset?: number;
+}
+
+export type AnchorPayload = EditorTextAnchorPayload | B31DomAnchorPayload;
+
 export interface Comment {
   id: string;
   proposal_id: string;
@@ -12,6 +31,8 @@ export interface Comment {
   selection_start: number | null;
   selection_end: number | null;
   selected_text: string | null;
+  anchor_type: AnchorType | null;
+  anchor_payload: AnchorPayload | null;
   is_suggestion: boolean;
   suggested_text: string | null;
   status: 'open' | 'resolved' | 'rejected';
@@ -125,6 +146,8 @@ export function useSectionComments({ proposalId, sectionId }: UseSectionComments
       isSuggestion?: boolean;
       suggestedText?: string;
       parentCommentId?: string;
+      anchorType?: AnchorType;
+      anchorPayload?: AnchorPayload;
     }
   ) => {
     if (!user || !proposalId || !sectionId) return null;
@@ -143,7 +166,9 @@ export function useSectionComments({ proposalId, sectionId }: UseSectionComments
           is_suggestion: options?.isSuggestion ?? false,
           suggested_text: options?.suggestedText ?? null,
           parent_comment_id: options?.parentCommentId ?? null,
-        })
+          anchor_type: options?.anchorType ?? null,
+          anchor_payload: options?.anchorPayload ?? null,
+        } as any)
         .select()
         .single();
 
