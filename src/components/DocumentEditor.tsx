@@ -859,12 +859,17 @@ export function DocumentEditor({
   const handleTextSelection = useCallback(() => {
     if (!editor) return;
 
+    // If a B3.1 DOM anchor is pending, don't let editor selection updates overwrite it.
+    // It will be cleared explicitly via onClearSelection or after comment submission.
+    if (pendingAnchorRef.current?.type === 'b31_dom') return;
+
     const { from, to } = editor.state.selection;
     if (from === to) {
       // Only clear if editor is focused (not when focus moves to sidebar)
       if (editor.isFocused && !preserveSelectionOnCommentFieldRef.current) {
         setSelectedText('');
         setSelectionRange(undefined);
+        pendingAnchorRef.current = null;
       }
       return;
     }
