@@ -436,15 +436,22 @@ function EditableHeaderText({
     }
   }, [onSave]);
 
+  const isEmpty = !value || value.trim() === '';
+
   return (
     <span
       ref={ref}
       contentEditable
       suppressContentEditableWarning
-      className={cn("outline-none font-['Times_New_Roman',Times,serif] text-[11pt]", className)}
+      className={cn(
+        "outline-none font-['Times_New_Roman',Times,serif] text-[11pt] min-w-[80px] min-h-[1.2em] inline-block cursor-text rounded px-0.5 transition-colors hover:bg-muted/40 focus:bg-muted/20",
+        isEmpty && "text-muted-foreground/50 italic",
+        className
+      )}
       onBlur={handleBlur}
+      data-placeholder="Click to add title"
     >
-      {value}
+      {isEmpty ? 'Click to add title' : value}
     </span>
   );
 }
