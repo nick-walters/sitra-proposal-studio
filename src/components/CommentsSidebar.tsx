@@ -86,12 +86,23 @@ function CommentCard({
   // Render content with @mentions highlighted
   const renderContent = (text: string) => renderMentionContent(text);
 
+  const hasAnchor = comment.selection_start != null && comment.selection_end != null;
+
+  const handleCardClick = () => {
+    if (hasAnchor && onClickHighlight) {
+      onClickHighlight(comment.selection_start!, comment.selection_end!);
+    }
+  };
+
   return (
     <div
       className={cn(
-        'border rounded-lg p-3 space-y-2 transition-opacity',
-        isResolved && 'opacity-60 bg-muted/30 border-muted'
+        'border rounded-lg p-3 space-y-2 transition-all',
+        isResolved && 'opacity-60 bg-muted/30 border-muted',
+        hasAnchor && 'cursor-pointer hover:border-primary/50 hover:shadow-sm'
       )}
+      onClick={handleCardClick}
+      title={hasAnchor ? 'Click to jump to position in editor' : undefined}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
@@ -140,7 +151,7 @@ function CommentCard({
 
 
       {comment.status === 'open' && (
-        <div className="flex items-center gap-1 pt-1">
+        <div className="flex items-center gap-1 pt-1" onClick={e => e.stopPropagation()}>
           <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => onReply(comment.id)}>
             <Reply className="w-3 h-3 mr-1" /> Reply
           </Button>
@@ -156,7 +167,7 @@ function CommentCard({
       )}
 
       {isResolved && (
-        <div className="flex items-center gap-1 pt-1">
+        <div className="flex items-center gap-1 pt-1" onClick={e => e.stopPropagation()}>
           {isOwn ? (
             <>
               <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => onReopen(comment.id)}>

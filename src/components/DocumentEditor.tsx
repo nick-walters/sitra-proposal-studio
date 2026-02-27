@@ -799,7 +799,9 @@ export function DocumentEditor({
    // Page estimate removed - now shown in ExportDialog
 
   // State for collaboration panel - must be before early return
-  const [isCollaborationPanelOpen, setIsCollaborationPanelOpen] = useState(false);
+  const [isCollaborationPanelOpen, setIsCollaborationPanelOpen] = useState(() => {
+    try { return localStorage.getItem('sitra-collab-panel-open') === 'true'; } catch { return false; }
+  });
   
   // Open panel when triggered by notification navigation
   useEffect(() => {
@@ -946,7 +948,11 @@ export function DocumentEditor({
                     variant={isCollaborationPanelOpen ? "default" : "outline"}
                     size="sm"
                     className="h-6 px-2 text-xs gap-1"
-                    onClick={() => setIsCollaborationPanelOpen(!isCollaborationPanelOpen)}
+                    onClick={() => {
+                      const next = !isCollaborationPanelOpen;
+                      setIsCollaborationPanelOpen(next);
+                      try { localStorage.setItem('sitra-collab-panel-open', String(next)); } catch {}
+                    }}
                   >
                     {isCollaborationPanelOpen ? <PanelRightClose className="w-3 h-3" /> : <PanelRight className="w-3 h-3" />}
                     Review panel

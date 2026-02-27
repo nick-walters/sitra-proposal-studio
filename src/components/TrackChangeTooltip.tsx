@@ -96,14 +96,22 @@ export function TrackChangeTooltip({ editor, containerRef }: TrackChangeTooltipP
   }, []);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    // Attach to document to avoid stale containerRef.current issues.
+    // Filter events to only those within the container.
+    const onOver = (e: MouseEvent) => {
+      if (!containerRef.current?.contains(e.target as Node)) return;
+      handleMouseOver(e);
+    };
+    const onOut = (e: MouseEvent) => {
+      if (!containerRef.current?.contains(e.target as Node)) return;
+      handleMouseOut(e);
+    };
 
-    container.addEventListener('mouseover', handleMouseOver);
-    container.addEventListener('mouseout', handleMouseOut);
+    document.addEventListener('mouseover', onOver, true);
+    document.addEventListener('mouseout', onOut, true);
     return () => {
-      container.removeEventListener('mouseover', handleMouseOver);
-      container.removeEventListener('mouseout', handleMouseOut);
+      document.removeEventListener('mouseover', onOver, true);
+      document.removeEventListener('mouseout', onOut, true);
       clearTimeout(hideTimeout.current);
     };
   }, [containerRef, handleMouseOver, handleMouseOut]);
