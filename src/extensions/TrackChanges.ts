@@ -496,6 +496,67 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
       new Plugin({
         key: trackChangesPluginKey,
 
+        props: {
+          // Proactive interception: strip track marks BEFORE ProseMirror inserts text
+          handleTextInput(view, from, to, text) {
+            if (extension.storage.enabled) return false;
+
+            const { state } = view;
+            const insertionType = state.schema.marks.trackInsertion;
+            const deletionType = state.schema.marks.trackDeletion;
+            if (!insertionType && !deletionType) return false;
+
+            const currentMarks = state.storedMarks || state.selection.$from.marks();
+            const hasTrackMarks = currentMarks.some(
+              (m) => m.type === insertionType || m.type === deletionType
+            );
+            if (!hasTrackMarks) return false;
+
+            // Build clean mark set without track marks
+            const clean = currentMarks.filter(
+              (m) => m.type !== insertionType && m.type !== deletionType
+            );
+
+            const tr = state.tr
+              .insertText(text, from, to)
+              .setStoredMarks(clean.length > 0 ? clean : null);
+            tr.setMeta('trackChangesInternal', true);
+            tr.setMeta('addToHistory', true);
+            view.dispatch(tr);
+            return true; // we handled it
+          },
+
+          // Proactive interception for Enter key: clear stored track marks before
+          // the default handler creates a new paragraph that would inherit them
+          handleKeyDown(view, event) {
+            if (extension.storage.enabled) return false;
+            if (event.key !== 'Enter') return false;
+
+            const { state } = view;
+            const insertionType = state.schema.marks.trackInsertion;
+            const deletionType = state.schema.marks.trackDeletion;
+            if (!insertionType && !deletionType) return false;
+
+            const currentMarks = state.storedMarks || state.selection.$from.marks();
+            const hasTrackMarks = currentMarks.some(
+              (m) => m.type === insertionType || m.type === deletionType
+            );
+            if (!hasTrackMarks) return false;
+
+            // Clear stored marks so the default Enter handler won't inherit them
+            const clean = currentMarks.filter(
+              (m) => m.type !== insertionType && m.type !== deletionType
+            );
+            const tr = state.tr.setStoredMarks(clean.length > 0 ? clean : null);
+            tr.setMeta('trackChangesInternal', true);
+            tr.setMeta('addToHistory', false);
+            view.dispatch(tr);
+            // Return false so the default Enter behavior still runs
+            return false;
+          },
+        },
+
+
         appendTransaction(transactions, oldState, newState) {
           // Check for internal/system transactions
           for (const tr of transactions) {
