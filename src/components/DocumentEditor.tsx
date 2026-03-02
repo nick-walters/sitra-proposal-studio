@@ -371,9 +371,11 @@ export function DocumentEditor({
 
   // Note: trackChangesEnabled sync is handled by useRichTextEditor's own effect
 
-  // Backfill "Anonymous" marks with real author name after editor loads
+  // Backfill missing track-change attributes after editor loads
+  // Fixes: authorName for ALL users, authorId & timestamp for current user
+  // Dispatches WITHOUT preventUpdate so corrections are persisted to DB via onUpdate→onChange
   useEffect(() => {
-    if (!editor || !profileFullName || !user?.id) return;
+    if (!editor || !user?.id) return;
     const timer = setTimeout(() => {
       const doc = editor.state.doc;
       const schema = editor.state.schema;
@@ -387,12 +389,40 @@ export function DocumentEditor({
       doc.descendants((node: any, pos: number) => {
         if (!node.isText) return;
         for (const mark of node.marks) {
-          if (
-            (mark.type === insertionType || mark.type === deletionType) &&
-            mark.attrs.authorId === user.id &&
-            (mark.attrs.authorName === 'Anonymous' || !mark.attrs.authorName)
-          ) {
-            const newMark = mark.type.create({ ...mark.attrs, authorName: profileFullName });
+          if (mark.type !== insertionType && mark.type !== deletionType) continue;
+
+          const attrs = { ...mark.attrs };
+          let changed = false;
+
+          // Fix missing authorName for current user
+          if (attrs.authorId === user.id && profileFullName &&
+              (attrs.authorName === 'Anonymous' || !attrs.authorName)) {
+            attrs.authorName = profileFullName;
+            changed = true;
+          }
+
+          // Fix missing authorId for current user (marks from before the fix)
+          if ((!attrs.authorId || attrs.authorId === '') && profileFullName &&
+              (attrs.authorName === 'Anonymous' || !attrs.authorName)) {
+            attrs.authorId = user.id;
+            attrs.authorName = profileFullName;
+            changed = true;
+          }
+
+          // Fix missing timestamp — assign current time as best-effort recovery
+          if (!attrs.timestamp) {
+            attrs.timestamp = new Date().toISOString();
+            changed = true;
+          }
+
+          // Fix missing changeId — generate one so the mark is identifiable
+          if (!attrs.changeId) {
+            attrs.changeId = `change-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+            changed = true;
+          }
+
+          if (changed) {
+            const newMark = mark.type.create(attrs);
             tr.removeMark(pos, pos + node.nodeSize, mark);
             tr.addMark(pos, pos + node.nodeSize, newMark);
             needsUpdate = true;
@@ -401,8 +431,9 @@ export function DocumentEditor({
       });
 
       if (needsUpdate) {
+        // trackChangesInternal: prevents the track changes plugin from treating this as new content
+        // NO preventUpdate: allows onUpdate→onChange to fire so corrected HTML is saved to DB
         tr.setMeta('trackChangesInternal', true);
-        tr.setMeta('preventUpdate', true);
         editor.view.dispatch(tr);
       }
     }, 1000);

@@ -1277,6 +1277,8 @@ export function useRichTextEditor({
       trackChanges?.authorId, trackChanges?.authorName, trackChanges?.authorColor]);
 
   // Scan document for existing track change marks on load
+  // Also triggers a one-time re-save if marks had missing attributes (to flush corrected HTML to DB)
+  const hasReserializedRef = useRef(false);
   useEffect(() => {
     if (!editor || !trackChanges?.onChangesUpdate) return;
     // Wait a tick for content to be fully set
@@ -1288,12 +1290,20 @@ export function useRichTextEditor({
       if (!insertionType && !deletionType) return;
 
       const changes: any[] = [];
+      let hasDeficientMarks = false;
+
       doc.descendants((node: any, pos: number) => {
         if (!node.isText) return;
         for (const mark of node.marks) {
           if (mark.type === insertionType || mark.type === deletionType) {
             const attrs = mark.attrs;
             const markEnd = pos + node.nodeSize;
+
+            // Detect marks that are missing critical attributes (saved before the fix)
+            if (!attrs.changeId || !attrs.timestamp || !attrs.authorId) {
+              hasDeficientMarks = true;
+            }
+
             const existing = changes.find((c: any) => c.id === attrs.changeId);
             if (existing) {
               existing.from = Math.min(existing.from, pos);
@@ -1320,6 +1330,19 @@ export function useRichTextEditor({
         const storage = (editor.storage as any).trackChanges;
         if (storage) storage.changes = changes;
         trackChanges.onChangesUpdate(changes);
+      }
+
+      // One-time re-serialization: if the loaded HTML had marks with missing data-* attrs,
+      // the backfill in DocumentEditor will fix the in-memory marks. After that runs,
+      // we force a re-save so the corrected HTML (with all data-* attributes) is persisted.
+      if (hasDeficientMarks && !hasReserializedRef.current) {
+        hasReserializedRef.current = true;
+        // Delay to allow DocumentEditor's backfill effect to run first (it runs at 1000ms)
+        setTimeout(() => {
+          if (editor && !editor.isDestroyed) {
+            onChange(editor.getHTML());
+          }
+        }, 1500);
       }
     }, 100);
     return () => clearTimeout(timer);
