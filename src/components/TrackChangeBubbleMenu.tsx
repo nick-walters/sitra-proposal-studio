@@ -3,6 +3,7 @@ import { type Editor, useEditorState } from '@tiptap/react';
 import { Check, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
+import { useProposalUserColors } from '@/hooks/useProposalUserColors';
 
 interface MarkInfo {
   changeId: string;
@@ -14,6 +15,7 @@ interface MarkInfo {
 
 interface TrackChangeBubbleMenuProps {
   editor: Editor;
+  proposalId?: string;
 }
 
 // Cache for profile name lookups (authorId -> full_name)
@@ -38,7 +40,8 @@ async function resolveAuthorName(authorId: string, fallback: string): Promise<st
   }
 }
 
-export function TrackChangeBubbleMenu({ editor }: TrackChangeBubbleMenuProps) {
+export function TrackChangeBubbleMenu({ editor, proposalId }: TrackChangeBubbleMenuProps) {
+  const { getUserColor } = useProposalUserColors(proposalId);
   const [hoverInfo, setHoverInfo] = useState<{ mark: MarkInfo; x: number; y: number } | null>(null);
   const hideTimeout = useRef<ReturnType<typeof setTimeout>>();
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -229,8 +232,12 @@ export function TrackChangeBubbleMenu({ editor }: TrackChangeBubbleMenuProps) {
       onMouseEnter={handleTooltipEnter}
       onMouseLeave={handleTooltipLeave}
     >
-      <span className="text-[10px] text-muted-foreground mr-1 whitespace-nowrap">
-        {shownName} · {active.mark.type === 'insertion' ? 'added' : 'deleted'}
+      <span className="text-[10px] text-muted-foreground mr-1 whitespace-nowrap flex items-center gap-1.5">
+        <span
+          className="w-2 h-2 rounded-full inline-block shrink-0"
+          style={{ backgroundColor: getUserColor(active.mark.authorId) }}
+        />
+        {shownName} · {active.mark.type === 'insertion' ? 'inserted' : 'deleted'}
         {active.mark.timestamp && (
           <span className="ml-1 opacity-70">· {active.mark.timestamp}</span>
         )}
