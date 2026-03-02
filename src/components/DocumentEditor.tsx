@@ -1643,11 +1643,38 @@ export function DocumentEditor({
                          trackedChanges.map((change) => (
                           <div
                             key={change.id}
-                            className={`p-2.5 rounded-md text-xs border min-w-0 overflow-hidden ${
+                            role="button"
+                            tabIndex={0}
+                            title="Click to jump to change"
+                            className={`p-2.5 rounded-md text-xs border min-w-0 overflow-hidden cursor-pointer transition-colors hover:ring-1 hover:ring-primary/30 ${
                               change.type === 'insertion'
                                 ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
                                 : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
                             }`}
+                            onClick={(e) => {
+                              if ((e.target as HTMLElement).closest('button')) return;
+                              if (!editor) return;
+                              try {
+                                const pos = Math.min(change.from, editor.state.doc.content.size);
+                                editor.commands.setTextSelection(pos);
+                                editor.commands.focus();
+                                setTimeout(() => {
+                                  try {
+                                    const dom = editor.view.domAtPos(pos);
+                                    if (dom?.node) {
+                                      const el = dom.node instanceof HTMLElement ? dom.node : dom.node.parentElement;
+                                      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    }
+                                  } catch { /* position may be stale */ }
+                                }, 50);
+                              } catch { /* position may be stale */ }
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                (e.currentTarget as HTMLElement).click();
+                              }
+                            }}
                           >
                             <div className="flex items-center justify-between mb-1 min-w-0">
                               <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
