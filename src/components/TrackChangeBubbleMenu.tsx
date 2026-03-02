@@ -78,40 +78,51 @@ export function TrackChangeBubbleMenu({ editor }: TrackChangeBubbleMenuProps) {
     } catch { setCursorCoords(null); }
   }, [cursorMarkInfo, editor]);
 
-  // --- Hover-based detection via mouseover on the editor DOM ---
+  // --- Hover-based detection via pointer hit-testing (robust across nested editor DOM) ---
   useEffect(() => {
-    const editorDom = editor.view.dom;
+    const editorDom = editor.view.dom as HTMLElement;
 
-    const onMouseOver = (e: MouseEvent) => {
-      let node = e.target as Node;
-      if (node.nodeType === Node.TEXT_NODE) node = node.parentElement!;
-      if (!node || !(node as HTMLElement).closest) return;
-      const el = (node as HTMLElement).closest('[data-track-insertion], [data-track-deletion]') as HTMLElement | null;
-      if (!el) return;
+    const updateHoverFromPoint = (clientX: number, clientY: number) => {
+      const pointed = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
+      if (!pointed) return;
+
+      // Keep tooltip visible while moving onto the tooltip itself
+      if (tooltipRef.current?.contains(pointed)) {
+        clearTimeout(hideTimeout.current);
+        return;
+      }
+
+      const el = pointed.closest('[data-track-insertion], [data-track-deletion]') as HTMLElement | null;
+      if (!el || !editorDom.contains(el)) {
+        hideTimeout.current = setTimeout(() => setHoverInfo(null), 120);
+        return;
+      }
 
       clearTimeout(hideTimeout.current);
       const info = extractMarkInfo(el, editor);
       if (!info) return;
 
       const rect = el.getBoundingClientRect();
-      setHoverInfo({ mark: info, x: rect.left + rect.width / 2, y: rect.top });
+      setHoverInfo((prev) => {
+        if (
+          prev &&
+          prev.mark.changeId === info.changeId &&
+          Math.abs(prev.x - (rect.left + rect.width / 2)) < 1 &&
+          Math.abs(prev.y - rect.top) < 1
+        ) {
+          return prev;
+        }
+        return { mark: info, x: rect.left + rect.width / 2, y: rect.top };
+      });
     };
 
-    const onMouseOut = (e: MouseEvent) => {
-      let related = e.relatedTarget as Node | null;
-      if (related && related.nodeType === Node.TEXT_NODE) related = related.parentElement;
-      const relEl = related as HTMLElement | null;
-      if (relEl && tooltipRef.current?.contains(relEl)) return;
-      if (relEl?.closest?.('[data-track-insertion], [data-track-deletion]')) return;
-
-      hideTimeout.current = setTimeout(() => setHoverInfo(null), 200);
+    const onPointerMove = (e: PointerEvent) => {
+      updateHoverFromPoint(e.clientX, e.clientY);
     };
 
-    editorDom.addEventListener('mouseover', onMouseOver);
-    editorDom.addEventListener('mouseout', onMouseOut);
+    document.addEventListener('pointermove', onPointerMove, true);
     return () => {
-      editorDom.removeEventListener('mouseover', onMouseOver);
-      editorDom.removeEventListener('mouseout', onMouseOut);
+      document.removeEventListener('pointermove', onPointerMove, true);
       clearTimeout(hideTimeout.current);
     };
   }, [editor]);
