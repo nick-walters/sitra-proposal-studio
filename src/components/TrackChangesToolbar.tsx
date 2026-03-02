@@ -28,6 +28,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEffect, useState, useCallback } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
+import { useProposalUserColors } from '@/hooks/useProposalUserColors';
 
 function ordinalSuffix(day: number): string {
   if (day >= 11 && day <= 13) return 'th';
@@ -49,14 +50,17 @@ interface TrackChangesToolbarProps {
   enabled: boolean;
   onToggle: (enabled: boolean) => void;
   changes: TrackChange[];
+  proposalId?: string;
 }
 
 export function TrackChangesToolbar({ 
   editor, 
   enabled, 
   onToggle, 
-  changes 
+  changes,
+  proposalId,
 }: TrackChangesToolbarProps) {
+  const { getUserColor } = useProposalUserColors(proposalId);
   const insertions = changes.filter(c => c.type === 'insertion');
   const deletions = changes.filter(c => c.type === 'deletion');
 
@@ -263,19 +267,15 @@ export function TrackChangesToolbar({
                     {changes.map((change) => (
                       <div
                         key={change.id}
-                        className={`p-2 rounded-md text-xs cursor-pointer transition-colors hover:ring-1 hover:ring-primary/30 ${
+                        className={`p-3 rounded-lg text-xs cursor-pointer transition-all border bg-background hover:border-primary hover:shadow-sm ${
                           selectedIds.has(change.id) ? 'ring-1 ring-primary/50' : ''
-                        } ${
-                          change.type === 'insertion'
-                            ? 'bg-green-50 dark:bg-green-900/20'
-                            : 'bg-red-50 dark:bg-red-900/20'
                         }`}
                         onClick={(e) => {
                           if ((e.target as HTMLElement).closest('button')) return;
                           toggleSelection(change.id);
                         }}
                       >
-                        <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-1.5">
                             <Checkbox
                               checked={selectedIds.has(change.id)}
@@ -284,12 +284,27 @@ export function TrackChangesToolbar({
                               onClick={(e) => e.stopPropagation()}
                             />
                             <div 
-                              className="w-2 h-2 rounded-full"
-                              style={{ backgroundColor: change.authorColor }}
+                              className="w-2 h-2 rounded-full shrink-0"
+                              style={{ backgroundColor: getUserColor(change.authorId) }}
                             />
-                            <span className="font-medium">{getDisplayName(change)}</span>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium">{getDisplayName(change)}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {formatPanelDate(new Date(change.timestamp))}
+                              </span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Badge 
+                              variant="outline" 
+                              className={`text-[10px] py-0 ${
+                                change.type === 'insertion' 
+                                  ? 'border-green-300 text-green-700'
+                                  : 'border-red-300 text-red-700'
+                              }`}
+                            >
+                              {change.type === 'insertion' ? 'Inserted' : 'Deleted'}
+                            </Badge>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
@@ -318,22 +333,8 @@ export function TrackChangesToolbar({
                             </Tooltip>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Clock className="w-3 h-3" />
-                          <span>{formatPanelDate(new Date(change.timestamp))}</span>
-                          <Badge 
-                            variant="outline" 
-                            className={`text-[10px] py-0 ${
-                              change.type === 'insertion' 
-                                ? 'border-green-300 text-green-700'
-                                : 'border-red-300 text-red-700'
-                            }`}
-                          >
-                            {change.type === 'insertion' ? 'Added' : 'Deleted'}
-                          </Badge>
-                        </div>
                         {change.content && (
-                          <div className="mt-1 text-muted-foreground italic truncate">
+                          <div className="mt-1.5 text-muted-foreground italic truncate">
                             "{change.content}"
                           </div>
                         )}

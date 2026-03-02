@@ -73,6 +73,7 @@ import { TrackChange } from "@/extensions/TrackChanges";
 import { EditorZoomBar } from "./EditorZoomBar";
 import { useAuth } from "@/hooks/useAuth";
 import { useProposalRole } from "@/hooks/useProposalRole";
+import { useProposalUserColors } from "@/hooks/useProposalUserColors";
 import {
   Tooltip,
   TooltipContent,
@@ -235,8 +236,10 @@ export function DocumentEditor({
   });
 
 
+  // Proposal-scoped stable user colors
+  const { getUserColor: getProposalUserColor } = useProposalUserColors(proposalId);
   // Get user color for track changes
-  const userColor = user ? getColorForUser(user.id) : '#3B82F6';
+  const userColor = user ? getProposalUserColor(user.id) : '#3B82F6';
   // Use the section content hook for database persistence and real-time updates
   // IMPORTANT: Always call hooks with the same parameters to avoid "rendered more hooks" error
   const sectionContentHook = useSectionContent({
@@ -1630,6 +1633,7 @@ export function DocumentEditor({
                       enabled={trackChangesEnabled}
                       onToggle={handleSetTrackChangesEnabled}
                       changes={trackedChanges}
+                      proposalId={proposalId}
                     />
                   </div>
                   {/* Inline changes list */}
@@ -1646,11 +1650,7 @@ export function DocumentEditor({
                             role="button"
                             tabIndex={0}
                             title="Click to jump to change"
-                            className={`p-2.5 rounded-md text-xs border min-w-0 overflow-hidden cursor-pointer transition-colors hover:ring-1 hover:ring-primary/30 ${
-                              change.type === 'insertion'
-                                ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-                                : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
-                            }`}
+                            className="p-3 rounded-lg text-xs border min-w-0 overflow-hidden cursor-pointer transition-all bg-background hover:border-primary hover:shadow-sm"
                             onClick={(e) => {
                               if ((e.target as HTMLElement).closest('button')) return;
                               if (!editor) return;
@@ -1676,13 +1676,20 @@ export function DocumentEditor({
                               }
                             }}
                           >
-                            <div className="flex items-center justify-between mb-1 min-w-0">
-                              <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
                                 <div
                                   className="w-2 h-2 rounded-full shrink-0"
-                                  style={{ backgroundColor: change.authorColor }}
+                                  style={{ backgroundColor: getProposalUserColor(change.authorId) }}
                                 />
-                                <span className="font-medium truncate max-w-[120px]">{getChangeDisplayName(change)}</span>
+                                <div className="flex flex-col min-w-0">
+                                  <span className="text-sm font-medium truncate">{getChangeDisplayName(change)}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {(() => { const d = new Date(change.timestamp); const day = d.getDate(); const suffix = (day >= 11 && day <= 13) ? 'th' : [,'st','nd','rd'][day % 10] || 'th'; return `${day}${suffix} ${format(d, 'MMMM yyyy')} at ${format(d, 'HH:mm')}`; })()}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
                                 <Badge
                                   variant="outline"
                                   className={`text-[10px] py-0 shrink-0 ${
@@ -1691,10 +1698,8 @@ export function DocumentEditor({
                                       : 'border-red-300 text-red-700 dark:border-red-600 dark:text-red-400'
                                   }`}
                                 >
-                                  {change.type === 'insertion' ? 'Added' : 'Deleted'}
+                                  {change.type === 'insertion' ? 'Inserted' : 'Deleted'}
                                 </Badge>
-                              </div>
-                              <div className="flex items-center gap-0.5 shrink-0">
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -1716,13 +1721,10 @@ export function DocumentEditor({
                               </div>
                             </div>
                             {change.content && (
-                              <div className="mt-1 text-muted-foreground italic truncate">
+                              <div className="mt-1.5 text-muted-foreground italic truncate">
                                 "{change.content}"
                               </div>
                             )}
-                            <div className="mt-1 text-muted-foreground flex items-center gap-1">
-                              <span>{(() => { const d = new Date(change.timestamp); const day = d.getDate(); const suffix = (day >= 11 && day <= 13) ? 'th' : [,'st','nd','rd'][day % 10] || 'th'; return `${day}${suffix} ${format(d, 'MMMM yyyy')} at ${format(d, 'HH:mm')}`; })()}</span>
-                            </div>
                           </div>
                         ))
                       )}

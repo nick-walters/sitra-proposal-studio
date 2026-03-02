@@ -150,7 +150,17 @@ export function TrackChangeTooltip({ editor, containerRef }: TrackChangeTooltipP
       onMouseEnter={handleTooltipEnter}
       onMouseLeave={handleTooltipLeave}
     >
-      <span className="text-[10px] text-muted-foreground mr-1 whitespace-nowrap">
+      <span className="text-[10px] text-muted-foreground mr-1 whitespace-nowrap flex items-center gap-1">
+        <span
+          className="w-2 h-2 rounded-full inline-block shrink-0"
+          style={{ backgroundColor: (() => {
+            // Read author color from the DOM element's data attribute
+            const container = containerRef.current;
+            if (!container) return '#3B82F6';
+            const el = container.querySelector(`[data-change-id="${tooltip.changeId}"]`) as HTMLElement | null;
+            return el?.getAttribute('data-author-color') || '#3B82F6';
+          })() }}
+        />
         {tooltip.authorName} · {tooltip.type === 'insertion' ? 'inserted' : 'deleted'}
         {tooltip.timestamp && <span className="ml-1 opacity-70">· {tooltip.timestamp}</span>}
       </span>

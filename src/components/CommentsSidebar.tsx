@@ -30,6 +30,7 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useProposalUserColors } from '@/hooks/useProposalUserColors';
 
 interface CommentsSidebarProps {
   proposalId: string;
@@ -61,6 +62,7 @@ function CommentCard({
   onDelete,
   onDeleteReply,
   onClickComment,
+  getUserColor,
 }: {
   comment: Comment;
   currentUserId?: string;
@@ -71,6 +73,7 @@ function CommentCard({
   onDelete: (commentId: string) => void;
   onDeleteReply: (replyId: string) => void;
   onClickComment?: (comment: Comment) => void;
+  getUserColor: (userId: string) => string;
 }) {
   const [showReplies, setShowReplies] = useState(true);
   const isOwn = comment.user_id === currentUserId;
@@ -114,12 +117,16 @@ function CommentCard({
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Avatar className="h-6 w-6">
-            <AvatarFallback className="text-xs bg-primary/10">
-              {getInitials(comment.user_name || 'U')}
-            </AvatarFallback>
-          </Avatar>
+          <div className="flex items-center gap-2">
+            <div
+              className="w-2 h-2 rounded-full shrink-0"
+              style={{ backgroundColor: getUserColor(comment.user_id) }}
+            />
+            <Avatar className="h-6 w-6">
+              <AvatarFallback className="text-xs bg-primary/10">
+                {getInitials(comment.user_name || 'U')}
+              </AvatarFallback>
+            </Avatar>
           <div className="flex flex-col">
             <span className="text-sm font-medium">{comment.user_name}</span>
             <span className="text-xs text-muted-foreground">
@@ -258,6 +265,7 @@ export function CommentsSidebar({
 }: CommentsSidebarProps) {
   const { user } = useAuth();
   const { roleTier } = useProposalRole(proposalId);
+  const { getUserColor } = useProposalUserColors(proposalId);
   const {
     comments,
     loading,
@@ -442,6 +450,7 @@ export function CommentsSidebar({
                       onDelete={(id) => { deleteComment(id); onFocusEditor?.(); }}
                       onDeleteReply={(id) => { deleteComment(id); onFocusEditor?.(); }}
                       onClickComment={onCommentClick}
+                      getUserColor={getUserColor}
                     />
                     {/* Reply input */}
                     {replyingTo === comment.id && (
