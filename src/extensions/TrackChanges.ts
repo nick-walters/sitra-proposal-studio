@@ -1,4 +1,4 @@
-import { Extension, Mark } from '@tiptap/core';
+import { Extension, Mark, mergeAttributes } from '@tiptap/core';
 import { Plugin, PluginKey, TextSelection } from 'prosemirror-state';
 import { Mark as PMMark, Fragment } from 'prosemirror-model';
 
@@ -127,17 +127,14 @@ const TrackInsertionMark = Mark.create({
   },
 
   renderHTML({ HTMLAttributes }) {
+    const authorColor = HTMLAttributes['data-author-color'] || '#3B82F6';
+
     return [
       'span',
-      {
+      mergeAttributes(HTMLAttributes, {
         'data-track-insertion': '',
-        'data-change-id': HTMLAttributes.changeId,
-        'data-author-id': HTMLAttributes.authorId,
-        'data-author-name': HTMLAttributes.authorName,
-        'data-author-color': HTMLAttributes.authorColor,
-        'data-timestamp': HTMLAttributes.timestamp,
-        style: `background-color: rgba(34, 197, 94, 0.3); border-bottom: 2px solid ${HTMLAttributes.authorColor};`,
-      },
+        style: `background-color: rgba(34, 197, 94, 0.3); border-bottom: 2px solid ${authorColor};`,
+      }),
       0,
     ];
   },
@@ -155,17 +152,14 @@ const TrackDeletionMark = Mark.create({
   },
 
   renderHTML({ HTMLAttributes }) {
+    const authorColor = HTMLAttributes['data-author-color'] || '#3B82F6';
+
     return [
       'span',
-      {
+      mergeAttributes(HTMLAttributes, {
         'data-track-deletion': '',
-        'data-change-id': HTMLAttributes.changeId,
-        'data-author-id': HTMLAttributes.authorId,
-        'data-author-name': HTMLAttributes.authorName,
-        'data-author-color': HTMLAttributes.authorColor,
-        'data-timestamp': HTMLAttributes.timestamp,
-        style: `background-color: rgba(239, 68, 68, 0.2); text-decoration: line-through; text-decoration-color: ${HTMLAttributes.authorColor}; color: #9ca3af;`,
-      },
+        style: `background-color: rgba(239, 68, 68, 0.2); text-decoration: line-through; text-decoration-color: ${authorColor}; color: #9ca3af;`,
+      }),
       0,
     ];
   },
