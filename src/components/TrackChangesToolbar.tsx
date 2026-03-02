@@ -27,6 +27,23 @@ import {
 import { TrackChange } from '@/extensions/TrackChanges';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+
+function ordinalSuffix(day: number): string {
+  if (day >= 11 && day <= 13) return 'th';
+  switch (day % 10) {
+    case 1: return 'st';
+    case 2: return 'nd';
+    case 3: return 'rd';
+    default: return 'th';
+  }
+}
+
+function formatPanelDate(date: Date): string {
+  const day = date.getDate();
+  return `${day}${ordinalSuffix(day)} ${format(date, 'MMMM yyyy')} at ${format(date, 'HH:mm')}`;
+}
 
 interface TrackChangesToolbarProps {
   editor: Editor | null;
@@ -51,6 +68,26 @@ export function TrackChangesToolbar({
   const handleRejectChange = (changeId: string) => {
     editor?.commands.rejectChange(changeId);
   };
+
+  // Resolve author display names from profiles
+  const [authorNames, setAuthorNames] = useState<Record<string, string>>({});
+  useEffect(() => {
+    const uniqueIds = [...new Set(changes.map(c => c.authorId).filter(Boolean))];
+    if (uniqueIds.length === 0) return;
+    const missing = uniqueIds.filter(id => !authorNames[id]);
+    if (missing.length === 0) return;
+    supabase.from('profiles').select('id, full_name').in('id', missing).then(({ data }) => {
+      if (!data) return;
+      setAuthorNames(prev => {
+        const next = { ...prev };
+        data.forEach(p => { if (p.full_name) next[p.id] = p.full_name; });
+        return next;
+      });
+    });
+  }, [changes]);
+
+  const getDisplayName = (change: TrackChange) =>
+    authorNames[change.authorId] || change.authorName;
 
   const handleAcceptAll = () => {
     editor?.commands.acceptAllChanges();
@@ -183,7 +220,7 @@ export function TrackChangesToolbar({
                               className="w-2 h-2 rounded-full"
                               style={{ backgroundColor: change.authorColor }}
                             />
-                            <span className="font-medium">{change.authorName}</span>
+                            <span className="font-medium">{getDisplayName(change)}</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <Tooltip>
@@ -216,7 +253,7 @@ export function TrackChangesToolbar({
                         </div>
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <Clock className="w-3 h-3" />
-                          <span>{format(new Date(change.timestamp), 'MMM d, h:mm a')}</span>
+                          <span>{formatPanelDate(new Date(change.timestamp))}</span>
                           <Badge 
                             variant="outline" 
                             className={`text-[10px] py-0 ${

@@ -60,7 +60,10 @@ export function TrackChangeBubbleMenu({ editor }: TrackChangeBubbleMenuProps) {
         mark.type.name === 'trackInsertion' ? 'insertion' : 'deletion';
       let timestamp: string | null = null;
       if (mark.attrs.timestamp) {
-        try { timestamp = format(new Date(mark.attrs.timestamp), 'MMM d, h:mm a'); } catch { /* skip */ }
+        try {
+          const d = new Date(mark.attrs.timestamp);
+          timestamp = format(d, 'dd.MM.yyyy, HH:mm');
+        } catch { /* skip */ }
       }
       return {
         changeId: mark.attrs.changeId as string,
@@ -106,7 +109,10 @@ export function TrackChangeBubbleMenu({ editor }: TrackChangeBubbleMenuProps) {
         trackMark.type.name === 'trackInsertion' ? 'insertion' : 'deletion';
       let timestamp: string | null = null;
       if (trackMark.attrs.timestamp) {
-        try { timestamp = format(new Date(trackMark.attrs.timestamp), 'MMM d, h:mm a'); } catch { /* skip */ }
+        try {
+          const d = new Date(trackMark.attrs.timestamp);
+          timestamp = format(d, 'dd.MM.yyyy, HH:mm');
+        } catch { /* skip */ }
       }
 
       const markInfo: MarkInfo = {
