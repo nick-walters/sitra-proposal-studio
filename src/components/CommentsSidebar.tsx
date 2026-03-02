@@ -26,7 +26,7 @@ import {
   AtSign,
   RotateCcw,
 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+
 import { smartTimestamp } from '@/lib/smartTimestamp';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -229,7 +229,7 @@ function CommentCard({
                     </Avatar>
                     <span className="text-xs font-medium">{reply.user_name}</span>
                     <span className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(reply.created_at), { addSuffix: true })}
+                      {smartTimestamp(new Date(reply.created_at))}
                     </span>
                     {(reply.user_id === currentUserId || isCoordinator) && (
                       <Button

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { type Editor, useEditorState } from '@tiptap/react';
 import { Check, X } from 'lucide-react';
-import { format } from 'date-fns';
+import { smartTimestamp } from '@/lib/smartTimestamp';
 import { supabase } from '@/integrations/supabase/client';
 import { useProposalUserColors } from '@/hooks/useProposalUserColors';
 
@@ -64,8 +64,7 @@ export function TrackChangeBubbleMenu({ editor, proposalId }: TrackChangeBubbleM
       let timestamp: string | null = null;
       if (mark.attrs.timestamp) {
         try {
-          const d = new Date(mark.attrs.timestamp);
-          timestamp = format(d, 'dd.MM.yyyy, HH:mm');
+          timestamp = smartTimestamp(new Date(mark.attrs.timestamp));
         } catch { /* skip */ }
       }
       return {
@@ -113,8 +112,7 @@ export function TrackChangeBubbleMenu({ editor, proposalId }: TrackChangeBubbleM
       let timestamp: string | null = null;
       if (trackMark.attrs.timestamp) {
         try {
-          const d = new Date(trackMark.attrs.timestamp);
-          timestamp = format(d, 'dd.MM.yyyy, HH:mm');
+          timestamp = smartTimestamp(new Date(trackMark.attrs.timestamp));
         } catch { /* skip */ }
       }
 

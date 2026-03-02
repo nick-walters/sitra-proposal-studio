@@ -496,6 +496,32 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
       new Plugin({
         key: trackChangesPluginKey,
 
+        // filterTransaction runs BEFORE the state is updated — catches ALL input paths
+        filterTransaction(tr) {
+          if (extension.storage.enabled) return true;
+          if (tr.getMeta('trackChangesInternal')) return true;
+
+          const schema = tr.doc.type.schema;
+          const insertionType = schema.marks.trackInsertion;
+          const deletionType = schema.marks.trackDeletion;
+          if (!insertionType && !deletionType) return true;
+
+          // Strip track marks from storedMarks on ANY transaction when tracking is OFF
+          const stored = tr.storedMarks;
+          if (stored) {
+            const hasTrack = stored.some(
+              (m) => m.type === insertionType || m.type === deletionType
+            );
+            if (hasTrack) {
+              const clean = stored.filter(
+                (m) => m.type !== insertionType && m.type !== deletionType
+              );
+              tr.setStoredMarks(clean.length > 0 ? clean : null);
+            }
+          }
+          return true; // always allow the transaction through
+        },
+
         props: {
           // Proactive interception: strip track marks BEFORE ProseMirror inserts text
           handleTextInput(view, from, to, text) {
@@ -555,7 +581,6 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
             return false;
           },
         },
-
 
         appendTransaction(transactions, oldState, newState) {
           // Check for internal/system transactions
@@ -618,6 +643,18 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                 cleanTr.setStoredMarks(withoutTrack.length > 0 ? withoutTrack : null);
                 cleaned = true;
               }
+            }
+
+            // Issue 3 fix: Always reconcile the review panel when content changes with tracking OFF
+            if (hasUserChange || cleaned) {
+              setTimeout(() => {
+                const changes = collectChangesFromDoc(
+                  extension.editor.state.doc,
+                  extension.editor.state.schema
+                );
+                extension.storage.changes = changes;
+                extension.options.onChangesUpdate?.(changes);
+              }, 10);
             }
 
             return cleaned ? cleanTr : null;
@@ -736,18 +773,44 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                   const deletedText = oldState.doc.textBetween(oldStart, oldEnd, ' ');
 
                   if (deletedText.trim()) {
-                    // Check per-node: only re-insert nodes not tracked as own insertion
-                    let hasUntrackedContent = false;
-                    oldState.doc.nodesBetween(oldStart, oldEnd, (node) => {
-                      if (node.isText) {
-                        const isOwnInsertion = node.marks.some(
-                          (m: PMMark) => m.type === insertionType && m.attrs.authorId === authorId
+                    // Categorize each text node
+                    const nodesToReinsert: any[] = [];
+                    const nodesToReject: any[] = []; // already-deleted text → treat as reject (restore)
+
+                    oldState.doc.nodesBetween(oldStart, oldEnd, (node, nodePos) => {
+                      if (!node.isText) return;
+
+                      const isOwnInsertion = node.marks.some(
+                        (m: PMMark) => m.type === insertionType && m.attrs.authorId === authorId
+                      );
+                      // Own insertions are silently removed (not re-inserted)
+                      if (isOwnInsertion) return;
+
+                      const existingDeletion = node.marks.find(
+                        (m: PMMark) => m.type === deletionType
+                      );
+
+                      if (existingDeletion) {
+                        // Already has a deletion mark → treat as REJECT (restore as normal text)
+                        // Remove the deletion mark, keep all other formatting marks
+                        const cleanMarks = node.marks.filter(
+                          (m: PMMark) => m.type !== deletionType && m.type !== insertionType
                         );
-                        if (!isOwnInsertion) hasUntrackedContent = true;
+                        nodesToReject.push(node.mark(cleanMarks));
+                      } else {
+                        // Normal text → mark as deleted
+                        nodesToReinsert.push(node);
                       }
                     });
 
-                    if (hasUntrackedContent) {
+                    // Re-insert rejected nodes (restored text without deletion mark)
+                    if (nodesToReject.length > 0) {
+                      newTr.insert(newStart, Fragment.from(nodesToReject));
+                      modified = true;
+                    }
+
+                    // Re-insert normal text with new deletion mark
+                    if (nodesToReinsert.length > 0) {
                       const changeId = generateChangeId();
                       const deletionMark = deletionType.create({
                         changeId,
@@ -757,26 +820,16 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                         timestamp: new Date().toISOString(),
                       });
 
-                      const filteredNodes: any[] = [];
-                      deletedSlice.content.forEach((node: any) => {
-                        if (node.isText) {
-                          const isOwnInsertion = node.marks.some(
-                            (m: PMMark) => m.type === insertionType && m.attrs.authorId === authorId
-                          );
-                          if (!isOwnInsertion) {
-                            const cleanMarks = node.marks.filter((m: PMMark) => m.type !== insertionType);
-                            const newMarks = deletionMark.addToSet(cleanMarks);
-                            filteredNodes.push(node.mark(newMarks));
-                          }
-                        } else {
-                          filteredNodes.push(node);
-                        }
+                      const markedNodes = nodesToReinsert.map((node: any) => {
+                        const cleanMarks = node.marks.filter((m: PMMark) => m.type !== insertionType);
+                        const newMarks = deletionMark.addToSet(cleanMarks);
+                        return node.mark(newMarks);
                       });
 
-                      if (filteredNodes.length > 0) {
-                        newTr.insert(newStart, Fragment.from(filteredNodes));
-                        modified = true;
-                      }
+                      // Insert after any rejected nodes
+                      const insertPos = newStart + nodesToReject.reduce((sum: number, n: any) => sum + n.nodeSize, 0);
+                      newTr.insert(insertPos, Fragment.from(markedNodes));
+                      modified = true;
                     }
                   }
                 }
