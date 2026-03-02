@@ -522,7 +522,30 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
         props: {
           // Proactive interception: strip track marks BEFORE ProseMirror inserts text
           handleTextInput(view, from, to, text) {
-            if (extension.storage.enabled) return false;
+            // === TRACKING ON: strip deletion marks from typed text ===
+            if (extension.storage.enabled) {
+              const { state } = view;
+              const insertionType = state.schema.marks.trackInsertion;
+              const deletionType = state.schema.marks.trackDeletion;
+              if (!deletionType) return false;
+
+              const currentMarks = state.storedMarks || state.selection.$from.marks();
+              const hasDeletionMark = currentMarks.some((m) => m.type === deletionType);
+              if (!hasDeletionMark) return false;
+
+              // Strip deletion marks, keep everything else
+              const clean = currentMarks.filter((m) => m.type !== deletionType);
+              const tr = state.tr.insertText(text, from, to);
+              const insertEnd = from + text.length;
+              if (deletionType) tr.removeMark(from, insertEnd, deletionType);
+              tr.setStoredMarks(clean);
+              tr.setMeta('addToHistory', true);
+              // Don't set trackChangesInternal so appendTransaction can add insertion mark
+              view.dispatch(tr);
+              return true;
+            }
+
+            // === TRACKING OFF: strip all track marks ===
 
             const { state } = view;
             const insertionType = state.schema.marks.trackInsertion;
@@ -1021,6 +1044,8 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                         timestamp: new Date().toISOString(),
                       });
 
+                      // Strip inherited deletion marks from newly typed text
+                      if (deletionType) newTr.removeMark(newStart, newEnd, deletionType);
                       newTr.addMark(newStart, newEnd, mark);
                       modified = true;
                     }
