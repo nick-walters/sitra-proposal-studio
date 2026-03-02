@@ -237,7 +237,7 @@ export function DocumentEditor({
 
 
   // Proposal-scoped stable user colors
-  const { getUserColor: getProposalUserColor } = useProposalUserColors(proposalId);
+  const { getUserColor: getProposalUserColor, getUserAvatar, getUserName } = useProposalUserColors(proposalId);
   // Get user color for track changes
   const userColor = user ? getProposalUserColor(user.id) : '#3B82F6';
   // Use the section content hook for database persistence and real-time updates
@@ -1380,7 +1380,7 @@ export function DocumentEditor({
                     style={{ fontFamily: '"Times New Roman", Times, serif' }}
                   />
                   {/* Track change bubble menu */}
-                  {editor && <TrackChangeBubbleMenu editor={editor} />}
+                  {editor && <TrackChangeBubbleMenu editor={editor} proposalId={proposalId} />}
                   {/* Block lock indicators */}
                   <BlockLockIndicator
                     editor={editor}
@@ -1677,11 +1677,19 @@ export function DocumentEditor({
                             }}
                           >
                             <div className="flex items-start justify-between gap-2">
-                              <div className="flex items-center gap-2 min-w-0">
+                              <div className="flex items-center gap-1.5 min-w-0">
                                 <div
                                   className="w-2 h-2 rounded-full shrink-0"
                                   style={{ backgroundColor: getProposalUserColor(change.authorId) }}
                                 />
+                                <Avatar className="h-6 w-6 shrink-0">
+                                  {getUserAvatar(change.authorId) && (
+                                    <AvatarImage src={getUserAvatar(change.authorId)!} />
+                                  )}
+                                  <AvatarFallback className="text-[10px] bg-primary/10">
+                                    {(getChangeDisplayName(change) || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                                  </AvatarFallback>
+                                </Avatar>
                                 <div className="flex flex-col min-w-0">
                                   <span className="text-sm font-medium truncate">{getChangeDisplayName(change)}</span>
                                   <span className="text-xs text-muted-foreground">
@@ -1689,10 +1697,10 @@ export function DocumentEditor({
                                   </span>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-1 shrink-0">
+                              <div className="flex items-center gap-0.5 shrink-0">
                                 <Badge
                                   variant="outline"
-                                  className={`text-[10px] py-0 shrink-0 ${
+                                  className={`text-[9px] py-0 px-1 shrink-0 ${
                                     change.type === 'insertion'
                                       ? 'border-green-300 text-green-700 dark:border-green-600 dark:text-green-400'
                                       : 'border-red-300 text-red-700 dark:border-red-600 dark:text-red-400'
@@ -1703,20 +1711,20 @@ export function DocumentEditor({
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-6 w-6 p-0 text-green-600 hover:text-green-700 hover:bg-green-100 dark:hover:bg-green-900/40"
+                                  className="h-5 w-5 p-0 text-green-600 hover:text-green-700 hover:bg-green-100 dark:hover:bg-green-900/40"
                                   onClick={() => editor?.commands.acceptChange(change.id)}
                                   title="Accept"
                                 >
-                                  <Check className="w-3.5 h-3.5" />
+                                  <Check className="w-3 h-3" />
                                 </Button>
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/40"
+                                  className="h-5 w-5 p-0 text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/40"
                                   onClick={() => editor?.commands.rejectChange(change.id)}
                                   title="Reject"
                                 >
-                                  <X className="w-3.5 h-3.5" />
+                                  <X className="w-3 h-3" />
                                 </Button>
                               </div>
                             </div>

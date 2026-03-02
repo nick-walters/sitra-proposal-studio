@@ -25,7 +25,6 @@ import {
   Send,
   AtSign,
   RotateCcw,
-  Link2,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -63,6 +62,7 @@ function CommentCard({
   onDeleteReply,
   onClickComment,
   getUserColor,
+  getUserAvatar,
 }: {
   comment: Comment;
   currentUserId?: string;
@@ -74,6 +74,7 @@ function CommentCard({
   onDeleteReply: (replyId: string) => void;
   onClickComment?: (comment: Comment) => void;
   getUserColor: (userId: string) => string;
+  getUserAvatar: (userId: string) => string | null;
 }) {
   const [showReplies, setShowReplies] = useState(true);
   const isOwn = comment.user_id === currentUserId;
@@ -123,6 +124,9 @@ function CommentCard({
               style={{ backgroundColor: getUserColor(comment.user_id) }}
             />
             <Avatar className="h-6 w-6">
+              {getUserAvatar(comment.user_id) && (
+                <AvatarImage src={getUserAvatar(comment.user_id)!} />
+              )}
               <AvatarFallback className="text-xs bg-primary/10">
                 {getInitials(comment.user_name || 'U')}
               </AvatarFallback>
@@ -135,9 +139,6 @@ function CommentCard({
           </div>
         </div>
         <div className="flex items-center gap-1">
-          {hasAnchor && (
-            <Link2 className="w-3 h-3 text-primary/60" />
-          )}
           {isResolved && (
             <Badge variant="secondary" className="text-xs">
               Resolved
@@ -265,7 +266,7 @@ export function CommentsSidebar({
 }: CommentsSidebarProps) {
   const { user } = useAuth();
   const { roleTier } = useProposalRole(proposalId);
-  const { getUserColor } = useProposalUserColors(proposalId);
+  const { getUserColor, getUserAvatar } = useProposalUserColors(proposalId);
   const {
     comments,
     loading,
@@ -451,6 +452,7 @@ export function CommentsSidebar({
                       onDeleteReply={(id) => { deleteComment(id); onFocusEditor?.(); }}
                       onClickComment={onCommentClick}
                       getUserColor={getUserColor}
+                      getUserAvatar={getUserAvatar}
                     />
                     {/* Reply input */}
                     {replyingTo === comment.id && (

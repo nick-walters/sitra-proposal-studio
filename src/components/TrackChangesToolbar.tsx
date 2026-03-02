@@ -19,14 +19,13 @@ import {
   X, 
   CheckCheck, 
   XCircle,
-  Clock,
-  User,
 } from 'lucide-react';
 import { TrackChange } from '@/extensions/TrackChanges';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEffect, useState, useCallback } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
 import { useProposalUserColors } from '@/hooks/useProposalUserColors';
 
@@ -60,7 +59,7 @@ export function TrackChangesToolbar({
   changes,
   proposalId,
 }: TrackChangesToolbarProps) {
-  const { getUserColor } = useProposalUserColors(proposalId);
+  const { getUserColor, getUserAvatar } = useProposalUserColors(proposalId);
   const insertions = changes.filter(c => c.type === 'insertion');
   const deletions = changes.filter(c => c.type === 'deletion');
 
@@ -159,9 +158,11 @@ export function TrackChangesToolbar({
         </Label>
       </div>
 
-      {enabled && (
+      {/* empty block kept for enabled-only features in future */}
+
+      {/* Change counts and panel - visible regardless of tracking state */}
+      {changes.length > 0 && (
         <>
-          {/* Change counts */}
           <div className="flex items-center gap-1.5">
             {insertions.length > 0 && (
               <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
@@ -174,10 +175,6 @@ export function TrackChangesToolbar({
               </Badge>
             )}
           </div>
-
-          {/* Changes panel and navigation */}
-          {changes.length > 0 && (
-            <>
 
               <Popover>
                 <PopoverTrigger asChild>
@@ -287,6 +284,14 @@ export function TrackChangesToolbar({
                               className="w-2 h-2 rounded-full shrink-0"
                               style={{ backgroundColor: getUserColor(change.authorId) }}
                             />
+                            <Avatar className="h-5 w-5 shrink-0">
+                              {getUserAvatar(change.authorId) && (
+                                <AvatarImage src={getUserAvatar(change.authorId)!} />
+                              )}
+                              <AvatarFallback className="text-[9px] bg-primary/10">
+                                {(getDisplayName(change) || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                              </AvatarFallback>
+                            </Avatar>
                             <div className="flex flex-col">
                               <span className="text-sm font-medium">{getDisplayName(change)}</span>
                               <span className="text-xs text-muted-foreground">
@@ -294,10 +299,10 @@ export function TrackChangesToolbar({
                               </span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-1 shrink-0">
+                          <div className="flex items-center gap-0.5 shrink-0">
                             <Badge 
                               variant="outline" 
-                              className={`text-[10px] py-0 ${
+                              className={`text-[9px] py-0 px-1 ${
                                 change.type === 'insertion' 
                                   ? 'border-green-300 text-green-700'
                                   : 'border-red-300 text-red-700'
@@ -344,8 +349,6 @@ export function TrackChangesToolbar({
                 </ScrollArea>
                 </PopoverContent>
               </Popover>
-            </>
-          )}
         </>
       )}
     </div>

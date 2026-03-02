@@ -201,6 +201,28 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           // Reset merge window so new changes don't merge with pre-toggle changes
           this.storage.lastInsertionId = null;
           this.storage.lastInsertionTime = 0;
+
+          // When toggling OFF, clear any stored marks that are track marks
+          // to prevent strikethrough/insertion styling from persisting on new text
+          if (!this.storage.enabled) {
+            const { state } = editor;
+            const { storedMarks } = state;
+            const insertionType = state.schema.marks.trackInsertion;
+            const deletionType = state.schema.marks.trackDeletion;
+            if (storedMarks && (insertionType || deletionType)) {
+              const cleaned = storedMarks.filter(
+                (m) => m.type !== insertionType && m.type !== deletionType
+              );
+              if (cleaned.length !== storedMarks.length) {
+                const tr = state.tr.setStoredMarks(cleaned.length > 0 ? cleaned : null);
+                tr.setMeta('trackChangesInternal', true);
+                tr.setMeta('addToHistory', false);
+                editor.view.dispatch(tr);
+                return true;
+              }
+            }
+          }
+
           editor.view.dispatch(editor.state.tr);
           return true;
         },
@@ -519,6 +541,19 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                 });
               });
             }
+
+            // Also clear stored marks to prevent future typing from inheriting track styles
+            const stored = newState.storedMarks || newState.selection.$from.marks();
+            if (stored.length > 0) {
+              const withoutTrack = stored.filter(
+                (m) => m.type !== insertionType && m.type !== deletionType
+              );
+              if (withoutTrack.length !== stored.length) {
+                cleanTr.setStoredMarks(withoutTrack.length > 0 ? withoutTrack : null);
+                cleaned = true;
+              }
+            }
+
             return cleaned ? cleanTr : null;
           }
 
