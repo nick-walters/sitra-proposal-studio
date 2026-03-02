@@ -169,7 +169,7 @@ export function TrackChangesToolbar({
                     {changes.length} {changes.length === 1 ? 'Change' : 'Changes'}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-80 p-0" align="end">
+                <PopoverContent className="w-80 p-0" align="end" onOpenAutoFocus={e => e.preventDefault()}>
                 <div className="p-3 border-b">
                   <div className="flex items-center justify-between">
                     <h4 className="font-semibold text-sm">Tracked Changes</h4>
@@ -213,18 +213,24 @@ export function TrackChangesToolbar({
                             ? 'bg-green-50 dark:bg-green-900/20'
                             : 'bg-red-50 dark:bg-red-900/20'
                         }`}
-                        onClick={() => {
+                        onClick={(e) => {
+                          // Don't jump if clicking accept/reject buttons
+                          if ((e.target as HTMLElement).closest('button')) return;
                           if (!editor) return;
                           try {
-                            editor.commands.focus();
                             const pos = Math.min(change.from, editor.state.doc.content.size);
                             editor.commands.setTextSelection(pos);
+                            editor.commands.focus();
                             // Scroll the mark into view
-                            const dom = editor.view.domAtPos(pos);
-                            if (dom?.node) {
-                              const el = dom.node instanceof HTMLElement ? dom.node : dom.node.parentElement;
-                              el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            }
+                            setTimeout(() => {
+                              try {
+                                const dom = editor.view.domAtPos(pos);
+                                if (dom?.node) {
+                                  const el = dom.node instanceof HTMLElement ? dom.node : dom.node.parentElement;
+                                  el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                }
+                              } catch { /* position may be stale */ }
+                            }, 50);
                           } catch { /* position may be stale */ }
                         }}
                       >
