@@ -27,6 +27,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { smartTimestamp } from '@/lib/smartTimestamp';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useProposalUserColors } from '@/hooks/useProposalUserColors';
@@ -134,7 +135,7 @@ function CommentCard({
           <div className="flex flex-col">
             <span className="text-sm font-medium">{comment.user_name}</span>
             <span className="text-xs text-muted-foreground">
-              {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+              {smartTimestamp(new Date(comment.created_at))}
             </span>
           </div>
         </div>

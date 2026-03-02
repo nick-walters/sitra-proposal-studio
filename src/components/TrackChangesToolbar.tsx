@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { TrackChange } from '@/extensions/TrackChanges';
 import { format } from 'date-fns';
+import { smartTimestamp } from '@/lib/smartTimestamp';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEffect, useState, useCallback } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -271,9 +272,8 @@ export function TrackChangesToolbar({
                           if ((e.target as HTMLElement).closest('button')) return;
                           toggleSelection(change.id);
                         }}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-1.5">
+                       >
+                        <div className="flex items-center gap-1.5 min-w-0">
                             <Checkbox
                               checked={selectedIds.has(change.id)}
                               onCheckedChange={() => toggleSelection(change.id)}
@@ -292,51 +292,48 @@ export function TrackChangesToolbar({
                                 {(getDisplayName(change) || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                               </AvatarFallback>
                             </Avatar>
-                            <div className="flex flex-col">
-                              <span className="text-sm font-medium">{getDisplayName(change)}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {formatPanelDate(new Date(change.timestamp))}
-                              </span>
+                            <span className="text-sm font-medium truncate">{getDisplayName(change)}</span>
+                            <div className="flex items-center gap-0.5 shrink-0 ml-auto">
+                              <Badge 
+                                variant="outline" 
+                                className={`text-[9px] py-0 px-1 ${
+                                  change.type === 'insertion' 
+                                    ? 'border-green-300 text-green-700'
+                                    : 'border-red-300 text-red-700'
+                                }`}
+                              >
+                                {change.type === 'insertion' ? 'Inserted' : 'Deleted'}
+                              </Badge>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-5 w-5 p-0 text-green-600 hover:text-green-700"
+                                    onClick={() => handleAcceptChange(change.id)}
+                                  >
+                                    <Check className="w-3 h-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Accept</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-5 w-5 p-0 text-red-600 hover:text-red-700"
+                                    onClick={() => handleRejectChange(change.id)}
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Reject</TooltipContent>
+                              </Tooltip>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-0.5 shrink-0">
-                            <Badge 
-                              variant="outline" 
-                              className={`text-[9px] py-0 px-1 ${
-                                change.type === 'insertion' 
-                                  ? 'border-green-300 text-green-700'
-                                  : 'border-red-300 text-red-700'
-                              }`}
-                            >
-                              {change.type === 'insertion' ? 'Inserted' : 'Deleted'}
-                            </Badge>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-5 w-5 p-0 text-green-600 hover:text-green-700"
-                                  onClick={() => handleAcceptChange(change.id)}
-                                >
-                                  <Check className="w-3 h-3" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Accept</TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-5 w-5 p-0 text-red-600 hover:text-red-700"
-                                  onClick={() => handleRejectChange(change.id)}
-                                >
-                                  <X className="w-3 h-3" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Reject</TooltipContent>
-                            </Tooltip>
-                          </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {smartTimestamp(new Date(change.timestamp))}
                         </div>
                         {change.content && (
                           <div className="mt-1.5 text-muted-foreground italic truncate">

@@ -497,24 +497,27 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
         key: trackChangesPluginKey,
 
         appendTransaction(transactions, oldState, newState) {
-          let hasUserChange = false;
+          // Check for internal/system transactions
           for (const tr of transactions) {
             if (tr.getMeta('blockReorder')) return null;
+          }
+
+          let hasUserChange = false;
+          for (const tr of transactions) {
             if (tr.getMeta('trackChangesInternal')) continue;
-            // Skip setContent transactions — Tiptap sets preventUpdate meta on setContent
             if (tr.getMeta('setContent') || tr.getMeta('preventUpdate') !== undefined) continue;
             if (tr.docChanged) {
               hasUserChange = true;
               break;
             }
           }
-          if (!hasUserChange) return null;
 
           const schema = newState.schema;
           const insertionType = schema.marks.trackInsertion;
           const deletionType = schema.marks.trackDeletion;
 
-          // When tracking is OFF, strip any inherited track marks from new insertions
+          // When tracking is OFF, always clear stored track marks (even on cursor moves)
+          // AND strip inherited marks from new insertions
           if (!extension.storage.enabled) {
             if (!insertionType && !deletionType) return null;
             const cleanTr = newState.tr;
@@ -522,27 +525,29 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
             cleanTr.setMeta('addToHistory', false);
             let cleaned = false;
 
-            for (const tr of transactions) {
-              if (!tr.docChanged || tr.getMeta('trackChangesInternal')) continue;
-              tr.steps.forEach((step) => {
-                const stepMap = step.getMap();
-                stepMap.forEach((_oldStart: number, _oldEnd: number, newStart: number, newEnd: number) => {
-                  if (newEnd > newStart) {
-                    // New content was inserted — remove any inherited track marks
-                    if (insertionType) {
-                      cleanTr.removeMark(newStart, newEnd, insertionType);
-                      cleaned = true;
+            // Strip marks from newly inserted content
+            if (hasUserChange) {
+              for (const tr of transactions) {
+                if (!tr.docChanged || tr.getMeta('trackChangesInternal')) continue;
+                tr.steps.forEach((step) => {
+                  const stepMap = step.getMap();
+                  stepMap.forEach((_oldStart: number, _oldEnd: number, newStart: number, newEnd: number) => {
+                    if (newEnd > newStart) {
+                      if (insertionType) {
+                        cleanTr.removeMark(newStart, newEnd, insertionType);
+                        cleaned = true;
+                      }
+                      if (deletionType) {
+                        cleanTr.removeMark(newStart, newEnd, deletionType);
+                        cleaned = true;
+                      }
                     }
-                    if (deletionType) {
-                      cleanTr.removeMark(newStart, newEnd, deletionType);
-                      cleaned = true;
-                    }
-                  }
+                  });
                 });
-              });
+              }
             }
 
-            // Also clear stored marks to prevent future typing from inheriting track styles
+            // Always clear stored marks to prevent future typing from inheriting track styles
             const stored = newState.storedMarks || newState.selection.$from.marks();
             if (stored.length > 0) {
               const withoutTrack = stored.filter(
@@ -556,6 +561,8 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
 
             return cleaned ? cleanTr : null;
           }
+
+          if (!hasUserChange) return null;
 
           const authorId = extension.options.authorId;
           const authorName = extension.options.authorName;
