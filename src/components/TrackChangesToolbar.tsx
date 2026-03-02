@@ -142,25 +142,6 @@ export function TrackChangesToolbar({
           {/* Changes panel and navigation */}
           {changes.length > 0 && (
             <>
-              {/* Next/Previous navigation */}
-              <div className="flex items-center gap-0.5">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="outline" size="icon" className="h-7 w-7" onClick={handlePrevChange}>
-                      <ChevronUp className="w-3.5 h-3.5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Previous change</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="outline" size="icon" className="h-7 w-7" onClick={handleNextChange}>
-                      <ChevronDown className="w-3.5 h-3.5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Next change</TooltipContent>
-                </Tooltip>
-              </div>
 
               <Popover>
                 <PopoverTrigger asChild>
