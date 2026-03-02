@@ -1,35 +1,54 @@
 
 
-## Plan: Fix tooltip dot + remaining issues
+## Plan: Comprehensive Strikethrough Fix
 
-### Issue analysis
+### Root cause
 
-The tooltip dot reads `data-author-color` from the DOM element (line 161), which stores whatever color was assigned at mark creation time -- this is the old hash-based color, not the proposal-scoped color. The tooltip component has no access to `proposalId` or the `useProposalUserColors` hook, so it can never show the correct color. Additionally, the dot is inside a tightly packed `text-[10px]` span with no breathing room.
+The current approach uses `appendTransaction` to strip track marks from newly typed text when tracking is disabled. This runs **after** the transaction is applied to create `newState` — meaning the character is first inserted *with* the inherited deletion mark, then a follow-up transaction removes it. This creates two problems:
 
-### Changes
+1. **Browser rendering race**: The contentEditable engine sees the inherited `text-decoration: line-through` inline style and applies it to the new character before ProseMirror's cleanup transaction updates the DOM.
+2. **Position mapping fragility**: If another plugin's `appendTransaction` also fires (e.g. `preventTableAtStart`), the cleanup positions can shift, leaving some characters uncleaned.
 
-**1. `TrackChangeTooltip.tsx` -- use proposal-scoped colors**
-- Add `proposalId` to props
-- Import and call `useProposalUserColors(proposalId)`
-- Store `authorId` in the tooltip state (read from `data-author-id` DOM attribute)
-- Use `getUserColor(authorId)` for the dot color instead of reading `data-author-color`
-- Add a small `gap-1.5` and slight padding so the dot has visual space
+### Fix strategy: intercept input *before* the transaction
 
-**2. `DocumentEditor.tsx` -- pass proposalId to tooltip**
-- Pass `proposalId` prop to `<TrackChangeTooltip>` where it's rendered
+Add `handleTextInput` to the TrackChanges plugin's `props`. This fires **before** ProseMirror creates the insertion transaction, letting us strip track marks from stored marks proactively:
 
-**3. Remaining issues from previous plan (still pending)**
-- **Strikethrough after toggle off**: In `TrackChanges.ts`, clear stored marks containing `trackDeletion`/`trackInsertion` when tracking is toggled off
-- **Smaller badges/buttons**: Reduce badge and button sizes in review panel cards (`DocumentEditor.tsx`) and toolbar popover cards (`TrackChangesToolbar.tsx`) to prevent timestamp wrapping
-- **Avatar photos in cards**: Expand `useProposalUserColors` to also return `getUserAvatar(userId)` and `getUserName(userId)`, use `AvatarImage` with actual photo URLs in comment and track change cards
-- **Show change counts when tracking off**: Move counts + popover outside the `enabled` conditional in `TrackChangesToolbar.tsx`
-- **Remove Link2 icon**: Remove from `CommentsSidebar.tsx` line 139
+```typescript
+props: {
+  handleTextInput(view, from, to, text) {
+    if (extension.storage.enabled) return false;
+    const { state } = view;
+    const currentMarks = state.storedMarks || state.selection.$from.marks();
+    const hasTrackMarks = currentMarks.some(
+      m => m.type.name === 'trackInsertion' || m.type.name === 'trackDeletion'
+    );
+    if (!hasTrackMarks) return false;
+    const clean = currentMarks.filter(
+      m => m.type.name !== 'trackInsertion' && m.type.name !== 'trackDeletion'
+    );
+    const tr = state.tr
+      .insertText(text, from, to)
+      .setStoredMarks(clean.length > 0 ? clean : null);
+    tr.setMeta('trackChangesInternal', true);
+    view.dispatch(tr);
+    return true; // handled
+  },
+}
+```
+
+Keep the existing `appendTransaction` cleanup as a safety net for paste, drag-drop, and other non-`handleTextInput` paths.
+
+### Also handle `handleKeyDown` for Enter
+
+When pressing Enter next to a tracked deletion, the new paragraph can inherit track marks. Add a `handleKeyDown` check for Enter that clears stored marks before the default handler runs (by dispatching `setStoredMarks` without consuming the event).
 
 ### Files
-- `src/components/TrackChangeTooltip.tsx`
-- `src/components/DocumentEditor.tsx`
-- `src/extensions/TrackChanges.ts`
-- `src/hooks/useProposalUserColors.ts`
-- `src/components/TrackChangesToolbar.tsx`
-- `src/components/CommentsSidebar.tsx`
+
+- **Edit**: `src/extensions/TrackChanges.ts` — add `props.handleTextInput` and `props.handleKeyDown` to the Plugin inside `addProseMirrorPlugins()`
+
+### What stays the same
+
+- The `appendTransaction` cleanup (belt-and-suspenders)
+- The `toggleTrackChanges` command cleanup
+- All other track change functionality
 
