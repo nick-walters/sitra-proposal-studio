@@ -1,66 +1,50 @@
 
-Goal: make tracked-change boxes in the actual review experience reliably clickable (same behavior quality as comments), with robust jump-to-location behavior and no regressions.
 
-1) Deep analysis findings (what is actually broken)
-- The previous fix was applied to `TrackChangesToolbar.tsx` popover cards.
-- The user-facing “review panel” cards they are clicking are in `DocumentEditor.tsx` under the collaboration tab (`collaborationTab === 'changes'`, inline list around lines ~1643+).
-- Those inline cards currently have no `onClick` jump handler at all, so they cannot navigate.
-- This explains why “nothing changed” after the last patch.
-- Secondary signal: console warnings about ref forwarding (`Popover`, `Badge`) indicate some Radix-asChild/ref friction in this area; not the primary cause of non-clickable cards, but worth hardening to avoid brittle interactions.
+## Plan: Consistent User Colour Dots + Style Alignment
 
-2) Root causes (comprehensive)
-- Root cause A (primary): wrong component targeted previously (popover list vs inline review list).
-- Root cause B: no shared navigation utility, so click-to-jump logic is duplicated/inconsistent and easy to patch in one place but miss another.
-- Root cause C: once inline cards become clickable, nested action buttons (accept/reject) must be explicitly excluded from card-level navigation (same pattern already used in comments).
-- Root cause D: jump logic should use editor-native scroll behavior first (`scrollIntoView`) with DOM fallback for stale positions, to avoid flaky “clicked but didn’t move” cases.
+### What changes
 
-3) Implementation plan
-- Step 1: Add a shared “jump to change” handler in `DocumentEditor.tsx`
-  - Create a local callback (e.g. `handleJumpToTrackedChange(change)`).
-  - Clamp position to doc bounds.
-  - Use editor chain command: `focus -> setTextSelection -> scrollIntoView`.
-  - Keep safe fallback (`try/catch`) and optional DOM `domAtPos` fallback only if needed.
-- Step 2: Make inline review cards clickable (the actual panel the user uses)
-  - In the inline `trackedChanges.map(...)` card container:
-    - add `cursor-pointer`, hover affordance (same style language as comments),
-    - add `onClick` that calls `handleJumpToTrackedChange(change)`,
-    - guard against inner interactive controls (`button`, `a`, `input`, `textarea`) so accept/reject clicks do not trigger jump.
-  - Add title/aria hint (“Click to jump to change”) for discoverability/accessibility.
-- Step 3: Align behavior with comments pattern
-  - Mirror the proven comments-card pattern:
-    - whole card clickable,
-    - nested actions isolated,
-    - navigation callback centralized.
-  - This prevents the same regression pattern recurring.
-- Step 4: Keep toolbar popover behavior, but route both UIs through shared logic
-  - Update `TrackChangesToolbar` card click to call the same navigation utility (or same algorithm copy if cross-file function extraction is avoided).
-  - Ensures popover list and inline review list behave identically.
-- Step 5: Hardening pass for interaction stability
-  - Ensure card clicks work with both mouse and keyboard (`role="button"`, `tabIndex`, Enter/Space handlers) in inline panel.
-  - Keep current `onOpenAutoFocus` behavior in popover only where needed.
-  - Review ref-warning hotspots (`Badge`/Radix asChild usage) and fix only where they affect interaction surfaces (avoid unnecessary broad refactor).
+**1. New hook: `src/hooks/useProposalUserColors.ts`**
+- Fetches `user_roles` for the proposal ordered by `created_at ASC`
+- Assigns each unique `user_id` a stable index into the `COLLABORATOR_COLORS` palette
+- Returns `getUserColor(userId): string` — deterministic, identical for all viewers
+- Cached via `useMemo` on the fetched data
 
-4) Validation plan (must pass before closing)
-- Functional:
-  - Click inline review card → editor jumps to correct tracked change.
-  - Click accept/reject icon inside card → only action runs, no jump.
-  - Click toolbar popover card → same jump behavior.
-  - Works for first, middle, last change and with long documents.
-- State:
-  - Selection lands on expected range after jump.
-  - No accidental tab switch/popover close caused by click bubbling.
-- Regression:
-  - Comments card click-to-jump still works.
-  - Tooltip accept/reject still works.
-- UX:
-  - Hover/focus affordance clearly indicates cards are clickable.
-  - Keyboard activation works.
+**2. Review panel cards in `DocumentEditor.tsx` (lines ~1643-1726)**
+- Change card style from green/red backgrounds to **white background with blue border on hover** (matching comment cards: `border rounded-lg p-3`, `hover:border-primary hover:shadow-sm`)
+- Keep the coloured dot but source its colour from the new `useProposalUserColors` hook instead of `change.authorColor`
+- Move timestamp below the user name (same layout as comment cards: name on first line, timestamp on second line in `text-xs text-muted-foreground`)
+- Change "Added" label to "Inserted"
+- Keep "Deleted" as-is
 
-5) Technical details (for implementation)
-- Files to update:
-  - `src/components/DocumentEditor.tsx` (primary fix; inline review cards)
-  - `src/components/TrackChangesToolbar.tsx` (consistency + shared jump logic parity)
-  - Optional targeted UI primitive cleanup if required by interaction tests:
-    - `src/components/ui/badge.tsx` (forwardRef hardening where used with Radix asChild patterns)
-- No backend/schema changes required.
-- No migration required.
+**3. Toolbar popover cards in `TrackChangesToolbar.tsx` (lines ~261-330)**
+- Same style changes: white background, blue hover border, consistent dot colour from proposal-scoped hook
+- Change "Added" to "Inserted"
+- Pass `proposalId` as a new prop and use `useProposalUserColors` inside
+
+**4. Tooltip in `TrackChangeTooltip.tsx` (line ~153)**
+- Add a coloured dot before the author name, using colour from `data-author-color` attribute (already on DOM)
+- Change "inserted" label — already says "inserted", keep as-is
+- Change "deleted" — already says "deleted", keep as-is
+
+**5. Comment cards in `CommentsSidebar.tsx` (lines ~115-128)**
+- Add a coloured dot next to the user's name/avatar, sourced from `useProposalUserColors`
+- Pass `proposalId` (already available) into the hook
+
+**6. Wire proposal-scoped colours into `DocumentEditor.tsx` for `authorColor`**
+- Replace `getColorForUser(user.id)` (hash-based) with `getUserColor(user.id)` from the new hook
+- This ensures the `authorColor` stored in marks is proposal-stable
+
+### What stays the same
+- Green/red highlights in the editor for insertions/deletions
+- Jump-to-position on click in review panel
+- Accept/reject buttons on cards and tooltips
+- Multi-select in toolbar popover
+
+### Files
+- **New**: `src/hooks/useProposalUserColors.ts`
+- **Edit**: `src/components/DocumentEditor.tsx`
+- **Edit**: `src/components/TrackChangesToolbar.tsx`
+- **Edit**: `src/components/TrackChangeTooltip.tsx`
+- **Edit**: `src/components/CommentsSidebar.tsx`
+
