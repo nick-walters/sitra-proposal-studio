@@ -230,7 +230,7 @@ export function TrackChangeBubbleMenu({ editor }: TrackChangeBubbleMenuProps) {
       onMouseLeave={handleTooltipLeave}
     >
       <span className="text-[10px] text-muted-foreground mr-1 whitespace-nowrap">
-        {shownName} · {active.mark.type === 'insertion' ? 'inserted' : 'deleted'}
+        {shownName} · {active.mark.type === 'insertion' ? 'added' : 'deleted'}
         {active.mark.timestamp && (
           <span className="ml-1 opacity-70">· {active.mark.timestamp}</span>
         )}
