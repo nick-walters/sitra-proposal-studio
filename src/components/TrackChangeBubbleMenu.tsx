@@ -2,10 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { type Editor, useEditorState } from '@tiptap/react';
 import { Check, X } from 'lucide-react';
 import { format } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MarkInfo {
   changeId: string;
   type: 'insertion' | 'deletion';
+  authorId: string;
   authorName: string;
   timestamp: string | null;
 }
@@ -14,34 +16,35 @@ interface TrackChangeBubbleMenuProps {
   editor: Editor;
 }
 
-function extractMarkInfo(el: HTMLElement, editor: Editor): MarkInfo | null {
-  const changeId = el.getAttribute('data-change-id');
-  if (!changeId) return null;
+// Cache for profile name lookups (authorId -> full_name)
+const profileNameCache = new Map<string, string>();
 
-  const isInsertion = el.hasAttribute('data-track-insertion');
-  const type: 'insertion' | 'deletion' = isInsertion ? 'insertion' : 'deletion';
+async function resolveAuthorName(authorId: string, fallback: string): Promise<string> {
+  if (!authorId || authorId === 'ai-assistant') return fallback || 'Unknown';
+  if (profileNameCache.has(authorId)) return profileNameCache.get(authorId)!;
 
-  let authorName = el.getAttribute('data-author-name') || '';
-  if (!authorName) {
-    const storage = (editor.storage as any).trackChanges;
-    const change = storage?.changes?.find((c: any) => c.id === changeId);
-    if (change) authorName = change.authorName;
+  try {
+    const { data } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', authorId)
+      .single();
+    const name = data?.full_name || fallback || 'Unknown';
+    profileNameCache.set(authorId, name);
+    return name;
+  } catch {
+    profileNameCache.set(authorId, fallback || 'Unknown');
+    return fallback || 'Unknown';
   }
-  if (!authorName) authorName = 'Unknown';
-
-  let timestamp: string | null = null;
-  const rawTs = el.getAttribute('data-timestamp');
-  if (rawTs) {
-    try { timestamp = format(new Date(rawTs), 'MMM d, h:mm a'); } catch { /* skip */ }
-  }
-
-  return { changeId, type, authorName, timestamp };
 }
 
 export function TrackChangeBubbleMenu({ editor }: TrackChangeBubbleMenuProps) {
   const [hoverInfo, setHoverInfo] = useState<{ mark: MarkInfo; x: number; y: number } | null>(null);
   const hideTimeout = useRef<ReturnType<typeof setTimeout>>();
   const tooltipRef = useRef<HTMLDivElement>(null);
+
+  // Resolved display name (from profile DB lookup)
+  const [displayName, setDisplayName] = useState<string | null>(null);
 
   // --- Cursor-based mark info (shows when cursor is inside a tracked change) ---
   const cursorMarkInfo = useEditorState({
@@ -62,6 +65,7 @@ export function TrackChangeBubbleMenu({ editor }: TrackChangeBubbleMenuProps) {
       return {
         changeId: mark.attrs.changeId as string,
         type,
+        authorId: mark.attrs.authorId || '',
         authorName: mark.attrs.authorName || 'Unknown',
         timestamp,
       };
@@ -105,29 +109,19 @@ export function TrackChangeBubbleMenu({ editor }: TrackChangeBubbleMenuProps) {
         try { timestamp = format(new Date(trackMark.attrs.timestamp), 'MMM d, h:mm a'); } catch { /* skip */ }
       }
 
+      const markInfo: MarkInfo = {
+        changeId: trackMark.attrs.changeId as string,
+        type,
+        authorId: trackMark.attrs.authorId || '',
+        authorName: trackMark.attrs.authorName || 'Unknown',
+        timestamp,
+      };
+
       try {
         const c = editor.view.coordsAtPos(pos.pos);
-        return {
-          mark: {
-            changeId: trackMark.attrs.changeId as string,
-            type,
-            authorName: trackMark.attrs.authorName || 'Unknown',
-            timestamp,
-          },
-          x: c.left,
-          y: c.top,
-        };
+        return { mark: markInfo, x: c.left, y: c.top };
       } catch {
-        return {
-          mark: {
-            changeId: trackMark.attrs.changeId as string,
-            type,
-            authorName: trackMark.attrs.authorName || 'Unknown',
-            timestamp,
-          },
-          x: clientX,
-          y: clientY,
-        };
+        return { mark: markInfo, x: clientX, y: clientY };
       }
     };
 
@@ -184,6 +178,23 @@ export function TrackChangeBubbleMenu({ editor }: TrackChangeBubbleMenuProps) {
       ? { mark: cursorMarkInfo, x: cursorCoords.x, y: cursorCoords.y }
       : null;
 
+  // Resolve author display name from profile whenever active mark changes
+  useEffect(() => {
+    if (!active) { setDisplayName(null); return; }
+    const { authorId, authorName } = active.mark;
+    // If already cached, use sync
+    if (authorId && profileNameCache.has(authorId)) {
+      setDisplayName(profileNameCache.get(authorId)!);
+      return;
+    }
+    // Async resolve
+    let cancelled = false;
+    resolveAuthorName(authorId, authorName).then((name) => {
+      if (!cancelled) setDisplayName(name);
+    });
+    return () => { cancelled = true; };
+  }, [active?.mark.changeId, active?.mark.authorId]);
+
   const handleAccept = useCallback(() => {
     if (!active) return;
     editor.commands.acceptChange(active.mark.changeId);
@@ -198,6 +209,8 @@ export function TrackChangeBubbleMenu({ editor }: TrackChangeBubbleMenuProps) {
 
   if (!active) return null;
 
+  const shownName = displayName || active.mark.authorName;
+
   return (
     <div
       ref={tooltipRef}
@@ -211,7 +224,7 @@ export function TrackChangeBubbleMenu({ editor }: TrackChangeBubbleMenuProps) {
       onMouseLeave={handleTooltipLeave}
     >
       <span className="text-[10px] text-muted-foreground mr-1 whitespace-nowrap">
-        {active.mark.authorName} · {active.mark.type === 'insertion' ? 'inserted' : 'deleted'}
+        {shownName} · {active.mark.type === 'insertion' ? 'inserted' : 'deleted'}
         {active.mark.timestamp && (
           <span className="ml-1 opacity-70">· {active.mark.timestamp}</span>
         )}
