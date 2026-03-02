@@ -21,13 +21,12 @@ import {
   XCircle,
   Clock,
   User,
-  ChevronUp,
-  ChevronDown,
 } from 'lucide-react';
 import { TrackChange } from '@/extensions/TrackChanges';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 
 function ordinalSuffix(day: number): string {
@@ -61,12 +60,43 @@ export function TrackChangesToolbar({
   const insertions = changes.filter(c => c.type === 'insertion');
   const deletions = changes.filter(c => c.type === 'deletion');
 
+  // Selection state for popover multi-select
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const toggleSelection = useCallback((id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    if (selectedIds.size === changes.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(changes.map(c => c.id)));
+    }
+  }, [selectedIds.size, changes]);
+
+  const handleAcceptSelected = useCallback(() => {
+    selectedIds.forEach(id => editor?.commands.acceptChange(id));
+    setSelectedIds(new Set());
+  }, [editor, selectedIds]);
+
+  const handleRejectSelected = useCallback(() => {
+    selectedIds.forEach(id => editor?.commands.rejectChange(id));
+    setSelectedIds(new Set());
+  }, [editor, selectedIds]);
+
   const handleAcceptChange = (changeId: string) => {
     editor?.commands.acceptChange(changeId);
+    setSelectedIds(prev => { const n = new Set(prev); n.delete(changeId); return n; });
   };
 
   const handleRejectChange = (changeId: string) => {
     editor?.commands.rejectChange(changeId);
+    setSelectedIds(prev => { const n = new Set(prev); n.delete(changeId); return n; });
   };
 
   // Resolve author display names from profiles
@@ -91,10 +121,12 @@ export function TrackChangesToolbar({
 
   const handleAcceptAll = () => {
     editor?.commands.acceptAllChanges();
+    setSelectedIds(new Set());
   };
 
   const handleRejectAll = () => {
     editor?.commands.rejectAllChanges();
+    setSelectedIds(new Set());
   };
 
   const handleNextChange = () => {
@@ -153,34 +185,76 @@ export function TrackChangesToolbar({
                 <PopoverContent className="w-80 p-0" align="end" onOpenAutoFocus={e => e.preventDefault()}>
                 <div className="p-3 border-b">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-semibold text-sm">Tracked Changes</h4>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        checked={selectedIds.size === changes.length && changes.length > 0}
+                        onCheckedChange={toggleSelectAll}
+                        className="h-3.5 w-3.5"
+                      />
+                      <h4 className="font-semibold text-sm">
+                        {selectedIds.size > 0 ? `${selectedIds.size} selected` : 'Tracked Changes'}
+                      </h4>
+                    </div>
                     <div className="flex items-center gap-1">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-7 px-2 text-green-600 hover:text-green-700 hover:bg-green-50"
-                            onClick={handleAcceptAll}
-                          >
-                            <CheckCheck className="w-4 h-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Accept all changes</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-7 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={handleRejectAll}
-                          >
-                            <XCircle className="w-4 h-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Reject all changes</TooltipContent>
-                      </Tooltip>
+                      {selectedIds.size > 0 ? (
+                        <>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-7 px-2 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                onClick={handleAcceptSelected}
+                              >
+                                <CheckCheck className="w-4 h-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Accept selected</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-7 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={handleRejectSelected}
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Reject selected</TooltipContent>
+                          </Tooltip>
+                        </>
+                      ) : (
+                        <>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-7 px-2 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                onClick={handleAcceptAll}
+                              >
+                                <CheckCheck className="w-4 h-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Accept all changes</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-7 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={handleRejectAll}
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Reject all changes</TooltipContent>
+                          </Tooltip>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -190,33 +264,25 @@ export function TrackChangesToolbar({
                       <div
                         key={change.id}
                         className={`p-2 rounded-md text-xs cursor-pointer transition-colors hover:ring-1 hover:ring-primary/30 ${
+                          selectedIds.has(change.id) ? 'ring-1 ring-primary/50' : ''
+                        } ${
                           change.type === 'insertion'
                             ? 'bg-green-50 dark:bg-green-900/20'
                             : 'bg-red-50 dark:bg-red-900/20'
                         }`}
                         onClick={(e) => {
-                          // Don't jump if clicking accept/reject buttons
                           if ((e.target as HTMLElement).closest('button')) return;
-                          if (!editor) return;
-                          try {
-                            const pos = Math.min(change.from, editor.state.doc.content.size);
-                            editor.commands.setTextSelection(pos);
-                            editor.commands.focus();
-                            // Scroll the mark into view
-                            setTimeout(() => {
-                              try {
-                                const dom = editor.view.domAtPos(pos);
-                                if (dom?.node) {
-                                  const el = dom.node instanceof HTMLElement ? dom.node : dom.node.parentElement;
-                                  el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                }
-                              } catch { /* position may be stale */ }
-                            }, 50);
-                          } catch { /* position may be stale */ }
+                          toggleSelection(change.id);
                         }}
                       >
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center gap-1.5">
+                            <Checkbox
+                              checked={selectedIds.has(change.id)}
+                              onCheckedChange={() => toggleSelection(change.id)}
+                              className="h-3.5 w-3.5"
+                              onClick={(e) => e.stopPropagation()}
+                            />
                             <div 
                               className="w-2 h-2 rounded-full"
                               style={{ backgroundColor: change.authorColor }}
