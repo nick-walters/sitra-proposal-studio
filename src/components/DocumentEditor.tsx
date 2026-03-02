@@ -54,6 +54,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format, isPast, isToday, differenceInDays } from "date-fns";
+import { smartTimestamp } from "@/lib/smartTimestamp";
 import { CollaborativeCursors } from "./CollaborativeCursors";
 import { BlockLockIndicator } from "./BlockLockIndicator";
 import { TrackChangesToolbar } from "./TrackChangesToolbar";
@@ -1676,28 +1677,21 @@ export function DocumentEditor({
                               }
                             }}
                           >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <div
-                                  className="w-2 h-2 rounded-full shrink-0"
-                                  style={{ backgroundColor: getProposalUserColor(change.authorId) }}
-                                />
-                                <Avatar className="h-6 w-6 shrink-0">
-                                  {getUserAvatar(change.authorId) && (
-                                    <AvatarImage src={getUserAvatar(change.authorId)!} />
-                                  )}
-                                  <AvatarFallback className="text-[10px] bg-primary/10">
-                                    {(getChangeDisplayName(change) || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className="flex flex-col min-w-0">
-                                  <span className="text-sm font-medium truncate">{getChangeDisplayName(change)}</span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {(() => { const d = new Date(change.timestamp); const day = d.getDate(); const suffix = (day >= 11 && day <= 13) ? 'th' : [,'st','nd','rd'][day % 10] || 'th'; return `${day}${suffix} ${format(d, 'MMMM yyyy')} at ${format(d, 'HH:mm')}`; })()}
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-0.5 shrink-0">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <div
+                                className="w-2 h-2 rounded-full shrink-0"
+                                style={{ backgroundColor: getProposalUserColor(change.authorId) }}
+                              />
+                              <Avatar className="h-6 w-6 shrink-0">
+                                {getUserAvatar(change.authorId) && (
+                                  <AvatarImage src={getUserAvatar(change.authorId)!} />
+                                )}
+                                <AvatarFallback className="text-[10px] bg-primary/10">
+                                  {(getChangeDisplayName(change) || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm font-medium truncate">{getChangeDisplayName(change)}</span>
+                              <div className="flex items-center gap-0.5 shrink-0 ml-auto">
                                 <Badge
                                   variant="outline"
                                   className={`text-[9px] py-0 px-1 shrink-0 ${
@@ -1727,6 +1721,9 @@ export function DocumentEditor({
                                   <X className="w-3 h-3" />
                                 </Button>
                               </div>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {smartTimestamp(new Date(change.timestamp))}
                             </div>
                             {change.content && (
                               <div className="mt-1.5 text-muted-foreground italic truncate">
