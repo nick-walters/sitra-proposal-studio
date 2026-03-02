@@ -1252,17 +1252,40 @@ export function useRichTextEditor({
     }
   }, [editor, content]);
 
-  // Sync track changes enabled state
+  // Sync track changes enabled state — use direct storage assignment to avoid
+  // toggle race conditions and double-toggles
   useEffect(() => {
     if (!editor) return;
     trackChangesRef.current = trackChanges;
     const storage = (editor.storage as any).trackChanges;
-    if (storage && storage.enabled !== trackChanges?.enabled) {
-      // Use the command to toggle so merge state is properly reset
-      editor.commands.toggleTrackChanges();
-      // If the command toggled to the wrong state, toggle again
-      if (storage.enabled !== (trackChanges?.enabled || false)) {
-        editor.commands.toggleTrackChanges();
+    if (storage) {
+      const targetEnabled = trackChanges?.enabled || false;
+      if (storage.enabled !== targetEnabled) {
+        storage.enabled = targetEnabled;
+        // Reset merge windows when toggling
+        storage.lastInsertionId = null;
+        storage.lastInsertionTime = 0;
+        storage.lastDeletionId = null;
+        storage.lastDeletionTime = 0;
+
+        // When turning off, clear stored marks to prevent strikethrough persistence
+        if (!targetEnabled) {
+          const { state } = editor;
+          const iType = state.schema.marks.trackInsertion;
+          const dType = state.schema.marks.trackDeletion;
+          const marks = state.storedMarks || state.selection.$from.marks();
+          if (marks && (iType || dType)) {
+            const cleaned = marks.filter(
+              (m) => m.type !== iType && m.type !== dType
+            );
+            if (cleaned.length !== marks.length) {
+              const tr = state.tr.setStoredMarks(cleaned.length > 0 ? cleaned : null);
+              tr.setMeta('trackChangesInternal', true);
+              tr.setMeta('addToHistory', false);
+              editor.view.dispatch(tr);
+            }
+          }
+        }
       }
     }
     // Keep all track change options in sync (author info + callbacks)
