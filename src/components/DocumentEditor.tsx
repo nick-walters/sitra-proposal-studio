@@ -127,6 +127,8 @@ export function DocumentEditor({
 
   // Fetch profile full_name from DB for reliable author name in track changes
   const [profileFullName, setProfileFullName] = useState<string | null>(null);
+  // Cache of all author names resolved from profiles (authorId -> full_name)
+  const [authorNameCache, setAuthorNameCache] = useState<Record<string, string>>({});
   useEffect(() => {
     if (!user?.id) return;
     supabase.from('profiles').select('full_name').eq('id', user.id).single()
@@ -134,6 +136,7 @@ export function DocumentEditor({
         if (data?.full_name) setProfileFullName(data.full_name);
       });
   }, [user?.id]);
+
 
   const canUseSnippets = roleTier === 'coordinator';
   const [isCitationOpen, setIsCitationOpen] = useState(false);
@@ -173,6 +176,25 @@ export function DocumentEditor({
   }, [user?.id]);
   const [zoomLevel, setZoomLevel] = useState(100);
   const [trackedChanges, setTrackedChanges] = useState<TrackChange[]>([]);
+
+  // Resolve author names for all tracked changes from profiles
+  useEffect(() => {
+    const uniqueIds = [...new Set(trackedChanges.map(c => c.authorId).filter(Boolean))];
+    if (uniqueIds.length === 0) return;
+    const missing = uniqueIds.filter(id => !authorNameCache[id]);
+    if (missing.length === 0) return;
+    supabase.from('profiles').select('id, full_name').in('id', missing).then(({ data }) => {
+      if (!data) return;
+      setAuthorNameCache(prev => {
+        const next = { ...prev };
+        data.forEach(p => { if (p.full_name) next[p.id] = p.full_name; });
+        return next;
+      });
+    });
+  }, [trackedChanges]);
+
+  const getChangeDisplayName = useCallback((change: TrackChange) =>
+    authorNameCache[change.authorId] || change.authorName, [authorNameCache]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isFormulaOpen, setIsFormulaOpen] = useState(false);
   const [isComparisonOpen, setIsComparisonOpen] = useState(false);
@@ -1602,7 +1624,7 @@ export function DocumentEditor({
                                   className="w-2 h-2 rounded-full shrink-0"
                                   style={{ backgroundColor: change.authorColor }}
                                 />
-                                <span className="font-medium truncate max-w-[120px]">{change.authorName}</span>
+                                <span className="font-medium truncate max-w-[120px]">{getChangeDisplayName(change)}</span>
                                 <Badge
                                   variant="outline"
                                   className={`text-[10px] py-0 shrink-0 ${
@@ -1641,7 +1663,7 @@ export function DocumentEditor({
                               </div>
                             )}
                             <div className="mt-1 text-muted-foreground flex items-center gap-1">
-                              <span>{new Date(change.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}, {new Date(change.timestamp).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</span>
+                              <span>{(() => { const d = new Date(change.timestamp); const day = d.getDate(); const suffix = (day >= 11 && day <= 13) ? 'th' : [,'st','nd','rd'][day % 10] || 'th'; return `${day}${suffix} ${format(d, 'MMMM yyyy')} at ${format(d, 'HH:mm')}`; })()}</span>
                             </div>
                           </div>
                         ))
