@@ -1,50 +1,35 @@
 
 
-## Plan: Consistent User Colour Dots + Style Alignment
+## Plan: Fix tooltip dot + remaining issues
 
-### What changes
+### Issue analysis
 
-**1. New hook: `src/hooks/useProposalUserColors.ts`**
-- Fetches `user_roles` for the proposal ordered by `created_at ASC`
-- Assigns each unique `user_id` a stable index into the `COLLABORATOR_COLORS` palette
-- Returns `getUserColor(userId): string` — deterministic, identical for all viewers
-- Cached via `useMemo` on the fetched data
+The tooltip dot reads `data-author-color` from the DOM element (line 161), which stores whatever color was assigned at mark creation time -- this is the old hash-based color, not the proposal-scoped color. The tooltip component has no access to `proposalId` or the `useProposalUserColors` hook, so it can never show the correct color. Additionally, the dot is inside a tightly packed `text-[10px]` span with no breathing room.
 
-**2. Review panel cards in `DocumentEditor.tsx` (lines ~1643-1726)**
-- Change card style from green/red backgrounds to **white background with blue border on hover** (matching comment cards: `border rounded-lg p-3`, `hover:border-primary hover:shadow-sm`)
-- Keep the coloured dot but source its colour from the new `useProposalUserColors` hook instead of `change.authorColor`
-- Move timestamp below the user name (same layout as comment cards: name on first line, timestamp on second line in `text-xs text-muted-foreground`)
-- Change "Added" label to "Inserted"
-- Keep "Deleted" as-is
+### Changes
 
-**3. Toolbar popover cards in `TrackChangesToolbar.tsx` (lines ~261-330)**
-- Same style changes: white background, blue hover border, consistent dot colour from proposal-scoped hook
-- Change "Added" to "Inserted"
-- Pass `proposalId` as a new prop and use `useProposalUserColors` inside
+**1. `TrackChangeTooltip.tsx` -- use proposal-scoped colors**
+- Add `proposalId` to props
+- Import and call `useProposalUserColors(proposalId)`
+- Store `authorId` in the tooltip state (read from `data-author-id` DOM attribute)
+- Use `getUserColor(authorId)` for the dot color instead of reading `data-author-color`
+- Add a small `gap-1.5` and slight padding so the dot has visual space
 
-**4. Tooltip in `TrackChangeTooltip.tsx` (line ~153)**
-- Add a coloured dot before the author name, using colour from `data-author-color` attribute (already on DOM)
-- Change "inserted" label — already says "inserted", keep as-is
-- Change "deleted" — already says "deleted", keep as-is
+**2. `DocumentEditor.tsx` -- pass proposalId to tooltip**
+- Pass `proposalId` prop to `<TrackChangeTooltip>` where it's rendered
 
-**5. Comment cards in `CommentsSidebar.tsx` (lines ~115-128)**
-- Add a coloured dot next to the user's name/avatar, sourced from `useProposalUserColors`
-- Pass `proposalId` (already available) into the hook
-
-**6. Wire proposal-scoped colours into `DocumentEditor.tsx` for `authorColor`**
-- Replace `getColorForUser(user.id)` (hash-based) with `getUserColor(user.id)` from the new hook
-- This ensures the `authorColor` stored in marks is proposal-stable
-
-### What stays the same
-- Green/red highlights in the editor for insertions/deletions
-- Jump-to-position on click in review panel
-- Accept/reject buttons on cards and tooltips
-- Multi-select in toolbar popover
+**3. Remaining issues from previous plan (still pending)**
+- **Strikethrough after toggle off**: In `TrackChanges.ts`, clear stored marks containing `trackDeletion`/`trackInsertion` when tracking is toggled off
+- **Smaller badges/buttons**: Reduce badge and button sizes in review panel cards (`DocumentEditor.tsx`) and toolbar popover cards (`TrackChangesToolbar.tsx`) to prevent timestamp wrapping
+- **Avatar photos in cards**: Expand `useProposalUserColors` to also return `getUserAvatar(userId)` and `getUserName(userId)`, use `AvatarImage` with actual photo URLs in comment and track change cards
+- **Show change counts when tracking off**: Move counts + popover outside the `enabled` conditional in `TrackChangesToolbar.tsx`
+- **Remove Link2 icon**: Remove from `CommentsSidebar.tsx` line 139
 
 ### Files
-- **New**: `src/hooks/useProposalUserColors.ts`
-- **Edit**: `src/components/DocumentEditor.tsx`
-- **Edit**: `src/components/TrackChangesToolbar.tsx`
-- **Edit**: `src/components/TrackChangeTooltip.tsx`
-- **Edit**: `src/components/CommentsSidebar.tsx`
+- `src/components/TrackChangeTooltip.tsx`
+- `src/components/DocumentEditor.tsx`
+- `src/extensions/TrackChanges.ts`
+- `src/hooks/useProposalUserColors.ts`
+- `src/components/TrackChangesToolbar.tsx`
+- `src/components/CommentsSidebar.tsx`
 
