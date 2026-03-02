@@ -78,51 +78,96 @@ export function TrackChangeBubbleMenu({ editor }: TrackChangeBubbleMenuProps) {
     } catch { setCursorCoords(null); }
   }, [cursorMarkInfo, editor]);
 
-  // --- Hover-based detection via pointer hit-testing (robust across nested editor DOM) ---
+  // --- Hover-based detection via editor coordinates (robust on desktop hover) ---
   useEffect(() => {
     const editorDom = editor.view.dom as HTMLElement;
 
-    const updateHoverFromPoint = (clientX: number, clientY: number) => {
-      const pointed = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
-      if (!pointed) return;
+    const getMarkInfoAtCoords = (clientX: number, clientY: number): { mark: MarkInfo; x: number; y: number } | null => {
+      const pos = editor.view.posAtCoords({ left: clientX, top: clientY });
+      if (!pos) return null;
 
-      // Keep tooltip visible while moving onto the tooltip itself
-      if (tooltipRef.current?.contains(pointed)) {
+      const $pos = editor.state.doc.resolve(pos.pos);
+      const markCandidates = [
+        ...$pos.marks(),
+        ...($pos.nodeBefore?.marks ?? []),
+        ...($pos.nodeAfter?.marks ?? []),
+      ];
+
+      const trackMark = markCandidates.find(
+        (m) => m.type.name === 'trackInsertion' || m.type.name === 'trackDeletion'
+      );
+      if (!trackMark) return null;
+
+      const type: 'insertion' | 'deletion' =
+        trackMark.type.name === 'trackInsertion' ? 'insertion' : 'deletion';
+      let timestamp: string | null = null;
+      if (trackMark.attrs.timestamp) {
+        try { timestamp = format(new Date(trackMark.attrs.timestamp), 'MMM d, h:mm a'); } catch { /* skip */ }
+      }
+
+      try {
+        const c = editor.view.coordsAtPos(pos.pos);
+        return {
+          mark: {
+            changeId: trackMark.attrs.changeId as string,
+            type,
+            authorName: trackMark.attrs.authorName || 'Unknown',
+            timestamp,
+          },
+          x: c.left,
+          y: c.top,
+        };
+      } catch {
+        return {
+          mark: {
+            changeId: trackMark.attrs.changeId as string,
+            type,
+            authorName: trackMark.attrs.authorName || 'Unknown',
+            timestamp,
+          },
+          x: clientX,
+          y: clientY,
+        };
+      }
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+
+      if (tooltipRef.current?.contains(target)) {
         clearTimeout(hideTimeout.current);
         return;
       }
 
-      const el = pointed.closest('[data-track-insertion], [data-track-deletion]') as HTMLElement | null;
-      if (!el || !editorDom.contains(el)) {
+      if (!editorDom.contains(target)) {
+        hideTimeout.current = setTimeout(() => setHoverInfo(null), 120);
+        return;
+      }
+
+      const found = getMarkInfoAtCoords(e.clientX, e.clientY);
+      if (!found) {
         hideTimeout.current = setTimeout(() => setHoverInfo(null), 120);
         return;
       }
 
       clearTimeout(hideTimeout.current);
-      const info = extractMarkInfo(el, editor);
-      if (!info) return;
-
-      const rect = el.getBoundingClientRect();
       setHoverInfo((prev) => {
         if (
           prev &&
-          prev.mark.changeId === info.changeId &&
-          Math.abs(prev.x - (rect.left + rect.width / 2)) < 1 &&
-          Math.abs(prev.y - rect.top) < 1
+          prev.mark.changeId === found.mark.changeId &&
+          Math.abs(prev.x - found.x) < 1 &&
+          Math.abs(prev.y - found.y) < 1
         ) {
           return prev;
         }
-        return { mark: info, x: rect.left + rect.width / 2, y: rect.top };
+        return found;
       });
     };
 
-    const onPointerMove = (e: PointerEvent) => {
-      updateHoverFromPoint(e.clientX, e.clientY);
-    };
-
-    document.addEventListener('pointermove', onPointerMove, true);
+    document.addEventListener('mousemove', onMouseMove, true);
     return () => {
-      document.removeEventListener('pointermove', onPointerMove, true);
+      document.removeEventListener('mousemove', onMouseMove, true);
       clearTimeout(hideTimeout.current);
     };
   }, [editor]);
