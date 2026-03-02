@@ -1279,7 +1279,7 @@ export function useRichTextEditor({
               (m) => m.type !== iType && m.type !== dType
             );
             if (cleaned.length !== marks.length) {
-              const tr = state.tr.setStoredMarks(cleaned.length > 0 ? cleaned : null);
+              const tr = state.tr.setStoredMarks(cleaned);
               tr.setMeta('trackChangesInternal', true);
               tr.setMeta('addToHistory', false);
               editor.view.dispatch(tr);
