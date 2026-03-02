@@ -1,54 +1,53 @@
 
 
-## Plan: Comprehensive Strikethrough Fix
+## Plan: Comprehensive Track Changes Fix
 
-### Root cause
+### Issue 1: Strikethrough persists after toggle off
 
-The current approach uses `appendTransaction` to strip track marks from newly typed text when tracking is disabled. This runs **after** the transaction is applied to create `newState` — meaning the character is first inserted *with* the inherited deletion mark, then a follow-up transaction removes it. This creates two problems:
+**Root cause**: The `handleTextInput` interception (line 501) correctly strips marks before insertion, BUT there is a deeper problem. When the cursor is positioned inside a `trackDeletion` span, ProseMirror resolves marks from `$from.marks()` which includes the deletion mark. The `handleTextInput` handler strips it and dispatches a custom transaction. However, `handleTextInput` only fires for **typed characters** -- it does NOT fire for:
+- Paste operations
+- Autocomplete/spellcheck insertions (browser IME)
+- `insertContent` commands from toolbar buttons
 
-1. **Browser rendering race**: The contentEditable engine sees the inherited `text-decoration: line-through` inline style and applies it to the new character before ProseMirror's cleanup transaction updates the DOM.
-2. **Position mapping fragility**: If another plugin's `appendTransaction` also fires (e.g. `preventTableAtStart`), the cleanup positions can shift, leaving some characters uncleaned.
+The `appendTransaction` fallback (line 560) does strip marks from new ranges, but it runs **after** the DOM update, so the browser's contentEditable briefly renders the inherited `line-through` style. On fast typing, this creates a visible flicker that sometimes sticks.
 
-### Fix strategy: intercept input *before* the transaction
+**Fix**: Instead of relying on `handleTextInput` + `appendTransaction`, use a **`filterTransaction`** approach. Add a `filterTransaction` method to the plugin that intercepts ALL transactions (not just text input) when tracking is disabled. For any transaction that inserts content, it will rewrite the transaction to exclude track marks from the inserted range. This fires **before** the state update reaches the DOM.
 
-Add `handleTextInput` to the TrackChanges plugin's `props`. This fires **before** ProseMirror creates the insertion transaction, letting us strip track marks from stored marks proactively:
+Specifically in `TrackChanges.ts`:
+- Add `filterTransaction(tr, state)` to the Plugin that, when tracking is OFF, removes track marks from the `storedMarks` on the transaction itself (via `tr.setStoredMarks`) before it is applied. This catches every input path.
+- Keep `appendTransaction` as a secondary safety net to strip marks from any content that slipped through.
+- Keep `handleTextInput` for the proactive clean insertion path.
 
-```typescript
-props: {
-  handleTextInput(view, from, to, text) {
-    if (extension.storage.enabled) return false;
-    const { state } = view;
-    const currentMarks = state.storedMarks || state.selection.$from.marks();
-    const hasTrackMarks = currentMarks.some(
-      m => m.type.name === 'trackInsertion' || m.type.name === 'trackDeletion'
-    );
-    if (!hasTrackMarks) return false;
-    const clean = currentMarks.filter(
-      m => m.type.name !== 'trackInsertion' && m.type.name !== 'trackDeletion'
-    );
-    const tr = state.tr
-      .insertText(text, from, to)
-      .setStoredMarks(clean.length > 0 ? clean : null);
-    tr.setMeta('trackChangesInternal', true);
-    view.dispatch(tr);
-    return true; // handled
-  },
-}
-```
+### Issue 2: Deleting text while tracking ON does not work properly
 
-Keep the existing `appendTransaction` cleanup as a safety net for paste, drag-drop, and other non-`handleTextInput` paths.
+**Root cause**: When a user deletes text that already has a `trackDeletion` mark, the deletion handler at line 734 intercepts it and re-inserts the deleted text with a new deletion mark. But the original text already had a deletion mark, so the result is text with TWO deletion marks stacked. This confuses the change list and makes the text appear stuck.
 
-### Also handle `handleKeyDown` for Enter
+**Fix**: In the PURE DELETION handler (line 734), check each deleted node: if it already has a `trackDeletion` mark from another author, treat the second deletion as **rejecting** the original deletion (per user preference). This means:
+- Remove the `trackDeletion` mark from the text (restore it as normal text)
+- Do NOT re-insert with a new deletion mark
+- If the deleted text has a `trackDeletion` from the **same** author, silently remove it (same as own-insertion deletion behavior)
 
-When pressing Enter next to a tracked deletion, the new paragraph can inherit track marks. Add a `handleKeyDown` check for Enter that clears stored marks before the default handler runs (by dispatching `setStoredMarks` without consuming the event).
+### Issue 3: Stale tracked changes in review panel
 
-### Files
+**Root cause**: When someone edits without tracking enabled and deletes text that contained track marks, the marks are removed from the document. However, the `trackedChanges` state array in `DocumentEditor.tsx` is only updated via `onChangesUpdate` which fires from `appendTransaction`. When tracking is OFF, the tracking-enabled branch of `appendTransaction` never runs, so `collectChangesFromDoc` is never called, and the panel retains stale entries.
 
-- **Edit**: `src/extensions/TrackChanges.ts` — add `props.handleTextInput` and `props.handleKeyDown` to the Plugin inside `addProseMirrorPlugins()`
+**Fix**: In `appendTransaction`, after the tracking-OFF cleanup branch (line 582-624), always re-scan and call `onChangesUpdate`. This ensures that whenever content changes with tracking off (e.g., someone deletes tracked text), the changes list is reconciled with the actual document state.
 
-### What stays the same
+### Issue 4: Timestamp consistency (minor, still pending)
 
-- The `appendTransaction` cleanup (belt-and-suspenders)
-- The `toggleTrackChanges` command cleanup
-- All other track change functionality
+- `TrackChangeBubbleMenu.tsx` uses `format(d, 'dd.MM.yyyy, HH:mm')` (lines 68, 117) instead of `smartTimestamp`. Change to use `smartTimestamp` for consistency.
+- `CommentsSidebar.tsx` reply timestamps (line 232) use raw `formatDistanceToNow` instead of `smartTimestamp`. Change to use `smartTimestamp`.
+
+### Files to edit
+
+1. **`src/extensions/TrackChanges.ts`**
+   - Add `filterTransaction` to strip stored track marks from ALL transactions when disabled
+   - Modify PURE DELETION handler to detect already-deleted text and treat as rejection
+   - Add `collectChangesFromDoc` + `onChangesUpdate` call in the tracking-OFF branch of `appendTransaction`
+
+2. **`src/components/TrackChangeBubbleMenu.tsx`**
+   - Replace `format(d, 'dd.MM.yyyy, HH:mm')` with `smartTimestamp(d)` (two locations)
+
+3. **`src/components/CommentsSidebar.tsx`**
+   - Replace `formatDistanceToNow` on reply timestamps (line 232) with `smartTimestamp`
 
