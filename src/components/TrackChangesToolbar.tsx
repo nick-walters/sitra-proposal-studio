@@ -208,11 +208,25 @@ export function TrackChangesToolbar({
                     {changes.map((change) => (
                       <div
                         key={change.id}
-                        className={`p-2 rounded-md text-xs ${
+                        className={`p-2 rounded-md text-xs cursor-pointer transition-colors hover:ring-1 hover:ring-primary/30 ${
                           change.type === 'insertion'
                             ? 'bg-green-50 dark:bg-green-900/20'
                             : 'bg-red-50 dark:bg-red-900/20'
                         }`}
+                        onClick={() => {
+                          if (!editor) return;
+                          try {
+                            editor.commands.focus();
+                            const pos = Math.min(change.from, editor.state.doc.content.size);
+                            editor.commands.setTextSelection(pos);
+                            // Scroll the mark into view
+                            const dom = editor.view.domAtPos(pos);
+                            if (dom?.node) {
+                              const el = dom.node instanceof HTMLElement ? dom.node : dom.node.parentElement;
+                              el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }
+                          } catch { /* position may be stale */ }
+                        }}
                       >
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center gap-1.5">
