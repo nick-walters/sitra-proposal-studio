@@ -191,7 +191,7 @@ export function DocumentEditor({
         return next;
       });
     });
-  }, [trackedChanges]);
+  }, [trackedChanges, authorNameCache]);
 
   const getChangeDisplayName = useCallback((change: TrackChange) =>
     authorNameCache[change.authorId] || change.authorName, [authorNameCache]);
