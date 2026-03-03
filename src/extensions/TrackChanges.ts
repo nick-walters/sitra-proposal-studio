@@ -837,7 +837,6 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
               const now = Date.now();
 
               const toDelete: Array<{ from: number; to: number }> = [];
-              const toReject: Array<{ from: number; to: number }> = [];
               const toMarkDel: Array<{ from: number; to: number }> = [];
 
               state.doc.nodesBetween(from, to, (node, pos) => {
@@ -869,7 +868,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                 toMarkDel.push({ from: nFrom, to: nTo });
               });
 
-              if (toDelete.length === 0 && toReject.length === 0 && toMarkDel.length === 0) return false;
+              if (toDelete.length === 0 && toMarkDel.length === 0) return false;
 
               const tr = state.tr;
               tr.setMeta('trackChangesInternal', true);
@@ -900,12 +899,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                 }
               }
 
-              // 2. Remove deletion marks from rejected text
-              for (const r of toReject) {
-                tr.removeMark(r.from, r.to, deletionType);
-              }
-
-              // 3. Actually delete own insertions and non-text inline nodes (reverse order)
+              // 2. Actually delete own insertions and non-text inline nodes (reverse order)
               const sortedDeletes = [...toDelete].sort((a, b) => b.from - a.from);
               for (const r of sortedDeletes) {
                 tr.delete(r.from, r.to);
