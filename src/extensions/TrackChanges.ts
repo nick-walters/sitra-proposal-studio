@@ -766,12 +766,55 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                 const $pos = state.doc.resolve(selection.from);
                 if (event.key === 'Backspace') {
                   if ($pos.parentOffset === 0) return false; // block boundary
-                  from = selection.from - 1;
-                  to = selection.from;
+                  // Skip backwards over already-deleted text
+                  const parent = $pos.parent;
+                  const parentStart = selection.from - $pos.parentOffset;
+                  let targetPos = selection.from - 1;
+                  while (targetPos >= parentStart) {
+                    const $t = state.doc.resolve(targetPos);
+                    const nodeAfter = $t.nodeAfter;
+                    if (nodeAfter && nodeAfter.isText && nodeAfter.marks.some((m: PMMark) => m.type === deletionType)) {
+                      targetPos -= nodeAfter.nodeSize;
+                    } else {
+                      break;
+                    }
+                  }
+                  // Also check nodeBefore at targetPos+1
+                  if (targetPos < parentStart) {
+                    // Everything before cursor is already deleted — just move cursor
+                    const tr = state.tr.setSelection(TextSelection.create(state.doc, parentStart));
+                    tr.setMeta('trackChangesInternal', true);
+                    tr.setMeta('addToHistory', false);
+                    view.dispatch(tr);
+                    return true;
+                  }
+                  from = targetPos;
+                  to = targetPos + 1;
                 } else {
                   if ($pos.parentOffset === $pos.parent.content.size) return false; // end of block
-                  from = selection.from;
-                  to = selection.from + 1;
+                  // Skip forward over already-deleted text
+                  const parent = $pos.parent;
+                  const parentEnd = selection.from - $pos.parentOffset + parent.content.size;
+                  let targetPos = selection.from;
+                  while (targetPos < parentEnd) {
+                    const $t = state.doc.resolve(targetPos);
+                    const nodeAfter = $t.nodeAfter;
+                    if (nodeAfter && nodeAfter.isText && nodeAfter.marks.some((m: PMMark) => m.type === deletionType)) {
+                      targetPos += nodeAfter.nodeSize;
+                    } else {
+                      break;
+                    }
+                  }
+                  if (targetPos >= parentEnd) {
+                    // Everything after cursor is already deleted — just move cursor
+                    const tr = state.tr.setSelection(TextSelection.create(state.doc, parentEnd));
+                    tr.setMeta('trackChangesInternal', true);
+                    tr.setMeta('addToHistory', false);
+                    view.dispatch(tr);
+                    return true;
+                  }
+                  from = targetPos;
+                  to = targetPos + 1;
                 }
               } else {
                 from = selection.from;
@@ -794,7 +837,6 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
               const now = Date.now();
 
               const toDelete: Array<{ from: number; to: number }> = [];
-              const toReject: Array<{ from: number; to: number }> = [];
               const toMarkDel: Array<{ from: number; to: number }> = [];
 
               state.doc.nodesBetween(from, to, (node, pos) => {
@@ -819,14 +861,14 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                   (m: PMMark) => m.type === deletionType
                 );
                 if (hasExistingDeletion) {
-                  toReject.push({ from: nFrom, to: nTo });
+                  // Already tracked as deleted — skip it entirely
                   return;
                 }
 
                 toMarkDel.push({ from: nFrom, to: nTo });
               });
 
-              if (toDelete.length === 0 && toReject.length === 0 && toMarkDel.length === 0) return false;
+              if (toDelete.length === 0 && toMarkDel.length === 0) return false;
 
               const tr = state.tr;
               tr.setMeta('trackChangesInternal', true);
@@ -857,12 +899,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                 }
               }
 
-              // 2. Remove deletion marks from rejected text
-              for (const r of toReject) {
-                tr.removeMark(r.from, r.to, deletionType);
-              }
-
-              // 3. Actually delete own insertions and non-text inline nodes (reverse order)
+              // 2. Actually delete own insertions and non-text inline nodes (reverse order)
               const sortedDeletes = [...toDelete].sort((a, b) => b.from - a.from);
               for (const r of sortedDeletes) {
                 tr.delete(r.from, r.to);
