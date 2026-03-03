@@ -289,6 +289,10 @@ const TrackInsertionMark = Mark.create({
 
 const TrackDeletionMark = Mark.create({
   name: 'trackDeletion',
+
+  // CRITICAL: Prevent deletion marks from extending to adjacent typed text.
+  // Without this, typing at the boundary of a deletion inherits strikethrough.
+  inclusive: false,
   
   addAttributes() {
     return trackChangeAttributes();
@@ -697,53 +701,33 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
               return true;
             }
 
-            // === TRACKING OFF: authoritative handler ===
+            // === TRACKING OFF: safety net for storedMarks ===
+            // With inclusive:false on TrackDeletionMark, the mark won't extend
+            // to newly typed text. We only need to ensure storedMarks are clean
+            // as a defensive measure.
             const { state } = view;
             const insertionType = state.schema.marks.trackInsertion;
             const deletionType = state.schema.marks.trackDeletion;
             if (!insertionType && !deletionType) return false;
 
-            // Check if cursor is at/inside a deletion mark
             const currentMarks = state.storedMarks || state.selection.$from.marks();
             const hasTrackMarks = currentMarks.some(
               (m) => m.type === insertionType || m.type === deletionType
             );
 
-            if (!hasTrackMarks) {
-              // Also check nodeBefore/nodeAfter for deletion marks that might inherit
-              const $pos = state.doc.resolve(from);
-              const beforeHasDel = $pos.nodeBefore?.marks?.some((m: PMMark) => m.type === deletionType);
-              const afterHasDel = $pos.nodeAfter?.marks?.some((m: PMMark) => m.type === deletionType);
-              if (!beforeHasDel && !afterHasDel) return false;
-            }
+            if (!hasTrackMarks) return false;
 
-            // Build clean mark set without ANY track marks
+            // Build clean mark set and set storedMarks so typing doesn't inherit
             const clean = currentMarks.filter(
               (m) => m.type !== insertionType && m.type !== deletionType
             );
-
-            // Insert the text
-            const tr = state.tr.insertText(text, from, to);
-            const insertEnd = from + text.length;
-
-            // Strip track marks ONLY from the newly inserted range
-            if (insertionType) tr.removeMark(from, insertEnd, insertionType);
-            if (deletionType) tr.removeMark(from, insertEnd, deletionType);
-
-            // Set clean stored marks so subsequent typing doesn't inherit
-            tr.setStoredMarks(clean);
-
-            // Mark as internal so appendTransaction won't touch it
+            const tr = state.tr.setStoredMarks(clean);
             tr.setMeta('trackChangesInternal', true);
-            tr.setMeta('addToHistory', true);
+            tr.setMeta('addToHistory', false);
             view.dispatch(tr);
 
-            // Reconcile review panel
-            const changes = collectChangesFromDoc(view.state.doc, state.schema);
-            extension.storage.changes = changes;
-            extension.options.onChangesUpdate?.(changes);
-
-            return true;
+            // Return false so default PM typing handler still inserts the text
+            return false;
           },
 
           // Proactive interception for Enter key and Backspace/Delete
