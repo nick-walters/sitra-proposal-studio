@@ -862,7 +862,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                   (m: PMMark) => m.type === deletionType
                 );
                 if (hasExistingDeletion) {
-                  toReject.push({ from: nFrom, to: nTo });
+                  // Already tracked as deleted — skip it entirely
                   return;
                 }
 
