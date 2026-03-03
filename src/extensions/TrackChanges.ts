@@ -766,12 +766,55 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                 const $pos = state.doc.resolve(selection.from);
                 if (event.key === 'Backspace') {
                   if ($pos.parentOffset === 0) return false; // block boundary
-                  from = selection.from - 1;
-                  to = selection.from;
+                  // Skip backwards over already-deleted text
+                  const parent = $pos.parent;
+                  const parentStart = selection.from - $pos.parentOffset;
+                  let targetPos = selection.from - 1;
+                  while (targetPos >= parentStart) {
+                    const $t = state.doc.resolve(targetPos);
+                    const nodeAfter = $t.nodeAfter;
+                    if (nodeAfter && nodeAfter.isText && nodeAfter.marks.some((m: PMMark) => m.type === deletionType)) {
+                      targetPos -= nodeAfter.nodeSize;
+                    } else {
+                      break;
+                    }
+                  }
+                  // Also check nodeBefore at targetPos+1
+                  if (targetPos < parentStart) {
+                    // Everything before cursor is already deleted — just move cursor
+                    const tr = state.tr.setSelection(TextSelection.create(state.doc, parentStart));
+                    tr.setMeta('trackChangesInternal', true);
+                    tr.setMeta('addToHistory', false);
+                    view.dispatch(tr);
+                    return true;
+                  }
+                  from = targetPos;
+                  to = targetPos + 1;
                 } else {
                   if ($pos.parentOffset === $pos.parent.content.size) return false; // end of block
-                  from = selection.from;
-                  to = selection.from + 1;
+                  // Skip forward over already-deleted text
+                  const parent = $pos.parent;
+                  const parentEnd = selection.from - $pos.parentOffset + parent.content.size;
+                  let targetPos = selection.from;
+                  while (targetPos < parentEnd) {
+                    const $t = state.doc.resolve(targetPos);
+                    const nodeAfter = $t.nodeAfter;
+                    if (nodeAfter && nodeAfter.isText && nodeAfter.marks.some((m: PMMark) => m.type === deletionType)) {
+                      targetPos += nodeAfter.nodeSize;
+                    } else {
+                      break;
+                    }
+                  }
+                  if (targetPos >= parentEnd) {
+                    // Everything after cursor is already deleted — just move cursor
+                    const tr = state.tr.setSelection(TextSelection.create(state.doc, parentEnd));
+                    tr.setMeta('trackChangesInternal', true);
+                    tr.setMeta('addToHistory', false);
+                    view.dispatch(tr);
+                    return true;
+                  }
+                  from = targetPos;
+                  to = targetPos + 1;
                 }
               } else {
                 from = selection.from;
