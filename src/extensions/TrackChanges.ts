@@ -1213,6 +1213,22 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                       ' '
                     );
 
+                    // If insertion happened inside an existing tracked deletion,
+                    // keep the inserted text plain and split the deletion run.
+                    const insideDeletion = deletionType
+                      ? (() => {
+                          const seg = findDeletionSegmentAtPos(oldState.doc, oldStart, deletionType);
+                          return Boolean(seg && oldStart > seg.from && oldStart < seg.to);
+                        })()
+                      : false;
+
+                    if (insideDeletion) {
+                      if (deletionType) newTr.removeMark(newStart, newEnd, deletionType);
+                      newTr.removeMark(newStart, newEnd, insertionType);
+                      modified = true;
+                      return;
+                    }
+
                     const hasActiveMerge =
                       extension.storage.lastInsertionId &&
                       now - extension.storage.lastInsertionTime <
