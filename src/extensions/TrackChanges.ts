@@ -759,6 +759,90 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
             return true;
           },
 
+          // Proactive interception for Enter key and Backspace/Delete
+          handleKeyDown(view, event) {
+            const { state } = view;
+            const insertionType = state.schema.marks.trackInsertion;
+            const deletionType = state.schema.marks.trackDeletion;
+            if (!insertionType && !deletionType) return false;
+
+            // === TRACKING ON: intercept Backspace/Delete synchronously ===
+            if (extension.storage.enabled) {
+              if (event.key !== 'Backspace' && event.key !== 'Delete') return false;
+              // Don't intercept Ctrl/Meta word-delete — let appendTransaction handle
+              if (event.ctrlKey || event.metaKey || event.altKey) return false;
+
+              const { selection } = state;
+              let from: number, to: number;
+
+              if (selection.empty) {
+                const $pos = state.doc.resolve(selection.from);
+                if (event.key === 'Backspace') {
+                  if ($pos.parentOffset === 0) return false; // block boundary
+                  const parentStart = selection.from - $pos.parentOffset;
+                  // Skip backward over already-deleted text using nodeBefore
+                  let targetPos = selection.from;
+                  while (targetPos > parentStart) {
+                    const $t = state.doc.resolve(targetPos);
+                    const before = $t.nodeBefore;
+                    if (before && before.isText && before.marks.some((m: PMMark) => m.type === deletionType)) {
+                      targetPos -= before.nodeSize;
+                    } else {
+                      break;
+                    }
+                  }
+                  if (targetPos <= parentStart) {
+                    // Everything before cursor is already deleted — just move cursor
+                    const tr = state.tr.setSelection(TextSelection.create(state.doc, parentStart));
+                    tr.setMeta('trackChangesInternal', true);
+                    tr.setMeta('addToHistory', false);
+                    view.dispatch(tr);
+                    return true;
+                  }
+                  // Target the single character just before targetPos
+                  from = targetPos - 1;
+                  to = targetPos;
+                } else {
+                  if ($pos.parentOffset === $pos.parent.content.size) return false; // end of block
+                  const parentEnd = selection.from - $pos.parentOffset + $pos.parent.content.size;
+                  // Skip forward over already-deleted text using nodeAfter
+                  // Account for textOffset when inside a text node
+                  let targetPos = selection.from;
+                  while (targetPos < parentEnd) {
+                    const $t = state.doc.resolve(targetPos);
+                    const after = $t.nodeAfter;
+                    if (after && after.isText && after.marks.some((m: PMMark) => m.type === deletionType)) {
+                      // Skip to end of this text node (handle mid-node positions)
+                      targetPos += after.nodeSize - $t.textOffset;
+                    } else {
+                      break;
+                    }
+                  }
+                  if (targetPos >= parentEnd) {
+                    // Everything after cursor is already deleted — just move cursor
+                    const tr = state.tr.setSelection(TextSelection.create(state.doc, parentEnd));
+                    tr.setMeta('trackChangesInternal', true);
+                    tr.setMeta('addToHistory', false);
+                    view.dispatch(tr);
+                    return true;
+                  }
+                  from = targetPos;
+                  to = targetPos + 1;
+                }
+              } else {
+                from = selection.from;
+                to = selection.to;
+              }
+
+              // Check if crosses block boundaries → let appendTransaction handle
+              try {
+                const $from = state.doc.resolve(from);
+                const $to = state.doc.resolve(to);
+                if (!$from.sameParent($to)) return false;
+              } catch {
+                return false;
+              }
+
               const authorId = extension.options.authorId;
               const authorName = extension.options.authorName;
               const authorColor = extension.options.authorColor;
