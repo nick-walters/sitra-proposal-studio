@@ -683,55 +683,80 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
            *               split deletion if typing in the middle.
            */
           handleTextInput(view, from, to, text) {
-            // === TRACKING ON: strip deletion marks from typed text ===
-            if (extension.storage.enabled) {
-              const { state } = view;
-              const deletionType = state.schema.marks.trackDeletion;
-              if (!deletionType) return false;
-
-              const currentMarks = state.storedMarks || state.selection.$from.marks();
-              const hasDeletionMark = currentMarks.some((m) => m.type === deletionType);
-              if (!hasDeletionMark) return false;
-
-              // Strip deletion marks, keep everything else
-              const clean = currentMarks.filter((m) => m.type !== deletionType);
-              const tr = state.tr.insertText(text, from, to);
-              const insertEnd = from + text.length;
-              tr.removeMark(from, insertEnd, deletionType);
-              tr.setStoredMarks(clean);
-              tr.setMeta('addToHistory', true);
-              // Don't set trackChangesInternal so appendTransaction can add insertion mark
-              view.dispatch(tr);
-              return true;
-            }
-
-            // === TRACKING OFF: safety net for storedMarks ===
-            // With inclusive:false on TrackDeletionMark, the mark won't extend
-            // to newly typed text. We only need to ensure storedMarks are clean
-            // as a defensive measure.
             const { state } = view;
             const insertionType = state.schema.marks.trackInsertion;
             const deletionType = state.schema.marks.trackDeletion;
             if (!insertionType && !deletionType) return false;
 
             const currentMarks = state.storedMarks || state.selection.$from.marks();
+            const cleanMarks = currentMarks.filter(
+              (m) => m.type !== insertionType && m.type !== deletionType
+            );
+
+            const isCollapsed = from === to;
+            const deletionSegment = deletionType && isCollapsed
+              ? findDeletionSegmentAtPos(state.doc, from, deletionType)
+              : null;
+
+            const isInsideDeletion = Boolean(
+              deletionSegment && from > deletionSegment.from && from < deletionSegment.to
+            );
+            const isAtDeletionBoundary = Boolean(
+              deletionSegment && (from === deletionSegment.from || from === deletionSegment.to)
+            );
+
+            // Typing inside an existing deletion must split it into two deletion runs
+            // with plain text in the middle (never inherit tracked marks).
+            if (isInsideDeletion) {
+              const tr = state.tr.insertText(text, from, to);
+              const insertEnd = from + text.length;
+
+              if (deletionType) tr.removeMark(from, insertEnd, deletionType);
+              if (insertionType) tr.removeMark(from, insertEnd, insertionType);
+
+              tr.setStoredMarks(cleanMarks);
+              tr.setMeta('trackChangesInternal', true);
+              tr.setMeta('addToHistory', true);
+
+              try {
+                tr.setSelection(TextSelection.near(tr.doc.resolve(insertEnd), 1));
+              } catch {
+                // let PM recover selection if needed
+              }
+
+              view.dispatch(tr);
+
+              const changes = collectChangesFromDoc(view.state.doc, state.schema);
+              extension.storage.changes = changes;
+              extension.options.onChangesUpdate?.(changes);
+              return true;
+            }
+
             const hasTrackMarks = currentMarks.some(
               (m) => m.type === insertionType || m.type === deletionType
             );
 
-            if (!hasTrackMarks) return false;
+            // No tracked context: let PM do normal typing.
+            if (!hasTrackMarks && !isAtDeletionBoundary) return false;
 
-            // Build clean mark set and set storedMarks so typing doesn't inherit
-            const clean = currentMarks.filter(
-              (m) => m.type !== insertionType && m.type !== deletionType
-            );
-            const tr = state.tr.setStoredMarks(clean);
-            tr.setMeta('trackChangesInternal', true);
-            tr.setMeta('addToHistory', false);
+            // Tracking OFF: clear stored marks only, let default insertion run.
+            if (!extension.storage.enabled) {
+              const tr = state.tr.setStoredMarks(cleanMarks);
+              tr.setMeta('trackChangesInternal', true);
+              tr.setMeta('addToHistory', false);
+              view.dispatch(tr);
+              return false;
+            }
+
+            // Tracking ON near tracked marks: force clean insertion point so text
+            // cannot inherit deletion styling; appendTransaction will mark insertion.
+            const tr = state.tr.insertText(text, from, to);
+            const insertEnd = from + text.length;
+            if (deletionType) tr.removeMark(from, insertEnd, deletionType);
+            tr.setStoredMarks(cleanMarks);
+            tr.setMeta('addToHistory', true);
             view.dispatch(tr);
-
-            // Return false so default PM typing handler still inserts the text
-            return false;
+            return true;
           },
 
           // Proactive interception for Enter key and Backspace/Delete
@@ -1187,6 +1212,22 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                       newEnd,
                       ' '
                     );
+
+                    // If insertion happened inside an existing tracked deletion,
+                    // keep the inserted text plain and split the deletion run.
+                    const insideDeletion = deletionType
+                      ? (() => {
+                          const seg = findDeletionSegmentAtPos(oldState.doc, oldStart, deletionType);
+                          return Boolean(seg && oldStart > seg.from && oldStart < seg.to);
+                        })()
+                      : false;
+
+                    if (insideDeletion) {
+                      if (deletionType) newTr.removeMark(newStart, newEnd, deletionType);
+                      newTr.removeMark(newStart, newEnd, insertionType);
+                      modified = true;
+                      return;
+                    }
 
                     const hasActiveMerge =
                       extension.storage.lastInsertionId &&
