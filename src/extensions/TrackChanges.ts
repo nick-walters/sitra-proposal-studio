@@ -264,6 +264,10 @@ const trackChangeAttributes = () => ({
 
 const TrackInsertionMark = Mark.create({
   name: 'trackInsertion',
+
+  // Prevent insertion marks from bleeding to adjacent text when tracking is OFF.
+  // appendTransaction handles adding insertion marks to new text when tracking is ON.
+  inclusive: false,
   
   addAttributes() {
     return trackChangeAttributes();
@@ -750,21 +754,19 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                 const $pos = state.doc.resolve(selection.from);
                 if (event.key === 'Backspace') {
                   if ($pos.parentOffset === 0) return false; // block boundary
-                  // Skip backwards over already-deleted text
-                  const parent = $pos.parent;
                   const parentStart = selection.from - $pos.parentOffset;
-                  let targetPos = selection.from - 1;
-                  while (targetPos >= parentStart) {
+                  // Skip backward over already-deleted text using nodeBefore
+                  let targetPos = selection.from;
+                  while (targetPos > parentStart) {
                     const $t = state.doc.resolve(targetPos);
-                    const nodeAfter = $t.nodeAfter;
-                    if (nodeAfter && nodeAfter.isText && nodeAfter.marks.some((m: PMMark) => m.type === deletionType)) {
-                      targetPos -= nodeAfter.nodeSize;
+                    const before = $t.nodeBefore;
+                    if (before && before.isText && before.marks.some((m: PMMark) => m.type === deletionType)) {
+                      targetPos -= before.nodeSize;
                     } else {
                       break;
                     }
                   }
-                  // Also check nodeBefore at targetPos+1
-                  if (targetPos < parentStart) {
+                  if (targetPos <= parentStart) {
                     // Everything before cursor is already deleted — just move cursor
                     const tr = state.tr.setSelection(TextSelection.create(state.doc, parentStart));
                     tr.setMeta('trackChangesInternal', true);
@@ -772,19 +774,21 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                     view.dispatch(tr);
                     return true;
                   }
-                  from = targetPos;
-                  to = targetPos + 1;
+                  // Target the single character just before targetPos
+                  from = targetPos - 1;
+                  to = targetPos;
                 } else {
                   if ($pos.parentOffset === $pos.parent.content.size) return false; // end of block
-                  // Skip forward over already-deleted text
-                  const parent = $pos.parent;
-                  const parentEnd = selection.from - $pos.parentOffset + parent.content.size;
+                  const parentEnd = selection.from - $pos.parentOffset + $pos.parent.content.size;
+                  // Skip forward over already-deleted text using nodeAfter
+                  // Account for textOffset when inside a text node
                   let targetPos = selection.from;
                   while (targetPos < parentEnd) {
                     const $t = state.doc.resolve(targetPos);
-                    const nodeAfter = $t.nodeAfter;
-                    if (nodeAfter && nodeAfter.isText && nodeAfter.marks.some((m: PMMark) => m.type === deletionType)) {
-                      targetPos += nodeAfter.nodeSize;
+                    const after = $t.nodeAfter;
+                    if (after && after.isText && after.marks.some((m: PMMark) => m.type === deletionType)) {
+                      // Skip to end of this text node (handle mid-node positions)
+                      targetPos += after.nodeSize - $t.textOffset;
                     } else {
                       break;
                     }
@@ -878,6 +882,8 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                   timestamp: new Date().toISOString(),
                 });
                 for (const r of toMarkDel) {
+                  // Remove any existing insertion marks to prevent double-marking corruption
+                  tr.removeMark(r.from, r.to, insertionType);
                   tr.addMark(r.from, r.to, mark);
                   deletionEnd = Math.max(deletionEnd, r.to);
                 }
@@ -889,17 +895,17 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                 tr.delete(r.from, r.to);
               }
 
-              // Rule A: Set cursor to RIGHT edge of the deletion span
-              let cursorPos: number;
-              if (toMarkDel.length > 0) {
-                // Map the deletion end through any actual deletions that happened
-                cursorPos = tr.mapping.map(deletionEnd);
-              } else {
-                cursorPos = tr.mapping.map(from);
-              }
+              // Rule A: Set cursor to RIGHT edge of the deletion span using stable placement
               try {
-                cursorPos = Math.min(Math.max(cursorPos, 0), tr.doc.content.size);
-                tr.setSelection(TextSelection.create(tr.doc, cursorPos));
+                let cursorTarget: number;
+                if (toMarkDel.length > 0) {
+                  cursorTarget = tr.mapping.map(deletionEnd);
+                } else {
+                  cursorTarget = tr.mapping.map(from);
+                }
+                cursorTarget = Math.min(Math.max(cursorTarget, 0), tr.doc.content.size);
+                const $cursor = tr.doc.resolve(cursorTarget);
+                tr.setSelection(TextSelection.near($cursor));
               } catch { /* let PM handle */ }
 
               // Clear stored marks to prevent track mark inheritance
