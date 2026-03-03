@@ -289,6 +289,10 @@ const TrackInsertionMark = Mark.create({
 
 const TrackDeletionMark = Mark.create({
   name: 'trackDeletion',
+
+  // CRITICAL: Prevent deletion marks from extending to adjacent typed text.
+  // Without this, typing at the boundary of a deletion inherits strikethrough.
+  inclusive: false,
   
   addAttributes() {
     return trackChangeAttributes();
