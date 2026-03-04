@@ -436,18 +436,48 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
             (m) => m.type !== insertionType && m.type !== deletionType
           );
 
-          // ── Tracking OFF: insert text, strip any inherited track marks ──
-          if (!extension.storage.enabled) {
-            const tr = state.tr.insertText(text, from, to);
-            const insertEnd = from + text.length;
-            if (deletionType) tr.removeMark(from, insertEnd, deletionType);
-            if (insertionType) tr.removeMark(from, insertEnd, insertionType);
-            tr.setStoredMarks(cleanMarks);
-            tr.setMeta('trackChangesInternal', true);
-            tr.setMeta('addToHistory', true);
-            view.dispatch(tr);
-            return true;
-          }
+// ── Tracking OFF: insert text, strip any inherited track marks ──
+if (!extension.storage.enabled) {
+  const tr = state.tr.insertText(text, from, to);
+  const insertEnd = from + text.length;
+
+  // Strip track marks from the newly inserted text
+  if (deletionType) tr.removeMark(from, insertEnd, deletionType);
+  if (insertionType) tr.removeMark(from, insertEnd, insertionType);
+
+  // Split any tracked span that was bisected by this insertion.
+  const $from = state.doc.resolve(from);
+  const nodeAfter = $from.nodeAfter;
+  if (nodeAfter?.isText) {
+    const trackMarkAfter =
+      nodeAfter.marks.find((m: PMMark) => m.type === insertionType) ||
+      nodeAfter.marks.find((m: PMMark) => m.type === deletionType);
+    if (trackMarkAfter) {
+      const nodeBefore = $from.nodeBefore;
+      const trackMarkBefore = nodeBefore?.marks.find(
+        (m: PMMark) => m.type === trackMarkAfter.type && m.attrs.changeId === trackMarkAfter.attrs.changeId
+      );
+      if (trackMarkBefore) {
+        const rightFrom = insertEnd;
+        const rightTo = tr.mapping.map(from + nodeAfter.nodeSize);
+        if (rightTo > rightFrom) {
+          const newMark = trackMarkAfter.type.create({
+            ...trackMarkAfter.attrs,
+            changeId: generateChangeId(),
+          });
+          tr.removeMark(rightFrom, rightTo, trackMarkAfter.type);
+          tr.addMark(rightFrom, rightTo, newMark);
+        }
+      }
+    }
+  }
+
+  tr.setStoredMarks(cleanMarks);
+  tr.setMeta('trackChangesInternal', true);
+  tr.setMeta('addToHistory', true);
+  view.dispatch(tr);
+  return true;
+}
 
           // ── Tracking ON ──
           const MERGE_WINDOW = 5000;
