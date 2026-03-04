@@ -647,6 +647,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
             if (!insertionType && !deletionType) return false;
 
             const currentMarks = state.storedMarks || state.selection.$from.marks();
+            console.log('TC-DEBUG marks:', currentMarks.map(m => m.type.name), 'enabled:', extension.storage.enabled, 'from:', from);
             const cleanMarks = currentMarks.filter(
               (m) => m.type !== insertionType && m.type !== deletionType
             );
