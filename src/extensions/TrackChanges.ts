@@ -1,5 +1,6 @@
 import { Extension, Mark, mergeAttributes } from '@tiptap/core';
 import { Plugin, PluginKey, TextSelection } from 'prosemirror-state';
+import { Decoration, DecorationSet } from 'prosemirror-view';
 import { Mark as PMMark, Fragment } from 'prosemirror-model';
 
 export interface TrackChange {
@@ -40,181 +41,108 @@ declare module '@tiptap/core' {
 }
 
 export const trackChangesPluginKey = new PluginKey('trackChanges');
+const trackDecorationsPluginKey = new PluginKey('trackDecorations');
 
 function generateChangeId(): string {
   return `change-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────
+// ── Collect changes from doc ─────────────────────────────────────────────
 
-/**
- * Detect whether the cursor is inside a text node carrying trackDeletion.
- * Returns the absolute bounds of that deletion node + its attrs.
- *
- * BUG FIX: Use strict interior check (> and <) to avoid triggering the
- * split path when the cursor is sitting exactly at the boundary between
- * a deletion node and a non-deletion node. Boundary positions should fall
- * through to normal typing, not into the split-deletion path.
- */
-function getDeletionCursorContext(
-  state: any,
-  pos: number,
-  deletionType: any
-): { nodeFrom: number; nodeTo: number; attrs: any } | null {
-  if (!deletionType) return null;
-
-  let $pos;
-  try {
-    $pos = state.doc.resolve(pos);
-  } catch {
-    return null;
-  }
-
-  const parent = $pos.parent;
-  if (!parent || !parent.isTextblock) return null;
-
-  const parentOffset = $pos.parentOffset;
-  let offsetCursor = 0;
-
-  for (let i = 0; i < parent.childCount; i += 1) {
-    const child = parent.child(i);
-    const childStart = offsetCursor;
-    const childEnd = childStart + child.nodeSize;
-    offsetCursor = childEnd;
-
-    if (!child.isText) continue;
-    const deletionMark = child.marks.find((m: PMMark) => m.type === deletionType);
-    if (!deletionMark) continue;
-
-    // STRICT interior check: cursor must be strictly inside the deletion node,
-    // NOT at either boundary. Boundary positions (== childStart or == childEnd)
-    // are handled by the normal typing path with inclusive: false on the mark.
-    console.log('TC-DEBUG', { parentOffset, childStart, childEnd, isText: child.isText });
-    if (parentOffset > childStart && parentOffset < childEnd) {
-      const nodeFrom = pos - (parentOffset - childStart);
-      const nodeTo = nodeFrom + child.nodeSize;
-      return { nodeFrom, nodeTo, attrs: deletionMark.attrs };
-    }
-  }
-
-  return null;
-}
-
-/**
- * Scan the document for all insertion/deletion marks and build
- * a list of TrackChange objects with current positions.
- */
 function collectChangesFromDoc(doc: any, schema: any): TrackChange[] {
   const changes: TrackChange[] = [];
   const insertionType = schema.marks.trackInsertion;
   const deletionType = schema.marks.trackDeletion;
   if (!insertionType && !deletionType) return [];
 
-  let currentRun: { changeId: string; type: 'insertion' | 'deletion'; attrs: any; from: number; to: number } | null = null;
+  let currentRun: {
+    changeId: string;
+    type: 'insertion' | 'deletion';
+    attrs: any;
+    from: number;
+    to: number;
+  } | null = null;
+
+  const flush = () => {
+    if (!currentRun) return;
+    changes.push({
+      id: currentRun.changeId,
+      type: currentRun.type,
+      authorId: currentRun.attrs.authorId || '',
+      authorName: currentRun.attrs.authorName || 'Unknown',
+      authorColor: currentRun.attrs.authorColor || '#3B82F6',
+      timestamp: new Date(currentRun.attrs.timestamp || Date.now()),
+      from: currentRun.from,
+      to: currentRun.to,
+      content: doc.textBetween(currentRun.from, currentRun.to, ' '),
+    });
+    currentRun = null;
+  };
 
   doc.descendants((node: any, pos: number) => {
-    if (!node.isText) {
-      if (currentRun) {
-        changes.push({
-          id: currentRun.changeId,
-          type: currentRun.type,
-          authorId: currentRun.attrs.authorId || '',
-          authorName: currentRun.attrs.authorName || 'Unknown',
-          authorColor: currentRun.attrs.authorColor || '#3B82F6',
-          timestamp: new Date(currentRun.attrs.timestamp || Date.now()),
-          from: currentRun.from,
-          to: currentRun.to,
-          content: doc.textBetween(currentRun.from, currentRun.to, ' '),
-        });
-        currentRun = null;
-      }
-      return;
+    if (!node.isText) { flush(); return; }
+
+    let trackMark: PMMark | undefined;
+    for (const m of node.marks) {
+      if (m.type === insertionType || m.type === deletionType) { trackMark = m; break; }
     }
 
-    for (const mark of node.marks) {
-      if (mark.type === insertionType || mark.type === deletionType) {
-        const markEnd = pos + node.nodeSize;
-        const changeId = mark.attrs.changeId;
-        const type = mark.type === insertionType ? 'insertion' : 'deletion';
+    if (!trackMark) { flush(); return; }
 
-        if (currentRun && currentRun.changeId === changeId && currentRun.type === type && pos <= currentRun.to) {
-          currentRun.to = markEnd;
-        } else {
-          if (currentRun) {
-            changes.push({
-              id: currentRun.changeId,
-              type: currentRun.type,
-              authorId: currentRun.attrs.authorId || '',
-              authorName: currentRun.attrs.authorName || 'Unknown',
-              authorColor: currentRun.attrs.authorColor || '#3B82F6',
-              timestamp: new Date(currentRun.attrs.timestamp || Date.now()),
-              from: currentRun.from,
-              to: currentRun.to,
-              content: doc.textBetween(currentRun.from, currentRun.to, ' '),
-            });
-          }
-          currentRun = { changeId, type, attrs: mark.attrs, from: pos, to: markEnd };
-        }
-        return;
-      }
-    }
+    const changeId = trackMark.attrs.changeId;
+    const type = trackMark.type === insertionType ? 'insertion' : 'deletion';
+    const markEnd = pos + node.nodeSize;
 
-    if (currentRun) {
-      changes.push({
-        id: currentRun.changeId,
-        type: currentRun.type,
-        authorId: currentRun.attrs.authorId || '',
-        authorName: currentRun.attrs.authorName || 'Unknown',
-        authorColor: currentRun.attrs.authorColor || '#3B82F6',
-        timestamp: new Date(currentRun.attrs.timestamp || Date.now()),
-        from: currentRun.from,
-        to: currentRun.to,
-        content: doc.textBetween(currentRun.from, currentRun.to, ' '),
-      });
-      currentRun = null;
+    if (currentRun && currentRun.changeId === changeId && currentRun.type === type && pos <= currentRun.to) {
+      currentRun.to = markEnd;
+    } else {
+      flush();
+      currentRun = { changeId, type, attrs: trackMark.attrs, from: pos, to: markEnd };
     }
   });
 
-  if (currentRun) {
-    const r = currentRun;
-    changes.push({
-      id: r.changeId,
-      type: r.type,
-      authorId: r.attrs.authorId || '',
-      authorName: r.attrs.authorName || 'Unknown',
-      authorColor: r.attrs.authorColor || '#3B82F6',
-      timestamp: new Date(r.attrs.timestamp || Date.now()),
-      from: r.from,
-      to: r.to,
-      content: doc.textBetween(r.from, r.to, ' '),
-    });
-  }
-
+  flush();
   return changes;
 }
 
-/**
- * Defensive invariant: a text node must never carry both insertion and deletion marks.
- * If both are present, deletion is stripped.
- */
-function stripInvalidMixedTrackMarks(doc: any, tr: any, schema: any): boolean {
+// ── Build decorations from doc ───────────────────────────────────────────
+
+function buildDecorations(doc: any, schema: any): DecorationSet {
   const insertionType = schema.marks.trackInsertion;
   const deletionType = schema.marks.trackDeletion;
-  if (!insertionType || !deletionType) return false;
+  if (!insertionType && !deletionType) return DecorationSet.empty;
 
-  let modified = false;
+  const decos: Decoration[] = [];
+
   doc.descendants((node: any, pos: number) => {
     if (!node.isText) return;
-    const hasInsertion = node.marks.some((m: PMMark) => m.type === insertionType);
-    const hasDeletion = node.marks.some((m: PMMark) => m.type === deletionType);
-    if (!hasInsertion || !hasDeletion) return;
-
-    tr.removeMark(pos, pos + node.nodeSize, deletionType);
-    modified = true;
+    for (const mark of node.marks) {
+      if (mark.type === insertionType) {
+        const color = mark.attrs.authorColor || '#3B82F6';
+        decos.push(
+          Decoration.inline(pos, pos + node.nodeSize, {
+            style: `background-color: rgba(34, 197, 94, 0.3); border-bottom: 2px solid ${color};`,
+            'data-track-insertion': '',
+            'data-change-id': mark.attrs.changeId,
+          })
+        );
+      } else if (mark.type === deletionType) {
+        const color = mark.attrs.authorColor || '#EF4444';
+        decos.push(
+          Decoration.inline(pos, pos + node.nodeSize, {
+            style: `background-color: rgba(239, 68, 68, 0.2); text-decoration: line-through; text-decoration-color: ${color}; color: #9ca3af;`,
+            'data-track-deletion': '',
+            'data-change-id': mark.attrs.changeId,
+          })
+        );
+      }
+    }
   });
 
-  return modified;
+  return DecorationSet.create(doc, decos);
 }
+
+// ── Mark definitions (data-only, no visual styling) ──────────────────────
 
 const trackChangeAttributes = () => ({
   changeId: {
@@ -247,52 +175,28 @@ const trackChangeAttributes = () => ({
 const TrackInsertionMark = Mark.create({
   name: 'trackInsertion',
   inclusive: false,
-  
-  addAttributes() {
-    return trackChangeAttributes();
-  },
+  excludes: 'trackDeletion',
 
-  parseHTML() {
-    return [{ tag: 'span[data-track-insertion]' }];
+  addAttributes() { return trackChangeAttributes(); },
+  parseHTML() { return [{ tag: 'span[data-track-insertion]' }]; },
+  renderHTML({ HTMLAttributes }) {
+    return ['span', mergeAttributes(HTMLAttributes, { 'data-track-insertion': '' }), 0];
   },
-
-renderHTML({ HTMLAttributes }) {
-  const authorColor = HTMLAttributes['data-author-color'] || '#3B82F6';
-  return [
-    'span',
-    mergeAttributes(HTMLAttributes, {
-      'data-track-insertion': '',
-      style: `background-color: rgba(34, 197, 94, 0.3); border-bottom: 2px solid ${authorColor}; text-decoration: none;`,
-    }),
-    0,
-  ];
-},
 });
 
 const TrackDeletionMark = Mark.create({
   name: 'trackDeletion',
   inclusive: false,
-  
-  addAttributes() {
-    return trackChangeAttributes();
-  },
+  excludes: 'trackInsertion',
 
-  parseHTML() {
-    return [{ tag: 'span[data-track-deletion]' }];
-  },
-
+  addAttributes() { return trackChangeAttributes(); },
+  parseHTML() { return [{ tag: 'span[data-track-deletion]' }]; },
   renderHTML({ HTMLAttributes }) {
-    const authorColor = HTMLAttributes['data-author-color'] || '#3B82F6';
-    return [
-      'span',
-      mergeAttributes(HTMLAttributes, {
-        'data-track-deletion': '',
-        style: `background-color: rgba(239, 68, 68, 0.2); text-decoration: line-through; text-decoration-color: ${authorColor}; color: #9ca3af;`,
-      }),
-      0,
-    ];
+    return ['span', mergeAttributes(HTMLAttributes, { 'data-track-deletion': '' }), 0];
   },
 });
+
+// ── Main extension ───────────────────────────────────────────────────────
 
 export const TrackChanges = Extension.create<TrackChangesOptions>({
   name: 'trackChanges',
@@ -333,219 +237,125 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           this.storage.lastInsertionTime = 0;
           this.storage.lastDeletionId = null;
           this.storage.lastDeletionTime = 0;
-
-          if (!this.storage.enabled) {
-            const { state } = editor;
-            const { storedMarks } = state;
-            const insertionType = state.schema.marks.trackInsertion;
-            const deletionType = state.schema.marks.trackDeletion;
-            if (storedMarks && (insertionType || deletionType)) {
-              const cleaned = storedMarks.filter(
-                (m) => m.type !== insertionType && m.type !== deletionType
-              );
-              if (cleaned.length !== storedMarks.length) {
-                const tr = state.tr.setStoredMarks(cleaned);
-                tr.setMeta('trackChangesInternal', true);
-                tr.setMeta('addToHistory', false);
-                editor.view.dispatch(tr);
-                return true;
-              }
-            }
-          }
-
-          editor.view.dispatch(editor.state.tr);
+          editor.view.dispatch(editor.state.tr.setMeta('trackChangesInternal', true));
           return true;
         },
 
       acceptChange:
         (changeId: string) =>
         ({ editor, tr, state, dispatch }) => {
-          const doc = state.doc;
-          const schema = state.schema;
-          const insertionType = schema.marks.trackInsertion;
-          const deletionType = schema.marks.trackDeletion;
-
+          const insertionType = state.schema.marks.trackInsertion;
+          const deletionType = state.schema.marks.trackDeletion;
           const ranges: { from: number; to: number; type: 'insertion' | 'deletion' }[] = [];
-          doc.descendants((node: any, pos: number) => {
+
+          state.doc.descendants((node: any, pos: number) => {
             if (!node.isText) return;
             for (const mark of node.marks) {
-              if (
-                (mark.type === insertionType || mark.type === deletionType) &&
-                mark.attrs.changeId === changeId
-              ) {
-                ranges.push({
-                  from: pos,
-                  to: pos + node.nodeSize,
-                  type: mark.type === insertionType ? 'insertion' : 'deletion',
-                });
+              if ((mark.type === insertionType || mark.type === deletionType) && mark.attrs.changeId === changeId) {
+                ranges.push({ from: pos, to: pos + node.nodeSize, type: mark.type === insertionType ? 'insertion' : 'deletion' });
               }
             }
           });
 
           if (ranges.length === 0) return false;
-
           const changeType = ranges[0].type;
 
           if (changeType === 'insertion') {
-            for (const range of ranges) {
-              tr.removeMark(range.from, range.to, insertionType);
-            }
+            for (const r of ranges) tr.removeMark(r.from, r.to, insertionType);
           } else {
-            const sorted = [...ranges].sort((a, b) => b.from - a.from);
-            for (const range of sorted) {
-              tr.delete(range.from, range.to);
-            }
+            for (const r of [...ranges].sort((a, b) => b.from - a.from)) tr.delete(r.from, r.to);
           }
 
           tr.setMeta('trackChangesInternal', true);
           if (dispatch) dispatch(tr);
-
           setTimeout(() => {
             this.storage.changes = collectChangesFromDoc(editor.state.doc, editor.state.schema);
             this.options.onChangesUpdate?.(this.storage.changes);
           }, 0);
-
           return true;
         },
 
       rejectChange:
         (changeId: string) =>
         ({ editor, tr, state, dispatch }) => {
-          const doc = state.doc;
-          const schema = state.schema;
-          const insertionType = schema.marks.trackInsertion;
-          const deletionType = schema.marks.trackDeletion;
-
+          const insertionType = state.schema.marks.trackInsertion;
+          const deletionType = state.schema.marks.trackDeletion;
           const ranges: { from: number; to: number; type: 'insertion' | 'deletion' }[] = [];
-          doc.descendants((node: any, pos: number) => {
+
+          state.doc.descendants((node: any, pos: number) => {
             if (!node.isText) return;
             for (const mark of node.marks) {
-              if (
-                (mark.type === insertionType || mark.type === deletionType) &&
-                mark.attrs.changeId === changeId
-              ) {
-                ranges.push({
-                  from: pos,
-                  to: pos + node.nodeSize,
-                  type: mark.type === insertionType ? 'insertion' : 'deletion',
-                });
+              if ((mark.type === insertionType || mark.type === deletionType) && mark.attrs.changeId === changeId) {
+                ranges.push({ from: pos, to: pos + node.nodeSize, type: mark.type === insertionType ? 'insertion' : 'deletion' });
               }
             }
           });
 
           if (ranges.length === 0) return false;
-
           const changeType = ranges[0].type;
 
           if (changeType === 'insertion') {
-            const sorted = [...ranges].sort((a, b) => b.from - a.from);
-            for (const range of sorted) {
-              tr.delete(range.from, range.to);
-            }
+            for (const r of [...ranges].sort((a, b) => b.from - a.from)) tr.delete(r.from, r.to);
           } else {
-            for (const range of ranges) {
-              tr.removeMark(range.from, range.to, deletionType);
-            }
+            for (const r of ranges) tr.removeMark(r.from, r.to, deletionType);
           }
 
           tr.setMeta('trackChangesInternal', true);
           if (dispatch) dispatch(tr);
-
           setTimeout(() => {
             this.storage.changes = collectChangesFromDoc(editor.state.doc, editor.state.schema);
             this.options.onChangesUpdate?.(this.storage.changes);
           }, 0);
-
           return true;
         },
 
       acceptAllChanges:
         () =>
         ({ editor, tr, state, dispatch }) => {
-          const doc = state.doc;
-          const schema = state.schema;
-          const insertionType = schema.marks.trackInsertion;
-          const deletionType = schema.marks.trackDeletion;
-
+          const insertionType = state.schema.marks.trackInsertion;
+          const deletionType = state.schema.marks.trackDeletion;
           const deletionRanges: { from: number; to: number }[] = [];
-          doc.descendants((node: any, pos: number) => {
+
+          state.doc.descendants((node: any, pos: number) => {
             if (!node.isText) return;
             for (const mark of node.marks) {
-              if (mark.type === deletionType) {
-                deletionRanges.push({ from: pos, to: pos + node.nodeSize });
-              }
+              if (mark.type === deletionType) deletionRanges.push({ from: pos, to: pos + node.nodeSize });
+              if (mark.type === insertionType) tr.removeMark(pos, pos + node.nodeSize, insertionType);
             }
           });
 
-          doc.descendants((node: any, pos: number) => {
-            if (!node.isText) return;
-            for (const mark of node.marks) {
-              if (mark.type === insertionType) {
-                tr.removeMark(pos, pos + node.nodeSize, insertionType);
-              }
-            }
-          });
-
-          const sorted = [...deletionRanges].sort((a, b) => b.from - a.from);
-          for (const range of sorted) {
-            const mappedFrom = tr.mapping.map(range.from);
-            const mappedTo = tr.mapping.map(range.to);
-            tr.delete(mappedFrom, mappedTo);
+          for (const r of [...deletionRanges].sort((a, b) => b.from - a.from)) {
+            tr.delete(tr.mapping.map(r.from), tr.mapping.map(r.to));
           }
 
           tr.setMeta('trackChangesInternal', true);
           if (dispatch) dispatch(tr);
-
-          setTimeout(() => {
-            this.storage.changes = [];
-            this.options.onChangesUpdate?.([]);
-          }, 0);
-
+          setTimeout(() => { this.storage.changes = []; this.options.onChangesUpdate?.([]); }, 0);
           return true;
         },
 
       rejectAllChanges:
         () =>
         ({ editor, tr, state, dispatch }) => {
-          const doc = state.doc;
-          const schema = state.schema;
-          const insertionType = schema.marks.trackInsertion;
-          const deletionType = schema.marks.trackDeletion;
-
+          const insertionType = state.schema.marks.trackInsertion;
+          const deletionType = state.schema.marks.trackDeletion;
           const insertionRanges: { from: number; to: number }[] = [];
-          doc.descendants((node: any, pos: number) => {
+
+          state.doc.descendants((node: any, pos: number) => {
             if (!node.isText) return;
             for (const mark of node.marks) {
-              if (mark.type === insertionType) {
-                insertionRanges.push({ from: pos, to: pos + node.nodeSize });
-              }
+              if (mark.type === insertionType) insertionRanges.push({ from: pos, to: pos + node.nodeSize });
+              if (mark.type === deletionType) tr.removeMark(pos, pos + node.nodeSize, deletionType);
             }
           });
 
-          doc.descendants((node: any, pos: number) => {
-            if (!node.isText) return;
-            for (const mark of node.marks) {
-              if (mark.type === deletionType) {
-                tr.removeMark(pos, pos + node.nodeSize, deletionType);
-              }
-            }
-          });
-
-          const sorted = [...insertionRanges].sort((a, b) => b.from - a.from);
-          for (const range of sorted) {
-            const mappedFrom = tr.mapping.map(range.from);
-            const mappedTo = tr.mapping.map(range.to);
-            tr.delete(mappedFrom, mappedTo);
+          for (const r of [...insertionRanges].sort((a, b) => b.from - a.from)) {
+            tr.delete(tr.mapping.map(r.from), tr.mapping.map(r.to));
           }
 
           tr.setMeta('trackChangesInternal', true);
           if (dispatch) dispatch(tr);
-
-          setTimeout(() => {
-            this.storage.changes = [];
-            this.options.onChangesUpdate?.([]);
-          }, 0);
-
+          setTimeout(() => { this.storage.changes = []; this.options.onChangesUpdate?.([]); }, 0);
           return true;
         },
 
@@ -555,14 +365,8 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           const changes = collectChangesFromDoc(state.doc, state.schema);
           if (changes.length === 0) return false;
           const cursorPos = state.selection.from;
-          const sorted = [...changes].sort((a, b) => a.from - b.from);
-          const next = sorted.find(c => c.from > cursorPos) || sorted[0];
-          if (dispatch) {
-            const sel = TextSelection.near(state.doc.resolve(next.from));
-            tr.setSelection(sel);
-            tr.scrollIntoView();
-            dispatch(tr);
-          }
+          const next = [...changes].sort((a, b) => a.from - b.from).find((c) => c.from > cursorPos) || changes[0];
+          if (dispatch) { tr.setSelection(TextSelection.near(state.doc.resolve(next.from))); tr.scrollIntoView(); dispatch(tr); }
           return true;
         },
 
@@ -572,14 +376,8 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           const changes = collectChangesFromDoc(state.doc, state.schema);
           if (changes.length === 0) return false;
           const cursorPos = state.selection.from;
-          const sorted = [...changes].sort((a, b) => b.from - a.from);
-          const prev = sorted.find(c => c.from < cursorPos) || sorted[0];
-          if (dispatch) {
-            const sel = TextSelection.near(state.doc.resolve(prev.from));
-            tr.setSelection(sel);
-            tr.scrollIntoView();
-            dispatch(tr);
-          }
+          const prev = [...changes].sort((a, b) => b.from - a.from).find((c) => c.from < cursorPos) || changes[0];
+          if (dispatch) { tr.setSelection(TextSelection.near(state.doc.resolve(prev.from))); tr.scrollIntoView(); dispatch(tr); }
           return true;
         },
 
@@ -587,8 +385,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
         () =>
         ({ commands, state }) => {
           const cursorPos = state.selection.from;
-          const changes = collectChangesFromDoc(state.doc, state.schema);
-          const atCursor = changes.find(c => c.from <= cursorPos && c.to >= cursorPos);
+          const atCursor = collectChangesFromDoc(state.doc, state.schema).find((c) => c.from <= cursorPos && c.to >= cursorPos);
           if (!atCursor) return false;
           return commands.acceptChange(atCursor.id);
         },
@@ -597,8 +394,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
         () =>
         ({ commands, state }) => {
           const cursorPos = state.selection.from;
-          const changes = collectChangesFromDoc(state.doc, state.schema);
-          const atCursor = changes.find(c => c.from <= cursorPos && c.to >= cursorPos);
+          const atCursor = collectChangesFromDoc(state.doc, state.schema).find((c) => c.from <= cursorPos && c.to >= cursorPos);
           if (!atCursor) return false;
           return commands.rejectChange(atCursor.id);
         },
@@ -608,652 +404,393 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
   addProseMirrorPlugins() {
     const extension = this;
 
-    return [
-      new Plugin({
-        key: trackChangesPluginKey,
-
-        filterTransaction(tr, state) {
-          if (tr.getMeta('trackChangesInternal')) return true;
-
-          const schema = state.schema;
-          const insertionType = schema.marks.trackInsertion;
-          const deletionType = schema.marks.trackDeletion;
-          if (!insertionType && !deletionType) return true;
-
-          if (!extension.storage.enabled) {
-            const stored = tr.storedMarks;
-            if (stored) {
-              const hasTrack = stored.some(
-                (m) => m.type === insertionType || m.type === deletionType
-              );
-              if (hasTrack) {
-                const clean = stored.filter(
-                  (m) => m.type !== insertionType && m.type !== deletionType
-                );
-                tr.setStoredMarks(clean);
-              }
-            }
-            return true;
-          }
-
-          return true;
+    // ── Decoration plugin ──────────────────────────────────────────────
+    const decorationPlugin = new Plugin({
+      key: trackDecorationsPluginKey,
+      state: {
+        init(_, { doc, schema }) { return buildDecorations(doc, schema); },
+        apply(tr, old, _oldState, newState) {
+          if (!tr.docChanged && !tr.getMeta('trackChangesInternal')) return old.map(tr.mapping, tr.doc);
+          return buildDecorations(newState.doc, newState.schema);
         },
+      },
+      props: {
+        decorations(state) { return this.getState(state); },
+      },
+    });
 
-        props: {
-          handleTextInput(view, from, to, text) {
-            const { state } = view;
-            const insertionType = state.schema.marks.trackInsertion;
-            const deletionType = state.schema.marks.trackDeletion;
-            if (!insertionType && !deletionType) return false;
+    // ── Main plugin ────────────────────────────────────────────────────
+    const mainPlugin = new Plugin({
+      key: trackChangesPluginKey,
 
-            const currentMarks = state.storedMarks || state.selection.$from.marks();
-            console.log('TC-DEBUG marks:', currentMarks.map(m => m.type.name), 'enabled:', extension.storage.enabled, 'from:', from);
-            const cleanMarks = currentMarks.filter(
-              (m) => m.type !== insertionType && m.type !== deletionType
-            );
+      props: {
+        handleTextInput(view, from, to, text) {
+          const { state } = view;
+          const insertionType = state.schema.marks.trackInsertion;
+          const deletionType = state.schema.marks.trackDeletion;
 
-            const isCollapsed = from === to;
+          // Always compute clean marks (no track marks) to set as stored marks,
+          // preventing ProseMirror from inheriting track marks into new text.
+          const resolvedMarks = state.storedMarks ?? state.selection.$from.marks();
+          const cleanMarks = resolvedMarks.filter(
+            (m) => m.type !== insertionType && m.type !== deletionType
+          );
 
-            // BUG FIX: getDeletionCursorContext now uses strict interior check (> and <),
-            // so this only fires when cursor is genuinely INSIDE a deletion node,
-            // never at its boundaries. Boundary typing falls through to normal paths.
-            const deletionCursorContext = isCollapsed
-              ? getDeletionCursorContext(state, from, deletionType)
-              : null;
-
-            const isInsideDeletion = Boolean(deletionCursorContext);
-
-            // ── Path 1: Typing STRICTLY INSIDE an existing deletion ──
-            // Split the deletion into two runs with typed text (plain or insertion) between.
-            if (isInsideDeletion && deletionCursorContext) {
-              const tr = state.tr.insertText(text, from, to);
-              const insertEnd = from + text.length;
-
-              // Strip any track marks from the newly inserted range
-              if (deletionType) tr.removeMark(from, insertEnd, deletionType);
-              if (insertionType) tr.removeMark(from, insertEnd, insertionType);
-
-              // Re-apply deletion mark to the RIGHT segment of the split.
-              // BUG FIX: nodeTo is a pre-insert absolute position. After insertText,
-              // positions after `from` shift by text.length. Use tr.mapping.map()
-              // to get the correct post-insert position for the right segment end.
-              const rightFrom = insertEnd;
-              const rightTo = tr.mapping.map(deletionCursorContext.nodeTo);
-              if (rightTo > rightFrom) {
-                const rightDeletionMark = deletionType.create({
-                  ...deletionCursorContext.attrs,
-                  changeId: generateChangeId(),
-                });
-                tr.removeMark(rightFrom, rightTo, deletionType);
-                tr.addMark(rightFrom, rightTo, rightDeletionMark);
-              }
-
-              // BUG FIX: When tracking is ON, add insertion mark to the typed text.
-              // Previously this branch added the insertion mark correctly, but the
-              // boundary branch below did NOT — causing strikethrough on boundary typing.
-              // Both paths now consistently add insertion marks when tracking is ON.
-              if (extension.storage.enabled && insertionType) {
-                const MERGE_WINDOW = 5000;
-                const now = Date.now();
-                let changeId: string;
-                if (extension.storage.lastInsertionId && now - extension.storage.lastInsertionTime < MERGE_WINDOW) {
-                  changeId = extension.storage.lastInsertionId;
-                } else {
-                  changeId = generateChangeId();
-                }
-                extension.storage.lastInsertionId = changeId;
-                extension.storage.lastInsertionTime = now;
-
-                const insertMark = insertionType.create({
-                  changeId,
-                  authorId: extension.options.authorId,
-                  authorName: extension.options.authorName,
-                  authorColor: extension.options.authorColor,
-                  timestamp: new Date().toISOString(),
-                });
-                tr.addMark(from, insertEnd, insertMark);
-              }
-
-              tr.setStoredMarks(cleanMarks);
-              tr.setMeta('trackChangesInternal', true);
-              tr.setMeta('addToHistory', true);
-
-              try {
-                tr.setSelection(TextSelection.near(tr.doc.resolve(insertEnd), 1));
-              } catch {
-                // let PM recover selection if needed
-              }
-
-              view.dispatch(tr);
-
-              const changes = collectChangesFromDoc(view.state.doc, state.schema);
-              extension.storage.changes = changes;
-              extension.options.onChangesUpdate?.(changes);
-              return true;
-            }
-
-            const hasTrackMarks = currentMarks.some(
-              (m) => m.type === insertionType || m.type === deletionType
-            );
-
-            // No tracked context and not inside deletion: let PM handle normally.
-            if (!hasTrackMarks) return false;
-
-            // ── Path 2: Tracking OFF near tracked marks ──
-            // Clear stored marks only; let default insertion run.
-if (!extension.storage.enabled) {
-  const tr = state.tr.setStoredMarks(cleanMarks);
-  tr.setMeta('trackChangesInternal', true);
-  tr.setMeta('addToHistory', false);
-  view.dispatch(tr);
-  return false;
-}
-
-            // ── Path 3: Tracking ON at boundary of tracked marks ──
-            // BUG FIX: Previously this path stripped deletion marks and dispatched
-            // the transaction, then returned true — which blocked appendTransaction
-            // from adding the insertion mark. The insertion mark was never applied,
-            // causing new text to appear plain (and potentially inherit strikethrough
-            // from adjacent deletion nodes visually). Fix: apply the insertion mark
-            // HERE, directly in this transaction, before dispatching.
+          // ── Tracking OFF: insert text, strip any inherited track marks ──
+          if (!extension.storage.enabled) {
             const tr = state.tr.insertText(text, from, to);
             const insertEnd = from + text.length;
-
-            // Strip any inherited deletion marks from the newly inserted text
             if (deletionType) tr.removeMark(from, insertEnd, deletionType);
-
-            // Apply insertion mark immediately — do not rely on appendTransaction
-            const MERGE_WINDOW = 5000;
-            const now = Date.now();
-            let changeId: string;
-            if (extension.storage.lastInsertionId && now - extension.storage.lastInsertionTime < MERGE_WINDOW) {
-              changeId = extension.storage.lastInsertionId;
-            } else {
-              changeId = generateChangeId();
-            }
-            extension.storage.lastInsertionId = changeId;
-            extension.storage.lastInsertionTime = now;
-
-            const insertMark = insertionType.create({
-              changeId,
-              authorId: extension.options.authorId,
-              authorName: extension.options.authorName,
-              authorColor: extension.options.authorColor,
-              timestamp: new Date().toISOString(),
-            });
-            tr.addMark(from, insertEnd, insertMark);
-
+            if (insertionType) tr.removeMark(from, insertEnd, insertionType);
             tr.setStoredMarks(cleanMarks);
             tr.setMeta('trackChangesInternal', true);
             tr.setMeta('addToHistory', true);
             view.dispatch(tr);
+            return true;
+          }
 
+          // ── Tracking ON ──
+          const MERGE_WINDOW = 5000;
+          const now = Date.now();
+
+          // Detect if cursor is strictly inside a single deletion span
+          // by checking that both neighbours are text nodes with the same deletion changeId.
+          const $from = state.doc.resolve(from);
+          const nodeBefore = $from.nodeBefore;
+          const nodeAfter = $from.nodeAfter;
+          const delBefore = nodeBefore?.isText ? nodeBefore.marks.find((m: PMMark) => m.type === deletionType) : undefined;
+          const delAfter = nodeAfter?.isText ? nodeAfter.marks.find((m: PMMark) => m.type === deletionType) : undefined;
+          const isInsideDeletion = !!(delBefore && delAfter && delBefore.attrs.changeId === delAfter.attrs.changeId);
+
+          const tr = state.tr.insertText(text, from, to);
+          const insertEnd = from + text.length;
+
+          // Strip track marks from the inserted range
+          if (deletionType) tr.removeMark(from, insertEnd, deletionType);
+          if (insertionType) tr.removeMark(from, insertEnd, insertionType);
+
+          // If we split a deletion, re-apply deletion mark to the right segment
+          if (isInsideDeletion && nodeAfter && delBefore) {
+            const rightFrom = insertEnd;
+            const rightTo = tr.mapping.map(from + nodeAfter.nodeSize);
+            if (rightTo > rightFrom && deletionType) {
+              const rightDeletionMark = deletionType.create({
+                ...delBefore.attrs,
+                changeId: generateChangeId(),
+              });
+              tr.removeMark(rightFrom, rightTo, deletionType);
+              tr.addMark(rightFrom, rightTo, rightDeletionMark);
+            }
+          }
+
+          // Apply insertion mark to the typed text
+          let changeId: string;
+          if (extension.storage.lastInsertionId && now - extension.storage.lastInsertionTime < MERGE_WINDOW) {
+            changeId = extension.storage.lastInsertionId;
+          } else {
+            changeId = generateChangeId();
+          }
+          extension.storage.lastInsertionId = changeId;
+          extension.storage.lastInsertionTime = now;
+
+          tr.addMark(from, insertEnd, insertionType.create({
+            changeId,
+            authorId: extension.options.authorId,
+            authorName: extension.options.authorName,
+            authorColor: extension.options.authorColor,
+            timestamp: new Date().toISOString(),
+          }));
+
+          tr.setStoredMarks(cleanMarks);
+          tr.setMeta('trackChangesInternal', true);
+          tr.setMeta('addToHistory', true);
+
+          try { tr.setSelection(TextSelection.near(tr.doc.resolve(insertEnd), 1)); } catch { /* let PM recover */ }
+
+          view.dispatch(tr);
+
+          const changes = collectChangesFromDoc(view.state.doc, state.schema);
+          extension.storage.changes = changes;
+          extension.options.onChangesUpdate?.(changes);
+          return true;
+        },
+
+        handleKeyDown(view, event) {
+          const { state } = view;
+          const insertionType = state.schema.marks.trackInsertion;
+          const deletionType = state.schema.marks.trackDeletion;
+
+          // ── Tracking ON: intercept Backspace / Delete ──
+          if (extension.storage.enabled) {
+            if (event.key !== 'Backspace' && event.key !== 'Delete') return false;
+            if (event.ctrlKey || event.metaKey || event.altKey) return false;
+
+            const { selection } = state;
+            let from: number, to: number;
+
+            if (selection.empty) {
+              const $pos = state.doc.resolve(selection.from);
+              if (event.key === 'Backspace') {
+                if ($pos.parentOffset === 0) return false;
+                const parentStart = selection.from - $pos.parentOffset;
+                let targetPos = selection.from;
+                while (targetPos > parentStart) {
+                  const before = state.doc.resolve(targetPos).nodeBefore;
+                  if (before?.isText && before.marks.some((m: PMMark) => m.type === deletionType)) {
+                    targetPos -= before.nodeSize;
+                  } else break;
+                }
+                if (targetPos <= parentStart) {
+                  const tr = state.tr.setSelection(TextSelection.create(state.doc, parentStart));
+                  tr.setMeta('trackChangesInternal', true);
+                  tr.setMeta('addToHistory', false);
+                  view.dispatch(tr);
+                  return true;
+                }
+                from = targetPos - 1;
+                to = targetPos;
+              } else {
+                if ($pos.parentOffset === $pos.parent.content.size) return false;
+                const parentEnd = selection.from - $pos.parentOffset + $pos.parent.content.size;
+                let targetPos = selection.from;
+                while (targetPos < parentEnd) {
+                  const $t = state.doc.resolve(targetPos);
+                  const after = $t.nodeAfter;
+                  if (after?.isText && after.marks.some((m: PMMark) => m.type === deletionType)) {
+                    targetPos += after.nodeSize - $t.textOffset;
+                  } else break;
+                }
+                if (targetPos >= parentEnd) {
+                  const tr = state.tr.setSelection(TextSelection.create(state.doc, parentEnd));
+                  tr.setMeta('trackChangesInternal', true);
+                  tr.setMeta('addToHistory', false);
+                  view.dispatch(tr);
+                  return true;
+                }
+                from = targetPos;
+                to = targetPos + 1;
+              }
+            } else {
+              from = selection.from;
+              to = selection.to;
+            }
+
+            try {
+              if (!state.doc.resolve(from).sameParent(state.doc.resolve(to))) return false;
+            } catch { return false; }
+
+            const authorId = extension.options.authorId;
+            const authorName = extension.options.authorName;
+            const authorColor = extension.options.authorColor;
+            const now = Date.now();
+            const MERGE_WINDOW = 5000;
+
+            const toDelete: Array<{ from: number; to: number }> = [];
+            const toMarkDel: Array<{ from: number; to: number }> = [];
+
+            state.doc.nodesBetween(from, to, (node: any, pos: number) => {
+              if (!node.isInline) return;
+              const nFrom = Math.max(pos, from);
+              const nTo = Math.min(pos + node.nodeSize, to);
+              if (!node.isText) { toDelete.push({ from: nFrom, to: nTo }); return; }
+              if (node.marks.some((m: PMMark) => m.type === insertionType && m.attrs.authorId === authorId)) {
+                toDelete.push({ from: nFrom, to: nTo }); return;
+              }
+              if (node.marks.some((m: PMMark) => m.type === deletionType)) return;
+              toMarkDel.push({ from: nFrom, to: nTo });
+            });
+
+            if (toDelete.length === 0 && toMarkDel.length === 0) return false;
+
+            const tr = state.tr;
+            tr.setMeta('trackChangesInternal', true);
+            tr.setMeta('addToHistory', true);
+
+            let deletionEnd = from;
+            if (toMarkDel.length > 0) {
+              let changeId: string;
+              if (extension.storage.lastDeletionId && now - extension.storage.lastDeletionTime < MERGE_WINDOW) {
+                changeId = extension.storage.lastDeletionId;
+              } else {
+                changeId = generateChangeId();
+              }
+              extension.storage.lastDeletionId = changeId;
+              extension.storage.lastDeletionTime = now;
+
+              const mark = deletionType.create({ changeId, authorId, authorName, authorColor, timestamp: new Date().toISOString() });
+              for (const r of toMarkDel) {
+                tr.removeMark(r.from, r.to, insertionType);
+                tr.addMark(r.from, r.to, mark);
+                deletionEnd = Math.max(deletionEnd, r.to);
+              }
+            }
+
+            for (const r of [...toDelete].sort((a, b) => b.from - a.from)) tr.delete(r.from, r.to);
+
+            try {
+              const cursorTarget = Math.min(
+                Math.max(toMarkDel.length > 0 ? tr.mapping.map(deletionEnd) : tr.mapping.map(from), 0),
+                tr.doc.content.size
+              );
+              tr.setSelection(TextSelection.near(tr.doc.resolve(cursorTarget)));
+            } catch { /* let PM handle */ }
+
+            tr.setStoredMarks(
+              (state.storedMarks ?? state.selection.$from.marks()).filter(
+                (m) => m.type !== insertionType && m.type !== deletionType
+              )
+            );
+
+            view.dispatch(tr);
             const changes = collectChangesFromDoc(view.state.doc, state.schema);
             extension.storage.changes = changes;
             extension.options.onChangesUpdate?.(changes);
             return true;
-          },
+          }
 
-          handleKeyDown(view, event) {
-            const { state } = view;
-            const insertionType = state.schema.marks.trackInsertion;
-            const deletionType = state.schema.marks.trackDeletion;
-            if (!insertionType && !deletionType) return false;
-
-            // === TRACKING ON: intercept Backspace/Delete synchronously ===
-            if (extension.storage.enabled) {
-              if (event.key !== 'Backspace' && event.key !== 'Delete') return false;
-              if (event.ctrlKey || event.metaKey || event.altKey) return false;
-
-              const { selection } = state;
-              let from: number, to: number;
-
-              if (selection.empty) {
-                const $pos = state.doc.resolve(selection.from);
-                if (event.key === 'Backspace') {
-                  if ($pos.parentOffset === 0) return false;
-                  const parentStart = selection.from - $pos.parentOffset;
-                  let targetPos = selection.from;
-                  while (targetPos > parentStart) {
-                    const $t = state.doc.resolve(targetPos);
-                    const before = $t.nodeBefore;
-                    if (before && before.isText && before.marks.some((m: PMMark) => m.type === deletionType)) {
-                      targetPos -= before.nodeSize;
-                    } else {
-                      break;
-                    }
-                  }
-                  if (targetPos <= parentStart) {
-                    const tr = state.tr.setSelection(TextSelection.create(state.doc, parentStart));
-                    tr.setMeta('trackChangesInternal', true);
-                    tr.setMeta('addToHistory', false);
-                    view.dispatch(tr);
-                    return true;
-                  }
-                  from = targetPos - 1;
-                  to = targetPos;
-                } else {
-                  if ($pos.parentOffset === $pos.parent.content.size) return false;
-                  const parentEnd = selection.from - $pos.parentOffset + $pos.parent.content.size;
-                  let targetPos = selection.from;
-                  while (targetPos < parentEnd) {
-                    const $t = state.doc.resolve(targetPos);
-                    const after = $t.nodeAfter;
-                    if (after && after.isText && after.marks.some((m: PMMark) => m.type === deletionType)) {
-                      targetPos += after.nodeSize - $t.textOffset;
-                    } else {
-                      break;
-                    }
-                  }
-                  if (targetPos >= parentEnd) {
-                    const tr = state.tr.setSelection(TextSelection.create(state.doc, parentEnd));
-                    tr.setMeta('trackChangesInternal', true);
-                    tr.setMeta('addToHistory', false);
-                    view.dispatch(tr);
-                    return true;
-                  }
-                  from = targetPos;
-                  to = targetPos + 1;
-                }
-              } else {
-                from = selection.from;
-                to = selection.to;
-              }
-
-              try {
-                const $from = state.doc.resolve(from);
-                const $to = state.doc.resolve(to);
-                if (!$from.sameParent($to)) return false;
-              } catch {
-                return false;
-              }
-
-              const authorId = extension.options.authorId;
-              const authorName = extension.options.authorName;
-              const authorColor = extension.options.authorColor;
-              const MERGE_WINDOW = 5000;
-              const now = Date.now();
-
-              const toDelete: Array<{ from: number; to: number }> = [];
-              const toMarkDel: Array<{ from: number; to: number }> = [];
-
-              state.doc.nodesBetween(from, to, (node, pos) => {
-                if (!node.isInline) return;
-                const nFrom = Math.max(pos, from);
-                const nTo = Math.min(pos + node.nodeSize, to);
-
-                if (!node.isText) {
-                  toDelete.push({ from: nFrom, to: nTo });
-                  return;
-                }
-
-                const isOwnInsertion = node.marks.some(
-                  (m: PMMark) => m.type === insertionType && m.attrs.authorId === authorId
-                );
-                if (isOwnInsertion) {
-                  toDelete.push({ from: nFrom, to: nTo });
-                  return;
-                }
-
-                const hasExistingDeletion = node.marks.some(
-                  (m: PMMark) => m.type === deletionType
-                );
-                if (hasExistingDeletion) {
-                  return;
-                }
-
-                toMarkDel.push({ from: nFrom, to: nTo });
-              });
-
-              if (toDelete.length === 0 && toMarkDel.length === 0) return false;
-
-              const tr = state.tr;
-              tr.setMeta('trackChangesInternal', true);
-              tr.setMeta('addToHistory', true);
-
-              let deletionEnd = from;
-              if (toMarkDel.length > 0) {
-                let changeId: string;
-                if (extension.storage.lastDeletionId && now - extension.storage.lastDeletionTime < MERGE_WINDOW) {
-                  changeId = extension.storage.lastDeletionId;
-                } else {
-                  changeId = generateChangeId();
-                }
-                extension.storage.lastDeletionId = changeId;
-                extension.storage.lastDeletionTime = now;
-
-                const mark = deletionType.create({
-                  changeId,
-                  authorId,
-                  authorName,
-                  authorColor,
-                  timestamp: new Date().toISOString(),
-                });
-                for (const r of toMarkDel) {
-                  tr.removeMark(r.from, r.to, insertionType);
-                  tr.addMark(r.from, r.to, mark);
-                  deletionEnd = Math.max(deletionEnd, r.to);
-                }
-              }
-
-              const sortedDeletes = [...toDelete].sort((a, b) => b.from - a.from);
-              for (const r of sortedDeletes) {
-                tr.delete(r.from, r.to);
-              }
-
-              try {
-                let cursorTarget: number;
-                if (toMarkDel.length > 0) {
-                  cursorTarget = tr.mapping.map(deletionEnd);
-                } else {
-                  cursorTarget = tr.mapping.map(from);
-                }
-                cursorTarget = Math.min(Math.max(cursorTarget, 0), tr.doc.content.size);
-                const $cursor = tr.doc.resolve(cursorTarget);
-                tr.setSelection(TextSelection.near($cursor));
-              } catch { /* let PM handle */ }
-
-              const storedClean = (state.storedMarks || state.selection.$from.marks()).filter(
-                (m) => m.type !== insertionType && m.type !== deletionType
-              );
-              tr.setStoredMarks(storedClean);
-
-              view.dispatch(tr);
-
-              const changes = collectChangesFromDoc(view.state.doc, state.schema);
-              extension.storage.changes = changes;
-              extension.options.onChangesUpdate?.(changes);
-
-              return true;
-            }
-
-            // === TRACKING OFF: handle Enter ===
-            if (event.key !== 'Enter') return false;
-
-            const currentMarks = state.storedMarks || state.selection.$from.marks();
-            const hasTrackMarks = currentMarks.some(
-              (m) => m.type === insertionType || m.type === deletionType
-            );
-            if (!hasTrackMarks) return false;
-
-            const clean = currentMarks.filter(
-              (m) => m.type !== insertionType && m.type !== deletionType
-            );
-            const tr = state.tr.setStoredMarks(clean);
-            tr.setMeta('trackChangesInternal', true);
-            tr.setMeta('addToHistory', false);
-            view.dispatch(tr);
-            return false;
-          },
+          // ── Tracking OFF: clean stored marks on Enter ──
+          if (event.key !== 'Enter') return false;
+          const currentMarks = state.storedMarks ?? state.selection.$from.marks();
+          if (!currentMarks.some((m) => m.type === insertionType || m.type === deletionType)) return false;
+          const tr = state.tr.setStoredMarks(
+            currentMarks.filter((m) => m.type !== insertionType && m.type !== deletionType)
+          );
+          tr.setMeta('trackChangesInternal', true);
+          tr.setMeta('addToHistory', false);
+          view.dispatch(tr);
+          return false;
         },
+      },
 
-        appendTransaction(transactions, oldState, newState) {
-          for (const tr of transactions) {
-            if (tr.getMeta('blockReorder')) return null;
-          }
+      appendTransaction(transactions, oldState, newState) {
+        for (const tr of transactions) {
+          if (tr.getMeta('blockReorder')) return null;
+        }
 
-          let hasUserChange = false;
-          for (const tr of transactions) {
-            if (tr.getMeta('trackChangesInternal')) continue;
-            if (tr.getMeta('setContent') || tr.getMeta('preventUpdate') !== undefined) continue;
-            if (tr.docChanged) {
-              hasUserChange = true;
-              break;
-            }
-          }
+        const schema = newState.schema;
+        const insertionType = schema.marks.trackInsertion;
+        const deletionType = schema.marks.trackDeletion;
 
-          const schema = newState.schema;
-          const insertionType = schema.marks.trackInsertion;
-          const deletionType = schema.marks.trackDeletion;
-
-          // === TRACKING OFF ===
-          if (!extension.storage.enabled) {
-            if (!insertionType && !deletionType) return null;
-            
-            let needsTr = false;
-            const cleanTr = newState.tr;
-            cleanTr.setMeta('trackChangesInternal', true);
-            cleanTr.setMeta('addToHistory', false);
-
-            const stored = newState.storedMarks || newState.selection.$from.marks();
-            if (stored.length > 0) {
-              const withoutTrack = stored.filter(
-                (m) => m.type !== insertionType && m.type !== deletionType
-              );
-              if (withoutTrack.length !== stored.length) {
-                cleanTr.setStoredMarks(withoutTrack);
-                needsTr = true;
-              }
-            }
-
-            if (hasUserChange) {
-              for (const tr of transactions) {
-                if (!tr.docChanged || tr.getMeta('trackChangesInternal')) continue;
-                tr.steps.forEach((step) => {
-                  const stepMap = step.getMap();
-                  stepMap.forEach((oldStart: number, oldEnd: number, newStart: number, newEnd: number) => {
-if (newEnd > newStart && newEnd - newStart > oldEnd - oldStart) {
-  const netNewStart = newStart + (oldEnd - oldStart);
-  const mappedFrom = cleanTr.mapping.map(netNewStart);
-  const mappedTo = cleanTr.mapping.map(newEnd);
-  if (mappedTo > mappedFrom) {
-    if (deletionType) {
-      cleanTr.removeMark(mappedFrom, mappedTo, deletionType);
-      needsTr = true;
-    }
-    if (insertionType) {
-      cleanTr.removeMark(mappedFrom, mappedTo, insertionType);
-      needsTr = true;
-    }
-  }
-}
-                  });
-                });
-              }
-
-              if (stripInvalidMixedTrackMarks(cleanTr.doc, cleanTr, schema)) {
-                needsTr = true;
-              }
-
-              const changes = collectChangesFromDoc(needsTr ? cleanTr.doc : newState.doc, schema);
-              extension.storage.changes = changes;
-              extension.options.onChangesUpdate?.(changes);
-            }
-
-            if (stripInvalidMixedTrackMarks(needsTr ? cleanTr.doc : newState.doc, cleanTr, schema)) {
-              needsTr = true;
-              const changes = collectChangesFromDoc(cleanTr.doc, schema);
-              extension.storage.changes = changes;
-              extension.options.onChangesUpdate?.(changes);
-            }
-
-            return needsTr ? cleanTr : null;
-          }
-
-          // === TRACKING ON ===
-          const authorId = extension.options.authorId;
-          const authorName = extension.options.authorName;
-          const authorColor = extension.options.authorColor;
-
-          if (!insertionType) return null;
-
-          const newTr = newState.tr;
-          newTr.setMeta('trackChangesInternal', true);
-          newTr.setMeta('addToHistory', false);
-          let modified = false;
-
-          const MERGE_WINDOW_MS = 5000;
-          const now = Date.now();
-
-          for (const tr of transactions) {
-            if (!tr.docChanged || tr.getMeta('trackChangesInternal')) continue;
-
-            tr.steps.forEach((step) => {
-              const stepMap = step.getMap();
-
-              stepMap.forEach(
-                (oldStart: number, oldEnd: number, newStart: number, newEnd: number) => {
-                  const isDelete = oldEnd > oldStart;
-                  const isInsert = newEnd > newStart;
-
-                  // === CROSS-BLOCK DELETION ===
-                  if (isDelete) {
-                    const nodesToReinsert: any[] = [];
-                    const nodesToReject: any[] = [];
-
-                    oldState.doc.nodesBetween(oldStart, oldEnd, (node, _nodePos) => {
-                      if (!node.isText) return;
-
-                      const isOwnInsertion = node.marks.some(
-                        (m: PMMark) => m.type === insertionType && m.attrs.authorId === authorId
-                      );
-                      if (isOwnInsertion) return;
-
-                      const existingDeletion = node.marks.find(
-                        (m: PMMark) => m.type === deletionType
-                      );
-
-                      if (existingDeletion) {
-                        const cleanMarks = node.marks.filter(
-                          (m: PMMark) => m.type !== deletionType && m.type !== insertionType
-                        );
-                        nodesToReject.push(node.mark(cleanMarks));
-                      } else {
-                        nodesToReinsert.push(node);
-                      }
-                    });
-
-                    let reinsertedLength = 0;
-
-                    if (nodesToReject.length > 0) {
-                      newTr.insert(newStart, Fragment.from(nodesToReject));
-                      reinsertedLength += nodesToReject.reduce(
-                        (sum: number, n: any) => sum + n.nodeSize, 0
-                      );
-                      modified = true;
-                    }
-
-                    if (nodesToReinsert.length > 0) {
-                      let changeId: string;
-                      if (extension.storage.lastDeletionId && now - extension.storage.lastDeletionTime < MERGE_WINDOW_MS) {
-                        changeId = extension.storage.lastDeletionId;
-                      } else {
-                        changeId = generateChangeId();
-                      }
-                      extension.storage.lastDeletionId = changeId;
-                      extension.storage.lastDeletionTime = now;
-
-                      const deletionMark = deletionType.create({
-                        changeId,
-                        authorId,
-                        authorName,
-                        authorColor,
-                        timestamp: new Date().toISOString(),
-                      });
-
-                      const markedNodes = nodesToReinsert.map((node: any) => {
-                        const cleanMarks = node.marks.filter(
-                          (m: PMMark) => m.type !== insertionType
-                        );
-                        const newMarks = deletionMark.addToSet(cleanMarks);
-                        return node.mark(newMarks);
-                      });
-
-                      const insertPos = newStart + nodesToReject.reduce(
-                        (sum: number, n: any) => sum + n.nodeSize, 0
-                      );
-                      newTr.insert(insertPos, Fragment.from(markedNodes));
-
-                      const rightEdge = insertPos + markedNodes.reduce(
-                        (sum: number, n: any) => sum + n.nodeSize, 0
-                      );
-                      try {
-                        newTr.setSelection(TextSelection.create(newTr.doc, rightEdge));
-                      } catch { /* let PM handle */ }
-
-                      const storedClean = (newState.storedMarks || newState.selection.$from.marks()).filter(
-                        (m) => m.type !== insertionType && m.type !== deletionType
-                      );
-                      newTr.setStoredMarks(storedClean);
-
-                      reinsertedLength += markedNodes.reduce(
-                        (sum: number, n: any) => sum + n.nodeSize, 0
-                      );
-                      modified = true;
-                    }
-
-                    if (isInsert) {
-                      const insertedText = newState.doc.textBetween(newStart, newEnd, ' ');
-                      if (insertedText.trim()) {
-                        const insertionChangeId = generateChangeId();
-                        extension.storage.lastInsertionId = insertionChangeId;
-                        extension.storage.lastInsertionTime = now;
-
-                        const mark = insertionType.create({
-                          changeId: insertionChangeId,
-                          authorId,
-                          authorName,
-                          authorColor,
-                          timestamp: new Date().toISOString(),
-                        });
-
-                        newTr.addMark(newStart + reinsertedLength, newEnd + reinsertedLength, mark);
-                        modified = true;
-                      }
-                    }
-
-                    return;
-                  }
-
-                  // === PURE INSERTION (programmatic only) ===
-                  // BUG FIX: handleTextInput now sets trackChangesInternal = true on ALL
-                  // keyboard transactions (including the boundary/Path 3 case), so this
-                  // block only runs for genuinely programmatic insertions. The previous
-                  // version left Path 3 transactions unmarked, causing appendTransaction
-                  // to double-apply insertion marks via the hasActiveMerge path.
-                  if (isInsert && !isDelete) {
-                    const insertedText = newState.doc.textBetween(newStart, newEnd, ' ');
-
-                    // Only mark if there is actual text content (not just whitespace/cursor moves)
-                    if (insertedText.trim()) {
-                      // For programmatic inserts, always generate a fresh changeId.
-                      // Do NOT merge with lastInsertionId here — that ID was set by
-                      // handleTextInput for keyboard typing and should not bleed into
-                      // programmatic insertions.
-                      const changeId = generateChangeId();
-
-                      const mark = insertionType.create({
-                        changeId,
-                        authorId,
-                        authorName,
-                        authorColor,
-                        timestamp: new Date().toISOString(),
-                      });
-
-                      if (deletionType) newTr.removeMark(newStart, newEnd, deletionType);
-                      newTr.addMark(newStart, newEnd, mark);
-                      modified = true;
-                    }
-                  }
-                }
-              );
-            });
-          }
-
-          if (stripInvalidMixedTrackMarks(modified ? newTr.doc : newState.doc, newTr, schema)) {
-            modified = true;
-          }
-
-          if (modified) {
-            const changes = collectChangesFromDoc(newTr.doc ?? newState.doc, schema);
-            extension.storage.changes = changes;
-            extension.options.onChangesUpdate?.(changes);
-            return newTr;
-          }
-
+        // If already handled internally, just sync changes
+        if (transactions.some((tr) => tr.getMeta('trackChangesInternal') && tr.docChanged)) {
+          extension.storage.changes = collectChangesFromDoc(newState.doc, schema);
+          extension.options.onChangesUpdate?.(extension.storage.changes);
           return null;
-        },
-      }),
-    ];
+        }
+
+        // Only process non-internal user changes (paste, programmatic edits)
+        const userTransactions = transactions.filter(
+          (tr) => tr.docChanged && !tr.getMeta('trackChangesInternal') &&
+            !tr.getMeta('setContent') && tr.getMeta('preventUpdate') === undefined
+        );
+        if (userTransactions.length === 0) return null;
+
+        const newTr = newState.tr;
+        newTr.setMeta('trackChangesInternal', true);
+        newTr.setMeta('addToHistory', false);
+        let modified = false;
+
+        const authorId = extension.options.authorId;
+        const authorName = extension.options.authorName;
+        const authorColor = extension.options.authorColor;
+        const now = Date.now();
+
+        for (const tr of userTransactions) {
+          tr.steps.forEach((step: any) => {
+            step.getMap().forEach(
+              (oldStart: number, oldEnd: number, newStart: number, newEnd: number) => {
+                // Tracking OFF: strip all track marks from any changed range
+                if (!extension.storage.enabled) {
+                  if (newEnd > newStart) {
+                    const mFrom = newTr.mapping.map(newStart);
+                    const mTo = newTr.mapping.map(newEnd);
+                    if (deletionType) { newTr.removeMark(mFrom, mTo, deletionType); modified = true; }
+                    if (insertionType) { newTr.removeMark(mFrom, mTo, insertionType); modified = true; }
+                  }
+                  return;
+                }
+
+                // Tracking ON: handle deletions
+                if (oldEnd > oldStart) {
+                  const nodesToReinsert: any[] = [];
+                  const nodesToReject: any[] = [];
+
+                  oldState.doc.nodesBetween(oldStart, oldEnd, (node: any) => {
+                    if (!node.isText) return;
+                    if (node.marks.some((m: PMMark) => m.type === insertionType && m.attrs.authorId === authorId)) return;
+                    const cleanMarks = node.marks.filter((m: PMMark) => m.type !== deletionType && m.type !== insertionType);
+                    if (node.marks.some((m: PMMark) => m.type === deletionType)) {
+                      nodesToReject.push(node.mark(cleanMarks));
+                    } else {
+                      nodesToReinsert.push(node);
+                    }
+                  });
+
+                  let reinsertedLength = 0;
+
+                  if (nodesToReject.length > 0) {
+                    newTr.insert(newStart, Fragment.from(nodesToReject));
+                    reinsertedLength += nodesToReject.reduce((s: number, n: any) => s + n.nodeSize, 0);
+                    modified = true;
+                  }
+
+                  if (nodesToReinsert.length > 0) {
+                    let changeId: string;
+                    if (extension.storage.lastDeletionId && now - extension.storage.lastDeletionTime < 5000) {
+                      changeId = extension.storage.lastDeletionId;
+                    } else {
+                      changeId = generateChangeId();
+                    }
+                    extension.storage.lastDeletionId = changeId;
+                    extension.storage.lastDeletionTime = now;
+
+                    const delMark = deletionType.create({ changeId, authorId, authorName, authorColor, timestamp: new Date().toISOString() });
+                    const markedNodes = nodesToReinsert.map((n: any) =>
+                      n.mark(delMark.addToSet(n.marks.filter((m: PMMark) => m.type !== insertionType)))
+                    );
+                    newTr.insert(newStart + reinsertedLength, Fragment.from(markedNodes));
+                    reinsertedLength += markedNodes.reduce((s: number, n: any) => s + n.nodeSize, 0);
+                    modified = true;
+                  }
+
+                  if (newEnd > newStart) {
+                    const insertedText = newState.doc.textBetween(newStart, newEnd, ' ');
+                    if (insertedText.trim()) {
+                      const mark = insertionType.create({ changeId: generateChangeId(), authorId, authorName, authorColor, timestamp: new Date().toISOString() });
+                      newTr.addMark(newStart + reinsertedLength, newEnd + reinsertedLength, mark);
+                      modified = true;
+                    }
+                  }
+                  return;
+                }
+
+                // Tracking ON: pure insertion (paste etc.)
+                if (newEnd > newStart) {
+                  const insertedText = newState.doc.textBetween(newStart, newEnd, ' ');
+                  if (insertedText.trim()) {
+                    if (deletionType) newTr.removeMark(newStart, newEnd, deletionType);
+                    newTr.addMark(newStart, newEnd, insertionType.create({
+                      changeId: generateChangeId(), authorId, authorName, authorColor,
+                      timestamp: new Date().toISOString(),
+                    }));
+                    modified = true;
+                  }
+                }
+              }
+            );
+          });
+        }
+
+        if (modified) {
+          extension.storage.changes = collectChangesFromDoc(newTr.doc ?? newState.doc, schema);
+          extension.options.onChangesUpdate?.(extension.storage.changes);
+          return newTr;
+        }
+
+        return null;
+      },
+    });
+
+    return [decorationPlugin, mainPlugin];
   },
 });
