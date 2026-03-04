@@ -727,15 +727,22 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           return null;
         }
 
-        const userTransactions = transactions.filter(
-          (tr) => tr.docChanged &&
-            !tr.getMeta('trackChangesInternal') &&
-            !tr.getMeta('trackChangesHandled') &&
-            !tr.getMeta('setContent') &&
-            tr.getMeta('preventUpdate') === undefined &&
-            !tr.getMeta('history$')
-        );
-        if (userTransactions.length === 0) return null;
+// Always sync panel after undo/redo
+if (transactions.some((tr) => tr.getMeta('history$') && tr.docChanged)) {
+  extension.storage.changes = collectChangesFromDoc(newState.doc, schema);
+  extension.options.onChangesUpdate?.(extension.storage.changes);
+  return null;
+}
+
+const userTransactions = transactions.filter(
+  (tr) => tr.docChanged &&
+    !tr.getMeta('trackChangesInternal') &&
+    !tr.getMeta('trackChangesHandled') &&
+    !tr.getMeta('setContent') &&
+    tr.getMeta('preventUpdate') === undefined &&
+    !tr.getMeta('history$')
+);
+if (userTransactions.length === 0) return null;
 
         const newTr = newState.tr;
         newTr.setMeta('trackChangesInternal', true);
