@@ -860,7 +860,7 @@ StarterKit.configure({
   },
   history: {
     depth: 100,
-    newGroupDelay: 500,
+    newGroupDelay: 2000,
   },
 }),
       Underline,
@@ -1013,7 +1013,7 @@ StarterKit.configure({
   },
   history: {
     depth: 100,
-    newGroupDelay: 500,
+    newGroupDelay: 2000,
   },
 }),
       Underline,
