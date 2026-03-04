@@ -253,6 +253,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
 
     const oldDoc = this.editor.state.doc;
     const authorId = options.authorId;
+    console.error('TC PROCESSING', storage.enabled, tr.steps.length, authorId);
     const authorName = options.authorName;
     const authorColor = options.authorColor;
     const now = Date.now();
