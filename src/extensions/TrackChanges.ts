@@ -1229,6 +1229,13 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                     if (insideDeletion) {
                       if (deletionType) newTr.removeMark(newStart, newEnd, deletionType);
                       newTr.removeMark(newStart, newEnd, insertionType);
+
+                      // Harden: set storedMarks to clean state so cursor doesn't inherit
+                      const storedClean = (newState.storedMarks || newState.selection.$from.marks()).filter(
+                        (m) => m.type !== insertionType && m.type !== deletionType
+                      );
+                      newTr.setStoredMarks(storedClean);
+
                       modified = true;
                       return;
                     }
