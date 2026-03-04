@@ -337,6 +337,10 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
               tr.addMark(newStart + reinsertedLength, newEnd + reinsertedLength, mark);
             }
           }
+          try {
+            const cursorPos = newStart;
+            tr.setSelection(TextSelection.near(tr.doc.resolve(cursorPos)));
+          } catch { }
           return;
         }
 
