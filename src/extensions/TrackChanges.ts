@@ -195,6 +195,29 @@ function collectChangesFromDoc(doc: any, schema: any): TrackChange[] {
   return changes;
 }
 
+/**
+ * Defensive invariant: a text node must never carry both insertion and deletion marks.
+ * If both are present, deletion is stripped.
+ */
+function stripInvalidMixedTrackMarks(doc: any, tr: any, schema: any): boolean {
+  const insertionType = schema.marks.trackInsertion;
+  const deletionType = schema.marks.trackDeletion;
+  if (!insertionType || !deletionType) return false;
+
+  let modified = false;
+  doc.descendants((node: any, pos: number) => {
+    if (!node.isText) return;
+    const hasInsertion = node.marks.some((m: PMMark) => m.type === insertionType);
+    const hasDeletion = node.marks.some((m: PMMark) => m.type === deletionType);
+    if (!hasInsertion || !hasDeletion) return;
+
+    tr.removeMark(pos, pos + node.nodeSize, deletionType);
+    modified = true;
+  });
+
+  return modified;
+}
+
 const trackChangeAttributes = () => ({
   changeId: {
     default: null,
