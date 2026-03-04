@@ -608,7 +608,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
         const authorName = extension.options.authorName;
         const authorColor = extension.options.authorColor;
         const now = Date.now();
-        const MERGE_WINDOW = 5000;
+        const MERGE_WINDOW = 2000;
         for (const tr of userTransactions) {
           tr.steps.forEach((step: any) => {
             step.getMap().forEach(
