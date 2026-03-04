@@ -608,7 +608,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
         const authorName = extension.options.authorName;
         const authorColor = extension.options.authorColor;
         const now = Date.now();
-        const MERGE_WINDOW = 5000;
+        const MERGE_WINDOW = 2000;
         for (const tr of userTransactions) {
           tr.steps.forEach((step: any) => {
             step.getMap().forEach(
@@ -703,9 +703,17 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                   const insertedText = newState.doc.textBetween(newStart, newEnd, ' ');
                   console.error('TC INSERT', now - extension.storage.lastInsertionTime, extension.storage.lastInsertionId);
                   if (insertedText.trim()) {
+                    let changeId: string;
+                    if (extension.storage.lastInsertionId && now - extension.storage.lastInsertionTime < MERGE_WINDOW) {
+                      changeId = extension.storage.lastInsertionId;
+                    } else {
+                      changeId = generateChangeId();
+                    }
+                    extension.storage.lastInsertionId = changeId;
+                    extension.storage.lastInsertionTime = now;
                     if (deletionType) newTr.removeMark(newStart, newEnd, deletionType);
                     newTr.addMark(newStart, newEnd, insertionType.create({
-                      changeId: generateChangeId(), authorId, authorName, authorColor,
+                      changeId, authorId, authorName, authorColor,
                       timestamp: new Date().toISOString(),
                     }));
                     modified = true;
