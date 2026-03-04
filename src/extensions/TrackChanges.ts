@@ -54,81 +54,36 @@ function generateChangeId(): string {
 function findDeletionSegmentAtPos(doc: any, pos: number, deletionType: any): { from: number; to: number; attrs: any } | null {
   if (!deletionType) return null;
 
-  // Resolve position, check marks at cursor
   let $pos;
   try {
     $pos = doc.resolve(pos);
   } catch { return null; }
 
-  // Check node before and after cursor for deletion marks
-  const nodeBefore = $pos.nodeBefore;
-  const nodeAfter = $pos.nodeAfter;
+  // Scope search to the parent block
+  const blockStart = pos - $pos.parentOffset;
+  const blockEnd = blockStart + $pos.parent.content.size;
 
-  let targetMark: PMMark | null = null;
-  let searchPos = pos;
+  // Collect all contiguous deletion runs in this block
+  const runs: Array<{ from: number; to: number; attrs: any }> = [];
 
-  if (nodeBefore && nodeBefore.isText) {
-    const m = nodeBefore.marks.find((m: PMMark) => m.type === deletionType);
-    if (m) { targetMark = m; searchPos = pos - 1; }
-  }
-  if (!targetMark && nodeAfter && nodeAfter.isText) {
-    const m = nodeAfter.marks.find((m: PMMark) => m.type === deletionType);
-    if (m) { targetMark = m; searchPos = pos; }
-  }
-  if (!targetMark) return null;
-
-  const changeId = targetMark.attrs.changeId;
-
-  // Walk backwards to find segment start
-  let segFrom = searchPos;
-  doc.nodesBetween(0, pos, (node: any, nodePos: number) => {
+  doc.nodesBetween(blockStart, blockEnd, (node: any, nodePos: number) => {
     if (!node.isText) return;
-    const end = nodePos + node.nodeSize;
-    if (end <= segFrom && node.marks.some((m: PMMark) => m.type === deletionType && m.attrs.changeId === changeId)) {
-      segFrom = nodePos;
+    const delMark = node.marks.find((m: PMMark) => m.type === deletionType);
+    if (!delMark) return;
+
+    const nFrom = nodePos;
+    const nTo = nodePos + node.nodeSize;
+    const prev = runs[runs.length - 1];
+
+    if (prev && prev.to === nFrom && prev.attrs.changeId === delMark.attrs.changeId) {
+      prev.to = nTo; // extend contiguous run
+    } else {
+      runs.push({ from: nFrom, to: nTo, attrs: delMark.attrs });
     }
   });
 
-  // Walk forward to find segment end
-  let segTo = searchPos;
-  doc.nodesBetween(searchPos, doc.content.size, (node: any, nodePos: number) => {
-    if (!node.isText) return;
-    if (node.marks.some((m: PMMark) => m.type === deletionType && m.attrs.changeId === changeId)) {
-      segTo = Math.max(segTo, nodePos + node.nodeSize);
-    } else if (nodePos >= segTo) {
-      return false; // stop
-    }
-  });
-
-  // More precise: find exact contiguous range containing `pos`
-  // Re-scan for contiguous run
-  let from = -1;
-  let to = -1;
-  doc.descendants((node: any, nodePos: number) => {
-    if (!node.isText) return;
-    const nEnd = nodePos + node.nodeSize;
-    const hasMark = node.marks.some((m: PMMark) => m.type === deletionType && m.attrs.changeId === changeId);
-    if (hasMark) {
-      if (from === -1) {
-        // Check if this run touches our position
-        if (nEnd >= pos - nodeBefore?.nodeSize! || nodePos <= pos) {
-          from = nodePos;
-          to = nEnd;
-        }
-      } else if (nodePos <= to) {
-        // Extend contiguous range
-        to = nEnd;
-      }
-    } else if (from !== -1 && nodePos >= to) {
-      // Gap found, stop extending
-    }
-  });
-
-  if (from === -1 || to === -1) return null;
-  // Verify our pos is actually within this segment
-  if (pos < from || pos > to) return null;
-
-  return { from, to, attrs: targetMark.attrs };
+  // Return the run that contains `pos` (inclusive boundaries for cursor positions)
+  return runs.find(r => pos >= r.from && pos <= r.to) ?? null;
 }
 
 /**
@@ -714,6 +669,29 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
               if (deletionType) tr.removeMark(from, insertEnd, deletionType);
               if (insertionType) tr.removeMark(from, insertEnd, insertionType);
 
+              // When tracking is ON, the inserted text should get an insertion mark
+              if (extension.storage.enabled && insertionType) {
+                const MERGE_WINDOW = 5000;
+                const now = Date.now();
+                let changeId: string;
+                if (extension.storage.lastInsertionId && now - extension.storage.lastInsertionTime < MERGE_WINDOW) {
+                  changeId = extension.storage.lastInsertionId;
+                } else {
+                  changeId = generateChangeId();
+                }
+                extension.storage.lastInsertionId = changeId;
+                extension.storage.lastInsertionTime = now;
+
+                const insertMark = insertionType.create({
+                  changeId,
+                  authorId: extension.options.authorId,
+                  authorName: extension.options.authorName,
+                  authorColor: extension.options.authorColor,
+                  timestamp: new Date().toISOString(),
+                });
+                tr.addMark(from, insertEnd, insertMark);
+              }
+
               tr.setStoredMarks(cleanMarks);
               tr.setMeta('trackChangesInternal', true);
               tr.setMeta('addToHistory', true);
@@ -998,8 +976,8 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
 
           // === TRACKING OFF ===
           // STRICT INVARIANT: existing tracked marks are IMMUTABLE.
-          // Only clean storedMarks and reconcile review panel.
-          // Do NOT strip marks from document ranges — handleTextInput handles that for new text.
+          // Strip track marks only from genuinely NEW insertions (defensive catch-all).
+          // This handles programmatic insertions (insertContent) that bypass handleTextInput.
           if (!extension.storage.enabled) {
             if (!insertionType && !deletionType) return null;
             
@@ -1008,7 +986,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
             cleanTr.setMeta('trackChangesInternal', true);
             cleanTr.setMeta('addToHistory', false);
 
-            // Only clean storedMarks — never touch document marks
+            // Only clean storedMarks — never touch pre-existing document marks
             const stored = newState.storedMarks || newState.selection.$from.marks();
             if (stored.length > 0) {
               const withoutTrack = stored.filter(
@@ -1020,9 +998,35 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
               }
             }
 
-            // Reconcile review panel when content changes
+            // Strip inherited track marks from newly inserted ranges
             if (hasUserChange) {
-              const changes = collectChangesFromDoc(newState.doc, schema);
+              for (const tr of transactions) {
+                if (!tr.docChanged || tr.getMeta('trackChangesInternal')) continue;
+                tr.steps.forEach((step) => {
+                  const stepMap = step.getMap();
+                  stepMap.forEach((oldStart: number, oldEnd: number, newStart: number, newEnd: number) => {
+                    // Only target genuine insertions (new content added, not pre-existing)
+                    if (newEnd > newStart && oldEnd === oldStart) {
+                      // Map positions through cleanTr's own mapping
+                      const mappedFrom = cleanTr.mapping.map(newStart);
+                      const mappedTo = cleanTr.mapping.map(newEnd);
+                      if (deletionType) {
+                        cleanTr.removeMark(mappedFrom, mappedTo, deletionType);
+                        needsTr = true;
+                      }
+                      if (insertionType) {
+                        cleanTr.removeMark(mappedFrom, mappedTo, insertionType);
+                        needsTr = true;
+                      }
+                    }
+                  });
+                });
+              }
+
+              // Reconcile review panel when content changes
+              const changes = collectChangesFromDoc(
+                needsTr ? cleanTr.doc : newState.doc, schema
+              );
               extension.storage.changes = changes;
               extension.options.onChangesUpdate?.(changes);
             }
