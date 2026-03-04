@@ -237,8 +237,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
     if (
       tr.getMeta('trackChangesInternal') ||
       tr.getMeta('setContent') ||
-      tr.getMeta('history$') ||
-      !tr.docChanged
+      tr.getMeta('history$')
     ) {
       next(tr);
       // Sync panel after undo/redo
