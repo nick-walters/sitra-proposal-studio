@@ -930,6 +930,7 @@ StarterKit.configure({
       }),
     ],
     content,
+    enableExtensionDispatchTransaction: true,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
@@ -1234,6 +1235,7 @@ TrackChanges.configure({
       }),
     ],
     content,
+    enableExtensionDispatchTransaction: true,
     
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
