@@ -672,12 +672,12 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
 
               // Split deletion into two independent runs by assigning a new changeId
               // to the right segment (prevents duplicate IDs in review lists).
-              if (deletionType && deletionSegment) {
+              if (deletionType && deletionCursorContext) {
                 const rightFrom = insertEnd;
-                const rightTo = deletionSegment.to + text.length;
+                const rightTo = deletionCursorContext.nodeTo + text.length;
                 if (rightTo > rightFrom) {
                   const rightDeletionMark = deletionType.create({
-                    ...deletionSegment.attrs,
+                    ...deletionCursorContext.attrs,
                     changeId: generateChangeId(),
                   });
                   tr.removeMark(rightFrom, rightTo, deletionType);
@@ -731,7 +731,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
             );
 
             // No tracked context: let PM do normal typing.
-            if (!hasTrackMarks && !isAtDeletionBoundary) return false;
+            if (!hasTrackMarks && !isInsideDeletion) return false;
 
             // Tracking OFF: clear stored marks only, let default insertion run.
             if (!extension.storage.enabled) {
@@ -1233,45 +1233,8 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                       ' '
                     );
 
-                    // If insertion happened inside an existing tracked deletion,
-                    // keep the inserted text plain and split the deletion run.
-                    const deletionSegment = deletionType
-                      ? findDeletionSegmentAtPos(oldState.doc, oldStart, deletionType)
-                      : null;
-
-                    const insideDeletion = Boolean(
-                      deletionSegment && oldStart > deletionSegment.from && oldStart < deletionSegment.to
-                    );
-
-                    if (insideDeletion) {
-                      if (deletionType) newTr.removeMark(newStart, newEnd, deletionType);
-                      newTr.removeMark(newStart, newEnd, insertionType);
-
-                      // Split right deletion segment into a new changeId so each run stays unique.
-                      if (deletionType && deletionSegment) {
-                        const insertedLen = newEnd - newStart;
-                        const rightFrom = newEnd;
-                        const rightTo = deletionSegment.to + insertedLen;
-
-                        if (rightTo > rightFrom) {
-                          const rightDeletionMark = deletionType.create({
-                            ...deletionSegment.attrs,
-                            changeId: generateChangeId(),
-                          });
-                          newTr.removeMark(rightFrom, rightTo, deletionType);
-                          newTr.addMark(rightFrom, rightTo, rightDeletionMark);
-                        }
-                      }
-
-                      // Harden: set storedMarks to clean state so cursor doesn't inherit
-                      const storedClean = (newState.storedMarks || newState.selection.$from.marks()).filter(
-                        (m) => m.type !== insertionType && m.type !== deletionType
-                      );
-                      newTr.setStoredMarks(storedClean);
-
-                      modified = true;
-                      return;
-                    }
+                    // Typing is handled authoritatively in handleTextInput.
+                    // For non-keyboard/programmatic inserts, keep normal insertion flow here.
 
                     const hasActiveMerge =
                       extension.storage.lastInsertionId &&
