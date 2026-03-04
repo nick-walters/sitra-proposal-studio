@@ -1086,7 +1086,8 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           }
 
           // === TRACKING ON ===
-          if (!hasUserChange) return null;
+          // Keyboard typing is handled in handleTextInput; appendTransaction handles
+          // non-intercepted edits plus defensive sanitization.
 
           const authorId = extension.options.authorId;
           const authorName = extension.options.authorName;
