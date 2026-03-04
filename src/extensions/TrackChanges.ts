@@ -1031,7 +1031,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                 tr.steps.forEach((step) => {
                   const stepMap = step.getMap();
                   stepMap.forEach((oldStart: number, oldEnd: number, newStart: number, newEnd: number) => {
-                    if (newEnd > newStart && oldEnd === oldStart) {
+                    if (newEnd > newStart) {
                       const mappedFrom = cleanTr.mapping.map(newStart);
                       const mappedTo = cleanTr.mapping.map(newEnd);
                       if (deletionType) {
