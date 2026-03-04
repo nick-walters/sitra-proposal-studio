@@ -225,62 +225,6 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
     return [TrackInsertionMark, TrackDeletionMark];
   },
 
-  // ── dispatchTransaction: augment transactions in-place before history sees them ──
-  dispatchTransaction({ transaction: tr, next }) {
-    console.error('TC DISPATCH', tr.docChanged, tr.steps.length);
-    const storage = this.storage;
-    const options = this.options;
-    const schema = this.editor.schema;
-    const insertionType = schema.marks.trackInsertion;
-    const deletionType = schema.marks.trackDeletion;
-
-    // Skip internal transactions (accept/reject, toggle, etc.)
-    if (
-      tr.getMeta('trackChangesInternal') ||
-      tr.getMeta('setContent') ||
-      tr.getMeta('history$')
-    ) {
-      next(tr);
-      // Sync panel after undo/redo
-      if (tr.getMeta('history$')) {
-        setTimeout(() => {
-          storage.changes = collectChangesFromDoc(this.editor.state.doc, schema);
-          options.onChangesUpdate?.(storage.changes);
-        }, 0);
-      }
-      return;
-    }
-
-    const oldDoc = this.editor.state.doc;
-    const authorId = options.authorId;
-    console.error('TC PROCESSING', storage.enabled, tr.steps.length, authorId);
-    const authorName = options.authorName;
-    const authorColor = options.authorColor;
-    const now = Date.now();
-    const MERGE_WINDOW = 5000;
-
-    // Compare old and new doc to find changes
-    const newDoc = tr.doc;
-    let changeFrom = -1, changeToOld = -1, changeToNew = -1;
-    oldDoc.content.findDiffStart(newDoc.content) !== null &&
-      (changeFrom = oldDoc.content.findDiffStart(newDoc.content) as number);
-    if (changeFrom !== -1) {
-      const diffEnd = oldDoc.content.findDiffEnd(newDoc.content);
-      if (diffEnd) {
-        changeToOld = diffEnd.a;
-        changeToNew = diffEnd.b;
-      }
-    }
-    console.error('TC DIFF', changeFrom, changeToOld, changeToNew, storage.enabled);
-
-    next(tr);
-
-    // Sync panel after transaction is applied
-    setTimeout(() => {
-      storage.changes = collectChangesFromDoc(this.editor.state.doc, schema);
-      options.onChangesUpdate?.(storage.changes);
-    }, 0);
-  },
 
   addCommands() {
     return {
