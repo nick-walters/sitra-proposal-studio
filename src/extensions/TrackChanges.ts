@@ -309,9 +309,10 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
               nodesToReinsert.push(node);
             }
           });
+          const mappedStart = tr.mapping.map(oldStart);
           let reinsertedLength = 0;
           if (nodesToReject.length > 0) {
-            tr.insert(newStart, Fragment.from(nodesToReject));
+            tr.insert(mappedStart, Fragment.from(nodesToReject));
             reinsertedLength += nodesToReject.reduce((s: number, n: any) => s + n.nodeSize, 0);
           }
           if (nodesToReinsert.length > 0) {
@@ -327,19 +328,11 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
             const markedNodes = nodesToReinsert.map((n: any) =>
               n.mark(delMark.addToSet(n.marks.filter((m: PMMark) => m.type !== insertionType)))
             );
-            tr.insert(newStart + reinsertedLength, Fragment.from(markedNodes));
+            tr.insert(mappedStart + reinsertedLength, Fragment.from(markedNodes));
             reinsertedLength += markedNodes.reduce((s: number, n: any) => s + n.nodeSize, 0);
           }
-          if (newEnd > newStart) {
-            const insertedText = tr.doc.textBetween(newStart + reinsertedLength, newEnd + reinsertedLength, ' ');
-            if (insertedText.trim()) {
-              const mark = insertionType.create({ changeId: generateChangeId(), authorId, authorName, authorColor, timestamp: new Date().toISOString() });
-              tr.addMark(newStart + reinsertedLength, newEnd + reinsertedLength, mark);
-            }
-          }
           try {
-            const cursorPos = newStart;
-            tr.setSelection(TextSelection.near(tr.doc.resolve(cursorPos)));
+            tr.setSelection(TextSelection.near(tr.doc.resolve(mappedStart)));
           } catch { }
           return;
         }
