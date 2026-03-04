@@ -256,17 +256,17 @@ const TrackInsertionMark = Mark.create({
     return [{ tag: 'span[data-track-insertion]' }];
   },
 
-  renderHTML({ HTMLAttributes }) {
-    const authorColor = HTMLAttributes['data-author-color'] || '#3B82F6';
-    return [
-      'span',
-      mergeAttributes(HTMLAttributes, {
-        'data-track-insertion': '',
-        style: `background-color: rgba(34, 197, 94, 0.3); border-bottom: 2px solid ${authorColor};`,
-      }),
-      0,
-    ];
-  },
+renderHTML({ HTMLAttributes }) {
+  const authorColor = HTMLAttributes['data-author-color'] || '#3B82F6';
+  return [
+    'span',
+    mergeAttributes(HTMLAttributes, {
+      'data-track-insertion': '',
+      style: `background-color: rgba(34, 197, 94, 0.3); border-bottom: 2px solid ${authorColor}; text-decoration: none;`,
+    }),
+    0,
+  ];
+},
 });
 
 const TrackDeletionMark = Mark.create({
