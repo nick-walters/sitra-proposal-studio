@@ -512,18 +512,32 @@ if (!extension.storage.enabled) {
           if (insertionType) tr.removeMark(from, insertEnd, insertionType);
 
           // If we split a deletion, re-apply deletion mark to the right segment
-          if (isInsideDeletion && nodeAfter && delBefore) {
-            const rightFrom = insertEnd;
-            const rightTo = tr.mapping.map(from + nodeAfter.nodeSize);
-            if (rightTo > rightFrom && deletionType) {
-              const rightDeletionMark = deletionType.create({
-                ...delBefore.attrs,
-                changeId: generateChangeId(),
-              });
-              tr.removeMark(rightFrom, rightTo, deletionType);
-              tr.addMark(rightFrom, rightTo, rightDeletionMark);
-            }
-          }
+if (isInsideDeletion && delBefore) {
+  // Walk forward in pre-insert doc to find full right segment of the deletion
+  const $preFrom = state.doc.resolve(from);
+  const parent = $preFrom.parent;
+  const originalChangeId = delBefore.attrs.changeId;
+  let rightEnd = from;
+  let offset = $preFrom.parentOffset;
+  while (offset < parent.content.size) {
+    const node = parent.nodeAt(offset);
+    if (!node?.isText) break;
+    const m = node.marks.find((m: PMMark) => m.type === deletionType && m.attrs.changeId === originalChangeId);
+    if (!m) break;
+    rightEnd += node.nodeSize;
+    offset += node.nodeSize;
+  }
+  const mappedRightFrom = insertEnd;
+  const mappedRightTo = tr.mapping.map(rightEnd);
+  if (mappedRightTo > mappedRightFrom && deletionType) {
+    const rightDeletionMark = deletionType.create({
+      ...delBefore.attrs,
+      changeId: generateChangeId(),
+    });
+    tr.removeMark(mappedRightFrom, mappedRightTo, deletionType);
+    tr.addMark(mappedRightFrom, mappedRightTo, rightDeletionMark);
+  }
+}
 
           // Apply insertion mark to the typed text
           let changeId: string;
