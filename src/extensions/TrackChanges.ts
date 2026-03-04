@@ -1062,10 +1062,22 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                 });
               }
 
+              if (stripInvalidMixedTrackMarks(cleanTr.doc, cleanTr, schema)) {
+                needsTr = true;
+              }
+
               // Reconcile review panel when content changes
               const changes = collectChangesFromDoc(
                 needsTr ? cleanTr.doc : newState.doc, schema
               );
+              extension.storage.changes = changes;
+              extension.options.onChangesUpdate?.(changes);
+            }
+
+            // Defensive mixed-mark sanitizer (applies even without user change)
+            if (stripInvalidMixedTrackMarks(needsTr ? cleanTr.doc : newState.doc, cleanTr, schema)) {
+              needsTr = true;
+              const changes = collectChangesFromDoc(cleanTr.doc, schema);
               extension.storage.changes = changes;
               extension.options.onChangesUpdate?.(changes);
             }
