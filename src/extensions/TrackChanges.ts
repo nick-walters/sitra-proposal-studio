@@ -1211,11 +1211,14 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
 
                     // Only mark if there is actual text content (not just whitespace/cursor moves)
                     if (insertedText.trim()) {
-                      // For programmatic inserts, always generate a fresh changeId.
-                      // Do NOT merge with lastInsertionId here — that ID was set by
-                      // handleTextInput for keyboard typing and should not bleed into
-                      // programmatic insertions.
-                      const changeId = generateChangeId();
+                      let changeId: string;
+                      if (extension.storage.lastInsertionId && now - extension.storage.lastInsertionTime < MERGE_WINDOW_MS) {
+                        changeId = extension.storage.lastInsertionId;
+                      } else {
+                        changeId = generateChangeId();
+                      }
+                      extension.storage.lastInsertionId = changeId;
+                      extension.storage.lastInsertionTime = now;
 
                       const mark = insertionType.create({
                         changeId,
