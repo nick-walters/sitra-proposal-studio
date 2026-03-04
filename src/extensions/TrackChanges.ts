@@ -483,7 +483,6 @@ if (!extension.storage.enabled) {
       }
     }
   }
-  }
 
   tr.setStoredMarks(cleanMarks);
   tr.setMeta('trackChangesInternal', true);
