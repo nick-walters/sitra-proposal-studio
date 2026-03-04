@@ -1645,9 +1645,9 @@ export function DocumentEditor({
                           No tracked changes
                         </div>
                       ) : (
-                         trackedChanges.map((change) => (
+                        trackedChanges.map((change) => (
                           <div
-                            key={change.id}
+                            key={`${change.id}-${change.from}-${change.to}-${change.type}`}
                             role="button"
                             tabIndex={0}
                             title="Click to jump to change"
