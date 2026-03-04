@@ -950,3 +950,7 @@
 .topic-rich-text-content p:last-child {
   margin-bottom: 0;
 }
+
+[data-track-deletion] ~ * {
+  text-decoration: none;
+}
