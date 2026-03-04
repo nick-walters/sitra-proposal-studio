@@ -262,6 +262,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
     tr.steps.forEach((step: any, i: number) => {
       const map = step.getMap();
       map.forEach((oldStart: number, oldEnd: number, newStart: number, newEnd: number) => {
+        console.error('TC STEP', oldStart, oldEnd, newStart, newEnd, storage.enabled);
 
         // ── Tracking OFF: strip inherited track marks from inserted text ──
         if (!storage.enabled) {
