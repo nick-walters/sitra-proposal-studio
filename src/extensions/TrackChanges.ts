@@ -655,16 +655,11 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
             );
 
             const isCollapsed = from === to;
-            const deletionSegment = deletionType && isCollapsed
-              ? findDeletionSegmentAtPos(state.doc, from, deletionType)
+            const deletionCursorContext = isCollapsed
+              ? getDeletionCursorContext(state, from, deletionType)
               : null;
 
-            const isInsideDeletion = Boolean(
-              deletionSegment && from > deletionSegment.from && from < deletionSegment.to
-            );
-            const isAtDeletionBoundary = Boolean(
-              deletionSegment && (from === deletionSegment.from || from === deletionSegment.to)
-            );
+            const isInsideDeletion = Boolean(deletionCursorContext);
 
             // Typing inside an existing deletion must split it into two deletion runs
             // with plain text in the middle (never inherit tracked marks).
