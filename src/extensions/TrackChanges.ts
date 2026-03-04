@@ -740,33 +740,42 @@ if (!extension.storage.enabled) {
     if (deletionType) { newTr.removeMark(mFrom, mTo, deletionType); modified = true; }
     if (insertionType) { newTr.removeMark(mFrom, mTo, insertionType); modified = true; }
 
-    // Check if this insertion bisected a tracked span (same changeId on both sides)
-    // If so, give the right segment a new changeId to split it into two changes.
-    try {
-      const $before = newTr.doc.resolve(mFrom);
-      const $after = newTr.doc.resolve(mTo);
-      const nodeBefore = $before.nodeBefore;
-      const nodeAfter = $after.nodeAfter;
-      if (nodeBefore?.isText && nodeAfter?.isText) {
-        const markBefore =
-          nodeBefore.marks.find((m: PMMark) => m.type === insertionType) ||
-          nodeBefore.marks.find((m: PMMark) => m.type === deletionType);
-        const markAfter =
-          nodeAfter.marks.find((m: PMMark) => m.type === insertionType) ||
-          nodeAfter.marks.find((m: PMMark) => m.type === deletionType);
-        if (markBefore && markAfter && markBefore.type === markAfter.type &&
-            markBefore.attrs.changeId === markAfter.attrs.changeId) {
-          const rightTo = mTo + nodeAfter.nodeSize;
-          const newMark = markAfter.type.create({
-            ...markAfter.attrs,
-            changeId: generateChangeId(),
-          });
-          newTr.removeMark(mTo, rightTo, markAfter.type);
-          newTr.addMark(mTo, rightTo, newMark);
-          modified = true;
-        }
+// Check if this insertion bisected a tracked span (same changeId on both sides).
+// Walk forward from mTo to find the full extent of the right segment, then
+// re-mark it all with a new changeId.
+try {
+  const $before = newTr.doc.resolve(mFrom);
+  const $after = newTr.doc.resolve(mTo);
+  const nodeBefore = $before.nodeBefore;
+  if (nodeBefore?.isText) {
+    const markBefore =
+      nodeBefore.marks.find((m: PMMark) => m.type === insertionType) ||
+      nodeBefore.marks.find((m: PMMark) => m.type === deletionType);
+    if (markBefore) {
+      // Walk forward from mTo collecting all nodes with the same changeId
+      const originalChangeId = markBefore.attrs.changeId;
+      const markType = markBefore.type;
+      let rightEnd = mTo;
+      const parent = $after.parent;
+      const parentStart = mTo - $after.parentOffset;
+      let offset = $after.parentOffset;
+      while (offset < parent.content.size) {
+        const node = parent.nodeAt(offset);
+        if (!node?.isText) break;
+        const m = node.marks.find((m: PMMark) => m.type === markType && m.attrs.changeId === originalChangeId);
+        if (!m) break;
+        rightEnd += node.nodeSize;
+        offset += node.nodeSize;
       }
-    } catch { /* ignore position errors */ }
+      if (rightEnd > mTo) {
+        const newMark = markType.create({ ...markBefore.attrs, changeId: generateChangeId() });
+        newTr.removeMark(mTo, rightEnd, markType);
+        newTr.addMark(mTo, rightEnd, newMark);
+        modified = true;
+      }
+    }
+  }
+} catch { /* ignore position errors */ }
   }
   return;
 }
