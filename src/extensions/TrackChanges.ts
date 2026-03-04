@@ -621,6 +621,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
       key: trackChangesPluginKey,
       props: {
         handleKeyDown(view, event) {
+          console.error('TC KEYDOWN', event.key);
           const { state } = view;
           const insertionType = state.schema.marks.trackInsertion;
           const deletionType = state.schema.marks.trackDeletion;
