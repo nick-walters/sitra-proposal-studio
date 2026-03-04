@@ -446,6 +446,9 @@ if (!extension.storage.enabled) {
   if (insertionType) tr.removeMark(from, insertEnd, insertionType);
 
   // Split any tracked span that was bisected by this insertion.
+const $debugPos = state.doc.resolve(from);
+console.log('TC-DEBUG before:', $debugPos.nodeBefore?.text, $debugPos.nodeBefore?.marks.map(m => m.type.name + ':' + m.attrs.changeId));
+console.log('TC-DEBUG after:', $debugPos.nodeAfter?.text, $debugPos.nodeAfter?.marks.map(m => m.type.name + ':' + m.attrs.changeId));
   const $from = state.doc.resolve(from);
   const nodeAfter = $from.nodeAfter;
   if (nodeAfter?.isText) {
