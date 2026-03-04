@@ -249,7 +249,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
       return;
     }
 
-    console.error('OLDDOC', storage.prevDoc?.textContent, 'NEWDOC', tr.doc.textContent);
+    
 
     const oldDoc = storage.prevDoc;
     const authorId = options.authorId;
@@ -315,7 +315,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
             }
           });
           const mappedStart = tr.mapping.map(oldStart);
-          console.error('DEL', oldStart, oldEnd, newStart, newEnd, mappedStart, tr.doc.textContent);
+          
           let reinsertedLength = 0;
           if (nodesToReject.length > 0) {
             tr.insert(mappedStart, Fragment.from(nodesToReject));
@@ -323,6 +323,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           }
           if (nodesToReinsert.length > 0) {
             let changeId: string;
+            console.error('DEL MERGE', now - storage.lastDeletionTime, storage.lastDeletionId);
             if (storage.lastDeletionId && now - storage.lastDeletionTime < MERGE_WINDOW) {
               changeId = storage.lastDeletionId;
             } else {
