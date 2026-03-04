@@ -227,6 +227,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
 
   // ── dispatchTransaction: augment transactions in-place before history sees them ──
   dispatchTransaction({ transaction: tr, next }) {
+    console.log('dispatchTransaction called', tr.docChanged, tr.steps.length);
     const storage = this.storage;
     const options = this.options;
     const schema = this.editor.schema;
