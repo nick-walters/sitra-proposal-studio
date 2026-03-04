@@ -1287,6 +1287,10 @@ export function useRichTextEditor({
           }
         }
       }
+      storage.authorId = trackChanges?.authorId || '';
+      storage.authorName = trackChanges?.authorName || 'Anonymous';
+      storage.authorColor = trackChanges?.authorColor || '#3B82F6';
+      storage.onChangesUpdate = trackChanges?.onChangesUpdate;
     }
     // Keep all track change options in sync (author info + callbacks)
     const ext = editor.extensionManager.extensions.find(e => e.name === 'trackChanges');
