@@ -48,42 +48,48 @@ function generateChangeId(): string {
 // ── Helpers ──────────────────────────────────────────────────────────────
 
 /**
- * Find the contiguous deletion segment surrounding `pos`.
- * Returns { from, to, attrs } or null.
+ * Detect whether the cursor is inside a text node carrying trackDeletion.
+ * Returns the absolute bounds of that text node + deletion attrs.
  */
-function findDeletionSegmentAtPos(doc: any, pos: number, deletionType: any): { from: number; to: number; attrs: any } | null {
+function getDeletionCursorContext(
+  state: any,
+  pos: number,
+  deletionType: any
+): { nodeFrom: number; nodeTo: number; attrs: any } | null {
   if (!deletionType) return null;
 
   let $pos;
   try {
-    $pos = doc.resolve(pos);
-  } catch { return null; }
+    $pos = state.doc.resolve(pos);
+  } catch {
+    return null;
+  }
 
-  // Scope search to the parent block
-  const blockStart = pos - $pos.parentOffset;
-  const blockEnd = blockStart + $pos.parent.content.size;
+  const parent = $pos.parent;
+  if (!parent || !parent.isTextblock) return null;
 
-  // Collect all contiguous deletion runs in this block
-  const runs: Array<{ from: number; to: number; attrs: any }> = [];
+  const parentOffset = $pos.parentOffset;
+  let offsetCursor = 0;
 
-  doc.nodesBetween(blockStart, blockEnd, (node: any, nodePos: number) => {
-    if (!node.isText) return;
-    const delMark = node.marks.find((m: PMMark) => m.type === deletionType);
-    if (!delMark) return;
+  for (let i = 0; i < parent.childCount; i += 1) {
+    const child = parent.child(i);
+    const childStart = offsetCursor;
+    const childEnd = childStart + child.nodeSize;
+    offsetCursor = childEnd;
 
-    const nFrom = nodePos;
-    const nTo = nodePos + node.nodeSize;
-    const prev = runs[runs.length - 1];
+    if (!child.isText) continue;
+    const deletionMark = child.marks.find((m: PMMark) => m.type === deletionType);
+    if (!deletionMark) continue;
 
-    if (prev && prev.to === nFrom && prev.attrs.changeId === delMark.attrs.changeId) {
-      prev.to = nTo; // extend contiguous run
-    } else {
-      runs.push({ from: nFrom, to: nTo, attrs: delMark.attrs });
+    // Strictly inside this deletion text node (not at boundaries)
+    if (parentOffset > childStart && parentOffset < childEnd) {
+      const nodeFrom = pos - (parentOffset - childStart);
+      const nodeTo = nodeFrom + child.nodeSize;
+      return { nodeFrom, nodeTo, attrs: deletionMark.attrs };
     }
-  });
+  }
 
-  // Return the run that contains `pos` (inclusive boundaries for cursor positions)
-  return runs.find(r => pos >= r.from && pos <= r.to) ?? null;
+  return null;
 }
 
 /**
