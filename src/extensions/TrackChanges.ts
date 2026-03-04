@@ -412,7 +412,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
       state: {
         init(_, { doc, schema }) { return buildDecorations(doc, schema); },
         apply(tr, old, _oldState, newState) {
-          if (!tr.docChanged && !tr.getMeta('trackChangesInternal')) return old.map(tr.mapping, tr.doc);
+          if (!tr.docChanged && !tr.getMeta('trackChangesInternal') && !tr.getMeta('trackChangesHandled')) return old.map(tr.mapping, tr.doc);
           return buildDecorations(newState.doc, newState.schema);
         },
       },
@@ -482,7 +482,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
             }
 
             tr.setStoredMarks(cleanMarks);
-            tr.setMeta('trackChangesInternal', true);
+            tr.setMeta('trackChangesHandled', true);
             view.dispatch(tr);
             return true;
           }
@@ -547,7 +547,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           }));
 
           tr.setStoredMarks(cleanMarks);
-          tr.setMeta('trackChangesInternal', true);
+          tr.setMeta('trackChangesHandled', true);
 
           try { tr.setSelection(TextSelection.near(tr.doc.resolve(insertEnd), 1)); } catch { /* let PM recover */ }
 
@@ -714,6 +714,13 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
         const insertionType = schema.marks.trackInsertion;
         const deletionType = schema.marks.trackDeletion;
 
+        // Skip transactions already fully handled by handleTextInput
+        if (transactions.some((tr) => tr.getMeta('trackChangesHandled'))) {
+          extension.storage.changes = collectChangesFromDoc(newState.doc, schema);
+          extension.options.onChangesUpdate?.(extension.storage.changes);
+          return null;
+        }
+
         if (transactions.some((tr) => tr.getMeta('trackChangesInternal') && tr.docChanged)) {
           extension.storage.changes = collectChangesFromDoc(newState.doc, schema);
           extension.options.onChangesUpdate?.(extension.storage.changes);
@@ -723,6 +730,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
         const userTransactions = transactions.filter(
           (tr) => tr.docChanged &&
             !tr.getMeta('trackChangesInternal') &&
+            !tr.getMeta('trackChangesHandled') &&
             !tr.getMeta('setContent') &&
             tr.getMeta('preventUpdate') === undefined &&
             !tr.getMeta('history$')
