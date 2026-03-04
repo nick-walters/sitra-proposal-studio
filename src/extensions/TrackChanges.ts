@@ -426,7 +426,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
       key: trackChangesPluginKey,
       props: {
         handleKeyDown(view, event) {
-          console.error('TC KEYDOWN', event.key);
+          
           const { state } = view;
           const insertionType = state.schema.marks.trackInsertion;
           const deletionType = state.schema.marks.trackDeletion;
@@ -701,7 +701,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                 }
                 if (newEnd > newStart) {
                   const insertedText = newState.doc.textBetween(newStart, newEnd, ' ');
-                  console.error('TC INSERT', now - extension.storage.lastInsertionTime, extension.storage.lastInsertionId);
+                  
                   if (insertedText.trim()) {
                     let changeId: string;
                     if (extension.storage.lastInsertionId && now - extension.storage.lastInsertionTime < MERGE_WINDOW) {
