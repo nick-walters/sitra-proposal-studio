@@ -1192,14 +1192,16 @@ StarterKit.configure({
         },
       }),
       // Track changes extension
-      TrackChanges.configure({
-        enabled: trackChanges?.enabled || false,
-        authorId: trackChanges?.authorId || '',
-        authorName: trackChanges?.authorName || 'Anonymous',
-        authorColor: trackChanges?.authorColor || '#3B82F6',
-        changes: [],
-        onChangesUpdate: trackChanges?.onChangesUpdate,
-      }),
+/*
+TrackChanges.configure({
+  enabled: trackChanges?.enabled || false,
+  authorId: trackChanges?.authorId || '',
+  authorName: trackChanges?.authorName || 'Anonymous',
+  authorColor: trackChanges?.authorColor || '#3B82F6',
+  changes: [],
+  onChangesUpdate: trackChanges?.onChangesUpdate,
+}),
+*/
       // Table formula extension
       TableFormula,
       // Prevent tables from being first element in the document content
