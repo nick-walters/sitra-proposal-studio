@@ -1234,6 +1234,10 @@ TrackChanges.configure({
       }),
     ],
     content,
+    dispatchTransaction(transaction) {
+      const newState = this.state.apply(transaction);
+      this.updateState(newState);
+    },
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
       lastSetContentRef.current = html;
