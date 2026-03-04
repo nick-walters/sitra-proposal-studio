@@ -82,7 +82,7 @@ describe('TrackChanges typing boundaries', () => {
     editor.destroy();
   });
 
-  it('typing inside a tracked deletion splits it into two deletion runs and plain text in between', async () => {
+  it('typing inside a tracked deletion splits it into two deletion runs and marks typed text as insertion', async () => {
     const editor = createEditor({ enabled: true, content: '<p>Hello world</p>' });
 
     editor.commands.setTextSelection({ from: 7, to: 12 });
@@ -114,7 +114,7 @@ describe('TrackChanges typing boundaries', () => {
     });
 
     expect(zHasDeletion).toBe(false);
-    expect(zHasInsertion).toBe(false);
+    expect(zHasInsertion).toBe(true);
     editor.destroy();
   });
 });

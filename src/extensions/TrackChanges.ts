@@ -48,42 +48,48 @@ function generateChangeId(): string {
 // ── Helpers ──────────────────────────────────────────────────────────────
 
 /**
- * Find the contiguous deletion segment surrounding `pos`.
- * Returns { from, to, attrs } or null.
+ * Detect whether the cursor is inside a text node carrying trackDeletion.
+ * Returns the absolute bounds of that text node + deletion attrs.
  */
-function findDeletionSegmentAtPos(doc: any, pos: number, deletionType: any): { from: number; to: number; attrs: any } | null {
+function getDeletionCursorContext(
+  state: any,
+  pos: number,
+  deletionType: any
+): { nodeFrom: number; nodeTo: number; attrs: any } | null {
   if (!deletionType) return null;
 
   let $pos;
   try {
-    $pos = doc.resolve(pos);
-  } catch { return null; }
+    $pos = state.doc.resolve(pos);
+  } catch {
+    return null;
+  }
 
-  // Scope search to the parent block
-  const blockStart = pos - $pos.parentOffset;
-  const blockEnd = blockStart + $pos.parent.content.size;
+  const parent = $pos.parent;
+  if (!parent || !parent.isTextblock) return null;
 
-  // Collect all contiguous deletion runs in this block
-  const runs: Array<{ from: number; to: number; attrs: any }> = [];
+  const parentOffset = $pos.parentOffset;
+  let offsetCursor = 0;
 
-  doc.nodesBetween(blockStart, blockEnd, (node: any, nodePos: number) => {
-    if (!node.isText) return;
-    const delMark = node.marks.find((m: PMMark) => m.type === deletionType);
-    if (!delMark) return;
+  for (let i = 0; i < parent.childCount; i += 1) {
+    const child = parent.child(i);
+    const childStart = offsetCursor;
+    const childEnd = childStart + child.nodeSize;
+    offsetCursor = childEnd;
 
-    const nFrom = nodePos;
-    const nTo = nodePos + node.nodeSize;
-    const prev = runs[runs.length - 1];
+    if (!child.isText) continue;
+    const deletionMark = child.marks.find((m: PMMark) => m.type === deletionType);
+    if (!deletionMark) continue;
 
-    if (prev && prev.to === nFrom && prev.attrs.changeId === delMark.attrs.changeId) {
-      prev.to = nTo; // extend contiguous run
-    } else {
-      runs.push({ from: nFrom, to: nTo, attrs: delMark.attrs });
+    // Strictly inside this deletion text node (not at boundaries)
+    if (parentOffset > childStart && parentOffset < childEnd) {
+      const nodeFrom = pos - (parentOffset - childStart);
+      const nodeTo = nodeFrom + child.nodeSize;
+      return { nodeFrom, nodeTo, attrs: deletionMark.attrs };
     }
-  });
+  }
 
-  // Return the run that contains `pos` (inclusive boundaries for cursor positions)
-  return runs.find(r => pos >= r.from && pos <= r.to) ?? null;
+  return null;
 }
 
 /**
@@ -187,6 +193,29 @@ function collectChangesFromDoc(doc: any, schema: any): TrackChange[] {
   }
 
   return changes;
+}
+
+/**
+ * Defensive invariant: a text node must never carry both insertion and deletion marks.
+ * If both are present, deletion is stripped.
+ */
+function stripInvalidMixedTrackMarks(doc: any, tr: any, schema: any): boolean {
+  const insertionType = schema.marks.trackInsertion;
+  const deletionType = schema.marks.trackDeletion;
+  if (!insertionType || !deletionType) return false;
+
+  let modified = false;
+  doc.descendants((node: any, pos: number) => {
+    if (!node.isText) return;
+    const hasInsertion = node.marks.some((m: PMMark) => m.type === insertionType);
+    const hasDeletion = node.marks.some((m: PMMark) => m.type === deletionType);
+    if (!hasInsertion || !hasDeletion) return;
+
+    tr.removeMark(pos, pos + node.nodeSize, deletionType);
+    modified = true;
+  });
+
+  return modified;
 }
 
 const trackChangeAttributes = () => ({
@@ -649,16 +678,11 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
             );
 
             const isCollapsed = from === to;
-            const deletionSegment = deletionType && isCollapsed
-              ? findDeletionSegmentAtPos(state.doc, from, deletionType)
+            const deletionCursorContext = isCollapsed
+              ? getDeletionCursorContext(state, from, deletionType)
               : null;
 
-            const isInsideDeletion = Boolean(
-              deletionSegment && from > deletionSegment.from && from < deletionSegment.to
-            );
-            const isAtDeletionBoundary = Boolean(
-              deletionSegment && (from === deletionSegment.from || from === deletionSegment.to)
-            );
+            const isInsideDeletion = Boolean(deletionCursorContext);
 
             // Typing inside an existing deletion must split it into two deletion runs
             // with plain text in the middle (never inherit tracked marks).
@@ -671,12 +695,12 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
 
               // Split deletion into two independent runs by assigning a new changeId
               // to the right segment (prevents duplicate IDs in review lists).
-              if (deletionType && deletionSegment) {
+              if (deletionType && deletionCursorContext) {
                 const rightFrom = insertEnd;
-                const rightTo = deletionSegment.to + text.length;
+                const rightTo = deletionCursorContext.nodeTo + text.length;
                 if (rightTo > rightFrom) {
                   const rightDeletionMark = deletionType.create({
-                    ...deletionSegment.attrs,
+                    ...deletionCursorContext.attrs,
                     changeId: generateChangeId(),
                   });
                   tr.removeMark(rightFrom, rightTo, deletionType);
@@ -730,7 +754,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
             );
 
             // No tracked context: let PM do normal typing.
-            if (!hasTrackMarks && !isAtDeletionBoundary) return false;
+            if (!hasTrackMarks && !isInsideDeletion) return false;
 
             // Tracking OFF: clear stored marks only, let default insertion run.
             if (!extension.storage.enabled) {
@@ -1038,6 +1062,10 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                 });
               }
 
+              if (stripInvalidMixedTrackMarks(cleanTr.doc, cleanTr, schema)) {
+                needsTr = true;
+              }
+
               // Reconcile review panel when content changes
               const changes = collectChangesFromDoc(
                 needsTr ? cleanTr.doc : newState.doc, schema
@@ -1046,11 +1074,20 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
               extension.options.onChangesUpdate?.(changes);
             }
 
+            // Defensive mixed-mark sanitizer (applies even without user change)
+            if (stripInvalidMixedTrackMarks(needsTr ? cleanTr.doc : newState.doc, cleanTr, schema)) {
+              needsTr = true;
+              const changes = collectChangesFromDoc(cleanTr.doc, schema);
+              extension.storage.changes = changes;
+              extension.options.onChangesUpdate?.(changes);
+            }
+
             return needsTr ? cleanTr : null;
           }
 
           // === TRACKING ON ===
-          if (!hasUserChange) return null;
+          // Keyboard typing is handled in handleTextInput; appendTransaction handles
+          // non-intercepted edits plus defensive sanitization.
 
           const authorId = extension.options.authorId;
           const authorName = extension.options.authorName;
@@ -1232,45 +1269,8 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                       ' '
                     );
 
-                    // If insertion happened inside an existing tracked deletion,
-                    // keep the inserted text plain and split the deletion run.
-                    const deletionSegment = deletionType
-                      ? findDeletionSegmentAtPos(oldState.doc, oldStart, deletionType)
-                      : null;
-
-                    const insideDeletion = Boolean(
-                      deletionSegment && oldStart > deletionSegment.from && oldStart < deletionSegment.to
-                    );
-
-                    if (insideDeletion) {
-                      if (deletionType) newTr.removeMark(newStart, newEnd, deletionType);
-                      newTr.removeMark(newStart, newEnd, insertionType);
-
-                      // Split right deletion segment into a new changeId so each run stays unique.
-                      if (deletionType && deletionSegment) {
-                        const insertedLen = newEnd - newStart;
-                        const rightFrom = newEnd;
-                        const rightTo = deletionSegment.to + insertedLen;
-
-                        if (rightTo > rightFrom) {
-                          const rightDeletionMark = deletionType.create({
-                            ...deletionSegment.attrs,
-                            changeId: generateChangeId(),
-                          });
-                          newTr.removeMark(rightFrom, rightTo, deletionType);
-                          newTr.addMark(rightFrom, rightTo, rightDeletionMark);
-                        }
-                      }
-
-                      // Harden: set storedMarks to clean state so cursor doesn't inherit
-                      const storedClean = (newState.storedMarks || newState.selection.$from.marks()).filter(
-                        (m) => m.type !== insertionType && m.type !== deletionType
-                      );
-                      newTr.setStoredMarks(storedClean);
-
-                      modified = true;
-                      return;
-                    }
+                    // Typing is handled authoritatively in handleTextInput.
+                    // For non-keyboard/programmatic inserts, keep normal insertion flow here.
 
                     const hasActiveMerge =
                       extension.storage.lastInsertionId &&
@@ -1305,6 +1305,10 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                 }
               );
             });
+          }
+
+          if (stripInvalidMixedTrackMarks(modified ? newTr.doc : newState.doc, newTr, schema)) {
+            modified = true;
           }
 
           if (modified) {
