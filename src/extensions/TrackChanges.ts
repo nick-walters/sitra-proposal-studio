@@ -1307,6 +1307,10 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
             });
           }
 
+          if (stripInvalidMixedTrackMarks(modified ? newTr.doc : newState.doc, newTr, schema)) {
+            modified = true;
+          }
+
           if (modified) {
             // Update review panel synchronously
             const changes = collectChangesFromDoc(
