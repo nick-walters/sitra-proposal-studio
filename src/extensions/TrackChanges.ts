@@ -460,18 +460,32 @@ console.log('TC-DEBUG after:', $debugPos.nodeAfter?.text, $debugPos.nodeAfter?.m
       const trackMarkBefore = nodeBefore?.marks.find(
         (m: PMMark) => m.type === trackMarkAfter.type && m.attrs.changeId === trackMarkAfter.attrs.changeId
       );
-      if (trackMarkBefore) {
-        const rightFrom = insertEnd;
-        const rightTo = tr.mapping.map(from + nodeAfter.nodeSize);
-        if (rightTo > rightFrom) {
-          const newMark = trackMarkAfter.type.create({
-            ...trackMarkAfter.attrs,
-            changeId: generateChangeId(),
-          });
-          tr.removeMark(rightFrom, rightTo, trackMarkAfter.type);
-          tr.addMark(rightFrom, rightTo, newMark);
-        }
-      }
+if (trackMarkBefore) {
+  const rightFrom = insertEnd;
+  // Walk forward from `from` in the PRE-INSERT doc to find the full right segment
+  const originalChangeId = trackMarkAfter.attrs.changeId;
+  const markType = trackMarkAfter.type;
+  let rightEnd = from + nodeAfter.nodeSize;
+  const $nodeAfterPos = state.doc.resolve(from + nodeAfter.nodeSize);
+  const parent = $nodeAfterPos.parent;
+  const parentStart = (from + nodeAfter.nodeSize) - $nodeAfterPos.parentOffset;
+  let offset = $nodeAfterPos.parentOffset;
+  while (offset < parent.content.size) {
+    const node = parent.nodeAt(offset);
+    if (!node?.isText) break;
+    const m = node.marks.find((m: PMMark) => m.type === markType && m.attrs.changeId === originalChangeId);
+    if (!m) break;
+    rightEnd += node.nodeSize;
+    offset += node.nodeSize;
+  }
+  const mappedRightFrom = insertEnd;
+  const mappedRightTo = tr.mapping.map(rightEnd);
+  if (mappedRightTo > mappedRightFrom) {
+    const newMark = markType.create({ ...trackMarkAfter.attrs, changeId: generateChangeId() });
+    tr.removeMark(mappedRightFrom, mappedRightTo, markType);
+    tr.addMark(mappedRightFrom, mappedRightTo, newMark);
+  }
+}
     }
   }
 
