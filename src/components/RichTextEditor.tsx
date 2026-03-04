@@ -854,11 +854,15 @@ export function FormattingToolbar({
 export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootnote, className, renderToolbar }: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3],
-        },
-      }),
+StarterKit.configure({
+  heading: {
+    levels: [1, 2, 3],
+  },
+  history: {
+    depth: 100,
+    newGroupDelay: 500,
+  },
+}),
       Underline,
       ParagraphClass,
       TextAlign.configure({
@@ -1003,11 +1007,15 @@ export function useRichTextEditor({
   
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3],
-        },
-      }),
+StarterKit.configure({
+  heading: {
+    levels: [1, 2, 3],
+  },
+  history: {
+    depth: 100,
+    newGroupDelay: 500,
+  },
+}),
       Underline,
       ParagraphClass,
       TextAlign.configure({
