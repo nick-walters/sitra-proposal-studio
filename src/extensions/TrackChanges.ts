@@ -1032,18 +1032,21 @@ if (!extension.storage.enabled) {
                 tr.steps.forEach((step) => {
                   const stepMap = step.getMap();
                   stepMap.forEach((oldStart: number, oldEnd: number, newStart: number, newEnd: number) => {
-                    if (newEnd > newStart && oldEnd === oldStart) {
-                      const mappedFrom = cleanTr.mapping.map(newStart);
-                      const mappedTo = cleanTr.mapping.map(newEnd);
-                      if (deletionType) {
-                        cleanTr.removeMark(mappedFrom, mappedTo, deletionType);
-                        needsTr = true;
-                      }
-                      if (insertionType) {
-                        cleanTr.removeMark(mappedFrom, mappedTo, insertionType);
-                        needsTr = true;
-                      }
-                    }
+if (newEnd > newStart && newEnd - newStart > oldEnd - oldStart) {
+  const netNewStart = newStart + (oldEnd - oldStart);
+  const mappedFrom = cleanTr.mapping.map(netNewStart);
+  const mappedTo = cleanTr.mapping.map(newEnd);
+  if (mappedTo > mappedFrom) {
+    if (deletionType) {
+      cleanTr.removeMark(mappedFrom, mappedTo, deletionType);
+      needsTr = true;
+    }
+    if (insertionType) {
+      cleanTr.removeMark(mappedFrom, mappedTo, insertionType);
+      needsTr = true;
+    }
+  }
+}
                   });
                 });
               }
