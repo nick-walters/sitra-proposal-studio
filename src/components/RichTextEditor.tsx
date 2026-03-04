@@ -860,7 +860,7 @@ StarterKit.configure({
   },
   undoRedo: {
     depth: 100,
-    newGroupDelay: 1500,
+    newGroupDelay: 1200,
   },
 }),
       Underline,
@@ -1014,7 +1014,7 @@ StarterKit.configure({
   },
   undoRedo: {
     depth: 100,
-    newGroupDelay: 1500,
+    newGroupDelay: 1200,
   },
 }),
       Underline,
