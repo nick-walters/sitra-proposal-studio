@@ -858,7 +858,7 @@ StarterKit.configure({
   heading: {
     levels: [1, 2, 3],
   },
-  history: {
+  undoRedo: {
     depth: 100,
     newGroupDelay: 2000,
   },
@@ -1011,7 +1011,7 @@ StarterKit.configure({
   heading: {
     levels: [1, 2, 3],
   },
-  history: {
+  undoRedo: {
     depth: 100,
     newGroupDelay: 2000,
   },
