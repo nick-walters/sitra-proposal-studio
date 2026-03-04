@@ -312,6 +312,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
             }
           });
           const mappedStart = tr.mapping.map(oldStart);
+          console.error('DEL', oldStart, oldEnd, newStart, newEnd, mappedStart, tr.doc.textContent);
           let reinsertedLength = 0;
           if (nodesToReject.length > 0) {
             tr.insert(mappedStart, Fragment.from(nodesToReject));
