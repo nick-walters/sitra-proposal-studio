@@ -264,7 +264,7 @@ export function TrackChangesToolbar({
                   <div className="p-2 space-y-1">
                     {changes.map((change) => (
                       <div
-                        key={change.id}
+                        key={`${change.id}-${change.from}-${change.to}-${change.type}`}
                         className={`p-3 rounded-lg text-xs cursor-pointer transition-all border bg-background hover:border-primary hover:shadow-sm ${
                           selectedIds.has(change.id) ? 'ring-1 ring-primary/50' : ''
                         }`}
