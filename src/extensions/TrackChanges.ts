@@ -574,7 +574,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
     });
 
     const mainPlugin = new Plugin({
-      key: trackChangesPluginKey,
+      key: new PluginKey('trackChangesMain'),
       appendTransaction(transactions, oldState, newState) {
         for (const tr of transactions) {
           if (tr.getMeta('blockReorder')) return null;
