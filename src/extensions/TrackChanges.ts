@@ -445,48 +445,44 @@ if (!extension.storage.enabled) {
   if (deletionType) tr.removeMark(from, insertEnd, deletionType);
   if (insertionType) tr.removeMark(from, insertEnd, insertionType);
 
-  // Split any tracked span that was bisected by this insertion.
-const $debugPos = state.doc.resolve(from);
-console.log('TC-DEBUG before:', $debugPos.nodeBefore?.text, $debugPos.nodeBefore?.marks.map(m => m.type.name + ':' + m.attrs.changeId));
-console.log('TC-DEBUG after:', $debugPos.nodeAfter?.text, $debugPos.nodeAfter?.marks.map(m => m.type.name + ':' + m.attrs.changeId));
-  const $from = state.doc.resolve(from);
-  const nodeAfter = $from.nodeAfter;
-  if (nodeAfter?.isText) {
-    const trackMarkAfter =
-      nodeAfter.marks.find((m: PMMark) => m.type === insertionType) ||
-      nodeAfter.marks.find((m: PMMark) => m.type === deletionType);
-    if (trackMarkAfter) {
-      const nodeBefore = $from.nodeBefore;
-      const trackMarkBefore = nodeBefore?.marks.find(
-        (m: PMMark) => m.type === trackMarkAfter.type && m.attrs.changeId === trackMarkAfter.attrs.changeId
-      );
-if (trackMarkBefore) {
-  const rightFrom = insertEnd;
-  // Walk forward from `from` in the PRE-INSERT doc to find the full right segment
-  const originalChangeId = trackMarkAfter.attrs.changeId;
-  const markType = trackMarkAfter.type;
-  let rightEnd = from + nodeAfter.nodeSize;
-  const $nodeAfterPos = state.doc.resolve(from + nodeAfter.nodeSize);
-  const parent = $nodeAfterPos.parent;
-  const parentStart = (from + nodeAfter.nodeSize) - $nodeAfterPos.parentOffset;
-  let offset = $nodeAfterPos.parentOffset;
-  while (offset < parent.content.size) {
-    const node = parent.nodeAt(offset);
-    if (!node?.isText) break;
-    const m = node.marks.find((m: PMMark) => m.type === markType && m.attrs.changeId === originalChangeId);
-    if (!m) break;
-    rightEnd += node.nodeSize;
-    offset += node.nodeSize;
+// Walk forward from cursor in pre-insert doc to find full right segment
+  const $preFrom = state.doc.resolve(from);
+  const parent = $preFrom.parent;
+  const parentOffset = $preFrom.parentOffset;
+
+  let originalMark: PMMark | undefined;
+  const nodeBeforeCheck = $preFrom.nodeBefore;
+  if (nodeBeforeCheck?.isText) {
+    originalMark =
+      nodeBeforeCheck.marks.find((m: PMMark) => m.type === insertionType) ||
+      nodeBeforeCheck.marks.find((m: PMMark) => m.type === deletionType);
   }
-  const mappedRightFrom = insertEnd;
-  const mappedRightTo = tr.mapping.map(rightEnd);
-  if (mappedRightTo > mappedRightFrom) {
-    const newMark = markType.create({ ...trackMarkAfter.attrs, changeId: generateChangeId() });
-    tr.removeMark(mappedRightFrom, mappedRightTo, markType);
-    tr.addMark(mappedRightFrom, mappedRightTo, newMark);
-  }
-}
+
+  if (originalMark) {
+    const originalChangeId = originalMark.attrs.changeId;
+    const markType = originalMark.type;
+
+    let rightEnd = from;
+    let offset = parentOffset;
+    while (offset < parent.content.size) {
+      const node = parent.nodeAt(offset);
+      if (!node?.isText) break;
+      const m = node.marks.find((m: PMMark) => m.type === markType && m.attrs.changeId === originalChangeId);
+      if (!m) break;
+      rightEnd += node.nodeSize;
+      offset += node.nodeSize;
     }
+
+    if (rightEnd > from) {
+      const mappedRightFrom = insertEnd;
+      const mappedRightTo = tr.mapping.map(rightEnd);
+      if (mappedRightTo > mappedRightFrom) {
+        const newMark = markType.create({ ...originalMark.attrs, changeId: generateChangeId() });
+        tr.removeMark(mappedRightFrom, mappedRightTo, markType);
+        tr.addMark(mappedRightFrom, mappedRightTo, newMark);
+      }
+    }
+  }
   }
 
   tr.setStoredMarks(cleanMarks);
