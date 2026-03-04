@@ -742,15 +742,11 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
             // ── Path 2: Tracking OFF near tracked marks ──
             // Clear stored marks only; let default insertion run.
 if (!extension.storage.enabled) {
-  const tr = state.tr.insertText(text, from, to);
-  const insertEnd = from + text.length;
-  if (deletionType) tr.removeMark(from, insertEnd, deletionType);
-  if (insertionType) tr.removeMark(from, insertEnd, insertionType);
-  tr.setStoredMarks(cleanMarks);
+  const tr = state.tr.setStoredMarks(cleanMarks);
   tr.setMeta('trackChangesInternal', true);
-  tr.setMeta('addToHistory', true);
+  tr.setMeta('addToHistory', false);
   view.dispatch(tr);
-  return true;
+  return false;
 }
 
             // ── Path 3: Tracking ON at boundary of tracked marks ──
