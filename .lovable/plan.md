@@ -1,74 +1,84 @@
 
+Goal: Rebuild tracked-deletion behavior so editing is deterministic and never leaks deletion styling into normal typing, especially when tracking is OFF.
 
-## Track Changes — Strikethrough Inheritance & Split Deletion Fix
+1) Confirmed root cause (from current code)
+- Deletion cursor placement is explicitly set to `newStart` in cross-block handling, which places caret at the left/start side of deleted span instead of after it.
+- Tracking-OFF cleanup still mutates marks reactively in `appendTransaction` via mapped ranges; this can accidentally touch existing deletion-marked content and “erase” deletion highlighting/review entries.
+- Change collection merges by `changeId` only, so split deletion segments can collapse into one logical change unexpectedly.
 
-### Important Context for the Other LLM's Advice
+2) Overhaul architecture (single, predictable policy)
+- Introduce a strict invariant:
+  - Tracking OFF: existing tracked marks are immutable; only newly typed content is sanitized (no track marks).
+  - Tracking ON: deletion tracking can mutate marks/text as expected.
+- Move all typing behavior (including typing inside/after deletions) to proactive input handlers; stop relying on broad reactive stripping for this path.
+- Keep reactive logic only for true fallback/programmatic cases, with narrower scope.
 
-The suggestions from Claude (DOM-level fixes like `document.createTextNode`, CSS rules for `<del>` elements) **do not apply to this codebase**. This editor uses **ProseMirror/Tiptap**, which operates on an abstract document model, not the DOM directly. The marks (`trackDeletion`, `trackInsertion`) exist in ProseMirror's data layer, and ProseMirror renders them to the DOM. All fixes must happen at the ProseMirror transaction level.
+3) Behavioral rules to implement
+- Rule A: After creating a tracked deletion, caret lands after the deleted span (right boundary), not at the start/inside it.
+- Rule B: With tracking OFF, typing after/inside deletion never inherits strikethrough/highlight.
+- Rule C: With tracking OFF, typing in the middle of a deletion splits it into two tracked deletions that remain visible in review.
 
----
+4) Concrete implementation plan
 
-### Root Cause Analysis
+A. `src/extensions/TrackChanges.ts`
+- Add deletion-boundary helpers:
+  - `findDeletionSegmentAtPos(doc, pos)` (returns segment + attrs)
+  - `sanitizeInsertedRange(tr, from, to, insertionType, deletionType)` (remove track marks only from newly inserted text)
+  - `setCursorAfterRange(tr, from, to)` (stable right-edge placement)
+- Update tracking-ON deletion path:
+  - In both same-block and cross-block deletion handlers, set selection to right edge of tracked deletion span.
+- Replace tracking-OFF typing path:
+  - `handleTextInput` becomes authoritative for keyboard typing.
+  - If cursor is inside deletion mark, insert plain text and sanitize only inserted range.
+  - Preserve left/right deletion segments.
+  - Reassign one side (typically right segment) to a new `changeId` so review shows two deletions (not merged).
+- Add `handlePaste` parity:
+  - Sanitize pasted content insertion ranges similarly when tracking OFF.
+- Narrow tracking-OFF `appendTransaction`:
+  - Remove broad “strip marks from mapped inserted content” behavior that can mutate existing deletions.
+  - Keep only safe storedMarks cleanup and review-panel recompute.
+  - Use targeted cleanup only when a transaction is explicitly tagged as “new insertion sanitation”.
 
-The code has three layers that handle text input:
-1. `handleTextInput` — intercepts keyboard typing (lines 685–759)
-2. `appendTransaction` — reacts to all transactions after they commit (lines 975–1280)
-3. `filterTransaction` — strips storedMarks when tracking is OFF (lines 647–675)
+B. `collectChangesFromDoc` (same file)
+- Stop merging solely by `changeId`.
+- Represent each contiguous marked run as its own change item (or key by `changeId + contiguous range`) so split deletions appear as separate review entries.
 
-**Bug 1 (Strikethrough inheritance):** When tracking is OFF and `insertContent` (or any programmatic insertion) runs near a deletion boundary, it bypasses `handleTextInput` entirely. The tracking-OFF branch of `appendTransaction` (lines 999–1031) only cleans `storedMarks` — it never strips inherited deletion marks from newly inserted text nodes. So if ProseMirror resolves marks from surrounding context, the deletion mark sticks.
+C. `src/components/RichTextEditor.tsx`
+- Keep toggle-off stored mark cleanup, but ensure it never removes document marks—stored marks only.
+- No additional reactive stripping logic in component-level effects.
 
-**Bug 2 (No split):** The inside-deletion detection in `appendTransaction` (lines 1218–1230) uses `findDeletionSegmentAtPos`, which has an overly complex multi-pass search with fragile boundary math (lines 103–131). It can return incorrect `from`/`to` ranges, causing the `insideDeletion` check to fail. When it fails, the inserted text keeps the inherited deletion mark and no split occurs.
+5) Regression test expansion (`src/test/TrackChanges.test.ts`)
+Add focused tests for the exact bug contract:
+- Cursor lands after tracked deletion boundary (not inside/start).
+- Tracking OFF + typing at end of deletion: inserted text has no deletion mark; existing deletion remains tracked.
+- Tracking OFF + typing in middle of deletion: deletion becomes two tracked segments; both remain in review list.
+- Tracking OFF + paste inside deletion: pasted content plain, surrounding deletions preserved.
+- No disappearance from review panel after off-mode typing near deletion.
 
----
+6) Safety/rollout
+- Implement behind existing extension behavior (no schema migration).
+- Validate with current tests + new targeted cases.
+- Manual end-to-end sanity pass in proposal editor:
+  - create deletion with tracking ON
+  - toggle OFF
+  - type after deletion
+  - type inside deletion
+  - verify styling + review panel consistency.
 
-### Fix Plan
-
-#### 1. Fix `appendTransaction` tracking-OFF branch (lines 999–1031)
-
-When `hasUserChange` is true, iterate the transaction steps to find newly inserted ranges. For each inserted range in `newState.doc`, strip any `trackDeletion` and `trackInsertion` marks. This is the defensive catch-all that prevents any mark inheritance regardless of how the insertion was triggered.
-
+Technical details
+- Data-flow model:
 ```text
-TRACKING OFF + hasUserChange:
-  for each step in transactions:
-    for each range (oldStart, oldEnd, newStart, newEnd):
-      if newEnd > newStart (insertion happened):
-        cleanTr.removeMark(newStart, newEnd, deletionType)
-        cleanTr.removeMark(newStart, newEnd, insertionType)
-        needsTr = true
+Keyboard input
+  -> handleTextInput/handleKeyDown (authoritative)
+     -> precise tr mutation (only inserted span sanitized)
+     -> optional split-id reassignment for right segment
+     -> dispatch trackChangesInternal
+appendTransaction
+  -> fallback only (no broad mark stripping when OFF)
 ```
-
-#### 2. Simplify `findDeletionSegmentAtPos` (lines 54–132)
-
-Replace the current three-pass approach with a single `doc.nodesBetween` call scoped to the parent block. Walk all text nodes, collect contiguous deletion runs, return the one containing `pos`. This eliminates the fragile boundary math.
-
+- Key invariant checks:
 ```text
-findDeletionSegmentAtPos(doc, pos, deletionType):
-  resolve pos → $pos
-  blockStart = pos - $pos.parentOffset
-  blockEnd = blockStart + $pos.parent.content.size
-  
-  collect contiguous deletion runs in [blockStart, blockEnd]
-  return the run where from < pos < to (or from <= pos <= to)
+OFF mode:
+- Existing [trackDeletion|trackInsertion] marks are never removed implicitly.
+- New inserted text always ends with mark set excluding track marks.
 ```
-
-#### 3. Harden the inside-deletion branch in appendTransaction (lines 1209–1230)
-
-After the `removeMark` calls, also set `storedMarks` to clean marks so the cursor doesn't inherit tracked marks for subsequent keystrokes.
-
-#### 4. Ensure `handleTextInput` inside-deletion path (lines 710–733) also works for tracking ON
-
-Currently this path fires with `trackChangesInternal: true`, which means `appendTransaction` skips it. This is correct — but verify that when tracking is ON and typing inside a deletion, the text gets an insertion mark (not just plain). Add the insertion mark explicitly in this branch when tracking is ON.
-
----
-
-### Files to Change
-
-- **`src/extensions/TrackChanges.ts`** — all four fixes above
-- **`src/test/TrackChangesTypingBoundary.test.ts`** — verify existing tests pass
-- **`src/test/TrackChangesDeletion.test.ts`** — verify existing tests pass
-
-### Risks
-
-- The `appendTransaction` mark-stripping for tracking OFF must only target genuinely new insertions (ranges where `newEnd > newStart && oldEnd === oldStart`), not pre-existing content
-- Cursor placement after splitting must land between the two deletion halves, not inside one of them
-
