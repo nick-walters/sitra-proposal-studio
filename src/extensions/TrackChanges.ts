@@ -483,7 +483,6 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
 
             tr.setStoredMarks(cleanMarks);
             tr.setMeta('trackChangesInternal', true);
-            tr.setMeta('addToHistory', true);
             view.dispatch(tr);
             return true;
           }
@@ -549,7 +548,6 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
 
           tr.setStoredMarks(cleanMarks);
           tr.setMeta('trackChangesInternal', true);
-          tr.setMeta('addToHistory', true);
 
           try { tr.setSelection(TextSelection.near(tr.doc.resolve(insertEnd), 1)); } catch { /* let PM recover */ }
 
@@ -650,7 +648,6 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
 
             const tr = state.tr;
             tr.setMeta('trackChangesInternal', true);
-            tr.setMeta('addToHistory', true);
 
             let deletionEnd = from;
             if (toMarkDel.length > 0) {
