@@ -302,6 +302,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           const nodesToReinsert: any[] = [];
           const nodesToReject: any[] = [];
           oldDoc.nodesBetween(oldStart, oldEnd, (node: any) => {
+            console.error('NODE', node.text, node.isText, node.marks.length);
             if (!node.isText) return;
             if (node.marks.some((m: PMMark) => m.type === insertionType && m.attrs.authorId === authorId)) return;
             const cleanMarks = node.marks.filter((m: PMMark) => m.type !== deletionType && m.type !== insertionType);
