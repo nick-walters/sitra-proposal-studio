@@ -216,8 +216,10 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
       changes: [] as TrackChange[],
       lastInsertionId: null as string | null,
       lastInsertionTime: 0,
+      lastInsertionEnd: 0,
       lastDeletionId: null as string | null,
       lastDeletionTime: 0,
+      lastDeletionEnd: 0,
       prevDoc: null as any,
     };
   },
@@ -324,13 +326,14 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           if (nodesToReinsert.length > 0) {
             let changeId: string;
             
-            if (storage.lastDeletionId && now - storage.lastDeletionTime < MERGE_WINDOW) {
+            if (storage.lastDeletionId && mappedStart === storage.lastDeletionEnd) {
               changeId = storage.lastDeletionId;
             } else {
               changeId = generateChangeId();
             }
             storage.lastDeletionId = changeId;
             storage.lastDeletionTime = now;
+            storage.lastDeletionEnd = mappedStart;
             const delMark = deletionType.create({ changeId, authorId, authorName, authorColor, timestamp: new Date().toISOString() });
             const markedNodes = nodesToReinsert.map((n: any) =>
               n.mark(delMark.addToSet(n.marks.filter((m: PMMark) => m.type !== insertionType)))
@@ -346,13 +349,14 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
 
         if (newEnd > newStart) {
           let changeId: string;
-          if (storage.lastInsertionId && now - storage.lastInsertionTime < MERGE_WINDOW) {
+          if (storage.lastInsertionId && newStart === storage.lastInsertionEnd) {
             changeId = storage.lastInsertionId;
           } else {
             changeId = generateChangeId();
           }
           storage.lastInsertionId = changeId;
           storage.lastInsertionTime = now;
+          storage.lastInsertionEnd = newEnd;
           if (deletionType) tr.removeMark(newStart, newEnd, deletionType);
           tr.addMark(newStart, newEnd, insertionType.create({
             changeId, authorId, authorName, authorColor,
