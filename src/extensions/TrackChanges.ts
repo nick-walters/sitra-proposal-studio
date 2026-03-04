@@ -323,7 +323,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           }
           if (nodesToReinsert.length > 0) {
             let changeId: string;
-            console.error('DEL MERGE', now - storage.lastDeletionTime, storage.lastDeletionId);
+            
             if (storage.lastDeletionId && now - storage.lastDeletionTime < MERGE_WINDOW) {
               changeId = storage.lastDeletionId;
             } else {
@@ -396,6 +396,9 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
     setTimeout(() => {
       storage.changes = collectChangesFromDoc(this.editor.state.doc, schema);
       options.onChangesUpdate?.(storage.changes);
+      console.error('DOC MARKS', JSON.stringify(
+        collectChangesFromDoc(this.editor.state.doc, this.editor.schema).map(c => ({id: c.id, content: c.content}))
+      ));
     }, 0);
   },
 
