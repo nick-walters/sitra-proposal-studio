@@ -89,6 +89,7 @@ function getDeletionCursorContext(
     // STRICT interior check: cursor must be strictly inside the deletion node,
     // NOT at either boundary. Boundary positions (== childStart or == childEnd)
     // are handled by the normal typing path with inclusive: false on the mark.
+    console.log('TC-DEBUG', { parentOffset, childStart, childEnd, isText: child.isText });
     if (parentOffset > childStart && parentOffset < childEnd) {
       const nodeFrom = pos - (parentOffset - childStart);
       const nodeTo = nodeFrom + child.nodeSize;
