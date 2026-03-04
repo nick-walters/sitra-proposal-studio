@@ -1234,6 +1234,7 @@ TrackChanges.configure({
       }),
     ],
     content,
+    
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
       lastSetContentRef.current = html;
