@@ -249,6 +249,8 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
       return;
     }
 
+    console.error('OLDDOC', storage.prevDoc?.textContent, 'NEWDOC', tr.doc.textContent);
+
     const oldDoc = storage.prevDoc;
     const authorId = options.authorId;
     const authorName = options.authorName;
