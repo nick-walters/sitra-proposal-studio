@@ -81,8 +81,8 @@ function getDeletionCursorContext(
     const deletionMark = child.marks.find((m: PMMark) => m.type === deletionType);
     if (!deletionMark) continue;
 
-    // Strictly inside this deletion text node (not at boundaries)
-    if (parentOffset > childStart && parentOffset < childEnd) {
+    // Include boundaries so cursor at mark edge is handled consistently
+    if (parentOffset >= childStart && parentOffset <= childEnd) {
       const nodeFrom = pos - (parentOffset - childStart);
       const nodeTo = nodeFrom + child.nodeSize;
       return { nodeFrom, nodeTo, attrs: deletionMark.attrs };
@@ -766,11 +766,33 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
             }
 
             // Tracking ON near tracked marks: force clean insertion point so text
-            // cannot inherit deletion styling; appendTransaction will mark insertion.
+            // cannot inherit deletion styling; mark insertion immediately here.
             const tr = state.tr.insertText(text, from, to);
             const insertEnd = from + text.length;
             if (deletionType) tr.removeMark(from, insertEnd, deletionType);
+
+            const MERGE_WINDOW = 5000;
+            const now = Date.now();
+            let changeId: string;
+            if (extension.storage.lastInsertionId && now - extension.storage.lastInsertionTime < MERGE_WINDOW) {
+              changeId = extension.storage.lastInsertionId;
+            } else {
+              changeId = generateChangeId();
+            }
+            extension.storage.lastInsertionId = changeId;
+            extension.storage.lastInsertionTime = now;
+
+            const insertMark = insertionType.create({
+              changeId,
+              authorId: extension.options.authorId,
+              authorName: extension.options.authorName,
+              authorColor: extension.options.authorColor,
+              timestamp: new Date().toISOString(),
+            });
+            tr.addMark(from, insertEnd, insertMark);
+
             tr.setStoredMarks(cleanMarks);
+            tr.setMeta('trackChangesInternal', true);
             tr.setMeta('addToHistory', true);
             view.dispatch(tr);
             return true;
