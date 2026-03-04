@@ -1273,7 +1273,7 @@ StarterKit.configure({
       const targetEnabled = trackChanges?.enabled || false;
       if (storage.enabled !== targetEnabled) {
         storage.enabled = targetEnabled;
-        console.error('SYNC ENABLED', targetEnabled);
+        
         // Reset merge windows when toggling
         storage.lastInsertionId = null;
         storage.lastInsertionTime = 0;
