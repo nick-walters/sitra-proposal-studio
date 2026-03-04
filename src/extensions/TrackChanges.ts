@@ -267,7 +267,6 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           }
 
           tr.setMeta('trackChangesInternal', true);
-          tr.setMeta('addToHistory', false);
           if (dispatch) dispatch(tr);
           setTimeout(() => {
             this.storage.changes = collectChangesFromDoc(editor.state.doc, editor.state.schema);
@@ -302,7 +301,6 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           }
 
           tr.setMeta('trackChangesInternal', true);
-          tr.setMeta('addToHistory', false);
           if (dispatch) dispatch(tr);
           setTimeout(() => {
             this.storage.changes = collectChangesFromDoc(editor.state.doc, editor.state.schema);
@@ -726,8 +724,11 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
         }
 
         const userTransactions = transactions.filter(
-          (tr) => tr.docChanged && !tr.getMeta('trackChangesInternal') &&
-            !tr.getMeta('setContent') && tr.getMeta('preventUpdate') === undefined
+          (tr) => tr.docChanged &&
+            !tr.getMeta('trackChangesInternal') &&
+            !tr.getMeta('setContent') &&
+            tr.getMeta('preventUpdate') === undefined &&
+            !tr.getMeta('history$')
         );
         if (userTransactions.length === 0) return null;
 
