@@ -737,6 +737,11 @@ if (!extension.storage.enabled) {
   if (newEnd > newStart) {
     const mFrom = newTr.mapping.map(newStart);
     const mTo = newTr.mapping.map(newEnd);
+    console.log('TC-SPLIT mFrom:', mFrom, 'mTo:', mTo);
+const $dbBefore = newTr.doc.resolve(mFrom);
+const $dbAfter = newTr.doc.resolve(mTo);
+console.log('TC-SPLIT nodeBefore:', $dbBefore.nodeBefore?.text, $dbBefore.nodeBefore?.marks.map((m:any) => m.type.name + ':' + m.attrs.changeId));
+console.log('TC-SPLIT nodeAfter:', $dbAfter.nodeAfter?.text, $dbAfter.nodeAfter?.marks.map((m:any) => m.type.name + ':' + m.attrs.changeId));
     if (deletionType) { newTr.removeMark(mFrom, mTo, deletionType); modified = true; }
     if (insertionType) { newTr.removeMark(mFrom, mTo, insertionType); modified = true; }
 
