@@ -732,16 +732,44 @@ console.log('TC-DEBUG after:', $debugPos.nodeAfter?.text, $debugPos.nodeAfter?.m
           tr.steps.forEach((step: any) => {
             step.getMap().forEach(
               (oldStart: number, oldEnd: number, newStart: number, newEnd: number) => {
-                // Tracking OFF: strip all track marks from any changed range
-                if (!extension.storage.enabled) {
-                  if (newEnd > newStart) {
-                    const mFrom = newTr.mapping.map(newStart);
-                    const mTo = newTr.mapping.map(newEnd);
-                    if (deletionType) { newTr.removeMark(mFrom, mTo, deletionType); modified = true; }
-                    if (insertionType) { newTr.removeMark(mFrom, mTo, insertionType); modified = true; }
-                  }
-                  return;
-                }
+// Tracking OFF: strip track marks from inserted range, and split any bisected tracked span
+if (!extension.storage.enabled) {
+  if (newEnd > newStart) {
+    const mFrom = newTr.mapping.map(newStart);
+    const mTo = newTr.mapping.map(newEnd);
+    if (deletionType) { newTr.removeMark(mFrom, mTo, deletionType); modified = true; }
+    if (insertionType) { newTr.removeMark(mFrom, mTo, insertionType); modified = true; }
+
+    // Check if this insertion bisected a tracked span (same changeId on both sides)
+    // If so, give the right segment a new changeId to split it into two changes.
+    try {
+      const $before = newTr.doc.resolve(mFrom);
+      const $after = newTr.doc.resolve(mTo);
+      const nodeBefore = $before.nodeBefore;
+      const nodeAfter = $after.nodeAfter;
+      if (nodeBefore?.isText && nodeAfter?.isText) {
+        const markBefore =
+          nodeBefore.marks.find((m: PMMark) => m.type === insertionType) ||
+          nodeBefore.marks.find((m: PMMark) => m.type === deletionType);
+        const markAfter =
+          nodeAfter.marks.find((m: PMMark) => m.type === insertionType) ||
+          nodeAfter.marks.find((m: PMMark) => m.type === deletionType);
+        if (markBefore && markAfter && markBefore.type === markAfter.type &&
+            markBefore.attrs.changeId === markAfter.attrs.changeId) {
+          const rightTo = mTo + nodeAfter.nodeSize;
+          const newMark = markAfter.type.create({
+            ...markAfter.attrs,
+            changeId: generateChangeId(),
+          });
+          newTr.removeMark(mTo, rightTo, markAfter.type);
+          newTr.addMark(mTo, rightTo, newMark);
+          modified = true;
+        }
+      }
+    } catch { /* ignore position errors */ }
+  }
+  return;
+}
 
                 // Tracking ON: handle deletions
                 if (oldEnd > oldStart) {
