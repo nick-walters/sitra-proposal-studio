@@ -701,6 +701,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
                 }
                 if (newEnd > newStart) {
                   const insertedText = newState.doc.textBetween(newStart, newEnd, ' ');
+                  console.error('TC INSERT', now - extension.storage.lastInsertionTime, extension.storage.lastInsertionId);
                   if (insertedText.trim()) {
                     if (deletionType) newTr.removeMark(newStart, newEnd, deletionType);
                     newTr.addMark(newStart, newEnd, insertionType.create({
