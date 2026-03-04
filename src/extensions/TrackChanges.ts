@@ -218,6 +218,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
       lastInsertionTime: 0,
       lastDeletionId: null as string | null,
       lastDeletionTime: 0,
+      prevDoc: null as any,
     };
   },
 
@@ -732,6 +733,14 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
       },
     });
 
-    return [decorationPlugin, mainPlugin, keyPlugin];
+    const prevDocPlugin = new Plugin({
+      key: new PluginKey('trackChangesPrevDoc'),
+      state: {
+        init: (_, state) => { extension.storage.prevDoc = state.doc; return null; },
+        apply: (tr, _, __, newState) => { extension.storage.prevDoc = newState.doc; return null; },
+      },
+    });
+
+    return [prevDocPlugin, decorationPlugin, mainPlugin, keyPlugin];
   },
 });
