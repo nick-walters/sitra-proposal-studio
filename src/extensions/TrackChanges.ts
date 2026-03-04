@@ -301,15 +301,17 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
         if (oldEnd > oldStart && oldDoc) {
           const nodesToReinsert: any[] = [];
           const nodesToReject: any[] = [];
-          oldDoc.nodesBetween(oldStart, oldEnd, (node: any) => {
-            console.error('NODE', node.text, node.isText, node.marks.length);
+          oldDoc.nodesBetween(oldStart, oldEnd, (node: any, pos: number) => {
             if (!node.isText) return;
             if (node.marks.some((m: PMMark) => m.type === insertionType && m.attrs.authorId === authorId)) return;
-            const cleanMarks = node.marks.filter((m: PMMark) => m.type !== deletionType && m.type !== insertionType);
+            const from = Math.max(pos, oldStart);
+            const to = Math.min(pos + node.nodeSize, oldEnd);
+            const slicedNode = node.cut(from - pos, to - pos);
+            const cleanMarks = slicedNode.marks.filter((m: PMMark) => m.type !== deletionType && m.type !== insertionType);
             if (node.marks.some((m: PMMark) => m.type === deletionType)) {
-              nodesToReject.push(node.mark(cleanMarks));
+              nodesToReject.push(slicedNode.mark(cleanMarks));
             } else {
-              nodesToReinsert.push(node);
+              nodesToReinsert.push(slicedNode);
             }
           });
           const mappedStart = tr.mapping.map(oldStart);
