@@ -219,7 +219,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
       lastInsertionEnd: 0,
       lastDeletionId: null as string | null,
       lastDeletionTime: 0,
-      lastDeletionEnd: 0,
+      lastDeletionOldStart: 0,
       prevDoc: null as any,
     };
   },
@@ -255,7 +255,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
       storage.lastInsertionId = null;
       storage.lastInsertionEnd = 0;
       storage.lastDeletionId = null;
-      storage.lastDeletionEnd = 0;
+      storage.lastDeletionOldStart = 0;
       next(tr);
       return;
     }
@@ -334,13 +334,13 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           // Mark fresh deletions
           if (freshNodes.length > 0) {
             let changeId: string;
-            if (storage.lastDeletionId && mappedStart === storage.lastDeletionEnd) {
+            if (storage.lastDeletionId && oldStart === storage.lastDeletionOldStart) {
               changeId = storage.lastDeletionId;
             } else {
               changeId = generateChangeId();
             }
             storage.lastDeletionId = changeId;
-            storage.lastDeletionEnd = mappedStart + reinsertedLength;
+            storage.lastDeletionOldStart = oldStart - 1;
             const delMark = deletionType.create({ changeId, authorId, authorName, authorColor, timestamp: new Date().toISOString() });
             const markedNodes = freshNodes.map((n: any) =>
               n.mark(delMark.addToSet(n.marks.filter((m: PMMark) => m.type !== insertionType)))
