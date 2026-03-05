@@ -367,13 +367,13 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
           <h1 className="text-xl font-bold text-foreground">Availability</h1>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-sm bg-background border border-border inline-block" /> Available
+              <span className="w-3 h-3 rounded-full bg-background border border-border inline-block" /> Available
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-sm bg-destructive/70 inline-block" /> Unavailable
+              <span className="w-3 h-3 rounded-full bg-destructive/70 inline-block" /> Unavailable
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-sm bg-muted inline-block" /> Weekend / Holiday
+              <span className="w-3 h-3 rounded-full bg-muted inline-block" /> Weekend / Holiday
             </span>
           </div>
         </div>
@@ -383,18 +383,18 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
         </p>
 
         <div
-          className="border rounded-lg bg-card overflow-auto select-none"
+          className="border rounded-xl bg-card overflow-auto select-none shadow-sm"
           ref={scrollRef}
           style={{ maxHeight: 'calc(100vh - 220px)', position: 'relative' }}
         >
           <div style={{ display: 'grid', gridTemplateColumns: `${LABEL_W}px repeat(${days.length}, ${CELL_W}px)` }}>
             {/* Month header row */}
-            <div className="sticky left-0 top-0 z-30 bg-muted/30 h-6" />
+            <div className="sticky left-0 top-0 z-30 bg-muted/50 backdrop-blur-sm" style={{ height: MONTH_H }} />
             {months.map((m, i) => (
               <div
                 key={i}
-                className="sticky top-0 z-20 border-b text-[10px] font-medium text-muted-foreground text-center bg-card"
-                style={{ gridColumn: `span ${m.span}`, lineHeight: '24px' }}
+                className="sticky top-0 z-20 border-b border-border/50 text-[10px] font-medium text-muted-foreground text-center bg-muted/50 backdrop-blur-sm"
+                style={{ gridColumn: `span ${m.span}`, lineHeight: `${MONTH_H}px` }}
               >
                 {m.label} {m.year !== new Date().getFullYear() ? m.year : ''}
               </div>
