@@ -377,14 +377,18 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
           </div>
         </div>
 
+        <p className="text-sm text-muted-foreground -mt-2">
+          Click or click and drag to select dates on which you are unavailable during the proposal preparation period.
+        </p>
+
         <div
           className="border rounded-lg bg-card overflow-auto select-none"
           ref={scrollRef}
-          style={{ maxHeight: 'calc(100vh - 200px)' }}
+          style={{ maxHeight: 'calc(100vh - 220px)', position: 'relative' }}
         >
           <div style={{ display: 'grid', gridTemplateColumns: `${LABEL_W}px repeat(${days.length}, ${CELL_W}px)` }}>
             {/* Month header row */}
-            <div className="sticky left-0 z-20 bg-card border-b border-r h-6" />
+            <div className="sticky left-0 z-30 bg-muted/30 h-6" />
             {months.map((m, i) => (
               <div
                 key={i}
@@ -396,7 +400,7 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
             ))}
 
             {/* Day number header row */}
-            <div className="sticky left-0 z-20 bg-card border-b border-r h-5" />
+            <div className="sticky left-0 z-30 bg-muted/30 h-5" />
             {days.map((d, i) => {
               const weekend = isWeekend(d);
               const hol = isHoliday(d, holidays);
