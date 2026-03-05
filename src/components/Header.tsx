@@ -62,7 +62,7 @@ export function Header() {
     
     // Feedback notifications
     if (meta.source === 'feedback' && meta.feedback_id) {
-      navigate(`/admin?feedback=${meta.feedback_id}`);
+      navigate(`/admin/feedback?feedback=${meta.feedback_id}`);
       return;
     }
     
