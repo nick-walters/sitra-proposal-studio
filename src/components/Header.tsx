@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { UserAvatarMenu } from "@/components/UserAvatarMenu";
+import { UserProfileDialog } from "@/components/UserProfileDialog";
 import { CollaboratorsDialog } from "@/components/CollaboratorsDialog";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { Notification } from "@/hooks/useNotifications";
@@ -14,11 +15,18 @@ export function Header() {
   const { user, signOut } = useAuth();
   const { isOwner, hasAnyCoordinatorRole, isGlobalAdmin } = useUserRole();
   const [isCollaboratorsOpen, setIsCollaboratorsOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const isCompact = location.pathname.startsWith('/proposal/');
 
   const handleNotificationClick = useCallback((notification: Notification) => {
+    // Profile completion notification - open profile editor
+    if (notification.type === 'profile_incomplete') {
+      setIsProfileOpen(true);
+      return;
+    }
+
     if (!notification.proposal_id) return;
     const meta = notification.metadata || {};
     
