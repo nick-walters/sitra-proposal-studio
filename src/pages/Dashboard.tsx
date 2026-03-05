@@ -568,6 +568,44 @@ export function Dashboard() {
         }
       }
 
+      // Auto-lock all lockable sections so only coordinators+ can see them initially
+      if (newProposalId) {
+        try {
+          const staticLockIds = ['a1', 'a2', 'a3', 'a4', 'a5', 'topic-info', 'figures', 'wp-drafts', 'part-b'];
+          const allLockIds = [...staticLockIds];
+
+          // Also lock all Part B template sections
+          if (data.templateTypeId) {
+            const { data: templateSections } = await supabase
+              .from('template_sections')
+              .select('section_number')
+              .eq('template_type_id', data.templateTypeId)
+              .eq('is_active', true);
+
+            for (const sec of templateSections || []) {
+              if (sec.section_number) {
+                const secId = sec.section_number.toLowerCase().replace(/\./g, '-');
+                if (!allLockIds.includes(secId)) {
+                  allLockIds.push(secId);
+                }
+              }
+            }
+          }
+
+          await supabase
+            .from('section_visibility_locks')
+            .insert(
+              allLockIds.map(sectionId => ({
+                proposal_id: newProposalId,
+                section_id: sectionId,
+                locked_by: user!.id,
+              }))
+            );
+        } catch (lockError) {
+          console.warn('Failed to auto-lock sections:', lockError);
+        }
+      }
+
       toast.success('Proposal created successfully');
       
       // Refresh proposals list
