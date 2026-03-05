@@ -376,7 +376,7 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
     setReplyingTo(null);
   };
 
-  const canModify = (msg: Message) => msg.author_id === user?.id || isCoordinator;
+  const canModify = (msg: Message) => !(msg as any).is_system_message && (msg.author_id === user?.id || isCoordinator);
 
   const toggleThread = (id: string) => {
     setExpandedThreads(prev => {
