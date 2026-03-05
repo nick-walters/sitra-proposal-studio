@@ -2299,6 +2299,7 @@ export type Database = {
           is_high_priority: boolean
           is_pinned: boolean
           is_resolved: boolean
+          is_system_message: boolean
           parent_id: string | null
           priority_level: number
           proposal_id: string
@@ -2313,6 +2314,7 @@ export type Database = {
           is_high_priority?: boolean
           is_pinned?: boolean
           is_resolved?: boolean
+          is_system_message?: boolean
           parent_id?: string | null
           priority_level?: number
           proposal_id: string
@@ -2327,6 +2329,7 @@ export type Database = {
           is_high_priority?: boolean
           is_pinned?: boolean
           is_resolved?: boolean
+          is_system_message?: boolean
           parent_id?: string | null
           priority_level?: number
           proposal_id?: string
