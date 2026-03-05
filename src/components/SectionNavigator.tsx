@@ -161,6 +161,18 @@ function SectionItem({
   const [isExpanded, setIsExpanded] = useState(section.id !== 'a2');
   const hasSubsections = section.subsections && section.subsections.length > 0;
   const isActive = activeSectionId === section.id;
+  const isSectionLocked = lockedSections?.has(section.id) ?? false;
+
+  // Determine if this section shows a lock button (coordinators only)
+  const isLockable = isCoordinator && onToggleLock && (
+    section.id === 'a1' || section.id === 'a2' || section.id === 'a3' ||
+    section.id === 'a4' || section.id === 'a5' ||
+    section.id === 'topic-info' ||
+    section.id === 'figures' || section.title === 'Figures' ||
+    section.id === 'wp-drafts' ||
+    section.id === 'part-b' ||
+    (section.number && /^B\d/.test(section.number) && section.id !== 'part-b')
+  );
   
   // Check if this is a WP section with color
   const wpSection = section as WPSection;
