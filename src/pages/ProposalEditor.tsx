@@ -161,6 +161,9 @@ export function ProposalEditor() {
   // Section assignments for sidebar indicators
   const { assignments } = useSectionAssignments(id || null);
 
+  // First-access onboarding: welcome message + starter tasks
+  useProposalOnboarding(id);
+
   // Fetch WP leadership data for participant table
   const { data: wpLeadershipData = [] } = useQuery({
     queryKey: ['wp-leadership', id],

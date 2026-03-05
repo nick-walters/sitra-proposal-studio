@@ -40,6 +40,7 @@ interface Message {
   is_pinned: boolean;
   priority_level: number;
   is_resolved: boolean;
+  is_system_message?: boolean;
   created_at: string;
   updated_at: string;
 }
