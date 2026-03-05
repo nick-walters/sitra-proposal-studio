@@ -12,15 +12,11 @@ import {
   Lock,
   MessageSquare
 } from "lucide-react";
-import { ReceivedFeedback } from "@/components/ReceivedFeedback";
-import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 export function BackendAdmin() {
   const navigate = useNavigate();
   const { isAdminOrOwner, isOwner, loading } = useUserRole();
-  const [searchParams] = useSearchParams();
-  const highlightFeedbackId = searchParams.get("feedback") || undefined;
 
   // Redirect non-admins
   useEffect(() => {
@@ -116,14 +112,38 @@ export function BackendAdmin() {
               </CardContent>
             </Card>
           </Link>
-        </div>
 
-        {/* Received Feedback - Owners only */}
-        {isOwner && (
-          <div className="mt-10">
-            <ReceivedFeedback highlightId={highlightFeedbackId} />
-          </div>
-        )}
+          {/* Received Feedback - Owners only */}
+          <Link to="/admin/feedback" className={!isOwner ? 'pointer-events-none' : ''}>
+            <Card className={`h-full transition-all hover:shadow-md ${!isOwner ? 'opacity-50' : 'hover:border-primary cursor-pointer'}`}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="p-3 bg-amber-500/10 rounded-lg">
+                    <MessageSquare className="w-6 h-6 text-amber-600" />
+                  </div>
+                  {isOwner ? (
+                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                  ) : (
+                    <Lock className="w-5 h-5 text-muted-foreground" />
+                  )}
+                </div>
+                <CardTitle className="mt-4">Received Feedback</CardTitle>
+                <CardDescription>
+                  Review feature requests and bug reports from users
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-muted-foreground">
+                  {isOwner ? (
+                    <span className="text-primary">Owner access granted</span>
+                  ) : (
+                    <span>Requires Owner role</span>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
       </div>
     </div>
   );
