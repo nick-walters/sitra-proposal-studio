@@ -65,7 +65,7 @@ export function Header() {
             <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
               <img src={sitraLogo} alt="Sitra Proposal Studio" className={`${isCompact ? 'h-5' : 'h-8'} w-auto object-contain flex-shrink-0 transition-[height] duration-200`} />
             </Link>
-            <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded">alpha</span>
+            <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded">beta</span>
           </div>
 
           {/* Centre: Navigation */}
