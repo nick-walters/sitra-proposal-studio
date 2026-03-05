@@ -340,15 +340,6 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
     return result;
   }, [days]);
 
-  if (groupsLoading) {
-    return (
-      <div className="p-6 space-y-4">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-64 w-full" />
-      </div>
-    );
-  }
-
   // Compute today column index for the blue marker line
   const todayIndex = useMemo(() => {
     const today = startOfDay(new Date());
@@ -358,6 +349,15 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
   const CELL_W = 22;
   const CELL_H = 28;
   const LABEL_W = 200;
+
+  if (groupsLoading) {
+    return (
+      <div className="p-6 space-y-4">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 overflow-y-auto p-6 bg-muted/30">
