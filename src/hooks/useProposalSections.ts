@@ -438,6 +438,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         { id: 'messaging', number: '', title: 'Message board' },
         { id: 'task-allocator', number: '', title: 'Tasks' },
         { id: 'progress-tracker', number: '', title: 'Progress' },
+        { id: 'availability', number: '', title: 'Availability' },
       ],
     };
 
