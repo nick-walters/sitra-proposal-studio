@@ -675,18 +675,26 @@ export function SectionNavigator({
   }, [sections, visibleParticipants]);
 
   // Filter out locked sections for non-coordinators
+  // When 'part-b' is locked, all B-prefixed subsections are also hidden
+  const isPartBLocked = !isCoordinator && lockedSections?.has('part-b');
+
   const filterLockedSections = useCallback((sectionList: (Section | WPSection | CaseSection)[]): (Section | WPSection | CaseSection)[] => {
     if (isCoordinator || !lockedSections || lockedSections.size === 0) return sectionList;
 
     return sectionList
-      .filter(s => !lockedSections.has(s.id))
+      .filter(s => {
+        if (lockedSections.has(s.id)) return false;
+        // If part-b is locked, hide all B-numbered sections
+        if (isPartBLocked && s.number && /^B?\d/.test(s.number)) return false;
+        return true;
+      })
       .map(s => {
         if (s.subsections && s.subsections.length > 0) {
           return { ...s, subsections: filterLockedSections(s.subsections) };
         }
         return s;
       });
-  }, [isCoordinator, lockedSections]);
+  }, [isCoordinator, lockedSections, isPartBLocked]);
 
   const visibleSections = useMemo(
     () => filterLockedSections(sectionsWithParticipants),
