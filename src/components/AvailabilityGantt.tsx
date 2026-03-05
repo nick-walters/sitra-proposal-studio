@@ -349,6 +349,12 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
     );
   }
 
+  // Compute today column index for the blue marker line
+  const todayIndex = useMemo(() => {
+    const today = startOfDay(new Date());
+    return days.findIndex(d => isSameDay(d, today));
+  }, [days]);
+
   const CELL_W = 22;
   const CELL_H = 28;
   const LABEL_W = 200;
