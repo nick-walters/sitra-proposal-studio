@@ -571,7 +571,7 @@ export function Dashboard() {
       // Auto-lock all lockable sections so only coordinators+ can see them initially
       if (newProposalId) {
         try {
-          const staticLockIds = ['a1', 'a2', 'a3', 'a4', 'a5', 'topic-info', 'figures', 'wp-drafts', 'part-b'];
+          const staticLockIds = ['part-a', 'a1', 'a2', 'a3', 'a4', 'a5', 'figures', 'wp-drafts', 'part-b'];
           const allLockIds = [...staticLockIds];
 
           // Also lock all Part B template sections
