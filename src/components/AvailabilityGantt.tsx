@@ -454,16 +454,16 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
                   return (
                     <div key={`row-${member.userId}`} style={{ display: 'contents' }}>
                       <div
-                        className="sticky left-0 z-20 bg-card border-b border-r px-2 flex items-center gap-2"
+                        className="sticky left-0 z-20 bg-card border-b border-border/40 px-3 flex items-center gap-2"
                         style={{ height: CELL_H }}
                       >
-                        <Avatar className="h-5 w-5 shrink-0">
+                        <Avatar className="h-5 w-5 shrink-0 ring-1 ring-border/50">
                           <AvatarImage src={member.avatarUrl || undefined} />
-                          <AvatarFallback className="text-[8px]">{initials}</AvatarFallback>
+                          <AvatarFallback className="text-[8px] bg-muted">{initials}</AvatarFallback>
                         </Avatar>
-                        <span className={cn("text-xs truncate", isMe && "font-medium")}>
+                        <span className={cn("text-xs truncate", isMe ? "font-medium text-foreground" : "text-muted-foreground")}>
                           {member.fullName}
-                          {isMe && <span className="text-muted-foreground ml-1">(you)</span>}
+                          {isMe && <span className="text-primary/70 ml-1 text-[10px]">(you)</span>}
                         </span>
                       </div>
                       {days.map((d, di) => {
@@ -478,15 +478,15 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
                           <div
                             key={`cell-${member.userId}-${di}`}
                             className={cn(
-                              "border-b transition-colors",
-                              greyed && "bg-muted",
+                              "border-b border-border/30 transition-colors",
+                              greyed && "bg-muted/60",
                               !greyed && !unavail && "bg-background",
-                              !greyed && unavail && "bg-destructive/70",
-                              greyed && unavail && "bg-destructive/40",
-                              editable && !greyed && "cursor-pointer hover:bg-accent/30",
+                              !greyed && unavail && "bg-destructive/60",
+                              greyed && unavail && "bg-destructive/30",
+                              editable && !greyed && "cursor-pointer hover:bg-primary/10",
                               !editable && "cursor-default",
                               isToday && "border-l-2 border-l-blue-500",
-                              !isToday && isFirstOfMonth && "border-l border-border"
+                              !isToday && isFirstOfMonth && "border-l border-border/50"
                             )}
                             style={{ height: CELL_H }}
                             onMouseDown={(e) => {
