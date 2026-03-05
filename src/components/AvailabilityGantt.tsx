@@ -86,6 +86,7 @@ interface OrgGroup {
   participantNumber: number;
   shortName: string;
   members: UserRow[];
+  isUngrouped?: boolean;
 }
 
 export function AvailabilityGantt({ proposalId, startDate, endDate }: AvailabilityGanttProps) {
