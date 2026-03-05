@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.analyse-consortium]
 verify_jwt = false
+
+[functions.analyse-feedback]
+verify_jwt = false

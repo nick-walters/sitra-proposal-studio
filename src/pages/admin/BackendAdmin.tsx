@@ -9,13 +9,18 @@ import {
   Users,
   Shield,
   ChevronRight,
-  Lock
+  Lock,
+  MessageSquare
 } from "lucide-react";
+import { ReceivedFeedback } from "@/components/ReceivedFeedback";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 export function BackendAdmin() {
   const navigate = useNavigate();
   const { isAdminOrOwner, isOwner, loading } = useUserRole();
+  const [searchParams] = useSearchParams();
+  const highlightFeedbackId = searchParams.get("feedback") || undefined;
 
   // Redirect non-admins
   useEffect(() => {
@@ -112,6 +117,13 @@ export function BackendAdmin() {
             </Card>
           </Link>
         </div>
+
+        {/* Received Feedback - Owners only */}
+        {isOwner && (
+          <div className="mt-10">
+            <ReceivedFeedback highlightId={highlightFeedbackId} />
+          </div>
+        )}
       </div>
     </div>
   );
