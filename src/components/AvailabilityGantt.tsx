@@ -86,6 +86,7 @@ interface OrgGroup {
   participantNumber: number;
   shortName: string;
   members: UserRow[];
+  isUngrouped?: boolean;
 }
 
 export function AvailabilityGantt({ proposalId, startDate, endDate }: AvailabilityGanttProps) {
@@ -205,7 +206,10 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
         .sort((a, b) => a.partNum - b.partNum)
         .map(g => ({ participantNumber: g.partNum, shortName: g.shortName, members: g.members }));
 
-      // Skip ungrouped/unassigned users
+      // Add ungrouped users without a group header
+      if (ungrouped.length > 0) {
+        result.push({ participantNumber: 999, shortName: '', members: ungrouped, isUngrouped: true });
+      }
 
       return result;
     },
@@ -346,6 +350,8 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
   const CELL_W = 22;
   const CELL_H = 28;
   const LABEL_W = 200;
+  const MONTH_H = 24;
+  const DAY_H = 20;
 
   if (groupsLoading) {
     return (
@@ -363,13 +369,13 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
           <h1 className="text-xl font-bold text-foreground">Availability</h1>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-sm bg-background border border-border inline-block" /> Available
+              <span className="w-3 h-3 rounded-full bg-background border border-border inline-block" /> Available
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-sm bg-destructive/70 inline-block" /> Unavailable
+              <span className="w-3 h-3 rounded-full bg-destructive/70 inline-block" /> Unavailable
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-sm bg-muted inline-block" /> Weekend / Holiday
+              <span className="w-3 h-3 rounded-full bg-muted inline-block" /> Weekend / Holiday
             </span>
           </div>
         </div>
@@ -379,25 +385,25 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
         </p>
 
         <div
-          className="border rounded-lg bg-card overflow-auto select-none"
+          className="border rounded-xl bg-card overflow-auto select-none shadow-sm"
           ref={scrollRef}
           style={{ maxHeight: 'calc(100vh - 220px)', position: 'relative' }}
         >
           <div style={{ display: 'grid', gridTemplateColumns: `${LABEL_W}px repeat(${days.length}, ${CELL_W}px)` }}>
             {/* Month header row */}
-            <div className="sticky left-0 top-0 z-30 bg-muted/30 h-6" />
+            <div className="sticky left-0 top-0 z-30 bg-muted/50 backdrop-blur-sm" style={{ height: MONTH_H }} />
             {months.map((m, i) => (
               <div
                 key={i}
-                className="sticky top-0 z-20 border-b text-[10px] font-medium text-muted-foreground text-center bg-card"
-                style={{ gridColumn: `span ${m.span}`, lineHeight: '24px' }}
+                className="sticky top-0 z-20 border-b border-border/50 text-[10px] font-medium text-muted-foreground text-center bg-muted/50 backdrop-blur-sm"
+                style={{ gridColumn: `span ${m.span}`, lineHeight: `${MONTH_H}px` }}
               >
                 {m.label} {m.year !== new Date().getFullYear() ? m.year : ''}
               </div>
             ))}
 
             {/* Day number header row */}
-            <div className="sticky left-0 z-30 bg-muted/30 h-5" style={{ top: '24px' }} />
+            <div className="sticky left-0 z-30 bg-muted/50 backdrop-blur-sm" style={{ top: `${MONTH_H}px`, height: DAY_H }} />
             {days.map((d, i) => {
               const weekend = isWeekend(d);
               const hol = isHoliday(d, holidays);
@@ -407,12 +413,12 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
                   <TooltipTrigger asChild>
                     <div
                       className={cn(
-                        "sticky z-20 border-b text-[9px] text-center leading-5",
-                        (weekend || hol) ? "bg-muted text-muted-foreground/50" : "bg-card text-muted-foreground",
-                        isToday && "font-bold text-primary border-l-2 border-l-blue-500",
-                        !isToday && d.getDate() === 1 && "border-l border-border"
+                        "sticky z-20 border-b border-border/50 text-[9px] text-center",
+                        (weekend || hol) ? "bg-muted/80 text-muted-foreground/40" : "bg-muted/50 backdrop-blur-sm text-muted-foreground",
+                        isToday && "font-bold text-blue-600 dark:text-blue-400 border-l-2 border-l-blue-500",
+                        !isToday && d.getDate() === 1 && "border-l border-border/60"
                       )}
-                      style={{ top: '24px' }}
+                      style={{ top: `${MONTH_H}px`, lineHeight: `${DAY_H}px` }}
                     >
                       {d.getDate()}
                     </div>
@@ -428,16 +434,16 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
             {/* Data rows grouped by participant organisation */}
             {orgGroups.map((group) => (
               <div key={`group-${group.participantNumber}`} style={{ display: 'contents' }}>
-                {/* Organisation group header */}
-                <div
-                  className="sticky left-0 z-20 bg-muted/50 border-b border-r px-2 flex items-center text-xs font-semibold text-foreground"
-                  style={{ height: CELL_H, gridColumn: '1 / -1' }}
-                >
-                  {group.participantNumber !== 999 && (
-                    <span className="text-muted-foreground mr-1.5">{group.participantNumber}.</span>
-                  )}
-                  {group.shortName}
-                </div>
+                {/* Organisation group header — skip for ungrouped users */}
+                {!group.isUngrouped && (
+                  <div
+                    className="sticky left-0 z-20 bg-muted/60 border-b px-3 flex items-center text-[11px] font-semibold text-foreground tracking-wide uppercase"
+                    style={{ height: CELL_H - 4, gridColumn: '1 / -1' }}
+                  >
+                    <span className="text-muted-foreground/70 mr-1.5 font-normal">{group.participantNumber}.</span>
+                    {group.shortName}
+                  </div>
+                )}
 
                 {/* Member rows */}
                 {group.members.map((member) => {
@@ -448,16 +454,16 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
                   return (
                     <div key={`row-${member.userId}`} style={{ display: 'contents' }}>
                       <div
-                        className="sticky left-0 z-20 bg-card border-b border-r px-2 flex items-center gap-2"
+                        className="sticky left-0 z-20 bg-card border-b border-border/40 px-3 flex items-center gap-2"
                         style={{ height: CELL_H }}
                       >
-                        <Avatar className="h-5 w-5 shrink-0">
+                        <Avatar className="h-5 w-5 shrink-0 ring-1 ring-border/50">
                           <AvatarImage src={member.avatarUrl || undefined} />
-                          <AvatarFallback className="text-[8px]">{initials}</AvatarFallback>
+                          <AvatarFallback className="text-[8px] bg-muted">{initials}</AvatarFallback>
                         </Avatar>
-                        <span className={cn("text-xs truncate", isMe && "font-medium")}>
+                        <span className={cn("text-xs truncate", isMe ? "font-medium text-foreground" : "text-muted-foreground")}>
                           {member.fullName}
-                          {isMe && <span className="text-muted-foreground ml-1">(you)</span>}
+                          {isMe && <span className="text-primary/70 ml-1 text-[10px]">(you)</span>}
                         </span>
                       </div>
                       {days.map((d, di) => {
@@ -472,15 +478,15 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
                           <div
                             key={`cell-${member.userId}-${di}`}
                             className={cn(
-                              "border-b transition-colors",
-                              greyed && "bg-muted",
+                              "border-b border-border/30 transition-colors",
+                              greyed && "bg-muted/60",
                               !greyed && !unavail && "bg-background",
-                              !greyed && unavail && "bg-destructive/70",
-                              greyed && unavail && "bg-destructive/40",
-                              editable && !greyed && "cursor-pointer hover:bg-accent/30",
+                              !greyed && unavail && "bg-destructive/60",
+                              greyed && unavail && "bg-destructive/30",
+                              editable && !greyed && "cursor-pointer hover:bg-primary/10",
                               !editable && "cursor-default",
                               isToday && "border-l-2 border-l-blue-500",
-                              !isToday && isFirstOfMonth && "border-l border-border"
+                              !isToday && isFirstOfMonth && "border-l border-border/50"
                             )}
                             style={{ height: CELL_H }}
                             onMouseDown={(e) => {
