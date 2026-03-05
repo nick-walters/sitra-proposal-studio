@@ -493,11 +493,14 @@ export type Database = {
           guideline_outcomes: string | null
           guideline_replicability: string | null
           guideline_solutions: string | null
+          guideline_stakeholders: string | null
           heading_background: string | null
           heading_outcomes: string | null
           heading_replicability: string | null
           heading_solutions: string | null
+          heading_stakeholders: string | null
           id: string
+          key_stakeholders: string | null
           lead_participant_id: string | null
           number: number
           order_index: number
@@ -520,11 +523,14 @@ export type Database = {
           guideline_outcomes?: string | null
           guideline_replicability?: string | null
           guideline_solutions?: string | null
+          guideline_stakeholders?: string | null
           heading_background?: string | null
           heading_outcomes?: string | null
           heading_replicability?: string | null
           heading_solutions?: string | null
+          heading_stakeholders?: string | null
           id?: string
+          key_stakeholders?: string | null
           lead_participant_id?: string | null
           number: number
           order_index?: number
@@ -547,11 +553,14 @@ export type Database = {
           guideline_outcomes?: string | null
           guideline_replicability?: string | null
           guideline_solutions?: string | null
+          guideline_stakeholders?: string | null
           heading_background?: string | null
           heading_outcomes?: string | null
           heading_replicability?: string | null
           heading_solutions?: string | null
+          heading_stakeholders?: string | null
           id?: string
+          key_stakeholders?: string | null
           lead_participant_id?: string | null
           number?: number
           order_index?: number
