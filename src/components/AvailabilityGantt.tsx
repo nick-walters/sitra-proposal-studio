@@ -306,6 +306,16 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
     queryClient.invalidateQueries({ queryKey: ['user-availability', proposalId] });
   }, [isDragging, dragUserId, dragMode, draggedDates, unavailableDates, proposalId, queryClient]);
 
+  // Auto-scroll to today on mount
+  useEffect(() => {
+    if (!scrollRef.current || days.length === 0) return;
+    const today = startOfDay(new Date());
+    const todayIndex = days.findIndex(d => isSameDay(d, today));
+    if (todayIndex >= 0) {
+      scrollRef.current.scrollLeft = todayIndex * CELL_W;
+    }
+  }, [days.length]);
+
   useEffect(() => {
     const up = () => handleMouseUp();
     window.addEventListener('mouseup', up);
