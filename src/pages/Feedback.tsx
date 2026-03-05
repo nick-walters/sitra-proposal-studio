@@ -13,7 +13,7 @@ import { Lightbulb, Bug, Send } from "lucide-react";
 
 export function Feedback() {
   const { user } = useAuth();
-  const [category, setCategory] = useState<"feature_request" | "bug_report">("feature_request");
+  const [category, setCategory] = useState<"feature_request" | "bug_report">("bug_report");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -63,13 +63,13 @@ export function Feedback() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <Tabs value={category} onValueChange={(v) => setCategory(v as any)}>
                 <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="feature_request" className="gap-2">
-                    <Lightbulb className="w-4 h-4" />
-                    Feature request
-                  </TabsTrigger>
                   <TabsTrigger value="bug_report" className="gap-2">
                     <Bug className="w-4 h-4" />
                     Bug report
+                  </TabsTrigger>
+                  <TabsTrigger value="feature_request" className="gap-2">
+                    <Lightbulb className="w-4 h-4" />
+                    Feature request
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="feature_request">
@@ -88,7 +88,7 @@ export function Feedback() {
                 <Label htmlFor="title">Title</Label>
                 <Input
                   id="title"
-                  placeholder={category === "feature_request" ? "e.g. Add bulk export for proposals" : "e.g. Save button not responding on WP editor"}
+                  placeholder={category === "feature_request" ? "e.g. Add bulk export for proposals" : "e.g. Table formatting lost when switching sections"}
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   required
