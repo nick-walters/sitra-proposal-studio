@@ -64,7 +64,7 @@ function TruncatedText({ text, className, isActive }: { text: string; className?
   return (
     <span
       ref={containerRef}
-      className={cn("flex-1 min-w-0 overflow-hidden whitespace-nowrap", isActive && "font-medium")}
+      className={cn("flex-1 min-w-0 overflow-hidden whitespace-nowrap")}
       title={text}
     >
       {/* Hidden measurement span */}
