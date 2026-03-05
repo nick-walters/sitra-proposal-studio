@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, Check, CheckCheck, Trash2, Clock, AlertTriangle, UserPlus, X, AtSign, EyeOff } from "lucide-react";
+import { Bell, Check, CheckCheck, Trash2, Clock, AlertTriangle, UserPlus, X, AtSign, EyeOff, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -19,6 +19,7 @@ const notificationIcons: Record<NotificationType, React.ReactNode> = {
   assignment_changed: <UserPlus className="w-4 h-4 text-blue-500" />,
   assignment_removed: <X className="w-4 h-4 text-muted-foreground" />,
   mention: <AtSign className="w-4 h-4 text-primary" />,
+  profile_incomplete: <UserCircle className="w-4 h-4 text-amber-500" />,
 };
 
 function NotificationItem({ 
@@ -34,14 +35,17 @@ function NotificationItem({
   onDelete: (id: string) => void;
   onClick?: (notification: Notification) => void;
 }) {
+  const isPersistent = notification.persistent;
+
   return (
     <div 
       className={cn(
         "group flex items-start gap-3 p-3 hover:bg-muted/50 transition-colors cursor-pointer border-b last:border-b-0",
-        !notification.is_read && "bg-blue-50/50 dark:bg-blue-950/20"
+        !notification.is_read && "bg-blue-50/50 dark:bg-blue-950/20",
+        isPersistent && "bg-amber-50/50 dark:bg-amber-950/20"
       )}
       onClick={() => {
-        if (!notification.is_read) {
+        if (!isPersistent && !notification.is_read) {
           onMarkRead(notification.id);
         }
         onClick?.(notification);
@@ -56,44 +60,48 @@ function NotificationItem({
             {notification.title}
           </span>
           {!notification.is_read && (
-            <div className="w-2 h-2 rounded-full bg-blue-500" />
+            <div className={cn("w-2 h-2 rounded-full", isPersistent ? "bg-amber-500" : "bg-blue-500")} />
           )}
         </div>
         <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
           {notification.message}
         </p>
-        <p className="text-xs text-muted-foreground mt-1">
-          {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
-        </p>
+        {!isPersistent && (
+          <p className="text-xs text-muted-foreground mt-1">
+            {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+          </p>
+        )}
       </div>
-      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-        {notification.is_read && (
+      {!isPersistent && (
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          {notification.is_read && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              title="Mark as unread"
+              onClick={(e) => {
+                e.stopPropagation();
+                onMarkUnread(notification.id);
+              }}
+            >
+              <EyeOff className="h-3 w-3" />
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"
             className="h-6 w-6"
-            title="Mark as unread"
+            title="Delete"
             onClick={(e) => {
               e.stopPropagation();
-              onMarkUnread(notification.id);
+              onDelete(notification.id);
             }}
           >
-            <EyeOff className="h-3 w-3" />
+            <Trash2 className="h-3 w-3" />
           </Button>
-        )}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6"
-          title="Delete"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(notification.id);
-          }}
-        >
-          <Trash2 className="h-3 w-3" />
-        </Button>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

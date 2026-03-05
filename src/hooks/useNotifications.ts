@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
-export type NotificationType = 'assignment' | 'due_soon' | 'overdue' | 'assignment_changed' | 'assignment_removed' | 'mention';
+export type NotificationType = 'assignment' | 'due_soon' | 'overdue' | 'assignment_changed' | 'assignment_removed' | 'mention' | 'profile_incomplete';
 
 export interface Notification {
   id: string;
@@ -16,13 +16,32 @@ export interface Notification {
   metadata: Record<string, any>;
   is_read: boolean;
   created_at: string;
+  /** If true, this notification cannot be dismissed, marked read, or deleted */
+  persistent?: boolean;
 }
 
 export function useNotifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [profileIncomplete, setProfileIncomplete] = useState(false);
   const { user } = useAuth();
+
+  // Check profile completeness
+  const checkProfile = useCallback(async () => {
+    if (!user?.id) return;
+    const { data } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .single();
+    
+    if (!data?.full_name || !data.full_name.trim().includes(' ')) {
+      setProfileIncomplete(true);
+    } else {
+      setProfileIncomplete(false);
+    }
+  }, [user?.id]);
 
   // Fetch notifications
   const fetchNotifications = useCallback(async () => {
@@ -147,7 +166,8 @@ export function useNotifications() {
   // Initial fetch
   useEffect(() => {
     fetchNotifications();
-  }, [fetchNotifications]);
+    checkProfile();
+  }, [fetchNotifications, checkProfile]);
 
   // Real-time subscription
   useEffect(() => {
@@ -205,6 +225,19 @@ export function useNotifications() {
       )
       .subscribe();
 
+    // Also listen for profile changes to auto-clear the notification
+    const profileChannel = supabase
+      .channel('profile-name-check')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'profiles',
+        filter: `id=eq.${user.id}`,
+      }, () => {
+        checkProfile();
+      })
+      .subscribe();
+
     // Poll every 5s to catch deletions that realtime may miss
     const pollInterval = setInterval(() => {
       fetchNotifications();
@@ -212,13 +245,36 @@ export function useNotifications() {
 
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(profileChannel);
       clearInterval(pollInterval);
     };
-  }, [user?.id, fetchNotifications]);
+  }, [user?.id, fetchNotifications, checkProfile]);
+
+  // Build the profile-incomplete virtual notification
+  const profileNotification: Notification | null = profileIncomplete && user ? {
+    id: 'profile-incomplete',
+    user_id: user.id,
+    proposal_id: '',
+    type: 'profile_incomplete',
+    title: 'Complete your profile',
+    message: 'Please add your first and last name to your profile.',
+    section_id: null,
+    section_title: null,
+    metadata: { source: 'profile' },
+    is_read: false,
+    created_at: new Date().toISOString(),
+    persistent: true,
+  } : null;
+
+  const allNotifications = profileNotification
+    ? [profileNotification, ...notifications]
+    : notifications;
+
+  const totalUnread = unreadCount + (profileIncomplete ? 1 : 0);
 
   return {
-    notifications,
-    unreadCount,
+    notifications: allNotifications,
+    unreadCount: totalUnread,
     loading,
     markAsRead,
     markAsUnread,
