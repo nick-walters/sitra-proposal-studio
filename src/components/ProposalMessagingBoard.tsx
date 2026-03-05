@@ -40,6 +40,7 @@ interface Message {
   is_pinned: boolean;
   priority_level: number;
   is_resolved: boolean;
+  is_system_message?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -375,7 +376,7 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
     setReplyingTo(null);
   };
 
-  const canModify = (msg: Message) => msg.author_id === user?.id || isCoordinator;
+  const canModify = (msg: Message) => !(msg as any).is_system_message && (msg.author_id === user?.id || isCoordinator);
 
   const toggleThread = (id: string) => {
     setExpandedThreads(prev => {
@@ -451,8 +452,10 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
   };
 
   const renderMessage = (msg: Message, isReply = false, isThreadResolved = false) => {
-    const profile = getProfile(msg.author_id);
-    const initials = profile?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?';
+    const isSystem = !!(msg as any).is_system_message;
+    const profile = isSystem ? null : getProfile(msg.author_id);
+    const displayName = isSystem ? 'Sitra Proposal Studio' : (profile?.full_name || profile?.email || 'Unknown');
+    const initials = isSystem ? 'SP' : (profile?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?');
     const isEditing = editingId === msg.id;
     const priorityLevel = (msg as any).priority_level ?? (msg.is_high_priority ? 3 : 1);
     const canEditPriority = canModify(msg);
@@ -460,13 +463,13 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
     return (
       <div key={msg.id} className={cn("flex gap-3 py-3", isReply && "pl-8", isThreadResolved && "opacity-50")}>
         <Avatar className="h-8 w-8 shrink-0">
-          <AvatarImage src={profile?.avatar_url || undefined} />
-          <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+          {!isSystem && <AvatarImage src={profile?.avatar_url || undefined} />}
+          <AvatarFallback className={cn("text-xs", isSystem && "bg-primary text-primary-foreground")}>{initials}</AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 sm:gap-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-medium text-sm">{profile?.full_name || profile?.email || 'Unknown'}</span>
+              <span className={cn("font-medium text-sm", isSystem && "text-primary")}>{displayName}</span>
               <span className="text-xs text-muted-foreground">
                 {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
               </span>

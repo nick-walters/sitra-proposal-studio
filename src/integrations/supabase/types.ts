@@ -2299,6 +2299,7 @@ export type Database = {
           is_high_priority: boolean
           is_pinned: boolean
           is_resolved: boolean
+          is_system_message: boolean
           parent_id: string | null
           priority_level: number
           proposal_id: string
@@ -2313,6 +2314,7 @@ export type Database = {
           is_high_priority?: boolean
           is_pinned?: boolean
           is_resolved?: boolean
+          is_system_message?: boolean
           parent_id?: string | null
           priority_level?: number
           proposal_id: string
@@ -2327,6 +2329,7 @@ export type Database = {
           is_high_priority?: boolean
           is_pinned?: boolean
           is_resolved?: boolean
+          is_system_message?: boolean
           parent_id?: string | null
           priority_level?: number
           proposal_id?: string
@@ -2689,6 +2692,35 @@ export type Database = {
             columns: ["source_template_type_id"]
             isOneToOne: false
             referencedRelation: "template_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_user_onboarding: {
+        Row: {
+          id: string
+          onboarded_at: string
+          proposal_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          onboarded_at?: string
+          proposal_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          onboarded_at?: string
+          proposal_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_user_onboarding_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
             referencedColumns: ["id"]
           },
         ]
