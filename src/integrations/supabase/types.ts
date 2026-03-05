@@ -3320,6 +3320,38 @@ export type Database = {
           },
         ]
       }
+      section_visibility_locks: {
+        Row: {
+          id: string
+          locked_at: string
+          locked_by: string | null
+          proposal_id: string
+          section_id: string
+        }
+        Insert: {
+          id?: string
+          locked_at?: string
+          locked_by?: string | null
+          proposal_id: string
+          section_id: string
+        }
+        Update: {
+          id?: string
+          locked_at?: string
+          locked_by?: string | null
+          proposal_id?: string
+          section_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "section_visibility_locks_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       snippet_library: {
         Row: {
           category: string

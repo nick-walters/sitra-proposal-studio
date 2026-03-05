@@ -1075,25 +1075,6 @@ export function DocumentEditor({
               
               <Separator orientation="vertical" className="h-4 mx-1" />
               
-              {canManageLock && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant={isLocked ? "default" : "outline"}
-                      size="sm" 
-                      className={`h-6 px-2 text-xs gap-1 ${isLocked ? 'bg-amber-500 hover:bg-amber-600 text-white' : ''}`}
-                      onClick={() => toggleLock()}
-                      disabled={lockUpdating}
-                    >
-                      {isLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
-                      {isLocked ? 'Unlock' : 'Lock'}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {isLocked ? 'Unlock this section' : 'Lock this section'}
-                  </TooltipContent>
-                </Tooltip>
-              )}
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -1180,16 +1161,8 @@ export function DocumentEditor({
         )}
 
         {/* Locked section banner - show to non-admin users */}
-        {isLocked && !canEditWhenLocked && (
-          <Alert className="mx-0 rounded-none border-x-0 bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
-            <Lock className="h-4 w-4 text-amber-600" />
-            <AlertDescription className="text-amber-800 dark:text-amber-200">
-              This section is locked{lockedByName ? ` by ${lockedByName}` : ''} 
-              {lockReason ? `: ${lockReason}` : ' for review'}. 
-              Editing is disabled.
-            </AlertDescription>
-          </Alert>
-        )}
+
+
 
         {/* Placeholder content banner - show when section has template placeholder text */}
         {isPlaceholder && !isEffectivelyReadOnly && (

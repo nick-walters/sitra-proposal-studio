@@ -1,5 +1,5 @@
 import { Section, Participant } from "@/types/proposal";
-import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Layers, Building2, Info, Euro, Lightbulb, Target, Settings, FlaskConical, ShieldCheck, HelpCircle, MessageSquare, ListTodo, Briefcase } from "lucide-react";
+import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Layers, Building2, Info, Euro, Lightbulb, Target, Settings, FlaskConical, ShieldCheck, HelpCircle, MessageSquare, ListTodo, Briefcase, Lock, Unlock, CalendarDays } from "lucide-react";
 import { useState, useMemo, useRef, useLayoutEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
@@ -99,6 +99,8 @@ interface SectionNavigatorProps {
   participantMembers?: { participantId: string; userId?: string }[];
   assignments?: Map<string, SectionAssignment>;
   collaborators?: CollaboratorPresence[];
+  lockedSections?: Set<string>;
+  onToggleLock?: (sectionId: string) => void;
 }
 
 // Format section number for display in left navigation
@@ -140,6 +142,9 @@ function SectionItem({
   assignments,
   currentUserId,
   collaborators = [],
+  isCoordinator = false,
+  lockedSections,
+  onToggleLock,
 }: {
   section: Section | WPSection | CaseSection;
   depth?: number;
@@ -148,11 +153,26 @@ function SectionItem({
   assignments?: Map<string, SectionAssignment>;
   currentUserId?: string;
   collaborators?: CollaboratorPresence[];
+  isCoordinator?: boolean;
+  lockedSections?: Set<string>;
+  onToggleLock?: (sectionId: string) => void;
 }) {
   const isAlwaysExpanded = false;
   const [isExpanded, setIsExpanded] = useState(section.id !== 'a2');
   const hasSubsections = section.subsections && section.subsections.length > 0;
   const isActive = activeSectionId === section.id;
+  const isSectionLocked = lockedSections?.has(section.id) ?? false;
+
+  // Determine if this section shows a lock button (coordinators only)
+  const isLockable = isCoordinator && onToggleLock && (
+    section.id === 'a1' || section.id === 'a2' || section.id === 'a3' ||
+    section.id === 'a4' || section.id === 'a5' ||
+    section.id === 'topic-info' ||
+    section.id === 'figures' || section.title === 'Figures' ||
+    section.id === 'wp-drafts' ||
+    section.id === 'part-b' ||
+    (section.number && /^B\d/.test(section.number) && section.id !== 'part-b')
+  );
   
   // Check if this is a WP section with color
   const wpSection = section as WPSection;
@@ -271,6 +291,8 @@ function SectionItem({
           <ListTodo className="w-4 h-4 text-muted-foreground shrink-0" />
         ) : section.id === 'progress-tracker' ? (
           <BarChart3 className="w-4 h-4 text-muted-foreground shrink-0" />
+        ) : section.id === 'availability' ? (
+          <CalendarDays className="w-4 h-4 text-muted-foreground shrink-0" />
         ) : section.id === 'a1' || section.number === 'A1' ? (
           <Info className="w-4 h-4 text-muted-foreground shrink-0" />
         ) : section.id === 'a2' || section.number === 'A2' ? (
@@ -354,6 +376,36 @@ function SectionItem({
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             )}
           </button>
+        )}
+
+        {/* Section visibility lock button */}
+        {isLockable && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  className={cn(
+                    "p-0.5 rounded shrink-0 opacity-0 group-hover:opacity-100 transition-opacity",
+                    isSectionLocked && "opacity-100",
+                    !hasSubsections && !isSectionLocked && "ml-auto"
+                  )}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleLock!(section.id);
+                  }}
+                >
+                  {isSectionLocked ? (
+                    <Lock className="w-3.5 h-3.5 text-amber-500" />
+                  ) : (
+                    <Unlock className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="text-xs">
+                {isSectionLocked ? 'Unlock — make visible to all users' : 'Lock — hide from editors & viewers'}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
         
         {/* Real-time collaborator presence indicators */}
@@ -555,6 +607,9 @@ function SectionItem({
                 assignments={assignments}
                 currentUserId={currentUserId}
                 collaborators={collaborators}
+                isCoordinator={isCoordinator}
+                lockedSections={lockedSections}
+                onToggleLock={onToggleLock}
               />
             ))
           )}
@@ -574,6 +629,8 @@ export function SectionNavigator({
   participantMembers = [],
   assignments,
   collaborators = [],
+  lockedSections,
+  onToggleLock,
 }: SectionNavigatorProps) {
   // All users with proposal access can see all participants
   const visibleParticipants = useMemo(() => {
@@ -617,10 +674,29 @@ export function SectionNavigator({
     });
   }, [sections, visibleParticipants]);
 
+  // Filter out locked sections for non-coordinators
+  const filterLockedSections = useCallback((sectionList: (Section | WPSection | CaseSection)[]): (Section | WPSection | CaseSection)[] => {
+    if (isCoordinator || !lockedSections || lockedSections.size === 0) return sectionList;
+
+    return sectionList
+      .filter(s => !lockedSections.has(s.id))
+      .map(s => {
+        if (s.subsections && s.subsections.length > 0) {
+          return { ...s, subsections: filterLockedSections(s.subsections) };
+        }
+        return s;
+      });
+  }, [isCoordinator, lockedSections]);
+
+  const visibleSections = useMemo(
+    () => filterLockedSections(sectionsWithParticipants),
+    [sectionsWithParticipants, filterLockedSections]
+  );
+
   return (
     <nav className="py-2">
       <div className="space-y-0.5">
-        {sectionsWithParticipants.map((section) => (
+        {visibleSections.map((section) => (
           <SectionItem
             key={section.id}
             section={section}
@@ -629,6 +705,9 @@ export function SectionNavigator({
             assignments={assignments}
             currentUserId={currentUserId}
             collaborators={collaborators}
+            isCoordinator={isCoordinator}
+            lockedSections={lockedSections}
+            onToggleLock={onToggleLock}
           />
         ))}
       </div>
