@@ -403,7 +403,7 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
             ))}
 
             {/* Day number header row */}
-            <div className="sticky left-0 z-30 bg-muted/30 h-5" style={{ top: '24px' }} />
+            <div className="sticky left-0 z-30 bg-muted/50 backdrop-blur-sm" style={{ top: `${MONTH_H}px`, height: DAY_H }} />
             {days.map((d, i) => {
               const weekend = isWeekend(d);
               const hol = isHoliday(d, holidays);
@@ -413,12 +413,12 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
                   <TooltipTrigger asChild>
                     <div
                       className={cn(
-                        "sticky z-20 border-b text-[9px] text-center leading-5",
-                        (weekend || hol) ? "bg-muted text-muted-foreground/50" : "bg-card text-muted-foreground",
-                        isToday && "font-bold text-primary border-l-2 border-l-blue-500",
-                        !isToday && d.getDate() === 1 && "border-l border-border"
+                        "sticky z-20 border-b border-border/50 text-[9px] text-center",
+                        (weekend || hol) ? "bg-muted/80 text-muted-foreground/40" : "bg-muted/50 backdrop-blur-sm text-muted-foreground",
+                        isToday && "font-bold text-blue-600 dark:text-blue-400 border-l-2 border-l-blue-500",
+                        !isToday && d.getDate() === 1 && "border-l border-border/60"
                       )}
-                      style={{ top: '24px' }}
+                      style={{ top: `${MONTH_H}px`, lineHeight: `${DAY_H}px` }}
                     >
                       {d.getDate()}
                     </div>
