@@ -375,7 +375,7 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
               <span className="w-3 h-3 rounded-full bg-destructive/70 border-2 border-destructive/90 inline-block" /> Unavailable
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-muted border-2 border-border inline-block" /> Weekend / Holiday
+              <span className="w-3 h-3 rounded-full bg-muted-foreground/20 border-2 border-border inline-block" /> Weekend / Public Holiday
             </span>
           </div>
         </div>
@@ -429,7 +429,7 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
                   </TooltipTrigger>
                   <TooltipContent side="top" className="text-xs">
                     {format(d, 'EEEE, d MMM yyyy')}
-                    {hol && ' (Finnish public holiday)'}
+                    {hol && ' (public holiday)'}
                   </TooltipContent>
                 </Tooltip>
               );
@@ -483,7 +483,7 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
                             key={`cell-${member.userId}-${di}`}
                             className={cn(
                               "border-b border-border/30 transition-colors",
-                              greyed && "bg-muted/60",
+                              greyed && "bg-muted-foreground/20",
                               !greyed && !unavail && "bg-background",
                               !greyed && unavail && "bg-destructive/60",
                               greyed && unavail && "bg-destructive/30",
