@@ -888,3 +888,4 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
     </div>
   );
 }
+
