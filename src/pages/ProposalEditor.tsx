@@ -20,6 +20,7 @@ import { WPManagementCard } from "@/components/WPManagementCard";
 import { CaseManagementCard } from "@/components/CaseManagementCard";
 import { CaseDraftEditor } from "@/components/CaseDraftEditor";
 import { WPProgressTracker } from "@/components/WPProgressTracker";
+import { AvailabilityGantt } from "@/components/AvailabilityGantt";
 import { ProposalMessagingBoard } from "@/components/ProposalMessagingBoard";
 import { ProposalTaskAllocator } from "@/components/ProposalTaskAllocator";
 import { ProposalProgressTracker } from "@/components/ProposalProgressTracker";
@@ -564,6 +565,17 @@ export function ProposalEditor() {
             }}
           />
         </div>
+      );
+    }
+    if (activeSection.id === 'availability') {
+      const proposalStart = proposal?.createdAt ? new Date(proposal.createdAt) : new Date();
+      const proposalEnd = proposal?.deadline ? new Date(proposal.deadline) : addDays(proposalStart, 90);
+      return (
+        <AvailabilityGantt
+          proposalId={id || ''}
+          startDate={proposalStart}
+          endDate={proposalEnd}
+        />
       );
     }
 
