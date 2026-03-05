@@ -56,9 +56,9 @@ const SITRA_CASE_TIPS = [
 ];
 
 interface SubsectionConfig {
-  key: 'background_context' | 'proposed_solutions' | 'expected_outcomes' | 'replicability';
-  headingKey: 'heading_background' | 'heading_solutions' | 'heading_outcomes' | 'heading_replicability';
-  guidelineKey: 'guideline_background' | 'guideline_solutions' | 'guideline_outcomes' | 'guideline_replicability';
+  key: 'background_context' | 'key_stakeholders' | 'proposed_solutions' | 'expected_outcomes' | 'replicability';
+  headingKey: 'heading_background' | 'heading_stakeholders' | 'heading_solutions' | 'heading_outcomes' | 'heading_replicability';
+  guidelineKey: 'guideline_background' | 'guideline_stakeholders' | 'guideline_solutions' | 'guideline_outcomes' | 'guideline_replicability';
   defaultHeading: string;
   defaultGuideline: string;
 }
@@ -70,6 +70,13 @@ const SUBSECTIONS: SubsectionConfig[] = [
     guidelineKey: 'guideline_background',
     defaultHeading: 'Background context',
     defaultGuideline: 'Describe the specific setting, stakeholders, and challenges that motivate this case. Explain what makes this context relevant to the project objectives.',
+  },
+  {
+    key: 'key_stakeholders',
+    headingKey: 'heading_stakeholders',
+    guidelineKey: 'guideline_stakeholders',
+    defaultHeading: 'Key stakeholders',
+    defaultGuideline: 'Summarise the key target groups involved in the case.',
   },
   {
     key: 'proposed_solutions',
