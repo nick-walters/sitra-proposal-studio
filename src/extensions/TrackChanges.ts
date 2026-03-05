@@ -340,7 +340,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
               changeId = generateChangeId();
             }
             storage.lastDeletionId = changeId;
-            storage.lastDeletionEnd = mappedStart;
+            storage.lastDeletionEnd = mappedStart + reinsertedLength;
             const delMark = deletionType.create({ changeId, authorId, authorName, authorColor, timestamp: new Date().toISOString() });
             const markedNodes = freshNodes.map((n: any) =>
               n.mark(delMark.addToSet(n.marks.filter((m: PMMark) => m.type !== insertionType)))
