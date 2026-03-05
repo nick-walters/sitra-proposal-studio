@@ -3,10 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "sonner";
-import { Lightbulb, Bug, Copy, Sparkles, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { Lightbulb, Bug, CheckCircle, Clock, AlertCircle, XCircle, ChevronRight } from "lucide-react";
+import { FeedbackDetail } from "@/components/FeedbackDetail";
 
 interface FeedbackItem {
   id: string;
@@ -23,8 +22,8 @@ interface FeedbackItem {
 export function ReceivedFeedback({ highlightId }: { highlightId?: string }) {
   const [feedback, setFeedback] = useState<FeedbackItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [emails, setEmails] = useState<Record<string, string>>({});
+  const [selectedId, setSelectedId] = useState<string | null>(highlightId || null);
 
   const fetchFeedback = async () => {
     const { data, error } = await supabase
@@ -38,7 +37,6 @@ export function ReceivedFeedback({ highlightId }: { highlightId?: string }) {
     }
     setFeedback(data as FeedbackItem[]);
 
-    // Fetch submitter emails
     const userIds = [...new Set((data || []).map((f: any) => f.user_id))];
     if (userIds.length > 0) {
       const { data: profiles } = await supabase
@@ -58,115 +56,58 @@ export function ReceivedFeedback({ highlightId }: { highlightId?: string }) {
     fetchFeedback();
   }, []);
 
-  // Scroll to highlighted feedback
+  // Open highlighted feedback
   useEffect(() => {
     if (highlightId && !loading) {
-      setTimeout(() => {
-        document.getElementById(`feedback-${highlightId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 300);
+      setSelectedId(highlightId);
     }
   }, [highlightId, loading]);
 
-  const handleAnalyze = async (item: FeedbackItem) => {
-    setAnalyzingId(item.id);
-    try {
-      const { data, error } = await supabase.functions.invoke("analyse-feedback", {
-        body: { feedbackId: item.id, category: item.category, title: item.title, description: item.description },
-      });
+  if (selectedId) {
+    return (
+      <FeedbackDetail
+        feedbackId={selectedId}
+        onBack={() => setSelectedId(null)}
+        onDeleted={() => {
+          setSelectedId(null);
+          fetchFeedback();
+        }}
+      />
+    );
+  }
 
-      if (error) throw error;
-
-      const analysis = data?.analysis || "No analysis generated.";
-      await supabase.from("feedback").update({ ai_analysis: analysis, status: "reviewed" }).eq("id", item.id);
-      
-      setFeedback(prev => prev.map(f => f.id === item.id ? { ...f, ai_analysis: analysis, status: "reviewed" } : f));
-      toast.success("AI analysis generated");
-    } catch (e) {
-      console.error(e);
-      toast.error("Failed to generate AI analysis");
+  const statusBadge = (status: string) => {
+    switch (status) {
+      case "new": return <Badge variant="default" className="gap-1 text-[10px]"><AlertCircle className="w-3 h-3" /> New</Badge>;
+      case "reviewed": return <Badge variant="secondary" className="gap-1 text-[10px]"><Clock className="w-3 h-3" /> Reviewed</Badge>;
+      case "resolved": return <Badge className="gap-1 text-[10px] bg-green-600 hover:bg-green-700"><CheckCircle className="w-3 h-3" /> Resolved</Badge>;
+      case "declined": return <Badge variant="destructive" className="gap-1 text-[10px]"><XCircle className="w-3 h-3" /> Declined</Badge>;
+      default: return null;
     }
-    setAnalyzingId(null);
-  };
-
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success("Copied to clipboard");
-  };
-
-  const handleResolve = async (id: string) => {
-    await supabase.from("feedback").update({ status: "resolved" }).eq("id", id);
-    setFeedback(prev => prev.map(f => f.id === id ? { ...f, status: "resolved" } : f));
-    toast.success("Marked as resolved");
   };
 
   const featureRequests = feedback.filter(f => f.category === "feature_request");
   const bugReports = feedback.filter(f => f.category === "bug_report");
 
-  const statusBadge = (status: string) => {
-    switch (status) {
-      case "new": return <Badge variant="default" className="gap-1"><AlertCircle className="w-3 h-3" /> New</Badge>;
-      case "reviewed": return <Badge variant="secondary" className="gap-1"><Clock className="w-3 h-3" /> Reviewed</Badge>;
-      case "resolved": return <Badge variant="outline" className="gap-1"><CheckCircle className="w-3 h-3" /> Resolved</Badge>;
-      default: return null;
-    }
-  };
-
   const renderList = (items: FeedbackItem[]) => {
     if (items.length === 0) return <p className="text-muted-foreground text-sm py-4">No submissions yet.</p>;
     return (
-      <div className="space-y-4">
+      <div className="space-y-2">
         {items.map(item => (
-          <Card
+          <div
             key={item.id}
-            id={`feedback-${item.id}`}
-            className={`transition-all ${highlightId === item.id ? "ring-2 ring-primary" : ""}`}
+            className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors group"
+            onClick={() => setSelectedId(item.id)}
           >
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-1 min-w-0">
-                  <CardTitle className="text-base">{item.title}</CardTitle>
-                  <p className="text-xs text-muted-foreground">
-                    by {emails[item.user_id] || "Loading…"} · {new Date(item.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-                {statusBadge(item.status)}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm whitespace-pre-wrap">{item.description}</p>
-
-              {item.ai_analysis ? (
-                <div className="bg-muted rounded-lg p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" /> AI-proposed solution
-                    </span>
-                    <Button variant="ghost" size="sm" onClick={() => handleCopy(item.ai_analysis!)} className="gap-1 h-7">
-                      <Copy className="w-3 h-3" /> Copy
-                    </Button>
-                  </div>
-                  <p className="text-sm whitespace-pre-wrap">{item.ai_analysis}</p>
-                </div>
-              ) : (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleAnalyze(item)}
-                  disabled={analyzingId === item.id}
-                  className="gap-2"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  {analyzingId === item.id ? "Analysing…" : "Generate AI analysis"}
-                </Button>
-              )}
-
-              {item.status !== "resolved" && (
-                <Button variant="outline" size="sm" onClick={() => handleResolve(item.id)} className="gap-2">
-                  <CheckCircle className="w-4 h-4" /> Mark as resolved
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{item.title}</p>
+              <p className="text-xs text-muted-foreground">
+                {emails[item.user_id] || "Unknown"} · {new Date(item.created_at).toLocaleDateString()}
+              </p>
+            </div>
+            {statusBadge(item.status)}
+            <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+          </div>
         ))}
       </div>
     );
