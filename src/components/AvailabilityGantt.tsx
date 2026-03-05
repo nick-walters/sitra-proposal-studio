@@ -390,12 +390,17 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
           style={{ maxHeight: 'calc(100vh - 220px)', position: 'relative' }}
         >
           <div style={{ display: 'grid', gridTemplateColumns: `${LABEL_W}px repeat(${days.length}, ${CELL_W}px)` }}>
+            {/* Merged top-left cell spanning both header rows */}
+            <div
+              className="sticky left-0 top-0 z-40 bg-muted"
+              style={{ gridRow: 'span 2', height: MONTH_H + DAY_H }}
+            />
+
             {/* Month header row */}
-            <div className="sticky left-0 top-0 z-30 bg-muted/50 backdrop-blur-sm" style={{ height: MONTH_H }} />
             {months.map((m, i) => (
               <div
                 key={i}
-                className="sticky top-0 z-20 border-b border-border/50 text-[10px] font-medium text-muted-foreground text-center bg-muted/50 backdrop-blur-sm"
+                className="sticky top-0 z-20 border-b border-border/50 text-[10px] font-medium text-muted-foreground text-center bg-muted"
                 style={{ gridColumn: `span ${m.span}`, lineHeight: `${MONTH_H}px` }}
               >
                 {m.label} {m.year !== new Date().getFullYear() ? m.year : ''}
@@ -403,7 +408,6 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
             ))}
 
             {/* Day number header row */}
-            <div className="sticky left-0 z-30 bg-muted/50 backdrop-blur-sm" style={{ top: `${MONTH_H}px`, height: DAY_H }} />
             {days.map((d, i) => {
               const weekend = isWeekend(d);
               const hol = isHoliday(d, holidays);
@@ -414,7 +418,7 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
                     <div
                       className={cn(
                         "sticky z-20 border-b border-border/50 text-[9px] text-center",
-                        (weekend || hol) ? "bg-muted/80 text-muted-foreground/40" : "bg-muted/50 backdrop-blur-sm text-muted-foreground",
+                        (weekend || hol) ? "bg-muted text-muted-foreground/40" : "bg-muted text-muted-foreground",
                         isToday && "font-bold text-blue-600 dark:text-blue-400 border-l-2 border-l-blue-500",
                         !isToday && d.getDate() === 1 && "border-l border-border/60"
                       )}
