@@ -519,10 +519,9 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
             tr.delete(tr.mapping.map(r.from), tr.mapping.map(r.to));
           }
 
-          tr.setMeta('trackChangesInternal', true);
-          tr.setMeta('addToHistory', false);
-          if (dispatch) dispatch(tr);
-          setTimeout(() => { this.storage.changes = []; this.options.onChangesUpdate?.([]); }, 0);
+           tr.setMeta('trackChangesInternal', true);
+           if (dispatch) dispatch(tr);
+           setTimeout(() => { this.storage.changes = []; this.options.onChangesUpdate?.([]); }, 0);
           return true;
         },
 
@@ -545,10 +544,9 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
             tr.delete(tr.mapping.map(r.from), tr.mapping.map(r.to));
           }
 
-          tr.setMeta('trackChangesInternal', true);
-          tr.setMeta('addToHistory', false);
-          if (dispatch) dispatch(tr);
-          setTimeout(() => { this.storage.changes = []; this.options.onChangesUpdate?.([]); }, 0);
+           tr.setMeta('trackChangesInternal', true);
+           if (dispatch) dispatch(tr);
+           setTimeout(() => { this.storage.changes = []; this.options.onChangesUpdate?.([]); }, 0);
           return true;
         },
 
