@@ -412,8 +412,8 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
                       className={cn(
                         "border-b text-[9px] text-center leading-5",
                         (weekend || hol) ? "bg-muted text-muted-foreground/50" : "text-muted-foreground",
-                        isToday && "font-bold text-primary",
-                        d.getDate() === 1 && "border-l border-border"
+                        isToday && "font-bold text-primary border-l-2 border-l-blue-500",
+                        !isToday && d.getDate() === 1 && "border-l border-border"
                       )}
                     >
                       {d.getDate()}
@@ -481,8 +481,8 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
                               greyed && unavail && "bg-destructive/40",
                               editable && !greyed && "cursor-pointer hover:bg-accent/30",
                               !editable && "cursor-default",
-                              isFirstOfMonth && "border-l border-border",
-                              isToday && "ring-1 ring-inset ring-primary/40"
+                              isToday && "border-l-2 border-l-blue-500",
+                              !isToday && isFirstOfMonth && "border-l border-border"
                             )}
                             style={{ height: CELL_H }}
                             onMouseDown={(e) => {
