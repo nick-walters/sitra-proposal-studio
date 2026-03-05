@@ -142,6 +142,9 @@ function SectionItem({
   assignments,
   currentUserId,
   collaborators = [],
+  isCoordinator = false,
+  lockedSections,
+  onToggleLock,
 }: {
   section: Section | WPSection | CaseSection;
   depth?: number;
@@ -150,6 +153,9 @@ function SectionItem({
   assignments?: Map<string, SectionAssignment>;
   currentUserId?: string;
   collaborators?: CollaboratorPresence[];
+  isCoordinator?: boolean;
+  lockedSections?: Set<string>;
+  onToggleLock?: (sectionId: string) => void;
 }) {
   const isAlwaysExpanded = false;
   const [isExpanded, setIsExpanded] = useState(section.id !== 'a2');
