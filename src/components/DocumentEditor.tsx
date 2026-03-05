@@ -66,7 +66,7 @@ import { KeyboardShortcutsDialog } from "./KeyboardShortcutsDialog";
 import { WritingAssistantDialog } from "./WritingAssistantDialog";
 import { SnippetsDialog } from "./SnippetsDialog";
 import { SplitViewPanel } from "./SplitViewPanel";
-import { SectionReviewDialog } from "./SectionReviewDialog";
+// SectionReviewDialog moved to Part B Evaluate tab
 import { B31DeliverablesTable, B31MilestonesTable, B31RisksTable } from "./B31TablesEditor";
 import { B31SectionContent } from "./B31SectionContent";
 import { TrackChange } from "@/extensions/TrackChanges";
@@ -203,7 +203,7 @@ export function DocumentEditor({
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const [isWritingAssistantOpen, setIsWritingAssistantOpen] = useState(false);
   const [isSnippetsOpen, setIsSnippetsOpen] = useState(false);
-  const [isReviewOpen, setIsReviewOpen] = useState(false);
+  // Review state removed - moved to Part B Evaluate tab
   const [isSplitViewOpen, setIsSplitViewOpen] = useState(false);
   const [deleteBlockConfirm, setDeleteBlockConfirm] = useState<{ isOpen: boolean; onConfirm: () => void } | null>(null);
   const [isWPRefOpen, setIsWPRefOpen] = useState(false);
@@ -1072,15 +1072,6 @@ export function DocumentEditor({
                 Snippets
               </Button>
               )}
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-6 px-2 text-xs gap-1"
-                onClick={() => setIsReviewOpen(true)}
-              >
-                <MessageSquare className="w-3 h-3" />
-                Review
-              </Button>
               
               <Separator orientation="vertical" className="h-4 mx-1" />
               
@@ -1913,13 +1904,6 @@ export function DocumentEditor({
         }}
       />
 
-      <SectionReviewDialog
-        isOpen={isReviewOpen}
-        onClose={() => setIsReviewOpen(false)}
-        proposalId={proposalId}
-        sectionId={section?.id || ''}
-        sectionTitle={section?.title || ''}
-      />
 
       {/* Block Delete Confirmation Dialog */}
       <AlertDialog 

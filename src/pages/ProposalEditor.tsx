@@ -26,6 +26,7 @@ import { ProposalProgressTracker } from "@/components/ProposalProgressTracker";
 import { WorkloadDashboard } from "@/components/WorkloadDashboard";
 import { ProposalScoringAssessment } from "@/components/ProposalScoringAssessment";
 import { CrossReferenceChecker } from "@/components/CrossReferenceChecker";
+import { SectionEvaluatePanel } from "@/components/SectionEvaluatePanel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -525,10 +526,14 @@ export function ProposalEditor() {
             <Tabs defaultValue="scoring">
               <TabsList>
                 <TabsTrigger value="scoring">Scoring</TabsTrigger>
+                <TabsTrigger value="evaluate">Evaluate</TabsTrigger>
                 <TabsTrigger value="cross-refs">Cross-references</TabsTrigger>
               </TabsList>
               <TabsContent value="scoring">
                 <ProposalScoringAssessment proposalId={id || ''} />
+              </TabsContent>
+              <TabsContent value="evaluate">
+                <SectionEvaluatePanel proposalId={id || ''} sections={allSections} />
               </TabsContent>
               <TabsContent value="cross-refs">
                 <CrossReferenceChecker proposalId={id || ''} isOpen={true} onClose={() => {}} />
