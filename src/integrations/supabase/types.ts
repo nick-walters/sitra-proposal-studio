@@ -2693,6 +2693,35 @@ export type Database = {
           },
         ]
       }
+      proposal_user_onboarding: {
+        Row: {
+          id: string
+          onboarded_at: string
+          proposal_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          onboarded_at?: string
+          proposal_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          onboarded_at?: string
+          proposal_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_user_onboarding_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposals: {
         Row: {
           acronym: string
