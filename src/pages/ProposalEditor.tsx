@@ -52,7 +52,7 @@ import {
 import { Section, BudgetType, ProposalStatus, WORK_PROGRAMMES, DESTINATIONS, PROPOSAL_STATUS_LABELS } from "@/types/proposal";
 import type { WPSection, CaseSection } from "@/hooks/useProposalSections";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { format, differenceInDays } from "date-fns";
+import { format, differenceInDays, addDays } from "date-fns";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
