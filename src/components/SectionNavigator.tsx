@@ -409,7 +409,9 @@ function SectionItem({
                 </button>
               </TooltipTrigger>
               <TooltipContent side="right" className="text-xs">
-                {section.id === 'part-b'
+                {section.id === 'part-a'
+                  ? (isSectionLocked ? 'Unlock Part A — make all sub-sections visible' : 'Lock Part A — hide all sub-sections from editors & viewers')
+                  : section.id === 'part-b'
                   ? (isSectionLocked ? 'Unlock Part B — make all sub-sections visible' : 'Lock Part B — hide all sub-sections from editors & viewers')
                   : (isSectionLocked ? 'Unlock — make visible to all users' : 'Lock — hide from editors & viewers')}
               </TooltipContent>
@@ -684,7 +686,9 @@ export function SectionNavigator({
   }, [sections, visibleParticipants]);
 
   // Filter out locked sections for non-coordinators
-  // When 'part-b' is locked, all B-prefixed subsections are also hidden
+  // When 'part-a' is locked, all A sections (except topic-info) are hidden
+  // When 'part-b' is locked, all B-prefixed subsections + figures + wp-drafts are hidden
+  const isPartALocked = !isCoordinator && lockedSections?.has('part-a');
   const isPartBLocked = !isCoordinator && lockedSections?.has('part-b');
 
   const filterLockedSections = useCallback((sectionList: (Section | WPSection | CaseSection)[]): (Section | WPSection | CaseSection)[] => {
@@ -692,9 +696,16 @@ export function SectionNavigator({
 
     return sectionList
       .filter(s => {
+        // topic-info is always visible
+        if (s.id === 'topic-info') return true;
         if (lockedSections.has(s.id)) return false;
-        // If part-b is locked, hide all B-numbered sections
-        if (isPartBLocked && s.number && /^B?\d/.test(s.number)) return false;
+        // Part A cascade: hide a1-a5 (but not topic-info)
+        if (isPartALocked && (s.id === 'a1' || s.id === 'a2' || s.id === 'a3' || s.id === 'a4' || s.id === 'a5')) return false;
+        // Part B cascade: hide B-numbered sections, figures, wp-drafts
+        if (isPartBLocked) {
+          if (s.number && /^B?\d/.test(s.number)) return false;
+          if (s.id === 'figures' || s.id === 'wp-drafts') return false;
+        }
         return true;
       })
       .map(s => {
@@ -703,7 +714,7 @@ export function SectionNavigator({
         }
         return s;
       });
-  }, [isCoordinator, lockedSections, isPartBLocked]);
+  }, [isCoordinator, lockedSections, isPartALocked, isPartBLocked]);
 
   const visibleSections = useMemo(
     () => filterLockedSections(sectionsWithParticipants),
