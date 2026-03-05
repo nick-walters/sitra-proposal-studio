@@ -205,10 +205,7 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
         .sort((a, b) => a.partNum - b.partNum)
         .map(g => ({ participantNumber: g.partNum, shortName: g.shortName, members: g.members }));
 
-      // Add ungrouped users as a separate group
-      if (ungrouped.length > 0) {
-        result.push({ participantNumber: 999, shortName: 'Unassigned', members: ungrouped });
-      }
+      // Skip ungrouped/unassigned users
 
       return result;
     },
@@ -388,11 +385,11 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
         >
           <div style={{ display: 'grid', gridTemplateColumns: `${LABEL_W}px repeat(${days.length}, ${CELL_W}px)` }}>
             {/* Month header row */}
-            <div className="sticky left-0 z-30 bg-muted/30 h-6" />
+            <div className="sticky left-0 top-0 z-30 bg-muted/30 h-6" />
             {months.map((m, i) => (
               <div
                 key={i}
-                className="border-b text-[10px] font-medium text-muted-foreground text-center bg-card"
+                className="sticky top-0 z-20 border-b text-[10px] font-medium text-muted-foreground text-center bg-card"
                 style={{ gridColumn: `span ${m.span}`, lineHeight: '24px' }}
               >
                 {m.label} {m.year !== new Date().getFullYear() ? m.year : ''}
