@@ -333,14 +333,20 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           }
           // Mark fresh deletions
           if (freshNodes.length > 0) {
+            // Check if there's an existing deletion mark adjacent to where we're inserting
             let changeId: string;
-            if (storage.lastDeletionId && oldStart === storage.lastDeletionOldStart) {
-              changeId = storage.lastDeletionId;
-            } else {
-              changeId = generateChangeId();
+            try {
+              const $pos = tr.doc.resolve(mappedStart + reinsertedLength);
+              const nodeAfter = $pos.nodeAfter;
+              const nodeBefore = $pos.nodeBefore;
+              const adjMark =
+                nodeBefore?.marks.find((m: PMMark) => m.type === deletionType) ||
+                nodeAfter?.marks.find((m: PMMark) => m.type === deletionType);
+              changeId = adjMark?.attrs.changeId || storage.lastDeletionId || generateChangeId();
+            } catch {
+              changeId = storage.lastDeletionId || generateChangeId();
             }
             storage.lastDeletionId = changeId;
-            storage.lastDeletionOldStart = oldStart - 1;
             const delMark = deletionType.create({ changeId, authorId, authorName, authorColor, timestamp: new Date().toISOString() });
             const markedNodes = freshNodes.map((n: any) =>
               n.mark(delMark.addToSet(n.marks.filter((m: PMMark) => m.type !== insertionType)))
