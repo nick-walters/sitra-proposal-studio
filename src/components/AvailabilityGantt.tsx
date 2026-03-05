@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useProposalRole } from '@/hooks/useProposalRole';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -9,20 +10,18 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { format, eachDayOfInterval, isWeekend, getDay, addDays, isSameDay, startOfDay } from 'date-fns';
 
-// Finnish public holidays (fixed + Easter-based for common years)
+// Finnish public holidays (fixed + Easter-based)
 function getFinnishHolidays(year: number): Date[] {
   const fixed = [
-    new Date(year, 0, 1),   // New Year
-    new Date(year, 0, 6),   // Epiphany
-    new Date(year, 4, 1),   // May Day
-    new Date(year, 5, 20),  // Midsummer Eve (approximate - actual is Fri before Sat between Jun 20-26)
-    new Date(year, 11, 6),  // Independence Day
-    new Date(year, 11, 24), // Christmas Eve
-    new Date(year, 11, 25), // Christmas Day
-    new Date(year, 11, 26), // St. Stephen's Day
+    new Date(year, 0, 1),
+    new Date(year, 0, 6),
+    new Date(year, 4, 1),
+    new Date(year, 11, 6),
+    new Date(year, 11, 24),
+    new Date(year, 11, 25),
+    new Date(year, 11, 26),
   ];
 
-  // Easter calculation (Anonymous Gregorian algorithm)
   const a = year % 19;
   const b = Math.floor(year / 100);
   const c = year % 100;
@@ -40,43 +39,30 @@ function getFinnishHolidays(year: number): Date[] {
   const easter = new Date(year, month, day);
 
   const easterBased = [
-    addDays(easter, -2),  // Good Friday
-    addDays(easter, 0),   // Easter Sunday
-    addDays(easter, 1),   // Easter Monday
-    addDays(easter, 39),  // Ascension Day
+    addDays(easter, -2),
+    addDays(easter, 0),
+    addDays(easter, 1),
+    addDays(easter, 39),
   ];
 
-  // Midsummer Eve: Friday between June 19-25
   const midsummerEve = (() => {
     for (let d = 19; d <= 25; d++) {
       const date = new Date(year, 5, d);
-      if (getDay(date) === 5) return date; // Friday
+      if (getDay(date) === 5) return date;
     }
     return new Date(year, 5, 20);
   })();
-
-  // Midsummer Day: Saturday after midsummer eve
   const midsummerDay = addDays(midsummerEve, 1);
 
-  // All Saints' Day: Saturday between Oct 31 and Nov 6
   const allSaintsDay = (() => {
     for (let d = 31; d <= 37; d++) {
       const date = d <= 31 ? new Date(year, 9, d) : new Date(year, 10, d - 31);
-      if (getDay(date) === 6) return date; // Saturday
+      if (getDay(date) === 6) return date;
     }
     return new Date(year, 10, 1);
   })();
 
-  // Replace approximate fixed midsummer with calculated
-  const holidays = [
-    ...fixed.filter(d => !(d.getMonth() === 5 && d.getDate() === 20)),
-    ...easterBased,
-    midsummerEve,
-    midsummerDay,
-    allSaintsDay,
-  ];
-
-  return holidays;
+  return [...fixed, ...easterBased, midsummerEve, midsummerDay, allSaintsDay];
 }
 
 function isHoliday(date: Date, holidays: Date[]): boolean {
@@ -89,20 +75,22 @@ interface AvailabilityGanttProps {
   endDate: Date;
 }
 
-interface ParticipantGroup {
-  participantId: string;
+interface UserRow {
+  userId: string;
+  fullName: string;
+  email: string | null;
+  avatarUrl: string | null;
+}
+
+interface OrgGroup {
   participantNumber: number;
   shortName: string;
-  members: {
-    userId: string;
-    fullName: string;
-    email: string | null;
-    avatarUrl: string | null;
-  }[];
+  members: UserRow[];
 }
 
 export function AvailabilityGantt({ proposalId, startDate, endDate }: AvailabilityGanttProps) {
   const { user } = useAuth();
+  const { roleTier } = useProposalRole(proposalId);
   const queryClient = useQueryClient();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -110,64 +98,118 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
   const [dragMode, setDragMode] = useState<'mark' | 'unmark'>('mark');
   const [draggedDates, setDraggedDates] = useState<Set<string>>(new Set());
 
+  const isAdmin = roleTier === 'coordinator'; // coordinator/admin/owner all map to 'coordinator'
+
   const safeStart = startOfDay(startDate);
   const safeEnd = startOfDay(endDate);
   const days = useMemo(() => eachDayOfInterval({ start: safeStart, end: safeEnd }), [safeStart.getTime(), safeEnd.getTime()]);
 
-  // Collect all years in range for holidays
   const holidays = useMemo(() => {
     const years = new Set(days.map(d => d.getFullYear()));
     return Array.from(years).flatMap(y => getFinnishHolidays(y));
   }, [days]);
 
-  // Fetch participants with members who have user_id (platform access)
-  const { data: groups = [], isLoading: groupsLoading } = useQuery({
+  // Fetch all users with access to this proposal, grouped by participant org
+  const { data: orgGroups = [], isLoading: groupsLoading } = useQuery({
     queryKey: ['availability-groups', proposalId],
     queryFn: async () => {
-      const { data: participants, error: pErr } = await supabase
+      // 1. Get all user IDs with access to this proposal
+      const { data: roles, error: rErr } = await supabase
+        .from('user_roles')
+        .select('user_id, role, proposal_id')
+        .or(`proposal_id.eq.${proposalId},proposal_id.is.null`);
+      if (rErr) throw rErr;
+
+      // Filter to users who actually have access
+      const accessUserIds = new Set<string>();
+      for (const r of roles || []) {
+        if (r.proposal_id === proposalId) {
+          accessUserIds.add(r.user_id);
+        } else if (!r.proposal_id && (r.role === 'owner' || r.role === 'admin')) {
+          accessUserIds.add(r.user_id);
+        }
+      }
+
+      if (accessUserIds.size === 0) return [];
+
+      const userIdArr = Array.from(accessUserIds);
+
+      // 2. Get profiles for all these users
+      const { data: profiles, error: pErr } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, avatar_url')
+        .in('id', userIdArr);
+      if (pErr) throw pErr;
+
+      const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+
+      // 3. Get participants for this proposal
+      const { data: participants, error: partErr } = await supabase
         .from('participants')
         .select('id, participant_number, organisation_short_name, organisation_name')
         .eq('proposal_id', proposalId)
         .order('participant_number');
-      if (pErr) throw pErr;
+      if (partErr) throw partErr;
 
-      const { data: members, error: mErr } = await supabase
+      // 4. Get participant_members to map user_id → participant
+      const { data: members, error: memErr } = await supabase
         .from('participant_members')
-        .select('participant_id, user_id, full_name, email')
+        .select('participant_id, user_id')
         .in('participant_id', (participants || []).map(p => p.id))
         .not('user_id', 'is', null);
-      if (mErr) throw mErr;
+      if (memErr) throw memErr;
 
-      // Get avatar URLs from profiles
-      const userIds = [...new Set((members || []).map(m => m.user_id!))];
-      let profileMap = new Map<string, { avatar_url: string | null }>();
-      if (userIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, avatar_url')
-          .in('id', userIds);
-        profileMap = new Map((profiles || []).map(p => [p.id, p]));
+      // Build user→participant mapping
+      const userToParticipant = new Map<string, string>();
+      for (const m of members || []) {
+        if (m.user_id) userToParticipant.set(m.user_id, m.participant_id);
       }
 
-      const result: ParticipantGroup[] = [];
-      for (const p of participants || []) {
-        const pMembers = (members || [])
-          .filter(m => m.participant_id === p.id && m.user_id)
-          .map(m => ({
-            userId: m.user_id!,
-            fullName: m.full_name,
-            email: m.email,
-            avatarUrl: profileMap.get(m.user_id!)?.avatar_url || null,
-          }));
-        if (pMembers.length > 0) {
-          result.push({
-            participantId: p.id,
-            participantNumber: p.participant_number,
-            shortName: p.organisation_short_name || p.organisation_name,
-            members: pMembers,
-          });
+      const participantMap = new Map((participants || []).map(p => [p.id, p]));
+
+      // 5. Group users by participant org
+      const grouped = new Map<string, { partNum: number; shortName: string; members: UserRow[] }>();
+      const ungrouped: UserRow[] = [];
+
+      for (const uid of userIdArr) {
+        const prof = profileMap.get(uid);
+        if (!prof) continue;
+        const row: UserRow = {
+          userId: uid,
+          fullName: prof.full_name || prof.email || 'Unknown',
+          email: prof.email,
+          avatarUrl: prof.avatar_url,
+        };
+
+        const partId = userToParticipant.get(uid);
+        if (partId) {
+          const part = participantMap.get(partId);
+          if (part) {
+            const key = partId;
+            if (!grouped.has(key)) {
+              grouped.set(key, {
+                partNum: part.participant_number,
+                shortName: part.organisation_short_name || part.organisation_name,
+                members: [],
+              });
+            }
+            grouped.get(key)!.members.push(row);
+            continue;
+          }
         }
+        ungrouped.push(row);
       }
+
+      // Sort groups by participant number
+      const result: OrgGroup[] = Array.from(grouped.values())
+        .sort((a, b) => a.partNum - b.partNum)
+        .map(g => ({ participantNumber: g.partNum, shortName: g.shortName, members: g.members }));
+
+      // Add ungrouped users as a separate group
+      if (ungrouped.length > 0) {
+        result.push({ participantNumber: 999, shortName: 'Unassigned', members: ungrouped });
+      }
+
       return result;
     },
     enabled: !!proposalId,
@@ -202,37 +244,22 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
     return () => { supabase.removeChannel(channel); };
   }, [proposalId, queryClient]);
 
+  // Can the current user edit a given user's row?
+  const canEdit = useCallback((targetUserId: string) => {
+    if (targetUserId === user?.id) return true;
+    return isAdmin;
+  }, [user?.id, isAdmin]);
+
   const isUnavailable = useCallback((userId: string, date: Date) => {
     const key = `${userId}:${format(date, 'yyyy-MM-dd')}`;
-    // During drag, check pending changes
     if (isDragging && dragUserId === userId && draggedDates.has(format(date, 'yyyy-MM-dd'))) {
       return dragMode === 'mark';
     }
     return unavailableDates.has(key);
   }, [unavailableDates, isDragging, dragUserId, dragMode, draggedDates]);
 
-  const toggleDate = useCallback(async (userId: string, date: Date) => {
-    if (userId !== user?.id) return; // Can only edit own
-    const dateStr = format(date, 'yyyy-MM-dd');
-    const key = `${userId}:${dateStr}`;
-
-    if (unavailableDates.has(key)) {
-      await supabase
-        .from('user_availability')
-        .delete()
-        .eq('proposal_id', proposalId)
-        .eq('user_id', userId)
-        .eq('unavailable_date', dateStr);
-    } else {
-      await supabase
-        .from('user_availability')
-        .insert({ proposal_id: proposalId, user_id: userId, unavailable_date: dateStr });
-    }
-    queryClient.invalidateQueries({ queryKey: ['user-availability', proposalId] });
-  }, [unavailableDates, proposalId, user?.id, queryClient]);
-
   const handleMouseDown = useCallback((userId: string, date: Date) => {
-    if (userId !== user?.id) return;
+    if (!canEdit(userId)) return;
     const dateStr = format(date, 'yyyy-MM-dd');
     const key = `${userId}:${dateStr}`;
     const mode = unavailableDates.has(key) ? 'unmark' : 'mark';
@@ -240,7 +267,7 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
     setDragUserId(userId);
     setDragMode(mode);
     setDraggedDates(new Set([dateStr]));
-  }, [user?.id, unavailableDates]);
+  }, [canEdit, unavailableDates]);
 
   const handleMouseEnter = useCallback((userId: string, date: Date) => {
     if (!isDragging || userId !== dragUserId) return;
@@ -254,7 +281,6 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
 
     const dates = Array.from(draggedDates);
     if (dragMode === 'mark') {
-      // Filter out already unavailable
       const toInsert = dates.filter(d => !unavailableDates.has(`${dragUserId}:${d}`));
       if (toInsert.length > 0) {
         await supabase.from('user_availability').insert(
@@ -262,7 +288,6 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
         );
       }
     } else {
-      // Delete
       const toDelete = dates.filter(d => unavailableDates.has(`${dragUserId}:${d}`));
       if (toDelete.length > 0) {
         for (const d of toDelete) {
@@ -382,28 +407,29 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
               );
             })}
 
-            {/* Data rows grouped by participant */}
-            {groups.map((group) => (
-              <>
-                {/* Participant group header */}
+            {/* Data rows grouped by participant organisation */}
+            {orgGroups.map((group) => (
+              <div key={`group-${group.participantNumber}`} style={{ display: 'contents' }}>
+                {/* Organisation group header */}
                 <div
-                  key={`group-${group.participantId}`}
                   className="sticky left-0 z-20 bg-muted/50 border-b border-r px-2 flex items-center text-xs font-semibold text-foreground"
-                  style={{ height: CELL_H, gridColumn: `1 / -1` }}
+                  style={{ height: CELL_H, gridColumn: '1 / -1' }}
                 >
-                  <span className="text-muted-foreground mr-1.5">{group.participantNumber}.</span>
+                  {group.participantNumber !== 999 && (
+                    <span className="text-muted-foreground mr-1.5">{group.participantNumber}.</span>
+                  )}
                   {group.shortName}
                 </div>
 
                 {/* Member rows */}
                 {group.members.map((member) => {
                   const isMe = member.userId === user?.id;
+                  const editable = canEdit(member.userId);
                   const initials = member.fullName?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?';
 
                   return (
-                    <>
+                    <div key={`row-${member.userId}`} style={{ display: 'contents' }}>
                       <div
-                        key={`label-${member.userId}`}
                         className="sticky left-0 z-20 bg-card border-b border-r px-2 flex items-center gap-2"
                         style={{ height: CELL_H }}
                       >
@@ -428,30 +454,31 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
                           <div
                             key={`cell-${member.userId}-${di}`}
                             className={cn(
-                              "border-b cursor-default transition-colors",
+                              "border-b transition-colors",
                               greyed && "bg-muted",
-                              !greyed && !unavail && "bg-background hover:bg-accent/30",
+                              !greyed && !unavail && "bg-background",
                               !greyed && unavail && "bg-destructive/70",
                               greyed && unavail && "bg-destructive/40",
-                              isMe && !greyed && "cursor-pointer",
+                              editable && !greyed && "cursor-pointer hover:bg-accent/30",
+                              !editable && "cursor-default",
                               isFirstOfMonth && "border-l border-border",
                               isToday && "ring-1 ring-inset ring-primary/40"
                             )}
                             style={{ height: CELL_H }}
                             onMouseDown={(e) => {
                               e.preventDefault();
-                              if (!greyed && isMe) handleMouseDown(member.userId, d);
+                              if (!greyed && editable) handleMouseDown(member.userId, d);
                             }}
                             onMouseEnter={() => {
-                              if (!greyed && isMe) handleMouseEnter(member.userId, d);
+                              if (!greyed && editable) handleMouseEnter(member.userId, d);
                             }}
                           />
                         );
                       })}
-                    </>
+                    </div>
                   );
                 })}
-              </>
+              </div>
             ))}
           </div>
         </div>
