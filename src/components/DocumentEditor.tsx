@@ -1075,25 +1075,6 @@ export function DocumentEditor({
               
               <Separator orientation="vertical" className="h-4 mx-1" />
               
-              {canManageLock && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant={isLocked ? "default" : "outline"}
-                      size="sm" 
-                      className={`h-6 px-2 text-xs gap-1 ${isLocked ? 'bg-amber-500 hover:bg-amber-600 text-white' : ''}`}
-                      onClick={() => toggleLock()}
-                      disabled={lockUpdating}
-                    >
-                      {isLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
-                      {isLocked ? 'Unlock' : 'Lock'}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {isLocked ? 'Unlock this section' : 'Lock this section'}
-                  </TooltipContent>
-                </Tooltip>
-              )}
               <Button 
                 variant="outline" 
                 size="sm" 
