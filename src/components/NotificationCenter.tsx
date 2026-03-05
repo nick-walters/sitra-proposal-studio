@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, Check, CheckCheck, Trash2, Clock, AlertTriangle, UserPlus, X, AtSign } from "lucide-react";
+import { Bell, Check, CheckCheck, Trash2, Clock, AlertTriangle, UserPlus, X, AtSign, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -24,11 +24,13 @@ const notificationIcons: Record<NotificationType, React.ReactNode> = {
 function NotificationItem({ 
   notification, 
   onMarkRead, 
+  onMarkUnread,
   onDelete,
   onClick,
 }: { 
   notification: Notification;
   onMarkRead: (id: string) => void;
+  onMarkUnread: (id: string) => void;
   onDelete: (id: string) => void;
   onClick?: (notification: Notification) => void;
 }) {
@@ -64,17 +66,34 @@ function NotificationItem({
           {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
         </p>
       </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-6 w-6 opacity-0 group-hover:opacity-100 hover:opacity-100"
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete(notification.id);
-        }}
-      >
-        <Trash2 className="h-3 w-3" />
-      </Button>
+      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        {notification.is_read && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            title="Mark as unread"
+            onClick={(e) => {
+              e.stopPropagation();
+              onMarkUnread(notification.id);
+            }}
+          >
+            <EyeOff className="h-3 w-3" />
+          </Button>
+        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6"
+          title="Delete"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(notification.id);
+          }}
+        >
+          <Trash2 className="h-3 w-3" />
+        </Button>
+      </div>
     </div>
   );
 }
@@ -90,6 +109,7 @@ export function NotificationCenter({ onNotificationClick }: NotificationCenterPr
     unreadCount, 
     loading,
     markAsRead, 
+    markAsUnread,
     markAllAsRead, 
     deleteNotification,
     clearAll,
@@ -103,7 +123,7 @@ export function NotificationCenter({ onNotificationClick }: NotificationCenterPr
           {unreadCount > 0 && (
             <Badge 
               variant="destructive" 
-              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+              className="absolute -top-0.5 -right-0.5 h-4 min-w-4 flex items-center justify-center p-0 px-0.5 text-[10px] leading-none"
             >
               {unreadCount > 9 ? '9+' : unreadCount}
             </Badge>
@@ -156,6 +176,7 @@ export function NotificationCenter({ onNotificationClick }: NotificationCenterPr
                   key={notification.id}
                   notification={notification}
                   onMarkRead={markAsRead}
+                  onMarkUnread={markAsUnread}
                   onDelete={deleteNotification}
                   onClick={(n) => { onNotificationClick?.(n); setOpen(false); }}
                 />
