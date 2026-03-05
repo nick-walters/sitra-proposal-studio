@@ -418,7 +418,7 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
                     <div
                       className={cn(
                         "sticky z-20 border-b border-border/50 text-[9px] text-center",
-                        (weekend || hol) ? "bg-muted text-muted-foreground/40" : "bg-muted text-muted-foreground",
+                        (weekend || hol) ? "bg-muted-foreground/15 text-muted-foreground/40" : "bg-muted text-muted-foreground",
                         isToday && "font-bold text-blue-600 dark:text-blue-400 border-l-2 border-l-blue-500",
                         !isToday && d.getDate() === 1 && "border-l border-border/60"
                       )}
