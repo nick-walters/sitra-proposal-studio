@@ -1,0 +1,2 @@
+ALTER TABLE public.feedback DROP CONSTRAINT feedback_status_check;
+ALTER TABLE public.feedback ADD CONSTRAINT feedback_status_check CHECK (status = ANY (ARRAY['new'::text, 'reviewed'::text, 'resolved'::text, 'declined'::text]));
