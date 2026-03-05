@@ -385,7 +385,7 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
         </p>
 
         <div
-          className="border rounded-xl bg-card overflow-auto select-none shadow-sm"
+          className="border rounded-xl bg-card overflow-auto select-none shadow-sm overscroll-contain"
           ref={scrollRef}
           style={{ maxHeight: 'calc(100vh - 220px)', position: 'relative' }}
         >
