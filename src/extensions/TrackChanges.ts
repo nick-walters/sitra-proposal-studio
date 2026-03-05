@@ -310,54 +310,45 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
         }
 
         if (oldEnd > oldStart && oldDoc) {
-          const nodesToReinsert: any[] = [];
+          // Separate already-deleted nodes from fresh deletions
+          const alreadyDeletedNodes: any[] = [];
+          const freshNodes: any[] = [];
           oldDoc.nodesBetween(oldStart, oldEnd, (node: any, pos: number) => {
             if (!node.isText) return;
-            if (node.marks.some((m: PMMark) => m.type === insertionType && m.attrs.authorId === authorId)) return;
             const from = Math.max(pos, oldStart);
             const to = Math.min(pos + node.nodeSize, oldEnd);
             const slicedNode = node.cut(from - pos, to - pos);
-            if (!node.marks.some((m: PMMark) => m.type === deletionType)) {
-              nodesToReinsert.push(slicedNode);
+            if (node.marks.some((m: PMMark) => m.type === deletionType)) {
+              alreadyDeletedNodes.push(slicedNode);
+            } else if (!node.marks.some((m: PMMark) => m.type === insertionType && m.attrs.authorId === authorId)) {
+              freshNodes.push(slicedNode);
             }
           });
           const mappedStart = tr.mapping.map(oldStart);
-          
-          // If the deleted range was entirely already-deleted content, just move cursor past it
-          const allAlreadyDeleted = (() => {
-            let result = true;
-            oldDoc.nodesBetween(oldStart, oldEnd, (node: any) => {
-              if (!node.isText) return;
-              if (!node.marks.some((m: PMMark) => m.type === deletionType)) result = false;
-            });
-            return result;
-          })();
-          if (allAlreadyDeleted) {
-            try {
-              tr.setSelection(TextSelection.near(tr.doc.resolve(tr.mapping.map(oldStart))));
-            } catch { }
-            return;
-          }
-
           let reinsertedLength = 0;
-          if (nodesToReinsert.length > 0) {
+          // Reinsert already-deleted content (keep it, just skip cursor over it)
+          if (alreadyDeletedNodes.length > 0) {
+            tr.insert(mappedStart, Fragment.from(alreadyDeletedNodes));
+            reinsertedLength += alreadyDeletedNodes.reduce((s: number, n: any) => s + n.nodeSize, 0);
+          }
+          // Mark fresh deletions
+          if (freshNodes.length > 0) {
             let changeId: string;
-            
             if (storage.lastDeletionId && mappedStart === storage.lastDeletionEnd) {
               changeId = storage.lastDeletionId;
             } else {
               changeId = generateChangeId();
             }
             storage.lastDeletionId = changeId;
-            storage.lastDeletionTime = now;
             storage.lastDeletionEnd = mappedStart;
             const delMark = deletionType.create({ changeId, authorId, authorName, authorColor, timestamp: new Date().toISOString() });
-            const markedNodes = nodesToReinsert.map((n: any) =>
+            const markedNodes = freshNodes.map((n: any) =>
               n.mark(delMark.addToSet(n.marks.filter((m: PMMark) => m.type !== insertionType)))
             );
             tr.insert(mappedStart + reinsertedLength, Fragment.from(markedNodes));
             reinsertedLength += markedNodes.reduce((s: number, n: any) => s + n.nodeSize, 0);
           }
+          // Position cursor before the reinserted content
           try {
             tr.setSelection(TextSelection.near(tr.doc.resolve(mappedStart)));
           } catch { }
