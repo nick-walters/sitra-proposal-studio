@@ -85,6 +85,7 @@ Deno.serve(async (req) => {
         is_high_priority: false,
         is_pinned: false,
         is_resolved: false,
+        is_system_message: true,
       })
       .select()
       .single();
