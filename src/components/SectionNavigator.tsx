@@ -629,6 +629,8 @@ export function SectionNavigator({
   participantMembers = [],
   assignments,
   collaborators = [],
+  lockedSections,
+  onToggleLock,
 }: SectionNavigatorProps) {
   // All users with proposal access can see all participants
   const visibleParticipants = useMemo(() => {
