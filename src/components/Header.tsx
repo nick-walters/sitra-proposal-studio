@@ -134,6 +134,14 @@ export function Header() {
         open={isCollaboratorsOpen} 
         onOpenChange={setIsCollaboratorsOpen}
       />
+      {user && (
+        <UserProfileDialog
+          open={isProfileOpen}
+          onOpenChange={setIsProfileOpen}
+          userId={user.id}
+          editable
+        />
+      )}
     </>
   );
 }
