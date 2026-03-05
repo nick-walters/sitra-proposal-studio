@@ -1,5 +1,5 @@
 import { Section, Participant } from "@/types/proposal";
-import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Layers, Building2, Info, Euro, Lightbulb, Target, Settings, FlaskConical, ShieldCheck, HelpCircle, MessageSquare, ListTodo, Briefcase } from "lucide-react";
+import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Layers, Building2, Info, Euro, Lightbulb, Target, Settings, FlaskConical, ShieldCheck, HelpCircle, MessageSquare, ListTodo, Briefcase, Lock, Unlock, CalendarDays } from "lucide-react";
 import { useState, useMemo, useRef, useLayoutEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
@@ -99,6 +99,8 @@ interface SectionNavigatorProps {
   participantMembers?: { participantId: string; userId?: string }[];
   assignments?: Map<string, SectionAssignment>;
   collaborators?: CollaboratorPresence[];
+  lockedSections?: Set<string>;
+  onToggleLock?: (sectionId: string) => void;
 }
 
 // Format section number for display in left navigation
