@@ -279,6 +279,8 @@ function SectionItem({
           <ListTodo className="w-4 h-4 text-muted-foreground shrink-0" />
         ) : section.id === 'progress-tracker' ? (
           <BarChart3 className="w-4 h-4 text-muted-foreground shrink-0" />
+        ) : section.id === 'availability' ? (
+          <CalendarDays className="w-4 h-4 text-muted-foreground shrink-0" />
         ) : section.id === 'a1' || section.number === 'A1' ? (
           <Info className="w-4 h-4 text-muted-foreground shrink-0" />
         ) : section.id === 'a2' || section.number === 'A2' ? (
