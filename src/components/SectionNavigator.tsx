@@ -402,7 +402,9 @@ function SectionItem({
                 </button>
               </TooltipTrigger>
               <TooltipContent side="right" className="text-xs">
-                {isSectionLocked ? 'Unlock — make visible to all users' : 'Lock — hide from editors & viewers'}
+                {section.id === 'part-b'
+                  ? (isSectionLocked ? 'Unlock Part B — make all sub-sections visible' : 'Lock Part B — hide all sub-sections from editors & viewers')
+                  : (isSectionLocked ? 'Unlock — make visible to all users' : 'Lock — hide from editors & viewers')}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
