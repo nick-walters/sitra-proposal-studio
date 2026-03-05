@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
-export type NotificationType = 'assignment' | 'due_soon' | 'overdue' | 'assignment_changed' | 'assignment_removed' | 'mention';
+export type NotificationType = 'assignment' | 'due_soon' | 'overdue' | 'assignment_changed' | 'assignment_removed' | 'mention' | 'profile_incomplete';
 
 export interface Notification {
   id: string;
@@ -16,13 +16,32 @@ export interface Notification {
   metadata: Record<string, any>;
   is_read: boolean;
   created_at: string;
+  /** If true, this notification cannot be dismissed, marked read, or deleted */
+  persistent?: boolean;
 }
 
 export function useNotifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [profileIncomplete, setProfileIncomplete] = useState(false);
   const { user } = useAuth();
+
+  // Check profile completeness
+  const checkProfile = useCallback(async () => {
+    if (!user?.id) return;
+    const { data } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .single();
+    
+    if (!data?.full_name || !data.full_name.trim().includes(' ')) {
+      setProfileIncomplete(true);
+    } else {
+      setProfileIncomplete(false);
+    }
+  }, [user?.id]);
 
   // Fetch notifications
   const fetchNotifications = useCallback(async () => {
