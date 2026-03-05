@@ -238,8 +238,7 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
     if (
       tr.getMeta('trackChangesInternal') ||
       tr.getMeta('setContent') ||
-      tr.getMeta('history$') ||
-      !tr.docChanged
+      tr.getMeta('history$')
     ) {
       next(tr);
       if (tr.getMeta('history$') && tr.docChanged) {
@@ -248,6 +247,16 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
           options.onChangesUpdate?.(storage.changes);
         }, 0);
       }
+      return;
+    }
+
+    if (!tr.docChanged) {
+      // Cursor moved — reset insertion/deletion tracking
+      storage.lastInsertionId = null;
+      storage.lastInsertionEnd = 0;
+      storage.lastDeletionId = null;
+      storage.lastDeletionEnd = 0;
+      next(tr);
       return;
     }
 
