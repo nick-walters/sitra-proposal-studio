@@ -367,15 +367,15 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
       <div className="max-w-full mx-auto space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-foreground">Availability</h1>
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <div className="flex items-center gap-4 text-xs text-muted-foreground bg-card border border-border rounded-lg px-3 py-1.5 shadow-sm">
             <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-background border border-border inline-block" /> Available
+              <span className="w-3 h-3 rounded-full bg-background border-2 border-border inline-block" /> Available
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-destructive/70 inline-block" /> Unavailable
+              <span className="w-3 h-3 rounded-full bg-destructive/70 border-2 border-destructive/90 inline-block" /> Unavailable
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-muted inline-block" /> Weekend / Holiday
+              <span className="w-3 h-3 rounded-full bg-muted border-2 border-border inline-block" /> Weekend / Holiday
             </span>
           </div>
         </div>
