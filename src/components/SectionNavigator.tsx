@@ -607,6 +607,9 @@ function SectionItem({
                 assignments={assignments}
                 currentUserId={currentUserId}
                 collaborators={collaborators}
+                isCoordinator={isCoordinator}
+                lockedSections={lockedSections}
+                onToggleLock={onToggleLock}
               />
             ))
           )}
