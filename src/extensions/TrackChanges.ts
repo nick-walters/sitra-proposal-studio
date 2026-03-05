@@ -311,27 +311,35 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
 
         if (oldEnd > oldStart && oldDoc) {
           const nodesToReinsert: any[] = [];
-          const nodesToReject: any[] = [];
           oldDoc.nodesBetween(oldStart, oldEnd, (node: any, pos: number) => {
             if (!node.isText) return;
             if (node.marks.some((m: PMMark) => m.type === insertionType && m.attrs.authorId === authorId)) return;
             const from = Math.max(pos, oldStart);
             const to = Math.min(pos + node.nodeSize, oldEnd);
             const slicedNode = node.cut(from - pos, to - pos);
-            const cleanMarks = slicedNode.marks.filter((m: PMMark) => m.type !== deletionType && m.type !== insertionType);
-            if (node.marks.some((m: PMMark) => m.type === deletionType)) {
-              nodesToReject.push(slicedNode.mark(cleanMarks));
-            } else {
+            if (!node.marks.some((m: PMMark) => m.type === deletionType)) {
               nodesToReinsert.push(slicedNode);
             }
           });
           const mappedStart = tr.mapping.map(oldStart);
           
-          let reinsertedLength = 0;
-          if (nodesToReject.length > 0) {
-            tr.insert(mappedStart, Fragment.from(nodesToReject));
-            reinsertedLength += nodesToReject.reduce((s: number, n: any) => s + n.nodeSize, 0);
+          // If the deleted range was entirely already-deleted content, just move cursor past it
+          const allAlreadyDeleted = (() => {
+            let result = true;
+            oldDoc.nodesBetween(oldStart, oldEnd, (node: any) => {
+              if (!node.isText) return;
+              if (!node.marks.some((m: PMMark) => m.type === deletionType)) result = false;
+            });
+            return result;
+          })();
+          if (allAlreadyDeleted) {
+            try {
+              tr.setSelection(TextSelection.near(tr.doc.resolve(tr.mapping.map(oldStart))));
+            } catch { }
+            return;
           }
+
+          let reinsertedLength = 0;
           if (nodesToReinsert.length > 0) {
             let changeId: string;
             
