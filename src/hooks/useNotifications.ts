@@ -65,6 +65,26 @@ export function useNotifications() {
     setUnreadCount(prev => Math.max(0, prev - 1));
   }, [user?.id]);
 
+  // Mark notification as unread
+  const markAsUnread = useCallback(async (notificationId: string) => {
+    if (!user?.id) return;
+
+    const { error } = await supabase
+      .from('notifications')
+      .update({ is_read: false })
+      .eq('id', notificationId);
+
+    if (error) {
+      console.error('Error marking notification as unread:', error);
+      return;
+    }
+
+    setNotifications(prev => 
+      prev.map(n => n.id === notificationId ? { ...n, is_read: false } : n)
+    );
+    setUnreadCount(prev => prev + 1);
+  }, [user?.id]);
+
   // Mark all as read
   const markAllAsRead = useCallback(async () => {
     if (!user?.id) return;
@@ -201,6 +221,7 @@ export function useNotifications() {
     unreadCount,
     loading,
     markAsRead,
+    markAsUnread,
     markAllAsRead,
     deleteNotification,
     clearAll,
