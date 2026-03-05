@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   DndContext,
   closestCenter,
@@ -18,7 +19,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { EditableCaption } from '@/components/EditableCaption';
 import { useQueryClient } from '@tanstack/react-query';
-import { Check, ChevronsUpDown, Crown, GripVertical, Trash2 } from 'lucide-react';
+import { Check, ChevronsUpDown, Crown, GripVertical, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
@@ -676,6 +677,24 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
     toast.success('Task deleted');
   };
 
+  const handleAddTask = async (wp: B31WPData) => {
+    const nextNumber = wp.tasks.length > 0 ? Math.max(...wp.tasks.map(t => t.number)) + 1 : 1;
+    const nextOrderIndex = wp.tasks.length > 0 ? Math.max(...wp.tasks.map(t => t.order_index)) + 1 : 0;
+    const { error } = await supabase.from('wp_draft_tasks').insert({
+      wp_draft_id: wp.id,
+      number: nextNumber,
+      order_index: nextOrderIndex,
+    });
+    if (error) {
+      toast.error('Failed to add task');
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
+    window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+  };
+    toast.success('Task deleted');
+  };
+
   const handleTaskDragEnd = async (event: DragEndEvent, wp: B31WPData) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -846,8 +865,22 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
                 </SortableContext>
               </DndContext>
 
-              {/* Colour border after last task */}
-              <tbody><SpacerRow color={wp.color} /></tbody>
+              {/* Add task button + colour border */}
+              <tbody>
+                <tr>
+                  <td colSpan={2} style={{ border: 'none', padding: '4px 6px' }} className="print:hidden">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 text-xs"
+                      onClick={() => handleAddTask(wp)}
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add task
+                    </Button>
+                  </td>
+                </tr>
+                <SpacerRow color={wp.color} />
+              </tbody>
             </table>
           </div>
         );
