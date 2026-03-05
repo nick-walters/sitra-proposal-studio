@@ -350,6 +350,8 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
   const CELL_W = 22;
   const CELL_H = 28;
   const LABEL_W = 200;
+  const MONTH_H = 24;
+  const DAY_H = 20;
 
   if (groupsLoading) {
     return (
