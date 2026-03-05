@@ -4,7 +4,7 @@ import { UserAvatarMenu } from "@/components/UserAvatarMenu";
 import { CollaboratorsDialog } from "@/components/CollaboratorsDialog";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { Notification } from "@/hooks/useNotifications";
-import { Users, Database, Columns3 } from "lucide-react";
+import { Users, Database, Columns3, MessageSquare } from "lucide-react";
 import sitraLogo from "@/assets/sitra-proposal-studio-logo.png";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -52,6 +52,12 @@ export function Header() {
       return;
     }
     
+    // Feedback notifications
+    if (meta.source === 'feedback' && meta.feedback_id) {
+      navigate(`/admin?feedback=${meta.feedback_id}`);
+      return;
+    }
+    
     // Fallback: just navigate to the proposal
     navigate(`/proposal/${notification.proposal_id}`);
   }, [navigate]);
@@ -85,6 +91,12 @@ export function Header() {
               <Users className="w-4 h-4" />
               Collaborators
             </Button>
+            <Link to="/feedback">
+              <Button variant="ghost" size="sm" className="gap-2">
+                <MessageSquare className="w-4 h-4" />
+                Feedback
+              </Button>
+            </Link>
             {(isOwner || (isGlobalAdmin && hasAnyCoordinatorRole)) && (
               <Link to="/admin">
                 <Button variant="ghost" size="sm" className="gap-2">
