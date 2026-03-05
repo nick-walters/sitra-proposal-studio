@@ -60,8 +60,8 @@ export function Header() {
       return;
     }
     
-    // Feedback notifications
-    if (meta.source === 'feedback' && meta.feedback_id) {
+    // Feedback notifications (both original feedback and comment notifications)
+    if ((meta.source === 'feedback' || meta.source === 'feedback_comment') && meta.feedback_id) {
       navigate(`/admin/feedback?feedback=${meta.feedback_id}`);
       return;
     }
