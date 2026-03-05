@@ -1207,6 +1207,8 @@ export function ProposalEditor() {
               participantMembers={participantMembers.map(m => ({ participantId: m.participantId, userId: m.userId }))}
               assignments={assignments}
               collaborators={collaborators}
+              lockedSections={lockedSections}
+              onToggleLock={toggleSectionLock}
             />
           </div>
         </aside>
