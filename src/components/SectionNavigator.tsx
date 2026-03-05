@@ -674,10 +674,29 @@ export function SectionNavigator({
     });
   }, [sections, visibleParticipants]);
 
+  // Filter out locked sections for non-coordinators
+  const filterLockedSections = useCallback((sectionList: (Section | WPSection | CaseSection)[]): (Section | WPSection | CaseSection)[] => {
+    if (isCoordinator || !lockedSections || lockedSections.size === 0) return sectionList;
+
+    return sectionList
+      .filter(s => !lockedSections.has(s.id))
+      .map(s => {
+        if (s.subsections && s.subsections.length > 0) {
+          return { ...s, subsections: filterLockedSections(s.subsections) };
+        }
+        return s;
+      });
+  }, [isCoordinator, lockedSections]);
+
+  const visibleSections = useMemo(
+    () => filterLockedSections(sectionsWithParticipants),
+    [sectionsWithParticipants, filterLockedSections]
+  );
+
   return (
     <nav className="py-2">
       <div className="space-y-0.5">
-        {sectionsWithParticipants.map((section) => (
+        {visibleSections.map((section) => (
           <SectionItem
             key={section.id}
             section={section}
@@ -686,6 +705,9 @@ export function SectionNavigator({
             assignments={assignments}
             currentUserId={currentUserId}
             collaborators={collaborators}
+            isCoordinator={isCoordinator}
+            lockedSections={lockedSections}
+            onToggleLock={onToggleLock}
           />
         ))}
       </div>
