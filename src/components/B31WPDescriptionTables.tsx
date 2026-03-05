@@ -692,8 +692,6 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
     queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
     window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
   };
-    toast.success('Task deleted');
-  };
 
   const handleTaskDragEnd = async (event: DragEndEvent, wp: B31WPData) => {
     const { active, over } = event;
