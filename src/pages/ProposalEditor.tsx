@@ -89,6 +89,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSectionAssignments } from "@/hooks/useSectionAssignments";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useProposalOnboarding } from "@/hooks/useProposalOnboarding";
+import { useSectionVisibility } from "@/hooks/useSectionVisibility";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { WPLeadershipInfo, CaseLeadershipInfo } from "@/components/ParticipantListView";
