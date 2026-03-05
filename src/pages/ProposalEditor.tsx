@@ -166,6 +166,9 @@ export function ProposalEditor() {
   // First-access onboarding: welcome message + starter tasks
   useProposalOnboarding(id);
 
+  // Section visibility locks
+  const { lockedSections, toggleLock: toggleSectionLock } = useSectionVisibility(id);
+
   // Fetch WP leadership data for participant table
   const { data: wpLeadershipData = [] } = useQuery({
     queryKey: ['wp-leadership', id],
