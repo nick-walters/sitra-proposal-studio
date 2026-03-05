@@ -306,6 +306,16 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
     queryClient.invalidateQueries({ queryKey: ['user-availability', proposalId] });
   }, [isDragging, dragUserId, dragMode, draggedDates, unavailableDates, proposalId, queryClient]);
 
+  // Auto-scroll to today on mount
+  useEffect(() => {
+    if (!scrollRef.current || days.length === 0) return;
+    const today = startOfDay(new Date());
+    const todayIndex = days.findIndex(d => isSameDay(d, today));
+    if (todayIndex >= 0) {
+      scrollRef.current.scrollLeft = todayIndex * CELL_W;
+    }
+  }, [days.length]);
+
   useEffect(() => {
     const up = () => handleMouseUp();
     window.addEventListener('mouseup', up);
@@ -330,6 +340,16 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
     return result;
   }, [days]);
 
+  // Compute today column index for the blue marker line
+  const todayIndex = useMemo(() => {
+    const today = startOfDay(new Date());
+    return days.findIndex(d => isSameDay(d, today));
+  }, [days]);
+
+  const CELL_W = 22;
+  const CELL_H = 28;
+  const LABEL_W = 200;
+
   if (groupsLoading) {
     return (
       <div className="p-6 space-y-4">
@@ -338,10 +358,6 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
       </div>
     );
   }
-
-  const CELL_W = 22;
-  const CELL_H = 28;
-  const LABEL_W = 200;
 
   return (
     <div className="flex-1 overflow-y-auto p-6 bg-muted/30">
@@ -361,14 +377,18 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
           </div>
         </div>
 
+        <p className="text-sm text-muted-foreground -mt-2">
+          Click or click and drag to select dates on which you are unavailable during the proposal preparation period.
+        </p>
+
         <div
           className="border rounded-lg bg-card overflow-auto select-none"
           ref={scrollRef}
-          style={{ maxHeight: 'calc(100vh - 200px)' }}
+          style={{ maxHeight: 'calc(100vh - 220px)', position: 'relative' }}
         >
           <div style={{ display: 'grid', gridTemplateColumns: `${LABEL_W}px repeat(${days.length}, ${CELL_W}px)` }}>
             {/* Month header row */}
-            <div className="sticky left-0 z-20 bg-card border-b border-r h-6" />
+            <div className="sticky left-0 z-30 bg-muted/30 h-6" />
             {months.map((m, i) => (
               <div
                 key={i}
@@ -380,7 +400,7 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
             ))}
 
             {/* Day number header row */}
-            <div className="sticky left-0 z-20 bg-card border-b border-r h-5" />
+            <div className="sticky left-0 z-30 bg-muted/30 h-5" />
             {days.map((d, i) => {
               const weekend = isWeekend(d);
               const hol = isHoliday(d, holidays);
@@ -392,8 +412,8 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
                       className={cn(
                         "border-b text-[9px] text-center leading-5",
                         (weekend || hol) ? "bg-muted text-muted-foreground/50" : "text-muted-foreground",
-                        isToday && "font-bold text-primary",
-                        d.getDate() === 1 && "border-l border-border"
+                        isToday && "font-bold text-primary border-l-2 border-l-blue-500",
+                        !isToday && d.getDate() === 1 && "border-l border-border"
                       )}
                     >
                       {d.getDate()}
@@ -461,8 +481,8 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
                               greyed && unavail && "bg-destructive/40",
                               editable && !greyed && "cursor-pointer hover:bg-accent/30",
                               !editable && "cursor-default",
-                              isFirstOfMonth && "border-l border-border",
-                              isToday && "ring-1 ring-inset ring-primary/40"
+                              isToday && "border-l-2 border-l-blue-500",
+                              !isToday && isFirstOfMonth && "border-l border-border"
                             )}
                             style={{ height: CELL_H }}
                             onMouseDown={(e) => {
