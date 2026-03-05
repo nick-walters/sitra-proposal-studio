@@ -161,13 +161,20 @@ function SectionItem({
   const [isExpanded, setIsExpanded] = useState(section.id !== 'a2');
   const hasSubsections = section.subsections && section.subsections.length > 0;
   const isActive = activeSectionId === section.id;
-  const isSectionLocked = lockedSections?.has(section.id) ?? false;
+  // Compute effective lock state: direct lock OR inherited from parent (part-a / part-b)
+  const isPartAChild = section.id === 'a1' || section.id === 'a2' || section.id === 'a3' || section.id === 'a4' || section.id === 'a5';
+  const isPartBChild = (section.number && /^B?\d/.test(section.number) && section.id !== 'part-b') ||
+    section.id === 'figures' || section.title === 'Figures' || section.id === 'wp-drafts';
+  const isSectionLocked = (lockedSections?.has(section.id) ?? false) ||
+    (isPartAChild && section.id !== 'topic-info' && (lockedSections?.has('part-a') ?? false)) ||
+    (isPartBChild && (lockedSections?.has('part-b') ?? false));
 
   // Determine if this section shows a lock button (coordinators only)
+  // topic-info is never lockable — always visible to all
   const isLockable = isCoordinator && onToggleLock && (
+    section.id === 'part-a' ||
     section.id === 'a1' || section.id === 'a2' || section.id === 'a3' ||
     section.id === 'a4' || section.id === 'a5' ||
-    section.id === 'topic-info' ||
     section.id === 'figures' || section.title === 'Figures' ||
     section.id === 'wp-drafts' ||
     section.id === 'part-b' ||
