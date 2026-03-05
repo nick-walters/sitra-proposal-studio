@@ -206,7 +206,10 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
         .sort((a, b) => a.partNum - b.partNum)
         .map(g => ({ participantNumber: g.partNum, shortName: g.shortName, members: g.members }));
 
-      // Skip ungrouped/unassigned users
+      // Add ungrouped users without a group header
+      if (ungrouped.length > 0) {
+        result.push({ participantNumber: 999, shortName: '', members: ungrouped, isUngrouped: true });
+      }
 
       return result;
     },
@@ -429,16 +432,16 @@ export function AvailabilityGantt({ proposalId, startDate, endDate }: Availabili
             {/* Data rows grouped by participant organisation */}
             {orgGroups.map((group) => (
               <div key={`group-${group.participantNumber}`} style={{ display: 'contents' }}>
-                {/* Organisation group header */}
-                <div
-                  className="sticky left-0 z-20 bg-muted/50 border-b border-r px-2 flex items-center text-xs font-semibold text-foreground"
-                  style={{ height: CELL_H, gridColumn: '1 / -1' }}
-                >
-                  {group.participantNumber !== 999 && (
-                    <span className="text-muted-foreground mr-1.5">{group.participantNumber}.</span>
-                  )}
-                  {group.shortName}
-                </div>
+                {/* Organisation group header — skip for ungrouped users */}
+                {!group.isUngrouped && (
+                  <div
+                    className="sticky left-0 z-20 bg-muted/60 border-b px-3 flex items-center text-[11px] font-semibold text-foreground tracking-wide uppercase"
+                    style={{ height: CELL_H - 4, gridColumn: '1 / -1' }}
+                  >
+                    <span className="text-muted-foreground/70 mr-1.5 font-normal">{group.participantNumber}.</span>
+                    {group.shortName}
+                  </div>
+                )}
 
                 {/* Member rows */}
                 {group.members.map((member) => {
