@@ -679,7 +679,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
 
   const handleAddTask = async (wp: B31WPData) => {
     const nextNumber = wp.tasks.length > 0 ? Math.max(...wp.tasks.map(t => t.number)) + 1 : 1;
-    const nextOrderIndex = wp.tasks.length > 0 ? Math.max(...wp.tasks.map(t => t.order_index)) + 1 : 0;
+    const nextOrderIndex = wp.tasks.length;
     const { error } = await supabase.from('wp_draft_tasks').insert({
       wp_draft_id: wp.id,
       number: nextNumber,
@@ -691,8 +691,6 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
     }
     queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
     window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
-  };
-    toast.success('Task deleted');
   };
 
   const handleTaskDragEnd = async (event: DragEndEvent, wp: B31WPData) => {
@@ -888,3 +886,4 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
     </div>
   );
 }
+
