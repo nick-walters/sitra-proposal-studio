@@ -5,7 +5,6 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -19,6 +18,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { MentionTextarea, MentionMember, renderMentionContent } from "@/components/MentionTextarea";
 import { toast } from "sonner";
 import {
   Sparkles,
@@ -67,6 +67,7 @@ export function FeedbackDetail({ feedbackId, onBack, onDeleted }: FeedbackDetail
   const [item, setItem] = useState<FeedbackItem | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [profiles, setProfiles] = useState<Record<string, { name: string; initials: string }>>({});
+  const [mentionMembers, setMentionMembers] = useState<MentionMember[]>([]);
   const [newComment, setNewComment] = useState("");
   const [sending, setSending] = useState(false);
   const [analyzingId, setAnalyzingId] = useState(false);
@@ -106,6 +107,27 @@ export function FeedbackDetail({ feedbackId, onBack, onDeleted }: FeedbackDetail
     setLoading(false);
   };
 
+  // Fetch all profiles for @mention autocomplete
+  useEffect(() => {
+    const fetchMembers = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, full_name, email");
+      if (data) {
+        setMentionMembers(
+          data
+            .filter((p: any) => p.id !== user?.id)
+            .map((p: any) => ({
+              id: p.id,
+              full_name: p.full_name,
+              email: p.email || "",
+            }))
+        );
+      }
+    };
+    fetchMembers();
+  }, [user?.id]);
+
   useEffect(() => {
     fetchData();
   }, [feedbackId]);
@@ -122,7 +144,6 @@ export function FeedbackDetail({ feedbackId, onBack, onDeleted }: FeedbackDetail
       }, (payload) => {
         const newC = payload.new as Comment;
         setComments(prev => [...prev, newC]);
-        // Resolve profile if needed
         if (!profiles[newC.user_id]) {
           supabase.from("profiles").select("id, full_name, email").eq("id", newC.user_id).single().then(({ data }) => {
             if (data) {
@@ -395,7 +416,7 @@ export function FeedbackDetail({ feedbackId, onBack, onDeleted }: FeedbackDetail
                       </Button>
                     )}
                   </div>
-                  <p className="text-sm whitespace-pre-wrap mt-0.5">{c.content}</p>
+                  <p className="text-sm whitespace-pre-wrap mt-0.5">{renderMentionContent(c.content)}</p>
                 </div>
               </div>
             );
@@ -407,17 +428,12 @@ export function FeedbackDetail({ feedbackId, onBack, onDeleted }: FeedbackDetail
           {/* New comment input */}
           {canInteract && (
             <div className="flex gap-2">
-              <Textarea
-                placeholder="Write a comment…"
+              <MentionTextarea
                 value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                rows={2}
-                className="resize-none"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                    handleSendComment();
-                  }
-                }}
+                onChange={setNewComment}
+                placeholder="Write a comment… Use @ to mention someone"
+                teamMembers={mentionMembers}
+                className="min-h-[60px]"
               />
               <Button
                 size="icon"
