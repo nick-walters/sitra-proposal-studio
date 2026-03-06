@@ -585,6 +585,7 @@ export function useDocxExport() {
 
       try {
         toast.info('Generating DOCX...');
+        console.log('[DOCX] Starting export for proposal:', proposal.acronym);
 
         const bodyChildren: (Paragraph | Table)[] = [];
 
