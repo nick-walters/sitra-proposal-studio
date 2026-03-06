@@ -399,9 +399,7 @@ export function ProposalEditor() {
     if (!proposal) return;
     
     // Fetch section contents
-    const { data: sectionContents } = await import('@/integrations/supabase/client').then(
-      ({ supabase }) => supabase.from('section_content').select('*').eq('proposal_id', id)
-    );
+    const { data: sectionContents } = await supabase.from('section_content').select('*').eq('proposal_id', id);
 
     const exportData = {
       proposal: {
@@ -429,9 +427,7 @@ export function ProposalEditor() {
     if (!proposal || !id) return;
     
     try {
-      const { data: { session } } = await import('@/integrations/supabase/client').then(
-        ({ supabase }) => supabase.auth.getSession()
-      );
+      const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
         toast.error('You must be logged in to duplicate a proposal');
