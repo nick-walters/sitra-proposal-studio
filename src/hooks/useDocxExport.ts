@@ -585,6 +585,7 @@ export function useDocxExport() {
 
       try {
         toast.info('Generating DOCX...');
+        console.log('[DOCX] Starting export for proposal:', proposal.acronym);
 
         const bodyChildren: (Paragraph | Table)[] = [];
 
@@ -621,9 +622,26 @@ export function useDocxExport() {
           );
         }
 
-        // Flatten sections tree and filter to Part B
-        const allFlat = flattenSections(sections);
-        const partBSections = allFlat.filter(s => isH1Container(s) || isContentSection(s));
+        // Get Part B sections using same traversal as PDF export
+        const getPartBSections = (allSections: Section[]): Section[] => {
+          const result: Section[] = [];
+          const traverse = (section: Section) => {
+            if (section.isPartA) return;
+            // Skip non-Part-B special sections
+            if (['figures', 'assignments', 'progress', 'wp-drafts', 'topic-info', 'proposal-management', 'messaging', 'task-allocator', 'progress-tracker', 'availability'].includes(section.id)) return;
+            if (section.id.startsWith('wp-') || section.id.startsWith('case-')) return;
+            if (isH1Container(section) || isContentSection(section)) {
+              result.push(section);
+            }
+            if (section.subsections) {
+              for (const sub of section.subsections) traverse(sub);
+            }
+          };
+          for (const s of allSections) traverse(s);
+          return result;
+        };
+        const partBSections = getPartBSections(sections);
+        console.log('[DOCX] Part B sections included:', partBSections.map(s => `${s.id} (${s.number})`));
 
         // Helper to get section content
         const getSectionContent = (sectionId: string): string => {
