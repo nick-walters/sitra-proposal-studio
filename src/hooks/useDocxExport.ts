@@ -641,6 +641,7 @@ export function useDocxExport() {
           return result;
         };
         const partBSections = getPartBSections(sections);
+        console.log('[DOCX] Part B sections included:', partBSections.map(s => `${s.id} (${s.number})`));
 
         // Helper to get section content
         const getSectionContent = (sectionId: string): string => {
