@@ -427,9 +427,7 @@ export function ProposalEditor() {
     if (!proposal || !id) return;
     
     try {
-      const { data: { session } } = await import('@/integrations/supabase/client').then(
-        ({ supabase }) => supabase.auth.getSession()
-      );
+      const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
         toast.error('You must be logged in to duplicate a proposal');
