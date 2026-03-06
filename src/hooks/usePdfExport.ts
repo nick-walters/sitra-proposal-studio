@@ -965,64 +965,165 @@ export function usePdfExport() {
         yPosition += paragraphSpacing * 2;
       };
 
-// Helper: Fetch and render B3.1 tables
+// Helper: Fetch and render ALL B3.1 tables (a through h)
       const renderB31Tables = async (proposalId: string) => {
-        // Fetch deliverables
-        const { data: deliverables } = await supabase
-          .from('b31_deliverables')
-          .select('*')
-          .eq('proposal_id', proposalId)
-          .order('order_index');
-        
-        // Fetch milestones
-        const { data: milestones } = await supabase
-          .from('b31_milestones')
-          .select('*')
-          .eq('proposal_id', proposalId)
-          .order('order_index');
-        
-        // Fetch risks
-        const { data: risks } = await supabase
-          .from('b31_risks')
-          .select('*')
-          .eq('proposal_id', proposalId)
-          .order('order_index');
+        // Fetch all B3.1 data in parallel
+        const [
+          { data: wpDrafts },
+          { data: deliverables },
+          { data: milestones },
+          { data: risks },
+          { data: parts },
+          { data: palette },
+          { data: budgetItems },
+        ] = await Promise.all([
+          supabase.from('wp_drafts').select(`
+            id, number, title, short_name, lead_participant_id, objectives, methodology,
+            manual_person_months, manual_duration,
+            tasks:wp_draft_tasks(
+              id, number, title, description, lead_participant_id, start_month, end_month,
+              effort:wp_draft_task_effort(participant_id, person_months),
+              participants:wp_draft_task_participants(participant_id)
+            ),
+            deliverables:wp_draft_deliverables(
+              id, number, title, type, dissemination_level, responsible_participant_id, due_month, description
+            )
+          `).eq('proposal_id', proposalId).order('number'),
+          supabase.from('b31_deliverables').select('*').eq('proposal_id', proposalId).order('order_index'),
+          supabase.from('b31_milestones').select('*').eq('proposal_id', proposalId).order('order_index'),
+          supabase.from('b31_risks').select('*').eq('proposal_id', proposalId).order('order_index'),
+          supabase.from('participants').select('id, organisation_short_name, organisation_name, participant_number, personnel_cost_rate').eq('proposal_id', proposalId).order('participant_number'),
+          supabase.from('wp_color_palette').select('colors').eq('proposal_id', proposalId).single(),
+          supabase.from('budget_items').select('id, participant_id, category, description, amount, justification').eq('proposal_id', proposalId).in('category', ['subcontracting', 'equipment']),
+        ]);
 
-        // Fetch participants for lead participant lookup
-        const { data: parts } = await supabase
-          .from('participants')
-          .select('id, organisation_short_name, participant_number')
-          .eq('proposal_id', proposalId);
-        
-        const participantMap = new Map(parts?.map(p => [p.id, p.organisation_short_name || `P${p.participant_number}`]) || []);
+        const participantList = parts || [];
+        const participantMap = new Map(participantList.map(p => [p.id, p.organisation_short_name || `P${p.participant_number}`]));
+        const defaultColors = ['#3b82f6','#ef4444','#22c55e','#f59e0b','#8b5cf6','#06b6d4','#ec4899','#f97316','#14b8a6','#6366f1'];
+        const colors = (palette?.colors as string[]) || defaultColors;
+        const wps = (wpDrafts || []).map((wp: any) => ({
+          ...wp,
+          color: colors[(wp.number - 1) % colors.length] || defaultColors[0],
+          tasks: (wp.tasks || []).sort((a: any, b: any) => a.number - b.number),
+          deliverables: (wp.deliverables || []).sort((a: any, b: any) => a.number - b.number),
+        }));
+        const wpColorMap = new Map(wps.map((wp: any) => [wp.number, wp.color]));
 
-        // Fetch WP colors for bubble styling
-        const { data: wpColors } = await supabase
-          .from('wp_drafts')
-          .select('number, color')
-          .eq('proposal_id', proposalId);
-        
-        const wpColorMap = new Map((wpColors || []).map(wp => [wp.number, wp.color]));
-        
-        // Helper to convert text to sentence case
         const toSentenceCase = (text: string): string => {
           if (!text) return '';
           return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
         };
 
-        // Table 3.1c - Deliverables (format: "DX.X: Title" in sentence case)
-        // Caption will be added from the editor content, not hardcoded
+        // ===== Table 3.1.a – List of work packages =====
+        if (wps.length > 0) {
+          const wpListHeaders = ['WP', 'Title', 'Lead', 'PM', 'Start', 'End'];
+          const wpListColWidths = [12, 80, 30, 18, 20, 20];
+          const wpListRows: CellContent[][] = wps.map((wp: any) => {
+            const leadName = wp.lead_participant_id ? (participantMap.get(wp.lead_participant_id) || '—') : '—';
+            // Calculate total PM from task effort
+            let totalPM = wp.manual_person_months || 0;
+            if (!totalPM) {
+              wp.tasks.forEach((t: any) => {
+                (t.effort || []).forEach((e: any) => { totalPM += e.person_months || 0; });
+              });
+            }
+            // Calculate start/end from tasks
+            const taskStarts = wp.tasks.filter((t: any) => t.start_month).map((t: any) => t.start_month);
+            const taskEnds = wp.tasks.filter((t: any) => t.end_month).map((t: any) => t.end_month);
+            const start = taskStarts.length > 0 ? Math.min(...taskStarts) : null;
+            const end = taskEnds.length > 0 ? Math.max(...taskEnds) : null;
+
+            return [
+              { text: `WP${wp.number}`, color: hexToRgb(wp.color), type: 'bubble' as const },
+              { text: wp.title || '', type: 'text' as const },
+              leadName !== '—' ? { text: leadName, color: [0,0,0] as [number,number,number], type: 'bubble' as const, italic: true } : { text: '—', type: 'text' as const },
+              { text: totalPM ? totalPM.toFixed(1) : '—', type: 'text' as const },
+              { text: start ? `M${String(start).padStart(2,'0')}` : '—', type: 'text' as const },
+              { text: end ? `M${String(end).padStart(2,'0')}` : '—', type: 'text' as const },
+            ];
+          });
+          addB31TableAdvanced(wpListHeaders, wpListRows, wpListColWidths, 'Table 3.1.a. List of work packages');
+        }
+
+        // ===== Table 3.1.b – Work package descriptions (one per WP) =====
+        for (const wp of wps) {
+          // WP description table header
+          addCaption(`Table 3.1.b. Work Package ${wp.number}: ${wp.title || ''}`, 'table');
+          
+          // Simple key-value rows for the WP
+          const leadName = wp.lead_participant_id ? (participantMap.get(wp.lead_participant_id) || '—') : '—';
+          const taskStarts = wp.tasks.filter((t: any) => t.start_month).map((t: any) => t.start_month);
+          const taskEnds = wp.tasks.filter((t: any) => t.end_month).map((t: any) => t.end_month);
+          const start = taskStarts.length > 0 ? Math.min(...taskStarts) : null;
+          const end = taskEnds.length > 0 ? Math.max(...taskEnds) : null;
+
+          // Render as simple text info block
+          const wpInfoLines = [
+            `WP${wp.number}: ${wp.title || ''}`,
+            `Lead: ${leadName}`,
+            `Duration: ${start ? `M${String(start).padStart(2,'0')}` : '?'} – ${end ? `M${String(end).padStart(2,'0')}` : '?'}`,
+          ];
+          for (const line of wpInfoLines) {
+            addParagraph(line);
+          }
+
+          if (wp.objectives) {
+            addH3('Objectives');
+            addParagraph(wp.objectives);
+          }
+          if (wp.methodology) {
+            addH3('Description of work and role of partners');
+            // Parse HTML methodology
+            const methBlocks = parseHtmlContent(wp.methodology);
+            for (const block of methBlocks) {
+              if (block.type === 'paragraph') addParagraph(block.text);
+              else if (block.type === 'h3') addH3(block.text);
+            }
+          }
+
+          // Tasks
+          if (wp.tasks.length > 0) {
+            const taskHeaders = ['Task', 'Title', 'Lead', 'Start', 'End'];
+            const taskColWidths = [18, 92, 30, 20, 20];
+            const taskRows: CellContent[][] = wp.tasks.map((t: any) => {
+              const tLeadName = t.lead_participant_id ? (participantMap.get(t.lead_participant_id) || '—') : '—';
+              return [
+                { text: `T${wp.number}.${t.number}`, type: 'text' as const },
+                { text: t.title || '', type: 'text' as const },
+                tLeadName !== '—' ? { text: tLeadName, color: [0,0,0] as [number,number,number], type: 'bubble' as const, italic: true } : { text: '—', type: 'text' as const },
+                { text: t.start_month ? `M${String(t.start_month).padStart(2,'0')}` : '—', type: 'text' as const },
+                { text: t.end_month ? `M${String(t.end_month).padStart(2,'0')}` : '—', type: 'text' as const },
+              ];
+            });
+            addB31TableAdvanced(taskHeaders, taskRows, taskColWidths, '');
+          }
+
+          // WP Deliverables
+          if (wp.deliverables.length > 0) {
+            const delHeaders = ['Deliverable', 'Type', 'Diss.', 'Due'];
+            const delColWidths = [110, 20, 25, 25];
+            const delRows: CellContent[][] = wp.deliverables.map((d: any) => ([
+              { text: `D${wp.number}.${d.number}: ${d.title || ''}`, type: 'text' as const },
+              { text: d.type || '—', type: 'text' as const },
+              { text: d.dissemination_level || '—', type: 'text' as const },
+              { text: d.due_month ? `M${String(d.due_month).padStart(2,'0')}` : '—', type: 'text' as const },
+            ]));
+            addB31TableAdvanced(delHeaders, delRows, delColWidths, '');
+          }
+
+          yPosition += paragraphSpacing * 2;
+        }
+
+        // ===== Table 3.1.c – Deliverables =====
         if (deliverables && deliverables.length > 0) {
           const delHeaders = ['Deliverable', 'WP', 'Lead', 'Type', 'Diss.', 'Due'];
-          const delColWidths = [85, 20, 25, 12, 18, 20]; // WP = 20mm for single bubble, Lead = 25mm
+          const delColWidths = [85, 20, 25, 12, 18, 20];
           const delRows: CellContent[][] = (deliverables as B31Deliverable[]).map(d => {
-            // Merged: "DX.X: Title" in sentence case
             const title = d.name ? toSentenceCase(d.name) : '';
             const deliverableText = `${d.number}: ${title}`;
             const wpNum = d.wp_number;
             const wpColor = wpNum && wpColorMap.get(wpNum) ? wpColorMap.get(wpNum)! : '#475569';
             const leadName = d.lead_participant_id ? (participantMap.get(d.lead_participant_id) || '') : '—';
-            
             return [
               { text: deliverableText, type: 'text' as const },
               wpNum ? { text: `WP${wpNum}`, color: hexToRgb(wpColor), type: 'bubble' as const } : { text: '—', type: 'text' as const },
@@ -1032,66 +1133,129 @@ export function usePdfExport() {
               { text: d.due_month ? `M${String(d.due_month).padStart(2, '0')}` : '—', type: 'text' as const }
             ];
           });
-          // No hardcoded caption - captions come from editor content
-          addB31TableAdvanced(delHeaders, delRows, delColWidths, '');
+          addB31TableAdvanced(delHeaders, delRows, delColWidths, 'Table 3.1.c. List of deliverables');
         }
 
-        // Table 3.1d - Milestones (format: "MSX: Title" in sentence case)
-        // Caption will be added from the editor content, not hardcoded
+        // ===== Table 3.1.d – Milestones =====
         if (milestones && milestones.length > 0) {
           const msHeaders = ['Milestone', 'WPs', 'Due', 'Means of verification'];
-          const msColWidths = [50, 40, 13, 77]; // WPs = 40mm to fit 2 bubbles
+          const msColWidths = [50, 40, 13, 77];
           const msRows: CellContent[][] = (milestones as B31Milestone[]).map(m => {
-            // Format: "MSX: Title" in sentence case
             const title = m.name ? toSentenceCase(m.name) : '';
             const milestoneText = `MS${m.number}: ${title}`;
-            
-            // Parse WPs string (e.g., "1,2,3") into array of numbers
-            const wpNumbers = m.wps 
-              ? m.wps.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n))
-              : [];
-            
+            const wpNumbers = m.wps ? m.wps.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n)) : [];
             return [
               { text: milestoneText, type: 'text' as const },
-              wpNumbers.length > 0 
-                ? { wpNumbers, wpColorMap, type: 'wpBubbles' as const }
-                : { text: '—', type: 'text' as const },
+              wpNumbers.length > 0 ? { wpNumbers, wpColorMap, type: 'wpBubbles' as const } : { text: '—', type: 'text' as const },
               { text: m.due_month ? `M${String(m.due_month).padStart(2, '0')}` : '—', type: 'text' as const },
               { text: m.means_of_verification || '—', type: 'text' as const }
             ];
           });
-          // No hardcoded caption - captions come from editor content
-          addB31TableAdvanced(msHeaders, msRows, msColWidths, '');
+          addB31TableAdvanced(msHeaders, msRows, msColWidths, 'Table 3.1.d. List of milestones');
         }
 
-        // Table 3.1e - Risks (NOT numbered, include likelihood/severity badges)
-        // Caption will be added from the editor content, not hardcoded
+        // ===== Table 3.1.e – Risks =====
         if (risks && risks.length > 0) {
           const riskHeaders = ['Risk', 'WPs', '(i)', '(ii)', 'Mitigation & adaptation measures'];
-          const riskColWidths = [35, 40, 8, 8, 89]; // WPs = 40mm to fit 2 bubbles
+          const riskColWidths = [35, 40, 8, 8, 89];
           const riskRows: CellContent[][] = (risks as B31Risk[]).map(r => {
             const likelihood = r.likelihood || '';
             const severity = r.severity || '';
             const likelihoodColor = bubbleColors[likelihood] || [107, 114, 128];
             const severityColor = bubbleColors[severity] || [107, 114, 128];
-            
-            // Parse WPs string (e.g., "1,2,3") into array of numbers
-            const wpNumbers = r.wps 
-              ? r.wps.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n))
-              : [];
-            
+            const wpNumbers = r.wps ? r.wps.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n)) : [];
             return [
-              { text: r.description || '—', type: 'text' as const }, // Risk description (no number)
-              wpNumbers.length > 0 
-                ? { wpNumbers, wpColorMap, type: 'wpBubbles' as const }
-                : { text: '—', type: 'text' as const },
+              { text: r.description || '—', type: 'text' as const },
+              wpNumbers.length > 0 ? { wpNumbers, wpColorMap, type: 'wpBubbles' as const } : { text: '—', type: 'text' as const },
               likelihood ? { text: likelihood, color: likelihoodColor, type: 'bubble' as const } : { text: '—', type: 'text' as const },
               severity ? { text: severity, color: severityColor, type: 'bubble' as const } : { text: '—', type: 'text' as const },
               { text: r.mitigation || '—', type: 'text' as const }
             ];
           });
-          // No hardcoded caption - captions come from editor content
-          addB31TableAdvanced(riskHeaders, riskRows, riskColWidths, '');
+          addB31TableAdvanced(riskHeaders, riskRows, riskColWidths, 'Table 3.1.e. Critical risks for implementation');
+        }
+
+        // ===== Table 3.1.f – Summary of staff effort =====
+        if (wps.length > 0 && participantList.length > 0) {
+          // Build effort matrix: rows = WPs, columns = participants
+          const effortHeaders = ['WP', ...participantList.map(p => p.organisation_short_name || `P${p.participant_number}`), 'Total'];
+          const effortColWidths: number[] = [];
+          const partCount = participantList.length;
+          const wpColW = 20;
+          const totalColW = 18;
+          const partColW = Math.max(12, (contentWidth - wpColW - totalColW) / partCount);
+          effortColWidths.push(wpColW);
+          for (let i = 0; i < partCount; i++) effortColWidths.push(partColW);
+          effortColWidths.push(totalColW);
+
+          const effortRows: CellContent[][] = [];
+          const participantTotals = new Array(partCount).fill(0);
+
+          for (const wp of wps) {
+            const row: CellContent[] = [
+              { text: `WP${wp.number}`, color: hexToRgb(wp.color), type: 'bubble' as const }
+            ];
+            let wpTotal = 0;
+            participantList.forEach((p, pi) => {
+              let pm = 0;
+              wp.tasks.forEach((t: any) => {
+                (t.effort || []).forEach((e: any) => {
+                  if (e.participant_id === p.id) pm += e.person_months || 0;
+                });
+              });
+              wpTotal += pm;
+              participantTotals[pi] += pm;
+              row.push({ text: pm > 0 ? pm.toFixed(1) : '—', type: 'text' as const });
+            });
+            row.push({ text: wpTotal > 0 ? wpTotal.toFixed(1) : '—', type: 'text' as const });
+            effortRows.push(row);
+          }
+
+          // Total row
+          const totalRow: CellContent[] = [{ text: 'Total', type: 'text' as const }];
+          let grandTotal = 0;
+          participantTotals.forEach(t => {
+            grandTotal += t;
+            totalRow.push({ text: t > 0 ? t.toFixed(1) : '—', type: 'text' as const });
+          });
+          totalRow.push({ text: grandTotal > 0 ? grandTotal.toFixed(1) : '—', type: 'text' as const });
+          effortRows.push(totalRow);
+
+          addB31TableAdvanced(effortHeaders, effortRows, effortColWidths, 'Table 3.1.f. Summary of staff effort');
+        }
+
+        // ===== Table 3.1.g – Subcontracting =====
+        const subItems = (budgetItems || []).filter(b => b.category === 'subcontracting');
+        if (subItems.length > 0) {
+          const subHeaders = ['Participant', 'Description', 'Amount (€)', 'Justification'];
+          const subColWidths = [30, 60, 25, 65];
+          const subRows: CellContent[][] = subItems.map(item => {
+            const pName = participantMap.get(item.participant_id) || '—';
+            return [
+              pName !== '—' ? { text: pName, color: [0,0,0] as [number,number,number], type: 'bubble' as const, italic: true } : { text: '—', type: 'text' as const },
+              { text: item.description || '—', type: 'text' as const },
+              { text: item.amount ? item.amount.toLocaleString('en') : '—', type: 'text' as const },
+              { text: item.justification || '—', type: 'text' as const },
+            ];
+          });
+          addB31TableAdvanced(subHeaders, subRows, subColWidths, 'Table 3.1.g. Subcontracting costs');
+        }
+
+        // ===== Table 3.1.h – Purchase costs of equipment =====
+        const eqItems = (budgetItems || []).filter(b => b.category === 'equipment');
+        if (eqItems.length > 0) {
+          const eqHeaders = ['Participant', 'Description', 'Amount (€)', 'Justification'];
+          const eqColWidths = [30, 60, 25, 65];
+          const eqRows: CellContent[][] = eqItems.map(item => {
+            const pName = participantMap.get(item.participant_id) || '—';
+            return [
+              pName !== '—' ? { text: pName, color: [0,0,0] as [number,number,number], type: 'bubble' as const, italic: true } : { text: '—', type: 'text' as const },
+              { text: item.description || '—', type: 'text' as const },
+              { text: item.amount ? item.amount.toLocaleString('en') : '—', type: 'text' as const },
+              { text: item.justification || '—', type: 'text' as const },
+            ];
+          });
+          addB31TableAdvanced(eqHeaders, eqRows, eqColWidths, 'Table 3.1.h. Purchase costs of equipment');
         }
       };
 
