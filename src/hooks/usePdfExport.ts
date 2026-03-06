@@ -1532,7 +1532,9 @@ export function usePdfExport() {
           
           // Get and render content
           const content = getSectionContent(section.id);
+          console.log(`[PDF Export] Section ${section.id} (${section.number}): content length=${content.length}`);
           const blocks = parseHtmlContent(content);
+          console.log(`[PDF Export] Section ${section.id}: ${blocks.length} blocks parsed`, blocks.map(b => b.type));
           
           for (const block of blocks) {
             switch (block.type) {
