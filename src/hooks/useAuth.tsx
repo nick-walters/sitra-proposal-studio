@@ -64,11 +64,19 @@ export function useAuth() {
         // Validate the session is actually valid server-side
         const { error } = await supabase.auth.getUser();
         if (error) {
-          console.warn('Session invalid, signing out:', error.message);
-          sessionStorage.removeItem('auth-user');
-          await supabase.auth.signOut();
-          updateAuthState(null);
-          return;
+          // Only sign out on real auth errors, not network failures
+          const isNetworkError = error.message?.includes('Failed to fetch') || 
+                                 error.message?.includes('NetworkError') ||
+                                 error.message?.includes('AbortError');
+          if (isNetworkError) {
+            console.warn('Network error during session validation, keeping session:', error.message);
+          } else {
+            console.warn('Session invalid, signing out:', error.message);
+            sessionStorage.removeItem('auth-user');
+            await supabase.auth.signOut();
+            updateAuthState(null);
+            return;
+          }
         }
       }
       updateAuthState(session);
