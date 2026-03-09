@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, FileText, ArrowRight, Send, CheckCircle2, XCircle, Clock, ExternalLink, AlertTriangle, Trophy, HelpCircle, Pin, PinOff, GripVertical } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { StorageImage } from "@/components/StorageImage";
 
 interface ProposalCardProps {
   proposal: Proposal;
@@ -132,7 +133,7 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon, is
           {/* Logo */}
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
             {proposal.logoUrl ? (
-              <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
+              <StorageImage storedPath={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
             ) : topicIcon ? (
               topicIcon
             ) : (
@@ -255,7 +256,7 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon, is
               {/* Project Logo */}
               <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
                 {proposal.logoUrl ? (
-                  <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
+                  <StorageImage storedPath={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
                 ) : topicIcon ? (
                   topicIcon
                 ) : (
