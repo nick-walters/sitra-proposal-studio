@@ -3,6 +3,7 @@ import jsPDF from 'jspdf';
 import { toast } from 'sonner';
 import { Proposal, Section, Participant } from '@/types/proposal';
 import { supabase } from '@/integrations/supabase/client';
+import { resolveStorageUrl } from '@/hooks/useStorageUrl';
 
 /** Convert hex color string to RGB tuple */
 function hexToRgb(hex: string): [number, number, number] {
@@ -1574,7 +1575,8 @@ export function usePdfExport() {
           // Column 3: Logo
           if (participant.logoUrl) {
             try {
-              const logoData = await loadImageAsBase64(participant.logoUrl);
+              const resolvedLogo = await resolveStorageUrl(participant.logoUrl);
+              const logoData = resolvedLogo ? await loadImageAsBase64(resolvedLogo) : null;
               if (logoData) {
                 const maxLogoWidth = colWidths[3] - 2;
                 const maxLogoHeight = rowHeight - 2;
