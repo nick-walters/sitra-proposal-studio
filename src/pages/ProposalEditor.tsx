@@ -1,4 +1,5 @@
 import { Header } from "@/components/Header";
+import { StorageImage } from "@/components/StorageImage";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SectionNavigator } from "@/components/SectionNavigator";
 import { DocumentEditor } from "@/components/DocumentEditor";
@@ -1070,7 +1071,7 @@ export function ProposalEditor() {
             {/* Logo */}
             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
               {proposal?.logoUrl ? (
-                <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
+                <StorageImage storedPath={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
               ) : (
                 <FileText className="w-4 h-4 text-primary" />
               )}
