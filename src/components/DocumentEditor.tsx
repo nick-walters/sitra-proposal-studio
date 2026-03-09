@@ -300,24 +300,22 @@ export function DocumentEditor({
 
   const dueDateInfo = getDueDateInfo();
 
-  const { content, setContent, loading, saving, lastSaved, lastCitationMapping, isPlaceholder, clearPlaceholder } = sectionContentHook;
+  const { content, setContent, loading, saving, lastSaved, lastCitationMapping, isPlaceholder, isDirty, saveError, clearPlaceholder, saveNow } = sectionContentHook;
 
-  // Track unsaved changes: content changed since last save
-  const lastSavedContentRef = useRef<string>('');
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  
+  // Use isDirty from the hook directly instead of tracking separately
+  const hasUnsavedChanges = isDirty;
+
+  // Ctrl+S / Cmd+S keyboard shortcut to flush pending save
   useEffect(() => {
-    if (lastSaved) {
-      lastSavedContentRef.current = content;
-      setHasUnsavedChanges(false);
-    }
-  }, [lastSaved]);
-  
-  useEffect(() => {
-    if (lastSavedContentRef.current && content !== lastSavedContentRef.current) {
-      setHasUnsavedChanges(true);
-    }
-  }, [content]);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        saveNow();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [saveNow]);
 
   // Sync footnotes when citations are renumbered
   useEffect(() => {
@@ -1018,7 +1016,7 @@ export function DocumentEditor({
               
               <Separator orientation="vertical" className="h-4 mx-1" />
               
-              {!isEffectivelyReadOnly && <SaveIndicator saving={saving} lastSaved={lastSaved} hasUnsavedChanges={hasUnsavedChanges} />}
+              {!isEffectivelyReadOnly && <SaveIndicator saving={saving} lastSaved={lastSaved} hasUnsavedChanges={hasUnsavedChanges} saveError={saveError} onSaveNow={saveNow} />}
               
               <Separator orientation="vertical" className="h-4 mx-1" />
               

@@ -62,10 +62,18 @@ function getAuthToken(): string {
 }
 
 /**
+ * localStorage recovery key for a given section.
+ */
+function recoveryKey(proposalId: string, sectionId: string) {
+  return `content-recovery:${proposalId}:${sectionId}`;
+}
+
+/**
  * Perform a synchronous PATCH via XHR — used only in beforeunload / unmount
  * where we cannot await an async call.
+ * Returns true if the XHR completed with a 2xx status.
  */
-function syncSaveContent(contentId: string, content: string, userId: string) {
+function syncSaveContent(contentId: string, content: string, userId: string, proposalId?: string, sectionId?: string): boolean {
   try {
     const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/section_content?id=eq.${contentId}`;
     const xhr = new XMLHttpRequest();
@@ -79,8 +87,31 @@ function syncSaveContent(contentId: string, content: string, userId: string) {
       last_edited_by: userId,
       updated_at: new Date().toISOString(),
     }));
+
+    if (xhr.status >= 200 && xhr.status < 300) {
+      console.log(`[AutoSave] syncXHR succeeded for section=${sectionId}`);
+      return true;
+    } else {
+      console.error(`[AutoSave] syncXHR failed status=${xhr.status} section=${sectionId}`);
+      // Store to recovery buffer
+      if (proposalId && sectionId) {
+        try {
+          localStorage.setItem(recoveryKey(proposalId, sectionId), content);
+          console.warn(`[AutoSave] Recovery buffer written for section=${sectionId}`);
+        } catch { /* storage full */ }
+      }
+      return false;
+    }
   } catch (e) {
-    console.error('[useSectionContent] syncSaveContent failed:', e);
+    console.error('[AutoSave] syncSaveContent exception:', e);
+    // Store to recovery buffer
+    if (proposalId && sectionId) {
+      try {
+        localStorage.setItem(recoveryKey(proposalId, sectionId), content);
+        console.warn(`[AutoSave] Recovery buffer written for section=${sectionId}`);
+      } catch { /* storage full */ }
+    }
+    return false;
   }
 }
 
@@ -105,7 +136,7 @@ function syncSaveVersion(proposalId: string, sectionId: string, content: string,
       p_is_auto_save: true,
     }));
   } catch (e) {
-    console.error('[useSectionContent] syncSaveVersion failed:', e);
+    console.error('[AutoSave] syncSaveVersion failed:', e);
   }
 }
 
@@ -116,6 +147,8 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [lastCitationMapping, setLastCitationMapping] = useState<Map<number, number>>(new Map());
   const [isPlaceholder, setIsPlaceholder] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const { user } = useAuth();
 
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -125,6 +158,7 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
   const lastVersionNumberRef = useRef<number>(0);
   const pendingContentRef = useRef<string | null>(null);
   const isSavingRef = useRef(false);
+  const saveQueuedRef = useRef(false); // NEW: queue flag for follow-up save
   const contentRef = useRef<string>(''); // always-current content mirror
   const lastSavedContentRef = useRef<string>(''); // content actually written to DB
 
@@ -159,17 +193,25 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
       lastVersionTimeRef.current = now;
       lastVersionNumberRef.current = data as number;
     } catch (error) {
-      console.error('[useSectionContent] Error saving version:', error);
+      console.error('[AutoSave] Error saving version:', error);
     }
   }, [proposalId, sectionId, user?.id]);
 
-  // ── Save content (with retry) ──────────────────────────────────────
+  // ── Save content (with retry + queue) ──────────────────────────────
   const saveContentImmediately = useCallback(async (contentToSave: string, shouldRenumber = true): Promise<boolean> => {
     if (!proposalId || !sectionId || !user?.id) return false;
-    if (isSavingRef.current) return false;
+
+    // QUEUE: if a save is in progress, flag for follow-up instead of silently dropping
+    if (isSavingRef.current) {
+      saveQueuedRef.current = true;
+      pendingContentRef.current = contentToSave;
+      console.log(`[AutoSave] Save queued for section=${sectionId} (save in progress)`);
+      return false;
+    }
 
     isSavingRef.current = true;
     setSaving(true);
+    setSaveError(null);
 
     let finalContent = contentToSave;
     let citationMapping = new Map<number, number>();
@@ -181,6 +223,8 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
 
     let attempt = 0;
     let success = false;
+
+    console.log(`[AutoSave] Save started for section=${sectionId}`);
 
     while (attempt <= MAX_SAVE_RETRIES && !success) {
       try {
@@ -212,18 +256,22 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
       } catch (error) {
         attempt++;
         if (attempt > MAX_SAVE_RETRIES) {
-          console.error('[useSectionContent] Save failed after retries:', error);
+          console.error(`[AutoSave] Save FAILED after retries for section=${sectionId}:`, error);
+          setSaveError('Failed to save content. Your changes may not be saved.');
           toast.error('Failed to save content. Your changes may not be saved.');
         } else {
-          console.warn(`[useSectionContent] Save attempt ${attempt} failed, retrying...`);
+          console.warn(`[AutoSave] Save attempt ${attempt} failed for section=${sectionId}, retrying...`);
           await new Promise(r => setTimeout(r, RETRY_DELAY));
         }
       }
     }
 
     if (success) {
+      console.log(`[AutoSave] Save succeeded for section=${sectionId}`);
       setLastSaved(new Date());
       pendingContentRef.current = null;
+      setIsDirty(false);
+      setSaveError(null);
 
       if (citationMapping.size > 0) {
         setLastCitationMapping(citationMapping);
@@ -235,12 +283,31 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
       // Track the actual content written to DB for version comparison
       lastSavedContentRef.current = finalContent;
 
+      // Clear any recovery buffer on successful save
+      try {
+        localStorage.removeItem(recoveryKey(proposalId, sectionId));
+      } catch { /* ignore */ }
+
       // Trigger a throttled version save after every successful content save
       saveVersion(finalContent);
     }
 
     isSavingRef.current = false;
     setSaving(false);
+
+    // QUEUE: if another save was queued during this one, immediately re-trigger
+    if (saveQueuedRef.current) {
+      saveQueuedRef.current = false;
+      const queuedContent = pendingContentRef.current;
+      if (queuedContent !== null) {
+        console.log(`[AutoSave] Processing queued save for section=${sectionId}`);
+        // Use setTimeout(0) to avoid stack overflow and allow state updates
+        setTimeout(() => {
+          saveContentImmediately(queuedContent, shouldRenumber);
+        }, 0);
+      }
+    }
+
     return success;
   }, [proposalId, sectionId, sectionNumber, user?.id, saveVersion]);
 
@@ -250,6 +317,13 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
 
     const fetchContent = async () => {
       setLoading(true);
+
+      // Check for recovery buffer first
+      let recoveredContent: string | null = null;
+      try {
+        recoveredContent = localStorage.getItem(recoveryKey(proposalId, sectionId));
+      } catch { /* ignore */ }
+
       const { data, error } = await supabase
         .from('section_content')
         .select('*')
@@ -258,15 +332,36 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('[useSectionContent] Error fetching content:', error);
+        console.error('[AutoSave] Error fetching content:', error);
         toast.error('Failed to load content');
       }
 
       if (data) {
-        setContentState(data.content || '');
-        contentIdRef.current = data.id;
-        lastVersionContentRef.current = data.content || '';
-        setIsPlaceholder(false);
+        // If there's recovered content that differs from DB, prompt user
+        if (recoveredContent && recoveredContent !== data.content && recoveredContent.trim()) {
+          console.warn(`[AutoSave] Recovery buffer found for section=${sectionId}`);
+          toast.info('Recovered unsaved changes from your last session. The recovered content has been applied.', {
+            duration: 8000,
+          });
+          setContentState(recoveredContent);
+          contentIdRef.current = data.id;
+          lastVersionContentRef.current = data.content || '';
+          setIsPlaceholder(false);
+          // Mark as dirty so it saves immediately
+          pendingContentRef.current = recoveredContent;
+          setIsDirty(true);
+          // Clear recovery buffer
+          try { localStorage.removeItem(recoveryKey(proposalId, sectionId)); } catch { /* */ }
+        } else {
+          setContentState(data.content || '');
+          contentIdRef.current = data.id;
+          lastVersionContentRef.current = data.content || '';
+          setIsPlaceholder(false);
+          // Clear recovery buffer if it matched DB content
+          if (recoveredContent) {
+            try { localStorage.removeItem(recoveryKey(proposalId, sectionId)); } catch { /* */ }
+          }
+        }
 
         // Save an initial version (baseline) if none exist yet
         if (data.content?.trim()) {
@@ -328,6 +423,11 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
           if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
             const newData = payload.new as { section_id: string; content: string; id: string; last_edited_by: string | null };
             if (newData.section_id === sectionId && newData.last_edited_by !== user?.id) {
+              // GUARD: Skip remote update if local user has unsaved pending changes
+              if (pendingContentRef.current !== null) {
+                console.log(`[AutoSave] Skipped remote update for section=${sectionId} (local changes pending)`);
+                return;
+              }
               setContentState(newData.content || '');
               contentIdRef.current = newData.id;
             }
@@ -342,14 +442,11 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
   }, [proposalId, sectionId, user?.id]);
 
   // ── Debounced save on content change ───────────────────────────────
-  const saveContent = useCallback(async (newContent: string) => {
-    if (!proposalId || !sectionId || !user?.id) return;
-    await saveContentImmediately(newContent);
-  }, [proposalId, sectionId, user?.id, saveContentImmediately]);
-
+  // FIX: Always read from pendingContentRef.current instead of captured closure value
   const handleContentChange = useCallback((newContent: string) => {
     setContentState(newContent);
     pendingContentRef.current = newContent;
+    setIsDirty(true);
 
     if (isPlaceholder) {
       setIsPlaceholder(false);
@@ -359,20 +456,22 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
       clearTimeout(saveTimeoutRef.current);
     }
     saveTimeoutRef.current = setTimeout(() => {
-      saveContent(newContent);
+      // Always read latest from ref, not from closure
+      const latestContent = pendingContentRef.current;
+      if (latestContent !== null) {
+        saveContentImmediately(latestContent);
+      }
     }, AUTOSAVE_DEBOUNCE);
-  }, [saveContent, isPlaceholder]);
+  }, [saveContentImmediately, isPlaceholder]);
 
   // ── Periodic version saving (safety net) ───────────────────────────
   useEffect(() => {
     if (!proposalId || !sectionId || !user?.id) return;
 
     const intervalId = setInterval(() => {
-      // Use lastSavedContentRef (what was actually written to DB) for comparison,
-      // since pendingContentRef is null after save and contentRef may match the pre-renumber version
       const currentContent = lastSavedContentRef.current || contentRef.current;
       if (currentContent && currentContent !== lastVersionContentRef.current && currentContent.trim()) {
-        saveVersion(currentContent, true); // force=true to bypass throttle since interval already provides throttling
+        saveVersion(currentContent, true);
       }
     }, VERSION_MIN_INTERVAL);
 
@@ -386,21 +485,22 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
   }, []);
 
   // ── Flush pending changes immediately ──────────────────────────────
-  const flushPendingChanges = useCallback(async () => {
+  const flushPendingChanges = useCallback(async (): Promise<boolean> => {
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
       saveTimeoutRef.current = null;
     }
     if (pendingContentRef.current !== null) {
-      await saveContentImmediately(pendingContentRef.current);
+      return await saveContentImmediately(pendingContentRef.current);
     }
+    return true; // nothing to flush
   }, [saveContentImmediately]);
 
   // ── beforeunload: save via sync XHR (sendBeacon can't carry auth) ─
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (pendingContentRef.current !== null && contentIdRef.current && user?.id) {
-        syncSaveContent(contentIdRef.current, pendingContentRef.current, user.id);
+        syncSaveContent(contentIdRef.current, pendingContentRef.current, user.id, proposalId, sectionId);
 
         // Also save a version snapshot so tab-close edits appear in history
         const currentContent = pendingContentRef.current;
@@ -418,7 +518,7 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [user?.id]);
+  }, [user?.id, proposalId, sectionId]);
 
   // ── Visibility change: flush saves when tab becomes hidden ─────────
   useEffect(() => {
@@ -441,7 +541,7 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
 
       // Save pending content via sync XHR
       if (pendingContentRef.current !== null && contentIdRef.current && user?.id) {
-        syncSaveContent(contentIdRef.current, pendingContentRef.current, user.id);
+        syncSaveContent(contentIdRef.current, pendingContentRef.current, user.id, proposalId, sectionId);
       }
 
       // Save a version if content changed since last version (atomic RPC)
@@ -465,6 +565,8 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
     lastSaved,
     lastCitationMapping,
     isPlaceholder,
+    isDirty,
+    saveError,
     clearPlaceholder,
     saveNow: flushPendingChanges,
     saveVersionNow: () => saveVersion(content),

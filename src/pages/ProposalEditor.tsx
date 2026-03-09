@@ -1225,8 +1225,8 @@ export function ProposalEditor() {
           )}
         </button>
 
-        {/* Content Area - key resets scroll position on section change */}
-        <main className="flex-1 flex flex-col min-h-0 overflow-hidden" key={activeSection?.id || 'none'}>
+        {/* Content Area */}
+        <main className="flex-1 flex flex-col min-h-0 overflow-hidden">
           {renderContent()}
         </main>
       </div>

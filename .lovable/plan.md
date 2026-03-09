@@ -1,110 +1,84 @@
 
+Goal: Rebuild tracked-deletion behavior so editing is deterministic and never leaks deletion styling into normal typing, especially when tracking is OFF.
 
-# Comprehensive Fix for Content Loss in Part B Editors
+1) Confirmed root cause (from current code)
+- Deletion cursor placement is explicitly set to `newStart` in cross-block handling, which places caret at the left/start side of deleted span instead of after it.
+- Tracking-OFF cleanup still mutates marks reactively in `appendTransaction` via mapped ranges; this can accidentally touch existing deletion-marked content and “erase” deletion highlighting/review entries.
+- Change collection merges by `changeId` only, so split deletion segments can collapse into one logical change unexpectedly.
 
-## Root Cause Analysis
+2) Overhaul architecture (single, predictable policy)
+- Introduce a strict invariant:
+  - Tracking OFF: existing tracked marks are immutable; only newly typed content is sanitized (no track marks).
+  - Tracking ON: deletion tracking can mutate marks/text as expected.
+- Move all typing behavior (including typing inside/after deletions) to proactive input handlers; stop relying on broad reactive stripping for this path.
+- Keep reactive logic only for true fallback/programmatic cases, with narrower scope.
 
-After a deep inspection of the save pipeline (`useSectionContent.ts`, `DocumentEditor.tsx`, `RichTextEditor.tsx`, `ProposalEditor.tsx`), I identified **six distinct failure modes** that can cause content loss:
+3) Behavioral rules to implement
+- Rule A: After creating a tracked deletion, caret lands after the deleted span (right boundary), not at the start/inside it.
+- Rule B: With tracking OFF, typing after/inside deletion never inherits strikethrough/highlight.
+- Rule C: With tracking OFF, typing in the middle of a deletion splits it into two tracked deletions that remain visible in review.
 
-### 1. Race condition: `isSavingRef` guard silently drops saves (CRITICAL)
-**Line 169**: `if (isSavingRef.current) return false;`  
-If a save is in progress and the debounce timer fires, the new content is **silently discarded** — `pendingContentRef` remains non-null but the save never runs. No retry is scheduled. The `SaveIndicator` shows "Autosaved" from the *previous* save, misleading the user.
+4) Concrete implementation plan
 
-### 2. Section switching destroys pending saves (CRITICAL)
-**ProposalEditor.tsx line 1229**: `key={activeSection?.id || 'none'}` causes a full unmount of `DocumentEditor` (and `useSectionContent`) on section change. The unmount cleanup (line 436) uses **synchronous XHR** to save, but:
-- It saves the raw `pendingContentRef.current` **without caption renumbering** — so the saved content differs from what was displayed.
-- `syncSaveContent` has no error handling beyond a `console.error` — failures are invisible.
-- The synchronous XHR can be blocked or fail silently in modern browsers that are deprecating sync XHR.
+A. `src/extensions/TrackChanges.ts`
+- Add deletion-boundary helpers:
+  - `findDeletionSegmentAtPos(doc, pos)` (returns segment + attrs)
+  - `sanitizeInsertedRange(tr, from, to, insertionType, deletionType)` (remove track marks only from newly inserted text)
+  - `setCursorAfterRange(tr, from, to)` (stable right-edge placement)
+- Update tracking-ON deletion path:
+  - In both same-block and cross-block deletion handlers, set selection to right edge of tracked deletion span.
+- Replace tracking-OFF typing path:
+  - `handleTextInput` becomes authoritative for keyboard typing.
+  - If cursor is inside deletion mark, insert plain text and sanitize only inserted range.
+  - Preserve left/right deletion segments.
+  - Reassign one side (typically right segment) to a new `changeId` so review shows two deletions (not merged).
+- Add `handlePaste` parity:
+  - Sanitize pasted content insertion ranges similarly when tracking OFF.
+- Narrow tracking-OFF `appendTransaction`:
+  - Remove broad “strip marks from mapped inserted content” behavior that can mutate existing deletions.
+  - Keep only safe storedMarks cleanup and review-panel recompute.
+  - Use targeted cleanup only when a transaction is explicitly tagged as “new insertion sanitation”.
 
-### 3. Debounced save captures stale content via closure
-**Line 361-363**: The debounce timer captures `newContent` at the time of the keystroke, but `saveContent` is recreated via `useCallback` with `[saveContentImmediately]` in its deps. If `saveContentImmediately` changes between the keystroke and the timer firing (e.g. due to `user` or `sectionNumber` changing), the timer calls the **old** closure which may have stale refs or fail the guard checks.
+B. `collectChangesFromDoc` (same file)
+- Stop merging solely by `changeId`.
+- Represent each contiguous marked run as its own change item (or key by `changeId + contiguous range`) so split deletions appear as separate review entries.
 
-### 4. Real-time subscription overwrites local unsaved content
-**Line 328-333**: When another user saves, the realtime subscription calls `setContentState(newData.content)`. This overwrites the current user's in-memory content. If the local user has unsaved pending changes (within the 5-second debounce window), those changes are **lost** — the editor re-renders with the remote content, and `pendingContentRef` still points to the old local content which gets overwritten by the editor's `onUpdate`.
+C. `src/components/RichTextEditor.tsx`
+- Keep toggle-off stored mark cleanup, but ensure it never removes document marks—stored marks only.
+- No additional reactive stripping logic in component-level effects.
 
-### 5. `flushPendingChanges` isn't called on section switch
-The `saveNow` function is exposed but **never called** anywhere in the codebase. When the user clicks a different section, the component unmounts without awaiting the async save path — it falls through to the sync XHR fallback which is unreliable.
+5) Regression test expansion (`src/test/TrackChanges.test.ts`)
+Add focused tests for the exact bug contract:
+- Cursor lands after tracked deletion boundary (not inside/start).
+- Tracking OFF + typing at end of deletion: inserted text has no deletion mark; existing deletion remains tracked.
+- Tracking OFF + typing in middle of deletion: deletion becomes two tracked segments; both remain in review list.
+- Tracking OFF + paste inside deletion: pasted content plain, surrounding deletions preserved.
+- No disappearance from review panel after off-mode typing near deletion.
 
-### 6. Save indicator shows success before DB confirmation
-The `SaveIndicator` transitions to "Autosaved" when `lastSaved` updates (line 225 of useSectionContent), which happens after the Supabase `.update()` succeeds. This part is correct. However, when `isSavingRef` blocks a save (issue #1), the indicator still shows the *previous* save's success — the user sees "Autosaved" while their latest content was never persisted.
+6) Safety/rollout
+- Implement behind existing extension behavior (no schema migration).
+- Validate with current tests + new targeted cases.
+- Manual end-to-end sanity pass in proposal editor:
+  - create deletion with tracking ON
+  - toggle OFF
+  - type after deletion
+  - type inside deletion
+  - verify styling + review panel consistency.
 
----
-
-## Implementation Plan
-
-### A. Eliminate the silent-drop race condition
-**File: `src/hooks/useSectionContent.ts`**
-- Replace the `isSavingRef` early-return with a **save queue**: when a save is already in progress, store the latest content in `pendingContentRef` and schedule a follow-up save after the current one completes.
-- After `saveContentImmediately` finishes, check if `pendingContentRef` has been updated during the save and immediately re-trigger.
-- This guarantees the **last** content is always persisted.
-
-### B. Flush pending saves before section switch
-**File: `src/pages/ProposalEditor.tsx`**
-- Remove the `key={activeSection?.id || 'none'}` on the `<main>` wrapper (this causes full unmount/remount).
-- Instead, pass `activeSection` as a prop and use `key` on `DocumentEditor` itself.
-- **More importantly**: before changing the active section, call `saveNow()` on the current editor via a ref, and `await` completion. This uses the reliable async path instead of sync XHR.
-
-**File: `src/hooks/useSectionContent.ts`**
-- Make `flushPendingChanges` return a `Promise<boolean>` so callers can await it.
-- Expose a `isDirty` boolean (derived from `pendingContentRef.current !== null`).
-
-### C. Protect against realtime overwrites of local changes
-**File: `src/hooks/useSectionContent.ts`**
-- In the realtime subscription handler (line 328), check `pendingContentRef.current !== null` before applying remote content. If the user has unsaved local changes, **skip** the remote update (the local save will reconcile when it writes to DB).
-- After local save completes, the next remote event will be the user's own save (filtered by `last_edited_by !== user?.id`), so no content is lost.
-
-### D. Add a manual "Save now" button
-**File: `src/components/SaveIndicator.tsx`**
-- When `hasUnsavedChanges` is true, show a clickable "Save now" button next to the autosave indicator.
-- Wire it to `saveNow()` from the section content hook.
-
-**File: `src/components/DocumentEditor.tsx`**
-- Expose `saveNow` from `useSectionContent` and pass it to `SaveIndicator`.
-- Add keyboard shortcut `Ctrl+S` / `Cmd+S` to trigger `saveNow()`.
-
-### E. Add a "dirty" warning on navigation away
-**File: `src/hooks/useSectionContent.ts`**
-- Track `isDirty` state: `true` when `pendingContentRef.current !== null`, `false` after save.
-- Expose `isDirty` in the return value.
-
-**File: `src/pages/ProposalEditor.tsx`**
-- Before switching sections, if current editor `isDirty`, flush and await. If flush fails, show a confirmation dialog warning the user.
-
-### F. Harden sync XHR fallback and add save failure visibility
-**File: `src/hooks/useSectionContent.ts`**
-- In `syncSaveContent`, check `xhr.status` after `send()` — if non-2xx, store the failed content in `localStorage` as a recovery buffer with a key like `content-recovery:${proposalId}:${sectionId}`.
-- On next mount of the same section, check for recovery data and prompt the user to restore it.
-- Add a persistent error banner (not just a toast) when saves fail, so the user knows to copy their work.
-
-### G. Fix stale closure in debounced save
-**File: `src/hooks/useSectionContent.ts`**
-- Instead of capturing `newContent` in the setTimeout closure, always read from `pendingContentRef.current` when the timer fires. This ensures the save always uses the **latest** content, even if the user typed more during the debounce window.
-
+Technical details
+- Data-flow model:
 ```text
-Current flow:
-  keystroke → setContent(v1) → setTimeout(save v1, 5s)
-  keystroke → setContent(v2) → clearTimeout → setTimeout(save v2, 5s)
-  [if save v2 fires while save v1 in progress → DROPPED]
-
-Proposed flow:
-  keystroke → setContent(v) → pendingRef = v → resetTimer(5s)
-  timer fires → save(pendingRef.current) [always latest]
-  if already saving → queue flag = true
-  save completes → if queue flag → save(pendingRef.current) again
+Keyboard input
+  -> handleTextInput/handleKeyDown (authoritative)
+     -> precise tr mutation (only inserted span sanitized)
+     -> optional split-id reassignment for right segment
+     -> dispatch trackChangesInternal
+appendTransaction
+  -> fallback only (no broad mark stripping when OFF)
 ```
-
-### H. Improve logging and diagnostics
-- Add structured console logs at key points: save queued, save started, save succeeded, save dropped (should never happen after fix), sync XHR used, recovery buffer written.
-- Tag all logs with `[AutoSave]` prefix and include sectionId for filtering.
-
----
-
-## Summary of files to modify
-
-| File | Changes |
-|------|---------|
-| `src/hooks/useSectionContent.ts` | Save queue, stale closure fix, realtime guard, dirty tracking, recovery buffer, logging |
-| `src/components/SaveIndicator.tsx` | "Save now" button when dirty |
-| `src/components/DocumentEditor.tsx` | Wire saveNow, Ctrl+S shortcut, pass dirty state |
-| `src/pages/ProposalEditor.tsx` | Flush before section switch, remove destructive `key` |
-
+- Key invariant checks:
+```text
+OFF mode:
+- Existing [trackDeletion|trackInsertion] marks are never removed implicitly.
+- New inserted text always ends with mark set excluding track marks.
+```
