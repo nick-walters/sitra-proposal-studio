@@ -177,7 +177,11 @@ export async function deleteProposalFile(filePath: string): Promise<{ error: Err
  * Extracts the file path from a public URL
  */
 export function extractFilePathFromUrl(publicUrl: string): string | null {
-  const match = publicUrl.match(/\/proposal-files\/(.+)$/);
+  // If it doesn't start with http, it's already a raw path
+  if (!publicUrl.startsWith('http')) return publicUrl;
+  // Strip query params first, then extract path after /proposal-files/
+  const urlWithoutParams = publicUrl.split('?')[0];
+  const match = urlWithoutParams.match(/\/proposal-files\/(.+)$/);
   return match ? match[1] : null;
 }
 
