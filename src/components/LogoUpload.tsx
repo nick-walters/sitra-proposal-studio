@@ -142,7 +142,7 @@ export function LogoUpload({
   };
 
   const handleDownloadLogo = async () => {
-    const urlToDownload = generatedImageUrl || currentUrl;
+    const urlToDownload = generatedImageUrl || resolvedLogoUrl;
     if (!urlToDownload) return;
 
     try {
