@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Upload, Loader2, Sparkles, X, Download } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useStorageUrl } from '@/hooks/useStorageUrl';
 import { generateLogoPath, uploadProposalFile, extractFilePathFromUrl, deleteProposalFile } from '@/lib/proposalStorage';
 
 interface LogoUploadProps {
@@ -77,12 +78,12 @@ export function LogoUpload({
       // Generate organized file path: {proposalId}/logo/project-logo-{timestamp}.{ext}
       const filePath = generateLogoPath(proposalId, file.name);
 
-      const { url, error } = await uploadProposalFile(file, filePath);
+      const { error } = await uploadProposalFile(file, filePath);
 
       if (error) throw error;
-      if (!url) throw new Error('Failed to get public URL');
 
-      onUpload(url);
+      // Store the file path, not the signed URL - paths are permanent
+      onUpload(filePath);
       setGeneratedImageUrl(null);
       toast.success('Logo uploaded successfully');
     } catch (error) {
@@ -115,7 +116,20 @@ export function LogoUpload({
 
       if (error) throw error;
       if (data?.imageUrl) {
-        onUpload(data.imageUrl);
+        // Download the AI-generated image and upload to storage for persistence
+        try {
+          const response = await fetch(data.imageUrl);
+          const blob = await response.blob();
+          const file = new File([blob], 'ai-generated-logo.png', { type: 'image/png' });
+          const filePath = generateLogoPath(proposalId, 'ai-generated-logo.png');
+          const { error: uploadErr } = await uploadProposalFile(file, filePath);
+          if (uploadErr) throw uploadErr;
+          onUpload(filePath);
+        } catch (uploadErr) {
+          // Fallback: store the URL directly if upload fails
+          console.warn('Failed to persist AI logo to storage, using direct URL', uploadErr);
+          onUpload(data.imageUrl);
+        }
         setGeneratedImageUrl(data.imageUrl);
         toast.success('Logo generated successfully');
       }
@@ -128,7 +142,7 @@ export function LogoUpload({
   };
 
   const handleDownloadLogo = async () => {
-    const urlToDownload = generatedImageUrl || currentUrl;
+    const urlToDownload = generatedImageUrl || resolvedLogoUrl;
     if (!urlToDownload) return;
 
     try {
@@ -158,15 +172,18 @@ export function LogoUpload({
   // Use first non-black acronym segment color if available, otherwise generate from hash
   const segmentColor = acronymSegments?.map(s => s.color).find(c => c && c !== '#000000');
   const acronymColor = segmentColor || getAcronymColor(proposalAcronym);
+  
+  // Resolve stored path/URL to a displayable URL
+  const resolvedLogoUrl = useStorageUrl(currentUrl);
 
   return (
     <div className="flex gap-2 items-start">
       {/* Logo Preview */}
       <div className="relative w-28 h-28 rounded-xl border bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
-        {currentUrl ? (
+        {resolvedLogoUrl ? (
           <>
             <img
-              src={currentUrl}
+              src={resolvedLogoUrl}
               alt={proposalAcronym}
               className="w-full h-full object-cover"
             />

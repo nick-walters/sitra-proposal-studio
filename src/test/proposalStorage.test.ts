@@ -73,6 +73,15 @@ describe('extractFilePathFromUrl', () => {
     expect(extractFilePathFromUrl(url)).toBe('abc123/logo/test.png');
   });
 
+  it('extracts file path from a signed URL (strips query params)', () => {
+    const url = 'https://example.supabase.co/storage/v1/object/sign/proposal-files/abc123/logo/test.png?token=abc&expires=123';
+    expect(extractFilePathFromUrl(url)).toBe('abc123/logo/test.png');
+  });
+
+  it('returns the value as-is for raw paths (no http)', () => {
+    expect(extractFilePathFromUrl('abc123/logo/test.png')).toBe('abc123/logo/test.png');
+  });
+
   it('returns null for non-matching URLs', () => {
     expect(extractFilePathFromUrl('https://example.com/other-path')).toBeNull();
   });

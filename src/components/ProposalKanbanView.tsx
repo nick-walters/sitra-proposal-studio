@@ -1,4 +1,5 @@
 import { Proposal, WORK_PROGRAMMES, DESTINATIONS } from "@/types/proposal";
+import { StorageImage } from "@/components/StorageImage";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -175,7 +176,7 @@ export function ProposalKanbanView({ proposals, onProposalClick, topicIcons }: P
                   <div className="flex items-start gap-2">
                     <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
                       {proposal.logoUrl ? (
-                        <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
+                        <StorageImage storedPath={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
                       ) : topicIcon ? (
                         <div className="scale-50">{topicIcon}</div>
                       ) : (
