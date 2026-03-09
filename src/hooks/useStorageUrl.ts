@@ -5,11 +5,8 @@ import { getProposalFileSignedUrl } from '@/lib/proposalStorage';
  * Determines if a stored URL/path needs a fresh signed URL.
  * File paths (no protocol) and expired signed URLs need refreshing.
  */
-function isStoragePath(value: string): boolean {
-  // If it starts with http but contains /proposal-files/ with a token, it's an old signed URL
-  // If it doesn't start with http, it's a raw file path
+export function isStoragePath(value: string): boolean {
   if (!value.startsWith('http')) return true;
-  // Check if it's a storage signed URL (contains /proposal-files/ and token param)
   if (value.includes('/proposal-files/') && value.includes('token=')) return true;
   return false;
 }
@@ -17,11 +14,23 @@ function isStoragePath(value: string): boolean {
 /**
  * Extracts the file path from a stored value (could be a path or a full URL).
  */
-function extractPath(value: string): string | null {
+export function extractStoragePath(value: string): string | null {
   if (!value.startsWith('http')) return value;
-  // Extract path from URL, stripping query params
   const match = value.match(/\/proposal-files\/([^?]+)/);
   return match ? match[1] : null;
+}
+
+/**
+ * Non-hook async function to resolve a stored path/URL to a fresh signed URL.
+ * Use in non-component contexts (e.g., export functions).
+ */
+export async function resolveStorageUrl(storedValue: string | null | undefined): Promise<string | null> {
+  if (!storedValue) return null;
+  if (!isStoragePath(storedValue)) return storedValue;
+  const path = extractStoragePath(storedValue);
+  if (!path) return storedValue;
+  const { url } = await getProposalFileSignedUrl(path, 3600);
+  return url || storedValue;
 }
 
 /**
@@ -37,13 +46,12 @@ export function useStorageUrl(storedValue: string | null | undefined): string | 
       return;
     }
 
-    // If it's an external URL (not from our storage), use directly
     if (!isStoragePath(storedValue)) {
       setResolvedUrl(storedValue);
       return;
     }
 
-    const path = extractPath(storedValue);
+    const path = extractStoragePath(storedValue);
     if (!path) {
       setResolvedUrl(storedValue);
       return;
