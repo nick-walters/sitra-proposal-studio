@@ -9,6 +9,7 @@ import { ParticipantCompletenessChecker } from './ParticipantCompletenessChecker
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { ParticipantListTable } from './ParticipantListTable';
 import { generateParticipantLogoPath, uploadProposalFile } from '@/lib/proposalStorage';
+import { StorageImage } from './StorageImage';
 import { CountrySelect } from './CountrySelect';
 import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
 import { Badge } from './ui/badge';
@@ -376,14 +377,15 @@ function ParticipantCard({
                 setIsUploadingLogo(true);
                 try {
                   const filePath = generateParticipantLogoPath(proposalId, participant.participantNumber || 0, file.name);
-                  const { url, error } = await uploadProposalFile(file, filePath, { upsert: true });
+                  const { error } = await uploadProposalFile(file, filePath, { upsert: true });
                   
                   if (error) {
                     toast.error('Failed to upload logo');
                     return;
                   }
                   
-                  await onUpdateParticipant(participant.id, { logoUrl: url || undefined });
+                  // Store the file path, not the signed URL
+                  await onUpdateParticipant(participant.id, { logoUrl: filePath });
                   toast.success('Logo uploaded');
                 } catch (err) {
                   console.error('Upload error:', err);
@@ -396,8 +398,8 @@ function ParticipantCard({
             />
             
             {participant.logoUrl ? (
-              <img 
-                src={participant.logoUrl} 
+              <StorageImage 
+                storedPath={participant.logoUrl} 
                 alt="" 
                 className="max-w-full max-h-full object-contain"
               />
