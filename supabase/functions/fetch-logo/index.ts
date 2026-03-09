@@ -289,7 +289,12 @@ async function fetchLogoFromSources(organisationName: string, shortName?: string
     
     // 1. Try Logo.dev API (high quality, free tier available)
     try {
-      const logoDevUrl = `https://img.logo.dev/${domain}?token=pk_X-1ZO13GSgeOoUrIuJ6GMQ&size=200&format=png`;
+      const logoDevToken = Deno.env.get('LOGO_DEV_TOKEN') || '';
+      if (!logoDevToken) {
+        console.warn('LOGO_DEV_TOKEN not configured, skipping Logo.dev API');
+        throw new Error('No token');
+      }
+      const logoDevUrl = `https://img.logo.dev/${domain}?token=${encodeURIComponent(logoDevToken)}&size=200&format=png`;
       const response = await fetch(logoDevUrl, {
         headers: { 'Cache-Control': 'no-cache' }
       });

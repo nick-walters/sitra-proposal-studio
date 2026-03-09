@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
+import DOMPurify from 'dompurify';
 import { Button } from '@/components/ui/button';
 import {
   DndContext,
@@ -411,7 +412,7 @@ function EditableText({
         className,
       )}
       onBlur={handleBlur}
-      dangerouslySetInnerHTML={{ __html: value || placeholder || '' }}
+      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(value || placeholder || '', { ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'thead', 'tbody', 'tr', 'th', 'td'], ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'colspan', 'rowspan'] }) }}
     />
   );
 }
