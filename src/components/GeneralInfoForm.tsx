@@ -16,6 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { InlineGuideline } from "./GuidelineBox";
 import { PartAGuidelinesDialog } from "./PartAGuidelinesDialog";
 import { LogoUpload } from "./LogoUpload";
+import { StorageImage } from "./StorageImage";
 
 import { Section, Proposal, Participant, ParticipantMember, ProposalStatus, WORK_PROGRAMMES, DESTINATIONS, getDestinationsForWorkProgramme } from "@/types/proposal";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
@@ -245,7 +246,7 @@ function AcronymLogo({ logoUrl, acronym }: { logoUrl?: string; acronym: string }
   return (
     <div className="w-24 h-24 rounded-xl bg-muted border flex items-center justify-center overflow-hidden">
       {logoUrl ? (
-        <img src={logoUrl} alt={acronym} className="w-full h-full object-cover" />
+        <StorageImage storedPath={logoUrl} alt={acronym} className="w-full h-full object-cover" />
       ) : (
         <div 
           className="w-full h-full flex flex-col items-center justify-center gap-0.5 p-1"
