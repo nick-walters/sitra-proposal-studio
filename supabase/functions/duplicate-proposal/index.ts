@@ -51,6 +51,23 @@ serve(async (req) => {
       });
     }
 
+    // Verify the user has access to the source proposal
+    const { data: callerRole } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('proposal_id', proposalId)
+      .maybeSingle();
+
+    const { data: isOwnerResult } = await supabase.rpc('is_owner', { _user_id: user.id });
+
+    if (!callerRole && !isOwnerResult) {
+      return new Response(JSON.stringify({ error: 'No access to this proposal' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // 1. Fetch the original proposal
     const { data: originalProposal, error: proposalError } = await supabase
       .from('proposals')
