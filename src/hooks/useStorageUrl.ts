@@ -6,6 +6,8 @@ import { getProposalFileSignedUrl } from '@/lib/proposalStorage';
  * File paths (no protocol) and expired signed URLs need refreshing.
  */
 export function isStoragePath(value: string): boolean {
+  // Data URIs and blob URLs are already displayable, not storage paths
+  if (value.startsWith('data:') || value.startsWith('blob:')) return false;
   if (!value.startsWith('http')) return true;
   if (value.includes('/proposal-files/') && value.includes('token=')) return true;
   return false;
