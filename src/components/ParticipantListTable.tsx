@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { StorageImage } from '@/components/StorageImage';
 import { Participant } from '@/types/proposal';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -142,8 +143,8 @@ export function ParticipantListTable({
                   {/* Logo */}
                   <td style={{ textAlign: 'center' }}>
                     {participant.logoUrl ? (
-                      <img 
-                        src={participant.logoUrl} 
+                      <StorageImage 
+                        storedPath={participant.logoUrl} 
                         alt="" 
                         style={{ 
                           maxWidth: '32px', 
