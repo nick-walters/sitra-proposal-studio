@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { StorageImage } from "@/components/StorageImage";
 import { Proposal, WORK_PROGRAMMES, DESTINATIONS } from "@/types/proposal";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -239,7 +240,7 @@ export function ProposalTableView({ proposals, onProposalClick, topicIcons, pinn
         <TableCell className="px-2">
           <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center overflow-hidden">
             {proposal.logoUrl ? (
-              <img src={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
+              <StorageImage storedPath={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
             ) : topicIcon ? (
               <div className="scale-50">{topicIcon}</div>
             ) : null}
