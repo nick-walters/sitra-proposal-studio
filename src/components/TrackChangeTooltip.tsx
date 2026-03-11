@@ -22,16 +22,19 @@ export function TrackChangeTooltip({ editor, containerRef }: TrackChangeTooltipP
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const hideTimeout = useRef<ReturnType<typeof setTimeout>>();
   const tooltipRef = useRef<HTMLDivElement>(null);
+  // Lock tooltip position once shown for a given changeId
+  const lockedChangeIdRef = useRef<string | null>(null);
 
   const showTooltip = useCallback((el: HTMLElement) => {
-
     const changeId = el.getAttribute('data-change-id');
     if (!changeId) return;
+
+    // If already showing tooltip for this change, don't recalculate position
+    if (lockedChangeIdRef.current === changeId) return;
 
     const isInsertion = el.hasAttribute('data-track-insertion');
     const type = isInsertion ? 'insertion' : 'deletion';
 
-    // Read authorName and timestamp from DOM attributes
     let authorName = el.getAttribute('data-author-name') || '';
     if (!authorName && editor) {
       const storage = (editor.storage as any).trackChanges;
@@ -49,6 +52,7 @@ export function TrackChangeTooltip({ editor, containerRef }: TrackChangeTooltipP
     }
 
     const rect = el.getBoundingClientRect();
+    lockedChangeIdRef.current = changeId;
 
     setTooltip({
       changeId,
