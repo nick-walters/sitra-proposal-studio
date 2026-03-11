@@ -476,8 +476,33 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
               </div>
             </div>
           ) : (
-            <div className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
-              {data.instructionsText}
+            <div className="text-sm leading-relaxed text-muted-foreground">
+              {data.instructionsText.split('\n').map((line, i) => {
+                const leadingSpaces = line.match(/^(\s*)/)?.[0].length || 0;
+                const trimmed = line.trimStart();
+                // Detect sub-items like "a)  ..." — compute hanging indent past the label
+                const subItemMatch = trimmed.match(/^([a-z]\)\s+)/);
+                const marginLeft = leadingSpaces > 0 ? `${leadingSpaces * 0.5}em` : undefined;
+                if (subItemMatch) {
+                  const hangIndent = `${subItemMatch[1].length * 0.5}em`;
+                  return (
+                    <p key={i} style={{ marginLeft, paddingLeft: hangIndent, textIndent: `-${hangIndent}` }}>
+                      {trimmed}
+                    </p>
+                  );
+                }
+                // Detect numbered items like "1.   ..."
+                const numMatch = trimmed.match(/^(\d+\.\s+)/);
+                if (numMatch) {
+                  const hangIndent = `${numMatch[1].length * 0.5}em`;
+                  return (
+                    <p key={i} style={{ marginLeft, paddingLeft: hangIndent, textIndent: `-${hangIndent}` }}>
+                      {trimmed}
+                    </p>
+                  );
+                }
+                return <p key={i} style={{ marginLeft }}>{trimmed || '\u00A0'}</p>;
+              })}
             </div>
           )}
 
