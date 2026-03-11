@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Participant, ParticipantMember, Section, ParticipantType } from '@/types/proposal';
-import { Building2, GripVertical, UserPlus, Plus, Search, Check, Upload, X, Loader2, Hash } from 'lucide-react';
+import { Building2, GripVertical, UserPlus, Plus, Search, Check, Upload, X, Loader2, Hash, FileText, Download } from 'lucide-react';
 import { BulkPicLookupDialog } from './BulkPicLookupDialog';
 import { ParticipantCompletenessChecker } from './ParticipantCompletenessChecker';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
