@@ -7,6 +7,7 @@ import { TopicRichTextArea, TopicRichTextReadonly } from "./TopicRichTextArea";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -655,30 +656,59 @@ export function TopicInformationPage({
               </div>
             </div>
 
-            <div>
+            <div className="space-y-2">
               {canEdit ? (
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="uses-fstp-topic"
-                    checked={editedProposal?.usesFstp || false}
-                    onCheckedChange={(checked) => {
-                      if (isEditing && editedProposal) {
-                        setEditedProposal({ ...editedProposal, usesFstp: checked === true } as any);
-                      } else {
-                        onUpdateProposal({ usesFstp: checked === true });
-                      }
-                    }}
-                  />
-                  <Label htmlFor="uses-fstp-topic" className="text-sm cursor-pointer">
-                    FSTP possible under this topic
-                  </Label>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="uses-fstp-topic"
+                      checked={editedProposal?.usesFstp || false}
+                      onCheckedChange={(checked) => {
+                        if (isEditing && editedProposal) {
+                          setEditedProposal({ ...editedProposal, usesFstp: checked === true } as any);
+                        } else {
+                          onUpdateProposal({ usesFstp: checked === true });
+                        }
+                      }}
+                    />
+                    <Label htmlFor="uses-fstp-topic" className="text-sm cursor-pointer">
+                      FSTP possible under this topic
+                    </Label>
+                  </div>
+                  {(isEditing ? editedProposal?.usesFstp : proposal?.usesFstp) && (
+                    <RadioGroup
+                      value={(isEditing ? (editedProposal as any)?.fstpType : (proposal as any)?.fstpType) || 'grant'}
+                      onValueChange={(val: string) => {
+                        if (isEditing && editedProposal) {
+                          setEditedProposal({ ...editedProposal, fstpType: val } as any);
+                        } else {
+                          onUpdateProposal({ fstpType: val } as any);
+                        }
+                      }}
+                      className="flex items-center gap-3"
+                    >
+                      <div className="flex items-center space-x-1.5">
+                        <RadioGroupItem value="grant" id="fstp-grant" />
+                        <Label htmlFor="fstp-grant" className="text-sm cursor-pointer">Grant</Label>
+                      </div>
+                      <div className="flex items-center space-x-1.5">
+                        <RadioGroupItem value="prize" id="fstp-prize" />
+                        <Label htmlFor="fstp-prize" className="text-sm cursor-pointer">Prize</Label>
+                      </div>
+                    </RadioGroup>
+                  )}
                 </div>
               ) : proposal?.usesFstp ? (
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="uses-fstp-topic-ro" checked disabled />
-                  <Label htmlFor="uses-fstp-topic-ro" className="text-sm text-muted-foreground">
-                    FSTP possible under this topic
-                  </Label>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox id="uses-fstp-topic-ro" checked disabled />
+                    <Label htmlFor="uses-fstp-topic-ro" className="text-sm text-muted-foreground">
+                      FSTP possible under this topic
+                    </Label>
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    ({(proposal as any)?.fstpType === 'prize' ? 'Prize' : 'Grant'})
+                  </span>
                 </div>
               ) : null}
             </div>

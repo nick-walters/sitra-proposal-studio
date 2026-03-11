@@ -2857,6 +2857,7 @@ export type Database = {
           expected_projects: string | null
           fstp_budget: string | null
           fstp_budget_per_third_party: string | null
+          fstp_type: string | null
           id: string
           indicative_budget_per_project: string | null
           is_two_stage_second_stage: boolean | null
@@ -2908,6 +2909,7 @@ export type Database = {
           expected_projects?: string | null
           fstp_budget?: string | null
           fstp_budget_per_third_party?: string | null
+          fstp_type?: string | null
           id?: string
           indicative_budget_per_project?: string | null
           is_two_stage_second_stage?: boolean | null
@@ -2959,6 +2961,7 @@ export type Database = {
           expected_projects?: string | null
           fstp_budget?: string | null
           fstp_budget_per_third_party?: string | null
+          fstp_type?: string | null
           id?: string
           indicative_budget_per_project?: string | null
           is_two_stage_second_stage?: boolean | null

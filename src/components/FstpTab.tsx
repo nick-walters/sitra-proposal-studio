@@ -70,6 +70,7 @@ interface FstpTabProps {
   proposalAcronym: string;
   canEdit: boolean;
   isCoordinator: boolean;
+  fstpType?: 'grant' | 'prize';
 }
 
 function FstpToolbarButton({ icon, tooltip, onClick, active, disabled }: {
@@ -279,8 +280,8 @@ function FstpToolbar({ editor }: { editor: any }) {
   );
 }
 
-export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }: FstpTabProps) {
-  const { data, loading, saving, lastSaved, hasUnsavedChanges, saveError, updateInstructions, updateResponse, saveNow } = useFstpContent(proposalId);
+export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, fstpType = 'grant' }: FstpTabProps) {
+  const { data, loading, saving, lastSaved, hasUnsavedChanges, saveError, updateInstructions, updateResponse, saveNow } = useFstpContent(proposalId, fstpType);
   const [exporting, setExporting] = useState(false);
   const [editingInstructions, setEditingInstructions] = useState(false);
   const [draftInstructions, setDraftInstructions] = useState('');
@@ -368,7 +369,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
       // Subheading
       doc.setFontSize(12);
       doc.setFont('Times', 'Bold');
-      doc.text('Financial support in the form of a grant awarded after a call for proposals', margin, y);
+      doc.text(fstpType === 'prize' ? 'Financial support in the form of a prize' : 'Financial support in the form of a grant awarded after a call for proposals', margin, y);
       y += 8;
 
       // Instructions
@@ -417,7 +418,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
 
       // Subheading
       children.push(new Paragraph({
-        children: [new TextRun({ text: 'Financial support in the form of a grant awarded after a call for proposals', bold: true, font: 'Times New Roman', size: 24 })],
+        children: [new TextRun({ text: fstpType === 'prize' ? 'Financial support in the form of a prize' : 'Financial support in the form of a grant awarded after a call for proposals', bold: true, font: 'Times New Roman', size: 24 })],
         spacing: { after: 200 },
       }));
 
@@ -522,7 +523,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <CardTitle className="text-base">Financial support in the form of a grant awarded after a call for proposals</CardTitle>
+              <CardTitle className="text-base">{fstpType === 'prize' ? 'Financial support in the form of a prize' : 'Financial support in the form of a grant awarded after a call for proposals'}</CardTitle>
               <p className="text-sm font-bold italic text-muted-foreground mt-3">Instructions</p>
             </div>
             {isCoordinator && !editingInstructions && (

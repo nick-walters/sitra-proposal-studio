@@ -42,6 +42,7 @@ interface BudgetPortalSheetProps {
   canEdit: boolean;
   isCoordinator: boolean;
   usesFstp?: boolean;
+  fstpType?: 'grant' | 'prize';
   proposalAcronym?: string;
 }
 
@@ -73,6 +74,7 @@ export function BudgetPortalSheet({
   canEdit,
   isCoordinator,
   usesFstp = false,
+  fstpType = 'grant',
   proposalAcronym = '',
 }: BudgetPortalSheetProps) {
   const {
@@ -399,6 +401,7 @@ export function BudgetPortalSheet({
                 proposalAcronym={proposalAcronym}
                 canEdit={canEdit}
                 isCoordinator={isAdmin}
+                fstpType={fstpType}
               />
             </TabsContent>
           )}

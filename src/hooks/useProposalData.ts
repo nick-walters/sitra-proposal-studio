@@ -57,6 +57,7 @@ interface ProposalData {
   templateTypeId?: string;
   expectedProjects?: string;
   usesFstp?: boolean;
+  fstpType?: 'grant' | 'prize';
   indicativeBudgetPerProject?: string;
   fstpBudget?: string;
   fstpBudgetPerThirdParty?: string;
@@ -129,6 +130,7 @@ export function useProposalData(proposalId: string) {
         templateTypeId: data.template_type_id || undefined,
         expectedProjects: (data as any).expected_projects || undefined,
         usesFstp: data.uses_fstp || false,
+        fstpType: ((data as any).fstp_type as 'grant' | 'prize') || 'grant',
         indicativeBudgetPerProject: (data as any).indicative_budget_per_project || undefined,
         fstpBudget: (data as any).fstp_budget || undefined,
         fstpBudgetPerThirdParty: (data as any).fstp_budget_per_third_party || undefined,
@@ -349,6 +351,7 @@ export function useProposalData(proposalId: string) {
     if (updates.status !== undefined) dbUpdates.status = updates.status;
     if (updates.expectedProjects !== undefined) dbUpdates.expected_projects = updates.expectedProjects;
     if (updates.usesFstp !== undefined) dbUpdates.uses_fstp = updates.usesFstp;
+    if (updates.fstpType !== undefined) dbUpdates.fstp_type = updates.fstpType;
     if (updates.indicativeBudgetPerProject !== undefined) dbUpdates.indicative_budget_per_project = updates.indicativeBudgetPerProject;
     if (updates.fstpBudget !== undefined) dbUpdates.fstp_budget = updates.fstpBudget;
     if (updates.fstpBudgetPerThirdParty !== undefined) dbUpdates.fstp_budget_per_third_party = updates.fstpBudgetPerThirdParty;
