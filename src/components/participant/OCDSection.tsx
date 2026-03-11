@@ -134,7 +134,7 @@ export function OCDSection({
             ) : (
               <Download className="w-4 h-4" />
             )}
-            Download template
+            Download empty Ownership Control Declaration template (.docx)
           </Button>
 
           {/* Upload signed OCD */}
@@ -159,7 +159,7 @@ export function OCDSection({
                 ) : (
                   <Upload className="w-4 h-4" />
                 )}
-                {hasUploadedOcd ? 'Replace signed OCD (PDF)' : 'Upload signed OCD (PDF)'}
+                {hasUploadedOcd ? 'Replace filled & signed Ownership Control Declaration (.pdf)' : 'Upload filled & signed Ownership Control Declaration (.pdf)'}
               </Button>
             </>
           )}
