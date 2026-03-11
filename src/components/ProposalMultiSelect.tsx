@@ -10,9 +10,8 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { SAMPLE_PROPOSALS_BASIC, type SampleProposalBasic } from "@/lib/sampleProposals";
 
-type Proposal = SampleProposalBasic;
+type Proposal = { id: string; acronym: string; title: string };
 
 interface ProposalMultiSelectProps {
   selectedProposalIds: string[];
