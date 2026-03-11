@@ -58,13 +58,13 @@ const COST_CATEGORIES = [
 ] as const;
 
 const PARTICIPANT_COLUMNS = [
-  { key: 'personnelCosts', label: 'Personnel' },
-  { key: 'subcontractingCosts', label: 'Subcontracting' },
-  { key: 'purchaseTravel', label: 'Travel' },
-  { key: 'purchaseEquipment', label: 'Equipment' },
-  { key: 'purchaseOtherGoods', label: 'Other goods' },
-  { key: 'internallyInvoiced', label: 'Internally inv.' },
-  { key: 'indirectCosts', label: 'Indirect costs' },
+  { key: 'personnelCosts', label: 'A. Personnel' },
+  { key: 'subcontractingCosts', label: 'B. Subcontracting' },
+  { key: 'purchaseTravel', label: 'C.1 Travel' },
+  { key: 'purchaseEquipment', label: 'C.2 Equipment' },
+  { key: 'purchaseOtherGoods', label: 'C.3 Other goods' },
+  { key: 'internallyInvoiced', label: 'D. Internally inv.' },
+  { key: 'indirectCosts', label: 'E. Indirect costs' },
   { key: 'totalEligibleCosts', label: 'Total eligible' },
   { key: 'requestedEuContribution', label: 'EU contribution' },
 ] as const;
@@ -325,17 +325,16 @@ export function BudgetPortalSheet({
               <CardContent>
                 <div className="flex">
                   <div className="relative flex-1 min-w-0 overflow-auto">
-                    <table className="w-max min-w-full text-sm border-collapse">
+                    <table className="text-sm border-collapse">
                       <thead>
                         <tr className="border-b">
-                          <th className="sticky left-0 bg-background z-10 w-10 px-3 py-3 text-center border-r font-medium">No.</th>
-                          <th className="sticky left-10 bg-background z-10 min-w-[160px] px-3 py-3 text-left border-r font-medium">Participant</th>
-                          <th className="min-w-[80px] px-3 py-3 text-left border-r font-medium">Country</th>
+                          <th className="sticky left-0 bg-background z-10 px-3 py-3 text-left border-r font-bold whitespace-nowrap">Participant</th>
+                          <th className="px-3 py-3 text-left border-r font-bold whitespace-nowrap">Country</th>
                           {PARTICIPANT_COLUMNS.map(c => (
-                            <th key={c.key} className="min-w-[110px] px-3 py-3 text-right border-r font-medium whitespace-nowrap">{c.label}</th>
+                            <th key={c.key} className="px-3 py-3 text-right border-r font-bold whitespace-nowrap">{c.label}</th>
                           ))}
-                          <th className="min-w-[80px] px-3 py-3 text-right border-r font-medium">% of Budget</th>
-                          {isAdmin && <th className="w-12 px-3 py-3 text-center font-medium">Lock</th>}
+                          <th className="px-3 py-3 text-right border-r font-bold whitespace-nowrap">%</th>
+                          {isAdmin && <th className="px-3 py-3 text-center font-bold">Lock</th>}
                         </tr>
                       </thead>
                       <tbody>
@@ -346,20 +345,19 @@ export function BudgetPortalSheet({
 
                           return (
                             <tr key={row.id} className={cn('border-t hover:bg-muted/50', row.isLocked && !isAdmin && 'opacity-60')}>
-                              <td className="sticky left-0 bg-background z-10 px-3 py-2 text-center border-r font-medium">{row.participantNumber}</td>
-                              <td className="sticky left-10 bg-background z-10 px-3 py-2 border-r">
+                              <td className="sticky left-0 bg-background z-10 px-3 py-2 border-r whitespace-nowrap">
                                 <div className="flex items-center gap-1">
-                                  <span className="truncate max-w-[140px]">{row.participantShortName || row.participantName}</span>
+                                  <span>{row.participantNumber}. {row.participantShortName || row.participantName}</span>
                                   {row.isLocked && <Lock className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
                                 </div>
                               </td>
-                              <td className="px-3 py-2 border-r text-muted-foreground">{row.country || '—'}</td>
+                              <td className="px-3 py-2 border-r text-muted-foreground whitespace-nowrap">{row.country || '—'}</td>
                               {PARTICIPANT_COLUMNS.map(c => (
-                                <td key={c.key} className="px-3 py-2 text-right border-r tabular-nums font-mono text-sm">
+                                <td key={c.key} className="px-3 py-2 text-right border-r tabular-nums font-mono text-sm whitespace-nowrap">
                                   {formatNumber(row[c.key] as number)}
                                 </td>
                               ))}
-                              <td className="px-3 py-2 text-right border-r">{percentage}%</td>
+                              <td className="px-3 py-2 text-right border-r whitespace-nowrap">{percentage}%</td>
                               {isAdmin && (
                                 <td className="px-3 py-2 text-center">
                                   <Button
@@ -378,11 +376,10 @@ export function BudgetPortalSheet({
                       </tbody>
                       <tfoot>
                         <tr className="border-t-2 border-foreground/20 bg-muted/40 font-semibold">
-                          <td className="sticky left-0 bg-muted/40 z-10 px-3 py-2 border-r" />
-                          <td className="sticky left-10 bg-muted/40 z-10 px-3 py-2 border-r font-bold">TOTAL</td>
+                          <td className="sticky left-0 bg-muted/40 z-10 px-3 py-2 border-r font-bold">TOTAL</td>
                           <td className="px-3 py-2 border-r" />
                           {PARTICIPANT_COLUMNS.map(c => (
-                            <td key={c.key} className="px-3 py-2 text-right border-r tabular-nums font-mono font-bold">
+                            <td key={c.key} className="px-3 py-2 text-right border-r tabular-nums font-mono font-bold whitespace-nowrap">
                               {formatNumber((grandTotals as any)[c.key] || 0)}
                             </td>
                           ))}
@@ -404,7 +401,7 @@ export function BudgetPortalSheet({
                             className="h-auto py-1 px-3 text-xs font-semibold whitespace-nowrap"
                             onClick={() => onNavigateToParticipantBudget(row.participantId)}
                           >
-                            Edit budget
+                            Edit
                           </Button>
                         </div>
                       ))}

@@ -506,7 +506,7 @@ function ParticipantCard({
                   onSelect();
                 }}
               >
-                Edit info
+                Edit
               </Button>
             )}
           </div>
