@@ -21,7 +21,7 @@ import {
   AlignJustify,
   Undo,
   Redo,
-  Heading2,
+  
   Download,
   FileText,
   Loader2,
