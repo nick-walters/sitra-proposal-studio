@@ -10,7 +10,7 @@ Where this possibility is indicated under the relevant topic in the Work Program
 1.   Clearly detail the objectives and the results to be obtained and
 
 2.   Contain the following specifications (as a minimum):
-a)     The maximum amount of financial support for each third party; this amount may not exceed 60 000 EUR, unless explicitly mentioned in the Work Programme topic. If your project requires a higher amount per third party than the threshold amount set in the call conditions, justify and explain why this is necessary in order to fulfil your project's objectives.
+a)     The maximum amount of financial support for each third party; this amount may not exceed €60,000, unless explicitly mentioned in the Work Programme topic. If your project requires a higher amount per third party than the threshold amount set in the call conditions, justify and explain why this is necessary in order to fulfil your project's objectives.
 b)     The criteria for calculating the exact amount of the financial support
 c)     The different types of activity that qualify for financial support, on the basis of a closed list
 d)     The persons or categories of persons that may receive financial support, and
