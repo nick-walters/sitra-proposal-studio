@@ -2,8 +2,9 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Participant, ParticipantMember, Section, ParticipantType } from '@/types/proposal';
-import { Building2, GripVertical, UserPlus, Plus, Search, Check, Upload, X, Loader2, Hash } from 'lucide-react';
+import { Building2, GripVertical, UserPlus, Plus, Search, Check, Upload, X, Loader2, Hash, FileText, Download } from 'lucide-react';
 import { BulkPicLookupDialog } from './BulkPicLookupDialog';
 import { ParticipantCompletenessChecker } from './ParticipantCompletenessChecker';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
@@ -19,6 +20,7 @@ import { AddParticipantDialog } from './AddParticipantDialog';
 import { getContrastingTextColor } from '@/lib/wpColors';
 import { supabase } from '@/integrations/supabase/client';
 import { useProposalRole } from '@/hooks/useProposalRole';
+import { useOCD } from '@/hooks/useOCD';
 import { toast } from 'sonner';
 import {
   DndContext,
@@ -576,6 +578,8 @@ export function ParticipantListView({
   const [activeTab, setActiveTab] = useState('participants');
   const { roleTier } = useProposalRole(proposalId);
   const isAdmin = roleTier === 'coordinator';
+  const ocd = useOCD(proposalId);
+  const templateInputRef = useRef<HTMLInputElement>(null);
 
   // Extract guidelines from section
   const officialGuidelines = useMemo(() => {
@@ -699,6 +703,78 @@ export function ParticipantListView({
               )}
             </div>
           </div>
+
+          {/* OCD Controls - coordinator+ only */}
+          {isAdmin && (
+            <div className="flex flex-wrap items-center gap-3 p-3 bg-muted/50 rounded-lg border">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="requires-ocd"
+                  checked={ocd.requiresOcd}
+                  onCheckedChange={(checked) => ocd.toggleRequiresOcd(!!checked)}
+                />
+                <label htmlFor="requires-ocd" className="text-sm font-medium cursor-pointer">
+                  This topic requires Ownership Control Declarations
+                </label>
+              </div>
+
+              {ocd.requiresOcd && (
+                <>
+                  <input
+                    ref={templateInputRef}
+                    type="file"
+                    accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) await ocd.uploadTemplate(file);
+                      if (templateInputRef.current) templateInputRef.current.value = '';
+                    }}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => templateInputRef.current?.click()}
+                    className="gap-1.5"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    {ocd.templatePath ? 'Replace OCD template' : 'Upload OCD template'}
+                  </Button>
+                  {ocd.templatePath && (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Check className="w-3 h-3 text-green-600" /> Template uploaded
+                    </span>
+                  )}
+                  {ocd.templatePath && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        const missing = participants.filter(p => !ocd.uploads[p.id]);
+                        if (missing.length > 0) {
+                          const names = missing.map(p => p.organisationShortName || p.organisationName).join(', ');
+                          const proceed = window.confirm(
+                            `The following partners have not uploaded their signed OCD:\n\n${names}\n\nDo you wish to proceed with compiling the available declarations?`
+                          );
+                          if (!proceed) return;
+                        }
+                        await ocd.compileOcds();
+                      }}
+                      disabled={ocd.compiling}
+                      className="gap-1.5"
+                    >
+                      {ocd.compiling ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <FileText className="w-3.5 h-3.5" />
+                      )}
+                      Compile Ownership Control Declarations
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList>

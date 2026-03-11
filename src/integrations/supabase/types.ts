@@ -1851,6 +1851,48 @@ export type Database = {
           },
         ]
       }
+      participant_ocd_uploads: {
+        Row: {
+          file_path: string
+          id: string
+          participant_id: string
+          proposal_id: string
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          file_path: string
+          id?: string
+          participant_id: string
+          proposal_id: string
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          file_path?: string
+          id?: string
+          participant_id?: string
+          proposal_id?: string
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participant_ocd_uploads_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "participant_ocd_uploads_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       participant_organisation_roles: {
         Row: {
           created_at: string
@@ -2781,9 +2823,11 @@ export type Database = {
           indicative_budget_per_project: string | null
           is_two_stage_second_stage: boolean | null
           logo_url: string | null
+          ocd_template_path: string | null
           opening_date: string | null
           outcome_footnotes: Json | null
           reporting_periods: Json | null
+          requires_ocd: boolean | null
           scope_footnotes: Json | null
           status: Database["public"]["Enums"]["proposal_status"]
           submission_stage: string | null
@@ -2830,9 +2874,11 @@ export type Database = {
           indicative_budget_per_project?: string | null
           is_two_stage_second_stage?: boolean | null
           logo_url?: string | null
+          ocd_template_path?: string | null
           opening_date?: string | null
           outcome_footnotes?: Json | null
           reporting_periods?: Json | null
+          requires_ocd?: boolean | null
           scope_footnotes?: Json | null
           status?: Database["public"]["Enums"]["proposal_status"]
           submission_stage?: string | null
@@ -2879,9 +2925,11 @@ export type Database = {
           indicative_budget_per_project?: string | null
           is_two_stage_second_stage?: boolean | null
           logo_url?: string | null
+          ocd_template_path?: string | null
           opening_date?: string | null
           outcome_footnotes?: Json | null
           reporting_periods?: Json | null
+          requires_ocd?: boolean | null
           scope_footnotes?: Json | null
           status?: Database["public"]["Enums"]["proposal_status"]
           submission_stage?: string | null

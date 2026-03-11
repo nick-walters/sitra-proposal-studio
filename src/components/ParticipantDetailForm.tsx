@@ -30,6 +30,8 @@ import { PreviousProjectsSection } from './participant/PreviousProjectsSection';
 import { InfrastructureSection } from './participant/InfrastructureSection';
 import { DepartmentsSection } from './participant/DepartmentsSection';
 import { GEPSection } from './participant/GEPSection';
+import { OCDSection } from './participant/OCDSection';
+import { useOCD } from '@/hooks/useOCD';
 
 interface SelectedPerson {
   id: string;
@@ -76,6 +78,9 @@ export function ParticipantDetailForm({
 }: ParticipantDetailFormProps) {
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+
+  // OCD hook
+  const ocd = useOCD(proposalId);
 
   // Use new participant details hook for extended data
   const {
@@ -377,6 +382,18 @@ export function ParticipantDetailForm({
         {/* 10. Gender Equality Plan (Enhanced) */}
         <GEPSection
           showGEPSection={showGEPSection}
+        />
+
+        {/* 11. Ownership Control Declaration */}
+        <OCDSection
+          visible={ocd.requiresOcd}
+          templateExists={!!ocd.templatePath}
+          hasUploadedOcd={!!ocd.uploads[participant.id]}
+          uploadedAt={ocd.uploads[participant.id]?.uploadedAt}
+          downloadingPrefilled={ocd.downloadingFor === participant.id}
+          onDownloadTemplate={() => ocd.downloadPrefilled(participant.id)}
+          onUploadSigned={(file) => ocd.uploadSignedOcd(participant.id, file)}
+          canEdit={canEdit}
         />
 
         {/* Delete Participant */}
