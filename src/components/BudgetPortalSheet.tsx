@@ -329,7 +329,6 @@ export function BudgetPortalSheet({
                       <thead>
                         <tr className="border-b">
                           <th className="sticky left-0 bg-background z-10 px-3 py-3 text-left border-r font-bold whitespace-nowrap">Participant</th>
-                          <th className="px-3 py-3 text-left border-r font-bold whitespace-nowrap">Country</th>
                           {PARTICIPANT_COLUMNS.map(c => (
                             <th key={c.key} className="px-3 py-3 text-right border-r font-bold whitespace-nowrap">{c.label}</th>
                           ))}
@@ -351,7 +350,7 @@ export function BudgetPortalSheet({
                                   {row.isLocked && <Lock className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
                                 </div>
                               </td>
-                              <td className="px-3 py-2 border-r text-muted-foreground whitespace-nowrap">{row.country || '—'}</td>
+                              
                               {PARTICIPANT_COLUMNS.map(c => (
                                 <td key={c.key} className="px-3 py-2 text-right border-r tabular-nums font-mono text-sm whitespace-nowrap">
                                   {formatNumber(row[c.key] as number)}
@@ -377,7 +376,7 @@ export function BudgetPortalSheet({
                       <tfoot>
                         <tr className="border-t-2 border-foreground/20 bg-muted/40 font-semibold">
                           <td className="sticky left-0 bg-muted/40 z-10 px-3 py-2 border-r font-bold">TOTAL</td>
-                          <td className="px-3 py-2 border-r" />
+                          
                           {PARTICIPANT_COLUMNS.map(c => (
                             <td key={c.key} className="px-3 py-2 text-right border-r tabular-nums font-mono font-bold whitespace-nowrap">
                               {formatNumber((grandTotals as any)[c.key] || 0)}
