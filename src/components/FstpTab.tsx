@@ -214,7 +214,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ history: { newGroupDelay: 1200 } }),
+      StarterKit,
       Underline,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Link.configure({ openOnClick: false }),

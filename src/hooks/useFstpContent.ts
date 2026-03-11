@@ -83,8 +83,8 @@ export function useFstpContent(proposalId: string) {
     if (updates.responseContent !== undefined) payload.response_content = updates.responseContent;
 
     const { error } = await supabase
-      .from('fstp_content')
-      .upsert({ ...payload }, { onConflict: 'proposal_id' });
+      .from('fstp_content' as any)
+      .upsert(payload, { onConflict: 'proposal_id' } as any);
 
     if (error) {
       toast.error('Failed to save FSTP content');
