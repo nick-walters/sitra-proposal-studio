@@ -280,7 +280,7 @@ function FstpToolbar({ editor }: { editor: any }) {
 }
 
 export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }: FstpTabProps) {
-  const { data, loading, saving, lastSaved, hasUnsavedChanges, updateInstructions, updateResponse, saveNow } = useFstpContent(proposalId);
+  const { data, loading, saving, lastSaved, hasUnsavedChanges, saveError, updateInstructions, updateResponse, saveNow } = useFstpContent(proposalId);
   const [exporting, setExporting] = useState(false);
   const [editingInstructions, setEditingInstructions] = useState(false);
   const [draftInstructions, setDraftInstructions] = useState('');
@@ -491,6 +491,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
           saving={saving}
           lastSaved={lastSaved}
           hasUnsavedChanges={hasUnsavedChanges}
+          saveError={saveError}
           onSaveNow={saveNow}
         />
         {isCoordinator && (

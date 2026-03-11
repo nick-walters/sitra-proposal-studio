@@ -30,7 +30,11 @@ export function useFstpContent(proposalId: string) {
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Keep a ref to the latest data so saveNow always has fresh values
+  const dataRef = useRef(data);
+  dataRef.current = data;
 
   const fetchContent = useCallback(async () => {
     if (!proposalId) return;
@@ -62,57 +66,64 @@ export function useFstpContent(proposalId: string) {
     fetchContent();
   }, [fetchContent]);
 
-  const saveContent = useCallback(async (updates: Partial<FstpContentData>) => {
-    if (!proposalId || !user) return;
+  const saveContent = useCallback(async (instructionsText: string, responseContent: string) => {
+    if (!proposalId || !user) {
+      console.warn('FSTP save skipped: no proposalId or user');
+      return;
+    }
     setSaving(true);
+    setSaveError(null);
 
     const payload: Record<string, any> = {
       proposal_id: proposalId,
       updated_by: user.id,
       updated_at: new Date().toISOString(),
+      instructions_text: instructionsText,
+      response_content: responseContent,
     };
-    if (updates.instructionsText !== undefined) payload.instructions_text = updates.instructionsText;
-    if (updates.responseContent !== undefined) payload.response_content = updates.responseContent;
 
     const { error } = await supabase
       .from('fstp_content' as any)
       .upsert(payload, { onConflict: 'proposal_id' } as any);
 
     if (error) {
-      toast.error('Failed to save FSTP content');
-      console.error(error);
+      const msg = 'Failed to save FSTP content';
+      toast.error(msg);
+      setSaveError(msg);
+      console.error('FSTP save error:', error);
     } else {
       setLastSaved(new Date());
       setHasUnsavedChanges(false);
+      setSaveError(null);
     }
     setSaving(false);
   }, [proposalId, user]);
 
+  const scheduleSave = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      const d = dataRef.current;
+      saveContent(d.instructionsText, d.responseContent);
+    }, 5000);
+  }, [saveContent]);
+
   const updateInstructions = useCallback((text: string) => {
     setData(prev => ({ ...prev, instructionsText: text }));
     setHasUnsavedChanges(true);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      saveContent({ instructionsText: text });
-    }, 5000);
-  }, [saveContent]);
+    scheduleSave();
+  }, [scheduleSave]);
 
   const updateResponse = useCallback((content: string) => {
     setData(prev => ({ ...prev, responseContent: content }));
     setHasUnsavedChanges(true);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      saveContent({ responseContent: content });
-    }, 5000);
-  }, [saveContent]);
+    scheduleSave();
+  }, [scheduleSave]);
 
   const saveNow = useCallback(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    saveContent({
-      instructionsText: data.instructionsText,
-      responseContent: data.responseContent,
-    });
-  }, [saveContent, data]);
+    const d = dataRef.current;
+    saveContent(d.instructionsText, d.responseContent);
+  }, [saveContent]);
 
   return {
     data,
@@ -120,6 +131,7 @@ export function useFstpContent(proposalId: string) {
     saving,
     lastSaved,
     hasUnsavedChanges,
+    saveError,
     updateInstructions,
     updateResponse,
     saveNow,
