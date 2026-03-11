@@ -203,10 +203,8 @@ function FstpToolbar({ editor }: { editor: any }) {
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           active={editor.isActive('bulletList')}
         />
-        <FstpToolbarButton
-          icon={<ListOrdered className="w-4 h-4" />}
-          tooltip="Numbered list"
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+        <OrderedListDropdown
+          editor={editor}
           active={editor.isActive('orderedList')}
         />
 

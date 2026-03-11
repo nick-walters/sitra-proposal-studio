@@ -615,10 +615,8 @@ export function FormattingToolbar({
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           active={editor.isActive('bulletList')}
         />
-        <ToolbarButton 
-          icon={<ListOrdered className="w-4 h-4" />} 
-          tooltip="Numbered List"
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+        <OrderedListDropdown
+          editor={editor}
           active={editor.isActive('orderedList')}
         />
 
