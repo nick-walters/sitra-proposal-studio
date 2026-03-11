@@ -482,9 +482,9 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
                 const trimmed = line.trimStart();
                 // Detect sub-items like "a)  ..." — compute hanging indent past the label
                 const subItemMatch = trimmed.match(/^([a-z]\)\s+)/);
-                const marginLeft = leadingSpaces > 0 ? `${leadingSpaces * 0.5}em` : undefined;
+                const marginLeft = leadingSpaces > 0 ? `${leadingSpaces * 0.6}ch` : undefined;
                 if (subItemMatch) {
-                  const hangIndent = `${subItemMatch[1].length * 0.5}em`;
+                  const hangIndent = `${subItemMatch[1].length}ch`;
                   return (
                     <p key={i} style={{ marginLeft, paddingLeft: hangIndent, textIndent: `-${hangIndent}` }}>
                       {trimmed}
@@ -494,7 +494,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
                 // Detect numbered items like "1.   ..."
                 const numMatch = trimmed.match(/^(\d+\.\s+)/);
                 if (numMatch) {
-                  const hangIndent = `${numMatch[1].length * 0.5}em`;
+                  const hangIndent = `${numMatch[1].length}ch`;
                   return (
                     <p key={i} style={{ marginLeft, paddingLeft: hangIndent, textIndent: `-${hangIndent}` }}>
                       {trimmed}
