@@ -3,25 +3,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 
-const DEFAULT_INSTRUCTIONS = `Financial support in the form of a grant awarded after a call for proposals
+const DEFAULT_INSTRUCTIONS = `**Financial support in the form of a grant awarded after a call for proposals**
 
 Where this possibility is indicated under the relevant topic in the Work Programme and in the relevant calls for proposals, provide a description of the use of financial support to third parties. This description must address at least the following:
 
-1.   clearly detail the objectives and the results to be obtained and
+1.   Clearly detail the objectives and the results to be obtained and
 
-2.   contain the following specifications (as a minimum):
-
-a)     the maximum amount of financial support for each third party; this amount may not exceed 60 000 EUR, unless explicitly mentioned in the Work Programme topic. If your project requires a higher amount per third party than the threshold amount set in the call conditions, justify and explain why this is necessary in order to fulfil your project's objectives.
-
-b)     the criteria for calculating the exact amount of the financial support
-
-c)     the different types of activity that qualify for financial support, on the basis of a closed list
-
-d)     the persons or categories of persons that may receive financial support, and
-
-e)     the criteria for giving financial support
-
-Please check in the Work Programme and call for proposals if there are other conditions that apply and, if so, include them in the specifications or in any other element of the proposal as appropriate.`;
+2.   Contain the following specifications (as a minimum):
+a)     The maximum amount of financial support for each third party; this amount may not exceed 60 000 EUR, unless explicitly mentioned in the Work Programme topic. If your project requires a higher amount per third party than the threshold amount set in the call conditions, justify and explain why this is necessary in order to fulfil your project's objectives.
+b)     The criteria for calculating the exact amount of the financial support
+c)     The different types of activity that qualify for financial support, on the basis of a closed list
+d)     The persons or categories of persons that may receive financial support, and
+e)     The criteria for giving financial support`;
 
 export interface FstpContentData {
   id?: string;
