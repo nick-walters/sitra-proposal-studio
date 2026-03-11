@@ -418,35 +418,31 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
       const responseText = getPlainText();
       const children: Paragraph[] = [];
 
-      // Title
+      // Title — 14pt bold, 12pt (240 twips) after
       children.push(new Paragraph({
         children: [new TextRun({ text: 'Information on financial support to third parties', bold: true, font: 'Times New Roman', size: 28 })],
+        spacing: { after: 240 },
+      }));
+
+      // Subheading — 11pt bold, 6pt (120 twips) after
+      children.push(new Paragraph({
+        children: [new TextRun({
+          text: fstpType === 'prize'
+            ? 'Financial support in the form of a prize'
+            : 'Financial support in the form of a grant awarded after a call for proposals',
+          bold: true,
+          font: 'Times New Roman',
+          size: 22,
+        })],
         spacing: { after: 120 },
       }));
 
-      // Subheading
-      children.push(new Paragraph({
-        children: [new TextRun({ text: fstpType === 'prize' ? 'Financial support in the form of a prize' : 'Financial support in the form of a grant awarded after a call for proposals', bold: true, font: 'Times New Roman', size: 24 })],
-        spacing: { after: 200 },
-      }));
-
-      // Instructions
-      const instrParas = data.instructionsText.split('\n').filter(Boolean);
-      for (const para of instrParas) {
-        children.push(new Paragraph({
-          children: [new TextRun({ text: para, font: 'Times New Roman', size: 20, italics: true })],
-          spacing: { after: 60 },
-        }));
-      }
-
-      children.push(new Paragraph({ spacing: { after: 200 } }));
-
-      // Response
-      const respParas = responseText.split('\n').filter(Boolean);
+      // Response — 11pt Roman, 6pt before/after (120 twips), 1.0 line spacing (240 twips)
+      const respParas = responseText.split('\n');
       for (const para of respParas) {
         children.push(new Paragraph({
-          children: [new TextRun({ text: para, font: 'Times New Roman', size: 22 })],
-          spacing: { after: 60 },
+          children: para.trim() ? [new TextRun({ text: para, font: 'Times New Roman', size: 22 })] : [],
+          spacing: { before: 120, after: 120, line: 240 },
         }));
       }
 
