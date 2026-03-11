@@ -164,84 +164,6 @@ export function BudgetPortalSheet({
           </div>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Euro className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Eligible Costs</p>
-                  <p className="text-xl font-bold">{formatCurrency(grandTotals.totalEligibleCosts)}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-                  <FileSpreadsheet className="w-5 h-5 text-muted-foreground" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Indirect Costs (25%)</p>
-                  <p className="text-xl font-bold">{formatCurrency(grandTotals.indirectCosts)}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Calculator className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">EU Contribution</p>
-                  <p className="text-xl font-bold">{formatCurrency(grandTotals.requestedEuContribution)}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Euro className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Estimated Income</p>
-                  <p className="text-xl font-bold">{formatCurrency(grandTotals.totalEstimatedIncome)}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Budget Type Indicator */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">
-                {proposalType === 'lump_sum' ? 'Lump Sum Budget Model' : 'Actual Costs Budget Model'}
-              </CardTitle>
-              <Badge variant={proposalType === 'lump_sum' ? 'secondary' : 'default'}>
-                {proposalType === 'lump_sum' ? 'Fixed lump sums' : 'Actual costs'}
-              </Badge>
-            </div>
-            <CardDescription>
-              {proposalType === 'lump_sum'
-                ? 'Budget is allocated by work package with fixed amounts agreed at grant signature'
-                : 'Costs are reported based on actual eligible costs with 25% indirect cost flat rate'}
-            </CardDescription>
-          </CardHeader>
-        </Card>
-
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
@@ -251,8 +173,85 @@ export function BudgetPortalSheet({
             {isAdmin && <TabsTrigger value="validation">Validation</TabsTrigger>}
           </TabsList>
 
-          {/* Overview Tab - Budget by Category */}
+          {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-4">
+            {/* Summary Cards */}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Euro className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Eligible Costs</p>
+                      <p className="text-xl font-bold">{formatCurrency(grandTotals.totalEligibleCosts)}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                      <FileSpreadsheet className="w-5 h-5 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Indirect Costs (25%)</p>
+                      <p className="text-xl font-bold">{formatCurrency(grandTotals.indirectCosts)}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Calculator className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">EU Contribution</p>
+                      <p className="text-xl font-bold">{formatCurrency(grandTotals.requestedEuContribution)}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Euro className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Estimated Income</p>
+                      <p className="text-xl font-bold">{formatCurrency(grandTotals.totalEstimatedIncome)}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Budget Type Indicator */}
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">
+                    {proposalType === 'lump_sum' ? 'Lump Sum Budget Model' : 'Actual Costs Budget Model'}
+                  </CardTitle>
+                  <Badge variant={proposalType === 'lump_sum' ? 'secondary' : 'default'}>
+                    {proposalType === 'lump_sum' ? 'Fixed lump sums' : 'Actual costs'}
+                  </Badge>
+                </div>
+                <CardDescription>
+                  {proposalType === 'lump_sum'
+                    ? 'Budget is allocated by work package with fixed amounts agreed at grant signature'
+                    : 'Costs are reported based on actual eligible costs with 25% indirect cost flat rate'}
+                </CardDescription>
+              </CardHeader>
+            </Card>
             <Card>
               <CardHeader>
                 <CardTitle>Budget Overview by Category</CardTitle>
