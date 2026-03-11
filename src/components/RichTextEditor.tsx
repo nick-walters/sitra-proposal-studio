@@ -1013,6 +1013,36 @@ StarterKit.configure({
       CaseReferenceMark,
       AcronymReference,
       FigureTableReferenceMark,
+      // Suppress heading input rules inside table cells
+      Extension.create({
+        name: 'preventHeadingInTable',
+        addProseMirrorPlugins() {
+          return [
+            new Plugin({
+              key: new PluginKey('preventHeadingInTable'),
+              props: {
+                handleTextInput(view, from, _to, text) {
+                  if (text !== ' ') return false;
+                  const $from = view.state.doc.resolve(from);
+                  // Check if we're inside a table cell
+                  for (let d = $from.depth; d > 0; d--) {
+                    const nodeName = $from.node(d).type.name;
+                    if (nodeName === 'tableCell' || nodeName === 'tableHeader') {
+                      // Check if line starts with # (heading trigger)
+                      const parent = $from.parent;
+                      const textBefore = parent.textBetween(0, $from.parentOffset, undefined, '\ufffc');
+                      if (/^#{1,6}$/.test(textBefore.trim())) {
+                        return false; // Let default handling insert the space without converting
+                      }
+                    }
+                  }
+                  return false;
+                },
+              },
+            }),
+          ];
+        },
+      }),
       // Prevent tables from being first element in the document content
       Extension.create({
         name: 'preventTableAtStart',
