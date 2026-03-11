@@ -4,7 +4,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Link from '@tiptap/extension-link';
-import TextStyle from '@tiptap/extension-text-style';
+import { TextStyle } from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
 import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
