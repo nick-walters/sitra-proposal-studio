@@ -491,6 +491,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
           saving={saving}
           lastSaved={lastSaved}
           hasUnsavedChanges={hasUnsavedChanges}
+          saveError={saveError}
           onSaveNow={saveNow}
         />
         {isCoordinator && (
