@@ -38,15 +38,11 @@ export function ProposalMultiSelect({
           .select("id, acronym, title")
           .order("acronym", { ascending: true });
 
-        if (!error && data && data.length > 0) {
+        if (!error && data) {
           setProposals(data);
-        } else {
-          // Fallback to sample proposals
-          setProposals(SAMPLE_PROPOSALS_BASIC);
         }
       } catch (err) {
         console.error('Error fetching proposals:', err);
-        setProposals(SAMPLE_PROPOSALS_BASIC);
       } finally {
         setLoading(false);
       }
