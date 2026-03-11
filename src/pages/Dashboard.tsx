@@ -787,7 +787,7 @@ export function Dashboard() {
             <ProposalKanbanView 
               proposals={filteredProposals}
               onProposalClick={(proposal) => navigate(`/proposal/${proposal.id}`)}
-              topicIcons={topicIcons}
+              
             />
           ) : (
             (() => {
