@@ -17,21 +17,65 @@ function escapeXml(str: string): string {
 }
 
 /**
- * Attempt to inject a value into the table cell adjacent to a label cell.
- * Works for standard EC OCD template format where label and value are in
- * adjacent table cells (possibly spanning multiple columns via gridSpan).
+ * Find the text content of a label that may be split across multiple <w:r> runs
+ * (e.g. bold formatting causes "Legal name:" to be in a separate run).
+ * Returns the index in the XML where the label's containing <w:tc> ends,
+ * or -1 if not found.
+ */
+function findLabelCellEnd(xml: string, labelText: string): number {
+  // Strategy: strip all XML tags from segments to find the label text,
+  // then locate its position in the original XML.
+  
+  // Try direct match first (unformatted text)
+  const directIdx = xml.indexOf(labelText);
+  if (directIdx !== -1) {
+    const cellEnd = xml.indexOf("</w:tc>", directIdx);
+    return cellEnd !== -1 ? cellEnd : -1;
+  }
+
+  // For formatted text (bold etc.), the label may be split across runs.
+  // Search for the label by looking at <w:t> content within each <w:tc>.
+  const cellRegex = /<w:tc[\s>]/g;
+  let cellMatch;
+  while ((cellMatch = cellRegex.exec(xml)) !== null) {
+    const cellStart = cellMatch.index;
+    const cellEnd = xml.indexOf("</w:tc>", cellStart);
+    if (cellEnd === -1) continue;
+
+    const cellXml = xml.substring(cellStart, cellEnd);
+    
+    // Extract all text content from <w:t> tags in this cell
+    const textParts: string[] = [];
+    const tRegex = /<w:t[^>]*>([^<]*)<\/w:t>/g;
+    let tMatch;
+    while ((tMatch = tRegex.exec(cellXml)) !== null) {
+      textParts.push(tMatch[1]);
+    }
+    
+    const cellText = textParts.join("");
+    if (cellText.includes(labelText)) {
+      return cellEnd;
+    }
+  }
+
+  return -1;
+}
+
+/**
+ * Inject a value into the table cell adjacent to a label cell.
+ * Handles labels that may be formatted (bold) and split across multiple runs.
  */
 function injectCellValue(xml: string, labelText: string, value: string): string {
-  const labelIdx = xml.indexOf(labelText);
-  if (labelIdx === -1) return xml;
-
-  // Find end of current cell
-  const cellEnd = xml.indexOf("</w:tc>", labelIdx);
+  const cellEnd = findLabelCellEnd(xml, labelText);
   if (cellEnd === -1) return xml;
 
-  // Find the next cell
-  const nextCell = xml.indexOf("<w:tc>", cellEnd);
-  const nextCellAlt = xml.indexOf("<w:tc ", cellEnd); // cell with attributes
+  // Find the label cell's position for row boundary check
+  const labelCellStart = xml.lastIndexOf("<w:tc", cellEnd);
+
+  // Find the next cell after this one
+  const afterCellEnd = cellEnd + "</w:tc>".length;
+  const nextCell = xml.indexOf("<w:tc>", afterCellEnd);
+  const nextCellAlt = xml.indexOf("<w:tc ", afterCellEnd);
   let nextCellPos = -1;
 
   if (nextCell === -1 && nextCellAlt === -1) return xml;
@@ -39,11 +83,11 @@ function injectCellValue(xml: string, labelText: string, value: string): string 
   else if (nextCellAlt === -1) nextCellPos = nextCell;
   else nextCellPos = Math.min(nextCell, nextCellAlt);
 
-  // Ensure this is within the same row
-  const rowEnd = xml.indexOf("</w:tr>", labelIdx);
+  // Ensure within the same row
+  const rowEnd = xml.indexOf("</w:tr>", labelCellStart);
   if (rowEnd !== -1 && nextCellPos > rowEnd) return xml;
 
-  // Find the last </w:p> in this cell to insert before it
+  // Find the last </w:p> in the next cell to insert before it
   const nextCellEnd = xml.indexOf("</w:tc>", nextCellPos);
   if (nextCellEnd === -1) return xml;
 
@@ -52,7 +96,7 @@ function injectCellValue(xml: string, labelText: string, value: string): string 
   if (lastPEnd === -1) return xml;
 
   const insertPos = nextCellPos + lastPEnd;
-  const run = `<w:r><w:t>${escapeXml(value)}</w:t></w:r>`;
+  const run = `<w:r><w:rPr><w:b/></w:rPr><w:t>${escapeXml(value)}</w:t></w:r>`;
   return xml.substring(0, insertPos) + run + xml.substring(insertPos);
 }
 
@@ -145,6 +189,7 @@ serve(async (req) => {
     const shortName = (participant as any).organisation_short_name || "";
 
     // Replace placeholder text [project title] and [acronym]
+    // These may also be split across runs, so we handle both direct and run-split cases
     xml = xml.replace(/\[project title\]/gi, escapeXml(projectTitle));
     xml = xml.replace(/\[acronym\]/gi, escapeXml(acronym));
 
