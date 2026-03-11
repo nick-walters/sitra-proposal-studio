@@ -1013,31 +1013,35 @@ StarterKit.configure({
       CaseReferenceMark,
       AcronymReference,
       FigureTableReferenceMark,
-      // Suppress heading input rules inside table cells
+      // Suppress heading input rules inside table cells: revert heading nodes back to paragraphs
       Extension.create({
         name: 'preventHeadingInTable',
         addProseMirrorPlugins() {
           return [
             new Plugin({
               key: new PluginKey('preventHeadingInTable'),
-              props: {
-                handleTextInput(view, from, _to, text) {
-                  if (text !== ' ') return false;
-                  const $from = view.state.doc.resolve(from);
-                  // Check if we're inside a table cell
-                  for (let d = $from.depth; d > 0; d--) {
-                    const nodeName = $from.node(d).type.name;
-                    if (nodeName === 'tableCell' || nodeName === 'tableHeader') {
-                      // Check if line starts with # (heading trigger)
-                      const parent = $from.parent;
-                      const textBefore = parent.textBetween(0, $from.parentOffset, undefined, '\ufffc');
-                      if (/^#{1,6}$/.test(textBefore.trim())) {
-                        return false; // Let default handling insert the space without converting
-                      }
+              appendTransaction(_transactions, oldState, newState) {
+                const { doc, schema } = newState;
+                const headingType = schema.nodes.heading;
+                const paragraphType = schema.nodes.paragraph;
+                if (!headingType || !paragraphType) return null;
+
+                let tr: any = null;
+                doc.descendants((node, pos) => {
+                  if (node.type !== headingType) return;
+                  // Check if this heading is inside a table cell
+                  const $pos = doc.resolve(pos);
+                  for (let d = $pos.depth; d > 0; d--) {
+                    const parentName = $pos.node(d).type.name;
+                    if (parentName === 'tableCell' || parentName === 'tableHeader') {
+                      // Convert heading back to paragraph, preserving content
+                      if (!tr) tr = newState.tr;
+                      tr.setNodeMarkup(pos, paragraphType, null, node.marks);
+                      return false; // Don't descend
                     }
                   }
-                  return false;
-                },
+                });
+                return tr;
               },
             }),
           ];
