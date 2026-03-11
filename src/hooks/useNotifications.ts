@@ -238,10 +238,6 @@ export function useNotifications() {
       })
       .subscribe();
 
-    // Poll every 5s to catch deletions that realtime may miss
-    const pollInterval = setInterval(() => {
-      fetchNotifications();
-    }, 5000);
 
     return () => {
       supabase.removeChannel(channel);
