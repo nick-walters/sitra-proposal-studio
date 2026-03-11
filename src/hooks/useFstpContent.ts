@@ -99,24 +99,28 @@ export function useFstpContent(proposalId: string) {
     setSaving(false);
   }, [proposalId, user]);
 
-  const scheduleSave = useCallback(() => {
+  const scheduleSave = useCallback((nextData?: FstpContentData) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      const d = dataRef.current;
+      const d = nextData ?? dataRef.current;
       saveContent(d.instructionsText, d.responseContent);
     }, 5000);
   }, [saveContent]);
 
   const updateInstructions = useCallback((text: string) => {
-    setData(prev => ({ ...prev, instructionsText: text }));
+    const nextData = { ...dataRef.current, instructionsText: text };
+    dataRef.current = nextData;
+    setData(nextData);
     setHasUnsavedChanges(true);
-    scheduleSave();
+    scheduleSave(nextData);
   }, [scheduleSave]);
 
   const updateResponse = useCallback((content: string) => {
-    setData(prev => ({ ...prev, responseContent: content }));
+    const nextData = { ...dataRef.current, responseContent: content };
+    dataRef.current = nextData;
+    setData(nextData);
     setHasUnsavedChanges(true);
-    scheduleSave();
+    scheduleSave(nextData);
   }, [scheduleSave]);
 
   const saveNow = useCallback(() => {

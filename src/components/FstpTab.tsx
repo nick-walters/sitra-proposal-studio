@@ -554,7 +554,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
                 <Button variant="ghost" size="sm" onClick={() => setEditingInstructions(false)}>
                   <X className="w-4 h-4 mr-1" /> Cancel
                 </Button>
-                <Button size="sm" onClick={() => { updateInstructions(draftInstructions); setEditingInstructions(false); }}>
+                <Button size="sm" onClick={async () => { updateInstructions(draftInstructions); await saveNow(); setEditingInstructions(false); }}>
                   <Check className="w-4 h-4 mr-1" /> Save
                 </Button>
               </div>
