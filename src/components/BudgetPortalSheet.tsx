@@ -71,6 +71,8 @@ export function BudgetPortalSheet({
   proposalType,
   canEdit,
   isCoordinator,
+  usesFstp = false,
+  proposalAcronym = '',
 }: BudgetPortalSheetProps) {
   const {
     rows,
