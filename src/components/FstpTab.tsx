@@ -288,7 +288,8 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({ orderedList: false }),
+      OrderedListStyled,
       Underline,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Link.configure({ openOnClick: false }),
