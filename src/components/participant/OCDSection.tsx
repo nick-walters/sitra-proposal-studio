@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileText, Download, Upload, CheckCircle2, AlertTriangle, ExternalLink, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -25,10 +25,10 @@ export function OCDSection({
   onUploadSigned,
   canEdit,
 }: OCDSectionProps) {
-  if (!visible || !templateExists) return null;
-
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+
+  if (!visible || !templateExists) return null;
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -89,7 +89,7 @@ export function OCDSection({
           </p>
 
           <div className="flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 mt-0.5 text-amber-500 shrink-0" />
+            <AlertTriangle className="w-4 h-4 mt-0.5 text-warning shrink-0" />
             <p className="italic">
               The information should reflect the situation at the moment you sign this declaration.
               Please be aware that additional information or clarifications may also be requested
@@ -98,7 +98,7 @@ export function OCDSection({
           </div>
 
           <div className="flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 mt-0.5 text-amber-500 shrink-0" />
+            <AlertTriangle className="w-4 h-4 mt-0.5 text-warning shrink-0" />
             <p className="italic">
               Please note that the information in this declaration may be reused in case you apply to
               other EU calls that have ownership/control restrictions.
@@ -106,7 +106,7 @@ export function OCDSection({
           </div>
 
           <div className="flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 mt-0.5 text-amber-500 shrink-0" />
+            <AlertTriangle className="w-4 h-4 mt-0.5 text-warning shrink-0" />
             <p className="italic">
               Please also note that you must inform the granting authority in case of changes in your
               ownership and control structure during the project implementation, if these could impact
@@ -163,7 +163,7 @@ export function OCDSection({
           {/* Upload status */}
           {hasUploadedOcd && uploadedAt && (
             <span className="text-xs text-muted-foreground flex items-center gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+              <CheckCircle2 className="w-3.5 h-3.5 text-success" />
               Uploaded {format(new Date(uploadedAt), 'dd MMM yyyy')}
             </span>
           )}
