@@ -13,6 +13,8 @@ interface OCDSectionProps {
   onDownloadTemplate: () => void;
   onUploadSigned: (file: File) => void;
   canEdit: boolean;
+  /** true when the proposal is Horizon Europe (RIA/IA/CSA) */
+  isHorizonEurope?: boolean;
 }
 
 export function OCDSection({
@@ -24,6 +26,7 @@ export function OCDSection({
   onDownloadTemplate,
   onUploadSigned,
   canEdit,
+  isHorizonEurope = true,
 }: OCDSectionProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -75,9 +78,10 @@ export function OCDSection({
           </p>
 
           <p className="italic">
-            Beneficiaries and affiliated entities must always provide the form; associated partners and
-            subcontractors must provide it only if required by the call conditions (for HE, associated
-            partners always). Entities that are validated as public bodies by the Central Validation
+            {isHorizonEurope
+              ? 'Beneficiaries, affiliated entities, and associated partners must always provide the form; and subcontractors must provide it only if required by the call conditions.'
+              : 'Beneficiaries and affiliated entities must always provide the form; associated partners and subcontractors must provide it only if required by the call conditions.'}
+            {' '}Entities that are validated as public bodies by the Central Validation
             Service are exempted since they will automatically be considered as controlled by their
             country.
           </p>
