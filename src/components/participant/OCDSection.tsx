@@ -159,7 +159,7 @@ export function OCDSection({
                 ) : (
                   <Upload className="w-4 h-4" />
                 )}
-                {hasUploadedOcd ? 'Replace signed OCD (PDF)' : 'Upload signed OCD (PDF)'}
+                {hasUploadedOcd ? 'Replace filled & signed Ownership Control Declaration (.pdf)' : 'Upload filled & signed Ownership Control Declaration (.pdf)'}
               </Button>
             </>
           )}
