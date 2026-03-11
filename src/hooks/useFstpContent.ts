@@ -12,7 +12,7 @@ const DEFAULT_INSTRUCTIONS = `Where this possibility is indicated under the rele
      d.     The persons or categories of persons that may receive financial support, and
       e.     The criteria for giving financial support`;
 
-const DEFAULT_RESPONSE = '<p><strong><u>Objectives</u></strong></p><p></p><p><strong><u>Open call &amp; evaluation criteria specifications</u></strong></p><p></p>';
+const DEFAULT_RESPONSE = '<p><strong><u>1. Objectives</u></strong></p><p>The objectives of the open call for FSTP are </p><p><strong><u>2. Open call &amp; evaluation criteria specifications</u></strong></p><ol data-list-style="lower-alpha" style="list-style-type: lower-alpha;"><li><p>The maximum amount of financial support available for each third party is €XX,000. The total amount of funding available is €XX,000.</p></li><li><p>The criteria for calculating the exact amount of financial support are </p></li><li><p>The different types of activity that qualify for financial support, on the basis of a closed list, are </p></li><li><p>The persons or categories of persons that may receive financial support are </p></li><li><p>The criteria for giving financial support are </p></li></ol><p></p>';
 
 export interface FstpContentData {
   id?: string;
