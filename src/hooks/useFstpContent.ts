@@ -20,7 +20,9 @@ const DEFAULT_PRIZE_INSTRUCTIONS = `Provide a description of the use of financia
      c)     The payment arrangements.
 Please check in the Work Programme and the call for proposals if there are other conditions that apply and, if so, include them in the specifications or in any other element of the proposal as appropriate.`;
 
-const DEFAULT_RESPONSE = '<p><strong><u>1. Objectives</u></strong></p><p>The objectives of the open call for FSTP are </p><p><strong><u>2. Open call &amp; evaluation criteria specifications</u></strong></p><ol data-list-style="lower-alpha" style="list-style-type: lower-alpha;"><li><p>The maximum amount of financial support available for each third party is €XX,000. The total amount of funding available is €XX,000.</p></li><li><p>The criteria for calculating the exact amount of financial support are </p></li><li><p>The different types of activity that qualify for financial support, on the basis of a closed list, are </p></li><li><p>The persons or categories of persons that may receive financial support are </p></li><li><p>The criteria for giving financial support are </p></li></ol><p></p>';
+const DEFAULT_GRANT_RESPONSE = '<p><strong><u>1. Objectives</u></strong></p><p>The objectives of the open call for FSTP are </p><p><strong><u>2. Open call &amp; evaluation criteria specifications</u></strong></p><ol data-list-style="lower-alpha" style="list-style-type: lower-alpha;"><li><p>The maximum amount of financial support available for each third party is €XX,000. The total amount of funding available is €XX,000.</p></li><li><p>The criteria for calculating the exact amount of financial support are </p></li><li><p>The different types of activity that qualify for financial support, on the basis of a closed list, are </p></li><li><p>The persons or categories of persons that may receive financial support are </p></li><li><p>The criteria for giving financial support are </p></li></ol><p></p>';
+
+const DEFAULT_PRIZE_RESPONSE = '<p><strong><u>1. Objectives</u></strong></p><p>The objectives are </p><p>The results to be obtained are </p><p><strong><u>2. Specifications</u></strong></p><ol data-list-style="lower-alpha" style="list-style-type: lower-alpha;"><li><p>The eligibility and award criteria are </p></li><li><p>The amount of the prize is </p></li><li><p>The payment arrangements are </p></li></ol><p>Please check in the Work Programme and the call for proposals if there are other conditions that apply and, if so, include them in the specifications or in any other element of the proposal as appropriate.</p>';
 
 export interface FstpContentData {
   id?: string;
@@ -30,6 +32,7 @@ export interface FstpContentData {
 
 export function useFstpContent(proposalId: string, fstpType: 'grant' | 'prize' = 'grant') {
   const DEFAULT_INSTRUCTIONS = fstpType === 'prize' ? DEFAULT_PRIZE_INSTRUCTIONS : DEFAULT_GRANT_INSTRUCTIONS;
+  const DEFAULT_RESPONSE = fstpType === 'prize' ? DEFAULT_PRIZE_RESPONSE : DEFAULT_GRANT_RESPONSE;
   const { user } = useAuth();
   const [data, setData] = useState<FstpContentData>({
     instructionsText: DEFAULT_INSTRUCTIONS,
