@@ -347,8 +347,14 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
       // Title
       doc.setFontSize(14);
       doc.setFont('Times', 'Bold');
-      doc.text('Financial Support to Third Parties (FSTP)', margin, y);
+      doc.text('Information on financial support to third parties', margin, y);
       y += 10;
+
+      // Subheading
+      doc.setFontSize(12);
+      doc.setFont('Times', 'Bold');
+      doc.text('Financial support in the form of a grant awarded after a call for proposals', margin, y);
+      y += 8;
 
       // Instructions
       doc.setFontSize(10);
