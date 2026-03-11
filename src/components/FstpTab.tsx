@@ -431,7 +431,8 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
       {/* Instructions + Response in one card */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Instructions: Financial support in the form of a grant awarded after a call for proposals</CardTitle>
+          <CardTitle className="text-base">Financial support in the form of a grant awarded after a call for proposals</CardTitle>
+          <p className="text-sm text-muted-foreground">Instructions</p>
         </CardHeader>
         <CardContent className="space-y-4">
           {isCoordinator && canEdit ? (
@@ -447,8 +448,6 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
               {data.instructionsText}
             </div>
           )}
-
-          <Separator />
 
           <div className="border rounded-md overflow-hidden">
             {canEdit && <FstpToolbar editor={editor} />}
