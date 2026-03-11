@@ -36,7 +36,7 @@ serve(async (req) => {
     // Fetch all participants ordered by participant_number
     const { data: participants, error: partError } = await supabase
       .from("participants")
-      .select("id, participant_number, organisation_short_name, organisation_name")
+      .select("id, participant_number, organisation_short_name, organisation_name, organisation_category")
       .eq("proposal_id", proposalId)
       .order("participant_number", { ascending: true });
 
