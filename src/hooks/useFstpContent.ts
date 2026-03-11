@@ -57,10 +57,11 @@ export function useFstpContent(proposalId: string) {
     }
 
     if (row) {
+      const r = row as any;
       setData({
-        id: row.id,
-        instructionsText: row.instructions_text || DEFAULT_INSTRUCTIONS,
-        responseContent: row.response_content || '',
+        id: r.id,
+        instructionsText: r.instructions_text || DEFAULT_INSTRUCTIONS,
+        responseContent: r.response_content || '',
       });
     }
     setLoading(false);
