@@ -65,6 +65,10 @@ serve(async (req) => {
     const toMerge: { participantNumber: number; name: string; filePath: string }[] = [];
 
     for (const p of participants) {
+      const category = (p as any).organisation_category;
+      // Public organisations don't require OCD
+      if (category === 'PUB') continue;
+
       const filePath = uploadMap.get(p.id);
       const name = (p as any).organisation_short_name || (p as any).organisation_name || `Partner ${p.participant_number}`;
       if (filePath) {
