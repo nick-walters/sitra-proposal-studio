@@ -968,9 +968,8 @@ export function DocumentEditor({
    // Page estimate removed - now shown in ExportDialog
 
   // State for collaboration panel - must be before early return
-  const [isCollaborationPanelOpen, setIsCollaborationPanelOpen] = useState(() => {
-    try { return localStorage.getItem('sitra-collab-panel-open') === 'true'; } catch { return false; }
-  });
+  // Default to closed; only open via explicit user action or notification navigation
+  const [isCollaborationPanelOpen, setIsCollaborationPanelOpen] = useState(false);
   
   // Open panel when triggered by notification navigation
   useEffect(() => {
