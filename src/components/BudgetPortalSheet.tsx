@@ -42,6 +42,7 @@ interface BudgetPortalSheetProps {
   canEdit: boolean;
   isCoordinator: boolean;
   usesFstp?: boolean;
+  fstpType?: 'grant' | 'prize';
   proposalAcronym?: string;
 }
 
