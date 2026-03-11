@@ -381,6 +381,18 @@ export function ParticipantDetailForm({
           showGEPSection={showGEPSection}
         />
 
+        {/* 11. Ownership Control Declaration */}
+        <OCDSection
+          visible={ocd.requiresOcd}
+          templateExists={!!ocd.templatePath}
+          hasUploadedOcd={!!ocd.uploads[participant.id]}
+          uploadedAt={ocd.uploads[participant.id]?.uploadedAt}
+          downloadingPrefilled={ocd.downloadingFor === participant.id}
+          onDownloadTemplate={() => ocd.downloadPrefilled(participant.id)}
+          onUploadSigned={(file) => ocd.uploadSignedOcd(participant.id, file)}
+          canEdit={canEdit}
+        />
+
         {/* Delete Participant */}
         {canDelete && (
           <Card className="border-destructive/50">
