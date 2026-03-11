@@ -652,7 +652,7 @@ export function GeneralInfoForm({
               officialGuidelines={officialGuidelines}
               sitraTips={sitraTips}
             />
-            {canEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
+            {canEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} onSaveNow={() => saveContent(formData)} />}
           </div>
           <div className="flex items-center gap-3">
             {onExport && !isCoordinator && (

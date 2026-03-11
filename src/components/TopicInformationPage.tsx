@@ -336,7 +336,7 @@ export function TopicInformationPage({
       <div className="max-w-7xl mx-auto space-y-4 p-4">
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-bold">Topic information</h1>
-          {userCanEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} hasUnsavedChanges={!!hasUnsavedChanges} />}
+          {userCanEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} hasUnsavedChanges={!!hasUnsavedChanges} onSaveNow={() => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); saveEdits(); }} />}
         </div>
 
         {/* General Topic Information Card */}
