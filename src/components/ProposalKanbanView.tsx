@@ -88,7 +88,7 @@ const getSubmittedStatusInfo = (status: string) => {
   return { sortOrder: 4 };
 };
 
-export function ProposalKanbanView({ proposals, onProposalClick, topicIcons }: ProposalKanbanViewProps) {
+export function ProposalKanbanView({ proposals, onProposalClick }: ProposalKanbanViewProps) {
   // Get drafts grouped by urgency
   const getDraftsByUrgency = (urgency: 'critical' | 'due_soon' | 'on_track') => {
     return proposals
