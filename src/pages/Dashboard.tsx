@@ -778,7 +778,6 @@ export function Dashboard() {
             <ProposalTableView 
               proposals={filteredProposals}
               onProposalClick={(proposal) => navigate(`/proposal/${proposal.id}`)}
-              topicIcons={topicIcons}
               pinnedIds={pinnedIds}
               canPin={canPin}
               onTogglePin={togglePin}
