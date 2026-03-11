@@ -40,6 +40,8 @@ interface BudgetPortalSheetProps {
   proposalType: string | null;
   canEdit: boolean;
   isCoordinator: boolean;
+  usesFstp?: boolean;
+  proposalAcronym?: string;
 }
 
 const COST_CATEGORIES = [
