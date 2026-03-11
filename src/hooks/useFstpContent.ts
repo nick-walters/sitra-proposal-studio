@@ -89,6 +89,7 @@ export function useFstpContent(proposalId: string, fstpType: 'grant' | 'prize' =
 
     const payload: Record<string, any> = {
       proposal_id: proposalId,
+      fstp_type: fstpType,
       updated_by: user.id,
       updated_at: new Date().toISOString(),
       instructions_text: instructionsText,
@@ -97,7 +98,7 @@ export function useFstpContent(proposalId: string, fstpType: 'grant' | 'prize' =
 
     const { error } = await supabase
       .from('fstp_content' as any)
-      .upsert(payload, { onConflict: 'proposal_id' } as any);
+      .upsert(payload, { onConflict: 'proposal_id,fstp_type' } as any);
 
     if (error) {
       const msg = 'Failed to save FSTP content';
