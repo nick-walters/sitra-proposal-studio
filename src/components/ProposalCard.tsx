@@ -10,7 +10,7 @@ interface ProposalCardProps {
   proposal: Proposal;
   onClick: () => void;
   compact?: boolean;
-  topicIcon?: React.ReactNode;
+  
   isPinned?: boolean;
   canPin?: boolean;
   onTogglePin?: (id: string) => void;
@@ -107,7 +107,7 @@ function PinButton({ isPinned, canPin, onTogglePin, proposalId, className = '' }
   );
 }
 
-export function ProposalCard({ proposal, onClick, compact = false, topicIcon, isPinned, canPin, onTogglePin, showDragHandle }: ProposalCardProps) {
+export function ProposalCard({ proposal, onClick, compact = false, isPinned, canPin, onTogglePin, showDragHandle }: ProposalCardProps) {
   const isDraft = proposal.status === 'draft';
   const isDecided = proposal.status === 'funded' || proposal.status === 'not_funded';
   
@@ -134,8 +134,6 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon, is
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
             {proposal.logoUrl ? (
               <StorageImage storedPath={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
-            ) : topicIcon ? (
-              topicIcon
             ) : (
               <FileText className="w-4 h-4 text-primary" />
             )}
@@ -257,8 +255,6 @@ export function ProposalCard({ proposal, onClick, compact = false, topicIcon, is
               <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
                 {proposal.logoUrl ? (
                   <StorageImage storedPath={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
-                ) : topicIcon ? (
-                  topicIcon
                 ) : (
                   <FileText className="w-6 h-6 text-primary" />
                 )}

@@ -172,7 +172,7 @@ export function TopicRichTextArea({
                     contentEditable
                     suppressContentEditableWarning
                     className="flex-1 bg-transparent border-b border-dashed border-muted-foreground/30 outline-none text-xs py-0.5 focus:border-primary [&_a]:text-primary [&_a]:underline"
-                    dangerouslySetInnerHTML={{ __html: fn.text || '' }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(fn.text || '', { ALLOWED_TAGS: ['em', 'strong', 'a', 'br', 'sup', 'span'], ALLOWED_ATTR: ['href', 'target', 'rel', 'style'] }) }}
                     onBlur={(e) => {
                       if (onFootnotesChange) {
                         const updated = [...footnotes];
@@ -183,7 +183,7 @@ export function TopicRichTextArea({
                     data-placeholder="Enter reference (paste links supported)..."
                   />
                 ) : (
-                  <span className="text-muted-foreground [&_a]:text-primary [&_a]:underline" dangerouslySetInnerHTML={{ __html: fn.text || '–' }} />
+                  <span className="text-muted-foreground [&_a]:text-primary [&_a]:underline" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(fn.text || '–', { ALLOWED_TAGS: ['em', 'strong', 'a', 'br', 'sup', 'span'], ALLOWED_ATTR: ['href', 'target', 'rel', 'style'] }) }} />
                 )}
               </div>
             );
@@ -228,14 +228,14 @@ export function TopicRichTextReadonly({ html, footnotes = [], emptyMessage = '�
         ref={ref}
         className="text-sm topic-rich-text-content [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4 [&_a]:text-primary [&_a]:underline [&_a]:cursor-pointer"
         style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
-        dangerouslySetInnerHTML={{ __html: html }}
+        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html, { ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'a', 'sup', 'span', 'h1', 'h2', 'h3', 'h4', 'table', 'thead', 'tbody', 'tr', 'th', 'td'], ALLOWED_ATTR: ['href', 'target', 'rel', 'style', 'class'] }) }}
       />
       {footnotes.length > 0 && (
         <div className="border-t mt-2 pt-2 space-y-0.5">
           {footnotes.map((fn, idx) => (
             <div key={fn.id} className="flex items-start gap-1.5 text-xs text-muted-foreground">
               <span className="text-primary font-semibold text-[10px] shrink-0" style={{ marginTop: '1.5px' }}>{footnoteStartNumber + idx}</span>
-              <span className="[&_a]:text-primary [&_a]:underline [&_a]:cursor-pointer" dangerouslySetInnerHTML={{ __html: fn.text || '–' }} />
+              <span className="[&_a]:text-primary [&_a]:underline [&_a]:cursor-pointer" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(fn.text || '–', { ALLOWED_TAGS: ['em', 'strong', 'a', 'br', 'sup', 'span'], ALLOWED_ATTR: ['href', 'target', 'rel', 'style'] }) }} />
             </div>
           ))}
         </div>

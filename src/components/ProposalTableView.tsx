@@ -10,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 interface ProposalTableViewProps {
   proposals: Proposal[];
   onProposalClick: (proposal: Proposal) => void;
-  topicIcons?: Record<string, React.ReactNode>;
+  
   pinnedIds?: string[];
   canPin?: boolean;
   onTogglePin?: (id: string) => void;
@@ -90,7 +90,7 @@ const getCombinedStatusInfo = (proposal: Proposal) => {
   };
 };
 
-export function ProposalTableView({ proposals, onProposalClick, topicIcons, pinnedIds = [], canPin, onTogglePin, onReorderPinned }: ProposalTableViewProps) {
+export function ProposalTableView({ proposals, onProposalClick, pinnedIds = [], canPin, onTogglePin, onReorderPinned }: ProposalTableViewProps) {
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const dragItemRef = useRef<number | null>(null);
@@ -198,7 +198,7 @@ export function ProposalTableView({ proposals, onProposalClick, topicIcons, pinn
     const isDecided = proposal.status === 'funded' || proposal.status === 'not_funded';
     const statusInfo = getCombinedStatusInfo(proposal);
     const StatusIcon = statusInfo.icon;
-    const topicIcon = topicIcons?.[proposal.acronym];
+    
     const pinned = options?.pinned ?? false;
 
     return (
@@ -241,8 +241,6 @@ export function ProposalTableView({ proposals, onProposalClick, topicIcons, pinn
           <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center overflow-hidden">
             {proposal.logoUrl ? (
               <StorageImage storedPath={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
-            ) : topicIcon ? (
-              <div className="scale-50">{topicIcon}</div>
             ) : null}
           </div>
         </TableCell>

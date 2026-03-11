@@ -1,85 +1,84 @@
 
+Goal: Rebuild tracked-deletion behavior so editing is deterministic and never leaks deletion styling into normal typing, especially when tracking is OFF.
 
-# Code Audit: Bugs, Issues, and Cleanup Plan
+1) Confirmed root cause (from current code)
+- Deletion cursor placement is explicitly set to `newStart` in cross-block handling, which places caret at the left/start side of deleted span instead of after it.
+- Tracking-OFF cleanup still mutates marks reactively in `appendTransaction` via mapped ranges; this can accidentally touch existing deletion-marked content and “erase” deletion highlighting/review entries.
+- Change collection merges by `changeId` only, so split deletion segments can collapse into one logical change unexpectedly.
 
-## A. Bugs and Issues
+2) Overhaul architecture (single, predictable policy)
+- Introduce a strict invariant:
+  - Tracking OFF: existing tracked marks are immutable; only newly typed content is sanitized (no track marks).
+  - Tracking ON: deletion tracking can mutate marks/text as expected.
+- Move all typing behavior (including typing inside/after deletions) to proactive input handlers; stop relying on broad reactive stripping for this path.
+- Keep reactive logic only for true fallback/programmatic cases, with narrower scope.
 
-### 1. XSS: Unsanitized `dangerouslySetInnerHTML` in footnotes (DocumentEditor, TopicRichTextArea)
-**DocumentEditor.tsx line 1389**: After DOMPurify sanitizes the citation, the acronym replacement re-injects unsanitized HTML (`coloredAcronym` built from `acronymSegments` which come from DB data). The `citationHtml` after replacement bypasses the earlier sanitization.
+3) Behavioral rules to implement
+- Rule A: After creating a tracked deletion, caret lands after the deleted span (right boundary), not at the start/inside it.
+- Rule B: With tracking OFF, typing after/inside deletion never inherits strikethrough/highlight.
+- Rule C: With tracking OFF, typing in the middle of a deletion splits it into two tracked deletions that remain visible in review.
 
-**TopicRichTextArea.tsx lines 175, 186, 231, 238**: Footnote `fn.text` and the readonly `html` prop are rendered via `dangerouslySetInnerHTML` without DOMPurify. The editable area (line 175) and the readonly component (lines 231, 238) both skip sanitization.
+4) Concrete implementation plan
 
-**Fix**: Sanitize `citationHtml` *after* acronym replacement. Wrap all footnote `fn.text` and the readonly `html` in DOMPurify.
+A. `src/extensions/TrackChanges.ts`
+- Add deletion-boundary helpers:
+  - `findDeletionSegmentAtPos(doc, pos)` (returns segment + attrs)
+  - `sanitizeInsertedRange(tr, from, to, insertionType, deletionType)` (remove track marks only from newly inserted text)
+  - `setCursorAfterRange(tr, from, to)` (stable right-edge placement)
+- Update tracking-ON deletion path:
+  - In both same-block and cross-block deletion handlers, set selection to right edge of tracked deletion span.
+- Replace tracking-OFF typing path:
+  - `handleTextInput` becomes authoritative for keyboard typing.
+  - If cursor is inside deletion mark, insert plain text and sanitize only inserted range.
+  - Preserve left/right deletion segments.
+  - Reassign one side (typically right segment) to a new `changeId` so review shows two deletions (not merged).
+- Add `handlePaste` parity:
+  - Sanitize pasted content insertion ranges similarly when tracking OFF.
+- Narrow tracking-OFF `appendTransaction`:
+  - Remove broad “strip marks from mapped inserted content” behavior that can mutate existing deletions.
+  - Keep only safe storedMarks cleanup and review-panel recompute.
+  - Use targeted cleanup only when a transaction is explicitly tagged as “new insertion sanitation”.
 
-### 2. Notification polling every 5 seconds is wasteful
-**useNotifications.ts line 242-244**: A `setInterval` polls `fetchNotifications()` every 5 seconds, even though realtime subscriptions already handle INSERT, UPDATE, and DELETE events. The comment says "to catch deletions that realtime may miss" — but the realtime listener already handles DELETEs. This creates unnecessary network load.
+B. `collectChangesFromDoc` (same file)
+- Stop merging solely by `changeId`.
+- Represent each contiguous marked run as its own change item (or key by `changeId + contiguous range`) so split deletions appear as separate review entries.
 
-**Fix**: Remove the 5-second polling interval entirely. The realtime subscription is sufficient.
+C. `src/components/RichTextEditor.tsx`
+- Keep toggle-off stored mark cleanup, but ensure it never removes document marks—stored marks only.
+- No additional reactive stripping logic in component-level effects.
 
-### 3. `useSectionContent` — `getAuthToken` parses wrong structure from localStorage
-**useSectionContent.ts line 57-58**: `parsed?.access_token` reads from the root of the parsed JSON. But Supabase stores the session under the storage key as `{ currentSession: { access_token: ... } }` or similar nested structure depending on version. If the token isn't found, sync XHR saves silently fail with auth errors.
+5) Regression test expansion (`src/test/TrackChanges.test.ts`)
+Add focused tests for the exact bug contract:
+- Cursor lands after tracked deletion boundary (not inside/start).
+- Tracking OFF + typing at end of deletion: inserted text has no deletion mark; existing deletion remains tracked.
+- Tracking OFF + typing in middle of deletion: deletion becomes two tracked segments; both remain in review list.
+- Tracking OFF + paste inside deletion: pasted content plain, surrounding deletions preserved.
+- No disappearance from review panel after off-mode typing near deletion.
 
-**Fix**: Parse the correct nested path: `parsed?.currentSession?.access_token` or iterate to find the token. Better: use `parsed` structure that matches what `@supabase/supabase-js` actually stores (`parsed` is typically the full session object for v2, so `parsed?.access_token` may be correct for the latest SDK — but worth verifying against actual localStorage in the running app).
+6) Safety/rollout
+- Implement behind existing extension behavior (no schema migration).
+- Validate with current tests + new targeted cases.
+- Manual end-to-end sanity pass in proposal editor:
+  - create deletion with tracking ON
+  - toggle OFF
+  - type after deletion
+  - type inside deletion
+  - verify styling + review panel consistency.
 
-### 4. `useProposalSections` — `useMemo` has unnecessary dependencies
-**useProposalSections.ts line 500**: The `allSections` useMemo includes `useWpThemes` and `themesData` in its deps, but these are already indirectly used through `wpDraftSections` (which depends on both). This causes extra recomputation.
-
-**Fix**: Remove `useWpThemes` and `themesData` from the dependency array of `allSections`.
-
-### 5. Race condition in `usePinnedProposals.persistToDb`
-**usePinnedProposals.ts line 33**: The `savingRef` guard silently drops concurrent saves. If a user rapidly toggles pins, intermediate states may be lost — the delete-all + insert pattern isn't atomic.
-
-**Fix**: Use upsert or wrap in a transaction. At minimum, queue the latest state and re-persist after the current save completes (same pattern as the save pipeline fix).
-
-### 6. `useProfileCompletion` — missing `useCallback` wrapper for `checkProfile`
-**useProfileCompletion.ts line 16**: `checkProfile` is a plain `async function` — it's recreated on every render. The `useEffect` on line 66 depends on `user?.id` but calls `checkProfile` which has an unstable reference. Not a crash bug, but causes unnecessary re-runs.
-
-**Fix**: Wrap `checkProfile` in `useCallback` with `[user]` dep.
-
----
-
-## B. Redundant Code Cleanup
-
-### 1. Dead sample data in Dashboard (~185 lines)
-**Dashboard.tsx lines 47-229**: The `sampleProposals` array contains 9 hardcoded proposal objects that are never used — the dashboard fetches real data from the database. The `topicIcons` map (lines 35-44) maps hardcoded acronyms like 'GreenTech' to icons, but these only match the unused sample data.
-
-**Fix**: Remove `sampleProposals` (lines 47-229) and `topicIcons` (lines 35-44). Remove `topicIcons` props from `ProposalTableView`, `ProposalKanbanView`, and `ProposalCard`. Also remove `src/lib/sampleProposals.ts` if `ProposalMultiSelect` can be updated to start with an empty array (it already fetches from DB).
-
-### 2. Dead file: `src/lib/sampleProposals.ts`
-Only used by `ProposalMultiSelect` as a fallback default. Since the component fetches real data on mount, the fallback is unnecessary.
-
-**Fix**: Delete `src/lib/sampleProposals.ts`. Update `ProposalMultiSelect` to initialize with `[]` instead.
-
-### 3. Duplicate profile-checking logic
-Profile completeness is checked in two separate places with **different field lists**:
-- `useProfileCompletion.ts` checks 9 fields (first_name, last_name, organisation, etc.)  
-- `useNotifications.ts` line 39 only checks `full_name` containing a space
-
-These can produce contradictory results. 
-
-**Fix**: Consolidate into `useProfileCompletion` as the single source of truth. Have `useNotifications` import and use that hook's result instead of its own inline check.
-
-### 4. Unused Lucide icon imports in Dashboard
-**Dashboard.tsx line 12**: Imports `GripVertical`, `Trophy`, `XCircle`, `AlertTriangle`, `Clock`, `CheckCircle2`, `Send` — verify which are actually used. Several appear to be leftover from when sample data was rendered with status icons.
-
-**Fix**: Audit and remove unused imports.
-
----
-
-## Summary of changes
-
-| File | Type | Change |
-|------|------|--------|
-| `src/components/DocumentEditor.tsx` | Bug | Re-sanitize `citationHtml` after acronym replacement |
-| `src/components/TopicRichTextArea.tsx` | Bug | Sanitize footnote `fn.text` and readonly `html` with DOMPurify |
-| `src/hooks/useNotifications.ts` | Bug | Remove 5-second polling interval |
-| `src/hooks/useProposalSections.ts` | Bug | Remove redundant deps from `allSections` useMemo |
-| `src/hooks/useProfileCompletion.ts` | Bug | Wrap `checkProfile` in `useCallback` |
-| `src/pages/Dashboard.tsx` | Cleanup | Remove ~185 lines of dead sample data + unused icon imports |
-| `src/lib/sampleProposals.ts` | Cleanup | Delete file |
-| `src/components/ProposalMultiSelect.tsx` | Cleanup | Replace sample data fallback with empty array |
-| `src/hooks/useNotifications.ts` | Cleanup | Remove duplicate profile-check logic; use `useProfileCompletion` |
-| `src/components/ProposalTableView.tsx` | Cleanup | Remove `topicIcons` prop |
-| `src/components/ProposalKanbanView.tsx` | Cleanup | Remove `topicIcons` prop |
-| `src/components/ProposalCard.tsx` | Cleanup | Remove `topicIcon` prop |
-
+Technical details
+- Data-flow model:
+```text
+Keyboard input
+  -> handleTextInput/handleKeyDown (authoritative)
+     -> precise tr mutation (only inserted span sanitized)
+     -> optional split-id reassignment for right segment
+     -> dispatch trackChangesInternal
+appendTransaction
+  -> fallback only (no broad mark stripping when OFF)
+```
+- Key invariant checks:
+```text
+OFF mode:
+- Existing [trackDeletion|trackInsertion] marks are never removed implicitly.
+- New inserted text always ends with mark set excluding track marks.
+```

@@ -10,9 +10,8 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { SAMPLE_PROPOSALS_BASIC, type SampleProposalBasic } from "@/lib/sampleProposals";
 
-type Proposal = SampleProposalBasic;
+type Proposal = { id: string; acronym: string; title: string };
 
 interface ProposalMultiSelectProps {
   selectedProposalIds: string[];
@@ -27,7 +26,7 @@ export function ProposalMultiSelect({
 }: ProposalMultiSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [proposals, setProposals] = useState<Proposal[]>(SAMPLE_PROPOSALS_BASIC);
+  const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -39,15 +38,11 @@ export function ProposalMultiSelect({
           .select("id, acronym, title")
           .order("acronym", { ascending: true });
 
-        if (!error && data && data.length > 0) {
+        if (!error && data) {
           setProposals(data);
-        } else {
-          // Fallback to sample proposals
-          setProposals(SAMPLE_PROPOSALS_BASIC);
         }
       } catch (err) {
         console.error('Error fetching proposals:', err);
-        setProposals(SAMPLE_PROPOSALS_BASIC);
       } finally {
         setLoading(false);
       }

@@ -18,7 +18,7 @@ const getEstimatedDecisionDate = (proposal: Proposal): Date | null => {
 interface ProposalKanbanViewProps {
   proposals: Proposal[];
   onProposalClick: (proposal: Proposal) => void;
-  topicIcons?: Record<string, React.ReactNode>;
+  
 }
 
 type KanbanColumnType = 'drafts' | 'submitted';
@@ -88,7 +88,7 @@ const getSubmittedStatusInfo = (status: string) => {
   return { sortOrder: 4 };
 };
 
-export function ProposalKanbanView({ proposals, onProposalClick, topicIcons }: ProposalKanbanViewProps) {
+export function ProposalKanbanView({ proposals, onProposalClick }: ProposalKanbanViewProps) {
   // Get drafts grouped by urgency
   const getDraftsByUrgency = (urgency: 'critical' | 'due_soon' | 'on_track') => {
     return proposals
@@ -140,7 +140,7 @@ export function ProposalKanbanView({ proposals, onProposalClick, topicIcons }: P
     const destination = DESTINATIONS.find(d => d.id === proposal.destination);
     const isDraft = proposal.status === 'draft';
     const isDecided = proposal.status === 'funded' || proposal.status === 'not_funded';
-    const topicIcon = topicIcons?.[proposal.acronym];
+    
 
     return (
       <Card 
@@ -177,8 +177,6 @@ export function ProposalKanbanView({ proposals, onProposalClick, topicIcons }: P
                     <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
                       {proposal.logoUrl ? (
                         <StorageImage storedPath={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
-                      ) : topicIcon ? (
-                        <div className="scale-50">{topicIcon}</div>
                       ) : (
                         <FileText className="w-4 h-4 text-primary" />
                       )}
