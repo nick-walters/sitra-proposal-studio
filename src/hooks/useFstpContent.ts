@@ -10,7 +10,9 @@ const DEFAULT_INSTRUCTIONS = `Where this possibility is indicated under the rele
      b)     The criteria for calculating the exact amount of the financial support
      c)     The different types of activity that qualify for financial support, on the basis of a closed list
      d)     The persons or categories of persons that may receive financial support, and
-     e)     The criteria for giving financial support`;
+      e)     The criteria for giving financial support`;
+
+const DEFAULT_RESPONSE = '<p><strong><u>Objectives</u></strong></p><p></p><p><strong><u>Open call &amp; evaluation criteria specifications</u></strong></p><p></p>';
 
 export interface FstpContentData {
   id?: string;
