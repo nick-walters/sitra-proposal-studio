@@ -547,18 +547,14 @@ function SectionItem({
 
       {hasSubsections && (isAlwaysExpanded || isExpanded) && (
         <div className="animate-slide-in-left">
-          {/* Render WP Drafts, Case Drafts, and A2 Participants as multi-column grid of bubbles */}
-          {(section.id === 'wp-drafts' || section.id === 'case-drafts' || section.id === 'a2' || section.id === 'a3') ? (
+          {/* Render WP Drafts and Case Drafts as multi-column grid of bubbles */}
+          {(section.id === 'wp-drafts' || section.id === 'case-drafts') ? (
             <div 
-              className={cn(
-                "grid gap-x-[3px] py-1",
-                (section.id === 'a2' || section.id === 'a3') ? "" : "grid-cols-2"
-              )}
+              className="grid grid-cols-2 gap-x-[3px] py-1"
               style={{ 
                 paddingLeft: `${depth * 8 + 12}px`, 
                 paddingRight: '8px',
                 rowGap: '2px',
-                ...((section.id === 'a2' || section.id === 'a3') ? { gridTemplateColumns: 'repeat(auto-fill, minmax(55px, 1fr))' } : {}),
               }}
             >
               {section.subsections!.map((subsection) => {
