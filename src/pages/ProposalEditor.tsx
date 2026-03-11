@@ -750,6 +750,7 @@ export function ProposalEditor() {
                 canGrant={isGlobalOwner || isCoordinator}
                 proposalId={id}
                 proposalAcronym={proposal?.acronym}
+                proposalType={proposal?.type}
               />
             </div>
           );
