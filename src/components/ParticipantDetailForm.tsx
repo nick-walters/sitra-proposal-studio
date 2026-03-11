@@ -79,6 +79,9 @@ export function ParticipantDetailForm({
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
+  // OCD hook
+  const ocd = useOCD(proposalId);
+
   // Use new participant details hook for extended data
   const {
     loading: detailsLoading,

@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Participant, ParticipantMember, Section, ParticipantType } from '@/types/proposal';
 import { Building2, GripVertical, UserPlus, Plus, Search, Check, Upload, X, Loader2, Hash } from 'lucide-react';
 import { BulkPicLookupDialog } from './BulkPicLookupDialog';
