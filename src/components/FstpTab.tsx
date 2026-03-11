@@ -589,7 +589,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
 
           <div className="border rounded-md overflow-hidden">
             {canEdit && <FstpToolbar editor={editor} />}
-            <div className="prose prose-sm max-w-none p-4 min-h-[300px] focus-within:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[280px]">
+            <div className="max-w-none p-4 min-h-[300px] text-sm focus-within:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[280px] [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-6 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-6 [&_.ProseMirror_li]:my-1">
               <EditorContent editor={editor} />
             </div>
           </div>
