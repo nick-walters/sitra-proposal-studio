@@ -30,7 +30,6 @@ import {
   Pencil,
   Check,
   X,
-  Image as ImageIcon,
 } from 'lucide-react';
 import {
   Tooltip,
