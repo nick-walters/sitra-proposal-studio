@@ -55,6 +55,7 @@ export function useFstpContent(proposalId: string, fstpType: 'grant' | 'prize' =
       .from('fstp_content' as any)
       .select('*')
       .eq('proposal_id', proposalId)
+      .eq('fstp_type', fstpType)
       .maybeSingle();
 
     if (error) {
