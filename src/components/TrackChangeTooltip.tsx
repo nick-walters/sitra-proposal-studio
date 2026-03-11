@@ -86,7 +86,10 @@ export function TrackChangeTooltip({ editor, containerRef }: TrackChangeTooltipP
     // Don't hide if moving to another tracked change
     if (relatedEl?.closest?.('[data-track-insertion], [data-track-deletion]')) return;
 
-    hideTimeout.current = setTimeout(() => setTooltip(null), 150);
+    hideTimeout.current = setTimeout(() => {
+      setTooltip(null);
+      lockedChangeIdRef.current = null;
+    }, 300);
   }, []);
 
   // Keep tooltip visible when hovering over it
@@ -95,7 +98,10 @@ export function TrackChangeTooltip({ editor, containerRef }: TrackChangeTooltipP
   }, []);
 
   const handleTooltipLeave = useCallback(() => {
-    hideTimeout.current = setTimeout(() => setTooltip(null), 150);
+    hideTimeout.current = setTimeout(() => {
+      setTooltip(null);
+      lockedChangeIdRef.current = null;
+    }, 300);
   }, []);
 
   useEffect(() => {
