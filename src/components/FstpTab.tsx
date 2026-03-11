@@ -435,11 +435,11 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
 
       {/* Instructions + Response in one card */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-2">
           <div className="flex items-start justify-between gap-2">
             <div>
               <CardTitle className="text-base">Financial support in the form of a grant awarded after a call for proposals</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">Instructions</p>
+              <p className="text-sm font-bold italic text-muted-foreground mt-0.5">Instructions</p>
             </div>
             {isCoordinator && !editingInstructions && (
               <Button
@@ -454,6 +454,9 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          <p className="text-sm italic text-muted-foreground leading-relaxed">
+            For calls that allow 'Financial support to third parties', project participants must add this document to the application and upload it as separate annex to the proposal part B in the Submission System.
+          </p>
           {editingInstructions ? (
             <div className="space-y-2">
               <textarea
