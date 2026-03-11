@@ -58,13 +58,13 @@ const COST_CATEGORIES = [
 ] as const;
 
 const PARTICIPANT_COLUMNS = [
-  { key: 'personnelCosts', label: 'Personnel' },
-  { key: 'subcontractingCosts', label: 'Subcontracting' },
-  { key: 'purchaseTravel', label: 'Travel' },
-  { key: 'purchaseEquipment', label: 'Equipment' },
-  { key: 'purchaseOtherGoods', label: 'Other goods' },
-  { key: 'internallyInvoiced', label: 'Internally inv.' },
-  { key: 'indirectCosts', label: 'Indirect costs' },
+  { key: 'personnelCosts', label: 'A. Personnel' },
+  { key: 'subcontractingCosts', label: 'B. Subcontracting' },
+  { key: 'purchaseTravel', label: 'C.1 Travel' },
+  { key: 'purchaseEquipment', label: 'C.2 Equipment' },
+  { key: 'purchaseOtherGoods', label: 'C.3 Other goods' },
+  { key: 'internallyInvoiced', label: 'D. Internally inv.' },
+  { key: 'indirectCosts', label: 'E. Indirect costs' },
   { key: 'totalEligibleCosts', label: 'Total eligible' },
   { key: 'requestedEuContribution', label: 'EU contribution' },
 ] as const;
