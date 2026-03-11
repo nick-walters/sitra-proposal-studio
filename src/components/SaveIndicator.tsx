@@ -1,11 +1,6 @@
 import { Cloud, Check, Loader2, Save, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 interface SaveIndicatorProps {
   saving: boolean;
@@ -55,30 +50,24 @@ export function SaveIndicator({ saving, lastSaved, hasUnsavedChanges = false, sa
         )}
       </div>
       {onSaveNow && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn(
-                "ml-1 h-6 px-2 gap-1 text-[10px] font-medium transition-colors",
-                state === 'error'
-                  ? "text-destructive hover:text-destructive/80"
-                  : hasUnsavedChanges
-                    ? "text-primary hover:text-primary/80"
-                    : "text-muted-foreground hover:text-foreground"
-              )}
-              onClick={onSaveNow}
-              disabled={saving}
-            >
-              <Save className="w-3 h-3" />
-              <span>{state === 'error' ? 'Retry' : 'Save'}</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-xs">
-            {state === 'error' ? 'Retry saving (Ctrl+S)' : 'Save now (Ctrl+S)'}
-          </TooltipContent>
-        </Tooltip>
+        <Button
+          variant="ghost"
+          size="sm"
+          className={cn(
+            "ml-1 h-6 px-2 gap-1 text-[10px] font-medium transition-colors",
+            state === 'error'
+              ? "text-destructive hover:text-destructive/80"
+              : hasUnsavedChanges
+                ? "text-primary hover:text-primary/80"
+                : "text-muted-foreground hover:text-foreground"
+          )}
+          onClick={onSaveNow}
+          disabled={saving}
+          title={state === 'error' ? 'Retry saving (Ctrl+S)' : 'Save now (Ctrl+S)'}
+        >
+          <Save className="w-3 h-3" />
+          <span>{state === 'error' ? 'Retry' : 'Save'}</span>
+        </Button>
       )}
     </div>
   );
