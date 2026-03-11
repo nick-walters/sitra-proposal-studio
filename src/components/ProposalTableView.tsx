@@ -198,7 +198,7 @@ export function ProposalTableView({ proposals, onProposalClick, pinnedIds = [], 
     const isDecided = proposal.status === 'funded' || proposal.status === 'not_funded';
     const statusInfo = getCombinedStatusInfo(proposal);
     const StatusIcon = statusInfo.icon;
-    const topicIcon = topicIcons?.[proposal.acronym];
+    
     const pinned = options?.pinned ?? false;
 
     return (
