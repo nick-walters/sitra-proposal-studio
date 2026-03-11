@@ -418,7 +418,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
 
       // Subheading
       children.push(new Paragraph({
-        children: [new TextRun({ text: 'Financial support in the form of a grant awarded after a call for proposals', bold: true, font: 'Times New Roman', size: 24 })],
+        children: [new TextRun({ text: fstpType === 'prize' ? 'Financial support in the form of a prize' : 'Financial support in the form of a grant awarded after a call for proposals', bold: true, font: 'Times New Roman', size: 24 })],
         spacing: { after: 200 },
       }));
 
