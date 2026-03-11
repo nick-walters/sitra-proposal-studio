@@ -431,7 +431,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
       {/* Instructions card - editable by coordinators */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Instructions</CardTitle>
+          <CardTitle className="text-base">Instructions: Financial support in the form of a grant awarded after a call for proposals</CardTitle>
         </CardHeader>
         <CardContent>
           {isCoordinator && canEdit ? (
