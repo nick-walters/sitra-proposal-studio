@@ -140,7 +140,7 @@ export function ProposalKanbanView({ proposals, onProposalClick }: ProposalKanba
     const destination = DESTINATIONS.find(d => d.id === proposal.destination);
     const isDraft = proposal.status === 'draft';
     const isDecided = proposal.status === 'funded' || proposal.status === 'not_funded';
-    const topicIcon = topicIcons?.[proposal.acronym];
+    
 
     return (
       <Card 
