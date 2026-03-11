@@ -107,7 +107,7 @@ function PinButton({ isPinned, canPin, onTogglePin, proposalId, className = '' }
   );
 }
 
-export function ProposalCard({ proposal, onClick, compact = false, topicIcon, isPinned, canPin, onTogglePin, showDragHandle }: ProposalCardProps) {
+export function ProposalCard({ proposal, onClick, compact = false, isPinned, canPin, onTogglePin, showDragHandle }: ProposalCardProps) {
   const isDraft = proposal.status === 'draft';
   const isDecided = proposal.status === 'funded' || proposal.status === 'not_funded';
   
