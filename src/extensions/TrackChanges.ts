@@ -354,10 +354,35 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
             tr.insert(mappedStart + reinsertedLength, Fragment.from(markedNodes));
             reinsertedLength += markedNodes.reduce((s: number, n: any) => s + n.nodeSize, 0);
           }
-          // Position cursor before the reinserted content
-          try {
-            tr.setSelection(TextSelection.near(tr.doc.resolve(mappedStart)));
-          } catch { }
+          // If this is a replacement (delete + insert in same range), also mark the insertion
+          if (newEnd > newStart) {
+            const insertStart = mappedStart + reinsertedLength;
+            const insertLen = newEnd - newStart;
+            const insertEnd = insertStart + insertLen;
+            let insChangeId: string;
+            if (storage.lastInsertionId && insertStart === storage.lastInsertionEnd) {
+              insChangeId = storage.lastInsertionId;
+            } else {
+              insChangeId = generateChangeId();
+            }
+            storage.lastInsertionId = insChangeId;
+            storage.lastInsertionTime = now;
+            storage.lastInsertionEnd = insertEnd;
+            if (deletionType) tr.removeMark(insertStart, insertEnd, deletionType);
+            tr.addMark(insertStart, insertEnd, insertionType.create({
+              changeId: insChangeId, authorId, authorName, authorColor,
+              timestamp: new Date().toISOString(),
+            }));
+            // Position cursor after the newly inserted content
+            try {
+              tr.setSelection(TextSelection.near(tr.doc.resolve(insertEnd)));
+            } catch { }
+          } else {
+            // Pure deletion - position cursor before the reinserted content
+            try {
+              tr.setSelection(TextSelection.near(tr.doc.resolve(mappedStart)));
+            } catch { }
+          }
           return;
         }
 

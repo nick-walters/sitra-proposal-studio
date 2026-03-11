@@ -156,6 +156,8 @@ export function TrackChangeTooltip({ editor, containerRef }: TrackChangeTooltipP
         left: `${tooltip.x}px`,
         top: `${tooltip.y}px`,
         transform: 'translate(-50%, -100%)',
+        paddingBottom: '12px',
+        marginBottom: '-8px',
       }}
       onMouseEnter={handleTooltipEnter}
       onMouseLeave={handleTooltipLeave}

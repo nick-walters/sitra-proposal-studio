@@ -1087,9 +1087,7 @@ export function DocumentEditor({
                     size="sm"
                     className="h-6 px-2 text-xs gap-1"
                     onClick={() => {
-                      const next = !isCollaborationPanelOpen;
-                      setIsCollaborationPanelOpen(next);
-                      try { localStorage.setItem('sitra-collab-panel-open', String(next)); } catch {}
+                      setIsCollaborationPanelOpen(!isCollaborationPanelOpen);
                     }}
                   >
                     {isCollaborationPanelOpen ? <PanelRightClose className="w-3 h-3" /> : <PanelRight className="w-3 h-3" />}
