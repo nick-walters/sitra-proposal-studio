@@ -351,6 +351,7 @@ export function useProposalData(proposalId: string) {
     if (updates.status !== undefined) dbUpdates.status = updates.status;
     if (updates.expectedProjects !== undefined) dbUpdates.expected_projects = updates.expectedProjects;
     if (updates.usesFstp !== undefined) dbUpdates.uses_fstp = updates.usesFstp;
+    if (updates.fstpType !== undefined) dbUpdates.fstp_type = updates.fstpType;
     if (updates.indicativeBudgetPerProject !== undefined) dbUpdates.indicative_budget_per_project = updates.indicativeBudgetPerProject;
     if (updates.fstpBudget !== undefined) dbUpdates.fstp_budget = updates.fstpBudget;
     if (updates.fstpBudgetPerThirdParty !== undefined) dbUpdates.fstp_budget_per_third_party = updates.fstpBudgetPerThirdParty;
