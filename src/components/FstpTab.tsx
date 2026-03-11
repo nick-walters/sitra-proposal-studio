@@ -286,6 +286,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
   const [draftInstructions, setDraftInstructions] = useState('');
   const isInitRef = useRef(false);
 
+  // Only create the editor once loading is done so we have DB content
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ orderedList: false }),
@@ -299,8 +300,8 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
       TableHeader,
       ResizableImage,
     ],
-    content: data.responseContent || '<p></p>',
-    editable: canEdit,
+    content: loading ? '<p></p>' : (data.responseContent || '<p></p>'),
+    editable: canEdit && !loading,
     onUpdate: ({ editor: e }) => {
       if (isInitRef.current) {
         updateResponse(e.getHTML());
@@ -308,16 +309,16 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
     },
   });
 
-  // Sync content from DB on first load
+  // Sync content from DB once loading finishes
   useEffect(() => {
-    if (editor && data.responseContent && !isInitRef.current) {
-      const currentContent = editor.getHTML();
-      if (currentContent === '<p></p>' || currentContent === '') {
-        editor.commands.setContent(data.responseContent || '<p></p>');
-      }
-      isInitRef.current = true;
+    if (editor && !loading && !isInitRef.current) {
+      editor.commands.setContent(data.responseContent || '<p></p>');
+      // Use a microtask to ensure setContent completes before enabling tracking
+      queueMicrotask(() => {
+        isInitRef.current = true;
+      });
     }
-  }, [editor, data.responseContent]);
+  }, [editor, loading, data.responseContent]);
 
   // Update editable state
   useEffect(() => {
