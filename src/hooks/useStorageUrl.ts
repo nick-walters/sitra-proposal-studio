@@ -36,23 +36,34 @@ export async function resolveStorageUrl(storedValue: string | null | undefined):
 }
 
 /**
+ * Compute the initial/synchronous value for a stored path.
+ * Returns the value directly for data URIs, blob URLs, and regular http URLs
+ * that don't need signed-URL resolution. Returns null only when async resolution is needed.
+ */
+function getInitialUrl(storedValue: string | null | undefined): string | null {
+  if (!storedValue) return null;
+  if (!isStoragePath(storedValue)) return storedValue;
+  return null; // needs async resolution
+}
+
+/**
  * Hook that resolves a storage file path or expired signed URL to a fresh signed URL.
  * Pass a logoUrl/path value; returns a displayable URL.
+ * For data URIs, blob URLs, and regular http URLs the value is returned synchronously
+ * on the very first render (no flash of null).
  */
 export function useStorageUrl(storedValue: string | null | undefined): string | null {
-  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(() => getInitialUrl(storedValue));
 
   useEffect(() => {
-    if (!storedValue) {
-      setResolvedUrl(null);
+    // Re-sync for value changes that can be resolved synchronously
+    const syncValue = getInitialUrl(storedValue);
+    if (syncValue !== null || !storedValue) {
+      setResolvedUrl(syncValue);
       return;
     }
 
-    if (!isStoragePath(storedValue)) {
-      setResolvedUrl(storedValue);
-      return;
-    }
-
+    // Async path: need a signed URL
     const path = extractStoragePath(storedValue);
     if (!path) {
       setResolvedUrl(storedValue);
