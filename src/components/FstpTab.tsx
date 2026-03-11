@@ -454,6 +454,9 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          <p className="text-sm italic text-muted-foreground leading-relaxed">
+            For calls that allow 'Financial support to third parties', project participants must add this document to the application and upload it as separate annex to the proposal part B in the Submission System.
+          </p>
           {editingInstructions ? (
             <div className="space-y-2">
               <textarea
