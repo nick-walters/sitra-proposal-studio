@@ -18,7 +18,7 @@ const getEstimatedDecisionDate = (proposal: Proposal): Date | null => {
 interface ProposalKanbanViewProps {
   proposals: Proposal[];
   onProposalClick: (proposal: Proposal) => void;
-  topicIcons?: Record<string, React.ReactNode>;
+  
 }
 
 type KanbanColumnType = 'drafts' | 'submitted';
