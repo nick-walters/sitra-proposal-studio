@@ -572,10 +572,9 @@ function SectionItem({
                           className={cn(
                             "inline-flex items-center justify-start w-fit px-1.5 py-0 rounded-full text-[11px] font-bold truncate cursor-pointer transition-all max-w-full leading-tight break-all",
                             isSubActive && "ring-2 ring-primary ring-offset-1",
-                            !isWP && !isCase && "italic"
                           )}
                           style={{ 
-                            backgroundColor: isWP ? wpSub.wpColor : isCase ? '#ffffff' : '#000000',
+                            backgroundColor: isWP ? wpSub.wpColor : '#ffffff',
                             color: isCase ? '#000000' : '#ffffff',
                             border: isCase ? '1.5px solid #000000' : undefined,
                           }}
@@ -583,18 +582,14 @@ function SectionItem({
                         >
                           {isWP 
                             ? `WP${wpSub.wpNumber}: ${wpSub.title}`
-                            : isCase
-                              ? `${caseSub.number}: ${caseSub.title}`
-                              : `${subsection.number}: ${subsection.title}`
+                            : `${caseSub.number}: ${caseSub.title}`
                           }
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="right" className="text-xs">
                         {isWP 
                           ? `WP${wpSub.wpNumber}: ${wpSub.title}`
-                          : isCase
-                            ? `Case ${caseSub.number}: ${caseSub.title}`
-                            : `Participant ${subsection.number}: ${subsection.title}`
+                          : `Case ${caseSub.number}: ${caseSub.title}`
                         }
                       </TooltipContent>
                     </Tooltip>
