@@ -63,6 +63,9 @@ import {
   Layers,
   Building2,
   Columns,
+  Palette,
+  Pipette,
+  Ban,
 } from "lucide-react";
 import {
   Tooltip,
