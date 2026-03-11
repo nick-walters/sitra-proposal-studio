@@ -26,7 +26,7 @@ export function ProposalMultiSelect({
 }: ProposalMultiSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [proposals, setProposals] = useState<Proposal[]>(SAMPLE_PROPOSALS_BASIC);
+  const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
