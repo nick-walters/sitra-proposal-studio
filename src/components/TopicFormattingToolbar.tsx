@@ -1,4 +1,5 @@
-import { Bold, Italic, Underline, List, ListOrdered, Link } from "lucide-react";
+import { Bold, Italic, Underline, List, Link } from "lucide-react";
+import { OrderedListDropdown } from "./OrderedListDropdown";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
