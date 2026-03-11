@@ -395,7 +395,7 @@ export function BudgetPortalSheet({
                   {canEdit && onNavigateToParticipantBudget && rows.length > 0 && (
                     <div className="flex-shrink-0 ml-1">
                       {/* Header spacer */}
-                      <div className="px-3 py-3 border-b whitespace-nowrap">&nbsp;</div>
+                      <div className="px-3 py-3 whitespace-nowrap">&nbsp;</div>
                       {/* One button per row */}
                       {rows.map(row => (
                         <div key={row.id} className="px-3 py-2 flex items-center justify-center">
