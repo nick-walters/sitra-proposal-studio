@@ -335,7 +335,6 @@ export function BudgetPortalSheet({
                         ))}
                         <th className="min-w-[80px] px-3 py-3 text-right border-r font-medium">% of Budget</th>
                         {isAdmin && <th className="w-12 px-3 py-3 text-center font-medium">Lock</th>}
-                        {canEdit && onNavigateToParticipantBudget && <th className="w-24 px-3 py-3 text-center font-medium" />}
                       </tr>
                     </thead>
                     <tbody>
@@ -372,17 +371,6 @@ export function BudgetPortalSheet({
                                 </Button>
                               </td>
                             )}
-                            {canEdit && onNavigateToParticipantBudget && (
-                              <td className="px-3 py-2 text-center">
-                                <Button
-                                  size="sm"
-                                  className="h-auto py-1.5 px-3 text-xs font-semibold"
-                                  onClick={() => onNavigateToParticipantBudget(row.participantId)}
-                                >
-                                  Edit budget
-                                </Button>
-                              </td>
-                            )}
                           </tr>
                         );
                       })}
@@ -399,11 +387,24 @@ export function BudgetPortalSheet({
                         ))}
                         <td className="px-3 py-2 text-right border-r font-bold">100%</td>
                         {isAdmin && <td />}
-                        {canEdit && onNavigateToParticipantBudget && <td />}
                       </tr>
                     </tfoot>
                   </table>
                 </div>
+                {canEdit && onNavigateToParticipantBudget && rows.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border">
+                    {rows.map(row => (
+                      <Button
+                        key={row.id}
+                        size="sm"
+                        className="h-auto py-1.5 px-3 text-xs font-semibold"
+                        onClick={() => onNavigateToParticipantBudget(row.participantId)}
+                      >
+                        Edit budget — {row.participantShortName || row.participantName}
+                      </Button>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
