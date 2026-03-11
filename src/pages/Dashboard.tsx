@@ -824,7 +824,6 @@ export function Dashboard() {
                           proposal={proposal}
                           onClick={() => navigate(`/proposal/${proposal.id}`)}
                           compact={viewMode === 'list'}
-                          topicIcon={topicIcons[proposal.acronym]}
                           isPinned={true}
                           canPin={true}
                           onTogglePin={togglePin}
