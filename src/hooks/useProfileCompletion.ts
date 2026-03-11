@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
@@ -13,7 +13,7 @@ export function useProfileCompletion(): ProfileStatus {
   const [isComplete, setIsComplete] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
 
-  const checkProfile = async () => {
+  const checkProfile = useCallback(async () => {
     if (!user) {
       setIsComplete(true);
       setIsLoading(false);
@@ -30,11 +30,10 @@ export function useProfileCompletion(): ProfileStatus {
 
       if (error) {
         console.error('Error checking profile completion:', error);
-        setIsComplete(true); // Default to complete if error to avoid blocking
+        setIsComplete(true);
         return;
       }
 
-      // Check if all required fields are filled
       const requiredFields = [
         data.first_name,
         data.last_name,
@@ -51,7 +50,6 @@ export function useProfileCompletion(): ProfileStatus {
         (field) => field !== null && field !== undefined && String(field).trim() !== ''
       );
 
-      // Also require GDPR consent
       const hasGdprConsent = !!(data as any).gdpr_consented_at;
 
       setIsComplete(allFieldsFilled && hasGdprConsent);
@@ -61,11 +59,11 @@ export function useProfileCompletion(): ProfileStatus {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     checkProfile();
-  }, [user?.id]);
+  }, [checkProfile]);
 
   return { isComplete, isLoading, checkProfile };
 }

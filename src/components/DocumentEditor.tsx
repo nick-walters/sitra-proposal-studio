@@ -1383,6 +1383,11 @@ export function DocumentEditor({
                           new RegExp(`\\b${proposalAcronym.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'g'),
                           coloredAcronym
                         );
+                        // Re-sanitize after acronym replacement to prevent XSS from DB-sourced segments
+                        citationHtml = DOMPurify.sanitize(citationHtml, {
+                          ALLOWED_TAGS: ['em', 'strong', 'sup', 'span'],
+                          ALLOWED_ATTR: ['style'],
+                        });
                       }
                       return (
                         <p key={fn.number} className="text-[8pt] text-muted-foreground" 

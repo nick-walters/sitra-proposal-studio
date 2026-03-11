@@ -242,7 +242,6 @@ export function useNotifications() {
     return () => {
       supabase.removeChannel(channel);
       supabase.removeChannel(profileChannel);
-      clearInterval(pollInterval);
     };
   }, [user?.id, fetchNotifications, checkProfile]);
 

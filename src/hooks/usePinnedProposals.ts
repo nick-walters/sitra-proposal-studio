@@ -7,6 +7,7 @@ export function usePinnedProposals(userId: string | undefined) {
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
   const [loaded, setLoaded] = useState(false);
   const savingRef = useRef(false);
+  const pendingRef = useRef<string[] | null>(null);
 
   // Load from database on mount / userId change
   useEffect(() => {
@@ -30,12 +31,15 @@ export function usePinnedProposals(userId: string | undefined) {
   }, [userId]);
 
   const persistToDb = useCallback(async (ids: string[]) => {
-    if (!userId || savingRef.current) return;
+    if (!userId) return;
+    if (savingRef.current) {
+      // Queue latest state instead of dropping
+      pendingRef.current = ids;
+      return;
+    }
     savingRef.current = true;
     try {
-      // Delete all existing pins for this user
       await supabase.from('pinned_proposals').delete().eq('user_id', userId);
-      // Insert new pins
       if (ids.length > 0) {
         await supabase.from('pinned_proposals').insert(
           ids.map((proposalId, i) => ({
@@ -47,6 +51,12 @@ export function usePinnedProposals(userId: string | undefined) {
       }
     } finally {
       savingRef.current = false;
+      // Flush queued state
+      if (pendingRef.current !== null) {
+        const queued = pendingRef.current;
+        pendingRef.current = null;
+        persistToDb(queued);
+      }
     }
   }, [userId]);
 
