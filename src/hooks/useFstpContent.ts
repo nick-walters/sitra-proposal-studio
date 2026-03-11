@@ -50,7 +50,7 @@ export function useFstpContent(proposalId: string) {
       setData({
         id: r.id,
         instructionsText: r.instructions_text || DEFAULT_INSTRUCTIONS,
-        responseContent: r.response_content || '',
+        responseContent: r.response_content || DEFAULT_RESPONSE,
       });
     }
     setLoading(false);
