@@ -872,6 +872,8 @@ StarterKit.configure({
   },
 }),
       Underline,
+      TextStyle,
+      Color,
       ParagraphClass,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
