@@ -442,11 +442,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
             />
           ) : (
             <div className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
-              {data.instructionsText.split(/(\*\*.*?\*\*)/).map((part, i) =>
-                part.startsWith('**') && part.endsWith('**')
-                  ? <strong key={i} className="font-semibold text-foreground">{part.slice(2, -2)}</strong>
-                  : part
-              )}
+              {data.instructionsText}
             </div>
           )}
         </CardContent>
