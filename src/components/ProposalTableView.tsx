@@ -241,8 +241,6 @@ export function ProposalTableView({ proposals, onProposalClick, pinnedIds = [], 
           <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center overflow-hidden">
             {proposal.logoUrl ? (
               <StorageImage storedPath={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
-            ) : topicIcon ? (
-              <div className="scale-50">{topicIcon}</div>
             ) : null}
           </div>
         </TableCell>

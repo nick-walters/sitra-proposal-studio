@@ -177,8 +177,6 @@ export function ProposalKanbanView({ proposals, onProposalClick }: ProposalKanba
                     <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
                       {proposal.logoUrl ? (
                         <StorageImage storedPath={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
-                      ) : topicIcon ? (
-                        <div className="scale-50">{topicIcon}</div>
                       ) : (
                         <FileText className="w-4 h-4 text-primary" />
                       )}

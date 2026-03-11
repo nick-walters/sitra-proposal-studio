@@ -255,8 +255,6 @@ export function ProposalCard({ proposal, onClick, compact = false, isPinned, can
               <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
                 {proposal.logoUrl ? (
                   <StorageImage storedPath={proposal.logoUrl} alt={proposal.acronym} className="w-full h-full object-cover" />
-                ) : topicIcon ? (
-                  topicIcon
                 ) : (
                   <FileText className="w-6 h-6 text-primary" />
                 )}
