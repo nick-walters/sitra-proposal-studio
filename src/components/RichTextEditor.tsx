@@ -500,6 +500,9 @@ export function FormattingToolbar({
           active={editor.isActive('underline')}
         />
 
+        {/* Text colour */}
+        <TextColorPicker editor={editor} />
+
         <Separator orientation="vertical" className="h-5 mx-1.5" />
 
         {/* Bullet Numbered */}
