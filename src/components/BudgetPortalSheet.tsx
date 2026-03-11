@@ -350,7 +350,7 @@ export function BudgetPortalSheet({
                                   {row.isLocked && <Lock className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
                                 </div>
                               </td>
-                              <td className="px-3 py-2 border-r text-muted-foreground whitespace-nowrap">{row.country || '—'}</td>
+                              
                               {PARTICIPANT_COLUMNS.map(c => (
                                 <td key={c.key} className="px-3 py-2 text-right border-r tabular-nums font-mono text-sm whitespace-nowrap">
                                   {formatNumber(row[c.key] as number)}
