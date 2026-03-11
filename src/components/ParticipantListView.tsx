@@ -482,7 +482,7 @@ function ParticipantCard({
           </div>
           
           {/* Save indicator / Edit button */}
-          <div className="w-10 shrink-0 flex items-center justify-end">
+          <div className="shrink-0 flex items-center justify-end">
             {canEdit && (isSaving || hasChanges) && (
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 {isSaving ? (
