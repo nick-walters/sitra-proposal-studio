@@ -950,10 +950,8 @@ export function DocumentEditor({
       const sel = window.getSelection();
       if (!sel || sel.isCollapsed) return;
 
-      if (setB31PendingAnchorFromSelection(sel)) {
-        setCollaborationTab('comments');
-        setIsCollaborationPanelOpen(true);
-      }
+      // Store the anchor for commenting but don't auto-open the panel
+      setB31PendingAnchorFromSelection(sel);
     };
 
     container.addEventListener('mouseup', handleMouseUp);
