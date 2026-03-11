@@ -437,18 +437,42 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
       {/* Instructions + Response in one card */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Financial support in the form of a grant awarded after a call for proposals</CardTitle>
-          <p className="text-sm text-muted-foreground">Instructions</p>
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <CardTitle className="text-base">Financial support in the form of a grant awarded after a call for proposals</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">Instructions</p>
+            </div>
+            {isCoordinator && !editingInstructions && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                onClick={() => { setDraftInstructions(data.instructionsText); setEditingInstructions(true); }}
+              >
+                <Pencil className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {isCoordinator && canEdit ? (
-            <textarea
-              className="w-full text-sm leading-relaxed text-muted-foreground bg-transparent border rounded-md p-3 resize-none overflow-hidden focus:outline-none focus:ring-1 focus:ring-ring"
-              value={data.instructionsText}
-              onChange={(e) => updateInstructions(e.target.value)}
-              ref={(el) => { if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; } }}
-              onInput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
-            />
+          {editingInstructions ? (
+            <div className="space-y-2">
+              <textarea
+                className="w-full text-sm leading-relaxed text-muted-foreground bg-transparent border rounded-md p-3 resize-none overflow-hidden focus:outline-none focus:ring-1 focus:ring-ring"
+                value={draftInstructions}
+                onChange={(e) => setDraftInstructions(e.target.value)}
+                ref={(el) => { if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; } }}
+                onInput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
+              />
+              <div className="flex items-center gap-2 justify-end">
+                <Button variant="ghost" size="sm" onClick={() => setEditingInstructions(false)}>
+                  <X className="w-4 h-4 mr-1" /> Cancel
+                </Button>
+                <Button size="sm" onClick={() => { updateInstructions(draftInstructions); setEditingInstructions(false); }}>
+                  <Check className="w-4 h-4 mr-1" /> Save
+                </Button>
+              </div>
+            </div>
           ) : (
             <div className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
               {data.instructionsText}
