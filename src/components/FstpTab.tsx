@@ -280,8 +280,8 @@ function FstpToolbar({ editor }: { editor: any }) {
   );
 }
 
-export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }: FstpTabProps) {
-  const { data, loading, saving, lastSaved, hasUnsavedChanges, saveError, updateInstructions, updateResponse, saveNow } = useFstpContent(proposalId);
+export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, fstpType = 'grant' }: FstpTabProps) {
+  const { data, loading, saving, lastSaved, hasUnsavedChanges, saveError, updateInstructions, updateResponse, saveNow } = useFstpContent(proposalId, fstpType);
   const [exporting, setExporting] = useState(false);
   const [editingInstructions, setEditingInstructions] = useState(false);
   const [draftInstructions, setDraftInstructions] = useState('');
