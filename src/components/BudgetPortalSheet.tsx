@@ -393,7 +393,7 @@ export function BudgetPortalSheet({
                     </table>
                   </div>
                   {canEdit && onNavigateToParticipantBudget && rows.length > 0 && (
-                    <div className="flex-shrink-0 border-l border-border ml-1">
+                    <div className="flex-shrink-0 ml-1">
                       {/* Header spacer */}
                       <div className="px-3 py-3 border-b whitespace-nowrap">&nbsp;</div>
                       {/* One button per row */}
