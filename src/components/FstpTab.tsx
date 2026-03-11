@@ -568,28 +568,39 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
           ) : (
             <div className="text-sm leading-relaxed text-muted-foreground">
               {data.instructionsText.split('\n').map((line, i) => {
+                const leadingSpaces = line.match(/^(\s*)/)?.[0].length || 0;
+                const marginLeftCh = leadingSpaces > 0 ? leadingSpaces * 0.6 : 0;
+                const marginLeft = marginLeftCh > 0 ? `${marginLeftCh}ch` : undefined;
                 const trimmed = line.trimStart();
-                const subItemMatch = trimmed.match(/^([a-z][.)]\s+)/);
+
+                // Detect sub-items like "a. ..." or "a) ..." and normalize extra spaces after marker
+                const subItemMatch = trimmed.match(/^([a-z][.)])\s+(.*)$/);
                 if (subItemMatch) {
-                  const hangIndent = `${subItemMatch[1].length}ch`;
+                  const normalized = `${subItemMatch[1]} ${subItemMatch[2]}`;
+                  // Align wrapped lines to the same text start column used by numbered items ("1.   ")
+                  const targetTextColumnCh = 5;
+                  const hangIndentCh = Math.max(1, targetTextColumnCh - marginLeftCh);
+                  const hangIndent = `${hangIndentCh}ch`;
+
                   return (
-                    <p key={i} style={{ paddingLeft: '5ch', textIndent: `-${hangIndent}` }}>
-                      {trimmed}
+                    <p key={i} style={{ marginLeft, paddingLeft: hangIndent, textIndent: `-${hangIndent}` }}>
+                      {normalized}
                     </p>
                   );
                 }
 
+                // Detect numbered items like "1.   ..."
                 const numMatch = trimmed.match(/^(\d+\.\s+)/);
                 if (numMatch) {
                   const hangIndent = `${numMatch[1].length}ch`;
                   return (
-                    <p key={i} style={{ paddingLeft: hangIndent, textIndent: `-${hangIndent}` }}>
+                    <p key={i} style={{ marginLeft, paddingLeft: hangIndent, textIndent: `-${hangIndent}` }}>
                       {trimmed}
                     </p>
                   );
                 }
 
-                return <p key={i}>{trimmed || '\u00A0'}</p>;
+                return <p key={i} style={{ marginLeft }}>{trimmed || '\u00A0'}</p>;
               })}
             </div>
           )}
