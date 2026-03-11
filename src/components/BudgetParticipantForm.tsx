@@ -92,7 +92,7 @@ export function BudgetParticipantForm({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold">
-            P{row.participantNumber}: {row.participantShortName || row.participantName}
+            {row.participantNumber}. {row.participantShortName || row.participantName}
             <span className="text-sm font-normal text-muted-foreground ml-2">({row.roleLabel})</span>
           </h2>
           <p className="text-sm text-muted-foreground">{row.country || 'No country specified'}</p>
