@@ -428,35 +428,32 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
         )}
       </div>
 
-      {/* Instructions card - editable by coordinators */}
+      {/* Instructions + Response in one card */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Instructions: Financial support in the form of a grant awarded after a call for proposals</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           {isCoordinator && canEdit ? (
             <textarea
-              className="w-full min-h-[200px] text-sm leading-relaxed text-muted-foreground bg-transparent border rounded-md p-3 resize-y focus:outline-none focus:ring-1 focus:ring-ring"
+              className="w-full text-sm leading-relaxed text-muted-foreground bg-transparent border rounded-md p-3 resize-y focus:outline-none focus:ring-1 focus:ring-ring"
               value={data.instructionsText}
               onChange={(e) => updateInstructions(e.target.value)}
+              rows={data.instructionsText.split('\n').length + 1}
             />
           ) : (
             <div className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
               {data.instructionsText}
             </div>
           )}
-        </CardContent>
-      </Card>
 
-      {/* Response editor */}
-      <Card>
-        <CardHeader className="pb-0">
-          <CardTitle className="text-base">Response</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {canEdit && <FstpToolbar editor={editor} />}
-          <div className="prose prose-sm max-w-none p-4 min-h-[300px] focus-within:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[280px]">
-            <EditorContent editor={editor} />
+          <Separator />
+
+          <div className="border rounded-md overflow-hidden">
+            {canEdit && <FstpToolbar editor={editor} />}
+            <div className="prose prose-sm max-w-none p-4 min-h-[300px] focus-within:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[280px]">
+              <EditorContent editor={editor} />
+            </div>
           </div>
         </CardContent>
       </Card>
