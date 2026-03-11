@@ -66,6 +66,7 @@ import {
   Palette,
   Pipette,
   Ban,
+  Check,
 } from "lucide-react";
 import {
   Tooltip,
