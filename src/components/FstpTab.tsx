@@ -27,6 +27,10 @@ import {
   Loader2,
   Table as TableIcon,
   Image as ImageIcon,
+  Pencil,
+  Check,
+  X,
+  Image as ImageIcon,
 } from 'lucide-react';
 import {
   Tooltip,
