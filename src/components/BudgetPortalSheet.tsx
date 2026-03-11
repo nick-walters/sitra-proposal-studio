@@ -395,10 +395,10 @@ export function BudgetPortalSheet({
                   {canEdit && onNavigateToParticipantBudget && rows.length > 0 && (
                     <div className="flex-shrink-0 border-l border-border ml-1">
                       {/* Header spacer */}
-                      <div className="px-3 py-3 border-b font-medium text-sm whitespace-nowrap">&nbsp;</div>
+                      <div className="px-3 py-3 border-b whitespace-nowrap">&nbsp;</div>
                       {/* One button per row */}
                       {rows.map(row => (
-                        <div key={row.id} className="px-3 py-2 border-t flex items-center">
+                        <div key={row.id} className="px-3 py-2 flex items-center justify-center">
                           <Button
                             size="sm"
                             className="h-auto py-1 px-3 text-xs font-semibold whitespace-nowrap"
@@ -409,7 +409,7 @@ export function BudgetPortalSheet({
                         </div>
                       ))}
                       {/* Footer spacer */}
-                      <div className="px-3 py-2 border-t-2 border-foreground/20">&nbsp;</div>
+                      <div className="px-3 py-2">&nbsp;</div>
                     </div>
                   )}
                 </div>
