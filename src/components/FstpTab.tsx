@@ -310,6 +310,11 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
     },
   });
 
+  // Reset init flag when fstpType changes so content re-syncs
+  useEffect(() => {
+    isInitRef.current = false;
+  }, [fstpType]);
+
   // Sync content from DB once loading finishes
   useEffect(() => {
     if (editor && !loading && !isInitRef.current) {
@@ -319,7 +324,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
         isInitRef.current = true;
       });
     }
-  }, [editor, loading, data.responseContent]);
+  }, [editor, loading, data.responseContent, fstpType]);
 
   // Update editable state
   useEffect(() => {

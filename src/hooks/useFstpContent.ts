@@ -55,6 +55,7 @@ export function useFstpContent(proposalId: string, fstpType: 'grant' | 'prize' =
       .from('fstp_content' as any)
       .select('*')
       .eq('proposal_id', proposalId)
+      .eq('fstp_type', fstpType)
       .maybeSingle();
 
     if (error) {
@@ -70,9 +71,15 @@ export function useFstpContent(proposalId: string, fstpType: 'grant' | 'prize' =
         instructionsText: r.instructions_text || DEFAULT_INSTRUCTIONS,
         responseContent: r.response_content || DEFAULT_RESPONSE,
       });
+    } else {
+      // No saved content for this type — use defaults
+      setData({
+        instructionsText: DEFAULT_INSTRUCTIONS,
+        responseContent: DEFAULT_RESPONSE,
+      });
     }
     setLoading(false);
-  }, [proposalId]);
+  }, [proposalId, fstpType]);
 
   useEffect(() => {
     fetchContent();
@@ -88,6 +95,7 @@ export function useFstpContent(proposalId: string, fstpType: 'grant' | 'prize' =
 
     const payload: Record<string, any> = {
       proposal_id: proposalId,
+      fstp_type: fstpType,
       updated_by: user.id,
       updated_at: new Date().toISOString(),
       instructions_text: instructionsText,
@@ -96,7 +104,7 @@ export function useFstpContent(proposalId: string, fstpType: 'grant' | 'prize' =
 
     const { error } = await supabase
       .from('fstp_content' as any)
-      .upsert(payload, { onConflict: 'proposal_id' } as any);
+      .upsert(payload, { onConflict: 'proposal_id,fstp_type' } as any);
 
     if (error) {
       const msg = 'Failed to save FSTP content';
