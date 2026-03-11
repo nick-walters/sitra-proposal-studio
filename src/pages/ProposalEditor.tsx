@@ -782,6 +782,8 @@ export function ProposalEditor() {
               proposalType={proposal?.type || null}
               canEdit={canEdit}
               isCoordinator={isCoordinator}
+              usesFstp={proposal?.usesFstp}
+              proposalAcronym={proposal?.acronym || ''}
             />
           </div>
         );
