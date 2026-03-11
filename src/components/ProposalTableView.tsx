@@ -10,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 interface ProposalTableViewProps {
   proposals: Proposal[];
   onProposalClick: (proposal: Proposal) => void;
-  topicIcons?: Record<string, React.ReactNode>;
+  
   pinnedIds?: string[];
   canPin?: boolean;
   onTogglePin?: (id: string) => void;
