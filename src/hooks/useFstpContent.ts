@@ -32,6 +32,7 @@ export interface FstpContentData {
 
 export function useFstpContent(proposalId: string, fstpType: 'grant' | 'prize' = 'grant') {
   const DEFAULT_INSTRUCTIONS = fstpType === 'prize' ? DEFAULT_PRIZE_INSTRUCTIONS : DEFAULT_GRANT_INSTRUCTIONS;
+  const DEFAULT_RESPONSE = fstpType === 'prize' ? DEFAULT_PRIZE_RESPONSE : DEFAULT_GRANT_RESPONSE;
   const { user } = useAuth();
   const [data, setData] = useState<FstpContentData>({
     instructionsText: DEFAULT_INSTRUCTIONS,
