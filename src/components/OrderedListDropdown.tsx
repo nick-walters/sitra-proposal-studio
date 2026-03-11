@@ -35,9 +35,14 @@ export function OrderedListDropdown({
 }: OrderedListDropdownProps) {
   const handleSelect = (style: ListStyleType) => {
     if (editor) {
-      // If already in an ordered list, update style; otherwise toggle on with style
       if (editor.isActive('orderedList')) {
-        editor.chain().focus().updateAttributes('orderedList', { listStyleType: style }).run();
+        const currentStyle = editor.getAttributes('orderedList')?.listStyleType || 'decimal';
+        if (currentStyle === style) {
+          // Same style selected — toggle list off
+          editor.chain().focus().toggleOrderedList().run();
+        } else {
+          editor.chain().focus().updateAttributes('orderedList', { listStyleType: style }).run();
+        }
       } else {
         editor.chain().focus().toggleOrderedList().updateAttributes('orderedList', { listStyleType: style }).run();
       }
