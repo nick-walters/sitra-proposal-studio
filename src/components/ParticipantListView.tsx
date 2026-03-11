@@ -750,7 +750,7 @@ export function ParticipantListView({
                       variant="outline"
                       size="sm"
                       onClick={async () => {
-                        const missing = participants.filter(p => !ocd.uploads[p.id]);
+                        const missing = participants.filter(p => !ocd.uploads[p.id] && p.organisationCategory !== 'PUB');
                         if (missing.length > 0) {
                           const names = missing.map(p => p.organisationShortName || p.organisationName).join(', ');
                           const proceed = window.confirm(
