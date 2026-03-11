@@ -396,7 +396,13 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
 
       // Title
       children.push(new Paragraph({
-        children: [new TextRun({ text: 'Financial Support to Third Parties (FSTP)', bold: true, font: 'Times New Roman', size: 28 })],
+        children: [new TextRun({ text: 'Information on financial support to third parties', bold: true, font: 'Times New Roman', size: 28 })],
+        spacing: { after: 120 },
+      }));
+
+      // Subheading
+      children.push(new Paragraph({
+        children: [new TextRun({ text: 'Financial support in the form of a grant awarded after a call for proposals', bold: true, font: 'Times New Roman', size: 24 })],
         spacing: { after: 200 },
       }));
 
