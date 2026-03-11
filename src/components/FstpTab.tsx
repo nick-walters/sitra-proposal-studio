@@ -369,7 +369,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
       // Subheading
       doc.setFontSize(12);
       doc.setFont('Times', 'Bold');
-      doc.text('Financial support in the form of a grant awarded after a call for proposals', margin, y);
+      doc.text(fstpType === 'prize' ? 'Financial support in the form of a prize' : 'Financial support in the form of a grant awarded after a call for proposals', margin, y);
       y += 8;
 
       // Instructions
