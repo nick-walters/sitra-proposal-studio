@@ -969,11 +969,13 @@ StarterKit.configure({
   heading: {
     levels: [1, 2, 3],
   },
+  orderedList: false,
   undoRedo: {
     depth: 100,
     newGroupDelay: 1200,
   },
 }),
+      OrderedListStyled,
       Underline,
       TextStyle,
       Color,
