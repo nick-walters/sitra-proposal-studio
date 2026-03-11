@@ -387,17 +387,20 @@ export function ParticipantDetailForm({
           showGEPSection={showGEPSection}
         />
 
-        {/* 11. Ownership Control Declaration */}
-        <OCDSection
-          visible={ocd.requiresOcd}
-          templateExists={!!ocd.templatePath}
-          hasUploadedOcd={!!ocd.uploads[participant.id]}
-          uploadedAt={ocd.uploads[participant.id]?.uploadedAt}
-          downloadingPrefilled={ocd.downloadingFor === participant.id}
-          onDownloadTemplate={() => ocd.downloadPrefilled(participant.id)}
-          onUploadSigned={(file) => ocd.uploadSignedOcd(participant.id, file)}
-          canEdit={canEdit}
-        />
+        {/* 11. Ownership Control Declaration (hidden for public bodies) */}
+        {participant.organisationCategory !== 'PUB' && (
+          <OCDSection
+            visible={ocd.requiresOcd}
+            templateExists={!!ocd.templatePath}
+            hasUploadedOcd={!!ocd.uploads[participant.id]}
+            uploadedAt={ocd.uploads[participant.id]?.uploadedAt}
+            downloadingPrefilled={ocd.downloadingFor === participant.id}
+            onDownloadTemplate={() => ocd.downloadPrefilled(participant.id)}
+            onUploadSigned={(file) => ocd.uploadSignedOcd(participant.id, file)}
+            canEdit={canEdit}
+            isHorizonEurope={['RIA', 'IA', 'CSA'].includes(proposalType || '')}
+          />
+        )}
 
         {/* Delete Participant */}
         {canDelete && (
