@@ -71,6 +71,12 @@ export function useFstpContent(proposalId: string, fstpType: 'grant' | 'prize' =
         instructionsText: r.instructions_text || DEFAULT_INSTRUCTIONS,
         responseContent: r.response_content || DEFAULT_RESPONSE,
       });
+    } else {
+      // No saved content for this type — use defaults
+      setData({
+        instructionsText: DEFAULT_INSTRUCTIONS,
+        responseContent: DEFAULT_RESPONSE,
+      });
     }
     setLoading(false);
   }, [proposalId, fstpType]);
