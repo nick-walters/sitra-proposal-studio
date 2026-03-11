@@ -228,7 +228,7 @@ export function TopicRichTextReadonly({ html, footnotes = [], emptyMessage = 'â€
         ref={ref}
         className="text-sm topic-rich-text-content [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4 [&_a]:text-primary [&_a]:underline [&_a]:cursor-pointer"
         style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
-        dangerouslySetInnerHTML={{ __html: html }}
+        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html, { ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'a', 'sup', 'span', 'h1', 'h2', 'h3', 'h4', 'table', 'thead', 'tbody', 'tr', 'th', 'td'], ALLOWED_ATTR: ['href', 'target', 'rel', 'style', 'class'] }) }}
       />
       {footnotes.length > 0 && (
         <div className="border-t mt-2 pt-2 space-y-0.5">
