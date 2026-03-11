@@ -12,7 +12,6 @@ describe('SaveIndicator', () => {
   it('shows "Saving..." with spinner when actively saving', () => {
     render(<SaveIndicator saving={true} lastSaved={null} />);
     expect(screen.getByText('Saving...')).toBeInTheDocument();
-    // Should NOT show "Autosaves"
     expect(screen.queryByText('Autosaves')).not.toBeInTheDocument();
   });
 
@@ -24,7 +23,6 @@ describe('SaveIndicator', () => {
 
   it('shows pending state when hasUnsavedChanges but not saving', () => {
     render(<SaveIndicator saving={false} lastSaved={null} hasUnsavedChanges={true} />);
-    // Should show the idle/pending state, not saving spinner
     expect(screen.getByText('Autosaves')).toBeInTheDocument();
     expect(screen.queryByText('Saving...')).not.toBeInTheDocument();
   });
@@ -38,5 +36,27 @@ describe('SaveIndicator', () => {
     render(<SaveIndicator saving={true} lastSaved={new Date()} />);
     expect(screen.getByText('Saving...')).toBeInTheDocument();
     expect(screen.queryByText('Autosaved')).not.toBeInTheDocument();
+  });
+
+  it('shows Save button when onSaveNow is provided', () => {
+    render(<SaveIndicator saving={false} lastSaved={null} onSaveNow={() => {}} />);
+    expect(screen.getByText('Save')).toBeInTheDocument();
+  });
+
+  it('does not show Save button when onSaveNow is not provided', () => {
+    render(<SaveIndicator saving={false} lastSaved={null} />);
+    expect(screen.queryByText('Save')).not.toBeInTheDocument();
+  });
+
+  it('shows Retry when there is a save error', () => {
+    render(<SaveIndicator saving={false} lastSaved={null} saveError="Network error" onSaveNow={() => {}} />);
+    expect(screen.getByText('Save failed')).toBeInTheDocument();
+    expect(screen.getByText('Retry')).toBeInTheDocument();
+  });
+
+  it('disables Save button while saving', () => {
+    render(<SaveIndicator saving={true} lastSaved={null} onSaveNow={() => {}} />);
+    const btn = screen.getByRole('button');
+    expect(btn).toBeDisabled();
   });
 });
