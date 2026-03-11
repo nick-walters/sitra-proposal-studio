@@ -966,7 +966,9 @@ export function RichTextEditor({ content, onChange, onInsertImage, onInsertFootn
   const editor = useEditor({
     extensions: [
 StarterKit.configure({
-  heading: false, // Disable heading input rules — headings set via toolbar only
+  heading: {
+    levels: [1, 2, 3],
+  },
   undoRedo: {
     depth: 100,
     newGroupDelay: 1200,
