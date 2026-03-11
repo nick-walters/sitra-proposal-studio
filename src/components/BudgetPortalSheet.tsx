@@ -372,6 +372,17 @@ export function BudgetPortalSheet({
                                 </Button>
                               </td>
                             )}
+                            {canEdit && onNavigateToParticipantBudget && (
+                              <td className="px-3 py-2 text-center">
+                                <Button
+                                  size="sm"
+                                  className="h-auto py-1.5 px-3 text-xs font-semibold"
+                                  onClick={() => onNavigateToParticipantBudget(row.participantId)}
+                                >
+                                  Edit budget
+                                </Button>
+                              </td>
+                            )}
                           </tr>
                         );
                       })}
