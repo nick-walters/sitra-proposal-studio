@@ -648,42 +648,10 @@ export function SectionNavigator({
     return participants;
   }, [participants]);
 
-  // Inject participants under A2 section
+  // Sections no longer inject participant subsections under A2/A3
   const sectionsWithParticipants = useMemo(() => {
-    return sections.map(section => {
-      if (section.subsections) {
-        return {
-          ...section,
-          subsections: section.subsections.map(sub => {
-            if (sub.id === 'a2' && visibleParticipants.length > 0) {
-              return {
-                ...sub,
-                subsections: visibleParticipants.map(p => ({
-                  id: `a2-${p.id}`,
-                  number: `${p.participantNumber}`,
-                  title: p.organisationShortName || p.organisationName || 'Participant',
-                  isPartA: true,
-                })),
-              };
-            }
-            if (sub.id === 'a3' && visibleParticipants.length > 0) {
-              return {
-                ...sub,
-                subsections: visibleParticipants.map(p => ({
-                  id: `a3-${p.id}`,
-                  number: `${p.participantNumber}`,
-                  title: p.organisationShortName || p.organisationName || 'Participant',
-                  isPartA: true,
-                })),
-              };
-            }
-            return sub;
-          }),
-        };
-      }
-      return section;
-    });
-  }, [sections, visibleParticipants]);
+    return sections;
+  }, [sections]);
 
   // Filter out locked sections for non-coordinators
   // When 'part-a' is locked, all A sections (except topic-info) are hidden

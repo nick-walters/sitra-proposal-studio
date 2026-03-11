@@ -44,6 +44,7 @@ interface BudgetPortalSheetProps {
   usesFstp?: boolean;
   fstpType?: 'grant' | 'prize';
   proposalAcronym?: string;
+  onNavigateToParticipantBudget?: (participantId: string) => void;
 }
 
 const COST_CATEGORIES = [
