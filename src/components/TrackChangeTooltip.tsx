@@ -22,16 +22,19 @@ export function TrackChangeTooltip({ editor, containerRef }: TrackChangeTooltipP
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const hideTimeout = useRef<ReturnType<typeof setTimeout>>();
   const tooltipRef = useRef<HTMLDivElement>(null);
+  // Lock tooltip position once shown for a given changeId
+  const lockedChangeIdRef = useRef<string | null>(null);
 
   const showTooltip = useCallback((el: HTMLElement) => {
-
     const changeId = el.getAttribute('data-change-id');
     if (!changeId) return;
+
+    // If already showing tooltip for this change, don't recalculate position
+    if (lockedChangeIdRef.current === changeId) return;
 
     const isInsertion = el.hasAttribute('data-track-insertion');
     const type = isInsertion ? 'insertion' : 'deletion';
 
-    // Read authorName and timestamp from DOM attributes
     let authorName = el.getAttribute('data-author-name') || '';
     if (!authorName && editor) {
       const storage = (editor.storage as any).trackChanges;
@@ -49,6 +52,7 @@ export function TrackChangeTooltip({ editor, containerRef }: TrackChangeTooltipP
     }
 
     const rect = el.getBoundingClientRect();
+    lockedChangeIdRef.current = changeId;
 
     setTooltip({
       changeId,
@@ -82,7 +86,10 @@ export function TrackChangeTooltip({ editor, containerRef }: TrackChangeTooltipP
     // Don't hide if moving to another tracked change
     if (relatedEl?.closest?.('[data-track-insertion], [data-track-deletion]')) return;
 
-    hideTimeout.current = setTimeout(() => setTooltip(null), 150);
+    hideTimeout.current = setTimeout(() => {
+      setTooltip(null);
+      lockedChangeIdRef.current = null;
+    }, 300);
   }, []);
 
   // Keep tooltip visible when hovering over it
@@ -91,7 +98,10 @@ export function TrackChangeTooltip({ editor, containerRef }: TrackChangeTooltipP
   }, []);
 
   const handleTooltipLeave = useCallback(() => {
-    hideTimeout.current = setTimeout(() => setTooltip(null), 150);
+    hideTimeout.current = setTimeout(() => {
+      setTooltip(null);
+      lockedChangeIdRef.current = null;
+    }, 300);
   }, []);
 
   useEffect(() => {
@@ -146,6 +156,8 @@ export function TrackChangeTooltip({ editor, containerRef }: TrackChangeTooltipP
         left: `${tooltip.x}px`,
         top: `${tooltip.y}px`,
         transform: 'translate(-50%, -100%)',
+        paddingBottom: '12px',
+        marginBottom: '-8px',
       }}
       onMouseEnter={handleTooltipEnter}
       onMouseLeave={handleTooltipLeave}

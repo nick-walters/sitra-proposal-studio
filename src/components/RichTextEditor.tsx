@@ -4,6 +4,8 @@ import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Link from '@tiptap/extension-link';
+import { TextStyle } from '@tiptap/extension-text-style';
+import Color from '@tiptap/extension-color';
 import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
@@ -61,6 +63,10 @@ import {
   Layers,
   Building2,
   Columns,
+  Palette,
+  Pipette,
+  Ban,
+  Check,
 } from "lucide-react";
 import {
   Tooltip,
@@ -172,6 +178,108 @@ function TableSizeSelector({ onSelect }: { onSelect: (rows: number, cols: number
         })}
       </div>
     </div>
+  );
+}
+
+// ── Text Color Picker ───────────────────────────────────────────────────
+const PRESET_COLORS = [
+  '#000000', '#434343', '#666666', '#999999',
+  '#DC2626', '#EA580C', '#D97706', '#65A30D',
+  '#059669', '#0891B2', '#2563EB', '#7C3AED',
+  '#DB2777', '#9333EA', '#4F46E5', '#0D9488',
+];
+
+function TextColorPicker({ editor }: { editor: Editor }) {
+  const [customHex, setCustomHex] = useState('');
+  const currentColor = editor.getAttributes('textStyle')?.color || '';
+
+  const applyColor = useCallback((color: string) => {
+    editor.chain().focus().setColor(color).run();
+  }, [editor]);
+
+  const removeColor = useCallback(() => {
+    editor.chain().focus().unsetColor().run();
+  }, [editor]);
+
+  return (
+    <Popover>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 relative"
+            >
+              <Palette className="w-4 h-4" />
+              {currentColor && (
+                <span
+                  className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-3.5 h-0.5 rounded-full"
+                  style={{ backgroundColor: currentColor }}
+                />
+              )}
+            </Button>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="text-xs">Text colour</TooltipContent>
+      </Tooltip>
+      <PopoverContent align="start" className="w-52 p-3">
+        <div className="space-y-3">
+          <div className="text-xs font-medium text-muted-foreground">Preset colours</div>
+          <div className="grid grid-cols-8 gap-1">
+            {PRESET_COLORS.map((color) => (
+              <button
+                key={color}
+                className={`w-5 h-5 rounded-sm border transition-transform hover:scale-125 cursor-pointer ${
+                  currentColor === color ? 'ring-2 ring-primary ring-offset-1' : 'border-border'
+                }`}
+                style={{ backgroundColor: color }}
+                onClick={() => applyColor(color)}
+                title={color}
+              />
+            ))}
+          </div>
+          <Separator />
+          <div className="flex items-center gap-2">
+            <Pipette className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+            <Input
+              value={customHex}
+              onChange={(e) => setCustomHex(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && /^#[0-9A-Fa-f]{6}$/.test(customHex)) {
+                  applyColor(customHex);
+                }
+              }}
+              placeholder="#000000"
+              className="h-7 text-xs font-mono"
+              maxLength={7}
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 shrink-0"
+              onClick={() => {
+                if (/^#[0-9A-Fa-f]{6}$/.test(customHex)) {
+                  applyColor(customHex);
+                }
+              }}
+              title="Apply colour"
+            >
+              <Check className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full h-7 text-xs gap-1.5"
+            onClick={removeColor}
+          >
+            <Ban className="w-3 h-3" />
+            Remove colour
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -494,6 +602,9 @@ export function FormattingToolbar({
           onClick={() => editor.chain().focus().toggleUnderline().run()}
           active={editor.isActive('underline')}
         />
+
+        {/* Text colour */}
+        <TextColorPicker editor={editor} />
 
         <Separator orientation="vertical" className="h-5 mx-1.5" />
 
@@ -864,6 +975,8 @@ StarterKit.configure({
   },
 }),
       Underline,
+      TextStyle,
+      Color,
       ParagraphClass,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
@@ -900,6 +1013,40 @@ StarterKit.configure({
       CaseReferenceMark,
       AcronymReference,
       FigureTableReferenceMark,
+      // Suppress heading input rules inside table cells: revert heading nodes back to paragraphs
+      Extension.create({
+        name: 'preventHeadingInTable',
+        addProseMirrorPlugins() {
+          return [
+            new Plugin({
+              key: new PluginKey('preventHeadingInTable'),
+              appendTransaction(_transactions, oldState, newState) {
+                const { doc, schema } = newState;
+                const headingType = schema.nodes.heading;
+                const paragraphType = schema.nodes.paragraph;
+                if (!headingType || !paragraphType) return null;
+
+                let tr: any = null;
+                doc.descendants((node, pos) => {
+                  if (node.type !== headingType) return;
+                  // Check if this heading is inside a table cell
+                  const $pos = doc.resolve(pos);
+                  for (let d = $pos.depth; d > 0; d--) {
+                    const parentName = $pos.node(d).type.name;
+                    if (parentName === 'tableCell' || parentName === 'tableHeader') {
+                      // Convert heading back to paragraph, preserving content
+                      if (!tr) tr = newState.tr;
+                      tr.setNodeMarkup(pos, paragraphType, null, node.marks);
+                      return false; // Don't descend
+                    }
+                  }
+                });
+                return tr;
+              },
+            }),
+          ];
+        },
+      }),
       // Prevent tables from being first element in the document content
       Extension.create({
         name: 'preventTableAtStart',
@@ -1018,6 +1165,8 @@ StarterKit.configure({
   },
 }),
       Underline,
+      TextStyle,
+      Color,
       ParagraphClass,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
@@ -1203,6 +1352,38 @@ StarterKit.configure({
       }),
       // Table formula extension
       TableFormula,
+      // Suppress heading input rules inside table cells
+      Extension.create({
+        name: 'preventHeadingInTable',
+        addProseMirrorPlugins() {
+          return [
+            new Plugin({
+              key: new PluginKey('preventHeadingInTableMain'),
+              appendTransaction(_transactions, oldState, newState) {
+                const { doc, schema } = newState;
+                const headingType = schema.nodes.heading;
+                const paragraphType = schema.nodes.paragraph;
+                if (!headingType || !paragraphType) return null;
+
+                let tr: any = null;
+                doc.descendants((node, pos) => {
+                  if (node.type !== headingType) return;
+                  const $pos = doc.resolve(pos);
+                  for (let d = $pos.depth; d > 0; d--) {
+                    const parentName = $pos.node(d).type.name;
+                    if (parentName === 'tableCell' || parentName === 'tableHeader') {
+                      if (!tr) tr = newState.tr;
+                      tr.setNodeMarkup(pos, paragraphType, null, node.marks);
+                      return false;
+                    }
+                  }
+                });
+                return tr;
+              },
+            }),
+          ];
+        },
+      }),
       // Prevent tables from being first element in the document content
       Extension.create({
         name: 'preventTableAtStart',

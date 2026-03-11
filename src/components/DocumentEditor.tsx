@@ -950,10 +950,8 @@ export function DocumentEditor({
       const sel = window.getSelection();
       if (!sel || sel.isCollapsed) return;
 
-      if (setB31PendingAnchorFromSelection(sel)) {
-        setCollaborationTab('comments');
-        setIsCollaborationPanelOpen(true);
-      }
+      // Store the anchor for commenting but don't auto-open the panel
+      setB31PendingAnchorFromSelection(sel);
     };
 
     container.addEventListener('mouseup', handleMouseUp);
@@ -968,9 +966,8 @@ export function DocumentEditor({
    // Page estimate removed - now shown in ExportDialog
 
   // State for collaboration panel - must be before early return
-  const [isCollaborationPanelOpen, setIsCollaborationPanelOpen] = useState(() => {
-    try { return localStorage.getItem('sitra-collab-panel-open') === 'true'; } catch { return false; }
-  });
+  // Default to closed; only open via explicit user action or notification navigation
+  const [isCollaborationPanelOpen, setIsCollaborationPanelOpen] = useState(false);
   
   // Open panel when triggered by notification navigation
   useEffect(() => {
@@ -1090,9 +1087,7 @@ export function DocumentEditor({
                     size="sm"
                     className="h-6 px-2 text-xs gap-1"
                     onClick={() => {
-                      const next = !isCollaborationPanelOpen;
-                      setIsCollaborationPanelOpen(next);
-                      try { localStorage.setItem('sitra-collab-panel-open', String(next)); } catch {}
+                      setIsCollaborationPanelOpen(!isCollaborationPanelOpen);
                     }}
                   >
                     {isCollaborationPanelOpen ? <PanelRightClose className="w-3 h-3" /> : <PanelRight className="w-3 h-3" />}
