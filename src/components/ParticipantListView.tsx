@@ -578,6 +578,8 @@ export function ParticipantListView({
   const [activeTab, setActiveTab] = useState('participants');
   const { roleTier } = useProposalRole(proposalId);
   const isAdmin = roleTier === 'coordinator';
+  const ocd = useOCD(proposalId);
+  const templateInputRef = useRef<HTMLInputElement>(null);
 
   // Extract guidelines from section
   const officialGuidelines = useMemo(() => {
