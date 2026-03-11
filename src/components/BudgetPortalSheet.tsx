@@ -392,6 +392,17 @@ export function BudgetPortalSheet({
             </Card>
           </TabsContent>
 
+          {usesFstp && (
+            <TabsContent value="fstp">
+              <FstpTab
+                proposalId={proposalId}
+                proposalAcronym={proposalAcronym}
+                canEdit={canEdit}
+                isCoordinator={isAdmin}
+              />
+            </TabsContent>
+          )}
+
           {isAdmin && (
             <TabsContent value="validation">
               <BudgetValidationEngine proposalId={proposalId} />
