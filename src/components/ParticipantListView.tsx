@@ -20,6 +20,7 @@ import { AddParticipantDialog } from './AddParticipantDialog';
 import { getContrastingTextColor } from '@/lib/wpColors';
 import { supabase } from '@/integrations/supabase/client';
 import { useProposalRole } from '@/hooks/useProposalRole';
+import { useOCD } from '@/hooks/useOCD';
 import { toast } from 'sonner';
 import {
   DndContext,
