@@ -57,6 +57,7 @@ interface ProposalData {
   templateTypeId?: string;
   expectedProjects?: string;
   usesFstp?: boolean;
+  fstpType?: 'grant' | 'prize';
   indicativeBudgetPerProject?: string;
   fstpBudget?: string;
   fstpBudgetPerThirdParty?: string;
