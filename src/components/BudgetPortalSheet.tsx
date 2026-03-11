@@ -77,6 +77,7 @@ export function BudgetPortalSheet({
   usesFstp = false,
   fstpType = 'grant',
   proposalAcronym = '',
+  onNavigateToParticipantBudget,
 }: BudgetPortalSheetProps) {
   const {
     rows,
