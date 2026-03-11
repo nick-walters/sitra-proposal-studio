@@ -523,7 +523,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <CardTitle className="text-base">Financial support in the form of a grant awarded after a call for proposals</CardTitle>
+              <CardTitle className="text-base">{fstpType === 'prize' ? 'Financial support in the form of a prize' : 'Financial support in the form of a grant awarded after a call for proposals'}</CardTitle>
               <p className="text-sm font-bold italic text-muted-foreground mt-3">Instructions</p>
             </div>
             {isCoordinator && !editingInstructions && (
