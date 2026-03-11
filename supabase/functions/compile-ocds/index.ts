@@ -36,7 +36,7 @@ serve(async (req) => {
     // Fetch all participants ordered by participant_number
     const { data: participants, error: partError } = await supabase
       .from("participants")
-      .select("id, participant_number, organisation_short_name, organisation_name")
+      .select("id, participant_number, organisation_short_name, organisation_name, organisation_category")
       .eq("proposal_id", proposalId)
       .order("participant_number", { ascending: true });
 
@@ -65,6 +65,10 @@ serve(async (req) => {
     const toMerge: { participantNumber: number; name: string; filePath: string }[] = [];
 
     for (const p of participants) {
+      const category = (p as any).organisation_category;
+      // Public organisations don't require OCD
+      if (category === 'PUB') continue;
+
       const filePath = uploadMap.get(p.id);
       const name = (p as any).organisation_short_name || (p as any).organisation_name || `Partner ${p.participant_number}`;
       if (filePath) {
