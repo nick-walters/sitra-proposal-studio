@@ -200,10 +200,10 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
   }, [fetchRows]);
 
   useEffect(() => {
-    if (!loading && rows.length === 0 && proposalId) {
+    if (!loading && proposalId) {
       initializeRows();
     }
-  }, [loading, rows.length, proposalId]);
+  }, [loading, proposalId]);
 
   useEffect(() => {
     if (rows.length > 0) {
