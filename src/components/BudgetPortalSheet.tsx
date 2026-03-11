@@ -335,6 +335,7 @@ export function BudgetPortalSheet({
                         ))}
                         <th className="min-w-[80px] px-3 py-3 text-right border-r font-medium">% of Budget</th>
                         {isAdmin && <th className="w-12 px-3 py-3 text-center font-medium">Lock</th>}
+                        {canEdit && onNavigateToParticipantBudget && <th className="w-24 px-3 py-3 text-center font-medium" />}
                       </tr>
                     </thead>
                     <tbody>
