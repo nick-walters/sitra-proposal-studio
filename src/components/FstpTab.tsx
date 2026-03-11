@@ -573,17 +573,15 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
                 const marginLeft = marginLeftCh > 0 ? `${marginLeftCh}ch` : undefined;
                 const trimmed = line.trimStart();
 
-                // Detect sub-items like "a. ..." or "a) ..." and normalize extra spaces after marker
+                // Detect sub-items like "a. ..." or "a) ..." and normalize spacing/indent
                 const subItemMatch = trimmed.match(/^([a-z][.)])\s+(.*)$/);
                 if (subItemMatch) {
                   const normalized = `${subItemMatch[1]} ${subItemMatch[2]}`;
-                  // Align wrapped lines to the same text start column used by numbered items ("1.   ")
-                  const targetTextColumnCh = 5;
-                  const hangIndentCh = Math.max(1, targetTextColumnCh - marginLeftCh);
-                  const hangIndent = `${hangIndentCh}ch`;
+                  const fixedSubItemMargin = '3ch';
+                  const fixedSubItemHang = '2ch'; // wrapped lines land at 5ch (same as numbered text column)
 
                   return (
-                    <p key={i} style={{ marginLeft, paddingLeft: hangIndent, textIndent: `-${hangIndent}` }}>
+                    <p key={i} style={{ marginLeft: fixedSubItemMargin, paddingLeft: fixedSubItemHang, textIndent: `-${fixedSubItemHang}` }}>
                       {normalized}
                     </p>
                   );
