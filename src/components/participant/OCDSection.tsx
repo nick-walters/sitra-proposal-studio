@@ -134,7 +134,7 @@ export function OCDSection({
             ) : (
               <Download className="w-4 h-4" />
             )}
-            Download template
+            Download empty Ownership Control Declaration template (.docx)
           </Button>
 
           {/* Upload signed OCD */}
