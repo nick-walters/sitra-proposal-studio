@@ -399,6 +399,7 @@ export function BudgetPortalSheet({
                         ))}
                         <td className="px-3 py-2 text-right border-r font-bold">100%</td>
                         {isAdmin && <td />}
+                        {canEdit && onNavigateToParticipantBudget && <td />}
                       </tr>
                     </tfoot>
                   </table>
