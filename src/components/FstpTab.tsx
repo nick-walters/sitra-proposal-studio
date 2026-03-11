@@ -439,7 +439,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
           <div className="flex items-start justify-between gap-2">
             <div>
               <CardTitle className="text-base">Financial support in the form of a grant awarded after a call for proposals</CardTitle>
-              <p className="text-sm font-bold italic text-muted-foreground mt-0.5">Instructions</p>
+              <p className="text-sm font-bold italic text-muted-foreground mt-3">Instructions</p>
             </div>
             {isCoordinator && !editingInstructions && (
               <Button
