@@ -10,7 +10,7 @@ interface ProposalCardProps {
   proposal: Proposal;
   onClick: () => void;
   compact?: boolean;
-  topicIcon?: React.ReactNode;
+  
   isPinned?: boolean;
   canPin?: boolean;
   onTogglePin?: (id: string) => void;
