@@ -376,7 +376,7 @@ export function BudgetPortalSheet({
                       <tfoot>
                         <tr className="border-t-2 border-foreground/20 bg-muted/40 font-semibold">
                           <td className="sticky left-0 bg-muted/40 z-10 px-3 py-2 border-r font-bold">TOTAL</td>
-                          <td className="px-3 py-2 border-r" />
+                          
                           {PARTICIPANT_COLUMNS.map(c => (
                             <td key={c.key} className="px-3 py-2 text-right border-r tabular-nums font-mono font-bold whitespace-nowrap">
                               {formatNumber((grandTotals as any)[c.key] || 0)}
