@@ -562,8 +562,8 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
               {data.instructionsText.split('\n').map((line, i) => {
                 const leadingSpaces = line.match(/^(\s*)/)?.[0].length || 0;
                 const trimmed = line.trimStart();
-                // Detect sub-items like "a)  ..." — compute hanging indent past the label
-                const subItemMatch = trimmed.match(/^([a-z]\)\s+)/);
+                // Detect sub-items like "a.  ..." or "a)  ..." — compute hanging indent past the label
+                const subItemMatch = trimmed.match(/^([a-z][.)]\s+)/);
                 const marginLeft = leadingSpaces > 0 ? `${leadingSpaces * 0.6}ch` : undefined;
                 if (subItemMatch) {
                   const hangIndent = `${subItemMatch[1].length}ch`;
