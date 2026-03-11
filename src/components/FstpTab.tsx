@@ -435,11 +435,11 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
 
       {/* Instructions + Response in one card */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-2">
           <div className="flex items-start justify-between gap-2">
             <div>
               <CardTitle className="text-base">Financial support in the form of a grant awarded after a call for proposals</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">Instructions</p>
+              <p className="text-sm font-bold italic text-muted-foreground mt-0.5">Instructions</p>
             </div>
             {isCoordinator && !editingInstructions && (
               <Button
