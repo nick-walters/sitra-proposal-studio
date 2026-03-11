@@ -436,10 +436,11 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
         <CardContent className="space-y-4">
           {isCoordinator && canEdit ? (
             <textarea
-              className="w-full text-sm leading-relaxed text-muted-foreground bg-transparent border rounded-md p-3 resize-y focus:outline-none focus:ring-1 focus:ring-ring"
+              className="w-full text-sm leading-relaxed text-muted-foreground bg-transparent border rounded-md p-3 resize-none overflow-hidden focus:outline-none focus:ring-1 focus:ring-ring"
               value={data.instructionsText}
               onChange={(e) => updateInstructions(e.target.value)}
-              rows={data.instructionsText.split('\n').length + 1}
+              ref={(el) => { if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; } }}
+              onInput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
             />
           ) : (
             <div className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
