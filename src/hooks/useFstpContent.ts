@@ -12,18 +12,12 @@ const DEFAULT_GRANT_INSTRUCTIONS = `Where this possibility is indicated under th
      d.     The persons or categories of persons that may receive financial support, and
       e.     The criteria for giving financial support`;
 
-const DEFAULT_PRIZE_INSTRUCTIONS = `Provide a description of the use of financial support to third parties. This description must address at least the following: 
-
-1. clearly detail the objectives and the results to be obtained and
-
-2. Contain the following specifications (as a minimum):  
-
+const DEFAULT_PRIZE_INSTRUCTIONS = `Provide a description of the use of financial support to third parties. This description must address at least the following:
+1. Clearly detail the objectives and the results to be obtained and
+2. Contain the following specifications (as a minimum):
 a) The eligibility and award criteria;
-
 b) The amount of the prize; and
-
 c) The payment arrangements.
-
 Please check in the Work Programme and the call for proposals if there are other conditions that apply and, if so, include them in the specifications or in any other element of the proposal as appropriate.`;
 
 const DEFAULT_RESPONSE = '<p><strong><u>1. Objectives</u></strong></p><p>The objectives of the open call for FSTP are </p><p><strong><u>2. Open call &amp; evaluation criteria specifications</u></strong></p><ol data-list-style="lower-alpha" style="list-style-type: lower-alpha;"><li><p>The maximum amount of financial support available for each third party is €XX,000. The total amount of funding available is €XX,000.</p></li><li><p>The criteria for calculating the exact amount of financial support are </p></li><li><p>The different types of activity that qualify for financial support, on the basis of a closed list, are </p></li><li><p>The persons or categories of persons that may receive financial support are </p></li><li><p>The criteria for giving financial support are </p></li></ol><p></p>';
