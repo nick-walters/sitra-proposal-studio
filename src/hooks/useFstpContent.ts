@@ -45,7 +45,7 @@ export function useFstpContent(proposalId: string) {
     if (!proposalId) return;
     setLoading(true);
     const { data: row, error } = await supabase
-      .from('fstp_content')
+      .from('fstp_content' as any)
       .select('*')
       .eq('proposal_id', proposalId)
       .maybeSingle();
