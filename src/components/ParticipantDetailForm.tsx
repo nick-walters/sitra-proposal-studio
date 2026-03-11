@@ -30,6 +30,8 @@ import { PreviousProjectsSection } from './participant/PreviousProjectsSection';
 import { InfrastructureSection } from './participant/InfrastructureSection';
 import { DepartmentsSection } from './participant/DepartmentsSection';
 import { GEPSection } from './participant/GEPSection';
+import { OCDSection } from './participant/OCDSection';
+import { useOCD } from '@/hooks/useOCD';
 
 interface SelectedPerson {
   id: string;
