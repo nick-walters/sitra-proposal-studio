@@ -1337,6 +1337,7 @@ export type Database = {
       fstp_content: {
         Row: {
           created_at: string
+          fstp_type: string
           id: string
           instructions_text: string
           proposal_id: string
@@ -1346,6 +1347,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          fstp_type?: string
           id?: string
           instructions_text?: string
           proposal_id: string
@@ -1355,6 +1357,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          fstp_type?: string
           id?: string
           instructions_text?: string
           proposal_id?: string
@@ -1366,7 +1369,7 @@ export type Database = {
           {
             foreignKeyName: "fstp_content_proposal_id_fkey"
             columns: ["proposal_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "proposals"
             referencedColumns: ["id"]
           },
