@@ -34,6 +34,7 @@ import { cn } from '@/lib/utils';
 import { useState, useMemo } from 'react';
 import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
 import { toast } from 'sonner';
+import { FstpTab } from './FstpTab';
 
 interface BudgetPortalSheetProps {
   proposalId: string;
