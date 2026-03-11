@@ -361,43 +361,46 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
       const doc = new jsPDF({ unit: 'mm', format: 'a4' });
       const margin = 15;
       const pageWidth = 210 - 2 * margin;
+      const lineHeight = 11 * 0.3528 * 1.0; // 11pt × mm/pt × 1.0 line spacing ≈ 3.88mm
+      const paraSpacingBefore = 6 * 0.3528; // 6pt before
+      const paraSpacingAfter = 6 * 0.3528;  // 6pt after
       let y = margin;
 
       doc.setFont('Times', 'Roman');
 
-      // Title
+      // Title — 14pt bold, 12pt after
       doc.setFontSize(14);
       doc.setFont('Times', 'Bold');
       doc.text('Information on financial support to third parties', margin, y);
-      y += 10;
+      y += 14 * 0.3528 + 12 * 0.3528; // line + 12pt spacing
 
-      // Subheading
-      doc.setFontSize(12);
+      // Subheading — 11pt bold, 6pt after
+      doc.setFontSize(11);
       doc.setFont('Times', 'Bold');
-      doc.text(fstpType === 'prize' ? 'Financial support in the form of a prize' : 'Financial support in the form of a grant awarded after a call for proposals', margin, y);
-      y += 8;
+      const subheading = fstpType === 'prize'
+        ? 'Financial support in the form of a prize'
+        : 'Financial support in the form of a grant awarded after a call for proposals';
+      doc.text(subheading, margin, y);
+      y += lineHeight + paraSpacingAfter;
 
-      // Instructions
-      doc.setFontSize(10);
-      doc.setFont('Times', 'Italic');
-      const instrLines = doc.splitTextToSize(data.instructionsText, pageWidth);
-      for (const line of instrLines) {
-        if (y > 280) { doc.addPage(); y = margin; }
-        doc.text(line, margin, y);
-        y += 4.5;
-      }
-
-      y += 6;
-
-      // Response
+      // Response content — 11pt Roman, 6pt before/after paragraphs
       doc.setFont('Times', 'Roman');
       doc.setFontSize(11);
       const responseText = getPlainText();
-      const respLines = doc.splitTextToSize(responseText, pageWidth);
-      for (const line of respLines) {
-        if (y > 280) { doc.addPage(); y = margin; }
-        doc.text(line, margin, y);
-        y += 5;
+      const respParas = responseText.split('\n');
+      for (const para of respParas) {
+        if (!para.trim()) {
+          y += paraSpacingAfter;
+          continue;
+        }
+        y += paraSpacingBefore;
+        const lines = doc.splitTextToSize(para, pageWidth);
+        for (const line of lines) {
+          if (y > 297 - margin) { doc.addPage(); y = margin; }
+          doc.text(line, margin, y);
+          y += lineHeight;
+        }
+        y += paraSpacingAfter;
       }
 
       doc.save(`${proposalAcronym} FSTP Annex.pdf`);
