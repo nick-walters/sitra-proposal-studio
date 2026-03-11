@@ -34,12 +34,15 @@ import { cn } from '@/lib/utils';
 import { useState, useMemo } from 'react';
 import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
 import { toast } from 'sonner';
+import { FstpTab } from './FstpTab';
 
 interface BudgetPortalSheetProps {
   proposalId: string;
   proposalType: string | null;
   canEdit: boolean;
   isCoordinator: boolean;
+  usesFstp?: boolean;
+  proposalAcronym?: string;
 }
 
 const COST_CATEGORIES = [
@@ -69,6 +72,8 @@ export function BudgetPortalSheet({
   proposalType,
   canEdit,
   isCoordinator,
+  usesFstp = false,
+  proposalAcronym = '',
 }: BudgetPortalSheetProps) {
   const {
     rows,
@@ -239,7 +244,8 @@ export function BudgetPortalSheet({
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="summary">Summary by Participant</TabsTrigger>
+            <TabsTrigger value="summary">Summary by participant</TabsTrigger>
+            {usesFstp && <TabsTrigger value="fstp">Financial support to third parties (FSTP)</TabsTrigger>}
             {isAdmin && <TabsTrigger value="validation">Validation</TabsTrigger>}
           </TabsList>
 
@@ -385,6 +391,17 @@ export function BudgetPortalSheet({
               </CardContent>
             </Card>
           </TabsContent>
+
+          {usesFstp && (
+            <TabsContent value="fstp">
+              <FstpTab
+                proposalId={proposalId}
+                proposalAcronym={proposalAcronym}
+                canEdit={canEdit}
+                isCoordinator={isAdmin}
+              />
+            </TabsContent>
+          )}
 
           {isAdmin && (
             <TabsContent value="validation">
