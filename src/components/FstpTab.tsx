@@ -70,6 +70,7 @@ interface FstpTabProps {
   proposalAcronym: string;
   canEdit: boolean;
   isCoordinator: boolean;
+  fstpType?: 'grant' | 'prize';
 }
 
 function FstpToolbarButton({ icon, tooltip, onClick, active, disabled }: {
