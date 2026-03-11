@@ -167,7 +167,7 @@ export function ParticipantDetailForm({
               </p>
             </div>
           </div>
-        {canEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} />}
+        {canEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} onSaveNow={() => { /* immediate-save form — all changes are already saved */ }} />}
         </div>
 
         {/* 1. Organisation Details */}
