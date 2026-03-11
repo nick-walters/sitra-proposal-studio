@@ -77,6 +77,7 @@ export function ParticipantDetailForm({
   canGrant = false,
   proposalId,
   proposalAcronym,
+  proposalType,
 }: ParticipantDetailFormProps) {
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
