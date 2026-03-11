@@ -1334,6 +1334,44 @@ export type Database = {
           },
         ]
       }
+      fstp_content: {
+        Row: {
+          created_at: string
+          id: string
+          instructions_text: string
+          proposal_id: string
+          response_content: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          instructions_text?: string
+          proposal_id: string
+          response_content?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          instructions_text?: string
+          proposal_id?: string
+          response_content?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fstp_content_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: true
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       funding_programmes: {
         Row: {
           created_at: string
