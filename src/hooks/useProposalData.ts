@@ -130,6 +130,7 @@ export function useProposalData(proposalId: string) {
         templateTypeId: data.template_type_id || undefined,
         expectedProjects: (data as any).expected_projects || undefined,
         usesFstp: data.uses_fstp || false,
+        fstpType: ((data as any).fstp_type as 'grant' | 'prize') || 'grant',
         indicativeBudgetPerProject: (data as any).indicative_budget_per_project || undefined,
         fstpBudget: (data as any).fstp_budget || undefined,
         fstpBudgetPerThirdParty: (data as any).fstp_budget_per_third_party || undefined,
