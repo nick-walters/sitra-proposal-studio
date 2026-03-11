@@ -96,6 +96,19 @@ function FstpToolbarButton({ icon, tooltip, onClick, active, disabled }: {
 }
 
 function FstpToolbar({ editor }: { editor: any }) {
+  // Force re-render on editor state changes so isActive() reflects current state
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!editor) return;
+    const handler = () => setTick((t) => t + 1);
+    editor.on('selectionUpdate', handler);
+    editor.on('transaction', handler);
+    return () => {
+      editor.off('selectionUpdate', handler);
+      editor.off('transaction', handler);
+    };
+  }, [editor]);
+
   if (!editor) return null;
 
   const setLink = () => {
