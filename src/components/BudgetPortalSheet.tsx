@@ -329,7 +329,6 @@ export function BudgetPortalSheet({
                       <thead>
                         <tr className="border-b">
                           <th className="sticky left-0 bg-background z-10 px-3 py-3 text-left border-r font-bold whitespace-nowrap">Participant</th>
-                          <th className="px-3 py-3 text-left border-r font-bold whitespace-nowrap">Country</th>
                           {PARTICIPANT_COLUMNS.map(c => (
                             <th key={c.key} className="px-3 py-3 text-right border-r font-bold whitespace-nowrap">{c.label}</th>
                           ))}
