@@ -57,6 +57,8 @@ interface ParticipantDetailFormProps {
   proposalId?: string;
   /** Proposal acronym */
   proposalAcronym?: string;
+  /** Proposal type (RIA, IA, CSA, etc.) */
+  proposalType?: string;
 }
 
 // Legal entity types use the same ORGANISATION_CATEGORY_LABELS from ParticipantTable
