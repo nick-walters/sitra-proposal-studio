@@ -24,7 +24,7 @@ export function useFstpContent(proposalId: string) {
   const { user } = useAuth();
   const [data, setData] = useState<FstpContentData>({
     instructionsText: DEFAULT_INSTRUCTIONS,
-    responseContent: '',
+    responseContent: DEFAULT_RESPONSE,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
