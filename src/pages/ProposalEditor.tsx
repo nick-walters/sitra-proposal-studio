@@ -785,6 +785,9 @@ export function ProposalEditor() {
               usesFstp={proposal?.usesFstp}
               fstpType={(proposal as any)?.fstpType || 'grant'}
               proposalAcronym={proposal?.acronym || ''}
+              onNavigateToParticipantBudget={(participantId) => {
+                handleSectionClick({ id: `a3-${participantId}`, title: 'Budget', isPartA: true } as any);
+              }}
             />
           </div>
         );

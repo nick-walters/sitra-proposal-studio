@@ -482,7 +482,7 @@ function ParticipantCard({
           </div>
           
           {/* Save indicator / Edit button */}
-          <div className="w-10 shrink-0 flex items-center justify-end">
+          <div className="shrink-0 flex items-center justify-end">
             {canEdit && (isSaving || hasChanges) && (
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 {isSaving ? (
@@ -500,14 +500,13 @@ function ParticipantCard({
             {canEdit && (
               <Button
                 size="sm"
-                className="h-auto py-1 px-1.5 text-[9px] leading-tight bg-muted text-muted-foreground hover:bg-muted/80 border-0 flex flex-col items-center"
+                className="h-auto py-1.5 px-3 text-xs leading-tight font-semibold"
                 onClick={(e) => {
                   e.stopPropagation();
                   onSelect();
                 }}
               >
-                <span>Edit</span>
-                <span>info</span>
+                Edit info
               </Button>
             )}
           </div>
