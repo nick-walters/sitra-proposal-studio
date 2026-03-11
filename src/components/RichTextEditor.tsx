@@ -1352,6 +1352,38 @@ StarterKit.configure({
       }),
       // Table formula extension
       TableFormula,
+      // Suppress heading input rules inside table cells
+      Extension.create({
+        name: 'preventHeadingInTable',
+        addProseMirrorPlugins() {
+          return [
+            new Plugin({
+              key: new PluginKey('preventHeadingInTableMain'),
+              appendTransaction(_transactions, oldState, newState) {
+                const { doc, schema } = newState;
+                const headingType = schema.nodes.heading;
+                const paragraphType = schema.nodes.paragraph;
+                if (!headingType || !paragraphType) return null;
+
+                let tr: any = null;
+                doc.descendants((node, pos) => {
+                  if (node.type !== headingType) return;
+                  const $pos = doc.resolve(pos);
+                  for (let d = $pos.depth; d > 0; d--) {
+                    const parentName = $pos.node(d).type.name;
+                    if (parentName === 'tableCell' || parentName === 'tableHeader') {
+                      if (!tr) tr = newState.tr;
+                      tr.setNodeMarkup(pos, paragraphType, null, node.marks);
+                      return false;
+                    }
+                  }
+                });
+                return tr;
+              },
+            }),
+          ];
+        },
+      }),
       // Prevent tables from being first element in the document content
       Extension.create({
         name: 'preventTableAtStart',
