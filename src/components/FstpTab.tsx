@@ -21,7 +21,7 @@ import {
   AlignJustify,
   Undo,
   Redo,
-  Heading2,
+  
   Download,
   FileText,
   Loader2,
@@ -70,142 +70,198 @@ interface FstpTabProps {
   isCoordinator: boolean;
 }
 
-function FstpToolbar({ editor }: { editor: any }) {
-  if (!editor) return null;
-
-  const ToolbarButton = ({ onClick, active, title, children }: any) => (
+function FstpToolbarButton({ icon, tooltip, onClick, active, disabled }: {
+  icon: React.ReactNode;
+  tooltip: string;
+  onClick?: () => void;
+  active?: boolean;
+  disabled?: boolean;
+}) {
+  return (
     <Tooltip>
       <TooltipTrigger asChild>
         <Button
-          variant="ghost"
+          variant={active ? "secondary" : "ghost"}
           size="icon"
-          className={`h-8 w-8 ${active ? 'bg-accent text-accent-foreground' : ''}`}
+          className="h-7 w-7"
           onClick={onClick}
+          disabled={disabled}
         >
-          {children}
+          {icon}
         </Button>
       </TooltipTrigger>
-      <TooltipContent side="bottom" className="text-xs">{title}</TooltipContent>
+      <TooltipContent side="bottom" className="text-xs">{tooltip}</TooltipContent>
     </Tooltip>
   );
+}
+
+function FstpToolbar({ editor }: { editor: any }) {
+  if (!editor) return null;
+
+  const setLink = () => {
+    const previousUrl = editor.getAttributes('link').href;
+    const url = window.prompt('URL', previousUrl);
+    if (url === null) return;
+    if (url === '') {
+      editor.chain().focus().extendMarkRange('link').unsetLink().run();
+      return;
+    }
+    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+  };
 
   return (
-    <div className="flex items-center gap-0.5 px-2 py-1.5 border-b bg-background flex-wrap">
-      <ToolbarButton onClick={() => editor.chain().focus().undo().run()} title="Undo">
-        <Undo className="w-4 h-4" />
-      </ToolbarButton>
-      <ToolbarButton onClick={() => editor.chain().focus().redo().run()} title="Redo">
-        <Redo className="w-4 h-4" />
-      </ToolbarButton>
+    <div className="editor-toolbar border-b border-border bg-card px-2 py-1">
+      <div className="flex items-center gap-0">
+        {/* Undo Redo */}
+        <FstpToolbarButton
+          icon={<Undo className="w-4 h-4" />}
+          tooltip="Undo (Ctrl+Z)"
+          onClick={() => editor.chain().focus().undo().run()}
+          disabled={!editor.can().undo()}
+        />
+        <FstpToolbarButton
+          icon={<Redo className="w-4 h-4" />}
+          tooltip="Redo (Ctrl+Y)"
+          onClick={() => editor.chain().focus().redo().run()}
+          disabled={!editor.can().redo()}
+        />
 
-      <Separator orientation="vertical" className="h-6 mx-1" />
+        <Separator orientation="vertical" className="h-5 mx-1.5" />
 
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-        active={editor.isActive('heading', { level: 2 })}
-        title="Subheading"
-      >
-        <Heading2 className="w-4 h-4" />
-      </ToolbarButton>
+        {/* Subheading Bold Italic Underline Link */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={editor.isActive('bold') && editor.isActive('underline') ? "secondary" : "ghost"}
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => {
+                editor.chain().focus().toggleBold().run();
+                editor.chain().focus().toggleUnderline().run();
+              }}
+            >
+              <span className="font-black underline">Subheading</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-xs">
+            Subheading (Bold & Underlined inline style)
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={editor.isActive('bold') ? "secondary" : "ghost"}
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => editor.chain().focus().toggleBold().run()}
+            >
+              <span className="font-black text-sm">B</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-xs">
+            Bold (Ctrl+B)
+          </TooltipContent>
+        </Tooltip>
+        <FstpToolbarButton
+          icon={<Italic className="w-3.5 h-3.5" />}
+          tooltip="Italic (Ctrl+I)"
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+          active={editor.isActive('italic')}
+        />
+        <FstpToolbarButton
+          icon={<UnderlineIcon className="w-4 h-4" />}
+          tooltip="Underline (Ctrl+U)"
+          onClick={() => editor.chain().focus().toggleUnderline().run()}
+          active={editor.isActive('underline')}
+        />
+        <FstpToolbarButton
+          icon={<LinkIcon className="w-4 h-4" />}
+          tooltip="Insert link"
+          onClick={setLink}
+          active={editor.isActive('link')}
+        />
 
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleBold().run()}
-        active={editor.isActive('bold')}
-        title="Bold"
-      >
-        <Bold className="w-4 h-4" />
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleItalic().run()}
-        active={editor.isActive('italic')}
-        title="Italic"
-      >
-        <Italic className="w-4 h-4" />
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleUnderline().run()}
-        active={editor.isActive('underline')}
-        title="Underline"
-      >
-        <UnderlineIcon className="w-4 h-4" />
-      </ToolbarButton>
+        <Separator orientation="vertical" className="h-5 mx-1.5" />
 
-      <ToolbarButton
-        onClick={() => {
-          const url = window.prompt('Enter URL:');
-          if (url) editor.chain().focus().setLink({ href: url }).run();
-        }}
-        active={editor.isActive('link')}
-        title="Link"
-      >
-        <LinkIcon className="w-4 h-4" />
-      </ToolbarButton>
+        {/* Bullet Numbered */}
+        <FstpToolbarButton
+          icon={<List className="w-4 h-4" />}
+          tooltip="Bullet list"
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          active={editor.isActive('bulletList')}
+        />
+        <FstpToolbarButton
+          icon={<ListOrdered className="w-4 h-4" />}
+          tooltip="Numbered list"
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          active={editor.isActive('orderedList')}
+        />
 
-      <Separator orientation="vertical" className="h-6 mx-1" />
+        <Separator orientation="vertical" className="h-5 mx-1.5" />
 
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleBulletList().run()}
-        active={editor.isActive('bulletList')}
-        title="Bullet list"
-      >
-        <List className="w-4 h-4" />
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleOrderedList().run()}
-        active={editor.isActive('orderedList')}
-        title="Numbered list"
-      >
-        <ListOrdered className="w-4 h-4" />
-      </ToolbarButton>
+        {/* Left Centre Right Justify */}
+        <FstpToolbarButton
+          icon={<AlignLeft className="w-4 h-4" />}
+          tooltip="Align left"
+          onClick={() => editor.chain().focus().setTextAlign('left').run()}
+          active={editor.isActive({ textAlign: 'left' })}
+        />
+        <FstpToolbarButton
+          icon={<AlignCenter className="w-4 h-4" />}
+          tooltip="Align center"
+          onClick={() => editor.chain().focus().setTextAlign('center').run()}
+          active={editor.isActive({ textAlign: 'center' })}
+        />
+        <FstpToolbarButton
+          icon={<AlignRight className="w-4 h-4" />}
+          tooltip="Align right"
+          onClick={() => editor.chain().focus().setTextAlign('right').run()}
+          active={editor.isActive({ textAlign: 'right' })}
+        />
+        <FstpToolbarButton
+          icon={<AlignJustify className="w-4 h-4" />}
+          tooltip="Justify"
+          onClick={() => editor.chain().focus().setTextAlign('justify').run()}
+          active={editor.isActive({ textAlign: 'justify' })}
+        />
 
-      <Separator orientation="vertical" className="h-6 mx-1" />
+        <Separator orientation="vertical" className="h-5 mx-1.5" />
 
-      <ToolbarButton
-        onClick={() => editor.chain().focus().setTextAlign('left').run()}
-        active={editor.isActive({ textAlign: 'left' })}
-        title="Align left"
-      >
-        <AlignLeft className="w-4 h-4" />
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().setTextAlign('center').run()}
-        active={editor.isActive({ textAlign: 'center' })}
-        title="Align center"
-      >
-        <AlignCenter className="w-4 h-4" />
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().setTextAlign('right').run()}
-        active={editor.isActive({ textAlign: 'right' })}
-        title="Align right"
-      >
-        <AlignRight className="w-4 h-4" />
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().setTextAlign('justify').run()}
-        active={editor.isActive({ textAlign: 'justify' })}
-        title="Justify"
-      >
-        <AlignJustify className="w-4 h-4" />
-      </ToolbarButton>
+        {/* Table */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 gap-1"
+              onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+            >
+              <TableIcon className="w-4 h-4" />
+              <span className="text-xs">Table</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-xs">Insert table</TooltipContent>
+        </Tooltip>
 
-      <Separator orientation="vertical" className="h-6 mx-1" />
-
-      <ToolbarButton
-        onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
-        title="Table"
-      >
-        <TableIcon className="w-4 h-4" />
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => {
-          const url = window.prompt('Enter image URL:');
-          if (url) editor.chain().focus().setImage({ src: url }).run();
-        }}
-        title="Figure"
-      >
-        <ImageIcon className="w-4 h-4" />
-      </ToolbarButton>
+        {/* Figure */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 gap-1"
+              onClick={() => {
+                const url = window.prompt('Enter image URL:');
+                if (url) editor.chain().focus().setImage({ src: url }).run();
+              }}
+            >
+              <ImageIcon className="w-4 h-4" />
+              <span className="text-xs">Figure</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-xs">Insert figure</TooltipContent>
+        </Tooltip>
+      </div>
     </div>
   );
 }
