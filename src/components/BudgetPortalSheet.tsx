@@ -401,6 +401,7 @@ export function BudgetPortalSheet({
                 proposalAcronym={proposalAcronym}
                 canEdit={canEdit}
                 isCoordinator={isAdmin}
+                fstpType={fstpType}
               />
             </TabsContent>
           )}
