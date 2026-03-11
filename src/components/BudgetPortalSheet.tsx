@@ -404,7 +404,7 @@ export function BudgetPortalSheet({
                             className="h-auto py-1 px-3 text-xs font-semibold whitespace-nowrap"
                             onClick={() => onNavigateToParticipantBudget(row.participantId)}
                           >
-                            Edit budget
+                            Edit
                           </Button>
                         </div>
                       ))}
