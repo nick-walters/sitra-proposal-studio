@@ -73,7 +73,7 @@ export function useFstpContent(proposalId: string, fstpType: 'grant' | 'prize' =
       });
     }
     setLoading(false);
-  }, [proposalId]);
+  }, [proposalId, fstpType]);
 
   useEffect(() => {
     fetchContent();
