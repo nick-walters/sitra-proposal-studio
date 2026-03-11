@@ -3,6 +3,8 @@ import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Link from '@tiptap/extension-link';
+import { OrderedListStyled } from '@/extensions/OrderedListStyled';
+import { OrderedListDropdown } from './OrderedListDropdown';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -203,10 +205,8 @@ function FstpToolbar({ editor }: { editor: any }) {
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           active={editor.isActive('bulletList')}
         />
-        <FstpToolbarButton
-          icon={<ListOrdered className="w-4 h-4" />}
-          tooltip="Numbered list"
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+        <OrderedListDropdown
+          editor={editor}
           active={editor.isActive('orderedList')}
         />
 
@@ -288,7 +288,8 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({ orderedList: false }),
+      OrderedListStyled,
       Underline,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Link.configure({ openOnClick: false }),
@@ -561,8 +562,8 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator }:
               {data.instructionsText.split('\n').map((line, i) => {
                 const leadingSpaces = line.match(/^(\s*)/)?.[0].length || 0;
                 const trimmed = line.trimStart();
-                // Detect sub-items like "a)  ..." — compute hanging indent past the label
-                const subItemMatch = trimmed.match(/^([a-z]\)\s+)/);
+                // Detect sub-items like "a.  ..." or "a)  ..." — compute hanging indent past the label
+                const subItemMatch = trimmed.match(/^([a-z][.)]\s+)/);
                 const marginLeft = leadingSpaces > 0 ? `${leadingSpaces * 0.6}ch` : undefined;
                 if (subItemMatch) {
                   const hangIndent = `${subItemMatch[1].length}ch`;

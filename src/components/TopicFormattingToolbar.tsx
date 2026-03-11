@@ -1,4 +1,5 @@
-import { Bold, Italic, Underline, List, ListOrdered, Link } from "lucide-react";
+import { Bold, Italic, Underline, List, Link } from "lucide-react";
+import { OrderedListDropdown } from "./OrderedListDropdown";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -56,14 +57,21 @@ export function TopicFormattingToolbar({
         <TooltipContent side="bottom" className="text-xs">Bullet list</TooltipContent>
       </Tooltip>
 
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => exec('insertOrderedList')}>
-            <ListOrdered className="h-4 w-4" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="bottom" className="text-xs">Numbered list</TooltipContent>
-      </Tooltip>
+      <OrderedListDropdown
+        onInsertOrderedList={(style) => {
+          exec('insertOrderedList');
+          // Apply the list-style-type to the created ol element
+          const sel = window.getSelection();
+          if (sel?.anchorNode) {
+            const ol = (sel.anchorNode as HTMLElement).closest?.('ol') 
+              || (sel.anchorNode.parentElement?.closest?.('ol'));
+            if (ol) {
+              ol.style.listStyleType = style;
+              ol.setAttribute('data-list-style', style);
+            }
+          }
+        }}
+      />
 
       <Separator orientation="vertical" className="h-5 mx-1" />
 

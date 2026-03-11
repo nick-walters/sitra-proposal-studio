@@ -25,6 +25,8 @@ import { CaseReferenceMark } from '@/extensions/CaseReferenceMark';
 import { ParticipantReferenceMark } from '@/extensions/ParticipantReferenceMark';
 import { AcronymReference } from '@/extensions/AcronymReference';
 import { FigureTableReferenceMark } from '@/extensions/FigureTableReferenceMark';
+import { OrderedListStyled } from '@/extensions/OrderedListStyled';
+import { OrderedListDropdown } from './OrderedListDropdown';
 import { computeAutoFitSmart } from '@/lib/autoFitColumns';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -615,10 +617,8 @@ export function FormattingToolbar({
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           active={editor.isActive('bulletList')}
         />
-        <ToolbarButton 
-          icon={<ListOrdered className="w-4 h-4" />} 
-          tooltip="Numbered List"
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+        <OrderedListDropdown
+          editor={editor}
           active={editor.isActive('orderedList')}
         />
 
@@ -969,11 +969,13 @@ StarterKit.configure({
   heading: {
     levels: [1, 2, 3],
   },
+  orderedList: false,
   undoRedo: {
     depth: 100,
     newGroupDelay: 1200,
   },
 }),
+      OrderedListStyled,
       Underline,
       TextStyle,
       Color,
@@ -1159,11 +1161,13 @@ StarterKit.configure({
   heading: {
     levels: [1, 2, 3],
   },
+  orderedList: false,
   undoRedo: {
     depth: 100,
     newGroupDelay: 1200,
   },
 }),
+      OrderedListStyled,
       Underline,
       TextStyle,
       Color,
