@@ -90,7 +90,7 @@ const getCombinedStatusInfo = (proposal: Proposal) => {
   };
 };
 
-export function ProposalTableView({ proposals, onProposalClick, topicIcons, pinnedIds = [], canPin, onTogglePin, onReorderPinned }: ProposalTableViewProps) {
+export function ProposalTableView({ proposals, onProposalClick, pinnedIds = [], canPin, onTogglePin, onReorderPinned }: ProposalTableViewProps) {
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const dragItemRef = useRef<number | null>(null);
