@@ -210,6 +210,15 @@ export function ParticipantDetailForm({
                 />
               </div>
               <div className="space-y-2">
+                <Label>PIC number</Label>
+                <DebouncedInput
+                  value={participant.picNumber || ''}
+                  onDebouncedChange={(v) => handleFieldUpdate('picNumber', v)}
+                  placeholder="9-digit PIC"
+                  disabled={!canEdit}
+                />
+              </div>
+              <div className="space-y-2">
                 <Label>Participant type *</Label>
                 <Select
                   value={participant.organisationType}
