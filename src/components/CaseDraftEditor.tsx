@@ -375,7 +375,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit, isCoordinator }: 
           style={{ backgroundColor: caseDraft.color, color: '#FFFFFF' }}
         >
           <div className="flex items-center gap-2">
-            <span className="text-xl font-bold">{prefix}{caseDraft.number}:</span>
+            <span className="text-xl font-bold">{prefix ? `${prefix}${caseDraft.number}` : (caseDraft.short_name || caseDraft.number)}:</span>
             <DebouncedInput
               value={caseDraft.title || ''}
               onDebouncedChange={(v) => updateField('title', v)}
