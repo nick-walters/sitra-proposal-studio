@@ -85,6 +85,32 @@ function getCaseBubbleLabel(casePrefix: string, caseNumber: number, shortName: s
   return shortName || `${caseNumber}`;
 }
 
+// Local-state abbreviation input to avoid typing lag
+function AbbreviationInput({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled: boolean }) {
+  const [local, setLocal] = useState(value);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    setLocal(value);
+  }, [value]);
+
+  return (
+    <Input
+      value={local}
+      onChange={(e) => {
+        const v = e.target.value.slice(0, 4);
+        setLocal(v);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => onChange(v), 500);
+      }}
+      placeholder="Abbr"
+      className="h-7 text-xs w-20"
+      maxLength={4}
+      disabled={disabled}
+    />
+  );
+}
+
 interface SortableCaseRowProps {
   caseItem: CaseDraft;
   participants: ParticipantSummary[];
