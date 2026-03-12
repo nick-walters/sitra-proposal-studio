@@ -32,7 +32,6 @@ import { DepartmentsSection } from './participant/DepartmentsSection';
 import { GEPSection } from './participant/GEPSection';
 import { OCDSection } from './participant/OCDSection';
 import { useOCD } from '@/hooks/useOCD';
-import { Input } from '@/components/ui/input';
 
 // PIC number input: digits only, max 9
 function PicNumberInput({ value, onDebouncedChange, disabled }: { value: string; onDebouncedChange: (v: string) => void; disabled: boolean }) {
