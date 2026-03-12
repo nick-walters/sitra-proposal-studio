@@ -126,7 +126,7 @@ export function ParticipantListTable({
                   <td>
                     <p>
                       <span className="font-medium">
-                        {toNameCase(participant.organisationName)}
+                        {participant.organisationName}
                       </span>
                     </p>
                     {participant.englishName && 
