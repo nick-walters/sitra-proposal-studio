@@ -134,7 +134,7 @@ export function ParticipantListTable({
                      participant.englishName.trim().toLowerCase() !== participant.organisationName.trim().toLowerCase() && (
                       <p>
                         <span className="italic" style={{ color: '#666' }}>
-                          {toNameCase(participant.englishName)}
+                          {participant.englishName}
                         </span>
                       </p>
                     )}

@@ -160,10 +160,7 @@ export function ParticipantDetailForm({
   };
 
   const handleFieldUpdate = (field: string, value: unknown) => {
-    // Apply name case to legal name and English name
-    if ((field === 'organisationName' || field === 'englishName') && typeof value === 'string') {
-      value = toNameCase(value);
-    }
+    // No auto-correction of name casing — preserve user input as-is
     setSaving(true);
     onUpdateParticipant(participant.id, { [field]: value });
     setTimeout(() => {
