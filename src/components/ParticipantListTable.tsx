@@ -199,8 +199,7 @@ export function ParticipantListTable({
                           <Tooltip key={`case-${c.caseNumber}`}>
                             <TooltipTrigger asChild>
                               <span
-                                className="inline-flex items-center px-2.5 py-1 rounded-full text-[11pt] font-bold text-white"
-                                style={{ backgroundColor: c.color }}
+                                className="inline-flex items-center px-2.5 py-1 rounded-full text-[11pt] font-bold border-[1.5px] border-black text-black bg-white"
                               >
                                 {c.prefix ? `${c.prefix}${c.caseNumber}` : (c.shortName || c.caseNumber)}
                               </span>

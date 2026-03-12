@@ -339,10 +339,7 @@ function ParticipantCard({
                 <Tooltip key={`case-${c.caseNumber}`}>
                   <TooltipTrigger asChild>
                     <span
-                      className="inline-flex items-center px-1.5 py-0 rounded-full text-xs font-bold cursor-default w-fit text-white"
-                      style={{
-                        backgroundColor: c.color,
-                      }}
+                      className="inline-flex items-center px-1.5 py-0 rounded-full text-xs font-bold cursor-default w-fit border-[1.5px] border-black text-black bg-white"
                     >
                       {c.prefix ? `${c.prefix}${c.caseNumber}` : (c.shortName || c.caseNumber)}
                     </span>
