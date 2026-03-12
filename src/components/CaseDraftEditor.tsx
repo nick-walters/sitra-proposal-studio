@@ -24,7 +24,7 @@ const CASE_TYPES: Record<string, string> = {
   living_lab: 'LL',
   pilot: 'P',
   demonstration: 'D',
-  other: 'C',
+  other: '',
 };
 
 function getCasePrefix(caseType: string, customTypeName?: string | null): string {
