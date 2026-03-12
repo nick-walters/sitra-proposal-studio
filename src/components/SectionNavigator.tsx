@@ -347,7 +347,7 @@ function SectionItem({
             // Match case manager bubble format: "PREFIX+NUM: SHORT_NAME" or just "SHORT_NAME"
             const hasPrefix = /^[A-Za-z]/.test(caseSection.number);
             const label = hasPrefix
-              ? `${caseSection.number}${caseSection.title ? `: ${caseSection.title}` : ''}`
+              ? `${caseSection.number}${caseSection.title ? ` ${caseSection.title}` : ''}`
               : caseSection.number;
             return (
               <span 
