@@ -1632,7 +1632,8 @@ export function usePdfExport() {
           
           // Case badges
           for (const c of caseRoles) {
-            const bubbleWidth = drawBubble(`${c.prefix}${c.caseNumber}`, roleX, roleY, hexToRgb(c.color));
+             const bubbleLabel = c.prefix ? `${c.prefix}${c.caseNumber}` : (c.shortName || `${c.caseNumber}`);
+             const bubbleWidth = drawBubble(bubbleLabel, roleX, roleY, hexToRgb(c.color));
             roleX += bubbleWidth + 1.5;
             if (roleX + avgBubbleWidth > xPos + roleColWidthActual) {
               roleX = xPos + cellPadding;
