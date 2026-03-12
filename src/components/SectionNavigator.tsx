@@ -347,7 +347,7 @@ function SectionItem({
             className="inline-flex items-center justify-center px-1.5 py-px rounded-full text-[9px] font-bold whitespace-nowrap border-[1.5px] border-black"
             style={{ backgroundColor: '#ffffff', color: '#000000' }}
           >
-            {caseSection.number}{caseSection.title ? `: ${caseSection.title}` : ''}
+            {caseSection.number}{caseSection.title ? ` ${caseSection.title}` : ''}
           </span>
         ) : isParticipantSection ? (
           <span 
