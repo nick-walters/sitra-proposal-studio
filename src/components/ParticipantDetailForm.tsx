@@ -32,6 +32,39 @@ import { DepartmentsSection } from './participant/DepartmentsSection';
 import { GEPSection } from './participant/GEPSection';
 import { OCDSection } from './participant/OCDSection';
 import { useOCD } from '@/hooks/useOCD';
+import { Input } from '@/components/ui/input';
+
+// PIC number input: digits only, max 9
+function PicNumberInput({ value, onDebouncedChange, disabled }: { value: string; onDebouncedChange: (v: string) => void; disabled: boolean }) {
+  const [local, setLocal] = useState(value);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFocused = useRef(false);
+
+  React.useEffect(() => {
+    if (!isFocused.current) setLocal(value);
+  }, [value]);
+
+  return (
+    <Input
+      value={local}
+      onChange={(e) => {
+        const v = e.target.value.replace(/\D/g, '').slice(0, 9);
+        setLocal(v);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => onDebouncedChange(v), 500);
+      }}
+      onFocus={() => { isFocused.current = true; }}
+      onBlur={() => {
+        isFocused.current = false;
+        if (debounceRef.current) { clearTimeout(debounceRef.current); onDebouncedChange(local); }
+      }}
+      placeholder="9-digit PIC"
+      maxLength={9}
+      disabled={disabled}
+      required
+    />
+  );
+}
 
 interface SelectedPerson {
   id: string;
