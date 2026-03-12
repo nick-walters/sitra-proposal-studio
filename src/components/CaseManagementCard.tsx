@@ -400,6 +400,7 @@ export function CaseManagementCard({
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
+      queryClient.invalidateQueries({ queryKey: ['case-leadership', proposalId] });
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
     },
   });
