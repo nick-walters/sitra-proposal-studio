@@ -307,15 +307,18 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
 
   // Convert Case drafts to sections
   const caseDraftSections: CaseSection[] = useMemo(() => {
-    return caseDraftsData.map(c => ({
-      id: `case-${c.id}`,
-      number: getCasePrefix(c.case_type) ? `${getCasePrefix(c.case_type)}${c.number}` : (c.short_name || `${c.number}`),
-      title: c.short_name || c.title || '',
-      caseId: c.id,
-      caseNumber: c.number,
-      caseColor: c.color,
-      caseType: c.case_type,
-    }));
+    return caseDraftsData.map(c => {
+      const prefix = getCasePrefix(c.case_type);
+      return {
+        id: `case-${c.id}`,
+        number: prefix ? `${prefix}${c.number}` : (c.short_name || `${c.number}`),
+        title: prefix ? (c.short_name || c.title || '') : (c.title || ''),
+        caseId: c.id,
+        caseNumber: c.number,
+        caseColor: c.color,
+        caseType: c.case_type,
+      };
+    });
   }, [caseDraftsData]);
 
   // Subscribe to realtime updates for WP drafts and invalidate react-query cache
