@@ -159,10 +159,10 @@ function SortableCaseRow({ caseItem, participants, casePrefix, onUpdate, onDelet
   return (
     <div
       ref={setNodeRef}
-      style={{
-        ...style,
-        display: 'contents',
-      }}
+      style={style}
+      className={`col-span-6 grid grid-cols-subgrid gap-x-1.5 items-center py-1 border-b ${
+        isDragging ? 'bg-muted shadow-lg' : ''
+      }`}
     >
       {/* Drag Handle */}
       <div className="flex justify-center">
