@@ -301,7 +301,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       case 'living_lab': return 'LL';
       case 'pilot': return 'P';
       case 'demonstration': return 'D';
-      default: return 'C';
+      default: return '';
     }
   };
 
