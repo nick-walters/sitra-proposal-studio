@@ -153,9 +153,9 @@ function SortableCaseRow({ caseItem, participants, casePrefix, onUpdate, onDelet
 
       {/* Case Number Badge */}
       <Badge
-        className="rounded-full font-bold justify-center text-xs h-6 w-auto min-w-[1.5rem] border-[1.5px] border-black text-black bg-white"
+        className="rounded-full font-bold justify-center text-xs h-6 w-auto min-w-[1.5rem] border-[1.5px] border-black text-black bg-white whitespace-nowrap"
       >
-        {casePrefix ? `${casePrefix}${caseItem.number}` : (caseItem.short_name || caseItem.number)}
+        {getCaseBubbleLabel(casePrefix, caseItem.number, caseItem.short_name)}
       </Badge>
 
       {/* Short Name */}
