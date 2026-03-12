@@ -61,7 +61,7 @@ const CASE_TYPES = [
   { value: 'living_lab', label: 'Living Lab', prefix: 'LL' },
   { value: 'pilot', label: 'Pilot', prefix: 'P' },
   { value: 'demonstration', label: 'Demonstration', prefix: 'D' },
-  { value: 'other', label: 'Other', prefix: 'C' },
+  { value: 'other', label: 'Other', prefix: '' },
 ];
 
 const CASE_COLORS = [
