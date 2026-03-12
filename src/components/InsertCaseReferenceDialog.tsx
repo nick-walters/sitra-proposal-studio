@@ -116,7 +116,7 @@ export function InsertCaseReferenceDialog({
                     <span
                       className="shrink-0 rounded-full font-bold w-12 text-center border-[1.5px] border-black text-black bg-white text-xs px-1.5 py-0.5"
                     >
-                      {prefix}{caseItem.number}
+                      {prefix ? `${prefix}${caseItem.number}` : (caseItem.short_name || caseItem.number)}
                     </span>
                     <div className="flex-1 min-w-0 ml-3">
                       <div className="font-medium text-sm truncate">

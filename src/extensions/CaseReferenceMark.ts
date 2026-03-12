@@ -198,7 +198,7 @@ export const CaseReferenceMark = Mark.create<CaseReferenceOptions>({
         (attributes) =>
         ({ chain }) => {
           const prefix = getCasePrefix(attributes.caseType);
-          const label = `${prefix}${attributes.caseNumber}`;
+          const label = prefix ? `${prefix}${attributes.caseNumber}` : (attributes.caseShortName || `${attributes.caseNumber}`);
           return chain()
             .insertContent({
               type: 'text',

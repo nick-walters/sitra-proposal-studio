@@ -309,7 +309,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
   const caseDraftSections: CaseSection[] = useMemo(() => {
     return caseDraftsData.map(c => ({
       id: `case-${c.id}`,
-      number: `${getCasePrefix(c.case_type)}${c.number}`,
+      number: getCasePrefix(c.case_type) ? `${getCasePrefix(c.case_type)}${c.number}` : (c.short_name || `${c.number}`),
       title: c.short_name || c.title || '',
       caseId: c.id,
       caseNumber: c.number,

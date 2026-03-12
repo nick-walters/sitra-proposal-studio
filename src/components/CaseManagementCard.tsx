@@ -147,7 +147,7 @@ function SortableCaseRow({ caseItem, participants, casePrefix, onUpdate, onDelet
       <Badge
         className="rounded-full font-bold justify-center text-xs h-6 border-[1.5px] border-black text-black bg-white"
       >
-        {casePrefix}{caseItem.number}
+        {casePrefix ? `${casePrefix}${caseItem.number}` : (caseItem.short_name || caseItem.number)}
       </Badge>
 
       {/* Short Name */}

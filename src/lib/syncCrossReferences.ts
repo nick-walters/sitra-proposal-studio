@@ -260,7 +260,7 @@ export async function syncCrossReferences(
         const caseItem = data.caseById.get(mark.attrs.caseId);
         if (caseItem) {
           const prefix = getCasePrefix(caseItem.case_type);
-          const newLabel = `${prefix}${caseItem.number}`;
+          const newLabel = prefix ? `${prefix}${caseItem.number}` : (caseItem.short_name || `${caseItem.number}`);
           const currentText = node.text || '';
           if (currentText !== newLabel || mark.attrs.caseNumber !== caseItem.number || mark.attrs.caseColor !== caseItem.color || mark.attrs.caseType !== caseItem.case_type) {
             const newMark = mark.type.create({

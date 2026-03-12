@@ -1363,8 +1363,8 @@ export function usePdfExport() {
         
         // Helper to get case prefix
         const getCasePrefix = (caseType: string, customTypeName: string | null): string => {
-          if (caseType === 'other' && customTypeName) {
-            return customTypeName.toUpperCase();
+          if (caseType === 'other') {
+            return customTypeName ? customTypeName.toUpperCase() : '';
           }
           switch (caseType) {
             case 'case_study': return 'CS';
@@ -1372,7 +1372,7 @@ export function usePdfExport() {
             case 'living_lab': return 'LL';
             case 'pilot': return 'P';
             case 'demonstration': return 'D';
-            default: return 'C';
+            default: return '';
           }
         };
         

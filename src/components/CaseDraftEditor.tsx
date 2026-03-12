@@ -28,8 +28,8 @@ const CASE_TYPES: Record<string, string> = {
 };
 
 function getCasePrefix(caseType: string, customTypeName?: string | null): string {
-  if (caseType === 'other' && customTypeName) return customTypeName.toUpperCase();
-  return CASE_TYPES[caseType] || 'C';
+  if (caseType === 'other') return customTypeName ? customTypeName.toUpperCase() : '';
+  return CASE_TYPES[caseType] || '';
 }
 
 const SITRA_CASE_TIPS = [
