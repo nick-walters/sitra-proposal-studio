@@ -70,11 +70,11 @@ const CASE_COLORS = [
 ];
 
 function getCasePrefix(caseType: string, customTypeName: string | null): string {
-  if (caseType === 'other' && customTypeName) {
-    return customTypeName.toUpperCase();
+  if (caseType === 'other') {
+    return customTypeName ? customTypeName.toUpperCase() : '';
   }
   const type = CASE_TYPES.find(t => t.value === caseType);
-  return type?.prefix || 'C';
+  return type?.prefix || '';
 }
 
 interface SortableCaseRowProps {
