@@ -210,13 +210,15 @@ export function ParticipantDetailForm({
                 />
               </div>
               <div className="space-y-2">
-                <Label>PIC number</Label>
-                <DebouncedInput
+                <Label>PIC number *</Label>
+                <PicNumberInput
                   value={participant.picNumber || ''}
                   onDebouncedChange={(v) => handleFieldUpdate('picNumber', v)}
-                  placeholder="9-digit PIC"
                   disabled={!canEdit}
                 />
+                {participant.picNumber && !/^\d{9}$/.test(participant.picNumber) && (
+                  <p className="text-xs text-destructive">PIC must be exactly 9 digits</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Participant type *</Label>
