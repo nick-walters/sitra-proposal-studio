@@ -343,12 +343,21 @@ function SectionItem({
             WP{wpSection.wpNumber}{wpSection.title ? `: ${wpSection.title}` : ''}
           </span>
         ) : isCaseSection && caseColor ? (
-          <span 
-            className="inline-flex items-center justify-center px-1.5 py-px rounded-full text-[9px] font-bold whitespace-nowrap border-[1.5px] border-black"
-            style={{ backgroundColor: '#ffffff', color: '#000000' }}
-          >
-            {caseSection.number}{caseSection.title ? `: ${caseSection.title}` : ''}
-          </span>
+          (() => {
+            // Match case manager bubble format: "PREFIX+NUM: SHORT_NAME" or just "SHORT_NAME"
+            const hasPrefix = /^[A-Za-z]/.test(caseSection.number);
+            const label = hasPrefix
+              ? `${caseSection.number}${caseSection.title ? `: ${caseSection.title}` : ''}`
+              : caseSection.number;
+            return (
+              <span 
+                className="inline-flex items-center justify-center px-1.5 py-px rounded-full text-[9px] font-bold whitespace-nowrap border-[1.5px] border-black"
+                style={{ backgroundColor: '#ffffff', color: '#000000' }}
+              >
+                {label}
+              </span>
+            );
+          })()
         ) : isParticipantSection ? (
           <span 
             className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap ml-5"
