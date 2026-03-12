@@ -39,7 +39,7 @@ function PicNumberInput({ value, onDebouncedChange, disabled }: { value: string;
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFocused = useRef(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isFocused.current) setLocal(value);
   }, [value]);
 
