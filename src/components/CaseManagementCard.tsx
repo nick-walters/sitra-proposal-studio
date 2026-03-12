@@ -160,7 +160,7 @@ function SortableCaseRow({ caseItem, participants, casePrefix, onUpdate, onDelet
     <div
       ref={setNodeRef}
       style={style}
-      className={`col-span-6 grid grid-cols-subgrid gap-x-1.5 items-center py-1 border-b ${
+      className={`col-span-5 grid grid-cols-subgrid gap-x-1.5 items-center py-1 border-b ${
         isDragging ? 'bg-muted shadow-lg' : ''
       }`}
     >
@@ -177,26 +177,26 @@ function SortableCaseRow({ caseItem, participants, casePrefix, onUpdate, onDelet
         )}
       </div>
 
-      {/* Case Number Badge */}
+      {/* Case Bubble with inline-editable short name */}
       <Badge
-        className="rounded-full font-bold justify-center text-xs h-6 w-auto min-w-[1.5rem] border-[1.5px] border-black text-black bg-white whitespace-nowrap"
+        className="rounded-full font-bold justify-center text-xs h-6 w-auto min-w-[1.5rem] border-[1.5px] border-black text-black bg-white whitespace-nowrap gap-0 px-1.5"
       >
-        {getCaseBubbleLabel(casePrefix, caseItem.number, caseItem.short_name)}
+        {casePrefix && <span>{casePrefix}{caseItem.number}</span>}
+        {casePrefix && <span>:&nbsp;</span>}
+        <input
+          value={localShortName}
+          onChange={(e) => {
+            setLocalShortName(e.target.value);
+            debouncedUpdate(caseItem.id, { short_name: e.target.value });
+          }}
+          onFocus={() => { isFocused.current = true; }}
+          onBlur={() => { isFocused.current = false; }}
+          placeholder={casePrefix ? 'name' : 'Short name'}
+          className="bg-transparent outline-none font-bold text-xs text-black min-w-[2rem]"
+          style={{ width: `${Math.max(2, (localShortName || '').length * 0.6)}em` }}
+          disabled={!canEdit}
+        />
       </Badge>
-
-      {/* Short Name */}
-      <Input
-        value={localShortName}
-        onChange={(e) => {
-          setLocalShortName(e.target.value);
-          debouncedUpdate(caseItem.id, { short_name: e.target.value });
-        }}
-        onFocus={() => { isFocused.current = true; }}
-        onBlur={() => { isFocused.current = false; }}
-        placeholder="Short"
-        className="h-7 text-sm"
-        disabled={!canEdit}
-      />
 
       {/* Title */}
       <Input
