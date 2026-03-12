@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +32,38 @@ import { DepartmentsSection } from './participant/DepartmentsSection';
 import { GEPSection } from './participant/GEPSection';
 import { OCDSection } from './participant/OCDSection';
 import { useOCD } from '@/hooks/useOCD';
+
+// PIC number input: digits only, max 9
+function PicNumberInput({ value, onDebouncedChange, disabled }: { value: string; onDebouncedChange: (v: string) => void; disabled: boolean }) {
+  const [local, setLocal] = useState(value);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFocused = useRef(false);
+
+  useEffect(() => {
+    if (!isFocused.current) setLocal(value);
+  }, [value]);
+
+  return (
+    <Input
+      value={local}
+      onChange={(e) => {
+        const v = e.target.value.replace(/\D/g, '').slice(0, 9);
+        setLocal(v);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => onDebouncedChange(v), 500);
+      }}
+      onFocus={() => { isFocused.current = true; }}
+      onBlur={() => {
+        isFocused.current = false;
+        if (debounceRef.current) { clearTimeout(debounceRef.current); onDebouncedChange(local); }
+      }}
+      placeholder="9-digit PIC"
+      maxLength={9}
+      disabled={disabled}
+      required
+    />
+  );
+}
 
 interface SelectedPerson {
   id: string;
@@ -210,13 +242,15 @@ export function ParticipantDetailForm({
                 />
               </div>
               <div className="space-y-2">
-                <Label>PIC number</Label>
-                <DebouncedInput
+                <Label>PIC number *</Label>
+                <PicNumberInput
                   value={participant.picNumber || ''}
                   onDebouncedChange={(v) => handleFieldUpdate('picNumber', v)}
-                  placeholder="9-digit PIC"
                   disabled={!canEdit}
                 />
+                {participant.picNumber && !/^\d{9}$/.test(participant.picNumber) && (
+                  <p className="text-xs text-destructive">PIC must be exactly 9 digits</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Participant type *</Label>
