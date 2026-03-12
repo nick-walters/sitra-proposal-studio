@@ -516,12 +516,9 @@ export function CaseManagementCard({
                     </SelectContent>
                   </Select>
                   {proposalCaseType === 'other' && (
-                    <Input
+                    <AbbreviationInput
                       value={proposalCustomName || ''}
-                      onChange={(e) => handleCustomNameChange(e.target.value.slice(0, 4))}
-                      placeholder="Abbr"
-                      className="h-7 text-xs uppercase w-20"
-                      maxLength={4}
+                      onChange={handleCustomNameChange}
                       disabled={!isCoordinator}
                     />
                   )}
