@@ -202,11 +202,11 @@ export function ParticipantListTable({
                                 className="inline-flex items-center px-2.5 py-1 rounded-full text-[11pt] font-bold text-white"
                                 style={{ backgroundColor: c.color }}
                               >
-                                {c.prefix}{c.caseNumber}
+                                {c.prefix ? `${c.prefix}${c.caseNumber}` : (c.shortName || c.caseNumber)}
                               </span>
                             </TooltipTrigger>
                             <TooltipContent>
-                              {c.shortName ? `${c.shortName} (Lead)` : `${c.prefix}${c.caseNumber} Lead`}
+                              {c.shortName ? `${c.shortName} (Lead)` : `${c.prefix ? `${c.prefix}${c.caseNumber}` : c.caseNumber} Lead`}
                             </TooltipContent>
                           </Tooltip>
                         ))}

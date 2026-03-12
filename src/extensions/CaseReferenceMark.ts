@@ -54,7 +54,7 @@ function getCasePrefix(caseType: string): string {
     case 'living_lab': return 'LL';
     case 'pilot': return 'P';
     case 'demonstration': return 'D';
-    default: return 'C';
+    default: return '';
   }
 }
 
@@ -198,7 +198,7 @@ export const CaseReferenceMark = Mark.create<CaseReferenceOptions>({
         (attributes) =>
         ({ chain }) => {
           const prefix = getCasePrefix(attributes.caseType);
-          const label = `${prefix}${attributes.caseNumber}`;
+          const label = prefix ? `${prefix}${attributes.caseNumber}` : (attributes.caseShortName || `${attributes.caseNumber}`);
           return chain()
             .insertContent({
               type: 'text',

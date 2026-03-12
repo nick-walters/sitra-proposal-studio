@@ -24,12 +24,12 @@ const CASE_TYPES: Record<string, string> = {
   living_lab: 'LL',
   pilot: 'P',
   demonstration: 'D',
-  other: 'C',
+  other: '',
 };
 
 function getCasePrefix(caseType: string, customTypeName?: string | null): string {
-  if (caseType === 'other' && customTypeName) return customTypeName.toUpperCase();
-  return CASE_TYPES[caseType] || 'C';
+  if (caseType === 'other') return customTypeName ? customTypeName.toUpperCase() : '';
+  return CASE_TYPES[caseType] || '';
 }
 
 const SITRA_CASE_TIPS = [
@@ -375,7 +375,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit, isCoordinator }: 
           style={{ backgroundColor: caseDraft.color, color: '#FFFFFF' }}
         >
           <div className="flex items-center gap-2">
-            <span className="text-xl font-bold">{prefix}{caseDraft.number}:</span>
+            <span className="text-xl font-bold">{prefix ? `${prefix}${caseDraft.number}` : (caseDraft.short_name || caseDraft.number)}:</span>
             <DebouncedInput
               value={caseDraft.title || ''}
               onDebouncedChange={(v) => updateField('title', v)}
@@ -421,7 +421,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit, isCoordinator }: 
         <Dialog open={guidelinesOpen} onOpenChange={setGuidelinesOpen}>
           <DialogContent className="max-w-3xl max-h-[90vh] w-[90vw]">
             <DialogHeader>
-              <DialogTitle>Guidelines for {prefix}{caseDraft.number}: {caseDraft.title || caseDraft.short_name || 'Case'}</DialogTitle>
+              <DialogTitle>Guidelines for {prefix ? `${prefix}${caseDraft.number}` : (caseDraft.short_name || caseDraft.number)}: {caseDraft.title || caseDraft.short_name || 'Case'}</DialogTitle>
             </DialogHeader>
             <ScrollArea className="max-h-[75vh] pr-4">
               <div className="space-y-4">

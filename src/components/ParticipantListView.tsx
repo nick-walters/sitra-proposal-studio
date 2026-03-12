@@ -344,11 +344,11 @@ function ParticipantCard({
                         backgroundColor: c.color,
                       }}
                     >
-                      {c.prefix}{c.caseNumber}
+                      {c.prefix ? `${c.prefix}${c.caseNumber}` : (c.shortName || c.caseNumber)}
                     </span>
                   </TooltipTrigger>
                   <TooltipContent>
-                    {c.shortName ? `${c.shortName} (Lead)` : `${c.prefix}${c.caseNumber} Lead`}
+                    {c.shortName ? `${c.shortName} (Lead)` : `${c.prefix ? `${c.prefix}${c.caseNumber}` : c.caseNumber} Lead`}
                   </TooltipContent>
                 </Tooltip>
               ))

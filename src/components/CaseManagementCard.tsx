@@ -61,7 +61,7 @@ const CASE_TYPES = [
   { value: 'living_lab', label: 'Living Lab', prefix: 'LL' },
   { value: 'pilot', label: 'Pilot', prefix: 'P' },
   { value: 'demonstration', label: 'Demonstration', prefix: 'D' },
-  { value: 'other', label: 'Other', prefix: 'C' },
+  { value: 'other', label: 'Other', prefix: '' },
 ];
 
 const CASE_COLORS = [
@@ -70,11 +70,11 @@ const CASE_COLORS = [
 ];
 
 function getCasePrefix(caseType: string, customTypeName: string | null): string {
-  if (caseType === 'other' && customTypeName) {
-    return customTypeName.toUpperCase();
+  if (caseType === 'other') {
+    return customTypeName ? customTypeName.toUpperCase() : '';
   }
   const type = CASE_TYPES.find(t => t.value === caseType);
-  return type?.prefix || 'C';
+  return type?.prefix || '';
 }
 
 interface SortableCaseRowProps {
@@ -147,7 +147,7 @@ function SortableCaseRow({ caseItem, participants, casePrefix, onUpdate, onDelet
       <Badge
         className="rounded-full font-bold justify-center text-xs h-6 border-[1.5px] border-black text-black bg-white"
       >
-        {casePrefix}{caseItem.number}
+        {casePrefix ? `${casePrefix}${caseItem.number}` : (caseItem.short_name || caseItem.number)}
       </Badge>
 
       {/* Short Name */}
@@ -502,7 +502,7 @@ export function CaseManagementCard({
                     <SelectContent>
                       {CASE_TYPES.map((type) => (
                         <SelectItem key={type.value} value={type.value} className="text-xs">
-                          {type.prefix} – {type.label}
+                          {type.prefix ? `${type.prefix} – ` : ''}{type.label}
                         </SelectItem>
                       ))}
                     </SelectContent>

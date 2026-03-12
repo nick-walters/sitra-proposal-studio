@@ -1363,8 +1363,8 @@ export function usePdfExport() {
         
         // Helper to get case prefix
         const getCasePrefix = (caseType: string, customTypeName: string | null): string => {
-          if (caseType === 'other' && customTypeName) {
-            return customTypeName.toUpperCase();
+          if (caseType === 'other') {
+            return customTypeName ? customTypeName.toUpperCase() : '';
           }
           switch (caseType) {
             case 'case_study': return 'CS';
@@ -1372,12 +1372,12 @@ export function usePdfExport() {
             case 'living_lab': return 'LL';
             case 'pilot': return 'P';
             case 'demonstration': return 'D';
-            default: return 'C';
+            default: return '';
           }
         };
         
         // Build Case leadership map: participantId -> array of case info
-        const caseLeadership = new Map<string, { caseNumber: number; color: string; prefix: string }[]>();
+        const caseLeadership = new Map<string, { caseNumber: number; color: string; prefix: string; shortName: string | null }[]>();
         for (const c of caseLeadershipData || []) {
           if (c.lead_participant_id) {
             if (!caseLeadership.has(c.lead_participant_id)) {
@@ -1387,6 +1387,7 @@ export function usePdfExport() {
               caseNumber: c.number,
               color: c.color,
               prefix: getCasePrefix(c.case_type, c.custom_type_name),
+              shortName: c.short_name,
             });
           }
         }
@@ -1631,7 +1632,8 @@ export function usePdfExport() {
           
           // Case badges
           for (const c of caseRoles) {
-            const bubbleWidth = drawBubble(`${c.prefix}${c.caseNumber}`, roleX, roleY, hexToRgb(c.color));
+             const bubbleLabel = c.prefix ? `${c.prefix}${c.caseNumber}` : (c.shortName || `${c.caseNumber}`);
+             const bubbleWidth = drawBubble(bubbleLabel, roleX, roleY, hexToRgb(c.color));
             roleX += bubbleWidth + 1.5;
             if (roleX + avgBubbleWidth > xPos + roleColWidthActual) {
               roleX = xPos + cellPadding;
