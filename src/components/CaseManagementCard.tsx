@@ -71,10 +71,18 @@ const CASE_COLORS = [
 
 function getCasePrefix(caseType: string, customTypeName: string | null): string {
   if (caseType === 'other') {
-    return customTypeName ? customTypeName.toUpperCase() : '';
+    return customTypeName || '';
   }
   const type = CASE_TYPES.find(t => t.value === caseType);
   return type?.prefix || '';
+}
+
+function getCaseBubbleLabel(casePrefix: string, caseNumber: number, shortName: string | null): string {
+  if (casePrefix) {
+    const label = `${casePrefix}${caseNumber}`;
+    return shortName ? `${label}: ${shortName}` : label;
+  }
+  return shortName || `${caseNumber}`;
 }
 
 interface SortableCaseRowProps {
