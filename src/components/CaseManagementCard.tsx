@@ -160,7 +160,7 @@ function SortableCaseRow({ caseItem, participants, casePrefix, onUpdate, onDelet
     <div
       ref={setNodeRef}
       style={style}
-      className={`grid grid-cols-[24px_auto_90px_1fr_80px_20px] gap-1.5 items-center py-1 border-b ${
+      className={`col-span-6 grid grid-cols-subgrid gap-x-1.5 items-center py-1 border-b ${
         isDragging ? 'bg-muted shadow-lg' : ''
       }`}
     >
@@ -551,35 +551,38 @@ export function CaseManagementCard({
                 </div>
 
                 {/* Table Header */}
-                <div className="grid grid-cols-[24px_auto_90px_1fr_80px_20px] gap-1.5 text-xs font-medium text-muted-foreground border-b pb-1">
-                  <div />
-                  <div />
-                  <div>Short Name</div>
-                  <div>Title</div>
-                  <div>Lead</div>
-                  <div />
-                </div>
+                <div className="grid grid-cols-[24px_max-content_90px_1fr_80px_20px] gap-x-1.5">
+                  {/* Header row */}
+                  <div className="col-span-6 grid grid-cols-subgrid gap-x-1.5 text-xs font-medium text-muted-foreground border-b pb-1">
+                    <div />
+                    <div />
+                    <div>Short Name</div>
+                    <div>Title</div>
+                    <div>Lead</div>
+                    <div />
+                  </div>
 
-                {/* Sortable Case List */}
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={handleDragEnd}
-                >
-                  <SortableContext items={caseDrafts.map((c) => c.id)} strategy={verticalListSortingStrategy}>
-                    {caseDrafts.map((caseItem) => (
-                      <SortableCaseRow
-                        key={caseItem.id}
-                        caseItem={caseItem}
-                        participants={participants}
-                        casePrefix={casePrefix}
-                        onUpdate={handleUpdateCase}
-                        onDelete={handleDeleteCase}
-                        canEdit={isCoordinator}
-                      />
-                    ))}
-                  </SortableContext>
-                </DndContext>
+                  {/* Sortable Case List */}
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext items={caseDrafts.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+                      {caseDrafts.map((caseItem) => (
+                        <SortableCaseRow
+                          key={caseItem.id}
+                          caseItem={caseItem}
+                          participants={participants}
+                          casePrefix={casePrefix}
+                          onUpdate={handleUpdateCase}
+                          onDelete={handleDeleteCase}
+                          canEdit={isCoordinator}
+                        />
+                      ))}
+                    </SortableContext>
+                  </DndContext>
+                </div>
 
                 {/* Add button */}
                 {isCoordinator && (
