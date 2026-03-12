@@ -502,7 +502,7 @@ export function CaseManagementCard({
                     <SelectContent>
                       {CASE_TYPES.map((type) => (
                         <SelectItem key={type.value} value={type.value} className="text-xs">
-                          {type.prefix} – {type.label}
+                          {type.prefix ? `${type.prefix} – ` : ''}{type.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
