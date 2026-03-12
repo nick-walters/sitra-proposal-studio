@@ -1377,7 +1377,7 @@ export function usePdfExport() {
         };
         
         // Build Case leadership map: participantId -> array of case info
-        const caseLeadership = new Map<string, { caseNumber: number; color: string; prefix: string }[]>();
+        const caseLeadership = new Map<string, { caseNumber: number; color: string; prefix: string; shortName: string | null }[]>();
         for (const c of caseLeadershipData || []) {
           if (c.lead_participant_id) {
             if (!caseLeadership.has(c.lead_participant_id)) {
@@ -1387,6 +1387,7 @@ export function usePdfExport() {
               caseNumber: c.number,
               color: c.color,
               prefix: getCasePrefix(c.case_type, c.custom_type_name),
+              shortName: c.short_name,
             });
           }
         }
