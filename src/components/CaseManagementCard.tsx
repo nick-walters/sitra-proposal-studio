@@ -71,10 +71,44 @@ const CASE_COLORS = [
 
 function getCasePrefix(caseType: string, customTypeName: string | null): string {
   if (caseType === 'other') {
-    return customTypeName ? customTypeName.toUpperCase() : '';
+    return customTypeName || '';
   }
   const type = CASE_TYPES.find(t => t.value === caseType);
   return type?.prefix || '';
+}
+
+function getCaseBubbleLabel(casePrefix: string, caseNumber: number, shortName: string | null): string {
+  if (casePrefix) {
+    const label = `${casePrefix}${caseNumber}`;
+    return shortName ? `${label}: ${shortName}` : label;
+  }
+  return shortName || `${caseNumber}`;
+}
+
+// Local-state abbreviation input to avoid typing lag
+function AbbreviationInput({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled: boolean }) {
+  const [local, setLocal] = useState(value);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    setLocal(value);
+  }, [value]);
+
+  return (
+    <Input
+      value={local}
+      onChange={(e) => {
+        const v = e.target.value.slice(0, 4);
+        setLocal(v);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => onChange(v), 500);
+      }}
+      placeholder="Abbr"
+      className="h-7 text-xs w-20"
+      maxLength={4}
+      disabled={disabled}
+    />
+  );
 }
 
 interface SortableCaseRowProps {
@@ -126,7 +160,7 @@ function SortableCaseRow({ caseItem, participants, casePrefix, onUpdate, onDelet
     <div
       ref={setNodeRef}
       style={style}
-      className={`grid grid-cols-[24px_50px_90px_1fr_80px_20px] gap-1.5 items-center py-1 border-b ${
+      className={`grid grid-cols-[24px_auto_90px_1fr_80px_20px] gap-1.5 items-center py-1 border-b ${
         isDragging ? 'bg-muted shadow-lg' : ''
       }`}
     >
@@ -145,9 +179,9 @@ function SortableCaseRow({ caseItem, participants, casePrefix, onUpdate, onDelet
 
       {/* Case Number Badge */}
       <Badge
-        className="rounded-full font-bold justify-center text-xs h-6 w-auto min-w-[1.5rem] border-[1.5px] border-black text-black bg-white"
+        className="rounded-full font-bold justify-center text-xs h-6 w-auto min-w-[1.5rem] border-[1.5px] border-black text-black bg-white whitespace-nowrap"
       >
-        {casePrefix ? `${casePrefix}${caseItem.number}` : (caseItem.short_name || caseItem.number)}
+        {getCaseBubbleLabel(casePrefix, caseItem.number, caseItem.short_name)}
       </Badge>
 
       {/* Short Name */}
@@ -508,21 +542,18 @@ export function CaseManagementCard({
                     </SelectContent>
                   </Select>
                   {proposalCaseType === 'other' && (
-                    <Input
+                    <AbbreviationInput
                       value={proposalCustomName || ''}
-                      onChange={(e) => handleCustomNameChange(e.target.value.slice(0, 4))}
-                      placeholder="Abbr"
-                      className="h-7 text-xs uppercase w-20"
-                      maxLength={4}
+                      onChange={handleCustomNameChange}
                       disabled={!isCoordinator}
                     />
                   )}
                 </div>
 
                 {/* Table Header */}
-                <div className="grid grid-cols-[24px_50px_90px_1fr_80px_20px] gap-1.5 text-xs font-medium text-muted-foreground border-b pb-1">
+                <div className="grid grid-cols-[24px_auto_90px_1fr_80px_20px] gap-1.5 text-xs font-medium text-muted-foreground border-b pb-1">
                   <div />
-                  <div className="text-center">№</div>
+                  <div />
                   <div>Short Name</div>
                   <div>Title</div>
                   <div>Lead</div>
