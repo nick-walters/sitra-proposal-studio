@@ -142,6 +142,12 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit, isCoordinator }: 
     },
   });
 
+  // Heading and guideline keys that should propagate across all cases
+  const PROPAGATED_KEYS = new Set([
+    'heading_background', 'heading_stakeholders', 'heading_solutions', 'heading_outcomes', 'heading_replicability',
+    'guideline_background', 'guideline_stakeholders', 'guideline_solutions', 'guideline_outcomes', 'guideline_replicability',
+  ]);
+
   // Update mutation
   const updateMutation = useMutation({
     mutationFn: async (updates: Record<string, any>) => {
@@ -150,9 +156,24 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit, isCoordinator }: 
         .update(updates)
         .eq('id', caseId);
       if (error) throw error;
+
+      // Propagate heading/guideline changes to ALL other cases in the proposal
+      const propagatedUpdates: Record<string, any> = {};
+      for (const [key, val] of Object.entries(updates)) {
+        if (PROPAGATED_KEYS.has(key)) {
+          propagatedUpdates[key] = val;
+        }
+      }
+      if (Object.keys(propagatedUpdates).length > 0) {
+        await supabase
+          .from('case_drafts')
+          .update(propagatedUpdates)
+          .eq('proposal_id', proposalId)
+          .neq('id', caseId);
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['case-draft-detail', caseId] });
+      queryClient.invalidateQueries({ queryKey: ['case-draft-detail'] });
       queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
     },
   });
