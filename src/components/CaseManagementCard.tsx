@@ -405,11 +405,28 @@ export function CaseManagementCard({
     },
   });
 
-  // Add case mutation
+  // Add case mutation — copies shared headings/guidelines from existing cases
   const addCaseMutation = useMutation({
     mutationFn: async (caseType: string = 'case_study') => {
       const newNumber = caseDrafts.length + 1;
       const color = CASE_COLORS[(newNumber - 1) % CASE_COLORS.length];
+
+      // Copy heading/guideline customisations from first existing case
+      let sharedFields: Record<string, string | null> = {};
+      if (caseDrafts.length > 0) {
+        const { data: ref } = await supabase
+          .from('case_drafts')
+          .select('heading_background, heading_stakeholders, heading_solutions, heading_outcomes, heading_replicability, guideline_background, guideline_stakeholders, guideline_solutions, guideline_outcomes, guideline_replicability')
+          .eq('proposal_id', proposalId)
+          .order('number')
+          .limit(1)
+          .single();
+        if (ref) {
+          for (const [k, v] of Object.entries(ref)) {
+            if (v) sharedFields[k] = v as string;
+          }
+        }
+      }
       
       const { error } = await supabase.from('case_drafts').insert({
         proposal_id: proposalId,
@@ -417,6 +434,7 @@ export function CaseManagementCard({
         case_type: caseType,
         color,
         order_index: newNumber - 1,
+        ...sharedFields,
       });
       if (error) throw error;
     },
