@@ -651,11 +651,28 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
   };
 
   const handleDeleteTask = async (taskId: string) => {
+    // Find which WP this task belongs to for renumbering
+    const ownerWp = wpData.find(wp => wp.tasks.some(t => t.id === taskId));
+
     const { error } = await supabase.from('wp_draft_tasks').delete().eq('id', taskId);
     if (error) {
       toast.error('Failed to delete task');
       return;
     }
+
+    // Renumber remaining tasks in the same WP
+    if (ownerWp) {
+      const remaining = ownerWp.tasks
+        .filter(t => t.id !== taskId)
+        .sort((a, b) => a.number - b.number);
+      for (let i = 0; i < remaining.length; i++) {
+        await supabase
+          .from('wp_draft_tasks')
+          .update({ number: i + 1, order_index: i })
+          .eq('id', remaining[i].id);
+      }
+    }
+
     queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
     window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
     toast.success('Task deleted');
