@@ -364,11 +364,12 @@ export default function Auth() {
               </TabsContent>
 
               <TabsContent value="signup">
-                <form onSubmit={handleSignUp} className="space-y-4">
+                <form onSubmit={handleSignUp} className="space-y-4" method="post" action="#">
                   <div className="space-y-2">
                     <Label htmlFor="signup-name">Full Name</Label>
                     <Input
                       id="signup-name"
+                      name="name"
                       placeholder="John Doe"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
@@ -380,6 +381,7 @@ export default function Auth() {
                     <Label htmlFor="signup-org">Organisation</Label>
                     <Input
                       id="signup-org"
+                      name="organization"
                       placeholder="e.g. Sitra"
                       value={organisation}
                       onChange={(e) => setOrganisation(e.target.value)}
@@ -390,6 +392,7 @@ export default function Auth() {
                     <Label htmlFor="signup-email">Email</Label>
                     <Input
                       id="signup-email"
+                      name="email"
                       type="email"
                       placeholder="you@example.com"
                       value={email}
@@ -402,6 +405,7 @@ export default function Auth() {
                     <Label htmlFor="signup-password">Password</Label>
                     <Input
                       id="signup-password"
+                      name="password"
                       type="password"
                       placeholder="••••••••"
                       value={password}
