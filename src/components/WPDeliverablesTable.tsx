@@ -48,11 +48,11 @@ const DELIVERABLE_TYPES = [
 ];
 
 const DISSEMINATION_LEVELS = [
-  { value: 'PU', label: 'Public' },
-  { value: 'SEN', label: 'Sensitive' },
-  { value: 'EU-RES', label: 'EU Restricted' },
-  { value: 'EU-CON', label: 'EU Confidential' },
-  { value: 'EU-SEC', label: 'EU Secret' },
+  { value: 'PU', label: 'Public', description: 'Fully open, e.g. web (Deliverables flagged as public will be automatically published on CORDIS)' },
+  { value: 'SEN', label: 'Sensitive', description: 'Limited under the conditions of the Grant Agreement' },
+  { value: 'EU-RES', label: 'EU Restricted', description: 'Classified with the mention of the classification level RESTREINT UE/EU RESTRICTED' },
+  { value: 'EU-CON', label: 'EU Confidential', description: 'Classified with the mention of the classification level CONFIDENTIEL UE/EU CONFIDENTIAL' },
+  { value: 'EU-SEC', label: 'EU Secret', description: 'Classified with the mention of the classification level SECRET UE/EU SECRET' },
 ];
 
 export function WPDeliverablesTable({
@@ -248,9 +248,9 @@ function SortableDeliverableCard({
             </SelectTrigger>
             <SelectContent className="bg-popover">
               {DELIVERABLE_TYPES.map((type) => (
-                <SelectItem key={type.value} value={type.value}>
+                <SelectItem key={type.value} value={type.value} textValue={type.value}>
                   <div className="flex flex-col">
-                    <span>{type.value}</span>
+                    <span>{type.value} – {type.label}</span>
                     <span className="text-xs text-muted-foreground">{type.description}</span>
                   </div>
                 </SelectItem>
@@ -271,8 +271,11 @@ function SortableDeliverableCard({
             </SelectTrigger>
             <SelectContent>
               {DISSEMINATION_LEVELS.map((level) => (
-                <SelectItem key={level.value} value={level.value}>
-                  {level.value}
+                <SelectItem key={level.value} value={level.value} textValue={level.value}>
+                  <div className="flex flex-col">
+                    <span>{level.value} – {level.label}</span>
+                    <span className="text-xs text-muted-foreground">{level.description}</span>
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
