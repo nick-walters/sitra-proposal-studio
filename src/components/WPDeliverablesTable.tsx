@@ -271,7 +271,7 @@ function SortableDeliverableCard({
             </SelectTrigger>
             <SelectContent>
               {DISSEMINATION_LEVELS.map((level) => (
-                <SelectItem key={level.value} value={level.value}>
+                <SelectItem key={level.value} value={level.value} textValue={level.value}>
                   <div className="flex flex-col">
                     <span>{level.value} – {level.label}</span>
                     <span className="text-xs text-muted-foreground">{level.description}</span>
