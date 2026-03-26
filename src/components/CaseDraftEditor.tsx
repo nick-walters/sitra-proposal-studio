@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { SaveIndicator } from '@/components/SaveIndicator';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -113,6 +114,8 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit, isCoordinator }: 
   const [guidelinesOpen, setGuidelinesOpen] = useState(false);
   const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
   const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number } | null>(null);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Fetch case draft
   const { data: caseDraft, isLoading } = useQuery({
@@ -173,8 +176,13 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit, isCoordinator }: 
       }
     },
     onSuccess: () => {
+      setLastSaved(new Date());
+      setSaveError(null);
       queryClient.invalidateQueries({ queryKey: ['case-draft-detail'] });
       queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
+    },
+    onError: () => {
+      setSaveError('Failed to save changes');
     },
   });
 
