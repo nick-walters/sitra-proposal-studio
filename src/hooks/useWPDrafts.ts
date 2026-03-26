@@ -425,10 +425,25 @@ export function useWPDraftEditor(wpId: string | null) {
 
       if (error) throw error;
 
-      setWPDraft(prev => prev ? {
-        ...prev,
-        tasks: prev.tasks?.filter(t => t.id !== taskId),
-      } : null);
+      // Renumber remaining tasks sequentially
+      setWPDraft(prev => {
+        if (!prev?.tasks) return prev;
+        const remaining = prev.tasks
+          .filter(t => t.id !== taskId)
+          .sort((a, b) => a.number - b.number)
+          .map((t, i) => ({ ...t, number: i + 1, order_index: i }));
+
+        // Update numbers in database
+        remaining.forEach((t, i) => {
+          supabase
+            .from('wp_draft_tasks')
+            .update({ number: i + 1, order_index: i })
+            .eq('id', t.id)
+            .then();
+        });
+
+        return { ...prev, tasks: remaining };
+      });
 
       return true;
     } catch (err) {
