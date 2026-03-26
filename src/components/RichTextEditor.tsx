@@ -1088,6 +1088,23 @@ StarterKit.configure({
         class: 'document-content min-h-[400px] outline-none prose prose-sm max-w-none',
         style: 'font-family: "Times New Roman", Times, serif',
       },
+      transformPastedHTML(html) {
+        const div = document.createElement('div');
+        div.innerHTML = html;
+        div.querySelectorAll('*').forEach(el => {
+          const h = el as HTMLElement;
+          if (h.style) {
+            h.style.fontSize = '';
+            h.style.lineHeight = '';
+          }
+          if (el.tagName === 'FONT') {
+            const span = document.createElement('span');
+            span.innerHTML = el.innerHTML;
+            el.replaceWith(span);
+          }
+        });
+        return div.innerHTML;
+      },
     },
   });
 
@@ -1429,6 +1446,23 @@ StarterKit.configure({
       attributes: {
         class: 'document-content min-h-[400px] outline-none prose prose-sm max-w-none',
         style: 'font-family: "Times New Roman", Times, serif',
+      },
+      transformPastedHTML(html) {
+        const div = document.createElement('div');
+        div.innerHTML = html;
+        div.querySelectorAll('*').forEach(el => {
+          const h = el as HTMLElement;
+          if (h.style) {
+            h.style.fontSize = '';
+            h.style.lineHeight = '';
+          }
+          if (el.tagName === 'FONT') {
+            const span = document.createElement('span');
+            span.innerHTML = el.innerHTML;
+            el.replaceWith(span);
+          }
+        });
+        return div.innerHTML;
       },
     },
   });
