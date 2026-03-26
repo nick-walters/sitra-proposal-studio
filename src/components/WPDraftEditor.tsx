@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import { SaveIndicator } from '@/components/SaveIndicator';
 import { useWPDraftEditor } from '@/hooks/useWPDrafts';
 import { WPMethodologySection } from '@/components/WPMethodologySection';
 import { WPTableSection } from '@/components/WPTableSection';
@@ -146,6 +147,8 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
     wpDraft,
     loading,
     saving,
+    lastSaved,
+    saveError,
     updateField,
     addTask,
     updateTask,
@@ -754,6 +757,14 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               </div>
             </>
           )}
+          <div className="ml-auto">
+            <SaveIndicator
+              saving={saving}
+              lastSaved={lastSaved}
+              saveError={saveError}
+              onSaveNow={() => {}}
+            />
+          </div>
         </div>
 
         {/* Header with color */}
