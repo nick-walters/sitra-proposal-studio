@@ -287,7 +287,7 @@ function SortableTaskCard({
         <div className="flex items-center gap-1 flex-1 min-w-0">
           <span className="text-xs text-muted-foreground flex-shrink-0">Participants:</span>
           <ParticipantMultiSelect
-            participants={participants}
+            participants={availableParticipants}
             selectedIds={selectedParticipantIds}
             onChange={(ids) => onParticipantsChange(task.id, ids)}
             disabled={readOnly}
