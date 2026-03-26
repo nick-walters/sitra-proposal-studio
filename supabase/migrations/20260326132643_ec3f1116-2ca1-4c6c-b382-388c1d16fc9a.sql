@@ -1,0 +1,1 @@
+ALTER TABLE public.wp_drafts ADD COLUMN description_before_tasks text;
