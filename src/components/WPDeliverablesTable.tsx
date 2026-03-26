@@ -244,7 +244,7 @@ function SortableDeliverableCard({
             disabled={readOnly}
           >
             <SelectTrigger hideArrow className="h-6 w-[60px] text-xs px-1.5">
-              <SelectValue placeholder="Select" />
+              <span>{deliverable.type || 'Select'}</span>
             </SelectTrigger>
             <SelectContent className="bg-popover">
               {DELIVERABLE_TYPES.map((type) => (
@@ -267,7 +267,7 @@ function SortableDeliverableCard({
             disabled={readOnly}
           >
             <SelectTrigger hideArrow className="h-6 w-[55px] text-xs px-1.5">
-              <SelectValue placeholder="Select" />
+              <span>{deliverable.dissemination_level || 'PU'}</span>
             </SelectTrigger>
             <SelectContent>
               {DISSEMINATION_LEVELS.map((level) => (
