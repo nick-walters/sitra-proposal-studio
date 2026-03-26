@@ -233,17 +233,50 @@ export function InsertTDMSReferenceDropdowns({
         setTasks(allTasks);
       }
 
-      const { data: dels } = await supabase
-        .from('b31_deliverables')
-        .select('id, number, name, wp_number')
-        .eq('proposal_id', proposalId)
-        .order('number');
-      if (dels) {
-        setDeliverables(dels.map(d => ({
-          ...d,
-          wp_color: d.wp_number ? wpColorMap.get(d.wp_number) || '#000000' : '#000000',
-        })));
+      // Fetch deliverables from both b31_deliverables AND wp_draft_deliverables
+      const [{ data: dels }, { data: draftDels }] = await Promise.all([
+        supabase
+          .from('b31_deliverables')
+          .select('id, number, name, wp_number')
+          .eq('proposal_id', proposalId)
+          .order('number'),
+        supabase
+          .from('wp_draft_deliverables')
+          .select('id, number, title, wp_draft_id')
+          .in('wp_draft_id', (wpDrafts || []).map(wp => wp.id))
+          .order('number'),
+      ]);
+
+      // Build a set of b31 deliverable IDs to avoid duplicates
+      const b31Deliverables: Deliverable[] = (dels || []).map(d => ({
+        ...d,
+        wp_color: d.wp_number ? wpColorMap.get(d.wp_number) || '#000000' : '#000000',
+      }));
+
+      // Build map of wp_draft_id -> wp_number
+      const wpDraftIdToNumber = new Map<string, number>();
+      if (wpDrafts) {
+        for (const wp of wpDrafts) {
+          wpDraftIdToNumber.set(wp.id, wp.number);
+        }
       }
+
+      // Add wp_draft_deliverables that don't already exist in b31_deliverables
+      // Match by D{wp_number}.{number} format
+      const b31Numbers = new Set(b31Deliverables.map(d => d.number));
+      const draftDeliverables: Deliverable[] = (draftDels || []).map(d => {
+        const wpNum = wpDraftIdToNumber.get(d.wp_draft_id) || 0;
+        return {
+          id: d.id,
+          number: `D${wpNum}.${d.number}`,
+          name: d.title || '',
+          wp_number: wpNum,
+          wp_color: wpColorMap.get(wpNum) || '#000000',
+        };
+      }).filter(d => !b31Numbers.has(d.number));
+
+      // Merge: b31 first, then draft-only
+      setDeliverables([...b31Deliverables, ...draftDeliverables]);
 
       const { data: mss } = await supabase
         .from('b31_milestones')
