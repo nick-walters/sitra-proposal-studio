@@ -396,6 +396,14 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit, isCoordinator }: 
               </Popover>
             </>
           )}
+          <div className="ml-auto">
+            <SaveIndicator
+              saving={updateMutation.isPending}
+              lastSaved={lastSaved}
+              saveError={saveError}
+              onSaveNow={() => {}}
+            />
+          </div>
         </div>
 
         {/* Header with color (matches WP editor header) */}
