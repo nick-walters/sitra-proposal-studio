@@ -29,9 +29,11 @@ import { CSS } from '@dnd-kit/utilities';
 interface WPTableSectionProps {
   wpNumber: number;
   objectives: string | null;
+  descriptionBeforeTasks: string | null;
   tasks: WPDraftTask[];
   participants: ParticipantSummary[];
   onObjectivesChange: (value: string) => void;
+  onDescriptionBeforeTasksChange: (value: string) => void;
   onTaskUpdate: (taskId: string, updates: Partial<WPDraftTask>) => Promise<boolean>;
   onTaskAdd: () => Promise<any>;
   onTaskDelete: (taskId: string) => Promise<boolean>;
@@ -45,9 +47,11 @@ interface WPTableSectionProps {
 export function WPTableSection({
   wpNumber,
   objectives,
+  descriptionBeforeTasks,
   tasks,
   participants,
   onObjectivesChange,
+  onDescriptionBeforeTasksChange,
   onTaskUpdate,
   onTaskAdd,
   onTaskDelete,

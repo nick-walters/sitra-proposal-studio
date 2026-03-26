@@ -60,6 +60,7 @@ export interface WPDraft {
   lead_participant_id: string | null;
   methodology: string | null;
   objectives: string | null;
+  description_before_tasks: string | null;
   color: string;
   theme_id: string | null;
   inputs_question: string | null;
