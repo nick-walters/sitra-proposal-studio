@@ -763,14 +763,6 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               </div>
             </>
           )}
-          <div className="ml-auto">
-            <SaveIndicator
-              saving={saving}
-              lastSaved={lastSaved}
-              saveError={saveError}
-              onSaveNow={() => {}}
-            />
-          </div>
         </div>
 
         {/* Header with color */}
