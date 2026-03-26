@@ -321,23 +321,25 @@ export default function Auth() {
 
             <CardContent>
               <TabsContent value="signin">
-                <form onSubmit={handleSignIn} className="space-y-4">
+                <form onSubmit={handleSignIn} className="space-y-4" method="post" action="#">
                   <div className="space-y-2">
                     <Label htmlFor="signin-email">Email</Label>
                     <Input
                       id="signin-email"
+                      name="username"
                       type="email"
                       placeholder="you@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
-                      autoComplete="email"
+                      autoComplete="username"
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signin-password">Password</Label>
                     <Input
                       id="signin-password"
+                      name="password"
                       type="password"
                       placeholder="••••••••"
                       value={password}
