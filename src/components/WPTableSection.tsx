@@ -104,6 +104,19 @@ export function WPTableSection({
           <p className="text-xs text-muted-foreground">Describe the main objective of this work package. Use the bullet list button if you need multiple objectives.</p>
         </div>
 
+        {/* Optional field before tasks */}
+        <div className="space-y-2">
+          <label className="text-xs font-medium">Optional field before tasks</label>
+          <WPSimpleEditor
+            value={descriptionBeforeTasks || ''}
+            onChange={onDescriptionBeforeTasksChange}
+            placeholder="Optional additional content before the tasks list..."
+            disabled={readOnly}
+            minHeight="60px"
+            hideToolbar={hideToolbar}
+          />
+        </div>
+
         {/* Tasks list */}
         <div className="space-y-2">
           <label className="text-xs font-medium">Tasks</label>
