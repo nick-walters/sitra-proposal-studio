@@ -248,9 +248,9 @@ function SortableDeliverableCard({
             </SelectTrigger>
             <SelectContent className="bg-popover">
               {DELIVERABLE_TYPES.map((type) => (
-                <SelectItem key={type.value} value={type.value}>
+                <SelectItem key={type.value} value={type.value} textValue={type.value}>
                   <div className="flex flex-col">
-                    <span>{type.value}</span>
+                    <span>{type.value} – {type.label}</span>
                     <span className="text-xs text-muted-foreground">{type.description}</span>
                   </div>
                 </SelectItem>
