@@ -288,6 +288,8 @@ export function useWPDraftEditor(wpId: string | null) {
   const [wpDraft, setWPDraft] = useState<WPDraft | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const fetchWPDraft = useCallback(async () => {
     if (!wpId) {
@@ -343,6 +345,7 @@ export function useWPDraftEditor(wpId: string | null) {
     if (!wpId) return false;
 
     setSaving(true);
+    setSaveError(null);
     try {
       const { error } = await supabase
         .from('wp_drafts')
@@ -352,9 +355,11 @@ export function useWPDraftEditor(wpId: string | null) {
       if (error) throw error;
 
       setWPDraft(prev => prev ? { ...prev, [field]: value } : null);
+      setLastSaved(new Date());
       return true;
     } catch (err) {
       console.error('Error updating WP field:', err);
+      setSaveError('Failed to save changes');
       toast.error('Failed to save changes');
       return false;
     } finally {
@@ -979,6 +984,8 @@ export function useWPDraftEditor(wpId: string | null) {
     wpDraft,
     loading,
     saving,
+    lastSaved,
+    saveError,
     refetch: fetchWPDraft,
     updateField,
     // Tasks
