@@ -622,24 +622,7 @@ function SortableTaskGroup({
         </td>
       </tr>
 
-      {/* Task description row */}
-      <tr>
-        <td
-          colSpan={2}
-          className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0 cursor-text hover:bg-muted/30"
-          style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }}
-          data-commentable={`task-desc-${wp.number}-${task.number}`}
-        >
-          <EditableText
-            value={task.description || ''}
-            placeholder="Enter task description..."
-            onSave={async (val) => {
-              await supabase.from('wp_draft_tasks').update({ description: val }).eq('id', task.id);
-              queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
-            }}
-          />
-        </td>
-      </tr>
+      {/* Task description - only shown after populate via TipTap editor */}
 
     </tbody>
   );
@@ -824,21 +807,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
                 {/* Spacer with WP colour border */}
                 <SpacerRow color={wp.color} />
 
-                {/* Objectives */}
-                <tr>
-                  <td colSpan={2} className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0" style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }} data-commentable={`wp-objectives-${wp.number}`}>
-                    <span className="font-bold italic">Objectives: </span>
-                    <EditableText
-                      inline
-                      value={wp.objectives || ''}
-                      placeholder="Enter objectives..."
-                      onSave={async (val) => {
-                        await supabase.from('wp_drafts').update({ objectives: val }).eq('id', wp.id);
-                        queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
-                      }}
-                    />
-                  </td>
-                </tr>
+                {/* Objectives - only shown after populate via TipTap editor */}
 
               </tbody>
 
