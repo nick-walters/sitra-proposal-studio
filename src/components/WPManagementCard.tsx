@@ -487,15 +487,43 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
   // Delete WP mutation
   const deleteWPMutation = useMutation({
     mutationFn: async (wpId: string) => {
+      // Delete the WP
       const { error } = await supabase
         .from('wp_drafts')
         .delete()
         .eq('id', wpId);
       if (error) throw error;
+
+      // Fetch remaining WPs and renumber them
+      const { data: remaining, error: fetchErr } = await supabase
+        .from('wp_drafts')
+        .select('id, order_index')
+        .eq('proposal_id', proposalId)
+        .order('order_index');
+      if (fetchErr) throw fetchErr;
+
+      if (remaining && remaining.length > 0) {
+        // First pass: set temporary negative numbers to avoid unique constraint
+        for (let i = 0; i < remaining.length; i++) {
+          await supabase
+            .from('wp_drafts')
+            .update({ order_index: i, number: -(i + 1000) })
+            .eq('id', remaining[i].id);
+        }
+        // Second pass: set final numbers and colors
+        for (let i = 0; i < remaining.length; i++) {
+          await supabase
+            .from('wp_drafts')
+            .update({ number: i + 1, color: wpColors[i % wpColors.length] })
+            .eq('id', remaining[i].id);
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
+      queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
+      queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] });
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
       toast.success('Work package deleted');
     },
