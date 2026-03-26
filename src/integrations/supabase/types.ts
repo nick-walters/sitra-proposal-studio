@@ -4446,6 +4446,7 @@ export type Database = {
           bottlenecks_question: string | null
           color: string
           created_at: string
+          description_before_tasks: string | null
           id: string
           inputs_question: string | null
           lead_participant_id: string | null
@@ -4466,6 +4467,7 @@ export type Database = {
           bottlenecks_question?: string | null
           color?: string
           created_at?: string
+          description_before_tasks?: string | null
           id?: string
           inputs_question?: string | null
           lead_participant_id?: string | null
@@ -4486,6 +4488,7 @@ export type Database = {
           bottlenecks_question?: string | null
           color?: string
           created_at?: string
+          description_before_tasks?: string | null
           id?: string
           inputs_question?: string | null
           lead_participant_id?: string | null

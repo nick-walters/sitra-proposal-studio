@@ -29,9 +29,11 @@ import { CSS } from '@dnd-kit/utilities';
 interface WPTableSectionProps {
   wpNumber: number;
   objectives: string | null;
+  descriptionBeforeTasks: string | null;
   tasks: WPDraftTask[];
   participants: ParticipantSummary[];
   onObjectivesChange: (value: string) => void;
+  onDescriptionBeforeTasksChange: (value: string) => void;
   onTaskUpdate: (taskId: string, updates: Partial<WPDraftTask>) => Promise<boolean>;
   onTaskAdd: () => Promise<any>;
   onTaskDelete: (taskId: string) => Promise<boolean>;
@@ -45,9 +47,11 @@ interface WPTableSectionProps {
 export function WPTableSection({
   wpNumber,
   objectives,
+  descriptionBeforeTasks,
   tasks,
   participants,
   onObjectivesChange,
+  onDescriptionBeforeTasksChange,
   onTaskUpdate,
   onTaskAdd,
   onTaskDelete,
@@ -98,6 +102,19 @@ export function WPTableSection({
             hideToolbar={hideToolbar}
           />
           <p className="text-xs text-muted-foreground">Describe the main objective of this work package. Use the bullet list button if you need multiple objectives.</p>
+        </div>
+
+        {/* Optional field before tasks */}
+        <div className="space-y-2">
+          <label className="text-xs font-medium">Optional field before tasks</label>
+          <WPSimpleEditor
+            value={descriptionBeforeTasks || ''}
+            onChange={onDescriptionBeforeTasksChange}
+            placeholder="Optional additional content before the tasks list..."
+            disabled={readOnly}
+            minHeight="60px"
+            hideToolbar={hideToolbar}
+          />
         </div>
 
         {/* Tasks list */}

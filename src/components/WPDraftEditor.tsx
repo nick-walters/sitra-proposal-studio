@@ -908,9 +908,11 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
         <WPTableSection
           wpNumber={wpDraft.number}
           objectives={wpDraft.objectives}
+          descriptionBeforeTasks={wpDraft.description_before_tasks}
           tasks={wpDraft.tasks || []}
           participants={participants}
           onObjectivesChange={(value) => updateField('objectives', value)}
+          onDescriptionBeforeTasksChange={(value) => updateField('description_before_tasks', value)}
           onTaskUpdate={updateTask}
           onTaskAdd={addTask}
           onTaskDelete={deleteTask}
