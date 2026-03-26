@@ -246,6 +246,12 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit, isCoordinator }: 
             <BookOpen className="h-3.5 w-3.5" />
             Guidelines
           </Button>
+          <SaveIndicator
+            saving={updateMutation.isPending}
+            lastSaved={lastSaved}
+            saveError={saveError}
+            onSaveNow={() => {}}
+          />
 
           <Separator orientation="vertical" className="h-5" />
 
@@ -396,14 +402,6 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit, isCoordinator }: 
               </Popover>
             </>
           )}
-          <div className="ml-auto">
-            <SaveIndicator
-              saving={updateMutation.isPending}
-              lastSaved={lastSaved}
-              saveError={saveError}
-              onSaveNow={() => {}}
-            />
-          </div>
         </div>
 
         {/* Header with color (matches WP editor header) */}

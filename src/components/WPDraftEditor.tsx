@@ -541,6 +541,12 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
             <BookOpen className="h-3.5 w-3.5" />
             Guidelines
           </Button>
+          <SaveIndicator
+            saving={saving}
+            lastSaved={lastSaved}
+            saveError={saveError}
+            onSaveNow={() => {}}
+          />
           
           <Separator orientation="vertical" className="h-5" />
           
@@ -757,14 +763,6 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               </div>
             </>
           )}
-          <div className="ml-auto">
-            <SaveIndicator
-              saving={saving}
-              lastSaved={lastSaved}
-              saveError={saveError}
-              onSaveNow={() => {}}
-            />
-          </div>
         </div>
 
         {/* Header with color */}
