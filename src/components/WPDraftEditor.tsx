@@ -146,6 +146,8 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
     wpDraft,
     loading,
     saving,
+    lastSaved,
+    saveError,
     updateField,
     addTask,
     updateTask,
