@@ -3,8 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Flag, Plus, Trash2, GripVertical } from 'lucide-react';
+import { Flag, Plus, Trash2, GripVertical, Check, ChevronsUpDown } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 import type { WPDraftMilestone } from '@/hooks/useWPDrafts';
 import {
   DndContext,
@@ -24,6 +26,13 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
+interface WPOption {
+  id: string;
+  number: number;
+  short_name: string | null;
+  title: string | null;
+}
+
 interface WPMilestonesTableProps {
   wpNumber: number;
   milestones: WPDraftMilestone[];
@@ -33,6 +42,7 @@ interface WPMilestonesTableProps {
   onMilestoneReorder?: (newOrder: string[]) => Promise<boolean>;
   readOnly?: boolean;
   projectDuration?: number;
+  allWpDrafts?: WPOption[];
 }
 
 export function WPMilestonesTable({
@@ -44,6 +54,7 @@ export function WPMilestonesTable({
   onMilestoneReorder,
   readOnly = false,
   projectDuration = 48,
+  allWpDrafts = [],
 }: WPMilestonesTableProps) {
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -88,6 +99,7 @@ export function WPMilestonesTable({
                   readOnly={readOnly}
                   canReorder={!readOnly && !!onMilestoneReorder}
                   monthOptions={monthOptions}
+                  allWpDrafts={allWpDrafts}
                 />
               ))}
             </div>
@@ -116,6 +128,7 @@ interface SortableMilestoneCardProps {
   readOnly: boolean;
   canReorder: boolean;
   monthOptions: number[];
+  allWpDrafts: WPOption[];
 }
 
 function SortableMilestoneCard({
@@ -125,6 +138,7 @@ function SortableMilestoneCard({
   readOnly,
   canReorder,
   monthOptions,
+  allWpDrafts,
 }: SortableMilestoneCardProps) {
   const {
     attributes,
@@ -142,16 +156,36 @@ function SortableMilestoneCard({
   };
 
   const [localTitle, setLocalTitle] = useState(milestone.title || '');
-  const [localRelatedWps, setLocalRelatedWps] = useState(milestone.related_wps || '');
   const [localVerification, setLocalVerification] = useState(milestone.means_of_verification || '');
   const [titleTimeout, setTitleTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [relatedWpsTimeout, setRelatedWpsTimeout] = useState<NodeJS.Timeout | null>(null);
   const [verificationTimeout, setVerificationTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [wpPopoverOpen, setWpPopoverOpen] = useState(false);
   const isFocused = useRef(false);
 
   useEffect(() => { if (!isFocused.current) setLocalTitle(milestone.title || ''); }, [milestone.title]);
-  useEffect(() => { if (!isFocused.current) setLocalRelatedWps(milestone.related_wps || ''); }, [milestone.related_wps]);
   useEffect(() => { if (!isFocused.current) setLocalVerification(milestone.means_of_verification || ''); }, [milestone.means_of_verification]);
+
+  // Parse related_wps string into array of WP numbers
+  const selectedWpNumbers: number[] = (() => {
+    const raw = milestone.related_wps || '';
+    if (!raw.trim()) return [];
+    return raw.split(',')
+      .map(s => s.trim().replace(/^WP\s*/i, ''))
+      .map(Number)
+      .filter(n => !isNaN(n));
+  })();
+
+  const toggleWp = (wpNum: number) => {
+    const current = new Set(selectedWpNumbers);
+    if (current.has(wpNum)) {
+      current.delete(wpNum);
+    } else {
+      current.add(wpNum);
+    }
+    const sorted = Array.from(current).sort((a, b) => a - b);
+    const value = sorted.map(n => `WP${n}`).join(', ');
+    onUpdate(milestone.id, { related_wps: value });
+  };
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
@@ -161,14 +195,6 @@ function SortableMilestoneCard({
     setTitleTimeout(timeout);
   };
 
-  const handleRelatedWpsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setLocalRelatedWps(newValue);
-    if (relatedWpsTimeout) clearTimeout(relatedWpsTimeout);
-    const timeout = setTimeout(() => { onUpdate(milestone.id, { related_wps: newValue }); }, 500);
-    setRelatedWpsTimeout(timeout);
-  };
-
   const handleVerificationChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
     setLocalVerification(newValue);
@@ -176,6 +202,10 @@ function SortableMilestoneCard({
     const timeout = setTimeout(() => { onUpdate(milestone.id, { means_of_verification: newValue }); }, 500);
     setVerificationTimeout(timeout);
   };
+
+  const displayWps = selectedWpNumbers.length > 0
+    ? selectedWpNumbers.map(n => `WP${n}`).join(', ')
+    : '';
 
   return (
     <div
@@ -206,15 +236,38 @@ function SortableMilestoneCard({
         />
         <div className="flex items-center gap-1 flex-shrink-0">
           <span className="text-xs text-muted-foreground">Related WPs:</span>
-          <Input
-            value={localRelatedWps}
-            onChange={handleRelatedWpsChange}
-            onFocus={() => { isFocused.current = true; }}
-            onBlur={() => { isFocused.current = false; }}
-            placeholder="e.g. WP1, WP3"
-            className="h-6 text-xs w-[90px]"
-            disabled={readOnly}
-          />
+          <Popover open={wpPopoverOpen} onOpenChange={setWpPopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-6 text-xs px-2 min-w-[90px] max-w-[160px] justify-between font-normal"
+                disabled={readOnly}
+              >
+                <span className="truncate">{displayWps || 'Select'}</span>
+                <ChevronsUpDown className="h-3 w-3 shrink-0 opacity-50 ml-1" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-48 p-2" align="start">
+              <div className="space-y-1 max-h-48 overflow-y-auto">
+                {allWpDrafts.map(wp => (
+                  <label
+                    key={wp.id}
+                    className="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted cursor-pointer text-xs"
+                  >
+                    <Checkbox
+                      checked={selectedWpNumbers.includes(wp.number)}
+                      onCheckedChange={() => toggleWp(wp.number)}
+                    />
+                    <span>WP{wp.number}{wp.short_name ? `: ${wp.short_name}` : wp.title ? `: ${wp.title}` : ''}</span>
+                  </label>
+                ))}
+                {allWpDrafts.length === 0 && (
+                  <p className="text-xs text-muted-foreground px-1">No WPs found</p>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
           <span className="text-xs text-muted-foreground">Due:</span>
