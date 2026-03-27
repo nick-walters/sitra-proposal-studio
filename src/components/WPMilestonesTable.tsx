@@ -2,11 +2,11 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Flag, Plus, Trash2, GripVertical, Check, ChevronsUpDown } from 'lucide-react';
+import { Flag, Plus, Trash2, GripVertical, ChevronsUpDown } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
+import { WPSimpleEditor } from '@/components/WPSimpleEditor';
 import type { WPDraftMilestone } from '@/hooks/useWPDrafts';
 import {
   DndContext,
