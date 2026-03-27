@@ -281,7 +281,7 @@ function SortableMilestoneCard({
             </SelectTrigger>
             <SelectContent>
               {monthOptions.map((m) => (
-                <SelectItem key={m} value={m.toString()}>M{m}</SelectItem>
+                <SelectItem key={m} value={m.toString()}>M{String(m).padStart(2, '0')}</SelectItem>
               ))}
             </SelectContent>
           </Select>
