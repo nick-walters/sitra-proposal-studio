@@ -966,6 +966,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           onMilestoneReorder={reorderMilestones}
           readOnly={readOnly}
           projectDuration={projectDuration}
+          allWpDrafts={wpDrafts}
         />
 
         {/* Risks */}
