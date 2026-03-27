@@ -156,14 +156,11 @@ function SortableMilestoneCard({
   };
 
   const [localTitle, setLocalTitle] = useState(milestone.title || '');
-  const [localVerification, setLocalVerification] = useState(milestone.means_of_verification || '');
   const [titleTimeout, setTitleTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [verificationTimeout, setVerificationTimeout] = useState<NodeJS.Timeout | null>(null);
   const [wpPopoverOpen, setWpPopoverOpen] = useState(false);
   const isFocused = useRef(false);
 
   useEffect(() => { if (!isFocused.current) setLocalTitle(milestone.title || ''); }, [milestone.title]);
-  useEffect(() => { if (!isFocused.current) setLocalVerification(milestone.means_of_verification || ''); }, [milestone.means_of_verification]);
 
   // Parse related_wps string into array of WP numbers
   const selectedWpNumbers: number[] = (() => {
@@ -195,12 +192,8 @@ function SortableMilestoneCard({
     setTitleTimeout(timeout);
   };
 
-  const handleVerificationChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newValue = e.target.value;
-    setLocalVerification(newValue);
-    if (verificationTimeout) clearTimeout(verificationTimeout);
-    const timeout = setTimeout(() => { onUpdate(milestone.id, { means_of_verification: newValue }); }, 500);
-    setVerificationTimeout(timeout);
+  const handleVerificationChange = (newValue: string) => {
+    onUpdate(milestone.id, { means_of_verification: newValue });
   };
 
   const displayWps = selectedWpNumbers.length > 0
@@ -299,14 +292,13 @@ function SortableMilestoneCard({
       </div>
 
       {/* Row 2: Means of verification */}
-      <div className="flex items-start gap-1.5 mt-1.5 ml-5">
-        <Textarea
-          value={localVerification}
+      <div className="mt-1.5 ml-5">
+        <WPSimpleEditor
+          value={milestone.means_of_verification || ''}
           onChange={handleVerificationChange}
-          onFocus={() => { isFocused.current = true; }}
-          onBlur={() => { isFocused.current = false; }}
           placeholder="Describe means of verification..."
-          className="min-h-[40px] resize-y text-xs flex-1"
+          minHeight="40px"
+          hideToolbar
           disabled={readOnly}
         />
       </div>
