@@ -12,6 +12,7 @@ interface FormattedNumberInputProps {
   step?: string;
   min?: string;
   decimals?: number;
+  allowZero?: boolean;
 }
 
 export function FormattedNumberInput({
@@ -21,21 +22,24 @@ export function FormattedNumberInput({
   className,
   placeholder,
   decimals = 0,
+  allowZero = false,
 }: FormattedNumberInputProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [rawValue, setRawValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const isEmptyValue = allowZero ? value === '' : value === '' || value === 0;
+
   const displayValue = isFocused
     ? rawValue
-    : value === '' || value === 0
+    : isEmptyValue
       ? ''
-      : formatNumber(value, decimals);
+      : formatNumber(value as number, decimals);
 
   const handleFocus = useCallback(() => {
     setIsFocused(true);
-    setRawValue(value === '' || value === 0 ? '' : value.toString());
-  }, [value]);
+    setRawValue(isEmptyValue ? '' : (value as number).toString());
+  }, [value, isEmptyValue]);
 
   const handleBlur = useCallback(() => {
     setIsFocused(false);
