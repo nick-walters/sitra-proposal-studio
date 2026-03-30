@@ -69,6 +69,7 @@ import {
   Pipette,
   Ban,
   Check,
+  ChevronDown,
 } from "lucide-react";
 import {
   Tooltip,
@@ -558,25 +559,60 @@ export function FormattingToolbar({
 
         <Separator orientation="vertical" className="h-5 mx-1.5" />
 
-        {/* Subheading Bold Italic Underline */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={editor.isActive('bold') && editor.isActive('underline') ? "secondary" : "ghost"}
-              size="sm"
-              className="h-7 px-2 text-xs"
-              onClick={() => {
-                editor.chain().focus().toggleBold().run();
-                editor.chain().focus().toggleUnderline().run();
-              }}
-            >
-              <span className="font-black underline">Subheading</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-xs">
-            Subheading (Bold & Underlined inline style)
-          </TooltipContent>
-        </Tooltip>
+        {/* Subheading dropdown */}
+        <DropdownMenu>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant={editor.isActive('heading', { level: 3 }) || (editor.isActive('bold') && editor.isActive('underline')) ? "secondary" : "ghost"}
+                  size="sm"
+                  className="h-7 px-2 text-xs gap-1"
+                >
+                  <span className="font-black underline">Subheading</span>
+                  <ChevronDown className="w-3 h-3" />
+                </Button>
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              Insert subheading
+            </TooltipContent>
+          </Tooltip>
+          <DropdownMenuContent align="start" className="w-64">
+            <DropdownMenuItem onClick={() => {
+              // Insert numbered H3 subheading
+              const cleanNum = sectionNumber ? sectionNumber.replace(/^[A-Za-z]+/, '') : '1.1';
+              // Count existing H3s in the document to determine next number
+              let h3Count = 0;
+              editor.state.doc.descendants((node) => {
+                if (node.type.name === 'heading' && node.attrs.level === 3) {
+                  h3Count++;
+                }
+              });
+              const nextNum = h3Count + 1;
+              const prefix = `${cleanNum}.${nextNum}. `;
+              editor.chain().focus().toggleHeading({ level: 3 }).run();
+              // If we just set heading, insert the number prefix
+              if (editor.isActive('heading', { level: 3 })) {
+                const { from } = editor.state.selection;
+                const currentNode = editor.state.selection.$from.parent;
+                // Only insert prefix if the line is empty or just became H3
+                if (currentNode.textContent.length === 0) {
+                  editor.chain().focus().insertContent(prefix).run();
+                }
+              }
+            }}>
+              <span className="text-sm font-semibold">{sectionNumber ? `${sectionNumber.replace(/^[A-Za-z]+/, '')}.1.` : '1.1.1.'} Numbered subheading</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => {
+              // Unnumbered subheading (bold + underline inline style)
+              editor.chain().focus().toggleBold().run();
+              editor.chain().focus().toggleUnderline().run();
+            }}>
+              <span className="text-sm font-bold underline">Unnumbered subheading</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button

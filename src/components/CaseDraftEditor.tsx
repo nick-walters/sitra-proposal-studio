@@ -14,7 +14,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { WPSimpleEditor } from '@/components/WPSimpleEditor';
 import { SitraTipsBox } from '@/components/SitraTipsBox';
-import { BookOpen, Bold, Italic, Underline, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, AlignJustify, Table2 } from 'lucide-react';
+import { BookOpen, Bold, Italic, Underline, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, AlignJustify, Table2, ChevronDown } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { ParticipantSummary } from '@/types/proposal';
@@ -257,15 +263,37 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit, isCoordinator }: 
 
           {!readOnly && (
             <>
-              {/* Subheading */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button type="button" variant="ghost" size="sm" className="h-7 px-2" onClick={() => { execCommand('bold'); execCommand('underline'); }}>
-                    <span className="text-xs font-black underline">Subheading</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">Subheading (Bold & Underlined)</TooltipContent>
-              </Tooltip>
+              {/* Subheading dropdown */}
+              <DropdownMenu>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1">
+                        <span className="text-xs font-black underline">Subheading</span>
+                        <ChevronDown className="w-3 h-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs">Insert subheading</TooltipContent>
+                </Tooltip>
+                <DropdownMenuContent align="start" className="w-64">
+                  <DropdownMenuItem onClick={() => {
+                    const editorEl = document.activeElement?.closest('[contenteditable]') as HTMLElement | null;
+                    const h3s = editorEl?.querySelectorAll('h3') || [];
+                    const nextNum = h3s.length + 1;
+                    document.execCommand('formatBlock', false, 'h3');
+                    document.execCommand('insertText', false, `1.1.${nextNum}. `);
+                  }}>
+                    <span className="text-sm font-semibold">Numbered subheading</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => {
+                    execCommand('bold');
+                    execCommand('underline');
+                  }}>
+                    <span className="text-sm font-bold underline">Unnumbered subheading</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               <Separator orientation="vertical" className="h-5" />
 
