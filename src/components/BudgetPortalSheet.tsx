@@ -449,7 +449,7 @@ export function BudgetPortalSheet({
       </div>
 
       {/* Participant Budget Dialog */}
-      <Dialog open={!!editingParticipantId} onOpenChange={(open) => { if (!open) setEditingParticipantId(null); }}>
+      <Dialog open={!!editingParticipantId} onOpenChange={(open) => { if (!open) { setEditingParticipantId(null); refetchBudgetRows(); } }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0">
           <DialogHeader className="px-6 pt-6 pb-0">
             <DialogTitle>
