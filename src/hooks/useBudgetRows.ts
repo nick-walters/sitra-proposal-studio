@@ -100,17 +100,29 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     if (!proposalId) return;
     setLoading(true);
 
-    const { data, error } = await supabase
-      .from('budget_rows')
-      .select('*, participants!inner(participant_number, organisation_name, organisation_short_name, country, organisation_category)')
-      .eq('proposal_id', proposalId)
-      .order('participants(participant_number)');
+    const [{ data, error }, { data: effortData }] = await Promise.all([
+      supabase
+        .from('budget_rows')
+        .select('*, participants!inner(participant_number, organisation_name, organisation_short_name, country, organisation_category)')
+        .eq('proposal_id', proposalId)
+        .order('participants(participant_number)'),
+      supabase
+        .from('wp_draft_effort')
+        .select('participant_id, person_months, wp_drafts!inner(proposal_id)')
+        .eq('wp_drafts.proposal_id', proposalId),
+    ]);
 
     if (error) {
       console.error('Error fetching budget rows:', error);
       setLoading(false);
       return;
     }
+
+    // Aggregate total PMs per participant
+    const pmTotals = new Map<string, number>();
+    (effortData || []).forEach((e: any) => {
+      pmTotals.set(e.participant_id, (pmTotals.get(e.participant_id) || 0) + Number(e.person_months || 0));
+    });
 
     const mapped: BudgetRowData[] = (data || []).map((r: any) => ({
       id: r.id,
@@ -131,6 +143,8 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
       isLocked: r.is_locked,
       lockedBy: r.locked_by,
       lockedAt: r.locked_at,
+      pmRate: r.pm_rate != null ? Number(r.pm_rate) : null,
+      totalPersonMonths: pmTotals.get(r.participant_id) || 0,
       participantNumber: r.participants.participant_number,
       participantName: r.participants.organisation_name,
       participantShortName: r.participants.organisation_short_name,
