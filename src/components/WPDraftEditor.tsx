@@ -4,7 +4,7 @@ import { useWPDraftEditor } from '@/hooks/useWPDrafts';
 import { WPMethodologySection } from '@/components/WPMethodologySection';
 import { WPTableSection } from '@/components/WPTableSection';
 import { WPPlanningQuestions } from '@/components/WPPlanningQuestions';
-import { WPEffortMatrix } from '@/components/WPEffortMatrix';
+
 import { WPDeliverablesTable } from '@/components/WPDeliverablesTable';
 import { WPRisksTable } from '@/components/WPRisksTable';
 import { WPMilestonesTable } from '@/components/WPMilestonesTable';
