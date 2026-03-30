@@ -95,6 +95,7 @@ export function BudgetPortalSheet({
     saving,
     lockRow,
     unlockRow,
+    refetch: refetchBudgetRows,
   } = useBudgetRows(proposalId, proposalType);
 
   const { roleTier } = useProposalRole(proposalId);
