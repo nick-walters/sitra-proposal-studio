@@ -416,7 +416,7 @@ export function BudgetSpreadsheetEnhanced({
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="detailed">Detailed Entry</TabsTrigger>
-            <TabsTrigger value="summary">Summary by Participant</TabsTrigger>
+            <TabsTrigger value="summary">Summary by participant</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -719,7 +719,7 @@ export function BudgetSpreadsheetEnhanced({
           <TabsContent value="summary">
             <Card>
               <CardHeader>
-                <CardTitle>Summary by Participant</CardTitle>
+                <CardTitle>Summary by participant</CardTitle>
                 <CardDescription>
                   Overview of budget allocation across consortium partners
                 </CardDescription>
