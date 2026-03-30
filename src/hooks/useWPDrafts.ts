@@ -776,52 +776,39 @@ export function useWPDraftEditor(wpId: string | null) {
     }
   }, [wpDraft]);
 
-  // Task effort operations
-  const updateTaskEffort = useCallback(async (taskId: string, participantId: string, personMonths: number) => {
+  // WP-level effort operations
+  const updateWPEffort = useCallback(async (participantId: string, personMonths: number) => {
+    if (!wpDraft) return false;
     try {
       const { error } = await supabase
-        .from('wp_draft_task_effort')
+        .from('wp_draft_effort')
         .upsert({
-          task_id: taskId,
+          wp_draft_id: wpDraft.id,
           participant_id: participantId,
           person_months: personMonths,
         }, {
-          onConflict: 'task_id,participant_id',
+          onConflict: 'wp_draft_id,participant_id',
         });
 
       if (error) throw error;
 
       setWPDraft(prev => {
         if (!prev) return null;
-        return {
-          ...prev,
-          tasks: prev.tasks?.map(task => {
-            if (task.id !== taskId) return task;
-            const existingEffort = task.effort || [];
-            const existingIndex = existingEffort.findIndex(e => e.participant_id === participantId);
-            if (existingIndex >= 0) {
-              return {
-                ...task,
-                effort: existingEffort.map((e, i) => 
-                  i === existingIndex ? { ...e, person_months: personMonths } : e
-                ),
-              };
-            } else {
-              return {
-                ...task,
-                effort: [...existingEffort, { participant_id: participantId, person_months: personMonths }],
-              };
-            }
-          }),
-        };
+        const existingEffort = (prev as any).wp_effort || [];
+        const existingIndex = existingEffort.findIndex((e: any) => e.participant_id === participantId);
+        const newEntry = { participant_id: participantId, person_months: personMonths };
+        const updatedEffort = existingIndex >= 0
+          ? existingEffort.map((e: any, i: number) => i === existingIndex ? newEntry : e)
+          : [...existingEffort, newEntry];
+        return { ...prev, wp_effort: updatedEffort };
       });
 
       return true;
     } catch (err) {
-      console.error('Error updating task effort:', err);
+      console.error('Error updating WP effort:', err);
       return false;
     }
-  }, []);
+  }, [wpDraft]);
 
   // Task participants operations
   const setTaskParticipants = useCallback(async (taskId: string, participantIds: string[]) => {
