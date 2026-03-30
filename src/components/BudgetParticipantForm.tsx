@@ -361,7 +361,7 @@ export function BudgetParticipantForm({
               </label>
               <FormattedNumberInput
                 value={row.requestedEuContributionOverride ?? row.maxEuContribution}
-                onChange={(v) => updateRow(row.id, 'requestedEuContribution', v)}
+                onChange={(v) => updateRow(row.id, 'requestedEuContributionOverride', v)}
                 disabled={!editable}
                 className="h-8 text-sm text-right flex-1"
               />
