@@ -153,27 +153,28 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                 </td>
                 {wpData.map(wp => {
                   const val = pMap.get(wp.id) || 0;
-                  const isEditing = editingCell?.participantId === p.id && editingCell?.wpId === wp.id;
                   return (
-                    <td
-                      key={wp.id}
-                      className={editableCellStyles}
-                      onClick={() => !isEditing && startEdit(p.id, wp.id, val)}
-                    >
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          className="w-full bg-transparent outline-none border-none p-0 m-0 font-['Times_New_Roman',Times,serif] text-[11pt] text-center"
-                          value={editValue}
-                          onChange={e => setEditValue(e.target.value)}
-                          onBlur={saveEdit}
-                          onKeyDown={handleKeyDown}
-                          autoFocus
-                          style={{ minWidth: '30px' }}
-                        />
-                      ) : (
-                        val ? formatPM(val) : '—'
-                      )}
+                    <td key={wp.id} className={cellStyles}>
+                      <input
+                        type="text"
+                        className="w-full bg-transparent outline-none border-none p-0 m-0 font-['Times_New_Roman',Times,serif] text-[11pt] text-center"
+                        value={editingCell?.participantId === p.id && editingCell?.wpId === wp.id ? editValue : (val ? formatPM(val) : '')}
+                        onChange={e => {
+                          if (!(editingCell?.participantId === p.id && editingCell?.wpId === wp.id)) {
+                            startEdit(p.id, wp.id, val);
+                          }
+                          setEditValue(e.target.value);
+                        }}
+                        onFocus={() => {
+                          if (!(editingCell?.participantId === p.id && editingCell?.wpId === wp.id)) {
+                            startEdit(p.id, wp.id, val);
+                          }
+                        }}
+                        onBlur={saveEdit}
+                        onKeyDown={handleKeyDown}
+                        placeholder="—"
+                        style={{ minWidth: '30px' }}
+                      />
                     </td>
                   );
                 })}
