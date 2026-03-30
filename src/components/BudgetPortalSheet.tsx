@@ -89,6 +89,12 @@ export function BudgetPortalSheet({
   const { roleTier } = useProposalRole(proposalId);
   const isAdmin = roleTier === 'coordinator';
   const [activeTab, setActiveTab] = useState('overview');
+  const [editingParticipantId, setEditingParticipantId] = useState<string | null>(null);
+
+  const editingRow = useMemo(
+    () => editingParticipantId ? rows.find(r => r.participantId === editingParticipantId) : null,
+    [editingParticipantId, rows]
+  );
 
   const categoryTotals = useMemo(() => {
     const result: Record<string, number> = {};
