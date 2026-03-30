@@ -374,7 +374,11 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
       const row = rows.find(r => r.id === rowId);
       if (!row) return;
 
-      const dbField = field.replace(/([A-Z])/g, '_$1').toLowerCase();
+      // Map camelCase field to snake_case DB column
+      const fieldToDbMap: Record<string, string> = {
+        requestedEuContributionOverride: 'requested_eu_contribution',
+      };
+      const dbField = fieldToDbMap[field] ?? field.replace(/([A-Z])/g, '_$1').toLowerCase();
       setSaving(true);
       const { error } = await supabase
         .from('budget_rows')
