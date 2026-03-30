@@ -124,6 +124,7 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
   const [rows, setRows] = useState<BudgetRowData[]>([]);
   const [justifications, setJustifications] = useState<BudgetJustification[]>([]);
   const [subcontractingItems, setSubcontractingItems] = useState<SubcontractingItem[]>([]);
+  const [equipmentItems, setEquipmentItems] = useState<EquipmentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
