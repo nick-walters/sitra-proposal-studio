@@ -311,7 +311,8 @@ export function useWPDraftEditor(wpId: string | null) {
           ),
           deliverables:wp_draft_deliverables(*),
           risks:wp_draft_risks(*),
-          milestones:wp_draft_milestones(*)
+          milestones:wp_draft_milestones(*),
+          wp_effort:wp_draft_effort(participant_id, person_months)
         `)
         .eq('id', wpId)
         .single();
@@ -980,7 +981,7 @@ export function useWPDraftEditor(wpId: string | null) {
     updateTask,
     deleteTask,
     reorderTasks,
-    updateTaskEffort,
+    updateWPEffort,
     setTaskParticipants,
     // Deliverables
     addDeliverable,
