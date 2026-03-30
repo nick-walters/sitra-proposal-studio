@@ -423,10 +423,6 @@ export function BudgetPortalSheet({
             </Card>
           </TabsContent>
 
-          {/* Staff Effort Matrix - below summary */}
-          <div className="mt-6">
-            <A3EffortMatrix proposalId={proposalId} canEdit={canEdit} />
-          </div>
 
           {usesFstp && (
             <TabsContent value="fstp">
