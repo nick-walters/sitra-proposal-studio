@@ -345,18 +345,25 @@ export function BudgetPortalSheet({
                       <thead>
                         <tr className="border-b">
                           <th className="sticky left-0 bg-background z-10 px-3 py-3 text-left border-r font-bold whitespace-nowrap">Participant</th>
+                          <th className="px-3 py-3 text-right border-r font-bold whitespace-nowrap">PM rate</th>
+                          <th className="px-3 py-3 text-right border-r font-bold whitespace-nowrap">Total PMs</th>
                           {PARTICIPANT_COLUMNS.map(c => (
                             <th key={c.key} className="px-3 py-3 text-right border-r font-bold whitespace-nowrap">{c.label}</th>
                           ))}
-                          <th className="px-3 py-3 text-right border-r font-bold whitespace-nowrap">%</th>
-                          {isAdmin && <th className="px-3 py-3 text-center font-bold whitespace-nowrap">Lock</th>}
-                          {canEdit && <th className="px-3 py-3 text-center font-bold whitespace-nowrap"></th>}
+                          <th className="px-3 py-3 text-right border-r font-bold whitespace-nowrap">Share of total budget (%)</th>
+                          <th className="px-3 py-3 text-right border-r font-bold whitespace-nowrap">Share of total request budget (%)</th>
                         </tr>
                       </thead>
                       <tbody>
                         {rows.map(row => {
                           const percentage = grandTotals.totalEligibleCosts > 0
                             ? ((row.totalEligibleCosts / grandTotals.totalEligibleCosts) * 100).toFixed(1)
+                            : '0';
+                          const requestPercentage = grandTotals.requestedEuContribution > 0
+                            ? ((row.requestedEuContribution / grandTotals.requestedEuContribution) * 100).toFixed(1)
+                            : '0';
+                          const requestedFundingRate = row.totalEligibleCosts > 0
+                            ? ((row.requestedEuContribution / row.totalEligibleCosts) * 100).toFixed(1)
                             : '0';
 
                           return (
@@ -365,18 +372,45 @@ export function BudgetPortalSheet({
                                 <div className="flex items-center gap-1">
                                   <span>{row.participantNumber}. {row.participantShortName || row.participantName}</span>
                                   {row.isLocked && <Lock className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
+                                  {isAdmin && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6 ml-1"
+                                      onClick={() => row.isLocked ? unlockRow(row.id) : lockRow(row.id)}
+                                    >
+                                      {row.isLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3 text-muted-foreground" />}
+                                    </Button>
+                                  )}
+                                  {canEdit && (
+                                    <Button
+                                      size="sm"
+                                      className="h-5 px-2 text-[10px] font-semibold whitespace-nowrap ml-1"
+                                      onClick={() => setEditingParticipantId(row.participantId)}
+                                    >
+                                      Edit
+                                    </Button>
+                                  )}
                                 </div>
+                              </td>
+                              <td className="px-3 py-2 text-right border-r tabular-nums font-mono text-sm whitespace-nowrap">
+                                {row.pmRate != null ? formatCurrency(row.pmRate) : '—'}
+                              </td>
+                              <td className="px-3 py-2 text-right border-r tabular-nums font-mono text-sm whitespace-nowrap">
+                                {Number.isInteger(row.totalPersonMonths) ? row.totalPersonMonths.toFixed(0) : row.totalPersonMonths.toFixed(1)}
                               </td>
                               
                               {PARTICIPANT_COLUMNS.map(c => (
                                 <td key={c.key} className="px-3 py-2 text-right border-r tabular-nums font-mono text-sm whitespace-nowrap">
                                   {c.key === 'fundingRate'
                                     ? `${(row as any)[c.key]}%`
+                                    : c.key === 'requestedFundingRate'
+                                    ? `${requestedFundingRate}%`
                                     : formatCurrency((row as any)[c.key] as number)}
                                 </td>
                               ))}
                               <td className="px-3 py-2 text-right border-r whitespace-nowrap">{percentage}%</td>
-                              {isAdmin && (
+                              <td className="px-3 py-2 text-right border-r whitespace-nowrap">{requestPercentage}%</td>
                                 <td className="px-3 py-2 text-center">
                                   <Button
                                     variant="ghost"
