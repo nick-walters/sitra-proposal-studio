@@ -440,6 +440,28 @@ export function BudgetPortalSheet({
           )}
         </Tabs>
       </div>
+
+      {/* Participant Budget Dialog */}
+      <Dialog open={!!editingParticipantId} onOpenChange={(open) => { if (!open) setEditingParticipantId(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0">
+          <DialogHeader className="px-6 pt-6 pb-0">
+            <DialogTitle>
+              {editingRow
+                ? `${editingRow.participantNumber}. ${editingRow.participantShortName || editingRow.participantName} — Budget`
+                : 'Participant Budget'}
+            </DialogTitle>
+          </DialogHeader>
+          {editingParticipantId && (
+            <BudgetParticipantForm
+              proposalId={proposalId}
+              participantId={editingParticipantId}
+              proposalType={proposalType}
+              canEdit={canEdit}
+              isCoordinator={isCoordinator}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
