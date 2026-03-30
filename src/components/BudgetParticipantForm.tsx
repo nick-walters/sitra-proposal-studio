@@ -91,14 +91,24 @@ export function BudgetParticipantForm({
     [rowSubItems]
   );
 
+  const rowEquipItems = useMemo(
+    () => (row ? equipmentItems.filter(i => i.budgetRowId === row.id) : []),
+    [equipmentItems, row]
+  );
+
+  const equipTotal = useMemo(
+    () => rowEquipItems.reduce((sum, i) => sum + i.amount, 0),
+    [rowEquipItems]
+  );
+
   // 15% threshold for equipment justification
   const equipmentJustificationRequired = useMemo(() => {
     if (!row) return false;
     const personnelCosts = row.pmRate != null && row.pmRate > 0
       ? Math.round(row.pmRate * row.totalPersonMonths)
       : row.personnelCosts;
-    return personnelCosts > 0 && row.purchaseEquipment > personnelCosts * 0.15;
-  }, [row]);
+    return personnelCosts > 0 && equipTotal > personnelCosts * 0.15;
+  }, [row, equipTotal]);
 
   if (loading) {
     return (
