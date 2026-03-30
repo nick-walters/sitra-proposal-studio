@@ -327,9 +327,8 @@ export function BudgetPortalSheet({
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex">
-                  <div className="relative flex-1 min-w-0 overflow-auto">
-                    <table className="text-sm border-collapse">
+                <div className="overflow-auto">
+                    <table className="text-sm border-collapse w-full">
                       <thead>
                         <tr className="border-b">
                           <th className="sticky left-0 bg-background z-10 px-3 py-3 text-left border-r font-bold whitespace-nowrap">Participant</th>
@@ -337,7 +336,8 @@ export function BudgetPortalSheet({
                             <th key={c.key} className="px-3 py-3 text-right border-r font-bold whitespace-nowrap">{c.label}</th>
                           ))}
                           <th className="px-3 py-3 text-right border-r font-bold whitespace-nowrap">%</th>
-                          {isAdmin && <th className="px-3 py-3 text-center font-bold">Lock</th>}
+                          {isAdmin && <th className="px-3 py-3 text-center font-bold whitespace-nowrap">Lock</th>}
+                          {canEdit && <th className="px-3 py-3 text-center font-bold whitespace-nowrap"></th>}
                         </tr>
                       </thead>
                       <tbody>
@@ -375,6 +375,17 @@ export function BudgetPortalSheet({
                                   </Button>
                                 </td>
                               )}
+                              {canEdit && (
+                                <td className="px-3 py-2 text-center">
+                                  <Button
+                                    size="sm"
+                                    className="h-auto py-1 px-3 text-xs font-semibold whitespace-nowrap"
+                                    onClick={() => setEditingParticipantId(row.participantId)}
+                                  >
+                                    Edit
+                                  </Button>
+                                </td>
+                              )}
                             </tr>
                           );
                         })}
@@ -392,30 +403,10 @@ export function BudgetPortalSheet({
                           ))}
                           <td className="px-3 py-2 text-right border-r font-bold">100%</td>
                           {isAdmin && <td />}
+                          {canEdit && <td />}
                         </tr>
                       </tfoot>
                     </table>
-                  </div>
-                  {canEdit && rows.length > 0 && (
-                    <div className="flex-shrink-0 ml-1">
-                      {/* Header spacer */}
-                      <div className="px-3 py-3 whitespace-nowrap">&nbsp;</div>
-                      {/* One button per row */}
-                      {rows.map(row => (
-                        <div key={row.id} className="px-3 py-2 flex items-center justify-center">
-                          <Button
-                            size="sm"
-                            className="h-auto py-1 px-3 text-xs font-semibold whitespace-nowrap"
-                            onClick={() => setEditingParticipantId(row.participantId)}
-                          >
-                            Edit
-                          </Button>
-                        </div>
-                      ))}
-                      {/* Footer spacer */}
-                      <div className="px-3 py-2">&nbsp;</div>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
