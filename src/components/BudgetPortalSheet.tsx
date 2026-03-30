@@ -396,7 +396,7 @@ export function BudgetPortalSheet({
                       </tfoot>
                     </table>
                   </div>
-                  {canEdit && onNavigateToParticipantBudget && rows.length > 0 && (
+                  {canEdit && rows.length > 0 && (
                     <div className="flex-shrink-0 ml-1">
                       {/* Header spacer */}
                       <div className="px-3 py-3 whitespace-nowrap">&nbsp;</div>
@@ -406,7 +406,7 @@ export function BudgetPortalSheet({
                           <Button
                             size="sm"
                             className="h-auto py-1 px-3 text-xs font-semibold whitespace-nowrap"
-                            onClick={() => onNavigateToParticipantBudget(row.participantId)}
+                            onClick={() => setEditingParticipantId(row.participantId)}
                           >
                             Edit
                           </Button>
