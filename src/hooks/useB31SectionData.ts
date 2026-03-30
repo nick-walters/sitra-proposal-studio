@@ -159,16 +159,25 @@ export function useB31SectionData(proposalId: string) {
       // Fetch subcontracting line items
       const rowIds = (budgetRows || []).map((r: any) => r.id);
       let subItems: any[] = [];
+      let equipItems: any[] = [];
       if (rowIds.length > 0) {
-        const { data } = await supabase
-          .from('budget_subcontracting_items')
-          .select('*')
-          .in('budget_row_id', rowIds)
-          .order('order_index');
-        subItems = data || [];
+        const [{ data: subData }, { data: equipData }] = await Promise.all([
+          supabase
+            .from('budget_subcontracting_items')
+            .select('*')
+            .in('budget_row_id', rowIds)
+            .order('order_index'),
+          supabase
+            .from('budget_equipment_items')
+            .select('*')
+            .in('budget_row_id', rowIds)
+            .order('order_index'),
+        ]);
+        subItems = subData || [];
+        equipItems = equipData || [];
       }
 
-      return { budgetRows: budgetRows || [], subItems, pmTotals };
+      return { budgetRows: budgetRows || [], subItems, equipItems, pmTotals };
     },
   });
 
