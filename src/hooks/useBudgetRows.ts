@@ -284,6 +284,7 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     if (rows.length > 0) {
       fetchJustifications();
       fetchSubcontractingItems();
+      fetchEquipmentItems();
     }
   }, [rows.length > 0, fetchJustifications, fetchSubcontractingItems]);
 
