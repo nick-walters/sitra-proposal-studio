@@ -52,8 +52,13 @@ export interface BudgetJustification {
 }
 
 function computeRow(row: BudgetRowData, proposalType: string | null): ComputedBudgetRow {
+  // Auto-calculate personnel costs if pm_rate is set
+  const personnelCosts = row.pmRate != null && row.pmRate > 0
+    ? Math.round(row.pmRate * row.totalPersonMonths)
+    : row.personnelCosts;
+
   const directCosts =
-    row.personnelCosts +
+    personnelCosts +
     row.subcontractingCosts +
     row.purchaseTravel +
     row.purchaseEquipment +
