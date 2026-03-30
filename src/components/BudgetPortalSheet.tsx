@@ -52,15 +52,21 @@ interface BudgetPortalSheetProps {
 const COST_CATEGORIES = [
   { key: 'personnelCosts', label: 'A. Personnel costs', description: 'Costs of employees and natural persons working under a direct contract' },
   { key: 'subcontractingCosts', label: 'B. Subcontracting', description: 'Costs of subcontracting core tasks' },
-  { key: 'purchaseEquipment', label: 'C. Equipment', description: 'Depreciation costs for equipment, infrastructure, or other assets' },
-  { key: 'indirectCosts', label: 'D. Indirect costs', description: '25% flat rate on eligible direct costs (excluding subcontracting)', isIndirect: true },
+  { key: 'purchaseTravel', label: 'C.1 Travel and subsistence', description: 'Travel costs and related subsistence allowances' },
+  { key: 'purchaseEquipment', label: 'C.2 Equipment', description: 'Depreciation costs for equipment, infrastructure, or other assets' },
+  { key: 'purchaseOtherGoods', label: 'C.3 Other goods, works and services', description: 'Other purchases directly linked to the action' },
+  { key: 'internallyInvoiced', label: 'D. Internally invoiced goods and services', description: 'Unit costs for internally invoiced goods and services' },
+  { key: 'indirectCosts', label: 'E. Indirect costs', description: '25% flat rate on eligible direct costs (excluding subcontracting)', isIndirect: true },
 ] as const;
 
 const PARTICIPANT_COLUMNS = [
   { key: 'personnelCosts', label: 'A. Personnel' },
   { key: 'subcontractingCosts', label: 'B. Subcontracting' },
-  { key: 'purchaseEquipment', label: 'C. Equipment' },
-  { key: 'indirectCosts', label: 'D. Indirect costs' },
+  { key: 'purchaseTravel', label: 'C.1 Travel' },
+  { key: 'purchaseEquipment', label: 'C.2 Equipment' },
+  { key: 'purchaseOtherGoods', label: 'C.3 Other goods' },
+  { key: 'internallyInvoiced', label: 'D. Internally inv.' },
+  { key: 'indirectCosts', label: 'E. Indirect costs' },
   { key: 'totalEligibleCosts', label: 'Total costs' },
   { key: 'fundingRate', label: 'Funding rate' },
   { key: 'maxEuContribution', label: 'Max EU contribution' },
