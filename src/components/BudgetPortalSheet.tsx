@@ -14,7 +14,7 @@ import {
   TableRow,
   TableFooter,
 } from '@/components/ui/table';
-import { Lock, Unlock, Loader2, Euro, Calculator, FileSpreadsheet, Download, History, TableProperties, AlertCircle, Info, X } from 'lucide-react';
+import { Lock, Unlock, Loader2, Euro, Calculator, FileSpreadsheet, Download, History, TableProperties, AlertCircle, Info, X, Users } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -203,7 +203,7 @@ export function BudgetPortalSheet({
                       <Euro className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Total eligible costs</p>
+              <p className="text-sm text-muted-foreground">Total costs</p>
                       <p className="text-xl font-bold">{formatCurrency(grandTotals.totalEligibleCosts)}</p>
                     </div>
                   </div>
@@ -217,8 +217,8 @@ export function BudgetPortalSheet({
                       <FileSpreadsheet className="w-5 h-5 text-muted-foreground" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Indirect costs (25%)</p>
-                      <p className="text-xl font-bold">{formatCurrency(grandTotals.indirectCosts)}</p>
+              <p className="text-sm text-muted-foreground">Personnel costs</p>
+                      <p className="text-xl font-bold">{formatCurrency(grandTotals.personnelCosts)}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -231,7 +231,7 @@ export function BudgetPortalSheet({
                       <Calculator className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">EU contribution</p>
+              <p className="text-sm text-muted-foreground">Requested EU contribution</p>
                       <p className="text-xl font-bold">{formatCurrency(grandTotals.requestedEuContribution)}</p>
                     </div>
                   </div>
@@ -241,12 +241,12 @@ export function BudgetPortalSheet({
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <Euro className="w-5 h-5 text-primary" />
+            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                      <FileSpreadsheet className="w-5 h-5 text-muted-foreground" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Total estimated income</p>
-                      <p className="text-xl font-bold">{formatCurrency(grandTotals.totalEstimatedIncome)}</p>
+                      <p className="text-sm text-muted-foreground">Indirect costs (25%)</p>
+                      <p className="text-xl font-bold">{formatCurrency(grandTotals.indirectCosts)}</p>
                     </div>
                   </div>
                 </CardContent>
