@@ -64,6 +64,15 @@ export interface SubcontractingItem {
   orderIndex: number;
 }
 
+export interface EquipmentItem {
+  id: string;
+  budgetRowId: string;
+  description: string;
+  amount: number;
+  justification: string;
+  orderIndex: number;
+}
+
 function computeRow(row: BudgetRowData, proposalType: string | null): ComputedBudgetRow {
   const personnelCosts = row.pmRate != null && row.pmRate > 0
     ? Math.round(row.pmRate * row.totalPersonMonths)
@@ -115,6 +124,7 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
   const [rows, setRows] = useState<BudgetRowData[]>([]);
   const [justifications, setJustifications] = useState<BudgetJustification[]>([]);
   const [subcontractingItems, setSubcontractingItems] = useState<SubcontractingItem[]>([]);
+  const [equipmentItems, setEquipmentItems] = useState<EquipmentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -207,6 +217,30 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     })));
   }, [proposalId, rows.map(r => r.id).join(',')]);
 
+  const fetchEquipmentItems = useCallback(async () => {
+    if (!proposalId || rows.length === 0) return;
+    const rowIds = rows.map(r => r.id);
+    const { data, error } = await supabase
+      .from('budget_equipment_items')
+      .select('*')
+      .in('budget_row_id', rowIds)
+      .order('order_index');
+
+    if (error) {
+      console.error('Error fetching equipment items:', error);
+      return;
+    }
+
+    setEquipmentItems((data || []).map((item: any) => ({
+      id: item.id,
+      budgetRowId: item.budget_row_id,
+      description: item.description,
+      amount: Number(item.amount) || 0,
+      justification: item.justification,
+      orderIndex: item.order_index,
+    })));
+  }, [proposalId, rows.map(r => r.id).join(',')]);
+
   const fetchJustifications = useCallback(async () => {
     if (!proposalId) return;
     const { data, error } = await supabase
@@ -274,6 +308,7 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     if (rows.length > 0) {
       fetchJustifications();
       fetchSubcontractingItems();
+      fetchEquipmentItems();
     }
   }, [rows.length > 0, fetchJustifications, fetchSubcontractingItems]);
 
@@ -371,6 +406,96 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     setRows(prev => prev.map(r => r.id === budgetRowId ? { ...r, subcontractingCosts: total } : r));
     await supabase.from('budget_rows').update({ subcontracting_costs: total }).eq('id', budgetRowId);
   }, [subcontractingItems]);
+
+  // Equipment item CRUD
+  const syncEquipmentTotal = useCallback(async (budgetRowId: string, items: EquipmentItem[]) => {
+    const total = items.filter(i => i.budgetRowId === budgetRowId).reduce((sum, i) => sum + i.amount, 0);
+    setRows(prev => prev.map(r => r.id === budgetRowId ? { ...r, purchaseEquipment: total } : r));
+    await supabase.from('budget_rows').update({ purchase_equipment: total }).eq('id', budgetRowId);
+  }, []);
+
+  const addEquipmentItem = useCallback(async (budgetRowId: string) => {
+    const existing = equipmentItems.filter(i => i.budgetRowId === budgetRowId);
+    const nextIndex = existing.length;
+
+    const { data, error } = await supabase
+      .from('budget_equipment_items')
+      .insert({
+        budget_row_id: budgetRowId,
+        description: '',
+        amount: 0,
+        justification: '',
+        order_index: nextIndex,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      toast.error('Failed to add equipment item');
+      return;
+    }
+
+    setEquipmentItems(prev => [...prev, {
+      id: data.id,
+      budgetRowId: data.budget_row_id,
+      description: data.description,
+      amount: Number(data.amount) || 0,
+      justification: data.justification,
+      orderIndex: data.order_index,
+    }]);
+  }, [equipmentItems]);
+
+  const updateEquipmentItem = useCallback((itemId: string, field: string, value: string | number) => {
+    setEquipmentItems(prev => prev.map(i => i.id === itemId ? { ...i, [field]: value } : i));
+
+    if (debounceTimers.current[`equip-${itemId}`]) {
+      clearTimeout(debounceTimers.current[`equip-${itemId}`]);
+    }
+
+    debounceTimers.current[`equip-${itemId}`] = setTimeout(async () => {
+      setSaving(true);
+      const { error } = await supabase
+        .from('budget_equipment_items')
+        .update({ [field]: value })
+        .eq('id', itemId);
+
+      if (error) {
+        toast.error('Failed to save equipment item');
+      }
+
+      if (field === 'amount') {
+        const item = equipmentItems.find(i => i.id === itemId);
+        if (item) {
+          const budgetRowId = item.budgetRowId;
+          const otherItems = equipmentItems.filter(i => i.budgetRowId === budgetRowId && i.id !== itemId);
+          const total = otherItems.reduce((sum, i) => sum + i.amount, 0) + Number(value);
+          setRows(prev => prev.map(r => r.id === budgetRowId ? { ...r, purchaseEquipment: total } : r));
+          await supabase.from('budget_rows').update({ purchase_equipment: total }).eq('id', budgetRowId);
+        }
+      }
+
+      setSaving(false);
+    }, 300);
+  }, [equipmentItems]);
+
+  const deleteEquipmentItem = useCallback(async (itemId: string) => {
+    const item = equipmentItems.find(i => i.id === itemId);
+    if (!item) return;
+
+    const { error } = await supabase.from('budget_equipment_items').delete().eq('id', itemId);
+    if (error) {
+      toast.error('Failed to delete equipment item');
+      return;
+    }
+
+    const remaining = equipmentItems.filter(i => i.id !== itemId);
+    setEquipmentItems(remaining);
+
+    const budgetRowId = item.budgetRowId;
+    const total = remaining.filter(i => i.budgetRowId === budgetRowId).reduce((sum, i) => sum + i.amount, 0);
+    setRows(prev => prev.map(r => r.id === budgetRowId ? { ...r, purchaseEquipment: total } : r));
+    await supabase.from('budget_rows').update({ purchase_equipment: total }).eq('id', budgetRowId);
+  }, [equipmentItems]);
 
   const updateRow = useCallback((rowId: string, field: string, value: number | string) => {
     setRows(prev => prev.map(r => r.id === rowId ? { ...r, [field]: value } : r));
@@ -507,6 +632,7 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     rows: computedRows,
     justifications,
     subcontractingItems,
+    equipmentItems,
     grandTotals,
     loading,
     saving,
@@ -518,6 +644,9 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     addSubcontractingItem,
     updateSubcontractingItem,
     deleteSubcontractingItem,
+    addEquipmentItem,
+    updateEquipmentItem,
+    deleteEquipmentItem,
     refetch: fetchRows,
   };
 }

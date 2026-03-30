@@ -57,6 +57,7 @@ export function BudgetParticipantForm({
     rows,
     justifications,
     subcontractingItems,
+    equipmentItems,
     loading,
     saving,
     updateRow,
@@ -64,6 +65,9 @@ export function BudgetParticipantForm({
     addSubcontractingItem,
     updateSubcontractingItem,
     deleteSubcontractingItem,
+    addEquipmentItem,
+    updateEquipmentItem,
+    deleteEquipmentItem,
   } = useBudgetRows(proposalId, proposalType);
 
   const { roleTier } = useProposalRole(proposalId);
@@ -87,14 +91,24 @@ export function BudgetParticipantForm({
     [rowSubItems]
   );
 
+  const rowEquipItems = useMemo(
+    () => (row ? equipmentItems.filter(i => i.budgetRowId === row.id) : []),
+    [equipmentItems, row]
+  );
+
+  const equipTotal = useMemo(
+    () => rowEquipItems.reduce((sum, i) => sum + i.amount, 0),
+    [rowEquipItems]
+  );
+
   // 15% threshold for equipment justification
   const equipmentJustificationRequired = useMemo(() => {
     if (!row) return false;
     const personnelCosts = row.pmRate != null && row.pmRate > 0
       ? Math.round(row.pmRate * row.totalPersonMonths)
       : row.personnelCosts;
-    return personnelCosts > 0 && row.purchaseEquipment > personnelCosts * 0.15;
-  }, [row]);
+    return personnelCosts > 0 && equipTotal > personnelCosts * 0.15;
+  }, [row, equipTotal]);
 
   if (loading) {
     return (
@@ -286,42 +300,89 @@ export function BudgetParticipantForm({
             <span className="text-xs text-muted-foreground w-4">€</span>
             <CopyButton value={row.purchaseTravel} />
           </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground w-[260px] shrink-0">C.2 Equipment</label>
-            <FormattedNumberInput
-              value={row.purchaseEquipment}
-              onChange={(v) => updateRow(row.id, 'purchaseEquipment', v)}
-              disabled={!editable}
-              className="h-8 text-sm text-right flex-1"
-            />
-            <span className="text-xs text-muted-foreground w-4">€</span>
-            <CopyButton value={row.purchaseEquipment} />
-          </div>
-          {equipmentJustificationRequired && (
-            <div className="space-y-2 ml-[260px] pl-2">
+          {/* C.2 Equipment - granular items */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">C.2 Equipment</label>
+            {rowEquipItems.length === 0 && (
+              <p className="text-sm text-muted-foreground italic">No equipment costs added yet.</p>
+            )}
+            {rowEquipItems.map((item, idx) => (
+              <div key={item.id} className="border rounded-lg p-3 space-y-2 bg-muted/20">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-muted-foreground">Equipment cost {idx + 1}</span>
+                  {editable && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => deleteEquipmentItem(item.id)}
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                    </Button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-muted-foreground w-[100px] shrink-0">Description</label>
+                  <Input
+                    value={item.description}
+                    onChange={(e) => updateEquipmentItem(item.id, 'description', e.target.value)}
+                    disabled={!editable}
+                    className="h-8 text-sm flex-1"
+                    placeholder="Description of equipment"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-muted-foreground w-[100px] shrink-0">Amount</label>
+                  <FormattedNumberInput
+                    value={item.amount}
+                    onChange={(v) => updateEquipmentItem(item.id, 'amount', v)}
+                    disabled={!editable}
+                    className="h-8 text-sm text-right flex-1"
+                  />
+                  <span className="text-xs text-muted-foreground w-4">€</span>
+                  <CopyButton value={item.amount} />
+                </div>
+                {equipmentJustificationRequired && (
+                  <div className="space-y-1">
+                    <label className="text-sm text-muted-foreground">Justification</label>
+                    <Textarea
+                      value={item.justification}
+                      onChange={(e) => updateEquipmentItem(item.id, 'justification', e.target.value)}
+                      disabled={!editable}
+                      className="text-sm min-h-[60px]"
+                      placeholder="Justify this equipment purchase"
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
+            {editable && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => addEquipmentItem(row.id)}
+                className="w-full"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Add equipment purchase cost
+              </Button>
+            )}
+            {rowEquipItems.length > 0 && (
+              <div className="flex items-center justify-between pt-2 border-t text-sm">
+                <span className="font-medium">Total equipment costs</span>
+                <div className="flex items-center gap-1">
+                  <span className="font-semibold tabular-nums">{formatCurrency(equipTotal)}</span>
+                  <CopyButton value={equipTotal} />
+                </div>
+              </div>
+            )}
+            {equipmentJustificationRequired && (
               <div className="flex items-center gap-1 text-xs text-amber-600">
                 <AlertTriangle className="w-3.5 h-3.5" />
-                <span>Equipment costs exceed 15% of personnel costs — justification required</span>
+                <span>Equipment costs exceed 15% of personnel costs — justifications required and will appear in B3.1</span>
               </div>
-              <Textarea
-                value={row.purchaseEquipmentJustification || ''}
-                onChange={(e) => updateRow(row.id, 'purchaseEquipmentJustification', e.target.value)}
-                disabled={!editable}
-                className="text-sm min-h-[60px]"
-                placeholder="Justify why equipment costs exceed 15% of personnel costs"
-              />
-            </div>
-          )}
-          {!equipmentJustificationRequired && (
-            <div className="ml-[260px] pl-2">
-              <Textarea
-                value=""
-                disabled
-                className="text-sm min-h-[40px] opacity-40"
-                placeholder="Justification required if equipment costs exceed 15% of personnel costs"
-              />
-            </div>
-          )}
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <label className="text-sm text-muted-foreground w-[260px] shrink-0">C.3 Other goods, works and services</label>
             <FormattedNumberInput
