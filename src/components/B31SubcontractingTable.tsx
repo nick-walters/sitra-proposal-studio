@@ -53,7 +53,7 @@ export function B31SubcontractingTable({ items, participants, proposalId }: Prop
               Participant
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
             </th>
-            <th className={`${headerCellStyles} text-right relative`}>
+            <th className={`${headerCellStyles} text-left relative`}>
               Cost (€)
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
             </th>
