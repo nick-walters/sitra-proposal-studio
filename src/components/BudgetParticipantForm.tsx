@@ -313,19 +313,16 @@ export function BudgetParticipantForm({
         </CardContent>
       </Card>
 
-      {/* Calculated Values */}
+      {/* Calculated Values & Funding */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold">Calculated Values</CardTitle>
+          <CardTitle className="text-sm font-semibold">Costs & Funding</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-3">
           {[
             { label: 'Direct costs', value: formatCurrency(row.directCosts), raw: row.directCosts },
             { label: 'Indirect costs (25%)', value: formatCurrency(row.indirectCosts), raw: row.indirectCosts },
             { label: 'Total eligible costs', value: formatCurrency(row.totalEligibleCosts), raw: row.totalEligibleCosts },
-            { label: 'Funding rate', value: `${row.fundingRate}%`, raw: row.fundingRate },
-            { label: 'Max EU contribution', value: formatCurrency(row.maxEuContribution), raw: row.maxEuContribution },
-            { label: 'Requested EU contribution', value: formatCurrency(row.requestedEuContribution), raw: row.requestedEuContribution },
           ].map(item => (
             <div key={item.label} className="flex items-center justify-between py-1">
               <span className="text-sm text-muted-foreground">{item.label}</span>
@@ -335,6 +332,48 @@ export function BudgetParticipantForm({
               </div>
             </div>
           ))}
+
+          <div className="border-t pt-3 space-y-3">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-muted-foreground w-[260px] shrink-0">
+                Funding rate
+                <span className="text-xs ml-1">({row.fundingRateOverride != null ? 'custom' : 'auto'})</span>
+              </label>
+              <FormattedNumberInput
+                value={row.fundingRateOverride ?? row.fundingRate}
+                onChange={(v) => updateRow(row.id, 'fundingRateOverride', v)}
+                disabled={!editable}
+                className="h-8 text-sm text-right flex-1"
+              />
+              <span className="text-xs text-muted-foreground w-4">%</span>
+              <CopyButton value={row.fundingRate} />
+            </div>
+            <div className="flex items-center justify-between py-1">
+              <span className="text-sm text-muted-foreground">Max EU contribution</span>
+              <div className="flex items-center gap-1">
+                <span className="text-sm font-medium tabular-nums">{formatCurrency(row.maxEuContribution)}</span>
+                <CopyButton value={row.maxEuContribution} />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-muted-foreground w-[260px] shrink-0">
+                Requested EU contribution
+              </label>
+              <FormattedNumberInput
+                value={row.requestedEuContributionOverride ?? row.maxEuContribution}
+                onChange={(v) => updateRow(row.id, 'requestedEuContribution', v)}
+                disabled={!editable}
+                className="h-8 text-sm text-right flex-1"
+              />
+              <span className="text-xs text-muted-foreground w-4">€</span>
+              <CopyButton value={row.requestedEuContribution} />
+            </div>
+            {row.requestedEuContribution < row.maxEuContribution && (
+              <p className="text-xs text-muted-foreground italic">
+                Requesting {formatCurrency(row.maxEuContribution - row.requestedEuContribution)} less than maximum
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
 
