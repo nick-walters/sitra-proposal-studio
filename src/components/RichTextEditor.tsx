@@ -593,17 +593,14 @@ export function FormattingToolbar({
               const nextNum = h3Count + 1;
               const prefix = `${cleanNum}.${nextNum}. `;
               editor.chain().focus().toggleHeading({ level: 3 }).run();
-              // If we just set heading, insert the number prefix
               if (editor.isActive('heading', { level: 3 })) {
-                const { from } = editor.state.selection;
-                const currentNode = editor.state.selection.$from.parent;
-                // Only insert prefix if the line is empty or just became H3
-                if (currentNode.textContent.length === 0) {
-                  editor.chain().focus().insertContent(prefix).run();
-                }
+                // Move cursor to start of the heading and insert prefix
+                const $from = editor.state.selection.$from;
+                const startOfNode = $from.start();
+                editor.chain().focus().insertContentAt(startOfNode, prefix).run();
               }
             }}>
-              <span className="text-sm font-semibold">{sectionNumber ? `${sectionNumber.replace(/^[A-Za-z]+/, '')}.1.` : '1.1.1.'} Numbered subheading</span>
+              <span className="text-sm font-semibold underline">{sectionNumber ? `${sectionNumber.replace(/^[A-Za-z]+/, '')}.1.` : '1.1.1.'} Numbered subheading</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => {
               // Unnumbered subheading (bold + underline inline style)
