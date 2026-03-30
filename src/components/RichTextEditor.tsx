@@ -69,6 +69,7 @@ import {
   Pipette,
   Ban,
   Check,
+  ChevronDown,
 } from "lucide-react";
 import {
   Tooltip,
