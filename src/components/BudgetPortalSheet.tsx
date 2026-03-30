@@ -255,7 +255,7 @@ export function BudgetPortalSheet({
 
             <Card>
               <CardHeader>
-                <CardTitle>Budget Overview by Category</CardTitle>
+                <CardTitle>Budget overview by category</CardTitle>
               </CardHeader>
               <CardContent>
                 <Table>
