@@ -27,6 +27,7 @@ import { ParticipantReferenceMark } from '@/extensions/ParticipantReferenceMark'
 import { AcronymReference } from '@/extensions/AcronymReference';
 import { FigureTableReferenceMark } from '@/extensions/FigureTableReferenceMark';
 import { OrderedListStyled } from '@/extensions/OrderedListStyled';
+import { renumberH3Headings } from '@/lib/renumberH3Headings';
 import { OrderedListDropdown } from './OrderedListDropdown';
 import { computeAutoFitSmart } from '@/lib/autoFitColumns';
 import { Button } from "@/components/ui/button";
@@ -581,23 +582,21 @@ export function FormattingToolbar({
           </Tooltip>
           <DropdownMenuContent align="start" className="w-64">
             <DropdownMenuItem onClick={() => {
-              // Insert numbered H3 subheading
               const cleanNum = sectionNumber ? sectionNumber.replace(/^[A-Za-z]+/, '') : '1.1';
-              // Count existing H3s in the document to determine next number
-              let h3Count = 0;
-              editor.state.doc.descendants((node) => {
-                if (node.type.name === 'heading' && node.attrs.level === 3) {
-                  h3Count++;
-                }
-              });
-              const nextNum = h3Count + 1;
-              const prefix = `${cleanNum}.${nextNum}. `;
+              // Use a temporary placeholder number; renumber will fix it
+              const placeholder = `${cleanNum}.0. `;
               editor.chain().focus().toggleHeading({ level: 3 }).run();
               if (editor.isActive('heading', { level: 3 })) {
-                // Move cursor to start of the heading and insert prefix
                 const $from = editor.state.selection.$from;
                 const startOfNode = $from.start();
-                editor.chain().focus().insertContentAt(startOfNode, prefix).run();
+                const currentText = $from.parent.textContent;
+                // Only add prefix if there isn't already a numbered prefix
+                const hasPrefix = /^\d+\.\d+\.\d+\.\s/.test(currentText);
+                if (!hasPrefix) {
+                  editor.chain().focus().insertContentAt(startOfNode, placeholder).run();
+                }
+                // Renumber all H3s by position
+                renumberH3Headings(editor, cleanNum);
               }
             }}>
               <span className="text-sm font-semibold underline">{sectionNumber ? `${sectionNumber.replace(/^[A-Za-z]+/, '')}.1.` : '1.1.1.'} Numbered subheading</span>
