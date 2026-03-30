@@ -14,7 +14,7 @@ import {
   TableRow,
   TableFooter,
 } from '@/components/ui/table';
-import { Lock, Unlock, Loader2, Euro, Calculator, FileSpreadsheet, Download, History, TableProperties, AlertCircle, Info } from 'lucide-react';
+import { Lock, Unlock, Loader2, Euro, Calculator, FileSpreadsheet, Download, History, TableProperties, AlertCircle, Info, X } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -35,6 +35,8 @@ import { useState, useMemo } from 'react';
 import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
 import { toast } from 'sonner';
 import { FstpTab } from './FstpTab';
+import { BudgetParticipantForm } from './BudgetParticipantForm';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface BudgetPortalSheetProps {
   proposalId: string;
@@ -87,6 +89,12 @@ export function BudgetPortalSheet({
   const { roleTier } = useProposalRole(proposalId);
   const isAdmin = roleTier === 'coordinator';
   const [activeTab, setActiveTab] = useState('overview');
+  const [editingParticipantId, setEditingParticipantId] = useState<string | null>(null);
+
+  const editingRow = useMemo(
+    () => editingParticipantId ? rows.find(r => r.participantId === editingParticipantId) : null,
+    [editingParticipantId, rows]
+  );
 
   const categoryTotals = useMemo(() => {
     const result: Record<string, number> = {};
@@ -388,7 +396,7 @@ export function BudgetPortalSheet({
                       </tfoot>
                     </table>
                   </div>
-                  {canEdit && onNavigateToParticipantBudget && rows.length > 0 && (
+                  {canEdit && rows.length > 0 && (
                     <div className="flex-shrink-0 ml-1">
                       {/* Header spacer */}
                       <div className="px-3 py-3 whitespace-nowrap">&nbsp;</div>
@@ -398,7 +406,7 @@ export function BudgetPortalSheet({
                           <Button
                             size="sm"
                             className="h-auto py-1 px-3 text-xs font-semibold whitespace-nowrap"
-                            onClick={() => onNavigateToParticipantBudget(row.participantId)}
+                            onClick={() => setEditingParticipantId(row.participantId)}
                           >
                             Edit
                           </Button>
@@ -432,6 +440,28 @@ export function BudgetPortalSheet({
           )}
         </Tabs>
       </div>
+
+      {/* Participant Budget Dialog */}
+      <Dialog open={!!editingParticipantId} onOpenChange={(open) => { if (!open) setEditingParticipantId(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0">
+          <DialogHeader className="px-6 pt-6 pb-0">
+            <DialogTitle>
+              {editingRow
+                ? `${editingRow.participantNumber}. ${editingRow.participantShortName || editingRow.participantName} — Budget`
+                : 'Participant Budget'}
+            </DialogTitle>
+          </DialogHeader>
+          {editingParticipantId && (
+            <BudgetParticipantForm
+              proposalId={proposalId}
+              participantId={editingParticipantId}
+              proposalType={proposalType}
+              canEdit={canEdit}
+              isCoordinator={isCoordinator}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
