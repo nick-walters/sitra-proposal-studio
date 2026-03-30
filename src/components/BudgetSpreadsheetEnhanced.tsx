@@ -719,7 +719,7 @@ export function BudgetSpreadsheetEnhanced({
           <TabsContent value="summary">
             <Card>
               <CardHeader>
-                <CardTitle>Summary by Participant</CardTitle>
+                <CardTitle>Summary by participant</CardTitle>
                 <CardDescription>
                   Overview of budget allocation across consortium partners
                 </CardDescription>

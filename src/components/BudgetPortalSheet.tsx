@@ -334,7 +334,7 @@ export function BudgetPortalSheet({
           <TabsContent value="summary" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Summary by Participant</CardTitle>
+                <CardTitle>Summary by participant</CardTitle>
                 <CardDescription>
                   Overview of budget allocation across consortium partners
                 </CardDescription>
