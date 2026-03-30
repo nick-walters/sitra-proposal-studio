@@ -95,7 +95,7 @@ export function B31SubcontractingTable({ items, participants, proposalId }: Prop
             <td colSpan={3} className="p-0 border-0" style={{ height: '2px', backgroundColor: 'hsl(var(--foreground))' }} />
           </tr>
           <tr>
-            <td className={`${cellStyles} font-bold border-y-0`}>Grand total</td>
+            <td className={`${cellStyles} font-bold border-y-0`}>Total</td>
             <td className={`${cellStyles} text-right font-bold border-y-0`}>{formatCurrency(grandTotal)}</td>
             <td className={`${cellStyles} border-y-0`}></td>
           </tr>
