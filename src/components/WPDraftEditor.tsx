@@ -160,7 +160,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
     updateTask,
     deleteTask,
     reorderTasks,
-    updateTaskEffort,
+    updateWPEffort,
     setTaskParticipants,
     addDeliverable,
     updateDeliverable,
@@ -1007,9 +1007,10 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
         {/* Staff Effort Matrix */}
         <WPEffortMatrix
           wpNumber={wpDraft.number}
-          tasks={wpDraft.tasks || []}
+          wpId={wpDraft.id}
           participants={participants}
-          onEffortChange={updateTaskEffort}
+          effort={(wpDraft as any).wp_effort || []}
+          onEffortChange={updateWPEffort}
           readOnly={readOnly}
         />
       </div>
