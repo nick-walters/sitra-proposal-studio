@@ -72,9 +72,23 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
 
     if (entries.length === 0 && newTotal > 0) {
       const wp = wpData.find(w => w.id === wpId);
-      if (wp && wp.tasks.length > 0) {
+      if (wp) {
+        let taskId: string;
+        if (wp.tasks.length > 0) {
+          taskId = wp.tasks[0].id;
+        } else {
+          // WP has no tasks — create a placeholder task so effort can be stored
+          const { data: newTask } = await supabase.from('wp_draft_tasks').insert({
+            wp_draft_id: wp.id,
+            number: 1,
+            title: `Task ${wp.number}.1`,
+            order_index: 0,
+          }).select('id').single();
+          if (!newTask) { setEditingCell(null); return; }
+          taskId = newTask.id;
+        }
         await supabase.from('wp_draft_task_effort').insert({
-          task_id: wp.tasks[0].id,
+          task_id: taskId,
           participant_id: participantId,
           person_months: newTotal,
         });
