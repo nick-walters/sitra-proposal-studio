@@ -36,6 +36,7 @@ import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
 import { toast } from 'sonner';
 import { FstpTab } from './FstpTab';
 import { BudgetParticipantForm } from './BudgetParticipantForm';
+import { A3EffortMatrix } from './A3EffortMatrix';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface BudgetPortalSheetProps {
