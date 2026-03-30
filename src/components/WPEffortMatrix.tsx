@@ -3,69 +3,44 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Users } from 'lucide-react';
-import type { WPDraftTask } from '@/hooks/useWPDrafts';
 import type { ParticipantSummary } from '@/types/proposal';
+
+interface WPEffortEntry {
+  participant_id: string;
+  person_months: number;
+}
 
 interface WPEffortMatrixProps {
   wpNumber: number;
-  tasks: WPDraftTask[];
+  wpId: string;
   participants: ParticipantSummary[];
-  onEffortChange: (taskId: string, participantId: string, personMonths: number) => Promise<boolean>;
+  effort: WPEffortEntry[];
+  onEffortChange: (participantId: string, personMonths: number) => Promise<boolean>;
   readOnly?: boolean;
 }
 
 export function WPEffortMatrix({
   wpNumber,
-  tasks,
+  wpId,
   participants,
+  effort,
   onEffortChange,
   readOnly = false,
 }: WPEffortMatrixProps) {
-  const formatTaskNumber = (taskNum: number) => `T${wpNumber}.${taskNum}`;
-
-  // Calculate totals
-  const getEffort = (task: WPDraftTask, participantId: string): number => {
-    const effort = task.effort?.find(e => e.participant_id === participantId);
-    return effort?.person_months || 0;
+  const getEffort = (participantId: string): number => {
+    const entry = effort.find(e => e.participant_id === participantId);
+    return entry?.person_months || 0;
   };
 
-  const getParticipantTotal = (participantId: string): number => {
-    return tasks.reduce((total, task) => total + getEffort(task, participantId), 0);
+  const getTotal = (): number => {
+    return effort.reduce((sum, e) => sum + (e.person_months || 0), 0);
   };
-
-  const getTaskTotal = (task: WPDraftTask): number => {
-    if (!task.effort) return 0;
-    return task.effort.reduce((total, e) => total + (e.person_months || 0), 0);
-  };
-
-  const getGrandTotal = (): number => {
-    return tasks.reduce((total, task) => total + getTaskTotal(task), 0);
-  };
-
-  // Filter to tasks with titles
-  const activeTasks = tasks.filter(t => t.title && t.title.trim().length > 0);
-
-  if (activeTasks.length === 0) {
-    return (
-      <Card>
-        <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
-            <Users className="h-4 w-4" />
-            Staff effort (person-months)
-          </CardTitle>
-          <CardDescription>
-            Add tasks with titles to enable effort tracking
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    );
-  }
 
   if (participants.length === 0) {
     return (
       <Card>
         <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
+          <CardTitle className="flex items-center gap-2 text-base">
             <Users className="h-4 w-4" />
             Staff effort (person-months)
           </CardTitle>
@@ -85,7 +60,7 @@ export function WPEffortMatrix({
           Staff effort (person-months)
         </CardTitle>
         <CardDescription className="text-xs">
-          Enter person-months per participant per task. This data feeds into the budget spreadsheet.
+          Enter person-months per participant for this work package. This data feeds into the B3.1 effort table and budget.
         </CardDescription>
       </CardHeader>
       <CardContent className="px-3 pb-3 pt-0">
@@ -93,44 +68,27 @@ export function WPEffortMatrix({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="sticky left-0 bg-background z-10 w-[120px]">Partner</TableHead>
-                {activeTasks.map((task) => (
-                  <TableHead key={task.id} className="text-center w-[80px]">
-                    {formatTaskNumber(task.number)}
-                  </TableHead>
-                ))}
-                <TableHead className="text-center w-[80px] bg-muted/50 font-semibold">Total</TableHead>
+                <TableHead className="w-[200px]">Partner</TableHead>
+                <TableHead className="text-center w-[120px]">Person-months</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {participants.map((participant) => (
                 <TableRow key={participant.id}>
-                  <TableCell className="sticky left-0 bg-background z-10 font-medium truncate max-w-[120px]">
+                  <TableCell className="font-medium truncate max-w-[200px]">
                     {participant.organisation_short_name || participant.organisation_name}
                   </TableCell>
-                  {activeTasks.map((task) => (
-                    <EffortCell
-                      key={`${task.id}-${participant.id}`}
-                      value={getEffort(task, participant.id)}
-                      onChange={(value) => onEffortChange(task.id, participant.id, value)}
-                      readOnly={readOnly}
-                    />
-                  ))}
-                  <TableCell className="text-center bg-muted/50 font-medium">
-                    {getParticipantTotal(participant.id).toFixed(1)}
-                  </TableCell>
+                  <EffortCell
+                    value={getEffort(participant.id)}
+                    onChange={(value) => onEffortChange(participant.id, value)}
+                    readOnly={readOnly}
+                  />
                 </TableRow>
               ))}
-              {/* Task totals row */}
               <TableRow className="bg-muted/30">
-                <TableCell className="sticky left-0 bg-muted/30 z-10 font-semibold">Task Total</TableCell>
-                {activeTasks.map((task) => (
-                  <TableCell key={task.id} className="text-center font-medium">
-                    {getTaskTotal(task).toFixed(1)}
-                  </TableCell>
-                ))}
-                <TableCell className="text-center bg-primary/10 font-bold">
-                  {getGrandTotal().toFixed(1)}
+                <TableCell className="font-semibold">Total</TableCell>
+                <TableCell className="text-center font-bold">
+                  {getTotal().toFixed(1)}
                 </TableCell>
               </TableRow>
             </TableBody>
@@ -168,7 +126,6 @@ function EffortCell({ value, onChange, readOnly }: EffortCellProps) {
   }, [onChange, debounceTimeout]);
 
   const handleBlur = useCallback(() => {
-    // Normalize the display value
     const numValue = parseFloat(localValue) || 0;
     setLocalValue(numValue > 0 ? numValue.toString() : '0');
   }, [localValue]);

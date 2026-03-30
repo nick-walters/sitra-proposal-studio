@@ -114,13 +114,52 @@ export function BudgetParticipantForm({
         </Alert>
       )}
 
-      {/* Cost Categories */}
+      {/* PM Rate & Personnel Costs */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold">Cost Categories</CardTitle>
+          <CardTitle className="text-sm font-semibold">Personnel Costs</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {COST_FIELDS.map(f => (
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-muted-foreground w-[260px] shrink-0">Avg. weighted person-month rate</label>
+            <FormattedNumberInput
+              value={row.pmRate ?? 0}
+              onChange={(v) => updateRow(row.id, 'pmRate', v)}
+              disabled={!editable}
+              className="h-8 text-sm text-right flex-1"
+            />
+            <span className="text-xs text-muted-foreground w-8">EUR</span>
+          </div>
+          <div className="flex items-center justify-between py-1 text-sm">
+            <span className="text-muted-foreground">Total person-months (from WP effort)</span>
+            <span className="font-medium tabular-nums">{row.totalPersonMonths.toFixed(1)}</span>
+          </div>
+          <div className="flex items-center justify-between py-1 border-t text-sm">
+            <span className="font-medium">A. Personnel costs {row.pmRate ? '(auto-calculated)' : ''}</span>
+            <span className="font-semibold tabular-nums">{formatNumber(row.personnelCosts)} EUR</span>
+          </div>
+          {!row.pmRate && (
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-muted-foreground w-[260px] shrink-0">Personnel costs (manual)</label>
+              <FormattedNumberInput
+                value={row.personnelCosts}
+                onChange={(v) => updateRow(row.id, 'personnelCosts', v)}
+                disabled={!editable}
+                className="h-8 text-sm text-right flex-1"
+              />
+              <span className="text-xs text-muted-foreground w-8">EUR</span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Other Cost Categories */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold">Other Cost Categories</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {COST_FIELDS.filter(f => f.key !== 'personnelCosts').map(f => (
             <div key={f.key} className="flex items-center gap-2">
               <label className="text-sm text-muted-foreground w-[260px] shrink-0">{f.label}</label>
               <FormattedNumberInput

@@ -367,6 +367,7 @@ export type Database = {
           own_resources: number
           participant_id: string
           personnel_costs: number
+          pm_rate: number | null
           proposal_id: string
           purchase_equipment: number
           purchase_other_goods: number
@@ -389,6 +390,7 @@ export type Database = {
           own_resources?: number
           participant_id: string
           personnel_costs?: number
+          pm_rate?: number | null
           proposal_id: string
           purchase_equipment?: number
           purchase_other_goods?: number
@@ -411,6 +413,7 @@ export type Database = {
           own_resources?: number
           participant_id?: string
           personnel_costs?: number
+          pm_rate?: number | null
           proposal_id?: string
           purchase_equipment?: number
           purchase_other_goods?: number
@@ -4166,6 +4169,48 @@ export type Database = {
           },
           {
             foreignKeyName: "wp_draft_deliverables_wp_draft_id_fkey"
+            columns: ["wp_draft_id"]
+            isOneToOne: false
+            referencedRelation: "wp_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wp_draft_effort: {
+        Row: {
+          created_at: string
+          id: string
+          participant_id: string
+          person_months: number
+          updated_at: string
+          wp_draft_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          participant_id: string
+          person_months?: number
+          updated_at?: string
+          wp_draft_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          participant_id?: string
+          person_months?: number
+          updated_at?: string
+          wp_draft_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wp_draft_effort_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wp_draft_effort_wp_draft_id_fkey"
             columns: ["wp_draft_id"]
             isOneToOne: false
             referencedRelation: "wp_drafts"
