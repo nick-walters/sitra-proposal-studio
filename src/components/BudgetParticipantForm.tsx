@@ -268,14 +268,25 @@ export function BudgetParticipantForm({
         </CardContent>
       </Card>
 
-      {/* Purchase Costs – Equipment */}
+      {/* C. Purchase Costs */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold">C. Purchase Costs – Equipment</CardTitle>
+          <CardTitle className="text-sm font-semibold">C. Purchase Costs</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground w-[260px] shrink-0">Equipment costs</label>
+            <label className="text-sm text-muted-foreground w-[260px] shrink-0">C.1 Travel and subsistence</label>
+            <FormattedNumberInput
+              value={row.purchaseTravel}
+              onChange={(v) => updateRow(row.id, 'purchaseTravel', v)}
+              disabled={!editable}
+              className="h-8 text-sm text-right flex-1"
+            />
+            <span className="text-xs text-muted-foreground w-4">€</span>
+            <CopyButton value={row.purchaseTravel} />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-muted-foreground w-[260px] shrink-0">C.2 Equipment</label>
             <FormattedNumberInput
               value={row.purchaseEquipment}
               onChange={(v) => updateRow(row.id, 'purchaseEquipment', v)}
@@ -286,7 +297,7 @@ export function BudgetParticipantForm({
             <CopyButton value={row.purchaseEquipment} />
           </div>
           {equipmentJustificationRequired && (
-            <div className="space-y-2">
+            <div className="space-y-2 ml-[260px] pl-2">
               <div className="flex items-center gap-1 text-xs text-amber-600">
                 <AlertTriangle className="w-3.5 h-3.5" />
                 <span>Equipment costs exceed 15% of personnel costs — justification required</span>
@@ -301,7 +312,7 @@ export function BudgetParticipantForm({
             </div>
           )}
           {!equipmentJustificationRequired && (
-            <div className="space-y-1">
+            <div className="ml-[260px] pl-2">
               <Textarea
                 value=""
                 disabled
@@ -310,6 +321,37 @@ export function BudgetParticipantForm({
               />
             </div>
           )}
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-muted-foreground w-[260px] shrink-0">C.3 Other goods, works and services</label>
+            <FormattedNumberInput
+              value={row.purchaseOtherGoods}
+              onChange={(v) => updateRow(row.id, 'purchaseOtherGoods', v)}
+              disabled={!editable}
+              className="h-8 text-sm text-right flex-1"
+            />
+            <span className="text-xs text-muted-foreground w-4">€</span>
+            <CopyButton value={row.purchaseOtherGoods} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* D. Other cost categories */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold">D. Internally Invoiced Goods and Services</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-muted-foreground w-[260px] shrink-0">Internally invoiced</label>
+            <FormattedNumberInput
+              value={row.internallyInvoiced}
+              onChange={(v) => updateRow(row.id, 'internallyInvoiced', v)}
+              disabled={!editable}
+              className="h-8 text-sm text-right flex-1"
+            />
+            <span className="text-xs text-muted-foreground w-4">€</span>
+            <CopyButton value={row.internallyInvoiced} />
+          </div>
         </CardContent>
       </Card>
 
