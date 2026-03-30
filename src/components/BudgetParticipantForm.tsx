@@ -363,6 +363,7 @@ export function BudgetParticipantForm({
                 value={row.requestedEuContributionOverride ?? row.maxEuContribution}
                 onChange={(v) => updateRow(row.id, 'requestedEuContributionOverride', v)}
                 disabled={!editable}
+                allowZero
                 className="h-8 text-sm text-right flex-1"
               />
               <span className="text-xs text-muted-foreground w-4">€</span>
