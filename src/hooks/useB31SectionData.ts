@@ -35,6 +35,7 @@ export interface B31WPData {
     due_month: number | null;
     description: string | null;
   }[];
+  wp_effort: { participant_id: string; person_months: number }[];
 }
 
 export interface B31Participant {
@@ -80,7 +81,8 @@ export function useB31SectionData(proposalId: string) {
             ),
             deliverables:wp_draft_deliverables(
               id, number, title, type, dissemination_level, responsible_participant_id, due_month, description
-            )
+            ),
+            wp_effort:wp_draft_effort(participant_id, person_months)
           `)
           .eq('proposal_id', proposalId)
           .order('number'),
