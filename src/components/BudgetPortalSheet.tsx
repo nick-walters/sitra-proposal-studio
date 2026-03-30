@@ -14,7 +14,7 @@ import {
   TableRow,
   TableFooter,
 } from '@/components/ui/table';
-import { Lock, Unlock, Loader2, Euro, Calculator, FileSpreadsheet, Download, History, TableProperties, AlertCircle, Info } from 'lucide-react';
+import { Lock, Unlock, Loader2, Euro, Calculator, FileSpreadsheet, Download, History, TableProperties, AlertCircle, Info, X } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
