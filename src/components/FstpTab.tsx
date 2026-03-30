@@ -1,5 +1,6 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import { HeadingExitOnEnter } from '@/extensions/HeadingExitOnEnter';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Link from '@tiptap/extension-link';
@@ -328,6 +329,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
       TableCell,
       TableHeader,
       ResizableImage,
+      HeadingExitOnEnter,
     ],
     content: loading ? '<p></p>' : (data.responseContent || '<p></p>'),
     editable: canEdit && !loading,
