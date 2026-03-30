@@ -411,28 +411,6 @@ export function BudgetPortalSheet({
                               ))}
                               <td className="px-3 py-2 text-right border-r whitespace-nowrap">{percentage}%</td>
                               <td className="px-3 py-2 text-right border-r whitespace-nowrap">{requestPercentage}%</td>
-                                <td className="px-3 py-2 text-center">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7"
-                                    onClick={() => row.isLocked ? unlockRow(row.id) : lockRow(row.id)}
-                                  >
-                                    {row.isLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5 text-muted-foreground" />}
-                                  </Button>
-                                </td>
-                              )}
-                              {canEdit && (
-                                <td className="px-3 py-2 text-center">
-                                  <Button
-                                    size="sm"
-                                    className="h-auto py-1 px-3 text-xs font-semibold whitespace-nowrap"
-                                    onClick={() => setEditingParticipantId(row.participantId)}
-                                  >
-                                    Edit
-                                  </Button>
-                                </td>
-                              )}
                             </tr>
                           );
                         })}
