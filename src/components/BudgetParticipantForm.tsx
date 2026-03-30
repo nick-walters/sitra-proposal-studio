@@ -162,7 +162,7 @@ export function BudgetParticipantForm({
           <div className="flex items-center justify-between py-1 text-sm">
             <span className="text-muted-foreground">Total person months (from WP effort)</span>
             <div className="flex items-center gap-1">
-              <span className="font-medium tabular-nums">{row.totalPersonMonths.toFixed(1)}</span>
+              <span className="font-medium tabular-nums">{Number.isInteger(row.totalPersonMonths) ? row.totalPersonMonths.toFixed(0) : row.totalPersonMonths.toFixed(1)}</span>
               <CopyButton value={row.totalPersonMonths} />
             </div>
           </div>
