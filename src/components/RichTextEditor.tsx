@@ -1256,6 +1256,7 @@ StarterKit.configure({
         },
       }),
       // Block reordering via keyboard shortcuts (Ctrl+Shift+↑/↓)
+      HeadingExitOnEnter,
       BlockReordering,
       TableAutoResizeButton,
       InlineReferenceMark,
