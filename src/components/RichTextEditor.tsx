@@ -1,5 +1,6 @@
 import { useEditor, EditorContent, Editor, Extension } from '@tiptap/react';
 import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
+import { HeadingExitOnEnter } from '@/extensions/HeadingExitOnEnter';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
@@ -1044,6 +1045,7 @@ StarterKit.configure({
           class: 'he-table-cell',
         },
       }),
+      HeadingExitOnEnter,
       BlockReordering,
       TableAutoResizeButton,
       InlineReferenceMark,
