@@ -57,15 +57,15 @@ export interface B31Figure {
 
 export interface B31SubcontractingParticipant {
   participantId: string;
+  items: { description: string; amount: number; justification: string }[];
   totalCost: number;
-  justifications: string[];
 }
 
 export interface B31EquipmentParticipant {
   participantId: string;
-  equipmentCost: number;
+  items: { description: string; amount: number; justification: string }[];
+  totalCost: number;
   personnelCosts: number;
-  justification: string;
 }
 
 export function useB31SectionData(proposalId: string) {
