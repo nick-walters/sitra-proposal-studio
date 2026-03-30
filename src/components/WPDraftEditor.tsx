@@ -30,8 +30,14 @@ import { Separator } from '@/components/ui/separator';
 import { 
   BookOpen, Lightbulb, Bold, Italic, Underline, List, ListOrdered, 
   AlignLeft, AlignCenter, AlignRight, AlignJustify, FileText, Link2, 
-  Layers, Building2, Table2, ImageIcon 
+  Layers, Building2, Table2, ImageIcon, ChevronDown
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { getContrastingTextColor } from '@/lib/wpColors';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';

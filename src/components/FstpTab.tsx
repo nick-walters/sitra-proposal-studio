@@ -32,6 +32,7 @@ import {
   Pencil,
   Check,
   X,
+  ChevronDown,
 } from 'lucide-react';
 import {
   Tooltip,
@@ -144,25 +145,52 @@ function FstpToolbar({ editor }: { editor: any }) {
 
         <Separator orientation="vertical" className="h-5 mx-1.5" />
 
-        {/* Subheading Bold Italic Underline Link */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={editor.isActive('bold') && editor.isActive('underline') ? "secondary" : "ghost"}
-              size="sm"
-              className="h-7 px-2 text-xs"
-              onClick={() => {
-                editor.chain().focus().toggleBold().run();
-                editor.chain().focus().toggleUnderline().run();
-              }}
-            >
-              <span className="font-black underline">Subheading</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-xs">
-            Subheading (Bold & Underlined inline style)
-          </TooltipContent>
-        </Tooltip>
+        {/* Subheading dropdown */}
+        <DropdownMenu>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant={editor.isActive('heading', { level: 3 }) || (editor.isActive('bold') && editor.isActive('underline')) ? "secondary" : "ghost"}
+                  size="sm"
+                  className="h-7 px-2 text-xs gap-1"
+                >
+                  <span className="font-black underline">Subheading</span>
+                  <ChevronDown className="w-3 h-3" />
+                </Button>
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              Insert subheading
+            </TooltipContent>
+          </Tooltip>
+          <DropdownMenuContent align="start" className="w-64">
+            <DropdownMenuItem onClick={() => {
+              let h3Count = 0;
+              editor.state.doc.descendants((node) => {
+                if (node.type.name === 'heading' && node.attrs.level === 3) {
+                  h3Count++;
+                }
+              });
+              const nextNum = h3Count + 1;
+              editor.chain().focus().toggleHeading({ level: 3 }).run();
+              if (editor.isActive('heading', { level: 3 })) {
+                const currentNode = editor.state.selection.$from.parent;
+                if (currentNode.textContent.length === 0) {
+                  editor.chain().focus().insertContent(`1.1.${nextNum}. `).run();
+                }
+              }
+            }}>
+              <span className="text-sm font-semibold">1.1.1. Numbered subheading</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => {
+              editor.chain().focus().toggleBold().run();
+              editor.chain().focus().toggleUnderline().run();
+            }}>
+              <span className="text-sm font-bold underline">Unnumbered subheading</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
