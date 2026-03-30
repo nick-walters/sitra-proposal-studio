@@ -184,50 +184,49 @@ export function useB31SectionData(proposalId: string) {
   const pertFigure = figuresQuery.data?.find(f => f.figure_type === 'pert') || null;
   const ganttFigure = figuresQuery.data?.find(f => f.figure_type === 'gantt') || null;
 
-  // Aggregate subcontracting by participant
+  // Aggregate subcontracting by participant (with individual items)
   const subcontractingByParticipant: B31SubcontractingParticipant[] = (() => {
     const br = budgetRowsQuery.data;
     if (!br) return [];
-    const map = new Map<string, { totalCost: number; justifications: string[] }>();
+    const result: B31SubcontractingParticipant[] = [];
     for (const row of br.budgetRows) {
       const r = row as any;
-      if (Number(r.subcontracting_costs) <= 0) continue;
       const items = br.subItems.filter((i: any) => i.budget_row_id === r.id);
-      const totalCost = items.reduce((sum: number, i: any) => sum + Number(i.amount || 0), 0) || Number(r.subcontracting_costs);
-      const justifications = items
-        .filter((i: any) => i.justification && i.justification.trim())
-        .map((i: any) => {
-          const desc = i.description?.trim();
-          const just = i.justification.trim();
-          return desc ? `${desc}: ${just}` : just;
-        });
-      map.set(r.participant_id, { totalCost, justifications });
+      if (items.length === 0 && Number(r.subcontracting_costs) <= 0) continue;
+      const mappedItems = items.map((i: any) => ({
+        description: i.description || '',
+        amount: Number(i.amount || 0),
+        justification: i.justification || '',
+      }));
+      const totalCost = mappedItems.length > 0
+        ? mappedItems.reduce((sum: number, i: any) => sum + i.amount, 0)
+        : Number(r.subcontracting_costs);
+      if (totalCost <= 0) continue;
+      result.push({ participantId: r.participant_id, items: mappedItems, totalCost });
     }
-    return Array.from(map.entries()).map(([participantId, v]) => ({
-      participantId,
-      ...v,
-    }));
+    return result;
   })();
 
-  // Equipment items exceeding 15% of personnel costs
+  // Equipment items exceeding 15% of personnel costs (with individual items)
   const equipmentByParticipant: B31EquipmentParticipant[] = (() => {
     const br = budgetRowsQuery.data;
     if (!br) return [];
     const result: B31EquipmentParticipant[] = [];
     for (const row of br.budgetRows) {
       const r = row as any;
-      const equipCost = Number(r.purchase_equipment) || 0;
-      if (equipCost <= 0) continue;
+      const items = br.equipItems.filter((i: any) => i.budget_row_id === r.id);
+      const totalEquipCost = items.reduce((sum: number, i: any) => sum + Number(i.amount || 0), 0);
+      if (totalEquipCost <= 0) continue;
       const pmRate = r.pm_rate != null ? Number(r.pm_rate) : 0;
       const totalPMs = br.pmTotals.get(r.participant_id) || 0;
       const personnelCosts = pmRate > 0 ? Math.round(pmRate * totalPMs) : Number(r.personnel_costs) || 0;
-      if (personnelCosts <= 0 || equipCost <= personnelCosts * 0.15) continue;
-      result.push({
-        participantId: r.participant_id,
-        equipmentCost: equipCost,
-        personnelCosts,
-        justification: r.purchase_equipment_justification || '',
-      });
+      if (personnelCosts <= 0 || totalEquipCost <= personnelCosts * 0.15) continue;
+      const mappedItems = items.map((i: any) => ({
+        description: i.description || '',
+        amount: Number(i.amount || 0),
+        justification: i.justification || '',
+      }));
+      result.push({ participantId: r.participant_id, items: mappedItems, totalCost: totalEquipCost, personnelCosts });
     }
     return result;
   })();
