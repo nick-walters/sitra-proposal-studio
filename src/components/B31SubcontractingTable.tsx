@@ -114,5 +114,3 @@ export function B31SubcontractingTable({ items, participants, proposalId }: Prop
     </div>
   );
 }
-
-import React from 'react';
