@@ -167,18 +167,17 @@ function FstpToolbar({ editor }: { editor: any }) {
           </Tooltip>
           <DropdownMenuContent align="start" className="w-64">
             <DropdownMenuItem onClick={() => {
-              let h3Count = 0;
-              editor.state.doc.descendants((node) => {
-                if (node.type.name === 'heading' && node.attrs.level === 3) {
-                  h3Count++;
-                }
-              });
-              const nextNum = h3Count + 1;
+              const placeholder = `1.1.0. `;
               editor.chain().focus().toggleHeading({ level: 3 }).run();
               if (editor.isActive('heading', { level: 3 })) {
                 const $from = editor.state.selection.$from;
                 const startOfNode = $from.start();
-                editor.chain().focus().insertContentAt(startOfNode, `1.1.${nextNum}. `).run();
+                const currentText = $from.parent.textContent;
+                const hasPrefix = /^\d+\.\d+\.\d+\.\s/.test(currentText);
+                if (!hasPrefix) {
+                  editor.chain().focus().insertContentAt(startOfNode, placeholder).run();
+                }
+                renumberH3Headings(editor, '1.1');
               }
             }}>
               <span className="text-sm font-semibold underline">1.1.1. Numbered subheading</span>

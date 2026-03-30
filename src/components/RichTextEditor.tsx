@@ -27,6 +27,7 @@ import { ParticipantReferenceMark } from '@/extensions/ParticipantReferenceMark'
 import { AcronymReference } from '@/extensions/AcronymReference';
 import { FigureTableReferenceMark } from '@/extensions/FigureTableReferenceMark';
 import { OrderedListStyled } from '@/extensions/OrderedListStyled';
+import { renumberH3Headings } from '@/lib/renumberH3Headings';
 import { OrderedListDropdown } from './OrderedListDropdown';
 import { computeAutoFitSmart } from '@/lib/autoFitColumns';
 import { Button } from "@/components/ui/button";
