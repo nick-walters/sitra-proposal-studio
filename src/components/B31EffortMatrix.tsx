@@ -17,6 +17,12 @@ const cellStyles = "px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11p
 const headerCellStyles = "px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle";
 const editableCellStyles = `${cellStyles} cursor-text hover:bg-muted/30`;
 
+function formatPM(value: number): string {
+  if (value === 0) return '0';
+  const fixed = value.toFixed(1);
+  return fixed.endsWith('.0') ? Math.round(value).toString() : fixed;
+}
+
 interface Props {
   wpData: B31WPData[];
   participants: B31Participant[];
@@ -57,7 +63,8 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
   const saveEdit = useCallback(async () => {
     if (!editingCell || !proposalId) return;
     const { participantId, wpId } = editingCell;
-    const newTotal = parseFloat(editValue) || 0;
+    const parsed = parseFloat(editValue) || 0;
+    const newTotal = Math.round(parsed * 10) / 10;
 
     await supabase
       .from('wp_draft_effort')
@@ -165,12 +172,12 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                           style={{ minWidth: '30px' }}
                         />
                       ) : (
-                        val || '—'
+                        val ? formatPM(val) : '—'
                       )}
                     </td>
                   );
                 })}
-                <td className={`${cellStyles} font-bold`}>{rowTotal || '—'}</td>
+                <td className={`${cellStyles} font-bold`}>{rowTotal ? formatPM(rowTotal) : '—'}</td>
               </tr>
             );
           })}
@@ -179,13 +186,16 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
             <td className="px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle font-bold border-y border-gray-200" style={{ textAlign: 'left' }}>Total</td>
             {wpData.map(wp => {
               const colTotal = participants.reduce((sum, p) => sum + (matrix.get(p.id)!.get(wp.id) || 0), 0);
-              return <td key={wp.id} className={`${cellStyles} font-bold`}>{colTotal || '—'}</td>;
+              return <td key={wp.id} className={`${cellStyles} font-bold`}>{colTotal ? formatPM(colTotal) : '—'}</td>;
             })}
             <td className={`${cellStyles} font-bold`}>
-              {participants.reduce((sum, p) => {
-                const pMap = matrix.get(p.id)!;
-                return sum + wpData.reduce((s, wp) => s + (pMap.get(wp.id) || 0), 0);
-              }, 0) || '—'}
+              {(() => {
+                const grandTotal = participants.reduce((sum, p) => {
+                  const pMap = matrix.get(p.id)!;
+                  return sum + wpData.reduce((s, wp) => s + (pMap.get(wp.id) || 0), 0);
+                }, 0);
+                return grandTotal ? formatPM(grandTotal) : '—';
+              })()}
             </td>
           </tr>
         </tbody>

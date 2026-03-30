@@ -5,6 +5,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Users } from 'lucide-react';
 import type { ParticipantSummary } from '@/types/proposal';
 
+function formatPM(value: number): string {
+  if (value === 0) return '0';
+  const fixed = value.toFixed(1);
+  return fixed.endsWith('.0') ? Math.round(value).toString() : fixed;
+}
+
 interface WPEffortEntry {
   participant_id: string;
   person_months: number;
@@ -42,7 +48,7 @@ export function WPEffortMatrix({
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <Users className="h-4 w-4" />
-            Staff effort (person-months)
+            Staff effort (person months)
           </CardTitle>
           <CardDescription>
             Add participants to the proposal to enable effort tracking
@@ -57,10 +63,10 @@ export function WPEffortMatrix({
       <CardHeader className="py-2 px-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Users className="h-4 w-4" />
-          Staff effort (person-months)
+          Staff effort (person months)
         </CardTitle>
         <CardDescription className="text-xs">
-          Enter person-months per participant for this work package. This data feeds into the B3.1 effort table and budget.
+          Enter person months per participant for this work package. This data feeds into the B3.1 effort table and budget.
         </CardDescription>
       </CardHeader>
       <CardContent className="px-3 pb-3 pt-0">
@@ -69,14 +75,14 @@ export function WPEffortMatrix({
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[200px] font-bold">Partner</TableHead>
-                <TableHead className="text-center w-[120px] font-bold">WP{wpNumber} staff effort (person-months)</TableHead>
+                <TableHead className="text-center w-[120px] font-bold">WP{wpNumber} staff effort (person months)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {participants.map((participant) => (
                 <TableRow key={participant.id}>
                   <TableCell className="font-medium truncate max-w-[200px]">
-                    {participant.organisation_short_name || participant.organisation_name}
+                    {participant.participant_number}. {participant.organisation_short_name || participant.organisation_name}
                   </TableCell>
                   <EffortCell
                     value={getEffort(participant.id)}
@@ -88,7 +94,7 @@ export function WPEffortMatrix({
               <TableRow className="bg-muted/30">
                 <TableCell className="font-semibold">WP total</TableCell>
                 <TableCell className="text-center font-bold">
-                  {getTotal().toFixed(1)}
+                  {formatPM(getTotal())}
                 </TableCell>
               </TableRow>
             </TableBody>
@@ -119,7 +125,9 @@ function EffortCell({ value, onChange, readOnly }: EffortCellProps) {
 
     const timeout = setTimeout(() => {
       const numValue = parseFloat(newValue) || 0;
-      onChange(numValue);
+      // Round to 1 decimal place
+      const rounded = Math.round(numValue * 10) / 10;
+      onChange(rounded);
     }, 500);
 
     setDebounceTimeout(timeout);
@@ -127,7 +135,8 @@ function EffortCell({ value, onChange, readOnly }: EffortCellProps) {
 
   const handleBlur = useCallback(() => {
     const numValue = parseFloat(localValue) || 0;
-    setLocalValue(numValue > 0 ? numValue.toString() : '0');
+    const rounded = Math.round(numValue * 10) / 10;
+    setLocalValue(rounded > 0 ? rounded.toString() : '0');
   }, [localValue]);
 
   return (
