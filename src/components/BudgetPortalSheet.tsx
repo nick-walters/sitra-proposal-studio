@@ -442,6 +442,9 @@ export function BudgetPortalSheet({
             </TabsContent>
           )}
         </Tabs>
+
+        {/* Staff Effort Matrix */}
+        <A3EffortMatrix proposalId={proposalId} canEdit={canEdit} />
       </div>
 
       {/* Participant Budget Dialog */}
