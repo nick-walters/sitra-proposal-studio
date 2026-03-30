@@ -412,9 +412,18 @@ export function BudgetParticipantForm({
               <CopyButton value={row.requestedEuContribution} />
             </div>
             {row.requestedEuContribution < row.maxEuContribution && (
-              <p className="text-xs text-muted-foreground italic">
-                Requesting {formatCurrency(row.maxEuContribution - row.requestedEuContribution)} less than maximum
-              </p>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground italic">
+                  Requesting {formatCurrency(row.maxEuContribution - row.requestedEuContribution)} less than maximum
+                </p>
+                <div className="flex items-center justify-between py-1">
+                  <span className="text-sm text-muted-foreground">In-kind contribution</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-medium tabular-nums">{formatCurrency(row.maxEuContribution - row.requestedEuContribution)}</span>
+                    <CopyButton value={row.maxEuContribution - row.requestedEuContribution} />
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </CardContent>
