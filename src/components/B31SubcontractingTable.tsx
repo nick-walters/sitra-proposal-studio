@@ -41,14 +41,19 @@ export function B31SubcontractingTable({ items, participants, proposalId }: Prop
         defaultCaption="Subcontracting cost items"
         className="mb-0"
       />
-      <table className={`${tableStyles} border-collapse [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_tr]:border-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', width: colWidths.length > 0 ? `${colWidths.reduce((s: number, w: number) => s + w, 0)}px` : '100%' }} ref={tableRef}>
+      <table className={`${tableStyles} border-collapse [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_tr]:border-0`} style={{ tableLayout: 'fixed', width: colWidths.length > 0 ? `${colWidths.reduce((s: number, w: number) => s + w, 0)}px` : '100%' }} ref={tableRef}>
+        <colgroup>
+          <col style={{ width: colWidths.length > 0 ? `${colWidths[0]}px` : '20%' }} />
+          <col style={{ width: colWidths.length > 0 ? `${colWidths[1]}px` : '12%' }} />
+          <col style={{ width: colWidths.length > 0 ? `${colWidths[2]}px` : '68%' }} />
+        </colgroup>
         <thead>
           <tr>
-            <th className={`${headerCellStyles} relative`} style={colWidths.length > 0 ? { width: colWidths[0] } : undefined}>
+            <th className={`${headerCellStyles} relative`}>
               Participant
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
             </th>
-            <th className={`${headerCellStyles} text-right relative`} style={colWidths.length > 0 ? { width: colWidths[1] } : { width: '120px' }}>
+            <th className={`${headerCellStyles} text-right relative`}>
               Cost (€)
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
             </th>
@@ -66,10 +71,10 @@ export function B31SubcontractingTable({ items, participants, proposalId }: Prop
 
             return (
               <React.Fragment key={entry.participantId}>
-                {/* Thin divider between participants */}
+                {/* Thin divider between participants – matches 3.1.f style */}
                 {entryIdx > 0 && (
                   <tr>
-                    <td colSpan={3} className="p-0 border-0" style={{ height: '2px', backgroundColor: 'hsl(var(--border))' }} />
+                    <td colSpan={3} className="p-0 border-0 border-y border-gray-200" style={{ height: '1px' }} />
                   </tr>
                 )}
                 {itemRows.map((item, idx) => (
@@ -89,14 +94,12 @@ export function B31SubcontractingTable({ items, participants, proposalId }: Prop
                     </td>
                   </tr>
                 ))}
-                {/* Participant total */}
-                {itemRows.length > 1 && (
-                  <tr>
-                    <td className={`${cellStyles} border-y-0 font-bold italic`} style={{ textAlign: 'right', paddingRight: '4pt' }}>Total</td>
-                    <td className={`${cellStyles} text-right border-y-0 font-bold`}>{formatCurrency(entry.totalCost)}</td>
-                    <td className={`${cellStyles} border-y-0`}></td>
-                  </tr>
-                )}
+                {/* Participant subtotal – always shown */}
+                <tr>
+                  <td className={`${cellStyles} border-y-0 font-bold`}>Subtotal</td>
+                  <td className={`${cellStyles} text-right border-y-0 font-bold`}>{formatCurrency(entry.totalCost)}</td>
+                  <td className={`${cellStyles} border-y-0`}></td>
+                </tr>
               </React.Fragment>
             );
           })}
@@ -105,7 +108,7 @@ export function B31SubcontractingTable({ items, participants, proposalId }: Prop
             <td colSpan={3} className="p-0 border-0" style={{ height: '2px', backgroundColor: 'hsl(var(--foreground))' }} />
           </tr>
           <tr>
-            <td className={`${cellStyles} font-bold border-y-0`}>Total</td>
+            <td className={`${cellStyles} font-bold border-y-0`}>Grand total</td>
             <td className={`${cellStyles} text-right font-bold border-y-0`}>{formatCurrency(grandTotal)}</td>
             <td className={`${cellStyles} border-y-0`}></td>
           </tr>
