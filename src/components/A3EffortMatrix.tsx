@@ -127,7 +127,7 @@ export function A3EffortMatrix({ proposalId, canEdit }: A3EffortMatrixProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Users className="w-5 h-5" />
-          Staff Effort (Person Months per Partner per WP)
+          Staff effort (person months per participant per WP)
         </CardTitle>
         <CardDescription>
           Click on a cell to edit person months. These values are mirrored to Section B3.1.
