@@ -370,6 +370,7 @@ export type Database = {
           pm_rate: number | null
           proposal_id: string
           purchase_equipment: number
+          purchase_equipment_justification: string | null
           purchase_other_goods: number
           purchase_travel: number
           role_label: string
@@ -393,6 +394,7 @@ export type Database = {
           pm_rate?: number | null
           proposal_id: string
           purchase_equipment?: number
+          purchase_equipment_justification?: string | null
           purchase_other_goods?: number
           purchase_travel?: number
           role_label?: string
@@ -416,6 +418,7 @@ export type Database = {
           pm_rate?: number | null
           proposal_id?: string
           purchase_equipment?: number
+          purchase_equipment_justification?: string | null
           purchase_other_goods?: number
           purchase_travel?: number
           role_label?: string
@@ -435,6 +438,47 @@ export type Database = {
             columns: ["proposal_id"]
             isOneToOne: false
             referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budget_subcontracting_items: {
+        Row: {
+          amount: number
+          budget_row_id: string
+          created_at: string
+          description: string
+          id: string
+          justification: string
+          order_index: number
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          budget_row_id: string
+          created_at?: string
+          description?: string
+          id?: string
+          justification?: string
+          order_index?: number
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          budget_row_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          justification?: string
+          order_index?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_subcontracting_items_budget_row_id_fkey"
+            columns: ["budget_row_id"]
+            isOneToOne: false
+            referencedRelation: "budget_rows"
             referencedColumns: ["id"]
           },
         ]

@@ -6,7 +6,10 @@ import { BudgetJustificationDialog } from '@/components/BudgetJustificationDialo
 import { formatCurrency } from '@/lib/formatNumber';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Lock, FileText, Loader2, Copy, Check } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Lock, Loader2, Copy, Check, Plus, Trash2, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -17,21 +20,6 @@ interface BudgetParticipantFormProps {
   canEdit: boolean;
   isCoordinator: boolean;
 }
-
-const COST_FIELDS = [
-  { key: 'personnelCosts', label: 'Personnel costs', justification: null },
-  { key: 'subcontractingCosts', label: 'Subcontracting costs', justification: 'subcontracting' },
-  { key: 'purchaseTravel', label: 'Purchase costs – Travel & subsistence', justification: null },
-  { key: 'purchaseEquipment', label: 'Purchase costs – Equipment', justification: 'equipment' },
-  { key: 'purchaseOtherGoods', label: 'Purchase costs – Other goods & services', justification: 'other_goods' },
-  { key: 'internallyInvoiced', label: 'Internally invoiced goods & services', justification: 'internally_invoiced' },
-] as const;
-
-const FINANCIAL_FIELDS = [
-  { key: 'incomeGenerated', label: 'Income generated' },
-  { key: 'financialContributions', label: 'Financial contributions' },
-  { key: 'ownResources', label: 'Own resources' },
-] as const;
 
 function CopyButton({ value }: { value: string | number }) {
   const [copied, setCopied] = useState(false);
@@ -68,10 +56,14 @@ export function BudgetParticipantForm({
   const {
     rows,
     justifications,
+    subcontractingItems,
     loading,
     saving,
     updateRow,
     saveJustification,
+    addSubcontractingItem,
+    updateSubcontractingItem,
+    deleteSubcontractingItem,
   } = useBudgetRows(proposalId, proposalType);
 
   const { roleTier } = useProposalRole(proposalId);
@@ -79,21 +71,30 @@ export function BudgetParticipantForm({
 
   const row = useMemo(() => rows.find(r => r.participantId === participantId), [rows, participantId]);
 
-  const [justDialog, setJustDialog] = useState<{
-    open: boolean;
-    category: string;
-    categoryLabel: string;
-  }>({ open: false, category: '', categoryLabel: '' });
-
   const editable = useMemo(() => {
     if (!canEdit || !row) return false;
     if (row.isLocked && !isAdmin) return false;
     return true;
   }, [canEdit, row, isAdmin]);
 
-  const openJustification = useCallback((category: string, label: string) => {
-    setJustDialog({ open: true, category, categoryLabel: label });
-  }, []);
+  const rowSubItems = useMemo(
+    () => (row ? subcontractingItems.filter(i => i.budgetRowId === row.id) : []),
+    [subcontractingItems, row]
+  );
+
+  const subTotal = useMemo(
+    () => rowSubItems.reduce((sum, i) => sum + i.amount, 0),
+    [rowSubItems]
+  );
+
+  // 15% threshold for equipment justification
+  const equipmentJustificationRequired = useMemo(() => {
+    if (!row) return false;
+    const personnelCosts = row.pmRate != null && row.pmRate > 0
+      ? Math.round(row.pmRate * row.totalPersonMonths)
+      : row.personnelCosts;
+    return personnelCosts > 0 && row.purchaseEquipment > personnelCosts * 0.15;
+  }, [row]);
 
   if (loading) {
     return (
@@ -143,7 +144,7 @@ export function BudgetParticipantForm({
       {/* PM Rate & Personnel Costs */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold">Personnel Costs</CardTitle>
+          <CardTitle className="text-sm font-semibold">A. Personnel Costs</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center gap-2">
@@ -165,7 +166,7 @@ export function BudgetParticipantForm({
             </div>
           </div>
           <div className="flex items-center justify-between py-1 border-t text-sm">
-            <span className="font-medium">A. Personnel costs {row.pmRate ? '(auto-calculated)' : ''}</span>
+            <span className="font-medium">Personnel costs {row.pmRate ? '(auto-calculated)' : ''}</span>
             <div className="flex items-center gap-1">
               <span className="font-semibold tabular-nums">{formatCurrency(row.personnelCosts)}</span>
               <CopyButton value={row.personnelCosts} />
@@ -187,34 +188,128 @@ export function BudgetParticipantForm({
         </CardContent>
       </Card>
 
-      {/* Other Cost Categories */}
+      {/* Subcontracting Costs */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold">Other Cost Categories</CardTitle>
+          <CardTitle className="text-sm font-semibold">B. Subcontracting Costs</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {COST_FIELDS.filter(f => f.key !== 'personnelCosts').map(f => (
-            <div key={f.key} className="flex items-center gap-2">
-              <label className="text-sm text-muted-foreground w-[260px] shrink-0">{f.label}</label>
-              <FormattedNumberInput
-                value={row[f.key] as number}
-                onChange={(v) => updateRow(row.id, f.key, v)}
-                disabled={!editable}
-                className="h-8 text-sm text-right flex-1"
-              />
-              <span className="text-xs text-muted-foreground w-4">€</span>
-              <CopyButton value={row[f.key] as number} />
-              {f.justification && (
-                <button
-                  onClick={() => openJustification(f.justification!, f.label)}
-                  className="shrink-0 p-1 rounded hover:bg-muted"
-                  title="Cost justification"
-                >
-                  <FileText className="w-4 h-4 text-muted-foreground" />
-                </button>
-              )}
+        <CardContent className="space-y-4">
+          {rowSubItems.length === 0 && (
+            <p className="text-sm text-muted-foreground italic">No subcontracting costs added yet.</p>
+          )}
+          {rowSubItems.map((item, idx) => (
+            <div key={item.id} className="border rounded-lg p-3 space-y-2 bg-muted/20">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">Subcontracting cost {idx + 1}</span>
+                {editable && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => deleteSubcontractingItem(item.id)}
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                  </Button>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-muted-foreground w-[100px] shrink-0">Description</label>
+                <Input
+                  value={item.description}
+                  onChange={(e) => updateSubcontractingItem(item.id, 'description', e.target.value)}
+                  disabled={!editable}
+                  className="h-8 text-sm flex-1"
+                  placeholder="Description of subcontracted work"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-muted-foreground w-[100px] shrink-0">Amount</label>
+                <FormattedNumberInput
+                  value={item.amount}
+                  onChange={(v) => updateSubcontractingItem(item.id, 'amount', v)}
+                  disabled={!editable}
+                  className="h-8 text-sm text-right flex-1"
+                />
+                <span className="text-xs text-muted-foreground w-4">€</span>
+                <CopyButton value={item.amount} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm text-muted-foreground">Justification</label>
+                <Textarea
+                  value={item.justification}
+                  onChange={(e) => updateSubcontractingItem(item.id, 'justification', e.target.value)}
+                  disabled={!editable}
+                  className="text-sm min-h-[60px]"
+                  placeholder="Justify why this work needs to be subcontracted"
+                />
+              </div>
             </div>
           ))}
+          {editable && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => addSubcontractingItem(row.id)}
+              className="w-full"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Add subcontracting cost
+            </Button>
+          )}
+          {rowSubItems.length > 0 && (
+            <div className="flex items-center justify-between pt-2 border-t text-sm">
+              <span className="font-medium">Total subcontracting costs</span>
+              <div className="flex items-center gap-1">
+                <span className="font-semibold tabular-nums">{formatCurrency(subTotal)}</span>
+                <CopyButton value={subTotal} />
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Purchase Costs – Equipment */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold">C. Purchase Costs – Equipment</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-muted-foreground w-[260px] shrink-0">Equipment costs</label>
+            <FormattedNumberInput
+              value={row.purchaseEquipment}
+              onChange={(v) => updateRow(row.id, 'purchaseEquipment', v)}
+              disabled={!editable}
+              className="h-8 text-sm text-right flex-1"
+            />
+            <span className="text-xs text-muted-foreground w-4">€</span>
+            <CopyButton value={row.purchaseEquipment} />
+          </div>
+          {equipmentJustificationRequired && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-1 text-xs text-amber-600">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span>Equipment costs exceed 15% of personnel costs — justification required</span>
+              </div>
+              <Textarea
+                value={row.purchaseEquipmentJustification || ''}
+                onChange={(e) => updateRow(row.id, 'purchaseEquipmentJustification', e.target.value)}
+                disabled={!editable}
+                className="text-sm min-h-[60px]"
+                placeholder="Justify why equipment costs exceed 15% of personnel costs"
+              />
+            </div>
+          )}
+          {!equipmentJustificationRequired && (
+            <div className="space-y-1">
+              <Textarea
+                value=""
+                disabled
+                className="text-sm min-h-[40px] opacity-40"
+                placeholder="Justification required if equipment costs exceed 15% of personnel costs"
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -249,7 +344,11 @@ export function BudgetParticipantForm({
           <CardTitle className="text-sm font-semibold">Financial Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {FINANCIAL_FIELDS.map(f => (
+          {[
+            { key: 'incomeGenerated' as const, label: 'Income generated' },
+            { key: 'financialContributions' as const, label: 'Financial contributions' },
+            { key: 'ownResources' as const, label: 'Own resources' },
+          ].map(f => (
             <div key={f.key} className="flex items-center gap-2">
               <label className="text-sm text-muted-foreground w-[260px] shrink-0">{f.label}</label>
               <FormattedNumberInput
@@ -271,22 +370,6 @@ export function BudgetParticipantForm({
           </div>
         </CardContent>
       </Card>
-
-      {/* Justification dialog */}
-      {row && (
-        <BudgetJustificationDialog
-          open={justDialog.open}
-          onOpenChange={(open) => setJustDialog(prev => ({ ...prev, open }))}
-          category={justDialog.category}
-          categoryLabel={justDialog.categoryLabel}
-          participantName={row.participantShortName || row.participantName}
-          justification={justifications.find(
-            j => j.budgetRowId === row.id && j.category === justDialog.category
-          )}
-          onSave={(text) => saveJustification(row.id, justDialog.category, text)}
-          disabled={!editable}
-        />
-      )}
     </div>
   );
 }
