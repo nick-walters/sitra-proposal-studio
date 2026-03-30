@@ -75,7 +75,9 @@ function computeRow(row: BudgetRowData, proposalType: string | null): ComputedBu
     row.purchaseTravel +
     row.purchaseEquipment +
     row.purchaseOtherGoods +
-    row.internallyInvoiced;
+    row.financialSupportThirdParties +
+    row.internallyInvoiced +
+    row.procurement;
 
   const indirectCostsBase = directCosts - row.subcontractingCosts;
   const indirectCosts = row.indirectCostsOverride ?? Math.round(indirectCostsBase * 0.25);
