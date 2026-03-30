@@ -30,28 +30,19 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
   const [editingCell, setEditingCell] = useState<{ participantId: string; wpId: string } | null>(null);
   const [editValue, setEditValue] = useState('');
 
-  // Build effort matrix: participant -> wp -> person months
+  // Build effort matrix from WP-level effort data
   const matrix = new Map<string, Map<string, number>>();
-  const effortEntries = new Map<string, Map<string, { taskId: string; effortPM: number }[]>>();
-  
+
   participants.forEach(p => {
     matrix.set(p.id, new Map());
-    effortEntries.set(p.id, new Map());
   });
 
   wpData.forEach(wp => {
-    wp.tasks.forEach(task => {
-      task.effort?.forEach(e => {
-        const pMap = matrix.get(e.participant_id);
-        if (pMap) {
-          pMap.set(wp.id, (pMap.get(wp.id) || 0) + (e.person_months || 0));
-        }
-        const eMap = effortEntries.get(e.participant_id);
-        if (eMap) {
-          if (!eMap.has(wp.id)) eMap.set(wp.id, []);
-          eMap.get(wp.id)!.push({ taskId: task.id, effortPM: e.person_months || 0 });
-        }
-      });
+    (wp.wp_effort || []).forEach(e => {
+      const pMap = matrix.get(e.participant_id);
+      if (pMap) {
+        pMap.set(wp.id, e.person_months || 0);
+      }
     });
   });
 
@@ -67,58 +58,20 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
     if (!editingCell || !proposalId) return;
     const { participantId, wpId } = editingCell;
     const newTotal = parseFloat(editValue) || 0;
-    const entries = effortEntries.get(participantId)?.get(wpId) || [];
-    const currentTotal = matrix.get(participantId)?.get(wpId) || 0;
 
-    if (entries.length === 0 && newTotal > 0) {
-      const wp = wpData.find(w => w.id === wpId);
-      if (wp) {
-        let taskId: string;
-        if (wp.tasks.length > 0) {
-          taskId = wp.tasks[0].id;
-        } else {
-          // WP has no tasks — create a placeholder task so effort can be stored
-          const { data: newTask } = await supabase.from('wp_draft_tasks').insert({
-            wp_draft_id: wp.id,
-            number: 1,
-            title: `Task ${wp.number}.1`,
-            order_index: 0,
-          }).select('id').single();
-          if (!newTask) { setEditingCell(null); return; }
-          taskId = newTask.id;
-        }
-        await supabase.from('wp_draft_task_effort').insert({
-          task_id: taskId,
-          participant_id: participantId,
-          person_months: newTotal,
-        });
-      }
-    } else if (entries.length === 1) {
-      await supabase
-        .from('wp_draft_task_effort')
-        .update({ person_months: newTotal })
-        .eq('task_id', entries[0].taskId)
-        .eq('participant_id', participantId);
-    } else if (entries.length > 1 && currentTotal > 0) {
-      const scale = newTotal / currentTotal;
-      for (const entry of entries) {
-        await supabase
-          .from('wp_draft_task_effort')
-          .update({ person_months: Math.round(entry.effortPM * scale * 100) / 100 })
-          .eq('task_id', entry.taskId)
-          .eq('participant_id', participantId);
-      }
-    } else if (entries.length > 1 && currentTotal === 0 && newTotal > 0) {
-      await supabase
-        .from('wp_draft_task_effort')
-        .update({ person_months: newTotal })
-        .eq('task_id', entries[0].taskId)
-        .eq('participant_id', participantId);
-    }
+    await supabase
+      .from('wp_draft_effort')
+      .upsert({
+        wp_draft_id: wpId,
+        participant_id: participantId,
+        person_months: newTotal,
+      }, {
+        onConflict: 'wp_draft_id,participant_id',
+      });
 
     queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
     setEditingCell(null);
-  }, [editingCell, editValue, proposalId, queryClient, effortEntries, matrix, wpData]);
+  }, [editingCell, editValue, proposalId, queryClient]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') { e.preventDefault(); saveEdit(); }
