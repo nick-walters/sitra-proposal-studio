@@ -559,20 +559,38 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           {/* Subheading */}
           {!readOnly && (
             <>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2"
-                    onClick={() => { execCommand('bold'); execCommand('underline'); }}
-                  >
-                    <span className="text-xs font-black underline">Subheading</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">Subheading (Bold & Underlined)</TooltipContent>
-              </Tooltip>
+              <DropdownMenu>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1">
+                        <span className="text-xs font-black underline">Subheading</span>
+                        <ChevronDown className="w-3 h-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs">Insert subheading</TooltipContent>
+                </Tooltip>
+                <DropdownMenuContent align="start" className="w-64">
+                  <DropdownMenuItem onClick={() => {
+                    // Numbered H3 subheading
+                    const wpNum = wpDraft?.number || 1;
+                    const editorEl = document.activeElement?.closest('[contenteditable]') as HTMLElement | null;
+                    const h3s = editorEl?.querySelectorAll('h3') || [];
+                    const nextNum = h3s.length + 1;
+                    document.execCommand('formatBlock', false, 'h3');
+                    document.execCommand('insertText', false, `1.3.${wpNum}.${nextNum}. `);
+                  }}>
+                    <span className="text-sm font-semibold">Numbered subheading</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => {
+                    execCommand('bold');
+                    execCommand('underline');
+                  }}>
+                    <span className="text-sm font-bold underline">Unnumbered subheading</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               
               <Separator orientation="vertical" className="h-5" />
               
