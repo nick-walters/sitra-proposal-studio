@@ -632,6 +632,7 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     rows: computedRows,
     justifications,
     subcontractingItems,
+    equipmentItems,
     grandTotals,
     loading,
     saving,
@@ -643,6 +644,9 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     addSubcontractingItem,
     updateSubcontractingItem,
     deleteSubcontractingItem,
+    addEquipmentItem,
+    updateEquipmentItem,
+    deleteEquipmentItem,
     refetch: fetchRows,
   };
 }
