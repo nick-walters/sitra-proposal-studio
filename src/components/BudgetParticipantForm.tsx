@@ -465,7 +465,7 @@ export function BudgetParticipantForm({
           <div className="border-t pt-3 space-y-3">
             <div className="flex items-center gap-2">
               <label className="text-sm text-muted-foreground w-[260px] shrink-0">
-                Funding rate
+                Max. eligible funding rate
                 <span className="text-xs ml-1">({row.fundingRateOverride != null ? 'custom' : 'auto'})</span>
               </label>
               <FormattedNumberInput
@@ -483,6 +483,31 @@ export function BudgetParticipantForm({
                 <span className="text-sm font-medium tabular-nums">{formatCurrency(row.maxEuContribution)}</span>
                 <CopyButton value={row.maxEuContribution} />
               </div>
+            </div>
+
+            {/* Requested funding rate - bidirectional: % or absolute */}
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-muted-foreground w-[260px] shrink-0">
+                Requested funding rate
+              </label>
+              <FormattedNumberInput
+                value={row.totalEligibleCosts > 0
+                  ? Math.round((row.requestedEuContribution / row.totalEligibleCosts) * 1000) / 10
+                  : 0}
+                onChange={(v) => {
+                  const absValue = Math.round(row.totalEligibleCosts * (v / 100));
+                  const capped = Math.min(absValue, row.maxEuContribution);
+                  updateRow(row.id, 'requestedEuContributionOverride', capped);
+                }}
+                disabled={!editable}
+                allowZero
+                decimals={1}
+                className="h-8 text-sm text-right flex-1"
+              />
+              <span className="text-xs text-muted-foreground w-4">%</span>
+              <CopyButton value={row.totalEligibleCosts > 0
+                ? Math.round((row.requestedEuContribution / row.totalEligibleCosts) * 1000) / 10
+                : 0} />
             </div>
             <div className="flex items-center gap-2">
               <label className="text-sm text-muted-foreground w-[260px] shrink-0">
