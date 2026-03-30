@@ -184,49 +184,47 @@ export function useB31SectionData(proposalId: string) {
   const pertFigure = figuresQuery.data?.find(f => f.figure_type === 'pert') || null;
   const ganttFigure = figuresQuery.data?.find(f => f.figure_type === 'gantt') || null;
 
-  // Aggregate subcontracting by participant (with individual items)
+  // Aggregate subcontracting by participant (single cost + justification)
   const subcontractingByParticipant: B31SubcontractingParticipant[] = (() => {
     const br = budgetRowsQuery.data;
     if (!br) return [];
     const result: B31SubcontractingParticipant[] = [];
     for (const row of br.budgetRows) {
       const r = row as any;
-      const items = br.subItems.filter((i: any) => i.budget_row_id === r.id);
-      if (items.length === 0 && Number(r.subcontracting_costs) <= 0) continue;
-      const mappedItems = items.map((i: any) => ({
-        description: i.description || '',
-        amount: Number(i.amount || 0),
-        justification: i.justification || '',
-      }));
-      const totalCost = mappedItems.length > 0
-        ? mappedItems.reduce((sum: number, i: any) => sum + i.amount, 0)
-        : Number(r.subcontracting_costs);
+      const totalCost = Number(r.subcontracting_costs) || 0;
       if (totalCost <= 0) continue;
-      result.push({ participantId: r.participant_id, items: mappedItems, totalCost });
+      const subItem = br.subItems.find((i: any) => i.budget_row_id === r.id);
+      const justification = subItem?.justification || '';
+      result.push({
+        participantId: r.participant_id,
+        items: [{ description: '', amount: totalCost, justification }],
+        totalCost,
+      });
     }
     return result;
   })();
 
-  // Equipment items exceeding 15% of personnel costs (with individual items)
+  // Equipment items exceeding 15% of personnel costs (single cost + justification)
   const equipmentByParticipant: B31EquipmentParticipant[] = (() => {
     const br = budgetRowsQuery.data;
     if (!br) return [];
     const result: B31EquipmentParticipant[] = [];
     for (const row of br.budgetRows) {
       const r = row as any;
-      const items = br.equipItems.filter((i: any) => i.budget_row_id === r.id);
-      const totalEquipCost = items.reduce((sum: number, i: any) => sum + Number(i.amount || 0), 0);
+      const totalEquipCost = Number(r.purchase_equipment) || 0;
       if (totalEquipCost <= 0) continue;
       const pmRate = r.pm_rate != null ? Number(r.pm_rate) : 0;
       const totalPMs = br.pmTotals.get(r.participant_id) || 0;
       const personnelCosts = pmRate > 0 ? Math.round(pmRate * totalPMs) : Number(r.personnel_costs) || 0;
       if (personnelCosts <= 0 || totalEquipCost <= personnelCosts * 0.15) continue;
-      const mappedItems = items.map((i: any) => ({
-        description: i.description || '',
-        amount: Number(i.amount || 0),
-        justification: i.justification || '',
-      }));
-      result.push({ participantId: r.participant_id, items: mappedItems, totalCost: totalEquipCost, personnelCosts });
+      const equipItem = br.equipItems.find((i: any) => i.budget_row_id === r.id);
+      const justification = equipItem?.justification || '';
+      result.push({
+        participantId: r.participant_id,
+        items: [{ description: '', amount: totalEquipCost, justification }],
+        totalCost: totalEquipCost,
+        personnelCosts,
+      });
     }
     return result;
   })();
