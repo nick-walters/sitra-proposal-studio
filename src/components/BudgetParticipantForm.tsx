@@ -6,8 +6,9 @@ import { BudgetJustificationDialog } from '@/components/BudgetJustificationDialo
 import { formatCurrency } from '@/lib/formatNumber';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Lock, FileText, Loader2 } from 'lucide-react';
+import { Lock, FileText, Loader2, Copy, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface BudgetParticipantFormProps {
   proposalId: string;
@@ -31,6 +32,31 @@ const FINANCIAL_FIELDS = [
   { key: 'financialContributions', label: 'Financial contributions' },
   { key: 'ownResources', label: 'Own resources' },
 ] as const;
+
+function CopyButton({ value }: { value: string | number }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(() => {
+    const text = typeof value === 'number' ? value.toString() : value.replace(/[€,]/g, '').trim();
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }, [value]);
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="shrink-0 p-1 rounded hover:bg-muted transition-colors"
+      title="Copy value"
+    >
+      {copied ? (
+        <Check className="w-3.5 h-3.5 text-green-600" />
+      ) : (
+        <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+      )}
+    </button>
+  );
+}
 
 export function BudgetParticipantForm({
   proposalId,
@@ -129,14 +155,21 @@ export function BudgetParticipantForm({
               className="h-8 text-sm text-right flex-1"
             />
             <span className="text-xs text-muted-foreground w-4">€</span>
+            <CopyButton value={row.pmRate ?? 0} />
           </div>
           <div className="flex items-center justify-between py-1 text-sm">
             <span className="text-muted-foreground">Total person months (from WP effort)</span>
-            <span className="font-medium tabular-nums">{row.totalPersonMonths.toFixed(1)}</span>
+            <div className="flex items-center gap-1">
+              <span className="font-medium tabular-nums">{row.totalPersonMonths.toFixed(1)}</span>
+              <CopyButton value={row.totalPersonMonths} />
+            </div>
           </div>
           <div className="flex items-center justify-between py-1 border-t text-sm">
             <span className="font-medium">A. Personnel costs {row.pmRate ? '(auto-calculated)' : ''}</span>
-            <span className="font-semibold tabular-nums">{formatCurrency(row.personnelCosts)}</span>
+            <div className="flex items-center gap-1">
+              <span className="font-semibold tabular-nums">{formatCurrency(row.personnelCosts)}</span>
+              <CopyButton value={row.personnelCosts} />
+            </div>
           </div>
           {!row.pmRate && (
             <div className="flex items-center gap-2">
@@ -148,6 +181,7 @@ export function BudgetParticipantForm({
                 className="h-8 text-sm text-right flex-1"
               />
               <span className="text-xs text-muted-foreground w-4">€</span>
+              <CopyButton value={row.personnelCosts} />
             </div>
           )}
         </CardContent>
@@ -169,6 +203,7 @@ export function BudgetParticipantForm({
                 className="h-8 text-sm text-right flex-1"
               />
               <span className="text-xs text-muted-foreground w-4">€</span>
+              <CopyButton value={row[f.key] as number} />
               {f.justification && (
                 <button
                   onClick={() => openJustification(f.justification!, f.label)}
@@ -190,16 +225,19 @@ export function BudgetParticipantForm({
         </CardHeader>
         <CardContent className="space-y-2">
           {[
-            { label: 'Direct costs', value: formatCurrency(row.directCosts) },
-            { label: 'Indirect costs (25%)', value: formatCurrency(row.indirectCosts) },
-            { label: 'Total eligible costs', value: formatCurrency(row.totalEligibleCosts) },
-            { label: 'Funding rate', value: `${row.fundingRate}%` },
-            { label: 'Max EU contribution', value: formatCurrency(row.maxEuContribution) },
-            { label: 'Requested EU contribution', value: formatCurrency(row.requestedEuContribution) },
+            { label: 'Direct costs', value: formatCurrency(row.directCosts), raw: row.directCosts },
+            { label: 'Indirect costs (25%)', value: formatCurrency(row.indirectCosts), raw: row.indirectCosts },
+            { label: 'Total eligible costs', value: formatCurrency(row.totalEligibleCosts), raw: row.totalEligibleCosts },
+            { label: 'Funding rate', value: `${row.fundingRate}%`, raw: row.fundingRate },
+            { label: 'Max EU contribution', value: formatCurrency(row.maxEuContribution), raw: row.maxEuContribution },
+            { label: 'Requested EU contribution', value: formatCurrency(row.requestedEuContribution), raw: row.requestedEuContribution },
           ].map(item => (
             <div key={item.label} className="flex items-center justify-between py-1">
               <span className="text-sm text-muted-foreground">{item.label}</span>
-              <span className="text-sm font-medium tabular-nums">{item.value}</span>
+              <div className="flex items-center gap-1">
+                <span className="text-sm font-medium tabular-nums">{item.value}</span>
+                <CopyButton value={item.raw} />
+              </div>
             </div>
           ))}
         </CardContent>
@@ -221,11 +259,15 @@ export function BudgetParticipantForm({
                 className="h-8 text-sm text-right flex-1"
               />
               <span className="text-xs text-muted-foreground w-4">€</span>
+              <CopyButton value={row[f.key] as number} />
             </div>
           ))}
           <div className="flex items-center justify-between pt-2 border-t">
             <span className="text-sm font-medium">Total estimated income</span>
-            <span className="text-sm font-semibold tabular-nums">{formatCurrency(row.totalEstimatedIncome)}</span>
+            <div className="flex items-center gap-1">
+              <span className="text-sm font-semibold tabular-nums">{formatCurrency(row.totalEstimatedIncome)}</span>
+              <CopyButton value={row.totalEstimatedIncome} />
+            </div>
           </div>
         </CardContent>
       </Card>
