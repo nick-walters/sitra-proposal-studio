@@ -1,6 +1,6 @@
 import { useBudgetRows } from '@/hooks/useBudgetRows';
 import { useProposalRole } from '@/hooks/useProposalRole';
-import { formatNumber, formatCurrency } from '@/lib/formatNumber';
+import { formatCurrency } from '@/lib/formatNumber';
 import { BudgetValidationEngine } from '@/components/BudgetValidationEngine';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -353,7 +353,7 @@ export function BudgetPortalSheet({
                               
                               {PARTICIPANT_COLUMNS.map(c => (
                                 <td key={c.key} className="px-3 py-2 text-right border-r tabular-nums font-mono text-sm whitespace-nowrap">
-                                  {formatNumber(row[c.key] as number)}
+                                  {formatCurrency(row[c.key] as number)}
                                 </td>
                               ))}
                               <td className="px-3 py-2 text-right border-r whitespace-nowrap">{percentage}%</td>
@@ -379,7 +379,7 @@ export function BudgetPortalSheet({
                           
                           {PARTICIPANT_COLUMNS.map(c => (
                             <td key={c.key} className="px-3 py-2 text-right border-r tabular-nums font-mono font-bold whitespace-nowrap">
-                              {formatNumber((grandTotals as any)[c.key] || 0)}
+                              {formatCurrency((grandTotals as any)[c.key] || 0)}
                             </td>
                           ))}
                           <td className="px-3 py-2 text-right border-r font-bold">100%</td>
