@@ -217,6 +217,30 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     })));
   }, [proposalId, rows.map(r => r.id).join(',')]);
 
+  const fetchEquipmentItems = useCallback(async () => {
+    if (!proposalId || rows.length === 0) return;
+    const rowIds = rows.map(r => r.id);
+    const { data, error } = await supabase
+      .from('budget_equipment_items')
+      .select('*')
+      .in('budget_row_id', rowIds)
+      .order('order_index');
+
+    if (error) {
+      console.error('Error fetching equipment items:', error);
+      return;
+    }
+
+    setEquipmentItems((data || []).map((item: any) => ({
+      id: item.id,
+      budgetRowId: item.budget_row_id,
+      description: item.description,
+      amount: Number(item.amount) || 0,
+      justification: item.justification,
+      orderIndex: item.order_index,
+    })));
+  }, [proposalId, rows.map(r => r.id).join(',')]);
+
   const fetchJustifications = useCallback(async () => {
     if (!proposalId) return;
     const { data, error } = await supabase
