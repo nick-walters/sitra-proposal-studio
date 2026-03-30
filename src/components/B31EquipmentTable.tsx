@@ -43,13 +43,13 @@ export function B31EquipmentTable({ items, participants, proposalId }: Props) {
       />
       <table className={`${tableStyles} border-collapse [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_tr]:border-0`} style={{ tableLayout: 'fixed', width: colWidths.length > 0 ? `${colWidths.reduce((s: number, w: number) => s + w, 0)}px` : '100%' }} ref={tableRef}>
         <colgroup>
-          <col style={{ width: colWidths.length > 0 ? `${colWidths[0]}px` : '20%' }} />
-          <col style={{ width: colWidths.length > 0 ? `${colWidths[1]}px` : '12%' }} />
-          <col style={{ width: colWidths.length > 0 ? `${colWidths[2]}px` : '68%' }} />
+          <col style={{ width: colWidths.length > 0 ? `${colWidths[0]}px` : 'auto' }} />
+          <col style={{ width: colWidths.length > 0 ? `${colWidths[1]}px` : '90px' }} />
+          <col />
         </colgroup>
         <thead>
           <tr>
-            <th className={`${headerCellStyles} relative`}>
+            <th className={`${headerCellStyles} text-left relative`}>
               Participant
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
             </th>
@@ -57,7 +57,7 @@ export function B31EquipmentTable({ items, participants, proposalId }: Props) {
               Cost (€)
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(1)} />}
             </th>
-            <th className={`${headerCellStyles} relative`}>
+            <th className={`${headerCellStyles} text-left relative`}>
               Justification
               {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(2)} />}
             </th>
@@ -67,38 +67,31 @@ export function B31EquipmentTable({ items, participants, proposalId }: Props) {
           {sorted.map((entry, entryIdx) => {
             const p = getParticipant(entry.participantId);
             const label = p ? `${p.participant_number}. ${p.organisation_short_name || p.organisation_name}` : 'Unknown';
-            const itemRows = entry.items.length > 0 ? entry.items : [{ description: '', amount: entry.totalCost, justification: '' }];
+
+            // Combine all item justifications into one string
+            const combinedJustification = entry.items
+              .filter(item => item.description || item.justification)
+              .map(item => {
+                if (item.description && item.justification) return `${item.description}: ${item.justification}`;
+                return item.justification || item.description;
+              })
+              .join('; ') || '—';
 
             return (
               <React.Fragment key={entry.participantId}>
-                {/* Thin divider between participants – matches 3.1.f style */}
                 {entryIdx > 0 && (
                   <tr>
-                    <td colSpan={3} className="p-0 border-0 border-y border-gray-200" style={{ height: '1px' }} />
+                    <td colSpan={3} className="p-0 border-y border-gray-200" style={{ height: 0 }} />
                   </tr>
                 )}
-                {itemRows.map((item, idx) => (
-                  <tr key={`${entry.participantId}-${idx}`}>
-                    <td className={`${cellStyles} border-y-0`}>
-                      {idx === 0 && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'baseline', border: '1.5px solid #000000', borderRadius: '9999px', padding: '0px 5px', fontSize: '11pt', fontFamily: "'Times New Roman', Times, serif", fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#ffffff', backgroundColor: '#000000' }}>
-                          {label}
-                        </span>
-                      )}
-                    </td>
-                    <td className={`${cellStyles} text-right border-y-0`}>{formatCurrency(item.amount)}</td>
-                    <td className={`${cellStyles} border-y-0`}>
-                      {item.description && item.justification
-                        ? `${item.description}: ${item.justification}`
-                        : item.justification || item.description || '—'}
-                    </td>
-                  </tr>
-                ))}
-                {/* Participant subtotal – always shown */}
                 <tr>
-                  <td className={`${cellStyles} border-y-0 font-bold`}>Subtotal</td>
-                  <td className={`${cellStyles} text-right border-y-0 font-bold`}>{formatCurrency(entry.totalCost)}</td>
-                  <td className={`${cellStyles} border-y-0`}></td>
+                  <td className={`${cellStyles} border-y-0`} style={{ whiteSpace: 'nowrap' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'baseline', border: '1.5px solid #000000', borderRadius: '9999px', padding: '0px 5px', fontSize: '11pt', fontFamily: "'Times New Roman', Times, serif", fontWeight: 'bold', fontStyle: 'normal', lineHeight: 1, color: '#ffffff', backgroundColor: '#000000' }}>
+                      {label}
+                    </span>
+                  </td>
+                  <td className={`${cellStyles} text-right border-y-0`}>{formatCurrency(entry.totalCost)}</td>
+                  <td className={`${cellStyles} border-y-0`}>{combinedJustification}</td>
                 </tr>
               </React.Fragment>
             );
