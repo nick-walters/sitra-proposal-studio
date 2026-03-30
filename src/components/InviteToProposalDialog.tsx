@@ -182,6 +182,7 @@ export function InviteToProposalDialog({
       } else {
         // User doesn't exist yet - invite them via edge function
         try {
+          const fallbackSignupUrl = `${window.location.origin}/auth`;
           const { data: inviteResult, error: inviteError } = await supabase.functions.invoke('invite-user', {
             body: {
               email: email.toLowerCase(),
@@ -191,9 +192,16 @@ export function InviteToProposalDialog({
             },
           });
 
+          const inviteSignupUrl = inviteResult?.signupUrl || fallbackSignupUrl;
+
           if (inviteError) {
             console.error('Invite error:', inviteError);
-            toast.success(`${memberData.fullName} added as team member, but invitation email could not be sent`);
+            try {
+              await navigator.clipboard.writeText(inviteSignupUrl);
+              toast.info(`${memberData.fullName} added. Invite email failed, so a signup link was copied for manual sharing.`);
+            } catch {
+              toast.info(`${memberData.fullName} added. Invite email failed — please share this signup link manually: ${inviteSignupUrl}`);
+            }
           } else if (inviteResult?.userId) {
             // Grant role to the newly created user
             const { error: roleError } = await supabase
@@ -214,13 +222,29 @@ export function InviteToProposalDialog({
               .update({ user_id: inviteResult.userId })
               .eq('id', newMember.id);
 
-            toast.success(`Invitation sent to ${email}. They will be prompted to set a password.`);
+            try {
+              await navigator.clipboard.writeText(inviteSignupUrl);
+              toast.success(`Invitation sent to ${email}. Backup signup link copied in case the email is blocked.`);
+            } catch {
+              toast.success(`Invitation sent to ${email}. If they don't receive it, share this signup link: ${inviteSignupUrl}`);
+            }
           } else {
-            toast.success(`${memberData.fullName} added as team member. Invitation sent to ${email}.`);
+            try {
+              await navigator.clipboard.writeText(inviteSignupUrl);
+              toast.success(`${memberData.fullName} added. Backup signup link copied for manual sharing.`);
+            } catch {
+              toast.success(`${memberData.fullName} added. Share this signup link manually if needed: ${inviteSignupUrl}`);
+            }
           }
         } catch (err) {
           console.error('Error sending invite:', err);
-          toast.success(`${memberData.fullName} added as team member, but invitation email could not be sent`);
+          const fallbackSignupUrl = `${window.location.origin}/auth`;
+          try {
+            await navigator.clipboard.writeText(fallbackSignupUrl);
+            toast.info(`${memberData.fullName} added. Invitation could not be sent, so a signup link was copied.`);
+          } catch {
+            toast.info(`${memberData.fullName} added, but invitation failed. Please share: ${fallbackSignupUrl}`);
+          }
         }
       }
 

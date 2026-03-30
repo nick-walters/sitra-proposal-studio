@@ -20,7 +20,6 @@ serve(async (req: Request) => {
   }
 
   try {
-    // Verify the calling user is authenticated
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Not authenticated" }), {
@@ -31,12 +30,16 @@ serve(async (req: Request) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Verify caller has a role on the proposal
-    const callerClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    const callerClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: { user: caller } } = await callerClient.auth.getUser();
+
+    const {
+      data: { user: caller },
+    } = await callerClient.auth.getUser();
+
     if (!caller) {
       return new Response(JSON.stringify({ error: "Invalid token" }), {
         status: 401,
@@ -44,7 +47,11 @@ serve(async (req: Request) => {
       });
     }
 
-    const { email, fullName, proposalId, proposalAcronym }: InviteRequest = await req.json();
+    const body = (await req.json()) as Partial<InviteRequest>;
+    const email = body.email?.trim().toLowerCase();
+    const proposalId = body.proposalId?.trim();
+    const proposalAcronym = body.proposalAcronym?.trim() || "Proposal";
+    const fullName = body.fullName?.trim();
 
     if (!email || !proposalId) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
@@ -53,8 +60,8 @@ serve(async (req: Request) => {
       });
     }
 
-    // Check caller has access to this proposal
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+
     const { data: callerRole } = await adminClient
       .from("user_roles")
       .select("role")
@@ -62,7 +69,9 @@ serve(async (req: Request) => {
       .eq("proposal_id", proposalId)
       .maybeSingle();
 
-    const { data: isOwner } = await adminClient.rpc("is_owner", { _user_id: caller.id });
+    const { data: isOwner } = await adminClient.rpc("is_owner", {
+      _user_id: caller.id,
+    });
 
     if (!callerRole && !isOwner) {
       return new Response(JSON.stringify({ error: "No access to this proposal" }), {
@@ -71,36 +80,38 @@ serve(async (req: Request) => {
       });
     }
 
-    // Check if user already exists
     const { data: existingProfile } = await adminClient
       .from("profiles")
       .select("id")
-      .eq("email", email.toLowerCase())
+      .eq("email", email)
       .maybeSingle();
 
+    const origin = req.headers.get("origin")?.trim();
+    const redirectBase = origin && /^https?:\/\//i.test(origin) ? origin : supabaseUrl;
+    const redirectUrl = `${redirectBase}/auth?type=invite`;
+
     if (existingProfile) {
-      return new Response(JSON.stringify({ 
-        alreadyExists: true,
-        message: "User already has an account" 
-      }), {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
+      return new Response(
+        JSON.stringify({
+          alreadyExists: true,
+          message: "User already has an account",
+          signupUrl: `${redirectBase}/auth`,
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        },
+      );
     }
 
-    // Invite the user via Supabase Auth (sends magic link email)
-    const redirectUrl = `${req.headers.get("origin") || supabaseUrl}/auth?type=recovery`;
-    
-    const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(
-      email,
-      {
+    const { data: inviteData, error: inviteError } = await adminClient.auth.admin
+      .inviteUserByEmail(email, {
         data: {
           full_name: fullName || email.split("@")[0],
           invited_to_proposal: proposalAcronym,
         },
         redirectTo: redirectUrl,
-      }
-    );
+      });
 
     if (inviteError) {
       console.error("Invite error:", inviteError);
@@ -110,16 +121,39 @@ serve(async (req: Request) => {
       });
     }
 
+    let signupUrl: string | null = null;
+    const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+      type: "invite",
+      email,
+      options: {
+        data: {
+          full_name: fullName || email.split("@")[0],
+          invited_to_proposal: proposalAcronym,
+        },
+        redirectTo: redirectUrl,
+      },
+    });
+
+    if (linkError) {
+      console.warn("Failed to generate manual invite link:", linkError.message);
+    } else {
+      signupUrl = linkData?.properties?.action_link ?? null;
+    }
+
     console.log(`User ${email} invited successfully for proposal ${proposalAcronym}`);
 
-    return new Response(JSON.stringify({ 
-      success: true,
-      userId: inviteData.user?.id,
-      message: `Invitation sent to ${email}` 
-    }), {
-      status: 200,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        userId: inviteData.user?.id,
+        signupUrl,
+        message: `Invitation sent to ${email}`,
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      },
+    );
   } catch (error) {
     console.error("Error in invite-user:", error);
     return new Response(JSON.stringify({ error: error.message }), {

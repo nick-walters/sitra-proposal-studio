@@ -419,6 +419,7 @@ export function ContactPersonsSection({
         }
       } else {
         // Invite new user
+        const fallbackSignupUrl = `${window.location.origin}/auth`;
         const { data: inviteResult, error: inviteError } = await supabase.functions.invoke('invite-user', {
           body: {
             email: member.email.toLowerCase(),
@@ -428,7 +429,15 @@ export function ContactPersonsSection({
           },
         });
 
-        if (inviteError) throw inviteError;
+        if (inviteError) {
+          try {
+            await navigator.clipboard.writeText(fallbackSignupUrl);
+            toast.info(`Invite email failed for ${member.email}. A signup link was copied for manual sharing.`);
+          } catch {
+            toast.info(`Invite email failed for ${member.email}. Share this signup link manually: ${fallbackSignupUrl}`);
+          }
+          return;
+        }
 
         if (inviteResult?.userId) {
           await supabase.from('user_roles').insert([{
@@ -439,7 +448,14 @@ export function ContactPersonsSection({
         }
 
         onUpdateMember(member.id, { accessGranted: true, accessGrantedRole: 'editor' });
-        toast.success(`Invitation sent to ${member.email}`);
+
+        const inviteSignupUrl = inviteResult?.signupUrl || fallbackSignupUrl;
+        try {
+          await navigator.clipboard.writeText(inviteSignupUrl);
+          toast.success(`Invitation sent to ${member.email}. Backup signup link copied.`);
+        } catch {
+          toast.success(`Invitation sent to ${member.email}. If needed, share this signup link: ${inviteSignupUrl}`);
+        }
       }
     } catch (error: any) {
       console.error('Error granting access:', error);
