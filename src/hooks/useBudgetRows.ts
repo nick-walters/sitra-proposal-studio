@@ -13,7 +13,9 @@ export interface BudgetRowData {
   purchaseTravel: number;
   purchaseEquipment: number;
   purchaseOtherGoods: number;
+  financialSupportThirdParties: number;
   internallyInvoiced: number;
+  procurement: number;
   indirectCostsOverride: number | null;
   fundingRateOverride: number | null;
   requestedEuContributionOverride: number | null;
