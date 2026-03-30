@@ -76,15 +76,18 @@ function computeRow(row: BudgetRowData, proposalType: string | null): ComputedBu
   const indirectCosts = row.indirectCostsOverride ?? Math.round(indirectCostsBase * 0.25);
   const totalEligibleCosts = directCosts + indirectCosts;
 
+  // Funding rate: RIA = 100% all; IA = 100% except PRC (private companies) = 70%
   let fundingRate = row.fundingRateOverride ?? 100;
   if (row.fundingRateOverride == null) {
-    if (proposalType === 'IA' && row.organisationCategory !== 'PUB' && row.organisationCategory !== 'REC' && row.organisationCategory !== 'HES') {
+    if (proposalType === 'IA' && row.organisationCategory === 'PRC') {
       fundingRate = 70;
     }
   }
 
   const maxEuContribution = Math.round(totalEligibleCosts * (fundingRate / 100));
-  const requestedEuContribution = Math.min(maxEuContribution, totalEligibleCosts);
+  const requestedEuContribution = row.requestedEuContributionOverride != null
+    ? Math.min(row.requestedEuContributionOverride, maxEuContribution)
+    : maxEuContribution;
   const totalEstimatedIncome = requestedEuContribution + row.incomeGenerated + row.financialContributions + row.ownResources;
 
   return {
