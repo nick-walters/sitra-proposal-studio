@@ -328,6 +328,7 @@ export function BudgetPortalSheet({
                 </Table>
               </CardContent>
             </Card>
+            <A3EffortMatrix proposalId={proposalId} canEdit={canEdit} />
           </TabsContent>
 
           {/* Summary by Participant Tab */}
