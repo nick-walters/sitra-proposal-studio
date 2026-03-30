@@ -2,7 +2,13 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Bold, Italic, Underline, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, AlignJustify, FileText, Link2, Layers, Building2, Table2, ImageIcon } from 'lucide-react';
+import { Bold, Italic, Underline, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, AlignJustify, FileText, Link2, Layers, Building2, Table2, ImageIcon, ChevronDown } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { InsertTDMSReferenceDropdowns } from '@/components/InsertTDMSReferenceDropdowns';
@@ -142,23 +148,35 @@ export function WPSimpleEditor({
       {/* Toolbar - matches Part B formatting toolbar order */}
       {!disabled && !hideToolbar && (
         <div className="flex items-center gap-0.5 p-1.5 border-b bg-muted/30 flex-wrap">
-          {/* Subheading first */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2"
-                onClick={handleSubheading}
-              >
-                <span className="text-xs font-black underline">Subheading</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">
-              Subheading (Bold & Underlined)
-            </TooltipContent>
-          </Tooltip>
+          {/* Subheading dropdown */}
+          <DropdownMenu>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenuTrigger asChild>
+                  <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1">
+                    <span className="text-xs font-black underline">Subheading</span>
+                    <ChevronDown className="w-3 h-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">Insert subheading</TooltipContent>
+            </Tooltip>
+            <DropdownMenuContent align="start" className="w-64">
+              <DropdownMenuItem onClick={() => {
+                const h3s = editorRef.current?.querySelectorAll('h3') || [];
+                const nextNum = h3s.length + 1;
+                execCommand('formatBlock', '<h3>');
+                execCommand('insertText', `${nextNum}. `);
+              }}>
+                <span className="text-sm font-semibold">Numbered subheading</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                handleSubheading();
+              }}>
+                <span className="text-sm font-bold underline">Unnumbered subheading</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <Separator orientation="vertical" className="h-5 mx-1" />
 
