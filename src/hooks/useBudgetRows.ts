@@ -16,6 +16,7 @@ export interface BudgetRowData {
   internallyInvoiced: number;
   indirectCostsOverride: number | null;
   fundingRateOverride: number | null;
+  requestedEuContributionOverride: number | null;
   incomeGenerated: number;
   financialContributions: number;
   ownResources: number;
