@@ -3,7 +3,7 @@ import { useBudgetRows, ComputedBudgetRow } from '@/hooks/useBudgetRows';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { FormattedNumberInput } from '@/components/FormattedNumberInput';
 import { BudgetJustificationDialog } from '@/components/BudgetJustificationDialog';
-import { formatNumber } from '@/lib/formatNumber';
+import { formatCurrency } from '@/lib/formatNumber';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Lock, FileText, Loader2 } from 'lucide-react';
@@ -121,22 +121,22 @@ export function BudgetParticipantForm({
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground w-[260px] shrink-0">Avg. weighted person-month rate</label>
+            <label className="text-sm text-muted-foreground w-[260px] shrink-0">Avg. weighted person month rate</label>
             <FormattedNumberInput
               value={row.pmRate ?? 0}
               onChange={(v) => updateRow(row.id, 'pmRate', v)}
               disabled={!editable}
               className="h-8 text-sm text-right flex-1"
             />
-            <span className="text-xs text-muted-foreground w-8">EUR</span>
+            <span className="text-xs text-muted-foreground w-4">€</span>
           </div>
           <div className="flex items-center justify-between py-1 text-sm">
-            <span className="text-muted-foreground">Total person-months (from WP effort)</span>
+            <span className="text-muted-foreground">Total person months (from WP effort)</span>
             <span className="font-medium tabular-nums">{row.totalPersonMonths.toFixed(1)}</span>
           </div>
           <div className="flex items-center justify-between py-1 border-t text-sm">
             <span className="font-medium">A. Personnel costs {row.pmRate ? '(auto-calculated)' : ''}</span>
-            <span className="font-semibold tabular-nums">{formatNumber(row.personnelCosts)} EUR</span>
+            <span className="font-semibold tabular-nums">{formatCurrency(row.personnelCosts)}</span>
           </div>
           {!row.pmRate && (
             <div className="flex items-center gap-2">
@@ -147,7 +147,7 @@ export function BudgetParticipantForm({
                 disabled={!editable}
                 className="h-8 text-sm text-right flex-1"
               />
-              <span className="text-xs text-muted-foreground w-8">EUR</span>
+              <span className="text-xs text-muted-foreground w-4">€</span>
             </div>
           )}
         </CardContent>
@@ -168,7 +168,7 @@ export function BudgetParticipantForm({
                 disabled={!editable}
                 className="h-8 text-sm text-right flex-1"
               />
-              <span className="text-xs text-muted-foreground w-8">EUR</span>
+              <span className="text-xs text-muted-foreground w-4">€</span>
               {f.justification && (
                 <button
                   onClick={() => openJustification(f.justification!, f.label)}
@@ -190,16 +190,16 @@ export function BudgetParticipantForm({
         </CardHeader>
         <CardContent className="space-y-2">
           {[
-            { label: 'Direct costs', value: formatNumber(row.directCosts) },
-            { label: 'Indirect costs (25%)', value: formatNumber(row.indirectCosts) },
-            { label: 'Total eligible costs', value: formatNumber(row.totalEligibleCosts) },
+            { label: 'Direct costs', value: formatCurrency(row.directCosts) },
+            { label: 'Indirect costs (25%)', value: formatCurrency(row.indirectCosts) },
+            { label: 'Total eligible costs', value: formatCurrency(row.totalEligibleCosts) },
             { label: 'Funding rate', value: `${row.fundingRate}%` },
-            { label: 'Max EU contribution', value: formatNumber(row.maxEuContribution) },
-            { label: 'Requested EU contribution', value: formatNumber(row.requestedEuContribution) },
+            { label: 'Max EU contribution', value: formatCurrency(row.maxEuContribution) },
+            { label: 'Requested EU contribution', value: formatCurrency(row.requestedEuContribution) },
           ].map(item => (
             <div key={item.label} className="flex items-center justify-between py-1">
               <span className="text-sm text-muted-foreground">{item.label}</span>
-              <span className="text-sm font-medium tabular-nums">{item.value} EUR</span>
+              <span className="text-sm font-medium tabular-nums">{item.value}</span>
             </div>
           ))}
         </CardContent>
@@ -220,12 +220,12 @@ export function BudgetParticipantForm({
                 disabled={!editable}
                 className="h-8 text-sm text-right flex-1"
               />
-              <span className="text-xs text-muted-foreground w-8">EUR</span>
+              <span className="text-xs text-muted-foreground w-4">€</span>
             </div>
           ))}
           <div className="flex items-center justify-between pt-2 border-t">
             <span className="text-sm font-medium">Total estimated income</span>
-            <span className="text-sm font-semibold tabular-nums">{formatNumber(row.totalEstimatedIncome)} EUR</span>
+            <span className="text-sm font-semibold tabular-nums">{formatCurrency(row.totalEstimatedIncome)}</span>
           </div>
         </CardContent>
       </Card>

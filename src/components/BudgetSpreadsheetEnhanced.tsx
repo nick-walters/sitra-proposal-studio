@@ -274,7 +274,7 @@ export function BudgetSpreadsheetEnhanced({
               sitraTips={[{
                 id: 'budget-tip',
                 title: 'Budget planning tips',
-                content: 'Start by estimating person-months per work package, then convert to costs.\n\nCommon pitfalls to avoid:\n• Underestimating travel and meeting costs\n• Forgetting equipment depreciation rules\n• Not accounting for inflation over multi-year projects\n• Overloading budget on one partner\n\nRecommendations:\n• Distribute effort proportionally across partners\n• Include buffer for unexpected costs where rules allow\n• Ensure consistency between budget and work package descriptions'
+                content: 'Start by estimating person months per work package, then convert to costs.\n\nCommon pitfalls to avoid:\n• Underestimating travel and meeting costs\n• Forgetting equipment depreciation rules\n• Not accounting for inflation over multi-year projects\n• Overloading budget on one partner\n\nRecommendations:\n• Distribute effort proportionally across partners\n• Include buffer for unexpected costs where rules allow\n• Ensure consistency between budget and work package descriptions'
               }]}
             />
           </div>
@@ -539,7 +539,7 @@ export function BudgetSpreadsheetEnhanced({
                               {subcategories.length > 0 && <TableHead>Subcategory</TableHead>}
                               <TableHead>Description</TableHead>
                               {budgetType === 'traditional' && category.id === 'A' && (
-                                <TableHead className="text-right">Person-Months</TableHead>
+                                <TableHead className="text-right">Person Months</TableHead>
                               )}
                               <TableHead className="text-right">Amount (€)</TableHead>
                               <TableHead>Justification</TableHead>
