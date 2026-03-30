@@ -293,10 +293,6 @@ export function BudgetParticipantForm({
               </div>
             </div>
           )}
-                <span>Equipment costs exceed 15% of personnel costs — justifications required and will appear in B3.1</span>
-              </div>
-            )}
-          </div>
           <div className="flex items-center gap-2">
             <label className="text-sm text-muted-foreground w-[260px] shrink-0">C.3 Other goods, works and services</label>
             <FormattedNumberInput
