@@ -73,8 +73,9 @@ const PARTICIPANT_COLUMNS = [
   { key: 'procurement', label: 'D.3 Procurement' },
   { key: 'indirectCosts', label: 'E. Indirect costs' },
   { key: 'totalEligibleCosts', label: 'Total costs' },
-  { key: 'fundingRate', label: 'Funding rate' },
+  { key: 'fundingRate', label: 'Max. eligible funding rate' },
   { key: 'maxEuContribution', label: 'Max EU contribution' },
+  { key: 'requestedFundingRate', label: 'Requested funding rate (%)' },
   { key: 'requestedEuContribution', label: 'Requested budget' },
 ] as const;
 
