@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -40,8 +41,6 @@ interface ParticipantInfo {
 
 export function A3EffortMatrix({ proposalId, canEdit }: A3EffortMatrixProps) {
   const queryClient = useQueryClient();
-  const [editingCell, setEditingCell] = useState<{ participantId: string; wpId: string } | null>(null);
-  const [editValue, setEditValue] = useState('');
 
   const { data: wps } = useQuery({
     queryKey: ['a3-effort-wps', proposalId],
@@ -88,37 +87,22 @@ export function A3EffortMatrix({ proposalId, canEdit }: A3EffortMatrixProps) {
     if (pMap) pMap.set(e.wp_draft_id, e.person_months || 0);
   });
 
-  const startEdit = (participantId: string, wpId: string, currentValue: number) => {
-    if (!canEdit) return;
-    setEditingCell({ participantId, wpId });
-    setEditValue(currentValue > 0 ? String(currentValue) : '');
-  };
-
-  const saveEdit = useCallback(async () => {
-    if (!editingCell) return;
-    const { participantId, wpId } = editingCell;
-    const parsed = parseFloat(editValue) || 0;
-    const newTotal = Math.round(parsed * 10) / 10;
-
+  const saveEffortValue = useCallback(async (participantId: string, wpId: string, personMonths: number) => {
     await supabase
       .from('wp_draft_effort')
       .upsert({
         wp_draft_id: wpId,
         participant_id: participantId,
-        person_months: newTotal,
+        person_months: personMonths,
       }, {
         onConflict: 'wp_draft_id,participant_id',
       });
 
-    queryClient.invalidateQueries({ queryKey: ['a3-effort-data', proposalId] });
-    queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
-    setEditingCell(null);
-  }, [editingCell, editValue, proposalId, queryClient]);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') { e.preventDefault(); saveEdit(); }
-    if (e.key === 'Escape') setEditingCell(null);
-  };
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['a3-effort-data', proposalId] }),
+      queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] }),
+    ]);
+  }, [proposalId, queryClient]);
 
   if (!wps?.length || !participants?.length) return null;
 
@@ -158,26 +142,13 @@ export function A3EffortMatrix({ proposalId, canEdit }: A3EffortMatrixProps) {
                     </TableCell>
                     {wps.map(wp => {
                       const val = pMap?.get(wp.id) || 0;
-                      const isEditing = editingCell?.participantId === p.id && editingCell?.wpId === wp.id;
                       return (
-                        <TableCell
-                          key={wp.id}
-                          className={`text-center ${canEdit ? 'cursor-text hover:bg-muted/50' : ''}`}
-                          onClick={() => !isEditing && startEdit(p.id, wp.id, val)}
-                        >
-                          {isEditing ? (
-                            <input
-                              type="text"
-                              className="w-16 bg-transparent outline-none border border-primary rounded px-1 py-0 text-center text-sm"
-                              value={editValue}
-                              onChange={e => setEditValue(e.target.value)}
-                              onBlur={saveEdit}
-                              onKeyDown={handleKeyDown}
-                              autoFocus
-                            />
-                          ) : (
-                            <span className="tabular-nums">{val ? formatPM(val) : '—'}</span>
-                          )}
+                        <TableCell key={wp.id} className="p-1 align-middle">
+                          <EffortInputCell
+                            value={val}
+                            canEdit={canEdit}
+                            onSave={(nextValue) => saveEffortValue(p.id, wp.id, nextValue)}
+                          />
                         </TableCell>
                       );
                     })}
@@ -214,5 +185,74 @@ export function A3EffortMatrix({ proposalId, canEdit }: A3EffortMatrixProps) {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+interface EffortInputCellProps {
+  value: number;
+  canEdit: boolean;
+  onSave: (value: number) => Promise<void>;
+}
+
+function EffortInputCell({ value, canEdit, onSave }: EffortInputCellProps) {
+  const [localValue, setLocalValue] = useState(() => formatPM(value));
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setLocalValue(formatPM(value));
+  }, [value]);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  const commitValue = useCallback(async (rawValue: string) => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+
+    const parsed = parseFloat(rawValue) || 0;
+    const rounded = Math.round(parsed * 10) / 10;
+    setLocalValue(formatPM(rounded));
+
+    if (rounded === value) return;
+
+    await onSave(rounded);
+  }, [onSave, value]);
+
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const nextValue = event.target.value;
+    setLocalValue(nextValue);
+
+    if (!canEdit) return;
+
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    timeoutRef.current = setTimeout(() => {
+      void commitValue(nextValue);
+    }, 500);
+  };
+
+  return (
+    <Input
+      type="number"
+      step="0.1"
+      min="0"
+      value={localValue}
+      onChange={handleChange}
+      onBlur={() => {
+        if (!canEdit) return;
+        void commitValue(localValue);
+      }}
+      className="h-8 min-w-[5.5rem] text-center text-sm tabular-nums"
+      disabled={!canEdit}
+    />
   );
 }
