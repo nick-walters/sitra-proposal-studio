@@ -176,13 +176,12 @@ function FstpToolbar({ editor }: { editor: any }) {
               const nextNum = h3Count + 1;
               editor.chain().focus().toggleHeading({ level: 3 }).run();
               if (editor.isActive('heading', { level: 3 })) {
-                const currentNode = editor.state.selection.$from.parent;
-                if (currentNode.textContent.length === 0) {
-                  editor.chain().focus().insertContent(`1.1.${nextNum}. `).run();
-                }
+                const $from = editor.state.selection.$from;
+                const startOfNode = $from.start();
+                editor.chain().focus().insertContentAt(startOfNode, `1.1.${nextNum}. `).run();
               }
             }}>
-              <span className="text-sm font-semibold">1.1.1. Numbered subheading</span>
+              <span className="text-sm font-semibold underline">1.1.1. Numbered subheading</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => {
               editor.chain().focus().toggleBold().run();
