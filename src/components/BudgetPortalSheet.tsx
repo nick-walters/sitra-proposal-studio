@@ -151,7 +151,7 @@ export function BudgetPortalSheet({
               sitraTips={[{
                 id: 'budget-tip',
                 title: 'Budget planning tips',
-                content: 'Start by estimating person-months per work package, then convert to costs.\n\nRecommendations:\n• Distribute effort proportionally across partners\n• Include buffer for unexpected costs where rules allow\n• Ensure consistency between budget and work package descriptions'
+                content: 'Start by estimating person months per work package, then convert to costs.\n\nRecommendations:\n• Distribute effort proportionally across partners\n• Include buffer for unexpected costs where rules allow\n• Ensure consistency between budget and work package descriptions'
               }]}
             />
           </div>
