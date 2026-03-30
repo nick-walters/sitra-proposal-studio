@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EditableCaption } from '@/components/EditableCaption';
@@ -18,7 +17,7 @@ interface Props {
 }
 
 export function B31SectionContent({ proposalId }: Props) {
-  const { wpData, participants, pertFigure, ganttFigure, subcontractingItems, equipmentItems, loading } = useB31SectionData(proposalId);
+  const { wpData, participants, pertFigure, ganttFigure, subcontractingByParticipant, equipmentByParticipant, loading } = useB31SectionData(proposalId);
   const { data: proposalDuration } = useQuery({
     queryKey: ['proposal-duration', proposalId],
     queryFn: async () => {
@@ -28,22 +27,6 @@ export function B31SectionContent({ proposalId }: Props) {
     },
   });
   const projectDuration = proposalDuration || 36;
-
-  // Compute personnel costs per participant from effort data
-  const personnelCostByParticipant = useMemo(() => {
-    const map = new Map<string, number>();
-    const DEFAULT_RATE = 5000;
-    wpData.forEach(wp => {
-      wp.tasks.forEach(task => {
-        task.effort?.forEach(e => {
-          const participant = participants.find(p => p.id === e.participant_id);
-          const rate = participant?.personnel_cost_rate || DEFAULT_RATE;
-          map.set(e.participant_id, (map.get(e.participant_id) || 0) + (e.person_months || 0) * rate);
-        });
-      });
-    });
-    return map;
-  }, [wpData, participants]);
 
   if (loading) return null;
 
@@ -131,13 +114,12 @@ export function B31SectionContent({ proposalId }: Props) {
       <B31EffortMatrix wpData={wpData} participants={participants} proposalId={proposalId} />
 
       {/* Table 3.1.g – Subcontracting (conditional) */}
-      <B31SubcontractingTable items={subcontractingItems} participants={participants} proposalId={proposalId} />
+      <B31SubcontractingTable items={subcontractingByParticipant} participants={participants} proposalId={proposalId} />
 
       {/* Table 3.1.h – Equipment (conditional) */}
       <B31EquipmentTable
-        equipmentItems={equipmentItems}
+        items={equipmentByParticipant}
         participants={participants}
-        personnelCostByParticipant={personnelCostByParticipant}
         proposalId={proposalId}
       />
     </div>

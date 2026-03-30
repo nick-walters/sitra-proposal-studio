@@ -55,13 +55,17 @@ export interface B31Figure {
   content: any;
 }
 
-export interface B31BudgetItem {
-  id: string;
-  participant_id: string;
-  category: string;
-  description: string | null;
-  amount: number;
-  justification: string | null;
+export interface B31SubcontractingParticipant {
+  participantId: string;
+  totalCost: number;
+  justifications: string[];
+}
+
+export interface B31EquipmentParticipant {
+  participantId: string;
+  equipmentCost: number;
+  personnelCosts: number;
+  justification: string;
 }
 
 export function useB31SectionData(proposalId: string) {
@@ -131,33 +135,101 @@ export function useB31SectionData(proposalId: string) {
     },
   });
 
-  // Fetch budget items for subcontracting and equipment
-  const budgetQuery = useQuery({
-    queryKey: ['b31-budget', proposalId],
+  // Fetch budget rows with subcontracting items for tables 3.1.g and 3.1.h
+  const budgetRowsQuery = useQuery({
+    queryKey: ['b31-budget-rows', proposalId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('budget_items')
-        .select('id, participant_id, category, description, amount, justification')
-        .eq('proposal_id', proposalId)
-        .in('category', ['subcontracting', 'equipment']);
-      if (error) throw error;
-      return data as B31BudgetItem[];
+      const { data: budgetRows, error: brError } = await supabase
+        .from('budget_rows')
+        .select('id, participant_id, subcontracting_costs, purchase_equipment, purchase_equipment_justification, personnel_costs, pm_rate, participants!inner(participant_number)')
+        .eq('proposal_id', proposalId);
+      if (brError) throw brError;
+
+      // Fetch effort totals for PM-based personnel cost calc
+      const { data: effortData } = await supabase
+        .from('wp_draft_effort')
+        .select('participant_id, person_months, wp_drafts!inner(proposal_id)')
+        .eq('wp_drafts.proposal_id', proposalId);
+
+      const pmTotals = new Map<string, number>();
+      (effortData || []).forEach((e: any) => {
+        pmTotals.set(e.participant_id, (pmTotals.get(e.participant_id) || 0) + Number(e.person_months || 0));
+      });
+
+      // Fetch subcontracting line items
+      const rowIds = (budgetRows || []).map((r: any) => r.id);
+      let subItems: any[] = [];
+      if (rowIds.length > 0) {
+        const { data } = await supabase
+          .from('budget_subcontracting_items')
+          .select('*')
+          .in('budget_row_id', rowIds)
+          .order('order_index');
+        subItems = data || [];
+      }
+
+      return { budgetRows: budgetRows || [], subItems, pmTotals };
     },
   });
 
   const pertFigure = figuresQuery.data?.find(f => f.figure_type === 'pert') || null;
   const ganttFigure = figuresQuery.data?.find(f => f.figure_type === 'gantt') || null;
 
-  const subcontractingItems = (budgetQuery.data || []).filter(b => b.category === 'subcontracting');
-  const equipmentItems = (budgetQuery.data || []).filter(b => b.category === 'equipment');
+  // Aggregate subcontracting by participant
+  const subcontractingByParticipant: B31SubcontractingParticipant[] = (() => {
+    const br = budgetRowsQuery.data;
+    if (!br) return [];
+    const map = new Map<string, { totalCost: number; justifications: string[] }>();
+    for (const row of br.budgetRows) {
+      const r = row as any;
+      if (Number(r.subcontracting_costs) <= 0) continue;
+      const items = br.subItems.filter((i: any) => i.budget_row_id === r.id);
+      const totalCost = items.reduce((sum: number, i: any) => sum + Number(i.amount || 0), 0) || Number(r.subcontracting_costs);
+      const justifications = items
+        .filter((i: any) => i.justification && i.justification.trim())
+        .map((i: any) => {
+          const desc = i.description?.trim();
+          const just = i.justification.trim();
+          return desc ? `${desc}: ${just}` : just;
+        });
+      map.set(r.participant_id, { totalCost, justifications });
+    }
+    return Array.from(map.entries()).map(([participantId, v]) => ({
+      participantId,
+      ...v,
+    }));
+  })();
+
+  // Equipment items exceeding 15% of personnel costs
+  const equipmentByParticipant: B31EquipmentParticipant[] = (() => {
+    const br = budgetRowsQuery.data;
+    if (!br) return [];
+    const result: B31EquipmentParticipant[] = [];
+    for (const row of br.budgetRows) {
+      const r = row as any;
+      const equipCost = Number(r.purchase_equipment) || 0;
+      if (equipCost <= 0) continue;
+      const pmRate = r.pm_rate != null ? Number(r.pm_rate) : 0;
+      const totalPMs = br.pmTotals.get(r.participant_id) || 0;
+      const personnelCosts = pmRate > 0 ? Math.round(pmRate * totalPMs) : Number(r.personnel_costs) || 0;
+      if (personnelCosts <= 0 || equipCost <= personnelCosts * 0.15) continue;
+      result.push({
+        participantId: r.participant_id,
+        equipmentCost: equipCost,
+        personnelCosts,
+        justification: r.purchase_equipment_justification || '',
+      });
+    }
+    return result;
+  })();
 
   return {
     wpData: wpQuery.data || [],
     participants: participantsQuery.data || [],
     pertFigure,
     ganttFigure,
-    subcontractingItems,
-    equipmentItems,
-    loading: wpQuery.isLoading || participantsQuery.isLoading || figuresQuery.isLoading || budgetQuery.isLoading,
+    subcontractingByParticipant,
+    equipmentByParticipant,
+    loading: wpQuery.isLoading || participantsQuery.isLoading || figuresQuery.isLoading || budgetRowsQuery.isLoading,
   };
 }
