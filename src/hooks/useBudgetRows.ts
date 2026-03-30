@@ -22,6 +22,8 @@ export interface BudgetRowData {
   isLocked: boolean;
   lockedBy: string | null;
   lockedAt: string | null;
+  pmRate: number | null;
+  totalPersonMonths: number;
   // Joined participant info
   participantNumber: number;
   participantName: string;
