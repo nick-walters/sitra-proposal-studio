@@ -287,7 +287,7 @@ function generateWPDescriptionTables(
           <td style="${cellStyle}">${participantNumbers}</td>
         </tr>
         <tr>
-          <td style="${cellStyle} font-weight: bold;">Person-months</td>
+          <td style="${cellStyle} font-weight: bold;">Person months</td>
           <td style="${cellStyle}">${totalPM.toFixed(1)}</td>
         </tr>
         <tr>
@@ -536,7 +536,7 @@ function generateStaffEffortTable(
 
     // Total row
     html += `<tr style="background-color: #f0f0f0;">
-      <td style="${cellStyle} font-weight: bold;">Total Person-Months</td>`;
+      <td style="${cellStyle} font-weight: bold;">Total Person Months</td>`;
     for (const wpNum of wpNumbers) {
       const wpTotal = wpTotals.get(wpNum) || 0;
       html += `<td style="${cellStyle} text-align: center; font-weight: bold;">${wpTotal.toFixed(1)}</td>`;

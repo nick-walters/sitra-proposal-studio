@@ -256,7 +256,7 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
             />
             <StatCard
               icon={<Users className="h-4 w-4" />}
-              label="Total Person-Months"
+              label="Total Person Months"
               value={totals.totalPersonMonths.toFixed(1)}
             />
           </div>

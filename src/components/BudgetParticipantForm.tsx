@@ -121,7 +121,7 @@ export function BudgetParticipantForm({
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground w-[260px] shrink-0">Avg. weighted person-month rate</label>
+            <label className="text-sm text-muted-foreground w-[260px] shrink-0">Avg. weighted person month rate</label>
             <FormattedNumberInput
               value={row.pmRate ?? 0}
               onChange={(v) => updateRow(row.id, 'pmRate', v)}
