@@ -64,6 +64,15 @@ export interface SubcontractingItem {
   orderIndex: number;
 }
 
+export interface EquipmentItem {
+  id: string;
+  budgetRowId: string;
+  description: string;
+  amount: number;
+  justification: string;
+  orderIndex: number;
+}
+
 function computeRow(row: BudgetRowData, proposalType: string | null): ComputedBudgetRow {
   const personnelCosts = row.pmRate != null && row.pmRate > 0
     ? Math.round(row.pmRate * row.totalPersonMonths)
