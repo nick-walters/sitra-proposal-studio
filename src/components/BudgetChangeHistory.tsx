@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { History, Plus, Pencil, Trash2 } from 'lucide-react';
+import { formatCurrency } from '@/lib/formatNumber';
 import type { BudgetChange } from '@/hooks/useBudget';
 
 interface BudgetChangeHistoryProps {
@@ -72,13 +73,13 @@ export function BudgetChangeHistory({ changes }: BudgetChangeHistoryProps) {
                         <div className="mt-1 text-sm">
                           <span className="line-through text-muted-foreground">
                             {change.fieldChanged === 'amount' 
-                              ? `€${parseFloat(change.oldValue).toLocaleString()}`
+                              ? formatCurrency(parseFloat(change.oldValue))
                               : change.oldValue}
                           </span>
                           <span className="mx-2">→</span>
                           <span className="text-foreground font-medium">
                             {change.fieldChanged === 'amount'
-                              ? `€${parseFloat(change.newValue).toLocaleString()}`
+                              ? formatCurrency(parseFloat(change.newValue))
                               : change.newValue}
                           </span>
                         </div>
