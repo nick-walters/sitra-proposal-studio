@@ -83,6 +83,7 @@ function computeRow(row: BudgetRowData, proposalType: string | null): ComputedBu
 
   return {
     ...row,
+    personnelCosts,
     directCosts,
     indirectCosts,
     totalEligibleCosts,
