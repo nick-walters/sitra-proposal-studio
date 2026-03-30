@@ -485,7 +485,9 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
       sums.purchaseTravel += r.purchaseTravel;
       sums.purchaseEquipment += r.purchaseEquipment;
       sums.purchaseOtherGoods += r.purchaseOtherGoods;
+      sums.financialSupportThirdParties += r.financialSupportThirdParties;
       sums.internallyInvoiced += r.internallyInvoiced;
+      sums.procurement += r.procurement;
       sums.directCosts += r.directCosts;
       sums.indirectCosts += r.indirectCosts;
       sums.totalEligibleCosts += r.totalEligibleCosts;
