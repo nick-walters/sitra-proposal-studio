@@ -349,7 +349,9 @@ export function BudgetPortalSheet({
                               
                               {PARTICIPANT_COLUMNS.map(c => (
                                 <td key={c.key} className="px-3 py-2 text-right border-r tabular-nums font-mono text-sm whitespace-nowrap">
-                                  {formatCurrency(row[c.key] as number)}
+                                  {c.key === 'fundingRate'
+                                    ? `${(row as any)[c.key]}%`
+                                    : formatCurrency((row as any)[c.key] as number)}
                                 </td>
                               ))}
                               <td className="px-3 py-2 text-right border-r whitespace-nowrap">{percentage}%</td>
