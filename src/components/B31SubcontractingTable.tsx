@@ -1,3 +1,4 @@
+import React from 'react';
 import type { B31SubcontractingParticipant, B31Participant } from '@/hooks/useB31SectionData';
 import { formatCurrency } from '@/lib/formatNumber';
 import { useUserRole } from '@/hooks/useUserRole';
