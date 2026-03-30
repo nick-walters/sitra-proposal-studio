@@ -59,8 +59,10 @@ const PARTICIPANT_COLUMNS = [
   { key: 'subcontractingCosts', label: 'B. Subcontracting' },
   { key: 'purchaseEquipment', label: 'C. Equipment' },
   { key: 'indirectCosts', label: 'D. Indirect costs' },
-  { key: 'totalEligibleCosts', label: 'Total eligible' },
-  { key: 'requestedEuContribution', label: 'EU contribution' },
+  { key: 'totalEligibleCosts', label: 'Total costs' },
+  { key: 'fundingRate', label: 'Funding rate' },
+  { key: 'maxEuContribution', label: 'Max EU contribution' },
+  { key: 'requestedEuContribution', label: 'Requested budget' },
 ] as const;
 
 export function BudgetPortalSheet({
@@ -347,7 +349,9 @@ export function BudgetPortalSheet({
                               
                               {PARTICIPANT_COLUMNS.map(c => (
                                 <td key={c.key} className="px-3 py-2 text-right border-r tabular-nums font-mono text-sm whitespace-nowrap">
-                                  {formatCurrency(row[c.key] as number)}
+                                  {c.key === 'fundingRate'
+                                    ? `${(row as any)[c.key]}%`
+                                    : formatCurrency((row as any)[c.key] as number)}
                                 </td>
                               ))}
                               <td className="px-3 py-2 text-right border-r whitespace-nowrap">{percentage}%</td>
@@ -373,7 +377,9 @@ export function BudgetPortalSheet({
                           
                           {PARTICIPANT_COLUMNS.map(c => (
                             <td key={c.key} className="px-3 py-2 text-right border-r tabular-nums font-mono font-bold whitespace-nowrap">
-                              {formatCurrency((grandTotals as any)[c.key] || 0)}
+                              {c.key === 'fundingRate'
+                                ? ''
+                                : formatCurrency((grandTotals as any)[c.key] || 0)}
                             </td>
                           ))}
                           <td className="px-3 py-2 text-right border-r font-bold">100%</td>

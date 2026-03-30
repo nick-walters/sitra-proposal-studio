@@ -16,6 +16,7 @@ export interface BudgetRowData {
   internallyInvoiced: number;
   indirectCostsOverride: number | null;
   fundingRateOverride: number | null;
+  requestedEuContributionOverride: number | null;
   incomeGenerated: number;
   financialContributions: number;
   ownResources: number;
@@ -75,15 +76,18 @@ function computeRow(row: BudgetRowData, proposalType: string | null): ComputedBu
   const indirectCosts = row.indirectCostsOverride ?? Math.round(indirectCostsBase * 0.25);
   const totalEligibleCosts = directCosts + indirectCosts;
 
+  // Funding rate: RIA = 100% all; IA = 100% except PRC (private companies) = 70%
   let fundingRate = row.fundingRateOverride ?? 100;
   if (row.fundingRateOverride == null) {
-    if (proposalType === 'IA' && row.organisationCategory !== 'PUB' && row.organisationCategory !== 'REC' && row.organisationCategory !== 'HES') {
+    if (proposalType === 'IA' && row.organisationCategory === 'PRC') {
       fundingRate = 70;
     }
   }
 
   const maxEuContribution = Math.round(totalEligibleCosts * (fundingRate / 100));
-  const requestedEuContribution = Math.min(maxEuContribution, totalEligibleCosts);
+  const requestedEuContribution = row.requestedEuContributionOverride != null
+    ? Math.min(row.requestedEuContributionOverride, maxEuContribution)
+    : maxEuContribution;
   const totalEstimatedIncome = requestedEuContribution + row.incomeGenerated + row.financialContributions + row.ownResources;
 
   return {
@@ -148,6 +152,7 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
       internallyInvoiced: Number(r.internally_invoiced) || 0,
       indirectCostsOverride: r.indirect_costs_override != null ? Number(r.indirect_costs_override) : null,
       fundingRateOverride: r.funding_rate_override != null ? Number(r.funding_rate_override) : null,
+      requestedEuContributionOverride: r.requested_eu_contribution != null ? Number(r.requested_eu_contribution) : null,
       incomeGenerated: Number(r.income_generated) || 0,
       financialContributions: Number(r.financial_contributions) || 0,
       ownResources: Number(r.own_resources) || 0,
@@ -369,7 +374,11 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
       const row = rows.find(r => r.id === rowId);
       if (!row) return;
 
-      const dbField = field.replace(/([A-Z])/g, '_$1').toLowerCase();
+      // Map camelCase field to snake_case DB column
+      const fieldToDbMap: Record<string, string> = {
+        requestedEuContributionOverride: 'requested_eu_contribution',
+      };
+      const dbField = fieldToDbMap[field] ?? field.replace(/([A-Z])/g, '_$1').toLowerCase();
       setSaving(true);
       const { error } = await supabase
         .from('budget_rows')

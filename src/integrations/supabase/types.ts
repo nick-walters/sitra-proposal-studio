@@ -373,6 +373,7 @@ export type Database = {
           purchase_equipment_justification: string | null
           purchase_other_goods: number
           purchase_travel: number
+          requested_eu_contribution: number | null
           role_label: string
           subcontracting_costs: number
           updated_at: string
@@ -397,6 +398,7 @@ export type Database = {
           purchase_equipment_justification?: string | null
           purchase_other_goods?: number
           purchase_travel?: number
+          requested_eu_contribution?: number | null
           role_label?: string
           subcontracting_costs?: number
           updated_at?: string
@@ -421,6 +423,7 @@ export type Database = {
           purchase_equipment_justification?: string | null
           purchase_other_goods?: number
           purchase_travel?: number
+          requested_eu_contribution?: number | null
           role_label?: string
           subcontracting_costs?: number
           updated_at?: string
