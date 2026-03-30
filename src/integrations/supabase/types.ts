@@ -356,6 +356,7 @@ export type Database = {
         Row: {
           created_at: string
           financial_contributions: number
+          financial_support_third_parties: number
           funding_rate_override: number | null
           id: string
           income_generated: number
@@ -368,6 +369,7 @@ export type Database = {
           participant_id: string
           personnel_costs: number
           pm_rate: number | null
+          procurement: number
           proposal_id: string
           purchase_equipment: number
           purchase_equipment_justification: string | null
@@ -381,6 +383,7 @@ export type Database = {
         Insert: {
           created_at?: string
           financial_contributions?: number
+          financial_support_third_parties?: number
           funding_rate_override?: number | null
           id?: string
           income_generated?: number
@@ -393,6 +396,7 @@ export type Database = {
           participant_id: string
           personnel_costs?: number
           pm_rate?: number | null
+          procurement?: number
           proposal_id: string
           purchase_equipment?: number
           purchase_equipment_justification?: string | null
@@ -406,6 +410,7 @@ export type Database = {
         Update: {
           created_at?: string
           financial_contributions?: number
+          financial_support_third_parties?: number
           funding_rate_override?: number | null
           id?: string
           income_generated?: number
@@ -418,6 +423,7 @@ export type Database = {
           participant_id?: string
           personnel_costs?: number
           pm_rate?: number | null
+          procurement?: number
           proposal_id?: string
           purchase_equipment?: number
           purchase_equipment_justification?: string | null

@@ -336,22 +336,47 @@ export function BudgetParticipantForm({
         </CardContent>
       </Card>
 
-      {/* D. Other cost categories */}
+      {/* D. Other Direct Cost Categories */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold">D. Internally Invoiced Goods and Services</CardTitle>
+          <CardTitle className="text-sm font-semibold">D. Other Direct Cost Categories</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground w-[260px] shrink-0">Internally invoiced</label>
+            <label className="text-sm text-muted-foreground w-[260px] shrink-0">D.1 Financial support to third parties</label>
+            <FormattedNumberInput
+              value={row.financialSupportThirdParties}
+              onChange={(v) => updateRow(row.id, 'financialSupportThirdParties', v)}
+              disabled={!editable}
+              decimals={2}
+              className="h-8 text-sm text-right flex-1"
+            />
+            <span className="text-xs text-muted-foreground w-4">€</span>
+            <CopyButton value={row.financialSupportThirdParties} />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-muted-foreground w-[260px] shrink-0">D.2 Internally invoiced goods and services</label>
             <FormattedNumberInput
               value={row.internallyInvoiced}
               onChange={(v) => updateRow(row.id, 'internallyInvoiced', v)}
               disabled={!editable}
+              decimals={2}
               className="h-8 text-sm text-right flex-1"
             />
             <span className="text-xs text-muted-foreground w-4">€</span>
             <CopyButton value={row.internallyInvoiced} />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-muted-foreground w-[260px] shrink-0">D.3 Procurement</label>
+            <FormattedNumberInput
+              value={row.procurement}
+              onChange={(v) => updateRow(row.id, 'procurement', v)}
+              disabled={!editable}
+              decimals={2}
+              className="h-8 text-sm text-right flex-1"
+            />
+            <span className="text-xs text-muted-foreground w-4">€</span>
+            <CopyButton value={row.procurement} />
           </div>
         </CardContent>
       </Card>

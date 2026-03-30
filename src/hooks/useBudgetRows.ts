@@ -13,7 +13,9 @@ export interface BudgetRowData {
   purchaseTravel: number;
   purchaseEquipment: number;
   purchaseOtherGoods: number;
+  financialSupportThirdParties: number;
   internallyInvoiced: number;
+  procurement: number;
   indirectCostsOverride: number | null;
   fundingRateOverride: number | null;
   requestedEuContributionOverride: number | null;
@@ -73,7 +75,9 @@ function computeRow(row: BudgetRowData, proposalType: string | null): ComputedBu
     row.purchaseTravel +
     row.purchaseEquipment +
     row.purchaseOtherGoods +
-    row.internallyInvoiced;
+    row.financialSupportThirdParties +
+    row.internallyInvoiced +
+    row.procurement;
 
   const indirectCostsBase = directCosts - row.subcontractingCosts;
   const indirectCosts = row.indirectCostsOverride ?? Math.round(indirectCostsBase * 0.25);
@@ -152,7 +156,9 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
       purchaseTravel: Number(r.purchase_travel) || 0,
       purchaseEquipment: Number(r.purchase_equipment) || 0,
       purchaseOtherGoods: Number(r.purchase_other_goods) || 0,
+      financialSupportThirdParties: Number(r.financial_support_third_parties) || 0,
       internallyInvoiced: Number(r.internally_invoiced) || 0,
+      procurement: Number(r.procurement) || 0,
       indirectCostsOverride: r.indirect_costs_override != null ? Number(r.indirect_costs_override) : null,
       fundingRateOverride: r.funding_rate_override != null ? Number(r.funding_rate_override) : null,
       requestedEuContributionOverride: r.requested_eu_contribution != null ? Number(r.requested_eu_contribution) : null,
@@ -467,7 +473,9 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
       purchaseTravel: 0,
       purchaseEquipment: 0,
       purchaseOtherGoods: 0,
+      financialSupportThirdParties: 0,
       internallyInvoiced: 0,
+      procurement: 0,
       incomeGenerated: 0,
       financialContributions: 0,
       ownResources: 0,
@@ -479,7 +487,9 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
       sums.purchaseTravel += r.purchaseTravel;
       sums.purchaseEquipment += r.purchaseEquipment;
       sums.purchaseOtherGoods += r.purchaseOtherGoods;
+      sums.financialSupportThirdParties += r.financialSupportThirdParties;
       sums.internallyInvoiced += r.internallyInvoiced;
+      sums.procurement += r.procurement;
       sums.directCosts += r.directCosts;
       sums.indirectCosts += r.indirectCosts;
       sums.totalEligibleCosts += r.totalEligibleCosts;
