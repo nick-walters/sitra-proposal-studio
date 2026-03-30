@@ -59,8 +59,10 @@ const PARTICIPANT_COLUMNS = [
   { key: 'subcontractingCosts', label: 'B. Subcontracting' },
   { key: 'purchaseEquipment', label: 'C. Equipment' },
   { key: 'indirectCosts', label: 'D. Indirect costs' },
-  { key: 'totalEligibleCosts', label: 'Total eligible' },
-  { key: 'requestedEuContribution', label: 'EU contribution' },
+  { key: 'totalEligibleCosts', label: 'Total costs' },
+  { key: 'fundingRate', label: 'Funding rate' },
+  { key: 'maxEuContribution', label: 'Max EU contribution' },
+  { key: 'requestedEuContribution', label: 'Requested budget' },
 ] as const;
 
 export function BudgetPortalSheet({
