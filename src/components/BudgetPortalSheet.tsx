@@ -36,6 +36,7 @@ import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
 import { toast } from 'sonner';
 import { FstpTab } from './FstpTab';
 import { BudgetParticipantForm } from './BudgetParticipantForm';
+import { A3EffortMatrix } from './A3EffortMatrix';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface BudgetPortalSheetProps {
@@ -422,6 +423,7 @@ export function BudgetPortalSheet({
             </Card>
           </TabsContent>
 
+
           {usesFstp && (
             <TabsContent value="fstp">
               <FstpTab
@@ -440,6 +442,9 @@ export function BudgetPortalSheet({
             </TabsContent>
           )}
         </Tabs>
+
+        {/* Staff Effort Matrix */}
+        <A3EffortMatrix proposalId={proposalId} canEdit={canEdit} />
       </div>
 
       {/* Participant Budget Dialog */}
