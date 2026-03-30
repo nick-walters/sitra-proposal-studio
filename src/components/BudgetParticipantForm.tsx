@@ -57,6 +57,7 @@ export function BudgetParticipantForm({
     rows,
     justifications,
     subcontractingItems,
+    equipmentItems,
     loading,
     saving,
     updateRow,
@@ -64,6 +65,9 @@ export function BudgetParticipantForm({
     addSubcontractingItem,
     updateSubcontractingItem,
     deleteSubcontractingItem,
+    addEquipmentItem,
+    updateEquipmentItem,
+    deleteEquipmentItem,
   } = useBudgetRows(proposalId, proposalType);
 
   const { roleTier } = useProposalRole(proposalId);
