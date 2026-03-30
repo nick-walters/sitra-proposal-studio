@@ -68,14 +68,8 @@ export function B31EquipmentTable({ items, participants, proposalId }: Props) {
             const p = getParticipant(entry.participantId);
             const label = p ? `${p.participant_number}. ${p.organisation_short_name || p.organisation_name}` : 'Unknown';
 
-            // Combine all item justifications into one string
-            const combinedJustification = entry.items
-              .filter(item => item.description || item.justification)
-              .map(item => {
-                if (item.description && item.justification) return `${item.description}: ${item.justification}`;
-                return item.justification || item.description;
-              })
-              .join('; ') || '—';
+            // Use the justification directly from the single item
+            const justification = entry.items[0]?.justification || '—';
 
             return (
               <React.Fragment key={entry.participantId}>
@@ -91,7 +85,7 @@ export function B31EquipmentTable({ items, participants, proposalId }: Props) {
                     </span>
                   </td>
                   <td className={`${cellStyles} text-right border-y-0`}>{formatCurrency(entry.totalCost)}</td>
-                  <td className={`${cellStyles} border-y-0`}>{combinedJustification}</td>
+                  <td className={`${cellStyles} border-y-0`}>{justification}</td>
                 </tr>
               </React.Fragment>
             );

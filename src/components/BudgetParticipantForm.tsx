@@ -208,78 +208,37 @@ export function BudgetParticipantForm({
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold">B. Subcontracting Costs</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {rowSubItems.length === 0 && (
-            <p className="text-sm text-muted-foreground italic">No subcontracting costs added yet.</p>
-          )}
-          {rowSubItems.map((item, idx) => (
-            <div key={item.id} className="border rounded-lg p-3 space-y-2 bg-muted/20">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">Subcontracting cost {idx + 1}</span>
-                {editable && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={() => deleteSubcontractingItem(item.id)}
-                  >
-                    <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                  </Button>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-muted-foreground w-[100px] shrink-0">Description</label>
-                <Input
-                  value={item.description}
-                  onChange={(e) => updateSubcontractingItem(item.id, 'description', e.target.value)}
-                  disabled={!editable}
-                  className="h-8 text-sm flex-1"
-                  placeholder="Description of subcontracted work"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-muted-foreground w-[100px] shrink-0">Amount</label>
-                <FormattedNumberInput
-                  value={item.amount}
-                  onChange={(v) => updateSubcontractingItem(item.id, 'amount', v)}
-                  disabled={!editable}
-                  className="h-8 text-sm text-right flex-1"
-                />
-                <span className="text-xs text-muted-foreground w-4">€</span>
-                <CopyButton value={item.amount} />
-              </div>
-              <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">Justification</label>
-                <Textarea
-                  value={item.justification}
-                  onChange={(e) => updateSubcontractingItem(item.id, 'justification', e.target.value)}
-                  disabled={!editable}
-                  className="text-sm min-h-[60px]"
-                  placeholder="Justify why this work needs to be subcontracted"
-                />
-              </div>
-            </div>
-          ))}
-          {editable && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => addSubcontractingItem(row.id)}
-              className="w-full"
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              Add subcontracting cost
-            </Button>
-          )}
-          {rowSubItems.length > 0 && (
-            <div className="flex items-center justify-between pt-2 border-t text-sm">
-              <span className="font-medium">Total subcontracting costs</span>
-              <div className="flex items-center gap-1">
-                <span className="font-semibold tabular-nums">{formatCurrency(subTotal)}</span>
-                <CopyButton value={subTotal} />
-              </div>
-            </div>
-          )}
+        <CardContent className="space-y-3">
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-muted-foreground w-[260px] shrink-0">Total subcontracting costs</label>
+            <FormattedNumberInput
+              value={row.subcontractingCosts}
+              onChange={(v) => updateRow(row.id, 'subcontractingCosts', v)}
+              disabled={!editable}
+              className="h-8 text-sm text-right flex-1"
+            />
+            <span className="text-xs text-muted-foreground w-4">€</span>
+            <CopyButton value={row.subcontractingCosts} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm text-muted-foreground">Justification</label>
+            <Textarea
+              value={rowSubItems[0]?.justification ?? ''}
+              onChange={(e) => {
+                if (rowSubItems[0]) {
+                  updateSubcontractingItem(rowSubItems[0].id, 'justification', e.target.value);
+                } else {
+                  // Auto-create a single item to hold justification
+                  addSubcontractingItem(row.id).then(() => {
+                    // Will be available on next render
+                  });
+                }
+              }}
+              disabled={!editable}
+              className="text-sm min-h-[60px]"
+              placeholder="Justify why this work needs to be subcontracted"
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -300,89 +259,40 @@ export function BudgetParticipantForm({
             <span className="text-xs text-muted-foreground w-4">€</span>
             <CopyButton value={row.purchaseTravel} />
           </div>
-          {/* C.2 Equipment - granular items */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">C.2 Equipment</label>
-            {rowEquipItems.length === 0 && (
-              <p className="text-sm text-muted-foreground italic">No equipment costs added yet.</p>
-            )}
-            {rowEquipItems.map((item, idx) => (
-              <div key={item.id} className="border rounded-lg p-3 space-y-2 bg-muted/20">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-muted-foreground">Equipment cost {idx + 1}</span>
-                  {editable && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => deleteEquipmentItem(item.id)}
-                    >
-                      <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                    </Button>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="text-sm text-muted-foreground w-[100px] shrink-0">Description</label>
-                  <Input
-                    value={item.description}
-                    onChange={(e) => updateEquipmentItem(item.id, 'description', e.target.value)}
-                    disabled={!editable}
-                    className="h-8 text-sm flex-1"
-                    placeholder="Description of equipment"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="text-sm text-muted-foreground w-[100px] shrink-0">Amount</label>
-                  <FormattedNumberInput
-                    value={item.amount}
-                    onChange={(v) => updateEquipmentItem(item.id, 'amount', v)}
-                    disabled={!editable}
-                    className="h-8 text-sm text-right flex-1"
-                  />
-                  <span className="text-xs text-muted-foreground w-4">€</span>
-                  <CopyButton value={item.amount} />
-                </div>
-                {equipmentJustificationRequired && (
-                  <div className="space-y-1">
-                    <label className="text-sm text-muted-foreground">Justification</label>
-                    <Textarea
-                      value={item.justification}
-                      onChange={(e) => updateEquipmentItem(item.id, 'justification', e.target.value)}
-                      disabled={!editable}
-                      className="text-sm min-h-[60px]"
-                      placeholder="Justify this equipment purchase"
-                    />
-                  </div>
-                )}
-              </div>
-            ))}
-            {editable && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => addEquipmentItem(row.id)}
-                className="w-full"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Add equipment purchase cost
-              </Button>
-            )}
-            {rowEquipItems.length > 0 && (
-              <div className="flex items-center justify-between pt-2 border-t text-sm">
-                <span className="font-medium">Total equipment costs</span>
-                <div className="flex items-center gap-1">
-                  <span className="font-semibold tabular-nums">{formatCurrency(equipTotal)}</span>
-                  <CopyButton value={equipTotal} />
-                </div>
-              </div>
-            )}
-            {equipmentJustificationRequired && (
+          {/* C.2 Equipment */}
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-muted-foreground w-[260px] shrink-0">C.2 Equipment</label>
+            <FormattedNumberInput
+              value={row.purchaseEquipment}
+              onChange={(v) => updateRow(row.id, 'purchaseEquipment', v)}
+              disabled={!editable}
+              className="h-8 text-sm text-right flex-1"
+            />
+            <span className="text-xs text-muted-foreground w-4">€</span>
+            <CopyButton value={row.purchaseEquipment} />
+          </div>
+          {equipmentJustificationRequired && (
+            <div className="space-y-1 pl-[260px]">
+              <label className="text-sm text-muted-foreground">Equipment justification</label>
+              <Textarea
+                value={rowEquipItems[0]?.justification ?? ''}
+                onChange={(e) => {
+                  if (rowEquipItems[0]) {
+                    updateEquipmentItem(rowEquipItems[0].id, 'justification', e.target.value);
+                  } else {
+                    addEquipmentItem(row.id);
+                  }
+                }}
+                disabled={!editable}
+                className="text-sm min-h-[60px]"
+                placeholder="Justify this equipment purchase"
+              />
               <div className="flex items-center gap-1 text-xs text-amber-600">
                 <AlertTriangle className="w-3.5 h-3.5" />
-                <span>Equipment costs exceed 15% of personnel costs — justifications required and will appear in B3.1</span>
+                <span>Equipment costs exceed 15% of personnel costs — justification required and will appear in B3.1</span>
               </div>
-            )}
-          </div>
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <label className="text-sm text-muted-foreground w-[260px] shrink-0">C.3 Other goods, works and services</label>
             <FormattedNumberInput
