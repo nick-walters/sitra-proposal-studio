@@ -55,7 +55,9 @@ const COST_CATEGORIES = [
   { key: 'purchaseTravel', label: 'C.1 Travel and subsistence', description: 'Travel costs and related subsistence allowances' },
   { key: 'purchaseEquipment', label: 'C.2 Equipment', description: 'Depreciation costs for equipment, infrastructure, or other assets' },
   { key: 'purchaseOtherGoods', label: 'C.3 Other goods, works and services', description: 'Other purchases directly linked to the action' },
-  { key: 'internallyInvoiced', label: 'D. Internally invoiced goods and services', description: 'Unit costs for internally invoiced goods and services' },
+  { key: 'financialSupportThirdParties', label: 'D.1 Financial support to third parties', description: 'Grants, prizes, or similar support provided to third parties' },
+  { key: 'internallyInvoiced', label: 'D.2 Internally invoiced goods and services', description: 'Unit costs for internally invoiced goods and services' },
+  { key: 'procurement', label: 'D.3 Procurement', description: 'Procurement of goods, works or services' },
   { key: 'indirectCosts', label: 'E. Indirect costs', description: '25% flat rate on eligible direct costs (excluding subcontracting)', isIndirect: true },
 ] as const;
 
@@ -65,7 +67,9 @@ const PARTICIPANT_COLUMNS = [
   { key: 'purchaseTravel', label: 'C.1 Travel' },
   { key: 'purchaseEquipment', label: 'C.2 Equipment' },
   { key: 'purchaseOtherGoods', label: 'C.3 Other goods' },
-  { key: 'internallyInvoiced', label: 'D. Internally inv.' },
+  { key: 'financialSupportThirdParties', label: 'D.1 FSTP' },
+  { key: 'internallyInvoiced', label: 'D.2 Internally inv.' },
+  { key: 'procurement', label: 'D.3 Procurement' },
   { key: 'indirectCosts', label: 'E. Indirect costs' },
   { key: 'totalEligibleCosts', label: 'Total costs' },
   { key: 'fundingRate', label: 'Funding rate' },
