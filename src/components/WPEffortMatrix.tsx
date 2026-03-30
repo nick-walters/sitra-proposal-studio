@@ -68,8 +68,8 @@ export function WPEffortMatrix({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[200px]">Partner</TableHead>
-                <TableHead className="text-center w-[120px]">Person-months</TableHead>
+                <TableHead className="w-[200px] font-bold">Partner</TableHead>
+                <TableHead className="text-center w-[120px] font-bold">WP{wpNumber} staff effort (person-months)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -86,7 +86,7 @@ export function WPEffortMatrix({
                 </TableRow>
               ))}
               <TableRow className="bg-muted/30">
-                <TableCell className="font-semibold">Total</TableCell>
+                <TableCell className="font-semibold">WP total</TableCell>
                 <TableCell className="text-center font-bold">
                   {getTotal().toFixed(1)}
                 </TableCell>
