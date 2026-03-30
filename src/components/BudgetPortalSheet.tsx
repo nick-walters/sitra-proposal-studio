@@ -440,17 +440,22 @@ export function BudgetPortalSheet({
                       <tfoot>
                         <tr className="border-t-2 border-foreground/20 bg-muted/40 font-semibold">
                           <td className="sticky left-0 bg-muted/40 z-10 px-3 py-2 border-r font-bold">TOTAL</td>
-                          
+                          <td className="px-3 py-2 text-right border-r" />
+                          <td className="px-3 py-2 text-right border-r tabular-nums font-mono font-bold whitespace-nowrap">
+                            {(() => {
+                              const totalPMs = computedRows.reduce((s, r) => s + r.totalPersonMonths, 0);
+                              return Number.isInteger(totalPMs) ? totalPMs.toFixed(0) : totalPMs.toFixed(1);
+                            })()}
+                          </td>
                           {PARTICIPANT_COLUMNS.map(c => (
                             <td key={c.key} className="px-3 py-2 text-right border-r tabular-nums font-mono font-bold whitespace-nowrap">
-                              {c.key === 'fundingRate'
+                              {c.key === 'fundingRate' || c.key === 'requestedFundingRate'
                                 ? ''
                                 : formatCurrency((grandTotals as any)[c.key] || 0)}
                             </td>
                           ))}
                           <td className="px-3 py-2 text-right border-r font-bold">100%</td>
-                          {isAdmin && <td />}
-                          {canEdit && <td />}
+                          <td className="px-3 py-2 text-right border-r font-bold">100%</td>
                         </tr>
                       </tfoot>
                     </table>
