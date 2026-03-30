@@ -35,6 +35,8 @@ import { useState, useMemo } from 'react';
 import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
 import { toast } from 'sonner';
 import { FstpTab } from './FstpTab';
+import { BudgetParticipantForm } from './BudgetParticipantForm';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface BudgetPortalSheetProps {
   proposalId: string;
