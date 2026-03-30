@@ -10,14 +10,14 @@ export function formatNumber(value: number, decimals = 0): string {
 }
 
 /**
- * Format a number as Euro currency with thousand separators (e.g., 5000 → "€5,000").
+ * Format a number as Euro currency with € symbol prefix and 2 decimal places (e.g., 5000 → "€5,000.00").
  */
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-IE', {
     style: 'currency',
     currency: 'EUR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(amount);
 }
 
