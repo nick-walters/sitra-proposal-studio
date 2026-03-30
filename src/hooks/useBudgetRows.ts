@@ -152,6 +152,7 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
       internallyInvoiced: Number(r.internally_invoiced) || 0,
       indirectCostsOverride: r.indirect_costs_override != null ? Number(r.indirect_costs_override) : null,
       fundingRateOverride: r.funding_rate_override != null ? Number(r.funding_rate_override) : null,
+      requestedEuContributionOverride: r.requested_eu_contribution != null ? Number(r.requested_eu_contribution) : null,
       incomeGenerated: Number(r.income_generated) || 0,
       financialContributions: Number(r.financial_contributions) || 0,
       ownResources: Number(r.own_resources) || 0,
