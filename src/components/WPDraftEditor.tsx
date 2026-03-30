@@ -1004,15 +1004,6 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           readOnly={readOnly}
         />
 
-        {/* Staff Effort Matrix */}
-        <WPEffortMatrix
-          wpNumber={wpDraft.number}
-          wpId={wpDraft.id}
-          participants={participants}
-          effort={(wpDraft as any).wp_effort || []}
-          onEffortChange={updateWPEffort}
-          readOnly={readOnly}
-        />
       </div>
       
       {/* Citation Dialog */}
