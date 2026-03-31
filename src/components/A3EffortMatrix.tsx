@@ -159,7 +159,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
           Staff effort (person months per participant per WP)
         </CardTitle>
         <CardDescription>
-          Values are mirrored to Section B3.1.
+          Values are mirrored to Table 3.1.f.
         </CardDescription>
       </CardHeader>
       <CardContent>
