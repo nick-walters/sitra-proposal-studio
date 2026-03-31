@@ -209,7 +209,7 @@ export function BudgetParticipantForm({
   const colHeaders = showReq ? (
     <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-muted-foreground">
       <div className="w-[220px] shrink-0" />
-      <div className="flex-1 text-center">Total costs</div>
+      <div className="flex-1 text-center">Eligible costs</div>
       <div className="w-4" />
       <div className="w-8" />
       <div className="flex-1 text-center">Requested</div>
