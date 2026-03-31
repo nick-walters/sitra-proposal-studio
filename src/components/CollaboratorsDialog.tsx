@@ -96,6 +96,8 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
   const [checkingEmail, setCheckingEmail] = useState(false);
   const [foundUser, setFoundUser] = useState<{ id: string; fullName: string | null } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteRole, setInviteRole] = useState<'coordinator' | 'editor' | 'viewer'>('editor');
 
   // Subscribe to realtime presence for the current proposal
   useEffect(() => {
@@ -303,6 +305,112 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
     } else {
       toast.success(`${collab.fullName || collab.email} removed`);
       fetchProposalCollaborators();
+    }
+  };
+
+  const handleSendInvite = async () => {
+    if (!inviteEmail || selectedProposalIds.length === 0) return;
+
+    setInviteLoading(true);
+    try {
+      const emailLower = inviteEmail.trim().toLowerCase();
+
+      // Check if user already exists
+      const { data: existingProfile } = await supabase
+        .from('profiles_basic')
+        .select('id, full_name')
+        .eq('email', emailLower)
+        .maybeSingle();
+
+      if (existingProfile) {
+        // User exists — grant roles directly
+        let addedCount = 0;
+        let skippedCount = 0;
+        for (const pid of selectedProposalIds) {
+          const { data: existingRole } = await supabase
+            .from('user_roles')
+            .select('id')
+            .eq('user_id', existingProfile.id)
+            .eq('proposal_id', pid)
+            .maybeSingle();
+
+          if (existingRole) {
+            skippedCount++;
+          } else {
+            const { error } = await supabase.from('user_roles').insert({
+              user_id: existingProfile.id,
+              proposal_id: pid,
+              role: inviteRole,
+            });
+            if (!error) addedCount++;
+          }
+        }
+        if (addedCount > 0) {
+          toast.success(`${existingProfile.full_name || emailLower} granted ${ROLE_LABELS[inviteRole]} access to ${addedCount} proposal(s)`);
+        }
+        if (skippedCount > 0) {
+          toast.info(`Already had access to ${skippedCount} proposal(s)`);
+        }
+      } else {
+        // User doesn't exist — invite via edge function, then grant roles
+        // Use the first proposal's acronym for the invitation email
+        const { data: firstProposal } = await supabase
+          .from('proposals')
+          .select('acronym')
+          .eq('id', selectedProposalIds[0])
+          .maybeSingle();
+
+        const { data: inviteResult, error: inviteError } = await supabase.functions.invoke('invite-user', {
+          body: {
+            email: emailLower,
+            fullName: emailLower.split('@')[0],
+            proposalId: selectedProposalIds[0],
+            proposalAcronym: firstProposal?.acronym || 'Proposal',
+          },
+        });
+
+        const fallbackSignupUrl = `${window.location.origin}/auth`;
+        const signupUrl = inviteResult?.signupUrl || fallbackSignupUrl;
+
+        if (inviteError) {
+          console.error('Invite error:', inviteError);
+          try {
+            await navigator.clipboard.writeText(signupUrl);
+            toast.info('Invite email failed. Signup link copied to clipboard for manual sharing.');
+          } catch {
+            toast.info(`Invite email failed. Share this signup link manually: ${signupUrl}`);
+          }
+        } else {
+          // Grant roles using the new user's ID
+          const newUserId = inviteResult?.userId;
+          if (newUserId) {
+            for (const pid of selectedProposalIds) {
+              await supabase.from('user_roles').insert({
+                user_id: newUserId,
+                proposal_id: pid,
+                role: inviteRole,
+              });
+            }
+          }
+
+          try {
+            await navigator.clipboard.writeText(signupUrl);
+            toast.success(`Invitation sent to ${emailLower}. Backup signup link copied.`);
+          } catch {
+            toast.success(`Invitation sent to ${emailLower}. If they don't receive it, share: ${signupUrl}`);
+          }
+        }
+      }
+
+      setInviteEmail('');
+      setSelectedProposalIds([]);
+      setInviteRole('editor');
+      if (proposalId) fetchProposalCollaborators();
+    } catch (error) {
+      console.error('Error sending invite:', error);
+      toast.error('Failed to send invitation');
+    } finally {
+      setInviteLoading(false);
     }
   };
 
@@ -647,10 +755,26 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
                       </p>
                     </div>
 
+                    <div className="space-y-2">
+                      <Label>Access level</Label>
+                      <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as 'coordinator' | 'editor' | 'viewer')}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="coordinator">Coordinator</SelectItem>
+                          <SelectItem value="editor">Editor</SelectItem>
+                          <SelectItem value="viewer">Viewer</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                     <Button 
-                      className="w-full"
-                      disabled={!inviteEmail || selectedProposalIds.length === 0}
+                      className="w-full gap-2"
+                      disabled={inviteLoading || !inviteEmail || selectedProposalIds.length === 0}
+                      onClick={handleSendInvite}
                     >
+                      {inviteLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                       Send Invite
                     </Button>
                   </div>
