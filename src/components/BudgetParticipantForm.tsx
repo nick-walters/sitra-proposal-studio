@@ -261,7 +261,7 @@ export function BudgetParticipantForm({
           </div>
           {/* C.2 Equipment */}
           <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground w-[260px] shrink-0">C.2 Equipment</label>
+            <label className="text-sm text-muted-foreground w-[260px] shrink-0">C.2. Equipment</label>
             <FormattedNumberInput
               value={row.purchaseEquipment}
               onChange={(v) => updateRow(row.id, 'purchaseEquipment', v)}
