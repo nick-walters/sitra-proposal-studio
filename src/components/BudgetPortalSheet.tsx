@@ -216,7 +216,7 @@ export function BudgetPortalSheet({
 
                       return (
                         <TableRow key={cat.key}>
-                          <TableCell>
+                          <TableCell className="px-2 py-1">
                             <div className="flex items-center gap-2">
                               <span className="font-medium">{cat.label}</span>
                               <TooltipProvider>
