@@ -486,7 +486,7 @@ export function BudgetPortalSheet({
                                 </span>
                               </td>
                               <td className={cn("px-2 py-1 text-right border-r tabular-nums font-mono whitespace-nowrap", (isMajorStandalone || isGroup) && 'font-bold')}>
-                                {formatCurrency(displayAmount)}
+                                {formatNumber(displayAmount, 2)}
                               </td>
                               <td className={cn("px-2 py-1 text-right border-r whitespace-nowrap", (isMajorStandalone || isGroup) && 'font-bold')}>
                                 {percentage ? `${percentage}%` : ''}
