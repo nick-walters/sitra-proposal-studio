@@ -755,10 +755,26 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
                       </p>
                     </div>
 
+                    <div className="space-y-2">
+                      <Label>Access level</Label>
+                      <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as 'coordinator' | 'editor' | 'viewer')}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="coordinator">Coordinator</SelectItem>
+                          <SelectItem value="editor">Editor</SelectItem>
+                          <SelectItem value="viewer">Viewer</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                     <Button 
-                      className="w-full"
-                      disabled={!inviteEmail || selectedProposalIds.length === 0}
+                      className="w-full gap-2"
+                      disabled={inviteLoading || !inviteEmail || selectedProposalIds.length === 0}
+                      onClick={handleSendInvite}
                     >
+                      {inviteLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                       Send Invite
                     </Button>
                   </div>
