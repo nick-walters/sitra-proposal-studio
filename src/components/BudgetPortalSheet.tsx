@@ -622,7 +622,7 @@ export function BudgetPortalSheet({
                                     ? `${(row as any)[c.key]}%`
                                     : c.key === 'requestedFundingRate'
                                     ? `${requestedFundingRate}%`
-                                    : formatCurrency((row as any)[c.key] as number)}
+                                    : formatNumber((row as any)[c.key] as number, 2)}
                                 </td>
                               ))}
                               <td className="px-2 py-1 text-right border-r whitespace-nowrap">{percentage}%</td>
