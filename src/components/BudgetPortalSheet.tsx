@@ -53,7 +53,7 @@ interface BudgetPortalSheetProps {
 
 const COST_CATEGORIES = [
   { key: 'personnelCosts', code: 'A.', name: 'Personnel costs', description: 'Costs of employees and natural persons working under a direct contract', isMajor: true },
-  { key: 'subcontractingCosts', code: 'B.', name: 'Subcontracting', description: 'Costs of subcontracting core tasks', isMajor: true },
+  { key: 'subcontractingCosts', code: 'B.', name: 'Subcontracting costs', description: 'Costs of subcontracting core tasks', isMajor: true },
   { key: null, code: 'C.', name: 'Purchase costs', description: 'Purchase costs', isMajor: true, isGroupHeader: true },
   { key: 'purchaseTravel', code: 'C.1.', name: 'Travel & subsistence', description: 'Travel costs and related subsistence allowances' },
   { key: 'purchaseEquipment', code: 'C.2.', name: 'Equipment', description: 'Depreciation costs for equipment, infrastructure, or other assets' },
@@ -65,8 +65,8 @@ const COST_CATEGORIES = [
 ] as const;
 
 const PARTICIPANT_COLUMNS = [
-  { key: 'personnelCosts', code: 'A.', name: 'Personnel', isMajor: true },
-  { key: 'subcontractingCosts', code: 'B.', name: 'Subcontracting', isMajor: true },
+  { key: 'personnelCosts', code: 'A.', name: 'Personnel costs', isMajor: true },
+  { key: 'subcontractingCosts', code: 'B.', name: 'Subcontracting costs', isMajor: true },
   { key: 'purchaseTravel', code: 'C.1.', name: 'Travel & subsistence' },
   { key: 'purchaseEquipment', code: 'C.2.', name: 'Equipment' },
   { key: 'purchaseOtherGoods', code: 'C.3.', name: 'Other goods' },
@@ -284,10 +284,10 @@ export function BudgetPortalSheet({
                           <th rowSpan={2} className="sticky left-0 bg-background z-10 px-2 py-1.5 text-left border-r font-bold whitespace-nowrap align-bottom">Participant</th>
                           <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-bottom" style={{ minWidth: '50px' }}>PM<br/>rate</th>
                           <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-bottom" style={{ minWidth: '50px' }}>Total<br/>PMs</th>
-                          {/* A. Personnel - standalone */}
-                          <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-bottom" style={{ minWidth: '60px' }}><div className="leading-tight">A.</div><div className="leading-tight">Personnel</div></th>
-                          {/* B. Subcontracting - standalone */}
-                          <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-bottom" style={{ minWidth: '60px' }}><div className="leading-tight">B.</div><div className="leading-tight">Subcontracting</div></th>
+                          {/* A. Personnel costs - standalone */}
+                          <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-bottom" style={{ minWidth: '60px' }}><div className="leading-tight">A.</div><div className="leading-tight">Personnel costs</div></th>
+                          {/* B. Subcontracting costs - standalone */}
+                          <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-bottom" style={{ minWidth: '60px' }}><div className="leading-tight">B.</div><div className="leading-tight">Subcontracting costs</div></th>
                           {/* C. Purchase costs - spans 3 */}
                           <th colSpan={3} className="px-2 py-1.5 text-left border-r font-bold border-b" style={{ minWidth: '60px' }}>C. Purchase costs</th>
                           {/* D. Other cost categories - spans 2 */}
