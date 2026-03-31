@@ -253,76 +253,38 @@ export function BudgetPortalSheet({
                         </tr>
                       </thead>
                       <tbody>
-                        {COST_CATEGORIES.map((cat, idx) => {
+                        {COST_CATEGORIES.map((cat) => {
                           const isGroup = 'isGroupHeader' in cat && cat.isGroupHeader;
                           const amount = cat.key ? (categoryTotals[cat.key] || 0) : 0;
-                          const percentage = grandTotals.totalEligibleCosts > 0 && cat.key
-                            ? ((amount / grandTotals.totalEligibleCosts) * 100).toFixed(1)
-                            : '';
                           const isMajorStandalone = 'isMajor' in cat && cat.isMajor && !isGroup;
 
-                          // Check if this is the last sub-item of a group to insert subtotal
-                          const nextCat = COST_CATEGORIES[idx + 1];
-                          const isLastInGroup = !isGroup && !('isMajor' in cat && cat.isMajor) && 
-                            (nextCat === undefined || ('isMajor' in nextCat && nextCat.isMajor));
-
-                          // Calculate group subtotal
-                          let subtotalRow = null;
-                          if (isLastInGroup) {
-                            // Find the group header code (C. or D.)
-                            let groupCode = '';
-                            let groupName = '';
-                            for (let j = idx; j >= 0; j--) {
-                              const prev = COST_CATEGORIES[j];
-                              if ('isGroupHeader' in prev && prev.isGroupHeader) {
-                                groupCode = prev.code;
-                                groupName = prev.name;
-                                break;
-                              }
-                            }
-                            // Sum all sub-items in the group
-                            let subtotal = 0;
-                            for (const c of COST_CATEGORIES) {
-                              if (!('isGroupHeader' in c) && !('isMajor' in c && c.isMajor) && c.key) {
-                                // Check if it belongs to this group by code prefix
-                                if (c.code.startsWith(groupCode.replace('.', ''))) {
-                                  subtotal += categoryTotals[c.key] || 0;
-                                }
-                              }
-                            }
-                            const subtotalPct = grandTotals.totalEligibleCosts > 0
-                              ? ((subtotal / grandTotals.totalEligibleCosts) * 100).toFixed(1)
-                              : '';
-                            subtotalRow = (
-                              <tr key={`subtotal-${groupCode}`} className="border-t bg-muted/20">
-                                <td className="px-2 py-1 text-left border-r font-bold">
-                                  {groupCode} {groupName} (subtotal)
-                                </td>
-                                <td className="px-2 py-1 text-right border-r tabular-nums font-mono font-bold whitespace-nowrap">
-                                  {formatCurrency(subtotal)}
-                                </td>
-                                <td className="px-2 py-1 text-right border-r font-bold whitespace-nowrap">{subtotalPct ? `${subtotalPct}%` : ''}</td>
-                              </tr>
-                            );
+                          // For group headers, compute subtotal from sub-items
+                          let displayAmount = amount;
+                          if (isGroup) {
+                            const prefix = cat.code.replace('.', '');
+                            displayAmount = COST_CATEGORIES
+                              .filter(c => !('isGroupHeader' in c) && !('isMajor' in c && c.isMajor) && c.key && c.code.startsWith(prefix))
+                              .reduce((sum, c) => sum + (categoryTotals[c.key!] || 0), 0);
                           }
 
+                          const percentage = grandTotals.totalEligibleCosts > 0 && (cat.key || isGroup)
+                            ? ((displayAmount / grandTotals.totalEligibleCosts) * 100).toFixed(1)
+                            : '';
+
                           return (
-                            <>
-                              <tr key={cat.code} className={cn('border-t', isGroup && 'bg-muted/30')}>
-                                <td className="px-2 py-1 text-left border-r">
-                                  <span className={cn(('isMajor' in cat && cat.isMajor) ? 'font-bold' : 'pl-4')}>
-                                    {cat.code} {cat.name}
-                                  </span>
-                                </td>
-                                <td className={cn("px-2 py-1 text-right border-r tabular-nums font-mono whitespace-nowrap", isMajorStandalone && 'font-bold')}>
-                                  {isGroup ? '' : formatCurrency(amount)}
-                                </td>
-                                <td className={cn("px-2 py-1 text-right border-r whitespace-nowrap", isMajorStandalone && 'font-bold')}>
-                                  {percentage ? `${percentage}%` : ''}
-                                </td>
-                              </tr>
-                              {subtotalRow}
-                            </>
+                            <tr key={cat.code} className={cn('border-t', isGroup && 'bg-muted/30')}>
+                              <td className="px-2 py-1 text-left border-r">
+                                <span className={cn(('isMajor' in cat && cat.isMajor) ? 'font-bold' : 'pl-4')}>
+                                  {cat.code} {cat.name}
+                                </span>
+                              </td>
+                              <td className={cn("px-2 py-1 text-right border-r tabular-nums font-mono whitespace-nowrap", (isMajorStandalone || isGroup) && 'font-bold')}>
+                                {formatCurrency(displayAmount)}
+                              </td>
+                              <td className={cn("px-2 py-1 text-right border-r whitespace-nowrap", (isMajorStandalone || isGroup) && 'font-bold')}>
+                                {percentage ? `${percentage}%` : ''}
+                              </td>
+                            </tr>
                           );
                         })}
                       </tbody>
