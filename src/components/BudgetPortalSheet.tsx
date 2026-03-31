@@ -112,7 +112,7 @@ export function BudgetPortalSheet({
   const categoryTotals = useMemo(() => {
     const result: Record<string, number> = {};
     for (const cat of COST_CATEGORIES) {
-      result[cat.key] = (grandTotals as any)[cat.key] || 0;
+      if (cat.key) result[cat.key] = (grandTotals as any)[cat.key] || 0;
     }
     return result;
   }, [grandTotals]);
