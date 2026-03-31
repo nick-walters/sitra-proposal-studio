@@ -149,7 +149,7 @@ export function BudgetPortalSheet({
 
   return (
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
-      <div className={cn("mx-auto space-y-6", activeTab === 'summary' ? 'max-w-full' : 'max-w-7xl')}>
+      <div className="mx-auto space-y-6 max-w-full">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
