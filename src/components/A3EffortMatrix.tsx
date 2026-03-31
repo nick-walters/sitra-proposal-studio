@@ -110,7 +110,7 @@ export function A3EffortMatrix({ proposalId, canEdit }: A3EffortMatrixProps) {
       </CardHeader>
       <CardContent>
         <div className="overflow-auto">
-          <table className="text-xs border-collapse w-full">
+          <table className="text-xs border-collapse w-full table-fixed">
             <thead>
               <tr className="border-b">
                 <th className="px-2 py-1.5 text-left border-r font-bold whitespace-nowrap">Participant</th>
