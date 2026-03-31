@@ -6,6 +6,7 @@ import { SaveIndicator } from '@/components/SaveIndicator';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import * as XLSX from 'xlsx';
 import {
   Table,
   TableBody,
