@@ -304,6 +304,7 @@ export function BudgetParticipantForm({
                   className="h-8 text-sm text-right flex-1"
                 />
                 <span className="text-xs text-muted-foreground w-4">€</span>
+                <CopyButton value={row.requestedPersonnelCosts ?? row.personnelCosts} />
               </>
             )}
           </div>
