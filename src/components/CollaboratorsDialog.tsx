@@ -96,6 +96,8 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
   const [checkingEmail, setCheckingEmail] = useState(false);
   const [foundUser, setFoundUser] = useState<{ id: string; fullName: string | null } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteRole, setInviteRole] = useState<'coordinator' | 'editor' | 'viewer'>('editor');
 
   // Subscribe to realtime presence for the current proposal
   useEffect(() => {
