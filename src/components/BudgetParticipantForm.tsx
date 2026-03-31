@@ -337,18 +337,6 @@ export function BudgetParticipantForm({
             <span className="text-xs text-muted-foreground w-4">€</span>
             <CopyButton value={row.internallyInvoiced} />
           </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground w-[260px] shrink-0">D.3 Procurement</label>
-            <FormattedNumberInput
-              value={row.procurement}
-              onChange={(v) => updateRow(row.id, 'procurement', v)}
-              disabled={!editable}
-              decimals={2}
-              className="h-8 text-sm text-right flex-1"
-            />
-            <span className="text-xs text-muted-foreground w-4">€</span>
-            <CopyButton value={row.procurement} />
-          </div>
         </CardContent>
       </Card>
 
