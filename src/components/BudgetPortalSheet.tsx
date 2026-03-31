@@ -218,7 +218,7 @@ export function BudgetPortalSheet({
       'C.1. Travel & subsistence (€)', 'C.2. Equipment (€)', 'C.3. Other goods (€)',
       'D.1. FSTP (€)', 'D.2. Internally inv. (€)',
       'E. Indirect costs (€)', 'Total costs (€)',
-      'Max. eligible funding rate (%)', 'Max EU contribution (€)',
+      'Max. eligible funding rate (%)', 'Max. EU contribution (€)',
       'Requested funding rate (%)', 'Requested budget (€)',
       'Share of total budget (%)', 'Share of requested budget (%)',
     ];
