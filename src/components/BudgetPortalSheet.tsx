@@ -218,10 +218,9 @@ export function BudgetPortalSheet({
                       return (
                         <TableRow key={cat.code} className={isGroup ? 'bg-muted/30' : ''}>
                           <TableCell className="px-2 py-1 text-left">
-                            <div className={cn('isMajor' in cat && cat.isMajor ? 'font-bold' : 'pl-4')}>
-                              <div className="text-xs text-muted-foreground">{cat.code}</div>
-                              <div>{cat.name}</div>
-                            </div>
+                            <span className={cn('isMajor' in cat && cat.isMajor ? 'font-bold' : 'pl-4')}>
+                              {cat.code} {cat.name}
+                            </span>
                           </TableCell>
                           <TableCell className="text-left font-mono px-2 py-1">
                             {isGroup ? '' : formatCurrency(amount)}
