@@ -789,6 +789,45 @@ export type Database = {
         }
         Relationships: []
       }
+      effort_row_locks: {
+        Row: {
+          id: string
+          locked_at: string
+          locked_by: string
+          participant_id: string
+          proposal_id: string
+        }
+        Insert: {
+          id?: string
+          locked_at?: string
+          locked_by: string
+          participant_id: string
+          proposal_id: string
+        }
+        Update: {
+          id?: string
+          locked_at?: string
+          locked_by?: string
+          participant_id?: string
+          proposal_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "effort_row_locks_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "effort_row_locks_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ethics_assessment: {
         Row: {
           animals: boolean | null

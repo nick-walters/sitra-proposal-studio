@@ -617,7 +617,7 @@ export function BudgetPortalSheet({
                   </div>
                 </CardContent>
               </Card>
-              <A3EffortMatrix proposalId={proposalId} canEdit={canEdit} />
+              <A3EffortMatrix proposalId={proposalId} canEdit={canEdit} isCoordinator={isAdmin} />
             </div>
             <Card>
               <CardHeader>
