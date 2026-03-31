@@ -462,11 +462,7 @@ export function BudgetPortalSheet({
             </TabsContent>
           )}
 
-          {isAdmin && (
-            <TabsContent value="validation">
-              <BudgetValidationEngine proposalId={proposalId} />
-            </TabsContent>
-          )}
+          <BudgetValidationDialog proposalId={proposalId} open={validationOpen} onOpenChange={setValidationOpen} />
         </Tabs>
 
       </div>
