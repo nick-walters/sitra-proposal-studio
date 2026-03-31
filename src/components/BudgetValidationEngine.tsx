@@ -1,20 +1,25 @@
-import { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { useState, useEffect } from 'react';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
   AlertTriangle,
   CheckCircle2,
-  Calculator,
   RefreshCw,
   Loader2,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
-interface BudgetValidationEngineProps {
+interface BudgetValidationDialogProps {
   proposalId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 interface ValidationRule {
@@ -25,7 +30,7 @@ interface ValidationRule {
   passed: boolean;
 }
 
-export function BudgetValidationEngine({ proposalId }: BudgetValidationEngineProps) {
+export function BudgetValidationDialog({ proposalId, open, onOpenChange }: BudgetValidationDialogProps) {
   const [rules, setRules] = useState<ValidationRule[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasRun, setHasRun] = useState(false);
@@ -43,13 +48,11 @@ export function BudgetValidationEngine({ proposalId }: BudgetValidationEnginePro
       const rows = budgetRows || [];
       const parts = participants || [];
 
-      // Build PM totals per participant from effort data
       const pmTotals = new Map<string, number>();
       (effortData || []).forEach((e: any) => {
         pmTotals.set(e.participant_id, (pmTotals.get(e.participant_id) || 0) + Number(e.person_months || 0));
       });
 
-      // Compute actual personnel costs (same logic as useBudgetRows.computeRow)
       const computePersonnelCosts = (r: any): number => {
         const pmRate = r.pm_rate != null ? Number(r.pm_rate) : null;
         const totalPMs = pmTotals.get(r.participant_id) || 0;
@@ -59,7 +62,6 @@ export function BudgetValidationEngine({ proposalId }: BudgetValidationEnginePro
         return Number(r.personnel_costs) || 0;
       };
 
-      // Calculate totals using correct personnel cost computation
       let totalDirect = 0;
       let subcontractingTotal = 0;
       let personnelTotal = 0;
@@ -82,12 +84,10 @@ export function BudgetValidationEngine({ proposalId }: BudgetValidationEnginePro
         byParticipant[r.participant_id] = (byParticipant[r.participant_id] || 0) + direct;
       });
 
-      // Rule 1: Empty budget
       if (rows.length === 0) {
         results.push({ id: 'empty-budget', name: 'Budget populated', severity: 'error', message: 'No budget data has been entered', passed: false });
       }
 
-      // Rule 2: Subcontracting ratio
       if (totalDirect > 0 && subcontractingTotal > 0) {
         const ratio = subcontractingTotal / totalDirect;
         const tooHigh = ratio > 0.3;
@@ -99,7 +99,6 @@ export function BudgetValidationEngine({ proposalId }: BudgetValidationEnginePro
         });
       }
 
-      // Rule 3: Zero-budget participants
       const zeroParts = parts.filter(p => (byParticipant[p.id] || 0) === 0);
       if (zeroParts.length > 0) {
         results.push({
@@ -109,7 +108,6 @@ export function BudgetValidationEngine({ proposalId }: BudgetValidationEnginePro
         });
       }
 
-      // Rule 4: Budget concentration
       if (totalDirect > 0 && parts.length > 1) {
         const over = Object.entries(byParticipant).find(([, amount]) => amount / totalDirect > 0.5);
         if (over) {
@@ -122,12 +120,10 @@ export function BudgetValidationEngine({ proposalId }: BudgetValidationEnginePro
         }
       }
 
-      // Rule 5: No personnel costs
       if (totalDirect > 0 && personnelTotal === 0) {
         results.push({ id: 'no-personnel', name: 'Personnel costs', severity: 'warning', message: 'No personnel costs have been entered', passed: false });
       }
 
-      // Rule 6: Equipment > 15% of personnel costs
       if (personnelTotal > 0) {
         const equipmentTotal = rows.reduce((s, r) => s + (Number(r.purchase_equipment) || 0), 0);
         if (equipmentTotal > personnelTotal * 0.15) {
@@ -147,59 +143,52 @@ export function BudgetValidationEngine({ proposalId }: BudgetValidationEnginePro
         }
       }
 
-      // If no issues were found at all, add a pass
       if (results.length === 0) {
         results.push({ id: 'all-ok', name: 'Budget populated', severity: 'info', message: 'Budget data looks good', passed: true });
       }
 
       setRules(results);
       setHasRun(true);
-      const errors = results.filter(r => !r.passed && r.severity === 'error').length;
-      const warnings = results.filter(r => !r.passed && r.severity === 'warning').length;
-      if (errors === 0 && warnings === 0) toast.success('All budget checks passed!');
-      else toast.info(`Found ${errors} error(s) and ${warnings} warning(s)`);
     } catch (error) {
       console.error('Budget validation error:', error);
-      toast.error('Failed to validate budget');
     } finally {
       setLoading(false);
     }
   };
 
+  // Auto-run validation when dialog opens
+  useEffect(() => {
+    if (open) {
+      runValidation();
+    }
+  }, [open]);
+
   const passedCount = rules.filter(r => r.passed).length;
   const percentage = rules.length > 0 ? Math.round((passedCount / rules.length) * 100) : 0;
 
   return (
-    <div className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Calculator className="h-5 w-5 text-primary" />
-            Budget Validation
-          </h2>
-          <p className="text-sm text-muted-foreground">Automated compliance checks for budget data</p>
-        </div>
-        <Button onClick={runValidation} disabled={loading} className="gap-2">
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-          {hasRun ? 'Re-validate' : 'Run validation'}
-        </Button>
-      </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Budget validation</DialogTitle>
+          <DialogDescription>Automated compliance checks for budget data</DialogDescription>
+        </DialogHeader>
 
-      {!hasRun && !loading && (
-        <Card>
-          <CardContent className="pt-6 text-center text-muted-foreground">
-            <Calculator className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Click "Run validation" to check budget compliance</p>
-          </CardContent>
-        </Card>
-      )}
+        {loading && (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
 
-      {hasRun && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription>{passedCount}/{rules.length} checks passed</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
+        {!loading && hasRun && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>{passedCount}/{rules.length} checks passed</span>
+              <Button variant="ghost" size="sm" onClick={runValidation} className="gap-1.5 h-7 text-xs">
+                <RefreshCw className="w-3 h-3" />
+                Re-validate
+              </Button>
+            </div>
             <Progress value={percentage} className="h-2" />
             <div className="space-y-2">
               {rules.map(rule => (
@@ -218,9 +207,9 @@ export function BudgetValidationEngine({ proposalId }: BudgetValidationEnginePro
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
