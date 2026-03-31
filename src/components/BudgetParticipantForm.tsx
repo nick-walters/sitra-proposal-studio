@@ -84,6 +84,7 @@ function CostInputRow({ label, totalValue, requestedValue, defaultRequested, sho
             className="h-8 text-sm text-right flex-1"
           />
           <span className="text-xs text-muted-foreground w-4">€</span>
+          <CopyButton value={requestedValue ?? defaultRequested} />
         </>
       )}
     </div>
@@ -303,6 +304,7 @@ export function BudgetParticipantForm({
                   className="h-8 text-sm text-right flex-1"
                 />
                 <span className="text-xs text-muted-foreground w-4">€</span>
+                <CopyButton value={row.requestedPersonnelCosts ?? row.personnelCosts} />
               </>
             )}
           </div>
@@ -349,6 +351,7 @@ export function BudgetParticipantForm({
                   className="h-8 text-sm text-right flex-1"
                 />
                 <span className="text-xs text-muted-foreground w-4">€</span>
+                <CopyButton value={row.requestedSubcontracting ?? row.subcontractingCosts} />
               </>
             )}
           </div>
@@ -530,6 +533,7 @@ export function BudgetParticipantForm({
                   </div>
                   <div className="flex items-center gap-1 flex-1 justify-end">
                     <span className="text-sm font-medium tabular-nums">{requestedPct.toFixed(1)}%</span>
+                    <CopyButton value={requestedPct.toFixed(1)} />
                   </div>
                 </div>
                 {/* EU contribution: max on left, requested on right */}
