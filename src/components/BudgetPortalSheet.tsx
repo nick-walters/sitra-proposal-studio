@@ -1,7 +1,7 @@
 import { useBudgetRows } from '@/hooks/useBudgetRows';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { formatCurrency } from '@/lib/formatNumber';
-import { BudgetValidationEngine } from '@/components/BudgetValidationEngine';
+import { BudgetValidationDialog } from '@/components/BudgetValidationEngine';
 import { SaveIndicator } from '@/components/SaveIndicator';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
