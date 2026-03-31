@@ -317,6 +317,7 @@ export function BudgetParticipantForm({
                 value={row.personnelCosts}
                 onChange={(v) => updateRow(row.id, 'personnelCosts', v)}
                 disabled={!editable}
+                decimals={2}
                 className="h-8 text-sm text-right flex-1"
               />
               <span className="text-xs text-muted-foreground w-4">€</span>
