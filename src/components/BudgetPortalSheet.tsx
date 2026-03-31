@@ -241,11 +241,33 @@ export function BudgetPortalSheet({
                   </TableBody>
                   <TableFooter>
                     <TableRow>
-                      <TableCell className="font-bold">Total Eligible Costs</TableCell>
-                      <TableCell className="text-right font-bold font-mono">
+                      <TableCell className="font-bold px-2 py-1">Total costs</TableCell>
+                      <TableCell className="text-left font-bold font-mono px-2 py-1">
                         {formatCurrency(grandTotals.totalEligibleCosts)}
                       </TableCell>
-                      <TableCell className="text-right font-bold">100%</TableCell>
+                      <TableCell className="text-left font-bold px-2 py-1">100%</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-bold px-2 py-1">Requested EU contribution</TableCell>
+                      <TableCell className="text-left font-bold font-mono px-2 py-1">
+                        {formatCurrency(grandTotals.requestedEuContribution)}
+                      </TableCell>
+                      <TableCell className="text-left font-bold px-2 py-1">
+                        {grandTotals.totalEligibleCosts > 0
+                          ? ((grandTotals.requestedEuContribution / grandTotals.totalEligibleCosts) * 100).toFixed(1)
+                          : '0'}%
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-bold px-2 py-1">In-kind contributions</TableCell>
+                      <TableCell className="text-left font-bold font-mono px-2 py-1">
+                        {formatCurrency(grandTotals.totalEligibleCosts - grandTotals.requestedEuContribution)}
+                      </TableCell>
+                      <TableCell className="text-left font-bold px-2 py-1">
+                        {grandTotals.totalEligibleCosts > 0
+                          ? (((grandTotals.totalEligibleCosts - grandTotals.requestedEuContribution) / grandTotals.totalEligibleCosts) * 100).toFixed(1)
+                          : '0'}%
+                      </TableCell>
                     </TableRow>
                   </TableFooter>
                 </Table>
