@@ -645,7 +645,7 @@ export function BudgetPortalSheet({
                             <td key={c.key} className="px-2 py-1 text-right border-r tabular-nums font-mono font-bold whitespace-nowrap">
                               {c.key === 'fundingRate' || c.key === 'requestedFundingRate'
                                 ? ''
-                                : formatCurrency((grandTotals as any)[c.key] || 0)}
+                                : formatNumber((grandTotals as any)[c.key] || 0, 2)}
                             </td>
                           ))}
                           <td className="px-2 py-1 text-right border-r font-bold">100%</td>
