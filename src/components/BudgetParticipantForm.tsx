@@ -533,6 +533,7 @@ export function BudgetParticipantForm({
                   </div>
                   <div className="flex items-center gap-1 flex-1 justify-end">
                     <span className="text-sm font-medium tabular-nums">{requestedPct.toFixed(1)}%</span>
+                    <CopyButton value={requestedPct.toFixed(1)} />
                   </div>
                 </div>
                 {/* EU contribution: max on left, requested on right */}
