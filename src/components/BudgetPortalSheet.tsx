@@ -432,6 +432,21 @@ export function BudgetPortalSheet({
       overviewRowIdx++;
     }
 
+    // Fix group header requested costs: sum their subcategory rows
+    // C. is at row index 2 (0-based in overviewAoa = index 3 with header), subcats C.1, C.2, C.3 follow
+    // D. similarly
+    for (let i = 1; i < overviewAoa.length; i++) {
+      const label = String(overviewAoa[i][0]);
+      if (label.startsWith('C. ')) {
+        // C.1, C.2, C.3 are at rows i+1, i+2, i+3 (1-based Excel = i+1, i+2, i+3)
+        const excelRow = i + 1; // header is row 1
+        overviewAoa[i][3] = { f: `=D${excelRow + 1}+D${excelRow + 2}+D${excelRow + 3}` };
+      } else if (label.startsWith('D. ')) {
+        const excelRow = i + 1;
+        overviewAoa[i][3] = { f: `=D${excelRow + 1}+D${excelRow + 2}` };
+      }
+    }
+
     const totalCostsRowNum = overviewRowIdx;
     overviewAoa.push([
       'Total costs',
