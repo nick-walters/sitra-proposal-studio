@@ -326,7 +326,7 @@ export function BudgetParticipantForm({
             <CopyButton value={row.financialSupportThirdParties} />
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground w-[260px] shrink-0">D.2 Internally invoiced goods and services</label>
+            <label className="text-sm text-muted-foreground w-[260px] shrink-0">D.2. Internally invoiced goods & services</label>
             <FormattedNumberInput
               value={row.internallyInvoiced}
               onChange={(v) => updateRow(row.id, 'internallyInvoiced', v)}
