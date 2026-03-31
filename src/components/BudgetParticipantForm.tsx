@@ -281,12 +281,13 @@ export function BudgetParticipantForm({
             <CopyButton value={row.pmRate ?? 0} />
             {showReq && <><div className="flex-1" /><div className="w-4" /></>}
           </div>
-          <div className="flex items-center justify-between py-1 text-sm">
-            <span className="text-muted-foreground">Total person months (from WP effort)</span>
-            <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2 py-1 text-sm">
+            <span className="text-muted-foreground w-[220px] shrink-0">Total person months (from WP effort)</span>
+            <div className="flex items-center gap-1 flex-1 justify-end">
               <span className="font-medium tabular-nums">{Number.isInteger(row.totalPersonMonths) ? row.totalPersonMonths.toFixed(0) : row.totalPersonMonths.toFixed(1)}</span>
               <CopyButton value={row.totalPersonMonths} />
             </div>
+            {showReq && <><div className="flex-1" /><div className="w-8" /></>}
           </div>
           <div className="flex items-center gap-2 py-1 border-t text-sm">
             <span className="font-medium w-[220px] shrink-0">Personnel costs {row.pmRate ? '(auto-calculated)' : ''}</span>
