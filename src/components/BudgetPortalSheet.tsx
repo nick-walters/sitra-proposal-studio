@@ -308,9 +308,9 @@ export function BudgetPortalSheet({
 
                           return (
                             <tr key={row.id} className={cn('border-t hover:bg-muted/50', row.isLocked && !isAdmin && 'opacity-60')}>
-                              <td className="sticky left-0 bg-background z-10 px-3 py-2 border-r whitespace-nowrap">
+                              <td className="sticky left-0 bg-background z-10 px-2 py-1 border-r whitespace-nowrap">
                                 <div className="flex items-center justify-between gap-2">
-                                  <span className="flex items-center gap-1">
+                                  <span className="flex items-center gap-1 font-bold">
                                     {row.participantNumber}. {row.participantShortName || row.participantName}
                                     {row.isLocked && !isAdmin && <Lock className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
                                   </span>
