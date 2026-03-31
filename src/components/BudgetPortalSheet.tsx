@@ -231,10 +231,10 @@ export function BudgetPortalSheet({
                               </TooltipProvider>
                             </div>
                           </TableCell>
-                          <TableCell className="text-right font-mono">
+                          <TableCell className="text-left font-mono px-2 py-1">
                             {formatCurrency(amount)}
                           </TableCell>
-                          <TableCell className="text-right">{percentage}%</TableCell>
+                          <TableCell className="text-left px-2 py-1">{percentage}%</TableCell>
                         </TableRow>
                       );
                     })}
