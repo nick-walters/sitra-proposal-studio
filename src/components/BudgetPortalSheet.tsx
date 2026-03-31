@@ -215,7 +215,7 @@ export function BudgetPortalSheet({
             <TabsList>
               <TabsTrigger value="budget">Budget</TabsTrigger>
               {usesFstp && <TabsTrigger value="fstp">Financial support to third parties (FSTP)</TabsTrigger>}
-              {isAdmin && <TabsTrigger value="validation">Validation</TabsTrigger>}
+              
             </TabsList>
             <div className="flex items-center gap-3">
               <Badge variant={proposalType === 'lump_sum' ? 'default' : 'secondary'}>
