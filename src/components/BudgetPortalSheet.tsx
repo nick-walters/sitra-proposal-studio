@@ -366,9 +366,6 @@ export function BudgetPortalSheet({
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Summary by participant</CardTitle>
-                <CardDescription>
-                  Overview of budget allocation across consortium partners
-                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="overflow-auto">
