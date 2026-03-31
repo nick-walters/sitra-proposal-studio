@@ -28,6 +28,15 @@ export interface BudgetRowData {
   pmRate: number | null;
   totalPersonMonths: number;
   purchaseEquipmentJustification: string;
+  hasInKind: boolean;
+  requestedPersonnelCosts: number | null;
+  requestedSubcontracting: number | null;
+  requestedTravel: number | null;
+  requestedEquipment: number | null;
+  requestedOtherGoods: number | null;
+  requestedFstp: number | null;
+  requestedInternallyInvoiced: number | null;
+  requestedIndirectCosts: number | null;
   // Joined participant info
   participantNumber: number;
   participantName: string;
