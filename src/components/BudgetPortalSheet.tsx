@@ -1,7 +1,7 @@
 import { useBudgetRows } from '@/hooks/useBudgetRows';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { formatCurrency } from '@/lib/formatNumber';
-import { BudgetValidationEngine } from '@/components/BudgetValidationEngine';
+import { BudgetValidationDialog } from '@/components/BudgetValidationEngine';
 import { SaveIndicator } from '@/components/SaveIndicator';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -95,6 +95,7 @@ export function BudgetPortalSheet({
   const { roleTier } = useProposalRole(proposalId);
   const isAdmin = roleTier === 'coordinator';
   const [activeTab, setActiveTab] = useState('budget');
+  const [validationOpen, setValidationOpen] = useState(false);
   const [editingParticipantId, setEditingParticipantId] = useState<string | null>(null);
 
   const editingRow = useMemo(
@@ -215,12 +216,18 @@ export function BudgetPortalSheet({
             <TabsList>
               <TabsTrigger value="budget">Budget</TabsTrigger>
               {usesFstp && <TabsTrigger value="fstp">Financial support to third parties (FSTP)</TabsTrigger>}
-              {isAdmin && <TabsTrigger value="validation">Validation</TabsTrigger>}
+              
             </TabsList>
             <div className="flex items-center gap-3">
               <Badge variant={proposalType === 'lump_sum' ? 'default' : 'secondary'}>
                 {proposalType === 'lump_sum' ? 'Lump sum budget model' : 'Actual costs budget model'}
               </Badge>
+              {isAdmin && (
+                <Button variant="outline" className="gap-2" onClick={() => setValidationOpen(true)}>
+                  <AlertCircle className="w-4 h-4" />
+                  Validate
+                </Button>
+              )}
               <Button variant="outline" className="gap-2" onClick={handleExportXlsx}>
                 <Download className="w-4 h-4" />
                 Export budget
@@ -456,11 +463,7 @@ export function BudgetPortalSheet({
             </TabsContent>
           )}
 
-          {isAdmin && (
-            <TabsContent value="validation">
-              <BudgetValidationEngine proposalId={proposalId} />
-            </TabsContent>
-          )}
+          <BudgetValidationDialog proposalId={proposalId} open={validationOpen} onOpenChange={setValidationOpen} />
         </Tabs>
 
       </div>
