@@ -119,58 +119,58 @@ export function A3EffortMatrix({ proposalId, canEdit }: A3EffortMatrixProps) {
       </CardHeader>
       <CardContent>
         <div className="overflow-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="font-bold whitespace-nowrap">Participant</TableHead>
+          <table className="text-xs border-collapse w-full">
+            <thead>
+              <tr className="border-b">
+                <th className="px-2 py-1.5 text-left border-r font-bold whitespace-nowrap">Participant</th>
                 {wps.map(wp => (
-                  <TableHead key={wp.id} className="text-center font-bold whitespace-nowrap">
+                  <th key={wp.id} className="px-2 py-1.5 text-center border-r font-bold whitespace-nowrap">
                     WP{wp.number}
-                  </TableHead>
+                  </th>
                 ))}
-                <TableHead className="text-center font-bold whitespace-nowrap">Total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+                <th className="px-2 py-1.5 text-center border-r font-bold whitespace-nowrap">Total</th>
+              </tr>
+            </thead>
+            <tbody>
               {participants.map(p => {
                 const pMap = matrix.get(p.id)!;
                 const rowTotal = wps.reduce((sum, wp) => sum + (pMap?.get(wp.id) || 0), 0);
                 return (
-                  <TableRow key={p.id}>
-                    <TableCell className="whitespace-nowrap">
+                  <tr key={p.id} className="border-t hover:bg-muted/50">
+                    <td className="px-2 py-1 border-r whitespace-nowrap font-bold">
                       {p.participant_number}. {p.organisation_short_name || p.organisation_name}
-                    </TableCell>
+                    </td>
                     {wps.map(wp => {
                       const val = pMap?.get(wp.id) || 0;
                       return (
-                        <TableCell key={wp.id} className="p-1 align-middle">
+                        <td key={wp.id} className="p-1 border-r align-middle">
                           <EffortInputCell
                             value={val}
                             canEdit={canEdit}
                             onSave={(nextValue) => saveEffortValue(p.id, wp.id, nextValue)}
                           />
-                        </TableCell>
+                        </td>
                       );
                     })}
-                    <TableCell className="text-center font-bold tabular-nums">
+                    <td className="px-2 py-1 text-center border-r font-bold tabular-nums">
                       {rowTotal ? formatPM(rowTotal) : '—'}
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 );
               })}
-            </TableBody>
-            <TableFooter>
-              <TableRow>
-                <TableCell className="font-bold">Total</TableCell>
+            </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-foreground/20 bg-muted/40 font-semibold">
+                <td className="px-2 py-1 border-r font-bold">Total</td>
                 {wps.map(wp => {
                   const colTotal = participants.reduce((sum, p) => sum + (matrix.get(p.id)?.get(wp.id) || 0), 0);
                   return (
-                    <TableCell key={wp.id} className="text-center font-bold tabular-nums">
+                    <td key={wp.id} className="px-2 py-1 text-center border-r font-bold tabular-nums">
                       {colTotal ? formatPM(colTotal) : '—'}
-                    </TableCell>
+                    </td>
                   );
                 })}
-                <TableCell className="text-center font-bold tabular-nums">
+                <td className="px-2 py-1 text-center border-r font-bold tabular-nums">
                   {(() => {
                     const grandTotal = participants.reduce((sum, p) => {
                       const pMap = matrix.get(p.id)!;
@@ -178,10 +178,10 @@ export function A3EffortMatrix({ proposalId, canEdit }: A3EffortMatrixProps) {
                     }, 0);
                     return grandTotal ? formatPM(grandTotal) : '—';
                   })()}
-                </TableCell>
-              </TableRow>
-            </TableFooter>
-          </Table>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
         </div>
       </CardContent>
     </Card>
