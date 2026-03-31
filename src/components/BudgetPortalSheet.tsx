@@ -1,4 +1,5 @@
 import { useBudgetRows } from '@/hooks/useBudgetRows';
+import { useQueryClient } from '@tanstack/react-query';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { formatCurrency } from '@/lib/formatNumber';
 import { BudgetValidationDialog } from '@/components/BudgetValidationEngine';
