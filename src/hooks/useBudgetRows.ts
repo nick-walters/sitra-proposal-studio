@@ -28,6 +28,15 @@ export interface BudgetRowData {
   pmRate: number | null;
   totalPersonMonths: number;
   purchaseEquipmentJustification: string;
+  hasInKind: boolean;
+  requestedPersonnelCosts: number | null;
+  requestedSubcontracting: number | null;
+  requestedTravel: number | null;
+  requestedEquipment: number | null;
+  requestedOtherGoods: number | null;
+  requestedFstp: number | null;
+  requestedInternallyInvoiced: number | null;
+  requestedIndirectCosts: number | null;
   // Joined participant info
   participantNumber: number;
   participantName: string;
@@ -101,9 +110,26 @@ function computeRow(row: BudgetRowData, proposalType: string | null): ComputedBu
   }
 
   const maxEuContribution = Math.round(totalEligibleCosts * (fundingRate / 100));
-  const requestedEuContribution = row.requestedEuContributionOverride != null
-    ? Math.min(row.requestedEuContributionOverride, maxEuContribution)
-    : maxEuContribution;
+  let requestedEuContribution: number;
+  if (row.hasInKind) {
+    // Sum per-category requested amounts
+    const reqPersonnel = row.requestedPersonnelCosts ?? personnelCosts;
+    const reqSub = row.requestedSubcontracting ?? row.subcontractingCosts;
+    const reqTravel = row.requestedTravel ?? row.purchaseTravel;
+    const reqEquip = row.requestedEquipment ?? row.purchaseEquipment;
+    const reqOther = row.requestedOtherGoods ?? row.purchaseOtherGoods;
+    const reqFstp = row.requestedFstp ?? row.financialSupportThirdParties;
+    const reqInternally = row.requestedInternallyInvoiced ?? row.internallyInvoiced;
+    const reqIndirect = row.requestedIndirectCosts ?? indirectCosts;
+    requestedEuContribution = Math.min(
+      reqPersonnel + reqSub + reqTravel + reqEquip + reqOther + reqFstp + reqInternally + reqIndirect,
+      maxEuContribution
+    );
+  } else {
+    requestedEuContribution = row.requestedEuContributionOverride != null
+      ? Math.min(row.requestedEuContributionOverride, maxEuContribution)
+      : maxEuContribution;
+  }
   const totalEstimatedIncome = requestedEuContribution + row.incomeGenerated + row.financialContributions + row.ownResources;
 
   return {
@@ -186,6 +212,15 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
       participantShortName: r.participants.organisation_short_name,
       country: r.participants.country,
       organisationCategory: r.participants.organisation_category,
+      hasInKind: r.has_in_kind ?? false,
+      requestedPersonnelCosts: r.requested_personnel_costs != null ? Number(r.requested_personnel_costs) : null,
+      requestedSubcontracting: r.requested_subcontracting != null ? Number(r.requested_subcontracting) : null,
+      requestedTravel: r.requested_travel != null ? Number(r.requested_travel) : null,
+      requestedEquipment: r.requested_equipment != null ? Number(r.requested_equipment) : null,
+      requestedOtherGoods: r.requested_other_goods != null ? Number(r.requested_other_goods) : null,
+      requestedFstp: r.requested_fstp != null ? Number(r.requested_fstp) : null,
+      requestedInternallyInvoiced: r.requested_internally_invoiced != null ? Number(r.requested_internally_invoiced) : null,
+      requestedIndirectCosts: r.requested_indirect_costs != null ? Number(r.requested_indirect_costs) : null,
     }));
 
     mapped.sort((a, b) => a.participantNumber - b.participantNumber);
@@ -497,8 +532,10 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     await supabase.from('budget_rows').update({ purchase_equipment: total }).eq('id', budgetRowId);
   }, [equipmentItems]);
 
-  const updateRow = useCallback((rowId: string, field: string, value: number | string) => {
-    setRows(prev => prev.map(r => r.id === rowId ? { ...r, [field]: value } : r));
+  const updateRow = useCallback((rowId: string, field: string, value: number | string | boolean) => {
+    // For hasInKind, ensure local state gets a boolean
+    const localValue = field === 'hasInKind' ? Boolean(value) : value;
+    setRows(prev => prev.map(r => r.id === rowId ? { ...r, [field]: localValue } : r));
 
     if (debounceTimers.current[rowId]) {
       clearTimeout(debounceTimers.current[rowId]);
@@ -513,10 +550,11 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
         requestedEuContributionOverride: 'requested_eu_contribution',
       };
       const dbField = fieldToDbMap[field] ?? field.replace(/([A-Z])/g, '_$1').toLowerCase();
+      const dbValue = field === 'hasInKind' ? Boolean(value) : value;
       setSaving(true);
       const { error } = await supabase
         .from('budget_rows')
-        .update({ [dbField]: value })
+        .update({ [dbField]: dbValue })
         .eq('id', rowId);
 
       if (error) {

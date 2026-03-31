@@ -9,6 +9,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { Lock, Loader2, Copy, Check, Plus, Trash2, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -43,6 +45,48 @@ function CopyButton({ value }: { value: string | number }) {
         <Copy className="w-3.5 h-3.5 text-muted-foreground" />
       )}
     </button>
+  );
+}
+
+interface CostRowProps {
+  label: string;
+  totalValue: number;
+  requestedValue: number | null;
+  defaultRequested: number;
+  showRequested: boolean;
+  editable: boolean;
+  onTotalChange: (v: number) => void;
+  onRequestedChange: (v: number) => void;
+  decimals?: number;
+}
+
+function CostInputRow({ label, totalValue, requestedValue, defaultRequested, showRequested, editable, onTotalChange, onRequestedChange, decimals = 2 }: CostRowProps) {
+  return (
+    <div className="flex items-center gap-2">
+      <label className="text-sm text-muted-foreground w-[220px] shrink-0">{label}</label>
+      <FormattedNumberInput
+        value={totalValue}
+        onChange={onTotalChange}
+        disabled={!editable}
+        decimals={decimals}
+        className="h-8 text-sm text-right flex-1"
+      />
+      <span className="text-xs text-muted-foreground w-4">€</span>
+      <CopyButton value={totalValue} />
+      {showRequested && (
+        <>
+          <FormattedNumberInput
+            value={requestedValue ?? defaultRequested}
+            onChange={onRequestedChange}
+            disabled={!editable}
+            allowZero
+            decimals={decimals}
+            className="h-8 text-sm text-right flex-1"
+          />
+          <span className="text-xs text-muted-foreground w-4">€</span>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -110,6 +154,28 @@ export function BudgetParticipantForm({
     return personnelCosts > 0 && row.purchaseEquipment > personnelCosts * 0.15;
   }, [row]);
 
+  // Compute the total requested from per-category values when in-kind is enabled
+  const inKindTotalRequested = useMemo(() => {
+    if (!row || !row.hasInKind) return 0;
+    const reqPersonnel = row.requestedPersonnelCosts ?? row.personnelCosts;
+    const reqSub = row.requestedSubcontracting ?? row.subcontractingCosts;
+    const reqTravel = row.requestedTravel ?? row.purchaseTravel;
+    const reqEquip = row.requestedEquipment ?? row.purchaseEquipment;
+    const reqOther = row.requestedOtherGoods ?? row.purchaseOtherGoods;
+    const reqFstp = row.requestedFstp ?? row.financialSupportThirdParties;
+    const reqInternally = row.requestedInternallyInvoiced ?? row.internallyInvoiced;
+    const reqIndirect = row.requestedIndirectCosts ?? row.indirectCosts;
+    return reqPersonnel + reqSub + reqTravel + reqEquip + reqOther + reqFstp + reqInternally + reqIndirect;
+  }, [row]);
+
+  const requestedPct = useMemo(() => {
+    if (!row || row.totalEligibleCosts <= 0) return 0;
+    if (row.hasInKind) {
+      return Math.round((inKindTotalRequested / row.totalEligibleCosts) * 1000) / 10;
+    }
+    return Math.round((row.requestedEuContribution / row.totalEligibleCosts) * 1000) / 10;
+  }, [row, inKindTotalRequested]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-12">
@@ -126,6 +192,18 @@ export function BudgetParticipantForm({
       </div>
     );
   }
+
+  const showReq = row.hasInKind;
+  const colHeaders = showReq ? (
+    <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-muted-foreground">
+      <div className="w-[220px] shrink-0" />
+      <div className="flex-1 text-center">Total costs</div>
+      <div className="w-4" />
+      <div className="w-8" />
+      <div className="flex-1 text-center">Requested</div>
+      <div className="w-4" />
+    </div>
+  ) : null;
 
   return (
     <div className="max-w-2xl mx-auto p-6 space-y-6">
@@ -155,6 +233,22 @@ export function BudgetParticipantForm({
         </Alert>
       )}
 
+      {/* In-kind contributions checkbox */}
+      <div className="flex items-center gap-2">
+        <Checkbox
+          id={`in-kind-${row.id}`}
+          checked={row.hasInKind}
+          onCheckedChange={(checked) => updateRow(row.id, 'hasInKind', !!checked)}
+          disabled={!editable}
+        />
+        <Label htmlFor={`in-kind-${row.id}`} className="text-sm font-medium cursor-pointer">
+          Will this participant make any in-kind contributions?
+        </Label>
+      </div>
+
+      {/* Column headers when in-kind is enabled */}
+      {colHeaders}
+
       {/* PM Rate & Personnel Costs */}
       <Card>
         <CardHeader className="pb-3">
@@ -162,7 +256,7 @@ export function BudgetParticipantForm({
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground w-[260px] shrink-0">Avg. weighted person month rate</label>
+            <label className="text-sm text-muted-foreground w-[220px] shrink-0">Avg. weighted person month rate</label>
             <FormattedNumberInput
               value={row.pmRate ?? 0}
               onChange={(v) => updateRow(row.id, 'pmRate', v)}
@@ -172,6 +266,7 @@ export function BudgetParticipantForm({
             />
             <span className="text-xs text-muted-foreground w-4">€</span>
             <CopyButton value={row.pmRate ?? 0} />
+            {showReq && <><div className="flex-1" /><div className="w-4" /></>}
           </div>
           <div className="flex items-center justify-between py-1 text-sm">
             <span className="text-muted-foreground">Total person months (from WP effort)</span>
@@ -180,16 +275,28 @@ export function BudgetParticipantForm({
               <CopyButton value={row.totalPersonMonths} />
             </div>
           </div>
-          <div className="flex items-center justify-between py-1 border-t text-sm">
-            <span className="font-medium">Personnel costs {row.pmRate ? '(auto-calculated)' : ''}</span>
-            <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2 py-1 border-t text-sm">
+            <span className="font-medium w-[220px] shrink-0">Personnel costs {row.pmRate ? '(auto-calculated)' : ''}</span>
+            <div className="flex items-center gap-1 flex-1 justify-end">
               <span className="font-semibold tabular-nums">{formatCurrency(row.personnelCosts)}</span>
               <CopyButton value={row.personnelCosts} />
             </div>
+            {showReq && (
+              <>
+                <FormattedNumberInput
+                  value={row.requestedPersonnelCosts ?? row.personnelCosts}
+                  onChange={(v) => updateRow(row.id, 'requestedPersonnelCosts', v)}
+                  disabled={!editable}
+                  allowZero
+                  className="h-8 text-sm text-right flex-1"
+                />
+                <span className="text-xs text-muted-foreground w-4">€</span>
+              </>
+            )}
           </div>
           {!row.pmRate && (
             <div className="flex items-center gap-2">
-              <label className="text-sm text-muted-foreground w-[260px] shrink-0">Personnel costs (manual)</label>
+              <label className="text-sm text-muted-foreground w-[220px] shrink-0">Personnel costs (manual)</label>
               <FormattedNumberInput
                 value={row.personnelCosts}
                 onChange={(v) => updateRow(row.id, 'personnelCosts', v)}
@@ -198,6 +305,7 @@ export function BudgetParticipantForm({
               />
               <span className="text-xs text-muted-foreground w-4">€</span>
               <CopyButton value={row.personnelCosts} />
+              {showReq && <><div className="flex-1" /><div className="w-4" /></>}
             </div>
           )}
         </CardContent>
@@ -210,7 +318,7 @@ export function BudgetParticipantForm({
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground w-[260px] shrink-0">Total subcontracting costs</label>
+            <label className="text-sm text-muted-foreground w-[220px] shrink-0">Total subcontracting costs</label>
             <FormattedNumberInput
               value={row.subcontractingCosts}
               onChange={(v) => updateRow(row.id, 'subcontractingCosts', v)}
@@ -219,6 +327,18 @@ export function BudgetParticipantForm({
             />
             <span className="text-xs text-muted-foreground w-4">€</span>
             <CopyButton value={row.subcontractingCosts} />
+            {showReq && (
+              <>
+                <FormattedNumberInput
+                  value={row.requestedSubcontracting ?? row.subcontractingCosts}
+                  onChange={(v) => updateRow(row.id, 'requestedSubcontracting', v)}
+                  disabled={!editable}
+                  allowZero
+                  className="h-8 text-sm text-right flex-1"
+                />
+                <span className="text-xs text-muted-foreground w-4">€</span>
+              </>
+            )}
           </div>
           <div className="space-y-1">
             <label className="text-sm text-muted-foreground">Justification</label>
@@ -228,10 +348,7 @@ export function BudgetParticipantForm({
                 if (rowSubItems[0]) {
                   updateSubcontractingItem(rowSubItems[0].id, 'justification', e.target.value);
                 } else {
-                  // Auto-create a single item to hold justification
-                  addSubcontractingItem(row.id).then(() => {
-                    // Will be available on next render
-                  });
+                  addSubcontractingItem(row.id).then(() => {});
                 }
               }}
               disabled={!editable}
@@ -248,31 +365,28 @@ export function BudgetParticipantForm({
           <CardTitle className="text-sm font-semibold">C. Purchase Costs</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground w-[260px] shrink-0">C.1. Travel & subsistence</label>
-            <FormattedNumberInput
-              value={row.purchaseTravel}
-              onChange={(v) => updateRow(row.id, 'purchaseTravel', v)}
-              disabled={!editable}
-              className="h-8 text-sm text-right flex-1"
-            />
-            <span className="text-xs text-muted-foreground w-4">€</span>
-            <CopyButton value={row.purchaseTravel} />
-          </div>
-          {/* C.2 Equipment */}
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground w-[260px] shrink-0">C.2. Equipment</label>
-            <FormattedNumberInput
-              value={row.purchaseEquipment}
-              onChange={(v) => updateRow(row.id, 'purchaseEquipment', v)}
-              disabled={!editable}
-              className="h-8 text-sm text-right flex-1"
-            />
-            <span className="text-xs text-muted-foreground w-4">€</span>
-            <CopyButton value={row.purchaseEquipment} />
-          </div>
+          <CostInputRow
+            label="C.1. Travel & subsistence"
+            totalValue={row.purchaseTravel}
+            requestedValue={row.requestedTravel}
+            defaultRequested={row.purchaseTravel}
+            showRequested={showReq}
+            editable={editable}
+            onTotalChange={(v) => updateRow(row.id, 'purchaseTravel', v)}
+            onRequestedChange={(v) => updateRow(row.id, 'requestedTravel', v)}
+          />
+          <CostInputRow
+            label="C.2. Equipment"
+            totalValue={row.purchaseEquipment}
+            requestedValue={row.requestedEquipment}
+            defaultRequested={row.purchaseEquipment}
+            showRequested={showReq}
+            editable={editable}
+            onTotalChange={(v) => updateRow(row.id, 'purchaseEquipment', v)}
+            onRequestedChange={(v) => updateRow(row.id, 'requestedEquipment', v)}
+          />
           {equipmentJustificationRequired && (
-            <div className="space-y-1 pl-[260px]">
+            <div className="space-y-1 pl-[220px]">
               <label className="text-sm text-muted-foreground">Equipment justification</label>
               <Textarea
                 value={rowEquipItems[0]?.justification ?? ''}
@@ -293,17 +407,16 @@ export function BudgetParticipantForm({
               </div>
             </div>
           )}
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground w-[260px] shrink-0">C.3. Other goods, works & services</label>
-            <FormattedNumberInput
-              value={row.purchaseOtherGoods}
-              onChange={(v) => updateRow(row.id, 'purchaseOtherGoods', v)}
-              disabled={!editable}
-              className="h-8 text-sm text-right flex-1"
-            />
-            <span className="text-xs text-muted-foreground w-4">€</span>
-            <CopyButton value={row.purchaseOtherGoods} />
-          </div>
+          <CostInputRow
+            label="C.3. Other goods, works & services"
+            totalValue={row.purchaseOtherGoods}
+            requestedValue={row.requestedOtherGoods}
+            defaultRequested={row.purchaseOtherGoods}
+            showRequested={showReq}
+            editable={editable}
+            onTotalChange={(v) => updateRow(row.id, 'purchaseOtherGoods', v)}
+            onRequestedChange={(v) => updateRow(row.id, 'requestedOtherGoods', v)}
+          />
         </CardContent>
       </Card>
 
@@ -313,30 +426,26 @@ export function BudgetParticipantForm({
           <CardTitle className="text-sm font-semibold">D. Other Direct Cost Categories</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground w-[260px] shrink-0">D.1. Financial support to third parties</label>
-            <FormattedNumberInput
-              value={row.financialSupportThirdParties}
-              onChange={(v) => updateRow(row.id, 'financialSupportThirdParties', v)}
-              disabled={!editable}
-              decimals={2}
-              className="h-8 text-sm text-right flex-1"
-            />
-            <span className="text-xs text-muted-foreground w-4">€</span>
-            <CopyButton value={row.financialSupportThirdParties} />
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground w-[260px] shrink-0">D.2. Internally invoiced goods & services</label>
-            <FormattedNumberInput
-              value={row.internallyInvoiced}
-              onChange={(v) => updateRow(row.id, 'internallyInvoiced', v)}
-              disabled={!editable}
-              decimals={2}
-              className="h-8 text-sm text-right flex-1"
-            />
-            <span className="text-xs text-muted-foreground w-4">€</span>
-            <CopyButton value={row.internallyInvoiced} />
-          </div>
+          <CostInputRow
+            label="D.1. Financial support to third parties"
+            totalValue={row.financialSupportThirdParties}
+            requestedValue={row.requestedFstp}
+            defaultRequested={row.financialSupportThirdParties}
+            showRequested={showReq}
+            editable={editable}
+            onTotalChange={(v) => updateRow(row.id, 'financialSupportThirdParties', v)}
+            onRequestedChange={(v) => updateRow(row.id, 'requestedFstp', v)}
+          />
+          <CostInputRow
+            label="D.2. Internally invoiced goods & services"
+            totalValue={row.internallyInvoiced}
+            requestedValue={row.requestedInternallyInvoiced}
+            defaultRequested={row.internallyInvoiced}
+            showRequested={showReq}
+            editable={editable}
+            onTotalChange={(v) => updateRow(row.id, 'internallyInvoiced', v)}
+            onRequestedChange={(v) => updateRow(row.id, 'requestedInternallyInvoiced', v)}
+          />
         </CardContent>
       </Card>
 
@@ -346,23 +455,46 @@ export function BudgetParticipantForm({
           <CardTitle className="text-sm font-semibold">Costs & Funding</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {[
-            { label: 'Direct costs', value: formatCurrency(row.directCosts), raw: row.directCosts },
-            { label: 'Indirect costs (25%)', value: formatCurrency(row.indirectCosts), raw: row.indirectCosts },
-            { label: 'Total eligible costs', value: formatCurrency(row.totalEligibleCosts), raw: row.totalEligibleCosts },
-          ].map(item => (
-            <div key={item.label} className="flex items-center justify-between py-1">
-              <span className="text-sm text-muted-foreground">{item.label}</span>
-              <div className="flex items-center gap-1">
-                <span className="text-sm font-medium tabular-nums">{item.value}</span>
-                <CopyButton value={item.raw} />
-              </div>
+          {/* Direct costs */}
+          <div className="flex items-center justify-between py-1">
+            <span className="text-sm text-muted-foreground">Direct costs</span>
+            <div className="flex items-center gap-1">
+              <span className="text-sm font-medium tabular-nums">{formatCurrency(row.directCosts)}</span>
+              <CopyButton value={row.directCosts} />
             </div>
-          ))}
+          </div>
+          {/* Indirect costs with optional requested */}
+          <div className="flex items-center gap-2 py-1">
+            <span className="text-sm text-muted-foreground flex-1">Indirect costs (25%)</span>
+            <div className="flex items-center gap-1">
+              <span className="text-sm font-medium tabular-nums">{formatCurrency(row.indirectCosts)}</span>
+              <CopyButton value={row.indirectCosts} />
+            </div>
+            {showReq && (
+              <>
+                <FormattedNumberInput
+                  value={row.requestedIndirectCosts ?? row.indirectCosts}
+                  onChange={(v) => updateRow(row.id, 'requestedIndirectCosts', v)}
+                  disabled={!editable}
+                  allowZero
+                  className="h-8 text-sm text-right w-32"
+                />
+                <span className="text-xs text-muted-foreground w-4">€</span>
+              </>
+            )}
+          </div>
+          {/* Total eligible costs */}
+          <div className="flex items-center justify-between py-1">
+            <span className="text-sm text-muted-foreground">Total eligible costs</span>
+            <div className="flex items-center gap-1">
+              <span className="text-sm font-medium tabular-nums">{formatCurrency(row.totalEligibleCosts)}</span>
+              <CopyButton value={row.totalEligibleCosts} />
+            </div>
+          </div>
 
           <div className="border-t pt-3 space-y-3">
             <div className="flex items-center gap-2">
-              <label className="text-sm text-muted-foreground w-[260px] shrink-0">
+              <label className="text-sm text-muted-foreground w-[220px] shrink-0">
                 Max. eligible funding rate
                 <span className="text-xs ml-1">({row.fundingRateOverride != null ? 'custom' : 'auto'})</span>
               </label>
@@ -383,57 +515,86 @@ export function BudgetParticipantForm({
               </div>
             </div>
 
-            {/* Requested funding rate - bidirectional: % or absolute */}
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-muted-foreground w-[260px] shrink-0">
-                Requested funding rate
-              </label>
-              <FormattedNumberInput
-                value={row.totalEligibleCosts > 0
-                  ? Math.round((row.requestedEuContribution / row.totalEligibleCosts) * 1000) / 10
-                  : 0}
-                onChange={(v) => {
-                  const absValue = Math.round(row.totalEligibleCosts * (v / 100));
-                  const capped = Math.min(absValue, row.maxEuContribution);
-                  updateRow(row.id, 'requestedEuContributionOverride', capped);
-                }}
-                disabled={!editable}
-                allowZero
-                decimals={1}
-                className="h-8 text-sm text-right flex-1"
-              />
-              <span className="text-xs text-muted-foreground w-4">%</span>
-              <CopyButton value={row.totalEligibleCosts > 0
-                ? Math.round((row.requestedEuContribution / row.totalEligibleCosts) * 1000) / 10
-                : 0} />
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-muted-foreground w-[260px] shrink-0">
-                Requested EU contribution
-              </label>
-              <FormattedNumberInput
-                value={row.requestedEuContributionOverride ?? row.maxEuContribution}
-                onChange={(v) => updateRow(row.id, 'requestedEuContributionOverride', v)}
-                disabled={!editable}
-                allowZero
-                className="h-8 text-sm text-right flex-1"
-              />
-              <span className="text-xs text-muted-foreground w-4">€</span>
-              <CopyButton value={row.requestedEuContribution} />
-            </div>
-            {row.requestedEuContribution < row.maxEuContribution && (
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground italic">
-                  Requesting {formatCurrency(row.maxEuContribution - row.requestedEuContribution)} less than maximum
-                </p>
-                <div className="flex items-center justify-between py-1">
-                  <span className="text-sm text-muted-foreground">In-kind contribution</span>
+            {showReq ? (
+              /* In-kind mode: show calculated total requested + percentage indicator */
+              <>
+                <div className="flex items-center justify-between py-1 border-t">
+                  <span className="text-sm font-medium">Total requested EU contribution</span>
                   <div className="flex items-center gap-1">
-                    <span className="text-sm font-medium tabular-nums">{formatCurrency(row.maxEuContribution - row.requestedEuContribution)}</span>
-                    <CopyButton value={row.maxEuContribution - row.requestedEuContribution} />
+                    <span className="text-sm font-semibold tabular-nums">{formatCurrency(Math.min(inKindTotalRequested, row.maxEuContribution))}</span>
+                    <CopyButton value={Math.min(inKindTotalRequested, row.maxEuContribution)} />
                   </div>
                 </div>
-              </div>
+                <div className="flex items-center justify-between py-1 text-sm">
+                  <span className="text-muted-foreground">Requested funding rate</span>
+                  <span className="font-medium tabular-nums">{requestedPct.toFixed(1)}%</span>
+                </div>
+                {inKindTotalRequested < row.maxEuContribution && (
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground italic">
+                      Requesting {formatCurrency(row.maxEuContribution - Math.min(inKindTotalRequested, row.maxEuContribution))} less than maximum
+                    </p>
+                    <div className="flex items-center justify-between py-1">
+                      <span className="text-sm text-muted-foreground">In-kind contribution</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-sm font-medium tabular-nums">{formatCurrency(row.totalEligibleCosts - Math.min(inKindTotalRequested, row.maxEuContribution))}</span>
+                        <CopyButton value={row.totalEligibleCosts - Math.min(inKindTotalRequested, row.maxEuContribution)} />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              /* Standard mode: editable requested funding rate + absolute amount */
+              <>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-muted-foreground w-[220px] shrink-0">
+                    Requested funding rate
+                  </label>
+                  <FormattedNumberInput
+                    value={requestedPct}
+                    onChange={(v) => {
+                      const absValue = Math.round(row.totalEligibleCosts * (v / 100));
+                      const capped = Math.min(absValue, row.maxEuContribution);
+                      updateRow(row.id, 'requestedEuContributionOverride', capped);
+                    }}
+                    disabled={!editable}
+                    allowZero
+                    decimals={1}
+                    className="h-8 text-sm text-right flex-1"
+                  />
+                  <span className="text-xs text-muted-foreground w-4">%</span>
+                  <CopyButton value={requestedPct} />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-muted-foreground w-[220px] shrink-0">
+                    Requested EU contribution
+                  </label>
+                  <FormattedNumberInput
+                    value={row.requestedEuContributionOverride ?? row.maxEuContribution}
+                    onChange={(v) => updateRow(row.id, 'requestedEuContributionOverride', v)}
+                    disabled={!editable}
+                    allowZero
+                    className="h-8 text-sm text-right flex-1"
+                  />
+                  <span className="text-xs text-muted-foreground w-4">€</span>
+                  <CopyButton value={row.requestedEuContribution} />
+                </div>
+                {row.requestedEuContribution < row.maxEuContribution && (
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground italic">
+                      Requesting {formatCurrency(row.maxEuContribution - row.requestedEuContribution)} less than maximum
+                    </p>
+                    <div className="flex items-center justify-between py-1">
+                      <span className="text-sm text-muted-foreground">In-kind contribution</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-sm font-medium tabular-nums">{formatCurrency(row.maxEuContribution - row.requestedEuContribution)}</span>
+                        <CopyButton value={row.maxEuContribution - row.requestedEuContribution} />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </CardContent>
@@ -451,7 +612,7 @@ export function BudgetParticipantForm({
             { key: 'ownResources' as const, label: 'Own resources' },
           ].map(f => (
             <div key={f.key} className="flex items-center gap-2">
-              <label className="text-sm text-muted-foreground w-[260px] shrink-0">{f.label}</label>
+              <label className="text-sm text-muted-foreground w-[220px] shrink-0">{f.label}</label>
               <FormattedNumberInput
                 value={row[f.key] as number}
                 onChange={(v) => updateRow(row.id, f.key, v)}
