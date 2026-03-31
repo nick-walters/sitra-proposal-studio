@@ -113,6 +113,23 @@ export function BudgetPortalSheet({
     return result;
   }, [grandTotals]);
 
+  // Compute per-category requested costs by summing each participant's category cost × their individual requested ratio
+  const categoryRequestedTotals = useMemo(() => {
+    const result: Record<string, number> = {};
+    for (const cat of COST_CATEGORIES) {
+      if (!cat.key) continue;
+      let total = 0;
+      for (const row of rows) {
+        const catValue = (row as any)[cat.key] || 0;
+        if (row.totalEligibleCosts > 0) {
+          total += catValue * (row.requestedEuContribution / row.totalEligibleCosts);
+        }
+      }
+      result[cat.key] = total;
+    }
+    return result;
+  }, [rows]);
+
   const handleExportXlsx = () => {
     const wb = XLSX.utils.book_new();
 
@@ -393,12 +410,41 @@ export function BudgetPortalSheet({
       }
 
       const pctFormula = { f: `=IF(B$${totalCostsRowTarget}>0,B${overviewRowIdx}/B$${totalCostsRowTarget}*100,0)` };
-      // Requested costs = total_budget_category * (total_requested / total_costs)
-      const requestedFormula = { f: `=IF(B$${totalCostsRowTarget}>0,B${overviewRowIdx}*D$${totalCostsRowTarget}/B$${totalCostsRowTarget},0)` };
+
+      // Requested costs: sum per-participant category cost × (requested / total) for that participant
+      const sFirstData = 2;
+      const sLastData = sTotal - 1;
+      const S = `'Summary by Participant'`;
+      let requestedFormula: any;
+      if (isGroup) {
+        // Will be filled after subcategory rows are placed — use placeholder sum
+        requestedFormula = 0; // will be overwritten below
+      } else if (cat.key && catToSummaryCol[cat.key]) {
+        const col = catToSummaryCol[cat.key];
+        requestedFormula = { f: `=SUMPRODUCT(IF(${S}!L${sFirstData}:L${sLastData}>0,${S}!${col}${sFirstData}:${col}${sLastData}*${S}!P${sFirstData}:P${sLastData}/${S}!L${sFirstData}:L${sLastData},0))` };
+      } else {
+        requestedFormula = 0;
+      }
+
       const requestedPctFormula = { f: `=IF(D$${totalCostsRowTarget}>0,D${overviewRowIdx}/D$${totalCostsRowTarget}*100,0)` };
 
       overviewAoa.push([`${cat.code} ${cat.name}`, amountCell, pctFormula, requestedFormula, requestedPctFormula]);
       overviewRowIdx++;
+    }
+
+    // Fix group header requested costs: sum their subcategory rows
+    // C. is at row index 2 (0-based in overviewAoa = index 3 with header), subcats C.1, C.2, C.3 follow
+    // D. similarly
+    for (let i = 1; i < overviewAoa.length; i++) {
+      const label = String(overviewAoa[i][0]);
+      if (label.startsWith('C. ')) {
+        // C.1, C.2, C.3 are at rows i+1, i+2, i+3 (1-based Excel = i+1, i+2, i+3)
+        const excelRow = i + 1; // header is row 1
+        overviewAoa[i][3] = { f: `=D${excelRow + 1}+D${excelRow + 2}+D${excelRow + 3}` };
+      } else if (label.startsWith('D. ')) {
+        const excelRow = i + 1;
+        overviewAoa[i][3] = { f: `=D${excelRow + 1}+D${excelRow + 2}` };
+      }
     }
 
     const totalCostsRowNum = overviewRowIdx;
@@ -560,11 +606,16 @@ export function BudgetPortalSheet({
                             ? ((displayAmount / grandTotals.totalEligibleCosts) * 100).toFixed(1)
                             : '';
 
-                          // Requested costs per category: proportional allocation
-                          const requestedRatio = grandTotals.totalEligibleCosts > 0
-                            ? grandTotals.requestedEuContribution / grandTotals.totalEligibleCosts
-                            : 0;
-                          const requestedAmount = (cat.key || isGroup) ? displayAmount * requestedRatio : 0;
+                          // Requested costs per category: sum of per-participant category cost × their requested ratio
+                          let requestedAmount = 0;
+                          if (cat.key) {
+                            requestedAmount = categoryRequestedTotals[cat.key] || 0;
+                          } else if (isGroup) {
+                            const prefix = cat.code.replace('.', '');
+                            requestedAmount = COST_CATEGORIES
+                              .filter(c => !('isGroupHeader' in c) && !('isMajor' in c && c.isMajor) && c.key && c.code.startsWith(prefix))
+                              .reduce((sum, c) => sum + (categoryRequestedTotals[c.key!] || 0), 0);
+                          }
                           const requestedPct = grandTotals.requestedEuContribution > 0 && (cat.key || isGroup)
                             ? ((requestedAmount / grandTotals.requestedEuContribution) * 100).toFixed(1)
                             : '';
