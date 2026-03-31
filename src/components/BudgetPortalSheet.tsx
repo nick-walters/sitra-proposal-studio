@@ -209,32 +209,24 @@ export function BudgetPortalSheet({
                   </TableHeader>
                   <TableBody>
                     {COST_CATEGORIES.map((cat) => {
-                      const amount = categoryTotals[cat.key] || 0;
-                      const percentage = grandTotals.totalEligibleCosts > 0
+                      const isGroup = 'isGroupHeader' in cat && cat.isGroupHeader;
+                      const amount = cat.key ? (categoryTotals[cat.key] || 0) : 0;
+                      const percentage = grandTotals.totalEligibleCosts > 0 && cat.key
                         ? ((amount / grandTotals.totalEligibleCosts) * 100).toFixed(1)
-                        : '0';
+                        : '';
 
                       return (
-                        <TableRow key={cat.key}>
-                          <TableCell className="px-2 py-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">{cat.label}</span>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger>
-                                    <Info className="w-4 h-4 text-muted-foreground" />
-                                  </TooltipTrigger>
-                                  <TooltipContent className="max-w-xs">
-                                    {cat.description}
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                        <TableRow key={cat.code} className={isGroup ? 'bg-muted/30' : ''}>
+                          <TableCell className="px-2 py-1 text-left">
+                            <div className={cn('isMajor' in cat && cat.isMajor ? 'font-bold' : 'pl-4')}>
+                              <div className="text-xs text-muted-foreground">{cat.code}</div>
+                              <div>{cat.name}</div>
                             </div>
                           </TableCell>
                           <TableCell className="text-left font-mono px-2 py-1">
-                            {formatCurrency(amount)}
+                            {isGroup ? '' : formatCurrency(amount)}
                           </TableCell>
-                          <TableCell className="text-left px-2 py-1">{percentage}%</TableCell>
+                          <TableCell className="text-left px-2 py-1">{percentage ? `${percentage}%` : ''}</TableCell>
                         </TableRow>
                       );
                     })}
