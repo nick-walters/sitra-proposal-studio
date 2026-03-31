@@ -107,8 +107,8 @@ export function BudgetParticipantForm({
     const personnelCosts = row.pmRate != null && row.pmRate > 0
       ? Math.round(row.pmRate * row.totalPersonMonths)
       : row.personnelCosts;
-    return personnelCosts > 0 && equipTotal > personnelCosts * 0.15;
-  }, [row, equipTotal]);
+    return personnelCosts > 0 && row.purchaseEquipment > personnelCosts * 0.15;
+  }, [row]);
 
   if (loading) {
     return (
