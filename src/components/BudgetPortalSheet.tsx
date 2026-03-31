@@ -337,10 +337,10 @@ export function BudgetPortalSheet({
                                   </span>
                                 </div>
                               </td>
-                              <td className="px-3 py-2 text-right border-r tabular-nums font-mono text-sm whitespace-nowrap">
+                              <td className="px-2 py-1 text-right border-r tabular-nums font-mono whitespace-nowrap">
                                 {row.pmRate != null ? formatCurrency(row.pmRate) : '—'}
                               </td>
-                              <td className="px-3 py-2 text-right border-r tabular-nums font-mono text-sm whitespace-nowrap">
+                              <td className="px-2 py-1 text-right border-r tabular-nums font-mono whitespace-nowrap">
                                 {Number.isInteger(row.totalPersonMonths) ? row.totalPersonMonths.toFixed(0) : row.totalPersonMonths.toFixed(1)}
                               </td>
                               
