@@ -68,7 +68,7 @@ const PARTICIPANT_COLUMNS = [
   { key: 'indirectCosts', code: 'E.', name: 'Indirect costs', isMajor: true },
   { key: 'totalEligibleCosts', code: '', name: 'Total costs', isMajor: true },
   { key: 'fundingRate', code: '', name: 'Max. eligible funding rate' },
-  { key: 'maxEuContribution', code: '', name: 'Max EU contribution' },
+  { key: 'maxEuContribution', code: '', name: 'Max. EU contribution' },
   { key: 'requestedFundingRate', code: '', name: 'Requested funding rate (%)' },
   { key: 'requestedEuContribution', code: '', name: 'Requested budget' },
 ] as const;
@@ -218,7 +218,7 @@ export function BudgetPortalSheet({
       'C.1. Travel & subsistence (€)', 'C.2. Equipment (€)', 'C.3. Other goods (€)',
       'D.1. FSTP (€)', 'D.2. Internally inv. (€)',
       'E. Indirect costs (€)', 'Total costs (€)',
-      'Max. eligible funding rate (%)', 'Max EU contribution (€)',
+      'Max. eligible funding rate (%)', 'Max. EU contribution (€)',
       'Requested funding rate (%)', 'Requested budget (€)',
       'Share of total budget (%)', 'Share of requested budget (%)',
     ];
@@ -610,7 +610,7 @@ export function BudgetPortalSheet({
                           <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-middle" style={{ minWidth: '60px' }}><div className="leading-tight">E.</div><div className="leading-tight">Indirect costs (€)</div></th>
                           <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-middle" style={{ minWidth: '60px' }}><div className="leading-tight">Total costs (€)</div></th>
                           <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-middle" style={{ minWidth: '60px' }}><div className="leading-tight">Max. eligible</div><div className="leading-tight">funding rate</div></th>
-                          <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-middle" style={{ minWidth: '60px' }}><div className="leading-tight">Max EU</div><div className="leading-tight">contribution (€)</div></th>
+                          <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-middle" style={{ minWidth: '60px' }}><div className="leading-tight">Max. EU</div><div className="leading-tight">contribution (€)</div></th>
                           <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-middle" style={{ minWidth: '60px' }}><div className="leading-tight">Requested</div><div className="leading-tight">funding rate (%)</div></th>
                           <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-middle" style={{ minWidth: '60px' }}><div className="leading-tight">Requested</div><div className="leading-tight">budget (€)</div></th>
                           <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-middle" style={{ minWidth: '60px' }}>Share of<br/>total budget<br/>(%)</th>
