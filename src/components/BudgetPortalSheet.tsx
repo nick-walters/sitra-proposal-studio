@@ -569,7 +569,7 @@ export function BudgetPortalSheet({
                           <td className="px-2 py-1 text-right border-r font-bold">
                             {grandTotals.totalEligibleCosts > 0
                               ? ((grandTotals.requestedEuContribution / grandTotals.totalEligibleCosts) * 100).toFixed(1)
-                              : '0'}%
+                              : '0.0'}
                           </td>
                         </tr>
                         <tr className="border-t bg-muted/40 font-semibold">
