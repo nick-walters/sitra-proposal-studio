@@ -195,6 +195,15 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
       participantShortName: r.participants.organisation_short_name,
       country: r.participants.country,
       organisationCategory: r.participants.organisation_category,
+      hasInKind: r.has_in_kind ?? false,
+      requestedPersonnelCosts: r.requested_personnel_costs != null ? Number(r.requested_personnel_costs) : null,
+      requestedSubcontracting: r.requested_subcontracting != null ? Number(r.requested_subcontracting) : null,
+      requestedTravel: r.requested_travel != null ? Number(r.requested_travel) : null,
+      requestedEquipment: r.requested_equipment != null ? Number(r.requested_equipment) : null,
+      requestedOtherGoods: r.requested_other_goods != null ? Number(r.requested_other_goods) : null,
+      requestedFstp: r.requested_fstp != null ? Number(r.requested_fstp) : null,
+      requestedInternallyInvoiced: r.requested_internally_invoiced != null ? Number(r.requested_internally_invoiced) : null,
+      requestedIndirectCosts: r.requested_indirect_costs != null ? Number(r.requested_indirect_costs) : null,
     }));
 
     mapped.sort((a, b) => a.participantNumber - b.participantNumber);
