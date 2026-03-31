@@ -51,32 +51,32 @@ interface BudgetPortalSheetProps {
 }
 
 const COST_CATEGORIES = [
-  { key: 'personnelCosts', label: 'A. Personnel costs', description: 'Costs of employees and natural persons working under a direct contract' },
-  { key: 'subcontractingCosts', label: 'B. Subcontracting', description: 'Costs of subcontracting core tasks' },
-  { key: 'purchaseTravel', label: 'C.1 Travel and subsistence', description: 'Travel costs and related subsistence allowances' },
-  { key: 'purchaseEquipment', label: 'C.2 Equipment', description: 'Depreciation costs for equipment, infrastructure, or other assets' },
-  { key: 'purchaseOtherGoods', label: 'C.3 Other goods, works and services', description: 'Other purchases directly linked to the action' },
-  { key: 'financialSupportThirdParties', label: 'D.1 Financial support to third parties', description: 'Grants, prizes, or similar support provided to third parties' },
-  { key: 'internallyInvoiced', label: 'D.2 Internally invoiced goods and services', description: 'Unit costs for internally invoiced goods and services' },
-  { key: 'procurement', label: 'D.3 Procurement', description: 'Procurement of goods, works or services' },
-  { key: 'indirectCosts', label: 'E. Indirect costs', description: '25% flat rate on eligible direct costs (excluding subcontracting)', isIndirect: true },
+  { key: 'personnelCosts', code: 'A.', name: 'Personnel costs', description: 'Costs of employees and natural persons working under a direct contract', isMajor: true },
+  { key: 'subcontractingCosts', code: 'B.', name: 'Subcontracting', description: 'Costs of subcontracting core tasks', isMajor: true },
+  { key: null, code: 'C.', name: 'Purchase costs', description: 'Purchase costs', isMajor: true, isGroupHeader: true },
+  { key: 'purchaseTravel', code: 'C.1.', name: 'Travel & subsistence', description: 'Travel costs and related subsistence allowances' },
+  { key: 'purchaseEquipment', code: 'C.2.', name: 'Equipment', description: 'Depreciation costs for equipment, infrastructure, or other assets' },
+  { key: 'purchaseOtherGoods', code: 'C.3.', name: 'Other goods, works & services', description: 'Other purchases directly linked to the action' },
+  { key: null, code: 'D.', name: 'Other cost categories', description: 'Other cost categories', isMajor: true, isGroupHeader: true },
+  { key: 'financialSupportThirdParties', code: 'D.1.', name: 'Financial support to third parties', description: 'Grants, prizes, or similar support provided to third parties' },
+  { key: 'internallyInvoiced', code: 'D.2.', name: 'Internally invoiced goods & services', description: 'Unit costs for internally invoiced goods and services' },
+  { key: 'indirectCosts', code: 'E.', name: 'Indirect costs', description: '25% flat rate on eligible direct costs (excluding subcontracting)', isMajor: true, isIndirect: true },
 ] as const;
 
 const PARTICIPANT_COLUMNS = [
-  { key: 'personnelCosts', label: 'A. Personnel' },
-  { key: 'subcontractingCosts', label: 'B. Subcontracting' },
-  { key: 'purchaseTravel', label: 'C.1 Travel' },
-  { key: 'purchaseEquipment', label: 'C.2 Equipment' },
-  { key: 'purchaseOtherGoods', label: 'C.3 Other goods' },
-  { key: 'financialSupportThirdParties', label: 'D.1 FSTP' },
-  { key: 'internallyInvoiced', label: 'D.2 Internally inv.' },
-  { key: 'procurement', label: 'D.3 Procurement' },
-  { key: 'indirectCosts', label: 'E. Indirect costs' },
-  { key: 'totalEligibleCosts', label: 'Total costs' },
-  { key: 'fundingRate', label: 'Max. eligible funding rate' },
-  { key: 'maxEuContribution', label: 'Max EU contribution' },
-  { key: 'requestedFundingRate', label: 'Requested funding rate (%)' },
-  { key: 'requestedEuContribution', label: 'Requested budget' },
+  { key: 'personnelCosts', code: 'A.', name: 'Personnel', isMajor: true },
+  { key: 'subcontractingCosts', code: 'B.', name: 'Subcontracting', isMajor: true },
+  { key: 'purchaseTravel', code: 'C.1.', name: 'Travel & subsistence' },
+  { key: 'purchaseEquipment', code: 'C.2.', name: 'Equipment' },
+  { key: 'purchaseOtherGoods', code: 'C.3.', name: 'Other goods' },
+  { key: 'financialSupportThirdParties', code: 'D.1.', name: 'FSTP' },
+  { key: 'internallyInvoiced', code: 'D.2.', name: 'Internally inv.' },
+  { key: 'indirectCosts', code: 'E.', name: 'Indirect costs', isMajor: true },
+  { key: 'totalEligibleCosts', code: '', name: 'Total costs', isMajor: true },
+  { key: 'fundingRate', code: '', name: 'Max. eligible funding rate' },
+  { key: 'maxEuContribution', code: '', name: 'Max EU contribution' },
+  { key: 'requestedFundingRate', code: '', name: 'Requested funding rate (%)' },
+  { key: 'requestedEuContribution', code: '', name: 'Requested budget' },
 ] as const;
 
 export function BudgetPortalSheet({
@@ -112,13 +112,13 @@ export function BudgetPortalSheet({
   const categoryTotals = useMemo(() => {
     const result: Record<string, number> = {};
     for (const cat of COST_CATEGORIES) {
-      result[cat.key] = (grandTotals as any)[cat.key] || 0;
+      if (cat.key) result[cat.key] = (grandTotals as any)[cat.key] || 0;
     }
     return result;
   }, [grandTotals]);
 
   const handleExportCSV = () => {
-    const headers = ['No.', 'Participant', 'Country', ...PARTICIPANT_COLUMNS.map(c => c.label)];
+    const headers = ['No.', 'Participant', 'Country', ...PARTICIPANT_COLUMNS.map(c => `${c.code} ${c.name}`.trim())];
     const csvRows = rows.map(row => [
       row.participantNumber,
       row.participantShortName || row.participantName,
@@ -209,32 +209,24 @@ export function BudgetPortalSheet({
                   </TableHeader>
                   <TableBody>
                     {COST_CATEGORIES.map((cat) => {
-                      const amount = categoryTotals[cat.key] || 0;
-                      const percentage = grandTotals.totalEligibleCosts > 0
+                      const isGroup = 'isGroupHeader' in cat && cat.isGroupHeader;
+                      const amount = cat.key ? (categoryTotals[cat.key] || 0) : 0;
+                      const percentage = grandTotals.totalEligibleCosts > 0 && cat.key
                         ? ((amount / grandTotals.totalEligibleCosts) * 100).toFixed(1)
-                        : '0';
+                        : '';
 
                       return (
-                        <TableRow key={cat.key}>
-                          <TableCell className="px-2 py-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">{cat.label}</span>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger>
-                                    <Info className="w-4 h-4 text-muted-foreground" />
-                                  </TooltipTrigger>
-                                  <TooltipContent className="max-w-xs">
-                                    {cat.description}
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                        <TableRow key={cat.code} className={isGroup ? 'bg-muted/30' : ''}>
+                          <TableCell className="px-2 py-1 text-left">
+                            <div className={cn('isMajor' in cat && cat.isMajor ? 'font-bold' : 'pl-4')}>
+                              <div className="text-xs text-muted-foreground">{cat.code}</div>
+                              <div>{cat.name}</div>
                             </div>
                           </TableCell>
                           <TableCell className="text-left font-mono px-2 py-1">
-                            {formatCurrency(amount)}
+                            {isGroup ? '' : formatCurrency(amount)}
                           </TableCell>
-                          <TableCell className="text-left px-2 py-1">{percentage}%</TableCell>
+                          <TableCell className="text-left px-2 py-1">{percentage ? `${percentage}%` : ''}</TableCell>
                         </TableRow>
                       );
                     })}
@@ -293,25 +285,12 @@ export function BudgetPortalSheet({
                           <th className="sticky left-0 bg-background z-10 px-3 py-3 text-left border-r font-bold whitespace-nowrap">Participant</th>
                           <th className="px-3 py-3 text-right border-r font-bold text-center" style={{ minWidth: '60px' }}>PM<br/>rate</th>
                           <th className="px-3 py-3 text-right border-r font-bold text-center" style={{ minWidth: '60px' }}>Total<br/>PMs</th>
-                          {PARTICIPANT_COLUMNS.map(c => {
-                            const parts = c.label.split(' ');
-                            const lines: string[] = [];
-                            let current = '';
-                            for (const word of parts) {
-                              if (current && (current + ' ' + word).length > 14) {
-                                lines.push(current);
-                                current = word;
-                              } else {
-                                current = current ? current + ' ' + word : word;
-                              }
-                            }
-                            if (current) lines.push(current);
-                            return (
-                              <th key={c.key} className="px-3 py-3 text-right border-r font-bold text-center" style={{ minWidth: '70px' }}>
-                                {lines.map((l, i) => <span key={i}>{l}{i < lines.length - 1 && <br/>}</span>)}
+                          {PARTICIPANT_COLUMNS.map(c => (
+                              <th key={c.key} className={cn("px-3 py-3 text-left border-r", 'isMajor' in c && c.isMajor ? 'font-bold' : 'font-bold')} style={{ minWidth: '70px' }}>
+                                {c.code && <div className="text-[10px] text-muted-foreground leading-tight">{c.code}</div>}
+                                <div className="leading-tight">{c.name}</div>
                               </th>
-                            );
-                          })}
+                            ))}
                           <th className="px-3 py-3 text-right border-r font-bold text-center" style={{ minWidth: '70px' }}>Share of<br/>total budget<br/>(%)</th>
                           <th className="px-3 py-3 text-right border-r font-bold text-center" style={{ minWidth: '70px' }}>Share of<br/>requested<br/>budget (%)</th>
                         </tr>

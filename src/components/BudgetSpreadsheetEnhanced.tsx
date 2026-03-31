@@ -72,9 +72,9 @@ const STANDARD_CATEGORIES = [
     label: 'C. Purchase costs',
     description: 'Costs of purchasing goods, works, and services',
     subcategories: [
-      { id: 'C.1', label: 'C.1 Travel and subsistence', description: 'Travel costs and related subsistence allowances' },
-      { id: 'C.2', label: 'C.2 Equipment', description: 'Depreciation costs for equipment, infrastructure, or other assets' },
-      { id: 'C.3', label: 'C.3 Other goods, works and services', description: 'Other purchases directly linked to the action' },
+      { id: 'C.1', label: 'C.1. Travel & subsistence', description: 'Travel costs and related subsistence allowances' },
+      { id: 'C.2', label: 'C.2. Equipment', description: 'Depreciation costs for equipment, infrastructure, or other assets' },
+      { id: 'C.3', label: 'C.3. Other goods, works & services', description: 'Other purchases directly linked to the action' },
     ],
   },
   {
@@ -82,9 +82,8 @@ const STANDARD_CATEGORIES = [
     label: 'D. Other cost categories',
     description: 'Costs falling under specific cost categories',
     subcategories: [
-      { id: 'D.1', label: 'D.1 Financial support to third parties', description: 'Costs of providing financial support to third parties' },
-      { id: 'D.2', label: 'D.2 Internally invoiced goods and services', description: 'Unit costs for internally invoiced goods and services' },
-      { id: 'D.3', label: 'D.3 Transnational access to research infrastructures', description: 'Unit costs for transnational and virtual access' },
+      { id: 'D.1', label: 'D.1. Financial support to third parties', description: 'Costs of providing financial support to third parties' },
+      { id: 'D.2', label: 'D.2. Internally invoiced goods & services', description: 'Unit costs for internally invoiced goods and services' },
     ],
   },
   {
