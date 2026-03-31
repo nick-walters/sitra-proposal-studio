@@ -2,6 +2,7 @@ import { useBudgetRows } from '@/hooks/useBudgetRows';
 import { useProposalRole } from '@/hooks/useProposalRole';
 import { formatCurrency } from '@/lib/formatNumber';
 import { BudgetValidationEngine } from '@/components/BudgetValidationEngine';
+import { SaveIndicator } from '@/components/SaveIndicator';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -153,11 +154,6 @@ export function BudgetPortalSheet({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-bold text-foreground">Part A3: Budget</h1>
-            {saving && (
-              <Badge variant="secondary" className="animate-pulse">
-                Saving...
-              </Badge>
-            )}
             <PartAGuidelinesDialog
               sectionTitle="Part A3: Budget"
               officialGuidelines={[{
@@ -171,6 +167,9 @@ export function BudgetPortalSheet({
                 content: 'Start by estimating person months per work package, then convert to costs.\n\nRecommendations:\n• Distribute effort proportionally across partners\n• Include buffer for unexpected costs where rules allow\n• Ensure consistency between budget and work package descriptions'
               }]}
             />
+            {activeTab !== 'validation' && (
+              <SaveIndicator saving={saving} lastSaved={null} />
+            )}
           </div>
           <div className="flex items-center gap-3">
             <Badge variant={proposalType === 'lump_sum' ? 'default' : 'secondary'}>
