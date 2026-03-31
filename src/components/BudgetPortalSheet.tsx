@@ -284,10 +284,10 @@ export function BudgetPortalSheet({
                           <th rowSpan={2} className="sticky left-0 bg-background z-10 px-2 py-1.5 text-left border-r font-bold whitespace-nowrap align-bottom">Participant</th>
                           <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-bottom" style={{ minWidth: '50px' }}>PM<br/>rate</th>
                           <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-bottom" style={{ minWidth: '50px' }}>Total<br/>PMs</th>
-                          {/* A. Personnel - standalone */}
-                          <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-bottom" style={{ minWidth: '60px' }}><div className="leading-tight">A.</div><div className="leading-tight">Personnel</div></th>
-                          {/* B. Subcontracting - standalone */}
-                          <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-bottom" style={{ minWidth: '60px' }}><div className="leading-tight">B.</div><div className="leading-tight">Subcontracting</div></th>
+                          {/* A. Personnel costs - standalone */}
+                          <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-bottom" style={{ minWidth: '60px' }}><div className="leading-tight">A.</div><div className="leading-tight">Personnel costs</div></th>
+                          {/* B. Subcontracting costs - standalone */}
+                          <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-bottom" style={{ minWidth: '60px' }}><div className="leading-tight">B.</div><div className="leading-tight">Subcontracting costs</div></th>
                           {/* C. Purchase costs - spans 3 */}
                           <th colSpan={3} className="px-2 py-1.5 text-left border-r font-bold border-b" style={{ minWidth: '60px' }}>C. Purchase costs</th>
                           {/* D. Other cost categories - spans 2 */}
