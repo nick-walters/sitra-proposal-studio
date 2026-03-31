@@ -285,25 +285,12 @@ export function BudgetPortalSheet({
                           <th className="sticky left-0 bg-background z-10 px-3 py-3 text-left border-r font-bold whitespace-nowrap">Participant</th>
                           <th className="px-3 py-3 text-right border-r font-bold text-center" style={{ minWidth: '60px' }}>PM<br/>rate</th>
                           <th className="px-3 py-3 text-right border-r font-bold text-center" style={{ minWidth: '60px' }}>Total<br/>PMs</th>
-                          {PARTICIPANT_COLUMNS.map(c => {
-                            const parts = c.label.split(' ');
-                            const lines: string[] = [];
-                            let current = '';
-                            for (const word of parts) {
-                              if (current && (current + ' ' + word).length > 14) {
-                                lines.push(current);
-                                current = word;
-                              } else {
-                                current = current ? current + ' ' + word : word;
-                              }
-                            }
-                            if (current) lines.push(current);
-                            return (
-                              <th key={c.key} className="px-3 py-3 text-right border-r font-bold text-center" style={{ minWidth: '70px' }}>
-                                {lines.map((l, i) => <span key={i}>{l}{i < lines.length - 1 && <br/>}</span>)}
+                          {PARTICIPANT_COLUMNS.map(c => (
+                              <th key={c.key} className={cn("px-3 py-3 text-left border-r", 'isMajor' in c && c.isMajor ? 'font-bold' : 'font-bold')} style={{ minWidth: '70px' }}>
+                                {c.code && <div className="text-[10px] text-muted-foreground leading-tight">{c.code}</div>}
+                                <div className="leading-tight">{c.name}</div>
                               </th>
-                            );
-                          })}
+                            ))}
                           <th className="px-3 py-3 text-right border-r font-bold text-center" style={{ minWidth: '70px' }}>Share of<br/>total budget<br/>(%)</th>
                           <th className="px-3 py-3 text-right border-r font-bold text-center" style={{ minWidth: '70px' }}>Share of<br/>requested<br/>budget (%)</th>
                         </tr>
