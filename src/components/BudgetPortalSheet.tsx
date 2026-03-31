@@ -63,8 +63,8 @@ const PARTICIPANT_COLUMNS = [
   { key: 'purchaseTravel', code: 'C.1.', name: 'Travel & subsistence' },
   { key: 'purchaseEquipment', code: 'C.2.', name: 'Equipment' },
   { key: 'purchaseOtherGoods', code: 'C.3.', name: 'Other goods' },
-  { key: 'financialSupportThirdParties', code: 'D.1.', name: 'FSTP' },
-  { key: 'internallyInvoiced', code: 'D.2.', name: 'Internally inv.' },
+  { key: 'financialSupportThirdParties', code: 'D.1.', name: 'Financial support to third parties' },
+  { key: 'internallyInvoiced', code: 'D.2.', name: 'Internally invoiced goods & services' },
   { key: 'indirectCosts', code: 'E.', name: 'Indirect costs', isMajor: true },
   { key: 'totalEligibleCosts', code: '', name: 'Total costs', isMajor: true },
   { key: 'fundingRate', code: '', name: 'Max. eligible funding rate' },
@@ -216,7 +216,7 @@ export function BudgetPortalSheet({
       'Participant', 'PM rate (€)', 'Total PMs',
       'A. Personnel costs (€)', 'B. Subcontracting costs (€)',
       'C.1. Travel & subsistence (€)', 'C.2. Equipment (€)', 'C.3. Other goods (€)',
-      'D.1. FSTP (€)', 'D.2. Internally inv. (€)',
+      'D.1. Financial support to third parties (€)', 'D.2. Internally invoiced goods & services (€)',
       'E. Indirect costs (€)', 'Total costs (€)',
       'Max. eligible funding rate (%)', 'Max. EU contribution (€)',
       'Requested funding rate (%)', 'Requested budget (€)',
@@ -620,8 +620,8 @@ export function BudgetPortalSheet({
                           <th className="px-2 py-1.5 text-left border-r font-bold" style={{ minWidth: '60px' }}><div className="leading-tight">C.1.</div><div className="leading-tight">Travel & subsistence</div></th>
                           <th className="px-2 py-1.5 text-left border-r font-bold" style={{ minWidth: '60px' }}><div className="leading-tight">C.2.</div><div className="leading-tight">Equipment</div></th>
                           <th className="px-2 py-1.5 text-left border-r font-bold" style={{ minWidth: '60px' }}><div className="leading-tight">C.3.</div><div className="leading-tight">Other goods</div></th>
-                          <th className="px-2 py-1.5 text-left border-r font-bold" style={{ minWidth: '60px' }}><div className="leading-tight">D.1.</div><div className="leading-tight">FSTP</div></th>
-                          <th className="px-2 py-1.5 text-left border-r font-bold" style={{ minWidth: '60px' }}><div className="leading-tight">D.2.</div><div className="leading-tight">Internally inv.</div></th>
+                          <th className="px-2 py-1.5 text-left border-r font-bold" style={{ minWidth: '60px' }}><div className="leading-tight">D.1.</div><div className="leading-tight">Financial support to third parties</div></th>
+                          <th className="px-2 py-1.5 text-left border-r font-bold" style={{ minWidth: '60px' }}><div className="leading-tight">D.2.</div><div className="leading-tight">Internally invoiced goods & services</div></th>
                         </tr>
                       </thead>
                       <tbody>
