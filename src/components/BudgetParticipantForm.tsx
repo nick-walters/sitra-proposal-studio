@@ -238,7 +238,7 @@ export function BudgetParticipantForm({
         <Checkbox
           id={`in-kind-${row.id}`}
           checked={row.hasInKind}
-          onCheckedChange={(checked) => updateRow(row.id, 'hasInKind', checked ? 1 : 0)}
+          onCheckedChange={(checked) => updateRow(row.id, 'hasInKind', !!checked)}
           disabled={!editable}
         />
         <Label htmlFor={`in-kind-${row.id}`} className="text-sm font-medium cursor-pointer">
