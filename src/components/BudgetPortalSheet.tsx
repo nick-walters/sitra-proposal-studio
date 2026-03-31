@@ -113,15 +113,31 @@ export function BudgetPortalSheet({
     return result;
   }, [grandTotals]);
 
-  // Compute per-category requested costs by summing each participant's category cost × their individual requested ratio
+  // Compute per-category requested costs
+  // For participants with hasInKind, use their explicit per-category requested values
+  // For others, use proportional allocation (category cost × requested/total ratio)
   const categoryRequestedTotals = useMemo(() => {
+    const catToRequestedField: Record<string, string> = {
+      personnelCosts: 'requestedPersonnelCosts',
+      subcontractingCosts: 'requestedSubcontracting',
+      purchaseTravel: 'requestedTravel',
+      purchaseEquipment: 'requestedEquipment',
+      purchaseOtherGoods: 'requestedOtherGoods',
+      financialSupportThirdParties: 'requestedFstp',
+      internallyInvoiced: 'requestedInternallyInvoiced',
+      indirectCosts: 'requestedIndirectCosts',
+    };
+
     const result: Record<string, number> = {};
     for (const cat of COST_CATEGORIES) {
       if (!cat.key) continue;
       let total = 0;
       for (const row of rows) {
         const catValue = (row as any)[cat.key] || 0;
-        if (row.totalEligibleCosts > 0) {
+        if (row.hasInKind) {
+          const reqField = catToRequestedField[cat.key];
+          total += reqField ? ((row as any)[reqField] ?? catValue) : catValue;
+        } else if (row.totalEligibleCosts > 0) {
           total += catValue * (row.requestedEuContribution / row.totalEligibleCosts);
         }
       }
