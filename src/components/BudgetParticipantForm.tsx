@@ -84,6 +84,7 @@ function CostInputRow({ label, totalValue, requestedValue, defaultRequested, sho
             className="h-8 text-sm text-right flex-1"
           />
           <span className="text-xs text-muted-foreground w-4">€</span>
+          <CopyButton value={requestedValue ?? defaultRequested} />
         </>
       )}
     </div>
