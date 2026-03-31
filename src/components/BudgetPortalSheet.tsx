@@ -513,8 +513,10 @@ export function BudgetPortalSheet({
                       <thead>
                         <tr className="border-b">
                           <th className="px-2 py-1.5 text-left border-r font-bold">Category</th>
-                          <th className="px-2 py-1.5 text-left border-r font-bold">Amount (€)</th>
-                          <th className="px-2 py-1.5 text-left border-r font-bold">% of Total</th>
+                          <th className="px-2 py-1.5 text-left border-r font-bold">Total budget (€)</th>
+                          <th className="px-2 py-1.5 text-left border-r font-bold">Share of total budget (%)</th>
+                          <th className="px-2 py-1.5 text-left border-r font-bold">Requested costs (€)</th>
+                          <th className="px-2 py-1.5 text-left border-r font-bold">Share of requested budget (%)</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -523,7 +525,6 @@ export function BudgetPortalSheet({
                           const amount = cat.key ? (categoryTotals[cat.key] || 0) : 0;
                           const isMajorStandalone = 'isMajor' in cat && cat.isMajor && !isGroup;
 
-                          // For group headers, compute subtotal from sub-items
                           let displayAmount = amount;
                           if (isGroup) {
                             const prefix = cat.code.replace('.', '');
@@ -536,6 +537,17 @@ export function BudgetPortalSheet({
                             ? ((displayAmount / grandTotals.totalEligibleCosts) * 100).toFixed(1)
                             : '';
 
+                          // Requested costs per category: proportional allocation
+                          const requestedRatio = grandTotals.totalEligibleCosts > 0
+                            ? grandTotals.requestedEuContribution / grandTotals.totalEligibleCosts
+                            : 0;
+                          const requestedAmount = (cat.key || isGroup) ? displayAmount * requestedRatio : 0;
+                          const requestedPct = grandTotals.requestedEuContribution > 0 && (cat.key || isGroup)
+                            ? ((requestedAmount / grandTotals.requestedEuContribution) * 100).toFixed(1)
+                            : '';
+
+                          const isBold = isMajorStandalone || isGroup;
+
                           return (
                             <tr key={cat.code} className={cn('border-t', (isGroup || isMajorStandalone) && 'bg-muted/30')}>
                               <td className="px-2 py-1 text-left border-r">
@@ -543,11 +555,17 @@ export function BudgetPortalSheet({
                                   {cat.code} {cat.name}
                                 </span>
                               </td>
-                              <td className={cn("px-2 py-1 text-right border-r tabular-nums font-mono whitespace-nowrap", (isMajorStandalone || isGroup) && 'font-bold')}>
+                              <td className={cn("px-2 py-1 text-right border-r tabular-nums font-mono whitespace-nowrap", isBold && 'font-bold')}>
                                 {formatNumber(displayAmount, 2)}
                               </td>
-                              <td className={cn("px-2 py-1 text-right border-r whitespace-nowrap", (isMajorStandalone || isGroup) && 'font-bold')}>
+                              <td className={cn("px-2 py-1 text-right border-r whitespace-nowrap", isBold && 'font-bold')}>
                                 {percentage || ''}
+                              </td>
+                              <td className={cn("px-2 py-1 text-right border-r tabular-nums font-mono whitespace-nowrap", isBold && 'font-bold')}>
+                                {(cat.key || isGroup) ? formatNumber(requestedAmount, 2) : ''}
+                              </td>
+                              <td className={cn("px-2 py-1 text-right border-r whitespace-nowrap", isBold && 'font-bold')}>
+                                {requestedPct || ''}
                               </td>
                             </tr>
                           );
@@ -560,17 +578,10 @@ export function BudgetPortalSheet({
                             {formatNumber(grandTotals.totalEligibleCosts, 2)}
                           </td>
                           <td className="px-2 py-1 text-right border-r font-bold">100.0</td>
-                        </tr>
-                        <tr className="border-t bg-muted/40 font-semibold">
-                          <td className="px-2 py-1 border-r font-bold">Requested EU contribution</td>
                           <td className="px-2 py-1 text-right border-r tabular-nums font-mono font-bold whitespace-nowrap">
                             {formatNumber(grandTotals.requestedEuContribution, 2)}
                           </td>
-                          <td className="px-2 py-1 text-right border-r font-bold">
-                            {grandTotals.totalEligibleCosts > 0
-                              ? ((grandTotals.requestedEuContribution / grandTotals.totalEligibleCosts) * 100).toFixed(1)
-                              : '0.0'}
-                          </td>
+                          <td className="px-2 py-1 text-right border-r font-bold">100.0</td>
                         </tr>
                         <tr className="border-t bg-muted/40 font-semibold">
                           <td className="px-2 py-1 border-r font-bold">In-kind contributions</td>
@@ -582,6 +593,8 @@ export function BudgetPortalSheet({
                               ? (((grandTotals.totalEligibleCosts - grandTotals.requestedEuContribution) / grandTotals.totalEligibleCosts) * 100).toFixed(1)
                               : '0.0'}
                           </td>
+                          <td className="px-2 py-1 text-right border-r" />
+                          <td className="px-2 py-1 text-right border-r" />
                         </tr>
                       </tfoot>
                     </table>
