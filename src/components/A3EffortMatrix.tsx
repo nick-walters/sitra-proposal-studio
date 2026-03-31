@@ -165,6 +165,13 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
       <CardContent>
         <div className="overflow-auto">
           <table className="text-xs border-collapse w-full table-fixed">
+            <colgroup>
+              <col style={{ width: `${1.2 / ((wps?.length || 9) + 1.2 + 1) * 100}%` }} />
+              {(wps || []).map(wp => (
+                <col key={wp.id} style={{ width: `${1 / ((wps?.length || 9) + 1.2 + 1) * 100}%` }} />
+              ))}
+              <col style={{ width: `${1 / ((wps?.length || 9) + 1.2 + 1) * 100}%` }} />
+            </colgroup>
             <thead>
               <tr className="border-b">
                 <th className="px-2 py-1.5 text-left border-r font-bold whitespace-nowrap">Participant</th>
