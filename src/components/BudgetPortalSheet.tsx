@@ -547,7 +547,7 @@ export function BudgetPortalSheet({
                                 {formatNumber(displayAmount, 2)}
                               </td>
                               <td className={cn("px-2 py-1 text-right border-r whitespace-nowrap", (isMajorStandalone || isGroup) && 'font-bold')}>
-                                {percentage ? `${percentage}%` : ''}
+                                {percentage || ''}
                               </td>
                             </tr>
                           );
@@ -559,7 +559,7 @@ export function BudgetPortalSheet({
                           <td className="px-2 py-1 text-right border-r tabular-nums font-mono font-bold whitespace-nowrap">
                             {formatNumber(grandTotals.totalEligibleCosts, 2)}
                           </td>
-                          <td className="px-2 py-1 text-right border-r font-bold">100%</td>
+                          <td className="px-2 py-1 text-right border-r font-bold">100.0</td>
                         </tr>
                         <tr className="border-t bg-muted/40 font-semibold">
                           <td className="px-2 py-1 border-r font-bold">Requested EU contribution</td>
@@ -569,7 +569,7 @@ export function BudgetPortalSheet({
                           <td className="px-2 py-1 text-right border-r font-bold">
                             {grandTotals.totalEligibleCosts > 0
                               ? ((grandTotals.requestedEuContribution / grandTotals.totalEligibleCosts) * 100).toFixed(1)
-                              : '0'}%
+                              : '0.0'}
                           </td>
                         </tr>
                         <tr className="border-t bg-muted/40 font-semibold">
@@ -580,7 +580,7 @@ export function BudgetPortalSheet({
                           <td className="px-2 py-1 text-right border-r font-bold">
                             {grandTotals.totalEligibleCosts > 0
                               ? (((grandTotals.totalEligibleCosts - grandTotals.requestedEuContribution) / grandTotals.totalEligibleCosts) * 100).toFixed(1)
-                              : '0'}%
+                              : '0.0'}
                           </td>
                         </tr>
                       </tfoot>
