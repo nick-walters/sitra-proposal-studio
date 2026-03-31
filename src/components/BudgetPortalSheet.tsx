@@ -691,7 +691,7 @@ export function BudgetPortalSheet({
                                         className="h-6 w-6"
                                         onClick={() => row.isLocked ? unlockRow(row.id) : lockRow(row.id)}
                                       >
-                                        {row.isLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3 text-muted-foreground" />}
+                                        {row.isLocked ? <Lock className="w-3 h-3 text-destructive" /> : <Unlock className="w-3 h-3 text-muted-foreground" />}
                                       </Button>
                                     )}
                                     {canEdit && (
