@@ -64,20 +64,19 @@ const COST_CATEGORIES = [
 ] as const;
 
 const PARTICIPANT_COLUMNS = [
-  { key: 'personnelCosts', label: 'A. Personnel' },
-  { key: 'subcontractingCosts', label: 'B. Subcontracting' },
-  { key: 'purchaseTravel', label: 'C.1 Travel' },
-  { key: 'purchaseEquipment', label: 'C.2 Equipment' },
-  { key: 'purchaseOtherGoods', label: 'C.3 Other goods' },
-  { key: 'financialSupportThirdParties', label: 'D.1 FSTP' },
-  { key: 'internallyInvoiced', label: 'D.2 Internally inv.' },
-  { key: 'procurement', label: 'D.3 Procurement' },
-  { key: 'indirectCosts', label: 'E. Indirect costs' },
-  { key: 'totalEligibleCosts', label: 'Total costs' },
-  { key: 'fundingRate', label: 'Max. eligible funding rate' },
-  { key: 'maxEuContribution', label: 'Max EU contribution' },
-  { key: 'requestedFundingRate', label: 'Requested funding rate (%)' },
-  { key: 'requestedEuContribution', label: 'Requested budget' },
+  { key: 'personnelCosts', code: 'A.', name: 'Personnel', isMajor: true },
+  { key: 'subcontractingCosts', code: 'B.', name: 'Subcontracting', isMajor: true },
+  { key: 'purchaseTravel', code: 'C.1.', name: 'Travel & subsistence' },
+  { key: 'purchaseEquipment', code: 'C.2.', name: 'Equipment' },
+  { key: 'purchaseOtherGoods', code: 'C.3.', name: 'Other goods' },
+  { key: 'financialSupportThirdParties', code: 'D.1.', name: 'FSTP' },
+  { key: 'internallyInvoiced', code: 'D.2.', name: 'Internally inv.' },
+  { key: 'indirectCosts', code: 'E.', name: 'Indirect costs', isMajor: true },
+  { key: 'totalEligibleCosts', code: '', name: 'Total costs', isMajor: true },
+  { key: 'fundingRate', code: '', name: 'Max. eligible funding rate' },
+  { key: 'maxEuContribution', code: '', name: 'Max EU contribution' },
+  { key: 'requestedFundingRate', code: '', name: 'Requested funding rate (%)' },
+  { key: 'requestedEuContribution', code: '', name: 'Requested budget' },
 ] as const;
 
 export function BudgetPortalSheet({
