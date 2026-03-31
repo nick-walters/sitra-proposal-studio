@@ -63,9 +63,11 @@ export function BudgetValidationDialog({ proposalId, open, onOpenChange }: Budge
       };
 
       let totalDirect = 0;
+      let totalDirectExFstp = 0;
       let subcontractingTotal = 0;
       let personnelTotal = 0;
       const byParticipant: Record<string, number> = {};
+      const byParticipantExFstp: Record<string, number> = {};
 
       rows.forEach(r => {
         const personnel = computePersonnelCosts(r);
@@ -78,10 +80,13 @@ export function BudgetValidationDialog({ proposalId, open, onOpenChange }: Budge
         const procurement = Number(r.procurement) || 0;
 
         const direct = personnel + sub + travel + equipment + otherGoods + fstp + internally + procurement;
+        const directExFstp = direct - fstp;
         totalDirect += direct;
+        totalDirectExFstp += directExFstp;
         subcontractingTotal += sub;
         personnelTotal += personnel;
         byParticipant[r.participant_id] = (byParticipant[r.participant_id] || 0) + direct;
+        byParticipantExFstp[r.participant_id] = (byParticipantExFstp[r.participant_id] || 0) + directExFstp;
       });
 
       if (rows.length === 0) {
