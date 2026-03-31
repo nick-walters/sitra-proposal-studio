@@ -113,13 +113,13 @@ export function BudgetValidationDialog({ proposalId, open, onOpenChange }: Budge
         });
       }
 
-      if (totalDirect > 0 && parts.length > 1) {
-        const over = Object.entries(byParticipant).find(([, amount]) => amount / totalDirect > 0.5);
+      if (totalDirectExFstp > 0 && parts.length > 1) {
+        const over = Object.entries(byParticipantExFstp).find(([, amount]) => amount / totalDirectExFstp > 0.35);
         if (over) {
           const p = parts.find(p => p.id === over[0]);
           results.push({
             id: 'concentration', name: 'Budget concentration', severity: 'warning',
-            message: `${p?.organisation_short_name || 'A partner'} holds ${((over[1] / totalDirect) * 100).toFixed(0)}% of total budget`,
+            message: `${p?.organisation_short_name || 'A partner'} holds ${((over[1] / totalDirectExFstp) * 100).toFixed(0)}% of budget (excl. FSTP; >35% flagged)`,
             passed: false,
           });
         }
