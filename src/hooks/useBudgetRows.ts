@@ -120,9 +120,10 @@ function computeRow(row: BudgetRowData, proposalType: string | null): ComputedBu
     const reqOther = row.requestedOtherGoods ?? row.purchaseOtherGoods;
     const reqFstp = row.requestedFstp ?? row.financialSupportThirdParties;
     const reqInternally = row.requestedInternallyInvoiced ?? row.internallyInvoiced;
-    const reqIndirect = row.requestedIndirectCosts ?? indirectCosts;
+    const reqDirectTotal = reqPersonnel + reqSub + reqTravel + reqEquip + reqOther + reqFstp + reqInternally;
+    const reqIndirect = Math.round((reqDirectTotal - reqSub - reqFstp) * 0.25);
     requestedEuContribution = Math.min(
-      reqPersonnel + reqSub + reqTravel + reqEquip + reqOther + reqFstp + reqInternally + reqIndirect,
+      reqDirectTotal + reqIndirect,
       maxEuContribution
     );
   } else {

@@ -154,8 +154,8 @@ export function BudgetParticipantForm({
     return personnelCosts > 0 && row.purchaseEquipment > personnelCosts * 0.15;
   }, [row]);
 
-  // Compute the total requested from per-category values when in-kind is enabled
-  const inKindTotalRequested = useMemo(() => {
+  // Compute requested direct costs (sum of per-category requested values)
+  const requestedDirectCosts = useMemo(() => {
     if (!row || !row.hasInKind) return 0;
     const reqPersonnel = row.requestedPersonnelCosts ?? row.personnelCosts;
     const reqSub = row.requestedSubcontracting ?? row.subcontractingCosts;
@@ -164,9 +164,21 @@ export function BudgetParticipantForm({
     const reqOther = row.requestedOtherGoods ?? row.purchaseOtherGoods;
     const reqFstp = row.requestedFstp ?? row.financialSupportThirdParties;
     const reqInternally = row.requestedInternallyInvoiced ?? row.internallyInvoiced;
-    const reqIndirect = row.requestedIndirectCosts ?? row.indirectCosts;
-    return reqPersonnel + reqSub + reqTravel + reqEquip + reqOther + reqFstp + reqInternally + reqIndirect;
+    return reqPersonnel + reqSub + reqTravel + reqEquip + reqOther + reqFstp + reqInternally;
   }, [row]);
+
+  // Auto-calculate requested indirect costs: 25% of (requested direct - requested sub - requested fstp)
+  const requestedIndirectCosts = useMemo(() => {
+    if (!row || !row.hasInKind) return 0;
+    const reqSub = row.requestedSubcontracting ?? row.subcontractingCosts;
+    const reqFstp = row.requestedFstp ?? row.financialSupportThirdParties;
+    return Math.round((requestedDirectCosts - reqSub - reqFstp) * 0.25);
+  }, [row, requestedDirectCosts]);
+
+  const inKindTotalRequested = useMemo(() => {
+    if (!row || !row.hasInKind) return 0;
+    return requestedDirectCosts + requestedIndirectCosts;
+  }, [row, requestedDirectCosts, requestedIndirectCosts]);
 
   const requestedPct = useMemo(() => {
     if (!row || row.totalEligibleCosts <= 0) return 0;
@@ -197,7 +209,7 @@ export function BudgetParticipantForm({
   const colHeaders = showReq ? (
     <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-muted-foreground">
       <div className="w-[220px] shrink-0" />
-      <div className="flex-1 text-center">Total costs</div>
+      <div className="flex-1 text-center">Eligible costs</div>
       <div className="w-4" />
       <div className="w-8" />
       <div className="flex-1 text-center">Requested</div>
@@ -455,79 +467,82 @@ export function BudgetParticipantForm({
           <CardTitle className="text-sm font-semibold">Costs & Funding</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {/* Direct costs */}
-          <div className="flex items-center justify-between py-1">
-            <span className="text-sm text-muted-foreground">Direct costs</span>
-            <div className="flex items-center gap-1">
+          {/* Total direct costs */}
+          <div className="flex items-center gap-2 py-1">
+            <span className="text-sm text-muted-foreground w-[220px] shrink-0">Total direct costs</span>
+            <div className="flex items-center gap-1 flex-1 justify-end">
               <span className="text-sm font-medium tabular-nums">{formatCurrency(row.directCosts)}</span>
               <CopyButton value={row.directCosts} />
             </div>
+            {showReq && (
+              <div className="flex items-center gap-1 flex-1 justify-end">
+                <span className="text-sm font-medium tabular-nums">{formatCurrency(requestedDirectCosts)}</span>
+                <CopyButton value={requestedDirectCosts} />
+              </div>
+            )}
           </div>
-          {/* Indirect costs with optional requested */}
+          {/* Total indirect costs */}
           <div className="flex items-center gap-2 py-1">
-            <span className="text-sm text-muted-foreground flex-1">Indirect costs (25%)</span>
-            <div className="flex items-center gap-1">
+            <span className="text-sm text-muted-foreground w-[220px] shrink-0">Total indirect costs (25%)</span>
+            <div className="flex items-center gap-1 flex-1 justify-end">
               <span className="text-sm font-medium tabular-nums">{formatCurrency(row.indirectCosts)}</span>
               <CopyButton value={row.indirectCosts} />
             </div>
             {showReq && (
-              <>
-                <FormattedNumberInput
-                  value={row.requestedIndirectCosts ?? row.indirectCosts}
-                  onChange={(v) => updateRow(row.id, 'requestedIndirectCosts', v)}
-                  disabled={!editable}
-                  allowZero
-                  className="h-8 text-sm text-right w-32"
-                />
-                <span className="text-xs text-muted-foreground w-4">€</span>
-              </>
+              <div className="flex items-center gap-1 flex-1 justify-end">
+                <span className="text-sm font-medium tabular-nums">{formatCurrency(requestedIndirectCosts)}</span>
+                <CopyButton value={requestedIndirectCosts} />
+              </div>
             )}
           </div>
-          {/* Total eligible costs */}
-          <div className="flex items-center justify-between py-1">
-            <span className="text-sm text-muted-foreground">Total eligible costs</span>
-            <div className="flex items-center gap-1">
-              <span className="text-sm font-medium tabular-nums">{formatCurrency(row.totalEligibleCosts)}</span>
+          {/* Total / Total requested */}
+          <div className="flex items-center gap-2 py-1 border-t">
+            <span className="text-sm font-medium w-[220px] shrink-0">Total</span>
+            <div className="flex items-center gap-1 flex-1 justify-end">
+              <span className="text-sm font-semibold tabular-nums">{formatCurrency(row.totalEligibleCosts)}</span>
               <CopyButton value={row.totalEligibleCosts} />
             </div>
+            {showReq && (
+              <div className="flex items-center gap-1 flex-1 justify-end">
+                <span className="text-sm font-semibold tabular-nums">{formatCurrency(Math.min(inKindTotalRequested, row.maxEuContribution))}</span>
+                <CopyButton value={Math.min(inKindTotalRequested, row.maxEuContribution)} />
+              </div>
+            )}
           </div>
 
           <div className="border-t pt-3 space-y-3">
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-muted-foreground w-[220px] shrink-0">
-                Max. eligible funding rate
-                <span className="text-xs ml-1">({row.fundingRateOverride != null ? 'custom' : 'auto'})</span>
-              </label>
-              <FormattedNumberInput
-                value={row.fundingRateOverride ?? row.fundingRate}
-                onChange={(v) => updateRow(row.id, 'fundingRateOverride', v)}
-                disabled={!editable}
-                className="h-8 text-sm text-right flex-1"
-              />
-              <span className="text-xs text-muted-foreground w-4">%</span>
-              <CopyButton value={row.fundingRate} />
-            </div>
-            <div className="flex items-center justify-between py-1">
-              <span className="text-sm text-muted-foreground">Max EU contribution</span>
-              <div className="flex items-center gap-1">
-                <span className="text-sm font-medium tabular-nums">{formatCurrency(row.maxEuContribution)}</span>
-                <CopyButton value={row.maxEuContribution} />
-              </div>
-            </div>
-
             {showReq ? (
-              /* In-kind mode: show calculated total requested + percentage indicator */
               <>
-                <div className="flex items-center justify-between py-1 border-t">
-                  <span className="text-sm font-medium">Total requested EU contribution</span>
-                  <div className="flex items-center gap-1">
+                {/* Funding rate: max on left, requested indicator on right */}
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-muted-foreground w-[220px] shrink-0">
+                    Funding rate
+                    <span className="text-xs ml-1">({row.fundingRateOverride != null ? 'custom' : 'auto'})</span>
+                  </label>
+                  <div className="flex items-center gap-1 flex-1 justify-end">
+                    <FormattedNumberInput
+                      value={row.fundingRateOverride ?? row.fundingRate}
+                      onChange={(v) => updateRow(row.id, 'fundingRateOverride', v)}
+                      disabled={!editable}
+                      className="h-8 text-sm text-right w-20"
+                    />
+                    <span className="text-xs text-muted-foreground">%</span>
+                  </div>
+                  <div className="flex items-center gap-1 flex-1 justify-end">
+                    <span className="text-sm font-medium tabular-nums">{requestedPct.toFixed(1)}%</span>
+                  </div>
+                </div>
+                {/* EU contribution: max on left, requested on right */}
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium w-[220px] shrink-0">EU contribution</label>
+                  <div className="flex items-center gap-1 flex-1 justify-end">
+                    <span className="text-sm font-medium tabular-nums">{formatCurrency(row.maxEuContribution)}</span>
+                    <CopyButton value={row.maxEuContribution} />
+                  </div>
+                  <div className="flex items-center gap-1 flex-1 justify-end">
                     <span className="text-sm font-semibold tabular-nums">{formatCurrency(Math.min(inKindTotalRequested, row.maxEuContribution))}</span>
                     <CopyButton value={Math.min(inKindTotalRequested, row.maxEuContribution)} />
                   </div>
-                </div>
-                <div className="flex items-center justify-between py-1 text-sm">
-                  <span className="text-muted-foreground">Requested funding rate</span>
-                  <span className="font-medium tabular-nums">{requestedPct.toFixed(1)}%</span>
                 </div>
                 {inKindTotalRequested < row.maxEuContribution && (
                   <div className="space-y-1">
@@ -545,8 +560,29 @@ export function BudgetParticipantForm({
                 )}
               </>
             ) : (
-              /* Standard mode: editable requested funding rate + absolute amount */
+              /* Standard mode */
               <>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-muted-foreground w-[220px] shrink-0">
+                    Funding rate
+                    <span className="text-xs ml-1">({row.fundingRateOverride != null ? 'custom' : 'auto'})</span>
+                  </label>
+                  <FormattedNumberInput
+                    value={row.fundingRateOverride ?? row.fundingRate}
+                    onChange={(v) => updateRow(row.id, 'fundingRateOverride', v)}
+                    disabled={!editable}
+                    className="h-8 text-sm text-right flex-1"
+                  />
+                  <span className="text-xs text-muted-foreground w-4">%</span>
+                  <CopyButton value={row.fundingRate} />
+                </div>
+                <div className="flex items-center justify-between py-1">
+                  <span className="text-sm text-muted-foreground">Max. EU contribution</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-medium tabular-nums">{formatCurrency(row.maxEuContribution)}</span>
+                    <CopyButton value={row.maxEuContribution} />
+                  </div>
+                </div>
                 <div className="flex items-center gap-2">
                   <label className="text-sm text-muted-foreground w-[220px] shrink-0">
                     Requested funding rate
