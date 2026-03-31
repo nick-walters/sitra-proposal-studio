@@ -110,9 +110,26 @@ function computeRow(row: BudgetRowData, proposalType: string | null): ComputedBu
   }
 
   const maxEuContribution = Math.round(totalEligibleCosts * (fundingRate / 100));
-  const requestedEuContribution = row.requestedEuContributionOverride != null
-    ? Math.min(row.requestedEuContributionOverride, maxEuContribution)
-    : maxEuContribution;
+  let requestedEuContribution: number;
+  if (row.hasInKind) {
+    // Sum per-category requested amounts
+    const reqPersonnel = row.requestedPersonnelCosts ?? personnelCosts;
+    const reqSub = row.requestedSubcontracting ?? row.subcontractingCosts;
+    const reqTravel = row.requestedTravel ?? row.purchaseTravel;
+    const reqEquip = row.requestedEquipment ?? row.purchaseEquipment;
+    const reqOther = row.requestedOtherGoods ?? row.purchaseOtherGoods;
+    const reqFstp = row.requestedFstp ?? row.financialSupportThirdParties;
+    const reqInternally = row.requestedInternallyInvoiced ?? row.internallyInvoiced;
+    const reqIndirect = row.requestedIndirectCosts ?? indirectCosts;
+    requestedEuContribution = Math.min(
+      reqPersonnel + reqSub + reqTravel + reqEquip + reqOther + reqFstp + reqInternally + reqIndirect,
+      maxEuContribution
+    );
+  } else {
+    requestedEuContribution = row.requestedEuContributionOverride != null
+      ? Math.min(row.requestedEuContributionOverride, maxEuContribution)
+      : maxEuContribution;
+  }
   const totalEstimatedIncome = requestedEuContribution + row.incomeGenerated + row.financialContributions + row.ownResources;
 
   return {
