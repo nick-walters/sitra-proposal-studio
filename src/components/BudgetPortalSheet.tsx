@@ -527,11 +527,11 @@ export function BudgetPortalSheet({
                   <div className="overflow-auto">
                     <table className="text-xs border-collapse w-full">
                       <colgroup>
+                        <col style={{ width: '220px' }} />
                         <col />
-                        <col style={{ width: '25%' }} />
-                        <col style={{ width: '25%' }} />
-                        <col style={{ width: '25%' }} />
-                        <col style={{ width: '25%' }} />
+                        <col />
+                        <col />
+                        <col />
                       </colgroup>
                       <thead>
                         <tr className="border-b">
