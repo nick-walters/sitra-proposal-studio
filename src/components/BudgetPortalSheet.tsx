@@ -577,11 +577,16 @@ export function BudgetPortalSheet({
                             ? ((displayAmount / grandTotals.totalEligibleCosts) * 100).toFixed(1)
                             : '';
 
-                          // Requested costs per category: proportional allocation
-                          const requestedRatio = grandTotals.totalEligibleCosts > 0
-                            ? grandTotals.requestedEuContribution / grandTotals.totalEligibleCosts
-                            : 0;
-                          const requestedAmount = (cat.key || isGroup) ? displayAmount * requestedRatio : 0;
+                          // Requested costs per category: sum of per-participant category cost × their requested ratio
+                          let requestedAmount = 0;
+                          if (cat.key) {
+                            requestedAmount = categoryRequestedTotals[cat.key] || 0;
+                          } else if (isGroup) {
+                            const prefix = cat.code.replace('.', '');
+                            requestedAmount = COST_CATEGORIES
+                              .filter(c => !('isGroupHeader' in c) && !('isMajor' in c && c.isMajor) && c.key && c.code.startsWith(prefix))
+                              .reduce((sum, c) => sum + (categoryRequestedTotals[c.key!] || 0), 0);
+                          }
                           const requestedPct = grandTotals.requestedEuContribution > 0 && (cat.key || isGroup)
                             ? ((requestedAmount / grandTotals.requestedEuContribution) * 100).toFixed(1)
                             : '';
