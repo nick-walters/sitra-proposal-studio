@@ -7,7 +7,7 @@ import { SaveIndicator } from '@/components/SaveIndicator';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { Lock, Unlock, Loader2, Euro, Calculator, FileSpreadsheet, Download, History, TableProperties, AlertCircle, Info, X, Users } from 'lucide-react';
 import {
   Tooltip,
