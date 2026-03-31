@@ -192,81 +192,79 @@ export function BudgetPortalSheet({
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Budget overview by category</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table className="w-auto">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-left font-bold">Category</TableHead>
-                      <TableHead className="text-left font-bold">Amount (€)</TableHead>
-                      <TableHead className="text-left font-bold">% of Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {COST_CATEGORIES.map((cat) => {
-                      const isGroup = 'isGroupHeader' in cat && cat.isGroupHeader;
-                      const amount = cat.key ? (categoryTotals[cat.key] || 0) : 0;
-                      const percentage = grandTotals.totalEligibleCosts > 0 && cat.key
-                        ? ((amount / grandTotals.totalEligibleCosts) * 100).toFixed(1)
-                        : '';
+            <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Budget overview by category</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table className="w-auto">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-left font-bold">Category</TableHead>
+                        <TableHead className="text-left font-bold">Amount (€)</TableHead>
+                        <TableHead className="text-left font-bold">% of Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {COST_CATEGORIES.map((cat) => {
+                        const isGroup = 'isGroupHeader' in cat && cat.isGroupHeader;
+                        const amount = cat.key ? (categoryTotals[cat.key] || 0) : 0;
+                        const percentage = grandTotals.totalEligibleCosts > 0 && cat.key
+                          ? ((amount / grandTotals.totalEligibleCosts) * 100).toFixed(1)
+                          : '';
 
-                      return (
-                        <TableRow key={cat.code} className={isGroup ? 'bg-muted/30' : ''}>
-                          <TableCell className="px-2 py-1 text-left">
-                            <span className={cn('isMajor' in cat && cat.isMajor ? 'font-bold' : 'pl-4')}>
-                              {cat.code} {cat.name}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-left font-mono px-2 py-1">
-                            {isGroup ? '' : formatCurrency(amount)}
-                          </TableCell>
-                          <TableCell className="text-left px-2 py-1">{percentage ? `${percentage}%` : ''}</TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                  <TableFooter>
-                    <TableRow>
-                      <TableCell className="font-bold px-2 py-1">Total costs</TableCell>
-                      <TableCell className="text-left font-bold font-mono px-2 py-1">
-                        {formatCurrency(grandTotals.totalEligibleCosts)}
-                      </TableCell>
-                      <TableCell className="text-left font-bold px-2 py-1">100%</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="font-bold px-2 py-1">Requested EU contribution</TableCell>
-                      <TableCell className="text-left font-bold font-mono px-2 py-1">
-                        {formatCurrency(grandTotals.requestedEuContribution)}
-                      </TableCell>
-                      <TableCell className="text-left font-bold px-2 py-1">
-                        {grandTotals.totalEligibleCosts > 0
-                          ? ((grandTotals.requestedEuContribution / grandTotals.totalEligibleCosts) * 100).toFixed(1)
-                          : '0'}%
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="font-bold px-2 py-1">In-kind contributions</TableCell>
-                      <TableCell className="text-left font-bold font-mono px-2 py-1">
-                        {formatCurrency(grandTotals.totalEligibleCosts - grandTotals.requestedEuContribution)}
-                      </TableCell>
-                      <TableCell className="text-left font-bold px-2 py-1">
-                        {grandTotals.totalEligibleCosts > 0
-                          ? (((grandTotals.totalEligibleCosts - grandTotals.requestedEuContribution) / grandTotals.totalEligibleCosts) * 100).toFixed(1)
-                          : '0'}%
-                      </TableCell>
-                    </TableRow>
-                  </TableFooter>
-                </Table>
-              </CardContent>
-            </Card>
-            <A3EffortMatrix proposalId={proposalId} canEdit={canEdit} />
-          </TabsContent>
-
-          {/* Summary by Participant Tab */}
-          <TabsContent value="summary" className="space-y-4">
+                        return (
+                          <TableRow key={cat.code} className={isGroup ? 'bg-muted/30' : ''}>
+                            <TableCell className="px-2 py-1 text-left">
+                              <span className={cn('isMajor' in cat && cat.isMajor ? 'font-bold' : 'pl-4')}>
+                                {cat.code} {cat.name}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-left font-mono px-2 py-1">
+                              {isGroup ? '' : formatCurrency(amount)}
+                            </TableCell>
+                            <TableCell className="text-left px-2 py-1">{percentage ? `${percentage}%` : ''}</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                    <TableFooter>
+                      <TableRow>
+                        <TableCell className="font-bold px-2 py-1">Total costs</TableCell>
+                        <TableCell className="text-left font-bold font-mono px-2 py-1">
+                          {formatCurrency(grandTotals.totalEligibleCosts)}
+                        </TableCell>
+                        <TableCell className="text-left font-bold px-2 py-1">100%</TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell className="font-bold px-2 py-1">Requested EU contribution</TableCell>
+                        <TableCell className="text-left font-bold font-mono px-2 py-1">
+                          {formatCurrency(grandTotals.requestedEuContribution)}
+                        </TableCell>
+                        <TableCell className="text-left font-bold px-2 py-1">
+                          {grandTotals.totalEligibleCosts > 0
+                            ? ((grandTotals.requestedEuContribution / grandTotals.totalEligibleCosts) * 100).toFixed(1)
+                            : '0'}%
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell className="font-bold px-2 py-1">In-kind contributions</TableCell>
+                        <TableCell className="text-left font-bold font-mono px-2 py-1">
+                          {formatCurrency(grandTotals.totalEligibleCosts - grandTotals.requestedEuContribution)}
+                        </TableCell>
+                        <TableCell className="text-left font-bold px-2 py-1">
+                          {grandTotals.totalEligibleCosts > 0
+                            ? (((grandTotals.totalEligibleCosts - grandTotals.requestedEuContribution) / grandTotals.totalEligibleCosts) * 100).toFixed(1)
+                            : '0'}%
+                        </TableCell>
+                      </TableRow>
+                    </TableFooter>
+                  </Table>
+                </CardContent>
+              </Card>
+              <A3EffortMatrix proposalId={proposalId} canEdit={canEdit} />
+            </div>
             <Card>
               <CardHeader>
                 <CardTitle>Summary by participant</CardTitle>
