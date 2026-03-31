@@ -199,10 +199,10 @@ export function BudgetPortalSheet({
                 <CardTitle>Budget overview by category</CardTitle>
               </CardHeader>
               <CardContent>
-                <Table>
+                <Table className="w-auto">
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[350px] text-left font-bold">Category</TableHead>
+                      <TableHead className="text-left font-bold">Category</TableHead>
                       <TableHead className="text-left font-bold">Amount (€)</TableHead>
                       <TableHead className="text-left font-bold">% of Total</TableHead>
                     </TableRow>
