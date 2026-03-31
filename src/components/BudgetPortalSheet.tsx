@@ -606,12 +606,12 @@ export function BudgetPortalSheet({
                           </td>
                           <td className="px-2 py-1 text-right border-r font-bold">100.0</td>
                         </tr>
-                        <tr className="border-t bg-muted/40 font-semibold">
-                          <td className="px-2 py-1 border-r font-bold">In-kind contributions</td>
-                          <td className="px-2 py-1 text-right border-r tabular-nums font-mono font-bold whitespace-nowrap">
+                        <tr className="border-t">
+                          <td className="px-2 py-1 border-r">In-kind contributions</td>
+                          <td className="px-2 py-1 text-right border-r tabular-nums font-mono whitespace-nowrap">
                             {formatNumber(grandTotals.totalEligibleCosts - grandTotals.requestedEuContribution, 2)}
                           </td>
-                          <td className="px-2 py-1 text-right border-r font-bold">
+                          <td className="px-2 py-1 text-right border-r">
                             {grandTotals.totalEligibleCosts > 0
                               ? (((grandTotals.totalEligibleCosts - grandTotals.requestedEuContribution) / grandTotals.totalEligibleCosts) * 100).toFixed(1)
                               : '0.0'}
