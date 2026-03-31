@@ -116,7 +116,6 @@ export function BudgetPortalSheet({
   const handleExportXlsx = () => {
     const wb = XLSX.utils.book_new();
 
-    // Helper to convert column index (0-based) to Excel letter
     const colLetter = (c: number): string => {
       let s = '';
       let n = c;
@@ -127,6 +126,29 @@ export function BudgetPortalSheet({
       return s;
     };
 
+    const bold = { font: { bold: true } };
+    const boldCurrency = { font: { bold: true }, numFmt: '#,##0.00' };
+    const boldPct = { font: { bold: true }, numFmt: '0.0' };
+    const currencyFmt = { numFmt: '#,##0.00' };
+    const pctFmt = { numFmt: '0.0' };
+    const pmFmt = { numFmt: '0.0' };
+
+    // Helper to apply styles to header row
+    const styleHeaders = (ws: XLSX.WorkSheet, rowNum: number, colCount: number) => {
+      for (let c = 0; c < colCount; c++) {
+        const ref = colLetter(c) + rowNum;
+        if (ws[ref]) ws[ref].s = bold;
+      }
+    };
+
+    // Helper to apply styles to a row
+    const styleRow = (ws: XLSX.WorkSheet, rowNum: number, colCount: number, style: any) => {
+      for (let c = 0; c < colCount; c++) {
+        const ref = colLetter(c) + rowNum;
+        if (ws[ref]) ws[ref].s = { ...ws[ref].s, ...style };
+      }
+    };
+
     // ─── Sheet 1: Staff Effort ───
     const cachedWps = queryClient.getQueryData<{ id: string; number: number; short_name: string | null; title: string | null }[]>(['a3-effort-wps', proposalId]) || [];
     const cachedParticipants = queryClient.getQueryData<{ id: string; participant_number: number | null; organisation_short_name: string | null; organisation_name: string }[]>(['a3-effort-participants', proposalId]) || [];
@@ -134,25 +156,23 @@ export function BudgetPortalSheet({
 
     const wpCount = cachedWps.length;
     const partCount = cachedParticipants.length;
-    const effortTotalCol = colLetter(1 + wpCount); // last col = Total
+    const effortTotalCol = colLetter(1 + wpCount);
 
     const effortHeaders: any[] = ['Participant', ...cachedWps.map(wp => `WP${wp.number}`), 'Total'];
     const effortAoa: any[][] = [effortHeaders];
 
     cachedParticipants.forEach((p, pIdx) => {
-      const excelRow = pIdx + 2; // 1-indexed, row 1 = header
+      const excelRow = pIdx + 2;
       const wpValues = cachedWps.map(wp => {
         const entry = cachedEffort.find(e => e.participant_id === p.id && e.wp_draft_id === wp.id);
         return entry?.person_months || 0;
       });
-      // Total = SUM(B{row}:{lastWPcol}{row})
       const firstWpCol = colLetter(1);
       const lastWpCol = colLetter(wpCount);
       const totalFormula = `=SUM(${firstWpCol}${excelRow}:${lastWpCol}${excelRow})`;
       effortAoa.push([`${p.participant_number}. ${p.organisation_short_name || p.organisation_name}`, ...wpValues, { f: totalFormula }]);
     });
 
-    // Total row with SUM formulas per column
     const totalRowIdx = partCount + 2;
     const effortTotalRow: any[] = ['Total'];
     for (let c = 1; c <= wpCount; c++) {
@@ -163,45 +183,63 @@ export function BudgetPortalSheet({
     effortAoa.push(effortTotalRow);
 
     const ws1 = XLSX.utils.aoa_to_sheet(effortAoa);
+    const effortColCount = effortHeaders.length;
+
+    // Bold headers
+    styleHeaders(ws1, 1, effortColCount);
+    // Bold participant names (column A) and total row
+    for (let r = 2; r <= partCount + 1; r++) {
+      const ref = `A${r}`;
+      if (ws1[ref]) ws1[ref].s = bold;
+    }
+    // Bold total row
+    styleRow(ws1, totalRowIdx, effortColCount, bold);
+    // PM format for all data cells
+    for (let r = 2; r <= totalRowIdx; r++) {
+      for (let c = 1; c < effortColCount; c++) {
+        const ref = colLetter(c) + r;
+        if (ws1[ref]) ws1[ref].s = { ...ws1[ref].s, numFmt: '0.0' };
+      }
+    }
+
     XLSX.utils.book_append_sheet(wb, ws1, 'Staff Effort');
 
     // ─── Sheet 2: Summary by Participant ───
-    // Columns: A=No, B=Participant, C=PM rate, D=Total PMs,
-    //   E=A.Personnel, F=B.Subcontracting, G=C.1.Travel, H=C.2.Equipment, I=C.3.Other,
-    //   J=D.1.FSTP, K=D.2.Internally inv, L=E.Indirect costs,
-    //   M=Total costs, N=Max funding rate, O=Max EU contribution,
-    //   P=Requested funding rate, Q=Requested budget,
-    //   R=Share total budget, S=Share requested budget
+    // Combined participant column: "No. ShortName"
+    // Columns: A=Participant, B=PM rate (€), C=Total PMs,
+    //   D=A.Personnel (€), E=B.Subcontracting (€), F=C.1.Travel (€), G=C.2.Equipment (€), H=C.3.Other (€),
+    //   I=D.1.FSTP (€), J=D.2.Internally inv (€), K=E.Indirect costs (€),
+    //   L=Total costs (€), M=Max funding rate, N=Max EU contribution (€),
+    //   O=Requested funding rate (%), P=Requested budget (€),
+    //   Q=Share total budget (%), R=Share requested budget (%)
     const summaryHeaders = [
-      'No.', 'Participant', 'PM rate', 'Total PMs',
-      'A. Personnel costs', 'B. Subcontracting costs',
-      'C.1. Travel & subsistence', 'C.2. Equipment', 'C.3. Other goods',
-      'D.1. FSTP', 'D.2. Internally inv.',
-      'E. Indirect costs', 'Total costs',
-      'Max. eligible funding rate', 'Max EU contribution',
-      'Requested funding rate (%)', 'Requested budget',
+      'Participant', 'PM rate (€)', 'Total PMs',
+      'A. Personnel costs (€)', 'B. Subcontracting costs (€)',
+      'C.1. Travel & subsistence (€)', 'C.2. Equipment (€)', 'C.3. Other goods (€)',
+      'D.1. FSTP (€)', 'D.2. Internally inv. (€)',
+      'E. Indirect costs (€)', 'Total costs (€)',
+      'Max. eligible funding rate (%)', 'Max EU contribution (€)',
+      'Requested funding rate (%)', 'Requested budget (€)',
       'Share of total budget (%)', 'Share of requested budget (%)',
     ];
     const summaryAoa: any[][] = [summaryHeaders];
     const summaryTotalRowNum = partCount + 2;
 
     rows.forEach((row, rIdx) => {
-      const r = rIdx + 2; // Excel row number
-      // Find matching participant index in effort sheet
+      const r = rIdx + 2;
       const effortPIdx = cachedParticipants.findIndex(p => p.id === row.participantId);
       const effortRow = effortPIdx >= 0 ? effortPIdx + 2 : -1;
 
-      // D: Total PMs linked to Staff Effort total column
+      // C: Total PMs linked to Staff Effort total column (shifted: now col C)
       const totalPMsVal = effortRow > 0
         ? { f: `='Staff Effort'!${effortTotalCol}${effortRow}` }
         : row.totalPersonMonths;
 
-      // E: Personnel costs = IF(C>0, ROUND(C*D, 0), <raw value>)
+      // D: Personnel costs = ROUND(B*C, 0)
       const personnelFormula = row.pmRate != null && row.pmRate > 0
-        ? { f: `=ROUND(C${r}*D${r},0)` }
+        ? { f: `=ROUND(B${r}*C${r},0)` }
         : row.personnelCosts;
 
-      // F-K: direct cost inputs (values from DB)
       const subcontracting = row.subcontractingCosts;
       const travel = row.purchaseTravel;
       const equipment = row.purchaseEquipment;
@@ -209,40 +247,39 @@ export function BudgetPortalSheet({
       const fstp = row.financialSupportThirdParties;
       const internally = row.internallyInvoiced;
 
-      // L: Indirect costs = ROUND((E+G+H+I+K)*0.25, 0) [excl sub F and fstp J]
+      // K: Indirect costs = ROUND((D+F+G+H+J)*0.25, 0) [excl sub E and fstp I]
       const indirectFormula = row.indirectCostsOverride != null
         ? row.indirectCostsOverride
-        : { f: `=ROUND((E${r}+G${r}+H${r}+I${r}+K${r})*0.25,0)` };
+        : { f: `=ROUND((D${r}+F${r}+G${r}+H${r}+J${r})*0.25,0)` };
 
-      // M: Total costs = E+F+G+H+I+J+K+L
-      const totalCostsFormula = { f: `=E${r}+F${r}+G${r}+H${r}+I${r}+J${r}+K${r}+L${r}` };
+      // L: Total costs = D+E+F+G+H+I+J+K
+      const totalCostsFormula = { f: `=D${r}+E${r}+F${r}+G${r}+H${r}+I${r}+J${r}+K${r}` };
 
-      // N: Max funding rate (value)
       const computedRow = rows[rIdx];
-      const fundingRate = computedRow.fundingRate / 100;
+      // M: Max funding rate as percentage value (e.g., 100 for 100%)
+      const fundingRate = computedRow.fundingRate;
 
-      // O: Max EU contribution = ROUND(M*N, 0)
-      const maxEuFormula = { f: `=ROUND(M${r}*N${r},0)` };
+      // N: Max EU contribution = ROUND(L*M/100, 0)
+      const maxEuFormula = { f: `=ROUND(L${r}*M${r}/100,0)` };
 
-      // P: Requested funding rate
+      // O: Requested funding rate
       const requestedRate = computedRow.requestedEuContributionOverride != null
-        ? { f: `=IF(M${r}>0,Q${r}/M${r},0)` }
+        ? { f: `=IF(L${r}>0,P${r}/L${r}*100,0)` }
         : fundingRate;
 
-      // Q: Requested budget = MIN(override or max, O)
+      // P: Requested budget
       const requestedBudget = computedRow.requestedEuContributionOverride != null
         ? Math.min(computedRow.requestedEuContributionOverride, computedRow.maxEuContribution)
-        : { f: `=O${r}` };
+        : { f: `=N${r}` };
 
-      // R: Share of total budget = M / M$total
-      const shareTotal = { f: `=IF(M$${summaryTotalRowNum}>0,M${r}/M$${summaryTotalRowNum},0)` };
+      // Q: Share of total budget = L / L$total * 100
+      const shareTotal = { f: `=IF(L$${summaryTotalRowNum}>0,L${r}/L$${summaryTotalRowNum}*100,0)` };
 
-      // S: Share of requested budget = Q / Q$total
-      const shareRequested = { f: `=IF(Q$${summaryTotalRowNum}>0,Q${r}/Q$${summaryTotalRowNum},0)` };
+      // R: Share of requested budget = P / P$total * 100
+      const shareRequested = { f: `=IF(P$${summaryTotalRowNum}>0,P${r}/P$${summaryTotalRowNum}*100,0)` };
 
       summaryAoa.push([
-        row.participantNumber,
-        row.participantShortName || row.participantName,
+        `${row.participantNumber}. ${row.participantShortName || row.participantName}`,
         row.pmRate ?? '',
         totalPMsVal,
         personnelFormula,
@@ -263,75 +300,90 @@ export function BudgetPortalSheet({
       ]);
     });
 
-    // Total row with SUM formulas
-    const sumCols = ['D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M'];
-    const totalRow: any[] = ['', 'TOTAL', ''];
+    // Total row
+    const sumCols = ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+    const totalRow: any[] = ['Total', ''];
     sumCols.forEach(cl => {
       totalRow.push({ f: `=SUM(${cl}2:${cl}${summaryTotalRowNum - 1})` });
     });
-    // N: funding rate - blank for total
+    // M: funding rate - blank for total
     totalRow.push('');
-    // O: Max EU contribution sum
-    totalRow.push({ f: `=SUM(O2:O${summaryTotalRowNum - 1})` });
-    // P: Requested rate - blank
+    // N: Max EU contribution sum
+    totalRow.push({ f: `=SUM(N2:N${summaryTotalRowNum - 1})` });
+    // O: Requested rate - blank
     totalRow.push('');
-    // Q: Requested budget sum
-    totalRow.push({ f: `=SUM(Q2:Q${summaryTotalRowNum - 1})` });
-    // R, S: 100%
-    totalRow.push(1);
-    totalRow.push(1);
+    // P: Requested budget sum
+    totalRow.push({ f: `=SUM(P2:P${summaryTotalRowNum - 1})` });
+    // Q, R: 100
+    totalRow.push(100);
+    totalRow.push(100);
     summaryAoa.push(totalRow);
 
     const ws2 = XLSX.utils.aoa_to_sheet(summaryAoa);
+    const summaryColCount = summaryHeaders.length;
 
-    // Format percentage columns (N, P, R, S) - set number format
-    const pctCols = [13, 15, 17, 18]; // 0-indexed: N=13, P=15, R=17, S=18
-    for (let r = 1; r <= partCount + 1; r++) {
+    // Bold headers
+    styleHeaders(ws2, 1, summaryColCount);
+    // Bold participant names (col A) and total row
+    for (let r = 2; r <= partCount + 1; r++) {
+      const ref = `A${r}`;
+      if (ws2[ref]) ws2[ref].s = bold;
+    }
+    styleRow(ws2, summaryTotalRowNum, summaryColCount, bold);
+
+    // Apply number formats
+    // Currency columns: B(PM rate), D-K(cost cats), L(total), N(max EU), P(requested budget)
+    const currCols = [1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15]; // 0-indexed
+    // Percentage columns: M(12), O(14), Q(16), R(17)
+    const pctCols = [12, 14, 16, 17];
+    // PM column: C(2)
+    const pmCols = [2];
+
+    for (let r = 2; r <= summaryTotalRowNum; r++) {
+      currCols.forEach(c => {
+        const ref = colLetter(c) + r;
+        if (ws2[ref]) ws2[ref].s = { ...ws2[ref].s, numFmt: '#,##0.00' };
+      });
       pctCols.forEach(c => {
-        const cellRef = colLetter(c) + (r + 1);
-        if (ws2[cellRef]) ws2[cellRef].z = '0.0%';
+        const ref = colLetter(c) + r;
+        if (ws2[ref]) ws2[ref].s = { ...ws2[ref].s, numFmt: '0.0' };
+      });
+      pmCols.forEach(c => {
+        const ref = colLetter(c) + r;
+        if (ws2[ref]) ws2[ref].s = { ...ws2[ref].s, numFmt: '0.0' };
       });
     }
 
     XLSX.utils.book_append_sheet(wb, ws2, 'Summary by Participant');
 
     // ─── Sheet 3: Budget Overview ───
-    // Links amounts to Summary totals row
-    const sTotal = summaryTotalRowNum; // row in Summary sheet with totals
-    const summaryRef = (col: string) => `='Summary by Participant'!${col}${sTotal}`;
+    const sTotal = summaryTotalRowNum;
 
-    // Build category rows with formulas referencing Summary totals
-    const overviewAoa: any[][] = [['Category', 'Amount (€)', '% of Total']];
-
-    // Map COST_CATEGORIES to Summary columns
+    // Map COST_CATEGORIES to new Summary columns (shifted by removing No. column)
     const catToSummaryCol: Record<string, string> = {
-      personnelCosts: 'E',
-      subcontractingCosts: 'F',
-      purchaseTravel: 'G',
-      purchaseEquipment: 'H',
-      purchaseOtherGoods: 'I',
-      financialSupportThirdParties: 'J',
-      internallyInvoiced: 'K',
-      indirectCosts: 'L',
+      personnelCosts: 'D',
+      subcontractingCosts: 'E',
+      purchaseTravel: 'F',
+      purchaseEquipment: 'G',
+      purchaseOtherGoods: 'H',
+      financialSupportThirdParties: 'I',
+      internallyInvoiced: 'J',
+      indirectCosts: 'K',
     };
 
-    let overviewRowIdx = 2; // first data row
-    const catRowMap: Record<string, number> = {}; // code -> overview Excel row
+    const overviewAoa: any[][] = [['Category', 'Amount (€)', '% of Total']];
+
+    let overviewRowIdx = 2;
 
     for (const cat of COST_CATEGORIES) {
       const isGroup = 'isGroupHeader' in cat && cat.isGroupHeader;
       let amountCell: any;
 
       if (isGroup) {
-        // Sum subcategory rows - we'll reference them after building
-        // For C: sum of C.1, C.2, C.3 => Travel + Equipment + Other
-        // For D: sum of D.1, D.2 => FSTP + Internally
         if (cat.code === 'C.') {
-          amountCell = { f: `=${summaryRef('G')}+${summaryRef('H')}+${summaryRef('I')}`.replace(/=/g, '').replace(/^/, '=') };
-          // Simpler: direct formula
-          amountCell = { f: `='Summary by Participant'!G${sTotal}+'Summary by Participant'!H${sTotal}+'Summary by Participant'!I${sTotal}` };
+          amountCell = { f: `='Summary by Participant'!F${sTotal}+'Summary by Participant'!G${sTotal}+'Summary by Participant'!H${sTotal}` };
         } else if (cat.code === 'D.') {
-          amountCell = { f: `='Summary by Participant'!J${sTotal}+'Summary by Participant'!K${sTotal}` };
+          amountCell = { f: `='Summary by Participant'!I${sTotal}+'Summary by Participant'!J${sTotal}` };
         }
       } else if (cat.key && catToSummaryCol[cat.key]) {
         amountCell = { f: `='Summary by Participant'!${catToSummaryCol[cat.key]}${sTotal}` };
@@ -339,36 +391,42 @@ export function BudgetPortalSheet({
         amountCell = 0;
       }
 
-      catRowMap[cat.code] = overviewRowIdx;
-
-      // % of Total = amount / total costs
-      // Total costs row will be after all categories
-      const totalCostsRow = overviewRowIdx + COST_CATEGORIES.length - (overviewRowIdx - 2); // will set after
-      const pctFormula = { f: `=IF(B$${2 + COST_CATEGORIES.length}>0,B${overviewRowIdx}/B$${2 + COST_CATEGORIES.length},0)` };
+      const pctFormula = { f: `=IF(B$${2 + COST_CATEGORIES.length}>0,B${overviewRowIdx}/B$${2 + COST_CATEGORIES.length}*100,0)` };
 
       overviewAoa.push([`${cat.code} ${cat.name}`, amountCell, pctFormula]);
       overviewRowIdx++;
     }
 
-    // Total costs row: link to Summary M total
     const totalCostsRowNum = overviewRowIdx;
-    overviewAoa.push(['Total costs', { f: `='Summary by Participant'!M${sTotal}` }, 1]);
+    overviewAoa.push(['Total costs', { f: `='Summary by Participant'!L${sTotal}` }, 100]);
 
-    // Requested EU contribution: link to Summary Q total
-    overviewAoa.push(['Requested EU contribution', { f: `='Summary by Participant'!Q${sTotal}` },
-      { f: `=IF(B${totalCostsRowNum}>0,B${totalCostsRowNum + 1}/B${totalCostsRowNum},0)` }]);
+    overviewAoa.push(['Requested EU contribution', { f: `='Summary by Participant'!P${sTotal}` },
+      { f: `=IF(B${totalCostsRowNum}>0,B${totalCostsRowNum + 1}/B${totalCostsRowNum}*100,0)` }]);
 
-    // In-kind contributions = Total - Requested
     overviewAoa.push(['In-kind contributions',
       { f: `=B${totalCostsRowNum}-B${totalCostsRowNum + 1}` },
-      { f: `=IF(B${totalCostsRowNum}>0,B${totalCostsRowNum + 2}/B${totalCostsRowNum},0)` }]);
+      { f: `=IF(B${totalCostsRowNum}>0,B${totalCostsRowNum + 2}/B${totalCostsRowNum}*100,0)` }]);
 
     const ws3 = XLSX.utils.aoa_to_sheet(overviewAoa);
 
-    // Format percentage column C in overview
-    for (let r = 1; r < overviewAoa.length; r++) {
-      const cellRef = `C${r + 1}`;
-      if (ws3[cellRef]) ws3[cellRef].z = '0.0%';
+    // Bold headers
+    styleHeaders(ws3, 1, 3);
+    // Bold category names (col A) and total/summary rows
+    for (let r = 2; r < overviewAoa.length + 1; r++) {
+      const ref = `A${r}`;
+      if (ws3[ref]) ws3[ref].s = bold;
+    }
+    // Bold total and summary rows
+    for (let r = totalCostsRowNum; r <= totalCostsRowNum + 2; r++) {
+      styleRow(ws3, r, 3, bold);
+    }
+
+    // Currency format for column B, percentage format for column C
+    for (let r = 2; r < overviewAoa.length + 1; r++) {
+      const bRef = `B${r}`;
+      if (ws3[bRef]) ws3[bRef].s = { ...ws3[bRef].s, numFmt: '#,##0.00' };
+      const cRef = `C${r}`;
+      if (ws3[cRef]) ws3[cRef].s = { ...ws3[cRef].s, numFmt: '0.0' };
     }
 
     XLSX.utils.book_append_sheet(wb, ws3, 'Budget Overview');
