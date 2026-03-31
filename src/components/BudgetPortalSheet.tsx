@@ -65,8 +65,8 @@ const COST_CATEGORIES = [
 ] as const;
 
 const PARTICIPANT_COLUMNS = [
-  { key: 'personnelCosts', code: 'A.', name: 'Personnel', isMajor: true },
-  { key: 'subcontractingCosts', code: 'B.', name: 'Subcontracting', isMajor: true },
+  { key: 'personnelCosts', code: 'A.', name: 'Personnel costs', isMajor: true },
+  { key: 'subcontractingCosts', code: 'B.', name: 'Subcontracting costs', isMajor: true },
   { key: 'purchaseTravel', code: 'C.1.', name: 'Travel & subsistence' },
   { key: 'purchaseEquipment', code: 'C.2.', name: 'Equipment' },
   { key: 'purchaseOtherGoods', code: 'C.3.', name: 'Other goods' },
