@@ -68,7 +68,7 @@ const PARTICIPANT_COLUMNS = [
   { key: 'indirectCosts', code: 'E.', name: 'Indirect costs', isMajor: true },
   { key: 'totalEligibleCosts', code: '', name: 'Total costs', isMajor: true },
   { key: 'fundingRate', code: '', name: 'Max. eligible funding rate' },
-  { key: 'maxEuContribution', code: '', name: 'Max EU contribution' },
+  { key: 'maxEuContribution', code: '', name: 'Max. EU contribution' },
   { key: 'requestedFundingRate', code: '', name: 'Requested funding rate (%)' },
   { key: 'requestedEuContribution', code: '', name: 'Requested budget' },
 ] as const;
