@@ -240,7 +240,7 @@ export function BudgetPortalSheet({
             <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>Budget overview by category</CardTitle>
+                  <CardTitle className="text-base">Budget overview by category</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="overflow-auto">
@@ -365,7 +365,7 @@ export function BudgetPortalSheet({
             </div>
             <Card>
               <CardHeader>
-                <CardTitle>Summary by participant</CardTitle>
+                <CardTitle className="text-base">Summary by participant</CardTitle>
                 <CardDescription>
                   Overview of budget allocation across consortium partners
                 </CardDescription>

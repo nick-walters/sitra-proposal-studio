@@ -100,7 +100,7 @@ export function A3EffortMatrix({ proposalId, canEdit }: A3EffortMatrixProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-base">
           <Users className="w-5 h-5" />
           Staff effort (person months per participant per WP)
         </CardTitle>
