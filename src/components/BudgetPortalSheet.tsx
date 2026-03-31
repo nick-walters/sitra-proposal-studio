@@ -118,7 +118,7 @@ export function BudgetPortalSheet({
   }, [grandTotals]);
 
   const handleExportCSV = () => {
-    const headers = ['No.', 'Participant', 'Country', ...PARTICIPANT_COLUMNS.map(c => c.label)];
+    const headers = ['No.', 'Participant', 'Country', ...PARTICIPANT_COLUMNS.map(c => `${c.code} ${c.name}`.trim())];
     const csvRows = rows.map(row => [
       row.participantNumber,
       row.participantShortName || row.participantName,
