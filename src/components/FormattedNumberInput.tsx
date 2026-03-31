@@ -28,7 +28,7 @@ export function FormattedNumberInput({
   const [rawValue, setRawValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const isEmptyValue = allowZero ? value === '' : value === '' || value === 0;
+  const isEmptyValue = (allowZero || decimals > 0) ? value === '' : value === '' || value === 0;
 
   const displayValue = isFocused
     ? rawValue
