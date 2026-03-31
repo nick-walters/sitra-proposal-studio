@@ -116,11 +116,28 @@ export function BudgetPortalSheet({
   const handleExportXlsx = () => {
     const wb = XLSX.utils.book_new();
 
-    // Sheet 1: Staff Effort - we'll need to fetch this data via the query cache
-    // For now, create a placeholder that will be populated from the effort matrix data
-    const effortHeaders = ['Participant'];
-    const effortSheet: any[][] = [];
-    // Note: effort data is in A3EffortMatrix component; we export summary/overview data available here
+    // Sheet 1: Staff Effort (from query cache)
+    const cachedWps = queryClient.getQueryData<{ id: string; number: number; short_name: string | null; title: string | null }[]>(['a3-effort-wps', proposalId]) || [];
+    const cachedParticipants = queryClient.getQueryData<{ id: string; participant_number: number | null; organisation_short_name: string | null; organisation_name: string }[]>(['a3-effort-participants', proposalId]) || [];
+    const cachedEffort = queryClient.getQueryData<{ wp_draft_id: string; participant_id: string; person_months: number }[]>(['a3-effort-data', proposalId]) || [];
+
+    const effortHeaders = ['Participant', ...cachedWps.map(wp => `WP${wp.number}`), 'Total'];
+    const effortRows = cachedParticipants.map(p => {
+      const wpValues = cachedWps.map(wp => {
+        const entry = cachedEffort.find(e => e.participant_id === p.id && e.wp_draft_id === wp.id);
+        return entry?.person_months || 0;
+      });
+      const total = wpValues.reduce((s, v) => s + v, 0);
+      return [`${p.participant_number}. ${p.organisation_short_name || p.organisation_name}`, ...wpValues, total];
+    });
+    const effortTotalRow = ['Total', ...cachedWps.map(wp =>
+      cachedParticipants.reduce((s, p) => {
+        const entry = cachedEffort.find(e => e.participant_id === p.id && e.wp_draft_id === wp.id);
+        return s + (entry?.person_months || 0);
+      }, 0)
+    ), cachedEffort.reduce((s, e) => s + (e.person_months || 0), 0)];
+    const ws1 = XLSX.utils.aoa_to_sheet([effortHeaders, ...effortRows, effortTotalRow]);
+    XLSX.utils.book_append_sheet(wb, ws1, 'Staff Effort');
 
     // Sheet 2: Summary by Participant
     const summaryHeaders = ['No.', 'Participant', 'PM rate', 'Total PMs', ...PARTICIPANT_COLUMNS.map(c => `${c.code} ${c.name}`.trim()), 'Share of total budget (%)', 'Share of requested budget (%)'];
@@ -156,14 +173,22 @@ export function BudgetPortalSheet({
     const ws2 = XLSX.utils.aoa_to_sheet([summaryHeaders, ...summaryData, summaryTotalRow]);
     XLSX.utils.book_append_sheet(wb, ws2, 'Summary by Participant');
 
-    // Sheet 3: Budget Overview
+    // Sheet 3: Budget Overview (with group subtotals)
     const overviewData: any[][] = [['Category', 'Amount (€)', '% of Total']];
     for (const cat of COST_CATEGORIES) {
       const isGroup = 'isGroupHeader' in cat && cat.isGroupHeader;
-      const amount = cat.key ? (categoryTotals[cat.key] || 0) : 0;
-      const pct = grandTotals.totalEligibleCosts > 0 && cat.key
+      let amount: number;
+      if (isGroup) {
+        const prefix = cat.code.replace('.', '');
+        amount = COST_CATEGORIES
+          .filter(c => !('isGroupHeader' in c) && !('isMajor' in c && c.isMajor) && c.key && c.code.startsWith(prefix))
+          .reduce((sum, c) => sum + (categoryTotals[c.key!] || 0), 0);
+      } else {
+        amount = cat.key ? (categoryTotals[cat.key] || 0) : 0;
+      }
+      const pct = grandTotals.totalEligibleCosts > 0
         ? `${((amount / grandTotals.totalEligibleCosts) * 100).toFixed(1)}%` : '';
-      overviewData.push([`${cat.code} ${cat.name}`, isGroup ? '' : amount, pct]);
+      overviewData.push([`${cat.code} ${cat.name}`, amount, pct]);
     }
     overviewData.push(['Total costs', grandTotals.totalEligibleCosts, '100%']);
     overviewData.push(['Requested EU contribution', grandTotals.requestedEuContribution,
@@ -173,7 +198,11 @@ export function BudgetPortalSheet({
     const ws3 = XLSX.utils.aoa_to_sheet(overviewData);
     XLSX.utils.book_append_sheet(wb, ws3, 'Budget Overview');
 
-    XLSX.writeFile(wb, `budget_${proposalAcronym || proposalId}.xlsx`);
+    const now = new Date();
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    const acronym = proposalAcronym || 'Budget';
+    XLSX.writeFile(wb, `${timestamp} ${acronym} Budget.xlsx`);
     toast.success('Budget exported to Excel');
   };
 
