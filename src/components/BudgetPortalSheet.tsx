@@ -218,10 +218,9 @@ export function BudgetPortalSheet({
                       return (
                         <TableRow key={cat.code} className={isGroup ? 'bg-muted/30' : ''}>
                           <TableCell className="px-2 py-1 text-left">
-                            <div className={cn('isMajor' in cat && cat.isMajor ? 'font-bold' : 'pl-4')}>
-                              <div className="text-xs text-muted-foreground">{cat.code}</div>
-                              <div>{cat.name}</div>
-                            </div>
+                            <span className={cn('isMajor' in cat && cat.isMajor ? 'font-bold' : 'pl-4')}>
+                              {cat.code} {cat.name}
+                            </span>
                           </TableCell>
                           <TableCell className="text-left font-mono px-2 py-1">
                             {isGroup ? '' : formatCurrency(amount)}
@@ -279,20 +278,20 @@ export function BudgetPortalSheet({
               </CardHeader>
               <CardContent>
                 <div className="overflow-auto">
-                    <table className="text-sm border-collapse w-full">
+                    <table className="text-xs border-collapse w-full">
                       <thead>
                         <tr className="border-b">
-                          <th className="sticky left-0 bg-background z-10 px-3 py-3 text-left border-r font-bold whitespace-nowrap">Participant</th>
-                          <th className="px-3 py-3 text-right border-r font-bold text-center" style={{ minWidth: '60px' }}>PM<br/>rate</th>
-                          <th className="px-3 py-3 text-right border-r font-bold text-center" style={{ minWidth: '60px' }}>Total<br/>PMs</th>
+                          <th className="sticky left-0 bg-background z-10 px-2 py-1.5 text-left border-r font-bold whitespace-nowrap">Participant</th>
+                          <th className="px-2 py-1.5 text-left border-r font-bold" style={{ minWidth: '50px' }}>PM<br/>rate</th>
+                          <th className="px-2 py-1.5 text-left border-r font-bold" style={{ minWidth: '50px' }}>Total<br/>PMs</th>
                           {PARTICIPANT_COLUMNS.map(c => (
-                              <th key={c.key} className={cn("px-3 py-3 text-left border-r", 'isMajor' in c && c.isMajor ? 'font-bold' : 'font-bold')} style={{ minWidth: '70px' }}>
-                                {c.code && <div className="text-[10px] text-muted-foreground leading-tight">{c.code}</div>}
+                              <th key={c.key} className="px-2 py-1.5 text-left border-r font-bold" style={{ minWidth: '60px' }}>
+                                {c.code && <div className="leading-tight">{c.code}</div>}
                                 <div className="leading-tight">{c.name}</div>
                               </th>
                             ))}
-                          <th className="px-3 py-3 text-right border-r font-bold text-center" style={{ minWidth: '70px' }}>Share of<br/>total budget<br/>(%)</th>
-                          <th className="px-3 py-3 text-right border-r font-bold text-center" style={{ minWidth: '70px' }}>Share of<br/>requested<br/>budget (%)</th>
+                          <th className="px-2 py-1.5 text-left border-r font-bold" style={{ minWidth: '60px' }}>Share of<br/>total budget<br/>(%)</th>
+                          <th className="px-2 py-1.5 text-left border-r font-bold" style={{ minWidth: '60px' }}>Share of<br/>requested<br/>budget (%)</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -309,9 +308,9 @@ export function BudgetPortalSheet({
 
                           return (
                             <tr key={row.id} className={cn('border-t hover:bg-muted/50', row.isLocked && !isAdmin && 'opacity-60')}>
-                              <td className="sticky left-0 bg-background z-10 px-3 py-2 border-r whitespace-nowrap">
+                              <td className="sticky left-0 bg-background z-10 px-2 py-1 border-r whitespace-nowrap">
                                 <div className="flex items-center justify-between gap-2">
-                                  <span className="flex items-center gap-1">
+                                  <span className="flex items-center gap-1 font-bold">
                                     {row.participantNumber}. {row.participantShortName || row.participantName}
                                     {row.isLocked && !isAdmin && <Lock className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
                                   </span>
@@ -338,15 +337,15 @@ export function BudgetPortalSheet({
                                   </span>
                                 </div>
                               </td>
-                              <td className="px-3 py-2 text-right border-r tabular-nums font-mono text-sm whitespace-nowrap">
+                              <td className="px-2 py-1 text-right border-r tabular-nums font-mono whitespace-nowrap">
                                 {row.pmRate != null ? formatCurrency(row.pmRate) : '—'}
                               </td>
-                              <td className="px-3 py-2 text-right border-r tabular-nums font-mono text-sm whitespace-nowrap">
+                              <td className="px-2 py-1 text-right border-r tabular-nums font-mono whitespace-nowrap">
                                 {Number.isInteger(row.totalPersonMonths) ? row.totalPersonMonths.toFixed(0) : row.totalPersonMonths.toFixed(1)}
                               </td>
                               
                               {PARTICIPANT_COLUMNS.map(c => (
-                                <td key={c.key} className="px-3 py-2 text-right border-r tabular-nums font-mono text-sm whitespace-nowrap">
+                                <td key={c.key} className="px-2 py-1 text-right border-r tabular-nums font-mono whitespace-nowrap">
                                   {c.key === 'fundingRate'
                                     ? `${(row as any)[c.key]}%`
                                     : c.key === 'requestedFundingRate'
@@ -354,31 +353,31 @@ export function BudgetPortalSheet({
                                     : formatCurrency((row as any)[c.key] as number)}
                                 </td>
                               ))}
-                              <td className="px-3 py-2 text-right border-r whitespace-nowrap">{percentage}%</td>
-                              <td className="px-3 py-2 text-right border-r whitespace-nowrap">{requestPercentage}%</td>
+                              <td className="px-2 py-1 text-right border-r whitespace-nowrap">{percentage}%</td>
+                              <td className="px-2 py-1 text-right border-r whitespace-nowrap">{requestPercentage}%</td>
                             </tr>
                           );
                         })}
                       </tbody>
                       <tfoot>
                         <tr className="border-t-2 border-foreground/20 bg-muted/40 font-semibold">
-                          <td className="sticky left-0 bg-muted/40 z-10 px-3 py-2 border-r font-bold">TOTAL</td>
-                          <td className="px-3 py-2 text-right border-r" />
-                          <td className="px-3 py-2 text-right border-r tabular-nums font-mono font-bold whitespace-nowrap">
+                          <td className="sticky left-0 bg-muted/40 z-10 px-2 py-1 border-r font-bold">TOTAL</td>
+                          <td className="px-2 py-1 text-right border-r" />
+                          <td className="px-2 py-1 text-right border-r tabular-nums font-mono font-bold whitespace-nowrap">
                             {(() => {
                               const totalPMs = rows.reduce((s, r) => s + r.totalPersonMonths, 0);
                               return Number.isInteger(totalPMs) ? totalPMs.toFixed(0) : totalPMs.toFixed(1);
                             })()}
                           </td>
                           {PARTICIPANT_COLUMNS.map(c => (
-                            <td key={c.key} className="px-3 py-2 text-right border-r tabular-nums font-mono font-bold whitespace-nowrap">
+                            <td key={c.key} className="px-2 py-1 text-right border-r tabular-nums font-mono font-bold whitespace-nowrap">
                               {c.key === 'fundingRate' || c.key === 'requestedFundingRate'
                                 ? ''
                                 : formatCurrency((grandTotals as any)[c.key] || 0)}
                             </td>
                           ))}
-                          <td className="px-3 py-2 text-right border-r font-bold">100%</td>
-                          <td className="px-3 py-2 text-right border-r font-bold">100%</td>
+                          <td className="px-2 py-1 text-right border-r font-bold">100%</td>
+                          <td className="px-2 py-1 text-right border-r font-bold">100%</td>
                         </tr>
                       </tfoot>
                     </table>
