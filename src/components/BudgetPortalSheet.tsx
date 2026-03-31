@@ -214,7 +214,7 @@ export function BudgetPortalSheet({
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="flex items-center justify-between">
             <TabsList>
-              <TabsTrigger value="budget">Budget</TabsTrigger>
+              <TabsTrigger value="budget">Budget dashboard</TabsTrigger>
               {usesFstp && <TabsTrigger value="fstp">Financial support to third parties (FSTP)</TabsTrigger>}
               
             </TabsList>
