@@ -532,8 +532,10 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     await supabase.from('budget_rows').update({ purchase_equipment: total }).eq('id', budgetRowId);
   }, [equipmentItems]);
 
-  const updateRow = useCallback((rowId: string, field: string, value: number | string) => {
-    setRows(prev => prev.map(r => r.id === rowId ? { ...r, [field]: value } : r));
+  const updateRow = useCallback((rowId: string, field: string, value: number | string | boolean) => {
+    // For hasInKind, ensure local state gets a boolean
+    const localValue = field === 'hasInKind' ? Boolean(value) : value;
+    setRows(prev => prev.map(r => r.id === rowId ? { ...r, [field]: localValue } : r));
 
     if (debounceTimers.current[rowId]) {
       clearTimeout(debounceTimers.current[rowId]);
@@ -548,10 +550,11 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
         requestedEuContributionOverride: 'requested_eu_contribution',
       };
       const dbField = fieldToDbMap[field] ?? field.replace(/([A-Z])/g, '_$1').toLowerCase();
+      const dbValue = field === 'hasInKind' ? Boolean(value) : value;
       setSaving(true);
       const { error } = await supabase
         .from('budget_rows')
-        .update({ [dbField]: value })
+        .update({ [dbField]: dbValue })
         .eq('id', rowId);
 
       if (error) {
