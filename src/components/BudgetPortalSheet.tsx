@@ -216,27 +216,29 @@ export function BudgetPortalSheet({
               <SaveIndicator saving={saving} lastSaved={null} />
             )}
           </div>
-          <div className="flex items-center gap-3">
-            <Badge variant={proposalType === 'lump_sum' ? 'default' : 'secondary'}>
-              {proposalType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}
-            </Badge>
-            <Button variant="outline" className="gap-2" onClick={handleExportCSV}>
-              <Download className="w-4 h-4" />
-              Export
-            </Button>
-          </div>
         </div>
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            {usesFstp && <TabsTrigger value="fstp">Financial support to third parties (FSTP)</TabsTrigger>}
-            {isAdmin && <TabsTrigger value="validation">Validation</TabsTrigger>}
-          </TabsList>
+          <div className="flex items-center justify-between">
+            <TabsList>
+              <TabsTrigger value="budget">Budget</TabsTrigger>
+              {usesFstp && <TabsTrigger value="fstp">Financial support to third parties (FSTP)</TabsTrigger>}
+              {isAdmin && <TabsTrigger value="validation">Validation</TabsTrigger>}
+            </TabsList>
+            <div className="flex items-center gap-3">
+              <Badge variant={proposalType === 'lump_sum' ? 'default' : 'secondary'}>
+                {proposalType === 'lump_sum' ? 'Lump sum budget model' : 'Actual costs budget model'}
+              </Badge>
+              <Button variant="outline" className="gap-2" onClick={handleExportXlsx}>
+                <Download className="w-4 h-4" />
+                Export budget
+              </Button>
+            </div>
+          </div>
 
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-4">
+          {/* Budget Tab */}
+          <TabsContent value="budget" className="space-y-4">
             <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4">
               <Card>
                 <CardHeader>
