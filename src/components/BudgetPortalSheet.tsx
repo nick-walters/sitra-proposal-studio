@@ -537,7 +537,7 @@ export function BudgetPortalSheet({
                             : '';
 
                           return (
-                            <tr key={cat.code} className={cn('border-t', isGroup && 'bg-muted/30')}>
+                            <tr key={cat.code} className={cn('border-t', (isGroup || isMajorStandalone) && 'bg-muted/30')}>
                               <td className="px-2 py-1 text-left border-r">
                                 <span className={cn(('isMajor' in cat && cat.isMajor) ? 'font-bold' : 'pl-4')}>
                                   {cat.code} {cat.name}
