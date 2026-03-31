@@ -154,8 +154,8 @@ export function BudgetParticipantForm({
     return personnelCosts > 0 && row.purchaseEquipment > personnelCosts * 0.15;
   }, [row]);
 
-  // Compute the total requested from per-category values when in-kind is enabled
-  const inKindTotalRequested = useMemo(() => {
+  // Compute requested direct costs (sum of per-category requested values)
+  const requestedDirectCosts = useMemo(() => {
     if (!row || !row.hasInKind) return 0;
     const reqPersonnel = row.requestedPersonnelCosts ?? row.personnelCosts;
     const reqSub = row.requestedSubcontracting ?? row.subcontractingCosts;
@@ -164,9 +164,21 @@ export function BudgetParticipantForm({
     const reqOther = row.requestedOtherGoods ?? row.purchaseOtherGoods;
     const reqFstp = row.requestedFstp ?? row.financialSupportThirdParties;
     const reqInternally = row.requestedInternallyInvoiced ?? row.internallyInvoiced;
-    const reqIndirect = row.requestedIndirectCosts ?? row.indirectCosts;
-    return reqPersonnel + reqSub + reqTravel + reqEquip + reqOther + reqFstp + reqInternally + reqIndirect;
+    return reqPersonnel + reqSub + reqTravel + reqEquip + reqOther + reqFstp + reqInternally;
   }, [row]);
+
+  // Auto-calculate requested indirect costs: 25% of (requested direct - requested sub - requested fstp)
+  const requestedIndirectCosts = useMemo(() => {
+    if (!row || !row.hasInKind) return 0;
+    const reqSub = row.requestedSubcontracting ?? row.subcontractingCosts;
+    const reqFstp = row.requestedFstp ?? row.financialSupportThirdParties;
+    return Math.round((requestedDirectCosts - reqSub - reqFstp) * 0.25);
+  }, [row, requestedDirectCosts]);
+
+  const inKindTotalRequested = useMemo(() => {
+    if (!row || !row.hasInKind) return 0;
+    return requestedDirectCosts + requestedIndirectCosts;
+  }, [row, requestedDirectCosts, requestedIndirectCosts]);
 
   const requestedPct = useMemo(() => {
     if (!row || row.totalEligibleCosts <= 0) return 0;
