@@ -314,7 +314,7 @@ export function BudgetParticipantForm({
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground w-[260px] shrink-0">D.1 Financial support to third parties</label>
+            <label className="text-sm text-muted-foreground w-[260px] shrink-0">D.1. Financial support to third parties</label>
             <FormattedNumberInput
               value={row.financialSupportThirdParties}
               onChange={(v) => updateRow(row.id, 'financialSupportThirdParties', v)}
