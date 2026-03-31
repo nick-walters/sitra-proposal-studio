@@ -410,8 +410,22 @@ export function BudgetPortalSheet({
       }
 
       const pctFormula = { f: `=IF(B$${totalCostsRowTarget}>0,B${overviewRowIdx}/B$${totalCostsRowTarget}*100,0)` };
-      // Requested costs = total_budget_category * (total_requested / total_costs)
-      const requestedFormula = { f: `=IF(B$${totalCostsRowTarget}>0,B${overviewRowIdx}*D$${totalCostsRowTarget}/B$${totalCostsRowTarget},0)` };
+
+      // Requested costs: sum per-participant category cost × (requested / total) for that participant
+      const sFirstData = 2;
+      const sLastData = sTotal - 1;
+      const S = `'Summary by Participant'`;
+      let requestedFormula: any;
+      if (isGroup) {
+        // Will be filled after subcategory rows are placed — use placeholder sum
+        requestedFormula = 0; // will be overwritten below
+      } else if (cat.key && catToSummaryCol[cat.key]) {
+        const col = catToSummaryCol[cat.key];
+        requestedFormula = { f: `=SUMPRODUCT(IF(${S}!L${sFirstData}:L${sLastData}>0,${S}!${col}${sFirstData}:${col}${sLastData}*${S}!P${sFirstData}:P${sLastData}/${S}!L${sFirstData}:L${sLastData},0))` };
+      } else {
+        requestedFormula = 0;
+      }
+
       const requestedPctFormula = { f: `=IF(D$${totalCostsRowTarget}>0,D${overviewRowIdx}/D$${totalCostsRowTarget}*100,0)` };
 
       overviewAoa.push([`${cat.code} ${cat.name}`, amountCell, pctFormula, requestedFormula, requestedPctFormula]);
