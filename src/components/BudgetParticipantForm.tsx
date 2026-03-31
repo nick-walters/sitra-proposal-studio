@@ -302,6 +302,7 @@ export function BudgetParticipantForm({
                   onChange={(v) => updateRow(row.id, 'requestedPersonnelCosts', v)}
                   disabled={!editable}
                   allowZero
+                  decimals={2}
                   className="h-8 text-sm text-right flex-1"
                 />
                 <span className="text-xs text-muted-foreground w-4">€</span>
@@ -316,6 +317,7 @@ export function BudgetParticipantForm({
                 value={row.personnelCosts}
                 onChange={(v) => updateRow(row.id, 'personnelCosts', v)}
                 disabled={!editable}
+                decimals={2}
                 className="h-8 text-sm text-right flex-1"
               />
               <span className="text-xs text-muted-foreground w-4">€</span>
@@ -338,6 +340,7 @@ export function BudgetParticipantForm({
               value={row.subcontractingCosts}
               onChange={(v) => updateRow(row.id, 'subcontractingCosts', v)}
               disabled={!editable}
+              decimals={2}
               className="h-8 text-sm text-right flex-1"
             />
             <span className="text-xs text-muted-foreground w-4">€</span>
@@ -349,6 +352,7 @@ export function BudgetParticipantForm({
                   onChange={(v) => updateRow(row.id, 'requestedSubcontracting', v)}
                   disabled={!editable}
                   allowZero
+                  decimals={2}
                   className="h-8 text-sm text-right flex-1"
                 />
                 <span className="text-xs text-muted-foreground w-4">€</span>
@@ -611,13 +615,14 @@ export function BudgetParticipantForm({
                   <label className="text-sm text-muted-foreground w-[220px] shrink-0">
                     Requested EU contribution
                   </label>
-                  <FormattedNumberInput
-                    value={row.requestedEuContributionOverride ?? row.maxEuContribution}
-                    onChange={(v) => updateRow(row.id, 'requestedEuContributionOverride', v)}
-                    disabled={!editable}
-                    allowZero
-                    className="h-8 text-sm text-right flex-1"
-                  />
+                    <FormattedNumberInput
+                     value={row.requestedEuContributionOverride ?? row.maxEuContribution}
+                     onChange={(v) => updateRow(row.id, 'requestedEuContributionOverride', v)}
+                     disabled={!editable}
+                     allowZero
+                     decimals={2}
+                     className="h-8 text-sm text-right flex-1"
+                   />
                   <span className="text-xs text-muted-foreground w-4">€</span>
                   <CopyButton value={row.requestedEuContribution} />
                 </div>
@@ -658,6 +663,7 @@ export function BudgetParticipantForm({
                 value={row[f.key] as number}
                 onChange={(v) => updateRow(row.id, f.key, v)}
                 disabled={!editable}
+                decimals={2}
                 className="h-8 text-sm text-right flex-1"
               />
               <span className="text-xs text-muted-foreground w-4">€</span>
