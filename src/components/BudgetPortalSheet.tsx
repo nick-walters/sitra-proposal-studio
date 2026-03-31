@@ -53,7 +53,7 @@ interface BudgetPortalSheetProps {
 
 const COST_CATEGORIES = [
   { key: 'personnelCosts', code: 'A.', name: 'Personnel costs', description: 'Costs of employees and natural persons working under a direct contract', isMajor: true },
-  { key: 'subcontractingCosts', code: 'B.', name: 'Subcontracting', description: 'Costs of subcontracting core tasks', isMajor: true },
+  { key: 'subcontractingCosts', code: 'B.', name: 'Subcontracting costs', description: 'Costs of subcontracting core tasks', isMajor: true },
   { key: null, code: 'C.', name: 'Purchase costs', description: 'Purchase costs', isMajor: true, isGroupHeader: true },
   { key: 'purchaseTravel', code: 'C.1.', name: 'Travel & subsistence', description: 'Travel costs and related subsistence allowances' },
   { key: 'purchaseEquipment', code: 'C.2.', name: 'Equipment', description: 'Depreciation costs for equipment, infrastructure, or other assets' },
