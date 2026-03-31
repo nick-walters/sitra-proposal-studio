@@ -93,7 +93,7 @@ export function BudgetPortalSheet({
     refetch: refetchBudgetRows,
   } = useBudgetRows(proposalId, proposalType);
 
-  const queryClient = useQueryClient();
+  const { roleTier } = useProposalRole(proposalId);
   const isAdmin = roleTier === 'coordinator';
   const [activeTab, setActiveTab] = useState('budget');
   const [validationOpen, setValidationOpen] = useState(false);
