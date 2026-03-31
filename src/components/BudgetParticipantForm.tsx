@@ -266,7 +266,7 @@ export function BudgetParticipantForm({
             />
             <span className="text-xs text-muted-foreground w-4">€</span>
             <CopyButton value={row.pmRate ?? 0} />
-            {showReq && <div className="flex-1" /><div className="w-4" />}
+            {showReq && <><div className="flex-1" /><div className="w-4" /></>}
           </div>
           <div className="flex items-center justify-between py-1 text-sm">
             <span className="text-muted-foreground">Total person months (from WP effort)</span>
