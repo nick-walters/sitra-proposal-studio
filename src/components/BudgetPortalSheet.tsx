@@ -525,7 +525,14 @@ export function BudgetPortalSheet({
                 </CardHeader>
                 <CardContent>
                   <div className="overflow-auto">
-                    <table className="text-xs border-collapse">
+                    <table className="text-xs border-collapse w-full">
+                      <colgroup>
+                        <col />
+                        <col style={{ width: '25%' }} />
+                        <col style={{ width: '25%' }} />
+                        <col style={{ width: '25%' }} />
+                        <col style={{ width: '25%' }} />
+                      </colgroup>
                       <thead>
                         <tr className="border-b">
                           <th className="px-2 py-1.5 text-left border-r font-bold">Category</th>
