@@ -95,6 +95,7 @@ export function BudgetPortalSheet({
   const { roleTier } = useProposalRole(proposalId);
   const isAdmin = roleTier === 'coordinator';
   const [activeTab, setActiveTab] = useState('budget');
+  const [validationOpen, setValidationOpen] = useState(false);
   const [editingParticipantId, setEditingParticipantId] = useState<string | null>(null);
 
   const editingRow = useMemo(
