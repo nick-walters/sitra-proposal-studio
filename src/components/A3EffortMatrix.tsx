@@ -3,7 +3,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Users, Lock, Unlock } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 function formatPM(value: number): string {
   if (value === 0) return '0';
@@ -14,6 +18,7 @@ function formatPM(value: number): string {
 interface A3EffortMatrixProps {
   proposalId: string;
   canEdit: boolean;
+  isCoordinator?: boolean;
 }
 
 interface WPInfo {
@@ -30,8 +35,16 @@ interface ParticipantInfo {
   organisation_name: string;
 }
 
-export function A3EffortMatrix({ proposalId, canEdit }: A3EffortMatrixProps) {
+interface EffortLock {
+  id: string;
+  participant_id: string;
+  locked_by: string;
+  locked_at: string;
+}
+
+export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A3EffortMatrixProps) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const { data: wps } = useQuery({
     queryKey: ['a3-effort-wps', proposalId],
@@ -70,6 +83,47 @@ export function A3EffortMatrix({ proposalId, canEdit }: A3EffortMatrixProps) {
       return data as { wp_draft_id: string; participant_id: string; person_months: number }[];
     },
   });
+
+  const { data: effortLocks } = useQuery({
+    queryKey: ['effort-row-locks', proposalId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('effort_row_locks')
+        .select('id, participant_id, locked_by, locked_at')
+        .eq('proposal_id', proposalId);
+      if (error) throw error;
+      return (data || []) as EffortLock[];
+    },
+  });
+
+  const lockedParticipants = new Set(
+    (effortLocks || []).map(l => l.participant_id)
+  );
+
+  const lockRow = useCallback(async (participantId: string) => {
+    if (!user?.id) return;
+    const { error } = await supabase
+      .from('effort_row_locks')
+      .insert({ proposal_id: proposalId, participant_id: participantId, locked_by: user.id });
+    if (error) {
+      toast.error('Failed to lock row');
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ['effort-row-locks', proposalId] });
+  }, [proposalId, user?.id, queryClient]);
+
+  const unlockRow = useCallback(async (participantId: string) => {
+    const { error } = await supabase
+      .from('effort_row_locks')
+      .delete()
+      .eq('proposal_id', proposalId)
+      .eq('participant_id', participantId);
+    if (error) {
+      toast.error('Failed to unlock row');
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ['effort-row-locks', proposalId] });
+  }, [proposalId, queryClient]);
 
   const matrix = new Map<string, Map<string, number>>();
   (participants || []).forEach(p => matrix.set(p.id, new Map()));
@@ -126,10 +180,28 @@ export function A3EffortMatrix({ proposalId, canEdit }: A3EffortMatrixProps) {
               {participants.map(p => {
                 const pMap = matrix.get(p.id)!;
                 const rowTotal = wps.reduce((sum, wp) => sum + (pMap?.get(wp.id) || 0), 0);
+                const isLocked = lockedParticipants.has(p.id);
+                // Coordinators+ can always edit; regular users cannot edit locked rows
+                const rowEditable = canEdit && (isCoordinator || !isLocked);
                 return (
-                  <tr key={p.id} className="border-t hover:bg-muted/50">
-                    <td className="px-2 py-1 border-r whitespace-nowrap font-bold">
-                      {p.participant_number}. {p.organisation_short_name || p.organisation_name}
+                  <tr key={p.id} className={cn('border-t hover:bg-muted/50', isLocked && !isCoordinator && 'opacity-60')}>
+                    <td className="px-2 py-1 border-r whitespace-nowrap">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="flex items-center gap-1 font-bold">
+                          {p.participant_number}. {p.organisation_short_name || p.organisation_name}
+                          {isLocked && !isCoordinator && <Lock className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
+                        </span>
+                        {isCoordinator && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 shrink-0"
+                            onClick={() => isLocked ? unlockRow(p.id) : lockRow(p.id)}
+                          >
+                            {isLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3 text-muted-foreground" />}
+                          </Button>
+                        )}
+                      </div>
                     </td>
                     {wps.map(wp => {
                       const val = pMap?.get(wp.id) || 0;
@@ -137,7 +209,7 @@ export function A3EffortMatrix({ proposalId, canEdit }: A3EffortMatrixProps) {
                         <td key={wp.id} className="p-1 border-r align-middle">
                           <EffortInputCell
                             value={val}
-                            canEdit={canEdit}
+                            canEdit={rowEditable}
                             onSave={(nextValue) => saveEffortValue(p.id, wp.id, nextValue)}
                           />
                         </td>
