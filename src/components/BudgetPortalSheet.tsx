@@ -51,15 +51,16 @@ interface BudgetPortalSheetProps {
 }
 
 const COST_CATEGORIES = [
-  { key: 'personnelCosts', label: 'A. Personnel costs', description: 'Costs of employees and natural persons working under a direct contract' },
-  { key: 'subcontractingCosts', label: 'B. Subcontracting', description: 'Costs of subcontracting core tasks' },
-  { key: 'purchaseTravel', label: 'C.1 Travel and subsistence', description: 'Travel costs and related subsistence allowances' },
-  { key: 'purchaseEquipment', label: 'C.2 Equipment', description: 'Depreciation costs for equipment, infrastructure, or other assets' },
-  { key: 'purchaseOtherGoods', label: 'C.3 Other goods, works and services', description: 'Other purchases directly linked to the action' },
-  { key: 'financialSupportThirdParties', label: 'D.1 Financial support to third parties', description: 'Grants, prizes, or similar support provided to third parties' },
-  { key: 'internallyInvoiced', label: 'D.2 Internally invoiced goods and services', description: 'Unit costs for internally invoiced goods and services' },
-  { key: 'procurement', label: 'D.3 Procurement', description: 'Procurement of goods, works or services' },
-  { key: 'indirectCosts', label: 'E. Indirect costs', description: '25% flat rate on eligible direct costs (excluding subcontracting)', isIndirect: true },
+  { key: 'personnelCosts', code: 'A.', name: 'Personnel costs', description: 'Costs of employees and natural persons working under a direct contract', isMajor: true },
+  { key: 'subcontractingCosts', code: 'B.', name: 'Subcontracting', description: 'Costs of subcontracting core tasks', isMajor: true },
+  { key: null, code: 'C.', name: 'Purchase costs', description: 'Purchase costs', isMajor: true, isGroupHeader: true },
+  { key: 'purchaseTravel', code: 'C.1.', name: 'Travel & subsistence', description: 'Travel costs and related subsistence allowances' },
+  { key: 'purchaseEquipment', code: 'C.2.', name: 'Equipment', description: 'Depreciation costs for equipment, infrastructure, or other assets' },
+  { key: 'purchaseOtherGoods', code: 'C.3.', name: 'Other goods, works & services', description: 'Other purchases directly linked to the action' },
+  { key: null, code: 'D.', name: 'Other cost categories', description: 'Other cost categories', isMajor: true, isGroupHeader: true },
+  { key: 'financialSupportThirdParties', code: 'D.1.', name: 'Financial support to third parties', description: 'Grants, prizes, or similar support provided to third parties' },
+  { key: 'internallyInvoiced', code: 'D.2.', name: 'Internally invoiced goods & services', description: 'Unit costs for internally invoiced goods and services' },
+  { key: 'indirectCosts', code: 'E.', name: 'Indirect costs', description: '25% flat rate on eligible direct costs (excluding subcontracting)', isMajor: true, isIndirect: true },
 ] as const;
 
 const PARTICIPANT_COLUMNS = [
