@@ -33,24 +33,53 @@ export function BudgetValidationEngine({ proposalId }: BudgetValidationEnginePro
   const runValidation = async () => {
     setLoading(true);
     try {
-      const [{ data: budgetRows }, { data: participants }] = await Promise.all([
+      const [{ data: budgetRows }, { data: participants }, { data: effortData }] = await Promise.all([
         supabase.from('budget_rows').select('*').eq('proposal_id', proposalId),
-        supabase.from('participants').select('id, organisation_short_name, organisation_name, participant_number').eq('proposal_id', proposalId),
+        supabase.from('participants').select('id, organisation_short_name, organisation_name, participant_number, organisation_category').eq('proposal_id', proposalId),
+        supabase.from('wp_draft_effort').select('participant_id, person_months, wp_drafts!inner(proposal_id)').eq('wp_drafts.proposal_id', proposalId),
       ]);
 
       const results: ValidationRule[] = [];
       const rows = budgetRows || [];
       const parts = participants || [];
 
-      // Calculate totals from budget_rows
-      const totalDirect = rows.reduce((s, r) => s + r.personnel_costs + r.purchase_equipment + r.purchase_travel + r.purchase_other_goods + r.subcontracting_costs + r.internally_invoiced, 0);
-      const subcontractingTotal = rows.reduce((s, r) => s + r.subcontracting_costs, 0);
-      const personnelTotal = rows.reduce((s, r) => s + r.personnel_costs, 0);
+      // Build PM totals per participant from effort data
+      const pmTotals = new Map<string, number>();
+      (effortData || []).forEach((e: any) => {
+        pmTotals.set(e.participant_id, (pmTotals.get(e.participant_id) || 0) + Number(e.person_months || 0));
+      });
 
+      // Compute actual personnel costs (same logic as useBudgetRows.computeRow)
+      const computePersonnelCosts = (r: any): number => {
+        const pmRate = r.pm_rate != null ? Number(r.pm_rate) : null;
+        const totalPMs = pmTotals.get(r.participant_id) || 0;
+        if (pmRate != null && pmRate > 0) {
+          return Math.round(pmRate * totalPMs);
+        }
+        return Number(r.personnel_costs) || 0;
+      };
+
+      // Calculate totals using correct personnel cost computation
+      let totalDirect = 0;
+      let subcontractingTotal = 0;
+      let personnelTotal = 0;
       const byParticipant: Record<string, number> = {};
+
       rows.forEach(r => {
-        const total = r.personnel_costs + r.purchase_equipment + r.purchase_travel + r.purchase_other_goods + r.subcontracting_costs + r.internally_invoiced;
-        byParticipant[r.participant_id] = (byParticipant[r.participant_id] || 0) + total;
+        const personnel = computePersonnelCosts(r);
+        const sub = Number(r.subcontracting_costs) || 0;
+        const travel = Number(r.purchase_travel) || 0;
+        const equipment = Number(r.purchase_equipment) || 0;
+        const otherGoods = Number(r.purchase_other_goods) || 0;
+        const fstp = Number(r.financial_support_third_parties) || 0;
+        const internally = Number(r.internally_invoiced) || 0;
+        const procurement = Number(r.procurement) || 0;
+
+        const direct = personnel + sub + travel + equipment + otherGoods + fstp + internally + procurement;
+        totalDirect += direct;
+        subcontractingTotal += sub;
+        personnelTotal += personnel;
+        byParticipant[r.participant_id] = (byParticipant[r.participant_id] || 0) + direct;
       });
 
       // Rule 1: Empty budget
@@ -98,14 +127,24 @@ export function BudgetValidationEngine({ proposalId }: BudgetValidationEnginePro
         results.push({ id: 'no-personnel', name: 'Personnel costs', severity: 'warning', message: 'No personnel costs have been entered', passed: false });
       }
 
-      // Rule 6: Locked rows check
-      const unlockedCount = rows.filter(r => !r.is_locked).length;
-      if (unlockedCount > 0 && rows.length > 0) {
-        results.push({
-          id: 'unlocked-rows', name: 'Budget finalisation', severity: 'info',
-          message: `${unlockedCount} of ${rows.length} budget row(s) are still unlocked`,
-          passed: unlockedCount === 0,
-        });
+      // Rule 6: Equipment > 15% of personnel costs
+      if (personnelTotal > 0) {
+        const equipmentTotal = rows.reduce((s, r) => s + (Number(r.purchase_equipment) || 0), 0);
+        if (equipmentTotal > personnelTotal * 0.15) {
+          const hasJustification = await supabase
+            .from('budget_rows')
+            .select('purchase_equipment_justification')
+            .eq('proposal_id', proposalId)
+            .not('purchase_equipment_justification', 'is', null)
+            .not('purchase_equipment_justification', 'eq', '');
+          const justified = (hasJustification.data || []).length > 0;
+          results.push({
+            id: 'equipment-ratio', name: 'Equipment costs',
+            severity: justified ? 'info' : 'warning',
+            message: `Equipment is ${((equipmentTotal / personnelTotal) * 100).toFixed(1)}% of personnel costs (>15% requires justification)`,
+            passed: justified,
+          });
+        }
       }
 
       // If no issues were found at all, add a pass
