@@ -399,6 +399,7 @@ export type Database = {
           financial_contributions: number
           financial_support_third_parties: number
           funding_rate_override: number | null
+          has_in_kind: boolean
           id: string
           income_generated: number
           indirect_costs_override: number | null
@@ -416,7 +417,15 @@ export type Database = {
           purchase_equipment_justification: string | null
           purchase_other_goods: number
           purchase_travel: number
+          requested_equipment: number | null
           requested_eu_contribution: number | null
+          requested_fstp: number | null
+          requested_indirect_costs: number | null
+          requested_internally_invoiced: number | null
+          requested_other_goods: number | null
+          requested_personnel_costs: number | null
+          requested_subcontracting: number | null
+          requested_travel: number | null
           role_label: string
           subcontracting_costs: number
           updated_at: string
@@ -426,6 +435,7 @@ export type Database = {
           financial_contributions?: number
           financial_support_third_parties?: number
           funding_rate_override?: number | null
+          has_in_kind?: boolean
           id?: string
           income_generated?: number
           indirect_costs_override?: number | null
@@ -443,7 +453,15 @@ export type Database = {
           purchase_equipment_justification?: string | null
           purchase_other_goods?: number
           purchase_travel?: number
+          requested_equipment?: number | null
           requested_eu_contribution?: number | null
+          requested_fstp?: number | null
+          requested_indirect_costs?: number | null
+          requested_internally_invoiced?: number | null
+          requested_other_goods?: number | null
+          requested_personnel_costs?: number | null
+          requested_subcontracting?: number | null
+          requested_travel?: number | null
           role_label?: string
           subcontracting_costs?: number
           updated_at?: string
@@ -453,6 +471,7 @@ export type Database = {
           financial_contributions?: number
           financial_support_third_parties?: number
           funding_rate_override?: number | null
+          has_in_kind?: boolean
           id?: string
           income_generated?: number
           indirect_costs_override?: number | null
@@ -470,7 +489,15 @@ export type Database = {
           purchase_equipment_justification?: string | null
           purchase_other_goods?: number
           purchase_travel?: number
+          requested_equipment?: number | null
           requested_eu_contribution?: number | null
+          requested_fstp?: number | null
+          requested_indirect_costs?: number | null
+          requested_internally_invoiced?: number | null
+          requested_other_goods?: number | null
+          requested_personnel_costs?: number | null
+          requested_subcontracting?: number | null
+          requested_travel?: number | null
           role_label?: string
           subcontracting_costs?: number
           updated_at?: string
