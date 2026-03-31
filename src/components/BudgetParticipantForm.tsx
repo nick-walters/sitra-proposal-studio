@@ -305,7 +305,7 @@ export function BudgetParticipantForm({
               />
               <span className="text-xs text-muted-foreground w-4">€</span>
               <CopyButton value={row.personnelCosts} />
-              {showReq && <div className="flex-1" /><div className="w-4" />}
+              {showReq && <><div className="flex-1" /><div className="w-4" /></>}
             </div>
           )}
         </CardContent>
