@@ -186,7 +186,6 @@ export function BudgetPortalSheet({
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="summary">Summary by participant</TabsTrigger>
             {usesFstp && <TabsTrigger value="fstp">Financial support to third parties (FSTP)</TabsTrigger>}
             {isAdmin && <TabsTrigger value="validation">Validation</TabsTrigger>}
           </TabsList>
