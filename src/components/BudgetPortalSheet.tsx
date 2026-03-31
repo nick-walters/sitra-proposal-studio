@@ -499,7 +499,7 @@ export function BudgetPortalSheet({
                         <tr className="border-t-2 border-foreground/20 bg-muted/40 font-semibold">
                           <td className="px-2 py-1 border-r font-bold">Total costs</td>
                           <td className="px-2 py-1 text-right border-r tabular-nums font-mono font-bold whitespace-nowrap">
-                            {formatCurrency(grandTotals.totalEligibleCosts)}
+                            {formatNumber(grandTotals.totalEligibleCosts, 2)}
                           </td>
                           <td className="px-2 py-1 text-right border-r font-bold">100%</td>
                         </tr>
