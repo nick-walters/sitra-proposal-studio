@@ -520,15 +520,8 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
 
   return (
     <div className="space-y-6">
-      {/* Header with save indicator and export */}
-      <div className="flex items-center justify-between">
-        <SaveIndicator
-          saving={saving}
-          lastSaved={lastSaved}
-          hasUnsavedChanges={hasUnsavedChanges}
-          saveError={saveError}
-          onSaveNow={saveNow}
-        />
+      {/* Header with export */}
+      <div className="flex items-center justify-end">
         {isCoordinator && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

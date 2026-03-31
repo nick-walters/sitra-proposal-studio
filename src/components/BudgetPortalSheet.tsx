@@ -6,15 +6,7 @@ import { SaveIndicator } from '@/components/SaveIndicator';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  TableFooter,
-} from '@/components/ui/table';
+import * as XLSX from 'xlsx';
 import { Lock, Unlock, Loader2, Euro, Calculator, FileSpreadsheet, Download, History, TableProperties, AlertCircle, Info, X, Users } from 'lucide-react';
 import {
   Tooltip,
@@ -102,7 +94,7 @@ export function BudgetPortalSheet({
 
   const { roleTier } = useProposalRole(proposalId);
   const isAdmin = roleTier === 'coordinator';
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('budget');
   const [editingParticipantId, setEditingParticipantId] = useState<string | null>(null);
 
   const editingRow = useMemo(
@@ -118,24 +110,68 @@ export function BudgetPortalSheet({
     return result;
   }, [grandTotals]);
 
-  const handleExportCSV = () => {
-    const headers = ['No.', 'Participant', 'Country', ...PARTICIPANT_COLUMNS.map(c => `${c.code} ${c.name}`.trim())];
-    const csvRows = rows.map(row => [
-      row.participantNumber,
-      row.participantShortName || row.participantName,
-      row.country || '',
-      ...PARTICIPANT_COLUMNS.map(c => (row as any)[c.key] || 0),
-    ]);
-    const totalRow = ['', 'TOTAL', '', ...PARTICIPANT_COLUMNS.map(c => (grandTotals as any)[c.key] || 0)];
-    const csv = [headers, ...csvRows, totalRow].map(r => r.map(cell => `"${cell}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `budget_${proposalId}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('Budget exported to CSV');
+  const handleExportXlsx = () => {
+    const wb = XLSX.utils.book_new();
+
+    // Sheet 1: Staff Effort - we'll need to fetch this data via the query cache
+    // For now, create a placeholder that will be populated from the effort matrix data
+    const effortHeaders = ['Participant'];
+    const effortSheet: any[][] = [];
+    // Note: effort data is in A3EffortMatrix component; we export summary/overview data available here
+
+    // Sheet 2: Summary by Participant
+    const summaryHeaders = ['No.', 'Participant', 'PM rate', 'Total PMs', ...PARTICIPANT_COLUMNS.map(c => `${c.code} ${c.name}`.trim()), 'Share of total budget (%)', 'Share of requested budget (%)'];
+    const summaryData = rows.map(row => {
+      const requestedFundingRate = row.totalEligibleCosts > 0
+        ? ((row.requestedEuContribution / row.totalEligibleCosts) * 100).toFixed(1)
+        : '0';
+      const percentage = grandTotals.totalEligibleCosts > 0
+        ? ((row.totalEligibleCosts / grandTotals.totalEligibleCosts) * 100).toFixed(1)
+        : '0';
+      const requestPercentage = grandTotals.requestedEuContribution > 0
+        ? ((row.requestedEuContribution / grandTotals.requestedEuContribution) * 100).toFixed(1)
+        : '0';
+      return [
+        row.participantNumber,
+        row.participantShortName || row.participantName,
+        row.pmRate ?? '',
+        row.totalPersonMonths,
+        ...PARTICIPANT_COLUMNS.map(c =>
+          c.key === 'fundingRate' ? `${(row as any)[c.key]}%`
+          : c.key === 'requestedFundingRate' ? `${requestedFundingRate}%`
+          : (row as any)[c.key] || 0
+        ),
+        `${percentage}%`,
+        `${requestPercentage}%`,
+      ];
+    });
+    const summaryTotalRow = ['', 'TOTAL', '', rows.reduce((s, r) => s + r.totalPersonMonths, 0),
+      ...PARTICIPANT_COLUMNS.map(c =>
+        c.key === 'fundingRate' || c.key === 'requestedFundingRate' ? ''
+        : (grandTotals as any)[c.key] || 0
+      ), '100%', '100%'];
+    const ws2 = XLSX.utils.aoa_to_sheet([summaryHeaders, ...summaryData, summaryTotalRow]);
+    XLSX.utils.book_append_sheet(wb, ws2, 'Summary by Participant');
+
+    // Sheet 3: Budget Overview
+    const overviewData: any[][] = [['Category', 'Amount (€)', '% of Total']];
+    for (const cat of COST_CATEGORIES) {
+      const isGroup = 'isGroupHeader' in cat && cat.isGroupHeader;
+      const amount = cat.key ? (categoryTotals[cat.key] || 0) : 0;
+      const pct = grandTotals.totalEligibleCosts > 0 && cat.key
+        ? `${((amount / grandTotals.totalEligibleCosts) * 100).toFixed(1)}%` : '';
+      overviewData.push([`${cat.code} ${cat.name}`, isGroup ? '' : amount, pct]);
+    }
+    overviewData.push(['Total costs', grandTotals.totalEligibleCosts, '100%']);
+    overviewData.push(['Requested EU contribution', grandTotals.requestedEuContribution,
+      grandTotals.totalEligibleCosts > 0 ? `${((grandTotals.requestedEuContribution / grandTotals.totalEligibleCosts) * 100).toFixed(1)}%` : '0%']);
+    overviewData.push(['In-kind contributions', grandTotals.totalEligibleCosts - grandTotals.requestedEuContribution,
+      grandTotals.totalEligibleCosts > 0 ? `${(((grandTotals.totalEligibleCosts - grandTotals.requestedEuContribution) / grandTotals.totalEligibleCosts) * 100).toFixed(1)}%` : '0%']);
+    const ws3 = XLSX.utils.aoa_to_sheet(overviewData);
+    XLSX.utils.book_append_sheet(wb, ws3, 'Budget Overview');
+
+    XLSX.writeFile(wb, `budget_${proposalAcronym || proposalId}.xlsx`);
+    toast.success('Budget exported to Excel');
   };
 
   if (loading) {
@@ -171,96 +207,100 @@ export function BudgetPortalSheet({
               <SaveIndicator saving={saving} lastSaved={null} />
             )}
           </div>
-          <div className="flex items-center gap-3">
-            <Badge variant={proposalType === 'lump_sum' ? 'default' : 'secondary'}>
-              {proposalType === 'lump_sum' ? 'Lump sum' : 'Actual costs'}
-            </Badge>
-            <Button variant="outline" className="gap-2" onClick={handleExportCSV}>
-              <Download className="w-4 h-4" />
-              Export
-            </Button>
-          </div>
         </div>
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            {usesFstp && <TabsTrigger value="fstp">Financial support to third parties (FSTP)</TabsTrigger>}
-            {isAdmin && <TabsTrigger value="validation">Validation</TabsTrigger>}
-          </TabsList>
+          <div className="flex items-center justify-between">
+            <TabsList>
+              <TabsTrigger value="budget">Budget</TabsTrigger>
+              {usesFstp && <TabsTrigger value="fstp">Financial support to third parties (FSTP)</TabsTrigger>}
+              {isAdmin && <TabsTrigger value="validation">Validation</TabsTrigger>}
+            </TabsList>
+            <div className="flex items-center gap-3">
+              <Badge variant={proposalType === 'lump_sum' ? 'default' : 'secondary'}>
+                {proposalType === 'lump_sum' ? 'Lump sum budget model' : 'Actual costs budget model'}
+              </Badge>
+              <Button variant="outline" className="gap-2" onClick={handleExportXlsx}>
+                <Download className="w-4 h-4" />
+                Export budget
+              </Button>
+            </div>
+          </div>
 
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-4">
+          {/* Budget Tab */}
+          <TabsContent value="budget" className="space-y-4">
             <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4">
               <Card>
                 <CardHeader>
                   <CardTitle>Budget overview by category</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Table className="w-auto">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-left font-bold">Category</TableHead>
-                        <TableHead className="text-left font-bold">Amount (€)</TableHead>
-                        <TableHead className="text-left font-bold">% of Total</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {COST_CATEGORIES.map((cat) => {
-                        const isGroup = 'isGroupHeader' in cat && cat.isGroupHeader;
-                        const amount = cat.key ? (categoryTotals[cat.key] || 0) : 0;
-                        const percentage = grandTotals.totalEligibleCosts > 0 && cat.key
-                          ? ((amount / grandTotals.totalEligibleCosts) * 100).toFixed(1)
-                          : '';
+                  <div className="overflow-auto">
+                    <table className="text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="px-2 py-1.5 text-left border-r font-bold">Category</th>
+                          <th className="px-2 py-1.5 text-left border-r font-bold">Amount (€)</th>
+                          <th className="px-2 py-1.5 text-left border-r font-bold">% of Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {COST_CATEGORIES.map((cat) => {
+                          const isGroup = 'isGroupHeader' in cat && cat.isGroupHeader;
+                          const amount = cat.key ? (categoryTotals[cat.key] || 0) : 0;
+                          const percentage = grandTotals.totalEligibleCosts > 0 && cat.key
+                            ? ((amount / grandTotals.totalEligibleCosts) * 100).toFixed(1)
+                            : '';
 
-                        return (
-                          <TableRow key={cat.code} className={isGroup ? 'bg-muted/30' : ''}>
-                            <TableCell className="px-2 py-1 text-left">
-                              <span className={cn('isMajor' in cat && cat.isMajor ? 'font-bold' : 'pl-4')}>
-                                {cat.code} {cat.name}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-left font-mono px-2 py-1">
-                              {isGroup ? '' : formatCurrency(amount)}
-                            </TableCell>
-                            <TableCell className="text-left px-2 py-1">{percentage ? `${percentage}%` : ''}</TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                    <TableFooter>
-                      <TableRow>
-                        <TableCell className="font-bold px-2 py-1">Total costs</TableCell>
-                        <TableCell className="text-left font-bold font-mono px-2 py-1">
-                          {formatCurrency(grandTotals.totalEligibleCosts)}
-                        </TableCell>
-                        <TableCell className="text-left font-bold px-2 py-1">100%</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-bold px-2 py-1">Requested EU contribution</TableCell>
-                        <TableCell className="text-left font-bold font-mono px-2 py-1">
-                          {formatCurrency(grandTotals.requestedEuContribution)}
-                        </TableCell>
-                        <TableCell className="text-left font-bold px-2 py-1">
-                          {grandTotals.totalEligibleCosts > 0
-                            ? ((grandTotals.requestedEuContribution / grandTotals.totalEligibleCosts) * 100).toFixed(1)
-                            : '0'}%
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-bold px-2 py-1">In-kind contributions</TableCell>
-                        <TableCell className="text-left font-bold font-mono px-2 py-1">
-                          {formatCurrency(grandTotals.totalEligibleCosts - grandTotals.requestedEuContribution)}
-                        </TableCell>
-                        <TableCell className="text-left font-bold px-2 py-1">
-                          {grandTotals.totalEligibleCosts > 0
-                            ? (((grandTotals.totalEligibleCosts - grandTotals.requestedEuContribution) / grandTotals.totalEligibleCosts) * 100).toFixed(1)
-                            : '0'}%
-                        </TableCell>
-                      </TableRow>
-                    </TableFooter>
-                  </Table>
+                          return (
+                            <tr key={cat.code} className={cn('border-t', isGroup && 'bg-muted/30')}>
+                              <td className="px-2 py-1 text-left border-r">
+                                <span className={cn('isMajor' in cat && cat.isMajor ? 'font-bold' : 'pl-4')}>
+                                  {cat.code} {cat.name}
+                                </span>
+                              </td>
+                              <td className="px-2 py-1 text-right border-r tabular-nums font-mono whitespace-nowrap">
+                                {isGroup ? '' : formatCurrency(amount)}
+                              </td>
+                              <td className="px-2 py-1 text-right border-r whitespace-nowrap">{percentage ? `${percentage}%` : ''}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 border-foreground/20 bg-muted/40 font-semibold">
+                          <td className="px-2 py-1 border-r font-bold">Total costs</td>
+                          <td className="px-2 py-1 text-right border-r tabular-nums font-mono font-bold whitespace-nowrap">
+                            {formatCurrency(grandTotals.totalEligibleCosts)}
+                          </td>
+                          <td className="px-2 py-1 text-right border-r font-bold">100%</td>
+                        </tr>
+                        <tr className="border-t bg-muted/40 font-semibold">
+                          <td className="px-2 py-1 border-r font-bold">Requested EU contribution</td>
+                          <td className="px-2 py-1 text-right border-r tabular-nums font-mono font-bold whitespace-nowrap">
+                            {formatCurrency(grandTotals.requestedEuContribution)}
+                          </td>
+                          <td className="px-2 py-1 text-right border-r font-bold">
+                            {grandTotals.totalEligibleCosts > 0
+                              ? ((grandTotals.requestedEuContribution / grandTotals.totalEligibleCosts) * 100).toFixed(1)
+                              : '0'}%
+                          </td>
+                        </tr>
+                        <tr className="border-t bg-muted/40 font-semibold">
+                          <td className="px-2 py-1 border-r font-bold">In-kind contributions</td>
+                          <td className="px-2 py-1 text-right border-r tabular-nums font-mono font-bold whitespace-nowrap">
+                            {formatCurrency(grandTotals.totalEligibleCosts - grandTotals.requestedEuContribution)}
+                          </td>
+                          <td className="px-2 py-1 text-right border-r font-bold">
+                            {grandTotals.totalEligibleCosts > 0
+                              ? (((grandTotals.totalEligibleCosts - grandTotals.requestedEuContribution) / grandTotals.totalEligibleCosts) * 100).toFixed(1)
+                              : '0'}%
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
                 </CardContent>
               </Card>
               <A3EffortMatrix proposalId={proposalId} canEdit={canEdit} />
