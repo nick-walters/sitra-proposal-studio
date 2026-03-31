@@ -559,7 +559,7 @@ export function BudgetPortalSheet({
                           <td className="px-2 py-1 text-right border-r tabular-nums font-mono font-bold whitespace-nowrap">
                             {formatNumber(grandTotals.totalEligibleCosts, 2)}
                           </td>
-                          <td className="px-2 py-1 text-right border-r font-bold">100%</td>
+                          <td className="px-2 py-1 text-right border-r font-bold">100.0</td>
                         </tr>
                         <tr className="border-t bg-muted/40 font-semibold">
                           <td className="px-2 py-1 border-r font-bold">Requested EU contribution</td>
