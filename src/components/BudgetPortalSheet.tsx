@@ -216,7 +216,7 @@ export function BudgetPortalSheet({
       'Participant', 'PM rate (€)', 'Total PMs',
       'A. Personnel costs (€)', 'B. Subcontracting costs (€)',
       'C.1. Travel & subsistence (€)', 'C.2. Equipment (€)', 'C.3. Other goods (€)',
-      'D.1. FSTP (€)', 'D.2. Internally inv. (€)',
+      'D.1. Financial support to third parties (€)', 'D.2. Internally invoiced goods & services (€)',
       'E. Indirect costs (€)', 'Total costs (€)',
       'Max. eligible funding rate (%)', 'Max. EU contribution (€)',
       'Requested funding rate (%)', 'Requested budget (€)',
