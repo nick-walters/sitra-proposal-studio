@@ -119,24 +119,68 @@ export function BudgetPortalSheet({
     return result;
   }, [grandTotals]);
 
-  const handleExportCSV = () => {
-    const headers = ['No.', 'Participant', 'Country', ...PARTICIPANT_COLUMNS.map(c => `${c.code} ${c.name}`.trim())];
-    const csvRows = rows.map(row => [
-      row.participantNumber,
-      row.participantShortName || row.participantName,
-      row.country || '',
-      ...PARTICIPANT_COLUMNS.map(c => (row as any)[c.key] || 0),
-    ]);
-    const totalRow = ['', 'TOTAL', '', ...PARTICIPANT_COLUMNS.map(c => (grandTotals as any)[c.key] || 0)];
-    const csv = [headers, ...csvRows, totalRow].map(r => r.map(cell => `"${cell}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `budget_${proposalId}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('Budget exported to CSV');
+  const handleExportXlsx = () => {
+    const wb = XLSX.utils.book_new();
+
+    // Sheet 1: Staff Effort - we'll need to fetch this data via the query cache
+    // For now, create a placeholder that will be populated from the effort matrix data
+    const effortHeaders = ['Participant'];
+    const effortSheet: any[][] = [];
+    // Note: effort data is in A3EffortMatrix component; we export summary/overview data available here
+
+    // Sheet 2: Summary by Participant
+    const summaryHeaders = ['No.', 'Participant', 'PM rate', 'Total PMs', ...PARTICIPANT_COLUMNS.map(c => `${c.code} ${c.name}`.trim()), 'Share of total budget (%)', 'Share of requested budget (%)'];
+    const summaryData = rows.map(row => {
+      const requestedFundingRate = row.totalEligibleCosts > 0
+        ? ((row.requestedEuContribution / row.totalEligibleCosts) * 100).toFixed(1)
+        : '0';
+      const percentage = grandTotals.totalEligibleCosts > 0
+        ? ((row.totalEligibleCosts / grandTotals.totalEligibleCosts) * 100).toFixed(1)
+        : '0';
+      const requestPercentage = grandTotals.requestedEuContribution > 0
+        ? ((row.requestedEuContribution / grandTotals.requestedEuContribution) * 100).toFixed(1)
+        : '0';
+      return [
+        row.participantNumber,
+        row.participantShortName || row.participantName,
+        row.pmRate ?? '',
+        row.totalPersonMonths,
+        ...PARTICIPANT_COLUMNS.map(c =>
+          c.key === 'fundingRate' ? `${(row as any)[c.key]}%`
+          : c.key === 'requestedFundingRate' ? `${requestedFundingRate}%`
+          : (row as any)[c.key] || 0
+        ),
+        `${percentage}%`,
+        `${requestPercentage}%`,
+      ];
+    });
+    const summaryTotalRow = ['', 'TOTAL', '', rows.reduce((s, r) => s + r.totalPersonMonths, 0),
+      ...PARTICIPANT_COLUMNS.map(c =>
+        c.key === 'fundingRate' || c.key === 'requestedFundingRate' ? ''
+        : (grandTotals as any)[c.key] || 0
+      ), '100%', '100%'];
+    const ws2 = XLSX.utils.aoa_to_sheet([summaryHeaders, ...summaryData, summaryTotalRow]);
+    XLSX.utils.book_append_sheet(wb, ws2, 'Summary by Participant');
+
+    // Sheet 3: Budget Overview
+    const overviewData: any[][] = [['Category', 'Amount (€)', '% of Total']];
+    for (const cat of COST_CATEGORIES) {
+      const isGroup = 'isGroupHeader' in cat && cat.isGroupHeader;
+      const amount = cat.key ? (categoryTotals[cat.key] || 0) : 0;
+      const pct = grandTotals.totalEligibleCosts > 0 && cat.key
+        ? `${((amount / grandTotals.totalEligibleCosts) * 100).toFixed(1)}%` : '';
+      overviewData.push([`${cat.code} ${cat.name}`, isGroup ? '' : amount, pct]);
+    }
+    overviewData.push(['Total costs', grandTotals.totalEligibleCosts, '100%']);
+    overviewData.push(['Requested EU contribution', grandTotals.requestedEuContribution,
+      grandTotals.totalEligibleCosts > 0 ? `${((grandTotals.requestedEuContribution / grandTotals.totalEligibleCosts) * 100).toFixed(1)}%` : '0%']);
+    overviewData.push(['In-kind contributions', grandTotals.totalEligibleCosts - grandTotals.requestedEuContribution,
+      grandTotals.totalEligibleCosts > 0 ? `${(((grandTotals.totalEligibleCosts - grandTotals.requestedEuContribution) / grandTotals.totalEligibleCosts) * 100).toFixed(1)}%` : '0%']);
+    const ws3 = XLSX.utils.aoa_to_sheet(overviewData);
+    XLSX.utils.book_append_sheet(wb, ws3, 'Budget Overview');
+
+    XLSX.writeFile(wb, `budget_${proposalAcronym || proposalId}.xlsx`);
+    toast.success('Budget exported to Excel');
   };
 
   if (loading) {
