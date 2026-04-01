@@ -141,7 +141,7 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
       try {
         const { data, error } = await supabase
           .from('profiles_basic')
-          .select('id, email, first_name, last_name, full_name, organisation, avatar_url, phone_number');
+          .select('id, email, first_name, last_name, full_name, organisation, avatar_url, phone_number, country_code');
 
         if (error) {
           console.error('Error fetching collaborators:', error);
