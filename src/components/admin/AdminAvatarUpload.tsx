@@ -171,7 +171,7 @@ export function AdminAvatarUpload({ userId, avatarUrl, initials, onAvatarChange 
                     style={{
                       width: `${baseWidth}px`,
                       height: 'auto',
-                      aspectRatio: `${naturalDims.width} / ${naturalDims.height}`,
+                      aspectRatio: `${imgDims.width} / ${imgDims.height}`,
                       left: '50%',
                       top: '50%',
                       transformOrigin: 'center',
