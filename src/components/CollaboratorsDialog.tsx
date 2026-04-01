@@ -37,6 +37,7 @@ interface Collaborator {
   organisation: string | null;
   avatar_url: string | null;
   phone_number: string | null;
+  country_code: string | null;
 }
 
 interface OnlineUser {
@@ -140,7 +141,7 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
       try {
         const { data, error } = await supabase
           .from('profiles_basic')
-          .select('id, email, first_name, last_name, full_name, organisation, avatar_url, phone_number');
+          .select('id, email, first_name, last_name, full_name, organisation, avatar_url, phone_number, country_code');
 
         if (error) {
           console.error('Error fetching collaborators:', error);
@@ -556,7 +557,7 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
                             {collab.phone_number && (
                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                 <Phone className="w-3 h-3" />
-                                {collab.phone_number}
+                                {collab.country_code ? `${collab.country_code} ${collab.phone_number}` : collab.phone_number}
                               </div>
                             )}
                           </div>
