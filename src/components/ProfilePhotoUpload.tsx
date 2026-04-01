@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -14,6 +14,42 @@ interface ProfilePhotoUploadProps {
   lastName: string;
   email: string;
   onAvatarChange: (url: string | null) => void;
+}
+
+const CROP_SIZE = 200;
+
+/** Draw the cropped circular avatar onto a canvas context.
+ *  Used for BOTH the live preview and the final export — guaranteeing pixel-perfect match. */
+function drawCrop(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement | HTMLCanvasElement,
+  natW: number, natH: number,
+  size: number, zoom: number, posX: number, posY: number,
+) {
+  const minDim = Math.min(natW, natH);
+  // scale so that at zoom=1 the shortest side fills the circle
+  const s = (zoom * size) / minDim;
+
+  ctx.clearRect(0, 0, size, size);
+
+  // circular clip
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+  ctx.closePath();
+  ctx.clip();
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, size, size);
+
+  // position image center at canvas center + drag offset, then scale
+  const imgW = natW * s;
+  const imgH = natH * s;
+  const dx = (size - imgW) / 2 + posX * (size / CROP_SIZE);
+  const dy = (size - imgH) / 2 + posY * (size / CROP_SIZE);
+
+  ctx.drawImage(img as CanvasImageSource, dx, dy, imgW, imgH);
+  ctx.restore();
 }
 
 export function ProfilePhotoUpload({
@@ -33,7 +69,9 @@ export function ProfilePhotoUpload({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [naturalDims, setNaturalDims] = useState({ width: 0, height: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+  const exportCanvasRef = useRef<HTMLCanvasElement>(null);
+  const loadedImgRef = useRef<HTMLImageElement | null>(null);
 
   const getInitials = () => {
     if (firstName || lastName) {
@@ -64,6 +102,7 @@ export function ProfilePhotoUpload({
       const dataUrl = event.target?.result as string;
       const img = new Image();
       img.onload = () => {
+        loadedImgRef.current = img;
         setNaturalDims({ width: img.naturalWidth, height: img.naturalHeight });
         setPreviewImage(dataUrl);
         setZoom([1]);
@@ -75,21 +114,17 @@ export function ProfilePhotoUpload({
     reader.readAsDataURL(file);
   };
 
-  const CROP_SIZE = 200;
-
-  // Base dimensions: shortest side = CROP_SIZE, computed once on image load
   const baseWidth = naturalDims.width === 0 ? 0 : (naturalDims.width / Math.min(naturalDims.width, naturalDims.height)) * CROP_SIZE;
   const baseHeight = naturalDims.height === 0 ? 0 : (naturalDims.height / Math.min(naturalDims.width, naturalDims.height)) * CROP_SIZE;
 
-  // Constrain position so image always covers the crop circle
-  const clampPosition = (pos: { x: number; y: number }, z: number) => {
+  const clampPosition = useCallback((pos: { x: number; y: number }, z: number) => {
     const maxX = Math.max(0, (baseWidth * z - CROP_SIZE) / 2);
     const maxY = Math.max(0, (baseHeight * z - CROP_SIZE) / 2);
     return {
       x: Math.min(maxX, Math.max(-maxX, pos.x)),
       y: Math.min(maxY, Math.max(-maxY, pos.y)),
     };
-  };
+  }, [baseWidth, baseHeight]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
@@ -106,55 +141,41 @@ export function ProfilePhotoUpload({
 
   const handleZoomChange = (val: number[]) => {
     setZoom(val);
-    // Re-clamp position for new zoom level
     setPosition(prev => clampPosition(prev, val[0]));
   };
 
+  // Redraw preview canvas whenever zoom/position/image changes
+  useEffect(() => {
+    const canvas = previewCanvasRef.current;
+    const img = loadedImgRef.current;
+    if (!canvas || !img || !cropDialogOpen || naturalDims.width === 0) return;
+
+    canvas.width = CROP_SIZE;
+    canvas.height = CROP_SIZE;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    drawCrop(ctx, img, naturalDims.width, naturalDims.height, CROP_SIZE, zoom[0], position.x, position.y);
+  }, [zoom, position, naturalDims, cropDialogOpen]);
+
   const cropAndUpload = async () => {
-    if (!previewImage || !canvasRef.current) return;
+    if (!loadedImgRef.current || !exportCanvasRef.current) return;
 
     setUploading(true);
 
     try {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Could not get canvas context');
-
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      
-      await new Promise<void>((resolve, reject) => {
-        img.onload = () => resolve();
-        img.onerror = reject;
-        img.src = previewImage;
-      });
-
-      // Set canvas size (output will be 256x256)
+      const canvas = exportCanvasRef.current;
       const outputSize = 256;
       canvas.width = outputSize;
       canvas.height = outputSize;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Could not get canvas context');
 
-      // Use canvas transforms to replicate CSS rendering exactly
-      const minDim = Math.min(img.naturalWidth, img.naturalHeight);
-      const scaleFactor = outputSize / CROP_SIZE;
-      const s = zoom[0] * CROP_SIZE / minDim * scaleFactor;
+      const img = loadedImgRef.current;
 
-      // Draw circular clip
-      ctx.beginPath();
-      ctx.arc(outputSize / 2, outputSize / 2, outputSize / 2, 0, Math.PI * 2);
-      ctx.closePath();
-      ctx.clip();
+      // Use the SAME drawCrop function as the preview — just at 256px instead of 200px
+      drawCrop(ctx, img, naturalDims.width, naturalDims.height, outputSize, zoom[0], position.x, position.y);
 
-      // Fill with white background
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, outputSize, outputSize);
-
-      // Apply transforms matching CSS: center, offset, scale, draw image centered
-      ctx.translate(outputSize / 2 + position.x * scaleFactor, outputSize / 2 + position.y * scaleFactor);
-      ctx.scale(s, s);
-      ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
-
-      // Convert to blob
       const blob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob((blob) => {
           if (blob) resolve(blob);
@@ -162,10 +183,8 @@ export function ProfilePhotoUpload({
         }, 'image/jpeg', 0.9);
       });
 
-      // Upload to storage
       const fileName = `${userId}/avatar-${Date.now()}.jpg`;
-      
-      // Delete old avatar if exists
+
       if (currentAvatarUrl) {
         const oldPath = currentAvatarUrl.split('/profile-avatars/')[1];
         if (oldPath) {
@@ -179,12 +198,10 @@ export function ProfilePhotoUpload({
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('profile-avatars')
         .getPublicUrl(fileName);
 
-      // Update profile with new avatar URL
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: publicUrl })
@@ -284,8 +301,8 @@ export function ProfilePhotoUpload({
         />
       </div>
 
-      {/* Hidden canvas for cropping */}
-      <canvas ref={canvasRef} className="hidden" />
+      {/* Hidden canvas for export */}
+      <canvas ref={exportCanvasRef} className="hidden" />
 
       {/* Crop Dialog */}
       <Dialog open={cropDialogOpen} onOpenChange={setCropDialogOpen}>
@@ -298,31 +315,20 @@ export function ProfilePhotoUpload({
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Crop preview area */}
-            <div 
-              className="relative w-[200px] h-[200px] mx-auto rounded-full overflow-hidden bg-muted cursor-move ring-2 ring-border"
+            {/* Canvas-based crop preview */}
+            <div
+              className="relative w-[200px] h-[200px] mx-auto cursor-move"
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
             >
-            {previewImage && naturalDims.width > 0 && (
-                  <img
-                    src={previewImage}
-                    alt="Preview"
-                    className="absolute select-none pointer-events-none"
-                    style={{
-                      width: `${baseWidth}px`,
-                      height: 'auto',
-                      aspectRatio: `${naturalDims.width} / ${naturalDims.height}`,
-                      left: '50%',
-                      top: '50%',
-                      transformOrigin: 'center',
-                      transform: `translate(-50%, -50%) scale(${zoom[0]}) translate(${position.x / zoom[0]}px, ${position.y / zoom[0]}px)`,
-                    }}
-                    draggable={false}
-                  />
-            )}
+              <canvas
+                ref={previewCanvasRef}
+                width={CROP_SIZE}
+                height={CROP_SIZE}
+                className="w-[200px] h-[200px] rounded-full ring-2 ring-border"
+              />
             </div>
 
             {/* Zoom slider */}

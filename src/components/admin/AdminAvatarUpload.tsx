@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -14,6 +14,38 @@ interface AdminAvatarUploadProps {
   onAvatarChange: (userId: string, newUrl: string) => void;
 }
 
+const CROP_SIZE = 200;
+
+/** Draw the cropped circular avatar onto a canvas context.
+ *  Used for BOTH the live preview and the final export. */
+function drawCrop(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  natW: number, natH: number,
+  size: number, zoom: number, posX: number, posY: number,
+) {
+  const minDim = Math.min(natW, natH);
+  const s = (zoom * size) / minDim;
+
+  ctx.clearRect(0, 0, size, size);
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+  ctx.closePath();
+  ctx.clip();
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, size, size);
+
+  const imgW = natW * s;
+  const imgH = natH * s;
+  const dx = (size - imgW) / 2 + posX * (size / CROP_SIZE);
+  const dy = (size - imgH) / 2 + posY * (size / CROP_SIZE);
+
+  ctx.drawImage(img, dx, dy, imgW, imgH);
+  ctx.restore();
+}
+
 export function AdminAvatarUpload({ userId, avatarUrl, initials, onAvatarChange }: AdminAvatarUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [cropOpen, setCropOpen] = useState(false);
@@ -24,7 +56,9 @@ export function AdminAvatarUpload({ userId, avatarUrl, initials, onAvatarChange 
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [imgDims, setImgDims] = useState({ width: 0, height: 0 });
   const fileRef = useRef<HTMLInputElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+  const exportCanvasRef = useRef<HTMLCanvasElement>(null);
+  const loadedImgRef = useRef<HTMLImageElement | null>(null);
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -36,6 +70,7 @@ export function AdminAvatarUpload({ userId, avatarUrl, initials, onAvatarChange 
       const url = ev.target?.result as string;
       const img = new Image();
       img.onload = () => {
+        loadedImgRef.current = img;
         setImgDims({ width: img.naturalWidth, height: img.naturalHeight });
         setPreviewImage(url);
         setZoom([1]);
@@ -48,19 +83,17 @@ export function AdminAvatarUpload({ userId, avatarUrl, initials, onAvatarChange 
     e.target.value = "";
   };
 
-  const CROP_SIZE = 200;
-
   const baseWidth = imgDims.width === 0 ? 0 : (imgDims.width / Math.min(imgDims.width, imgDims.height)) * CROP_SIZE;
   const baseHeight = imgDims.height === 0 ? 0 : (imgDims.height / Math.min(imgDims.width, imgDims.height)) * CROP_SIZE;
 
-  const clampPosition = (pos: { x: number; y: number }, z: number) => {
+  const clampPosition = useCallback((pos: { x: number; y: number }, z: number) => {
     const maxX = Math.max(0, (baseWidth * z - CROP_SIZE) / 2);
     const maxY = Math.max(0, (baseHeight * z - CROP_SIZE) / 2);
     return {
       x: Math.min(maxX, Math.max(-maxX, pos.x)),
       y: Math.min(maxY, Math.max(-maxY, pos.y)),
     };
-  };
+  }, [baseWidth, baseHeight]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
@@ -76,42 +109,37 @@ export function AdminAvatarUpload({ userId, avatarUrl, initials, onAvatarChange 
     setPosition(prev => clampPosition(prev, val[0]));
   };
 
+  // Redraw preview canvas whenever zoom/position/image changes
+  useEffect(() => {
+    const canvas = previewCanvasRef.current;
+    const img = loadedImgRef.current;
+    if (!canvas || !img || !cropOpen || imgDims.width === 0) return;
+
+    canvas.width = CROP_SIZE;
+    canvas.height = CROP_SIZE;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    drawCrop(ctx, img, imgDims.width, imgDims.height, CROP_SIZE, zoom[0], position.x, position.y);
+  }, [zoom, position, imgDims, cropOpen]);
+
   const cropAndUpload = async () => {
-    if (!previewImage || !canvasRef.current) return;
+    if (!loadedImgRef.current || !exportCanvasRef.current) return;
     setUploading(true);
     try {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("No canvas context");
-
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = rej; img.src = previewImage; });
-
+      const canvas = exportCanvasRef.current;
       const out = 256;
       canvas.width = out;
       canvas.height = out;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("No canvas context");
 
-      // Use canvas transforms to replicate CSS rendering exactly
-      const minDim = Math.min(img.naturalWidth, img.naturalHeight);
-      const scaleFactor = out / CROP_SIZE;
-      const s = zoom[0] * CROP_SIZE / minDim * scaleFactor;
-
-      ctx.beginPath();
-      ctx.arc(out / 2, out / 2, out / 2, 0, Math.PI * 2);
-      ctx.clip();
-      ctx.fillStyle = "#fff";
-      ctx.fillRect(0, 0, out, out);
-
-      // Apply transforms matching CSS: center, offset, scale, draw image centered
-      ctx.translate(out / 2 + position.x * scaleFactor, out / 2 + position.y * scaleFactor);
-      ctx.scale(s, s);
-      ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+      const img = loadedImgRef.current;
+      drawCrop(ctx, img, imgDims.width, imgDims.height, out, zoom[0], position.x, position.y);
 
       const blob = await new Promise<Blob>((res, rej) => canvas.toBlob(b => b ? res(b) : rej(), "image/jpeg", 0.9));
       const fileName = `${userId}/avatar-${Date.now()}.jpg`;
 
-      // Remove old avatar
       if (avatarUrl) {
         const oldPath = avatarUrl.split("/profile-avatars/")[1];
         if (oldPath) await supabase.storage.from("profile-avatars").remove([oldPath]);
@@ -148,7 +176,7 @@ export function AdminAvatarUpload({ userId, avatarUrl, initials, onAvatarChange 
         </div>
       </div>
       <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
-      <canvas ref={canvasRef} className="hidden" />
+      <canvas ref={exportCanvasRef} className="hidden" />
 
       <Dialog open={cropOpen} onOpenChange={setCropOpen}>
         <DialogContent className="max-w-md">
@@ -158,29 +186,18 @@ export function AdminAvatarUpload({ userId, avatarUrl, initials, onAvatarChange 
           </DialogHeader>
           <div className="space-y-4">
             <div
-              className="relative w-[200px] h-[200px] mx-auto rounded-full overflow-hidden bg-muted cursor-move ring-2 ring-border"
+              className="relative w-[200px] h-[200px] mx-auto cursor-move"
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
             >
-              {previewImage && imgDims.width > 0 && (
-                  <img
-                    src={previewImage}
-                    alt="Preview"
-                    className="absolute select-none pointer-events-none"
-                    style={{
-                      width: `${baseWidth}px`,
-                      height: 'auto',
-                      aspectRatio: `${imgDims.width} / ${imgDims.height}`,
-                      left: '50%',
-                      top: '50%',
-                      transformOrigin: 'center',
-                      transform: `translate(-50%, -50%) scale(${zoom[0]}) translate(${position.x / zoom[0]}px, ${position.y / zoom[0]}px)`,
-                    }}
-                    draggable={false}
-                  />
-              )}
+              <canvas
+                ref={previewCanvasRef}
+                width={CROP_SIZE}
+                height={CROP_SIZE}
+                className="w-[200px] h-[200px] rounded-full ring-2 ring-border"
+              />
             </div>
             <div className="space-y-2 px-4">
               <label className="text-sm text-muted-foreground">Zoom</label>
