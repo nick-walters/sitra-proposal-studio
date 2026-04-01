@@ -182,6 +182,30 @@ export function BudgetPortalSheet({
       }
     };
 
+    // Helper to bold an entire column
+    const styleCol = (ws: XLSX.WorkSheet, colIdx: number, startRow: number, endRow: number) => {
+      const cl = colLetter(colIdx);
+      for (let r = startRow; r <= endRow; r++) {
+        const ref = cl + r;
+        if (ws[ref]) ws[ref].s = { ...ws[ref].s, font: { bold: true } };
+      }
+    };
+
+    // Helper to auto-fit column widths based on content
+    const autoFitCols = (ws: XLSX.WorkSheet, aoa: any[][]) => {
+      const colWidths: number[] = [];
+      for (const row of aoa) {
+        row.forEach((cell: any, i: number) => {
+          let len = 0;
+          if (cell == null) len = 0;
+          else if (typeof cell === 'object' && cell.f) len = 12; // formula placeholder
+          else len = String(cell).length;
+          colWidths[i] = Math.max(colWidths[i] || 0, len);
+        });
+      }
+      ws['!cols'] = colWidths.map(w => ({ wch: Math.max(w + 2, 8) }));
+    };
+
     // ─── Sheet 1: Staff Effort ───
     const cachedWps = queryClient.getQueryData<{ id: string; number: number; short_name: string | null; title: string | null }[]>(['a3-effort-wps', proposalId]) || [];
     const cachedParticipants = queryClient.getQueryData<{ id: string; participant_number: number | null; organisation_short_name: string | null; organisation_name: string }[]>(['a3-effort-participants', proposalId]) || [];
@@ -234,6 +258,12 @@ export function BudgetPortalSheet({
         if (ws1[ref]) ws1[ref].s = { ...ws1[ref].s, numFmt: '0.0' };
       }
     }
+
+    // Bold Total column (last column) for all data + total rows
+    const totalColIdx = effortColCount - 1;
+    styleCol(ws1, totalColIdx, 1, totalRowIdx);
+    // Auto-fit columns
+    autoFitCols(ws1, effortAoa);
 
     XLSX.utils.book_append_sheet(wb, ws1, 'Staff Effort');
 
@@ -387,6 +417,12 @@ export function BudgetPortalSheet({
       });
     }
 
+    // Bold Total costs column (L=11) and Requested budget column (P=15)
+    styleCol(ws2, 11, 1, summaryTotalRowNum);
+    styleCol(ws2, 15, 1, summaryTotalRowNum);
+    // Auto-fit columns
+    autoFitCols(ws2, summaryAoa);
+
     XLSX.utils.book_append_sheet(wb, ws2, 'Summary by Participant');
 
     // ─── Sheet 3: Budget Overview ───
@@ -506,6 +542,13 @@ export function BudgetPortalSheet({
       const eRef = `E${r}`;
       if (ws3[eRef]) ws3[eRef].s = { ...ws3[eRef].s, numFmt: '0.0' };
     }
+
+    // Bold Total budget column (B=1) and Requested costs column (D=3)
+    const overviewLastRow = overviewAoa.length;
+    styleCol(ws3, 1, 1, overviewLastRow);
+    styleCol(ws3, 3, 1, overviewLastRow);
+    // Auto-fit columns
+    autoFitCols(ws3, overviewAoa);
 
     XLSX.utils.book_append_sheet(wb, ws3, 'Budget Overview');
 
