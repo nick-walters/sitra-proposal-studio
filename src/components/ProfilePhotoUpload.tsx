@@ -134,16 +134,11 @@ export function ProfilePhotoUpload({
       canvas.width = outputSize;
       canvas.height = outputSize;
 
-      const ratio = outputSize / CROP_SIZE;
-      const baseScale = CROP_SIZE / Math.min(img.naturalWidth, img.naturalHeight);
-      const scale = baseScale * zoom[0];
-      
-      const scaledWidth = img.naturalWidth * scale * ratio;
-      const scaledHeight = img.naturalHeight * scale * ratio;
-      
-      // Center the image and apply drag offset
-      const offsetX = (outputSize - scaledWidth) / 2 + (position.x * ratio);
-      const offsetY = (outputSize - scaledHeight) / 2 + (position.y * ratio);
+      // Compute source rectangle directly from crop parameters
+      const minDim = Math.min(img.naturalWidth, img.naturalHeight);
+      const srcSize = minDim / zoom[0];
+      const srcCenterX = img.naturalWidth / 2 - (position.x * minDim) / (CROP_SIZE * zoom[0]);
+      const srcCenterY = img.naturalHeight / 2 - (position.y * minDim) / (CROP_SIZE * zoom[0]);
 
       // Draw circular clip
       ctx.beginPath();
@@ -155,8 +150,12 @@ export function ProfilePhotoUpload({
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, outputSize, outputSize);
 
-      // Draw the image
-      ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+      // Draw the image using source rectangle mapping
+      ctx.drawImage(
+        img,
+        srcCenterX - srcSize / 2, srcCenterY - srcSize / 2, srcSize, srcSize,
+        0, 0, outputSize, outputSize
+      );
 
       // Convert to blob
       const blob = await new Promise<Blob>((resolve, reject) => {
@@ -304,7 +303,7 @@ export function ProfilePhotoUpload({
           <div className="space-y-4">
             {/* Crop preview area */}
             <div 
-              className="relative w-[200px] h-[200px] mx-auto rounded-full overflow-hidden bg-muted cursor-move border-2 border-border"
+              className="relative w-[200px] h-[200px] mx-auto rounded-full overflow-hidden bg-muted cursor-move ring-2 ring-border"
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
