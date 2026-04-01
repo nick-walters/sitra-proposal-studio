@@ -259,6 +259,12 @@ export function BudgetPortalSheet({
       }
     }
 
+    // Bold Total column (last column) for all data + total rows
+    const totalColIdx = effortColCount - 1;
+    styleCol(ws1, totalColIdx, 1, totalRowIdx);
+    // Auto-fit columns
+    autoFitCols(ws1, effortAoa);
+
     XLSX.utils.book_append_sheet(wb, ws1, 'Staff Effort');
 
     // ─── Sheet 2: Summary by Participant ───
