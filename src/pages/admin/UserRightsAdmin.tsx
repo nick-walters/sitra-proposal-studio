@@ -14,9 +14,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Plus, Trash2, Users, Shield, Search } from "lucide-react";
+import { Plus, Trash2, Users, Shield, Search, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { UserProfileDialog } from "@/components/UserProfileDialog";
 
 interface UserWithRoles {
   id: string;
