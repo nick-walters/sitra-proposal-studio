@@ -182,6 +182,30 @@ export function BudgetPortalSheet({
       }
     };
 
+    // Helper to bold an entire column
+    const styleCol = (ws: XLSX.WorkSheet, colIdx: number, startRow: number, endRow: number) => {
+      const cl = colLetter(colIdx);
+      for (let r = startRow; r <= endRow; r++) {
+        const ref = cl + r;
+        if (ws[ref]) ws[ref].s = { ...ws[ref].s, font: { bold: true } };
+      }
+    };
+
+    // Helper to auto-fit column widths based on content
+    const autoFitCols = (ws: XLSX.WorkSheet, aoa: any[][]) => {
+      const colWidths: number[] = [];
+      for (const row of aoa) {
+        row.forEach((cell: any, i: number) => {
+          let len = 0;
+          if (cell == null) len = 0;
+          else if (typeof cell === 'object' && cell.f) len = 12; // formula placeholder
+          else len = String(cell).length;
+          colWidths[i] = Math.max(colWidths[i] || 0, len);
+        });
+      }
+      ws['!cols'] = colWidths.map(w => ({ wch: Math.max(w + 2, 8) }));
+    };
+
     // ─── Sheet 1: Staff Effort ───
     const cachedWps = queryClient.getQueryData<{ id: string; number: number; short_name: string | null; title: string | null }[]>(['a3-effort-wps', proposalId]) || [];
     const cachedParticipants = queryClient.getQueryData<{ id: string; participant_number: number | null; organisation_short_name: string | null; organisation_name: string }[]>(['a3-effort-participants', proposalId]) || [];
