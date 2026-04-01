@@ -242,14 +242,16 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
                     </td>
                   );
                 })}
-                <td className="px-2 py-1 text-center border-r font-bold tabular-nums">
-                  {(() => {
-                    const grandTotal = participants.reduce((sum, p) => {
-                      const pMap = matrix.get(p.id)!;
-                      return sum + wps.reduce((s, wp) => s + (pMap?.get(wp.id) || 0), 0);
-                    }, 0);
-                    return grandTotal ? formatPM(grandTotal) : '—';
-                  })()}
+                <td className="p-1 border-r align-middle">
+                  <div className="h-8 min-w-[5.5rem] flex items-center justify-center font-bold tabular-nums">
+                    {(() => {
+                      const grandTotal = participants.reduce((sum, p) => {
+                        const pMap = matrix.get(p.id)!;
+                        return sum + wps.reduce((s, wp) => s + (pMap?.get(wp.id) || 0), 0);
+                      }, 0);
+                      return grandTotal ? formatPM(grandTotal) : '—';
+                    })()}
+                  </div>
                 </td>
               </tr>
             </tfoot>
