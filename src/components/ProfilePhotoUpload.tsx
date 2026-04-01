@@ -134,11 +134,10 @@ export function ProfilePhotoUpload({
       canvas.width = outputSize;
       canvas.height = outputSize;
 
-      // Compute source rectangle directly from crop parameters
+      // Use canvas transforms to replicate CSS rendering exactly
       const minDim = Math.min(img.naturalWidth, img.naturalHeight);
-      const srcSize = minDim / zoom[0];
-      const srcCenterX = img.naturalWidth / 2 - (position.x * minDim) / (CROP_SIZE * zoom[0]);
-      const srcCenterY = img.naturalHeight / 2 - (position.y * minDim) / (CROP_SIZE * zoom[0]);
+      const scaleFactor = outputSize / CROP_SIZE;
+      const s = zoom[0] * CROP_SIZE / minDim * scaleFactor;
 
       // Draw circular clip
       ctx.beginPath();
@@ -150,12 +149,10 @@ export function ProfilePhotoUpload({
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, outputSize, outputSize);
 
-      // Draw the image using source rectangle mapping
-      ctx.drawImage(
-        img,
-        srcCenterX - srcSize / 2, srcCenterY - srcSize / 2, srcSize, srcSize,
-        0, 0, outputSize, outputSize
-      );
+      // Apply transforms matching CSS: center, offset, scale, draw image centered
+      ctx.translate(outputSize / 2 + position.x * scaleFactor, outputSize / 2 + position.y * scaleFactor);
+      ctx.scale(s, s);
+      ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
 
       // Convert to blob
       const blob = await new Promise<Blob>((resolve, reject) => {
