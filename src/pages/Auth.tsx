@@ -121,7 +121,12 @@ export default function Auth() {
 
       navigate(getRedirectUrl());
     } catch (error: any) {
-      toast.error(error.message || 'Failed to sign in');
+      const msg = error.message || 'Failed to sign in';
+      if (msg === 'Invalid login credentials') {
+        toast.error('Invalid email or password. If you were recently invited, use the password-set link you received, or click "Forgot your password?" below.');
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setIsLoading(false);
     }

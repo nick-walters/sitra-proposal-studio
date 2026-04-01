@@ -224,9 +224,9 @@ export function InviteToProposalDialog({
 
             try {
               await navigator.clipboard.writeText(inviteSignupUrl);
-              toast.success(`Invitation sent to ${email}. Backup signup link copied in case the email is blocked.`);
+              toast.success(`Account created for ${email}. A password-set link has been copied to your clipboard — share it with them.`);
             } catch {
-              toast.success(`Invitation sent to ${email}. If they don't receive it, share this signup link: ${inviteSignupUrl}`);
+              toast.success(`Account created for ${email}. Share this password-set link: ${inviteSignupUrl}`);
             }
           } else {
             try {
