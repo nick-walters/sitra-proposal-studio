@@ -14,9 +14,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Plus, Trash2, Users, Shield, Search } from "lucide-react";
+import { Plus, Trash2, Users, Shield, Search, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { UserProfileDialog } from "@/components/UserProfileDialog";
 
 interface UserWithRoles {
   id: string;
@@ -50,6 +51,7 @@ export function UserRightsAdmin() {
   const [newRole, setNewRole] = useState<string>("editor");
   const [selectedProposalId, setSelectedProposalId] = useState<string>("");
   const [proposals, setProposals] = useState<ProposalOption[]>([]);
+  const [editProfileUserId, setEditProfileUserId] = useState<string | null>(null);
 
   // Coordinators who are not owners need at least one coordinator role
   const canAccess = isOwner || (isAdminOrOwner && hasAnyCoordinatorRole);
@@ -497,21 +499,33 @@ export function UserRightsAdmin() {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          {assignableProposals.length > 0 && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedUser(u);
-                                setNewRole('editor');
-                                setSelectedProposalId('');
-                                setDialogOpen(true);
-                              }}
-                            >
-                              <Plus className="w-3 h-3 mr-1" />
-                              Add Role
-                            </Button>
-                          )}
+                          <div className="flex items-center justify-end gap-2">
+                            {isAdminOrOwner && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setEditProfileUserId(u.id)}
+                              >
+                                <Pencil className="w-3 h-3 mr-1" />
+                                Edit Profile
+                              </Button>
+                            )}
+                            {assignableProposals.length > 0 && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedUser(u);
+                                  setNewRole('editor');
+                                  setSelectedProposalId('');
+                                  setDialogOpen(true);
+                                }}
+                              >
+                                <Plus className="w-3 h-3 mr-1" />
+                                Add Role
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -521,6 +535,14 @@ export function UserRightsAdmin() {
             )}
           </CardContent>
         </Card>
+
+        {/* Edit Profile Dialog */}
+        <UserProfileDialog
+          open={!!editProfileUserId}
+          onOpenChange={(open) => { if (!open) setEditProfileUserId(null); }}
+          userId={editProfileUserId || ''}
+          editable={true}
+        />
 
         {/* Add Role Dialog */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
