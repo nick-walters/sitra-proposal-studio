@@ -559,8 +559,6 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
                                 <Phone className="w-3 h-3" />
                                 {collab.country_code ? `${collab.country_code} ${collab.phone_number}` : collab.phone_number}
                               </div>
-                                {collab.phone_number}
-                              </div>
                             )}
                           </div>
 
