@@ -86,8 +86,10 @@ serve(async (req: Request) => {
       .eq("email", email)
       .maybeSingle();
 
+    // Use the published app URL as the redirect base
+    const PUBLISHED_URL = "https://sitra-proposal-studio.lovable.app";
     const origin = req.headers.get("origin")?.trim();
-    const redirectBase = origin && /^https?:\/\//i.test(origin) ? origin : supabaseUrl;
+    const redirectBase = origin && /^https?:\/\//i.test(origin) && !origin.includes("supabase") ? origin : PUBLISHED_URL;
 
     if (existingProfile) {
       return new Response(
