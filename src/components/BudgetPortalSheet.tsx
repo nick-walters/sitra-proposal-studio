@@ -797,7 +797,7 @@ export function BudgetPortalSheet({
                       </tbody>
                       <tfoot>
                         <tr className="border-t-2 border-foreground/20 bg-muted/40 font-semibold">
-                          <td className="sticky left-0 bg-muted/40 z-10 px-2 py-1 border-r font-bold">Total</td>
+                          <td className="sticky left-0 bg-muted z-10 px-2 py-1 border-r font-bold">Total</td>
                           <td className="px-2 py-1 text-right border-r" />
                           <td className="px-2 py-1 text-right border-r tabular-nums font-mono font-bold whitespace-nowrap">
                             {(() => {
