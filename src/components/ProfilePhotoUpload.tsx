@@ -150,8 +150,12 @@ export function ProfilePhotoUpload({
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, outputSize, outputSize);
 
-      // Draw the image
-      ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+      // Draw the image using source rectangle mapping
+      ctx.drawImage(
+        img,
+        srcCenterX - srcSize / 2, srcCenterY - srcSize / 2, srcSize, srcSize,
+        0, 0, outputSize, outputSize
+      );
 
       // Convert to blob
       const blob = await new Promise<Blob>((resolve, reject) => {
