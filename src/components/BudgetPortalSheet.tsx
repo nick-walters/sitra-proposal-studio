@@ -561,21 +561,23 @@ export function BudgetPortalSheet({
               {usesFstp && <TabsTrigger value="fstp">Financial support to third parties (FSTP)</TabsTrigger>}
               
             </TabsList>
-            <div className="flex items-center gap-3">
-              <Badge variant={proposalType === 'lump_sum' ? 'default' : 'secondary'}>
-                {proposalType === 'lump_sum' ? 'Lump sum budget model' : 'Actual costs budget model'}
-              </Badge>
-              {isAdmin && (
-                <Button variant="outline" className="gap-2" onClick={() => setValidationOpen(true)}>
-                  <AlertCircle className="w-4 h-4" />
-                  Validate
+            {activeTab !== 'fstp' && (
+              <div className="flex items-center gap-3">
+                <Badge variant={proposalType === 'lump_sum' ? 'default' : 'secondary'}>
+                  {proposalType === 'lump_sum' ? 'Lump sum budget model' : 'Actual costs budget model'}
+                </Badge>
+                {isAdmin && (
+                  <Button variant="outline" className="gap-2" onClick={() => setValidationOpen(true)}>
+                    <AlertCircle className="w-4 h-4" />
+                    Validate
+                  </Button>
+                )}
+                <Button variant="outline" className="gap-2" onClick={handleExportXlsx}>
+                  <Download className="w-4 h-4" />
+                  Export budget
                 </Button>
-              )}
-              <Button variant="outline" className="gap-2" onClick={handleExportXlsx}>
-                <Download className="w-4 h-4" />
-                Export budget
-              </Button>
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Budget Tab */}
