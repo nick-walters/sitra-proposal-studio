@@ -417,6 +417,12 @@ export function BudgetPortalSheet({
       });
     }
 
+    // Bold Total costs column (L=11) and Requested budget column (P=15)
+    styleCol(ws2, 11, 1, summaryTotalRowNum);
+    styleCol(ws2, 15, 1, summaryTotalRowNum);
+    // Auto-fit columns
+    autoFitCols(ws2, summaryAoa);
+
     XLSX.utils.book_append_sheet(wb, ws2, 'Summary by Participant');
 
     // ─── Sheet 3: Budget Overview ───
