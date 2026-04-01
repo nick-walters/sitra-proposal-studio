@@ -499,21 +499,33 @@ export function UserRightsAdmin() {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          {assignableProposals.length > 0 && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedUser(u);
-                                setNewRole('editor');
-                                setSelectedProposalId('');
-                                setDialogOpen(true);
-                              }}
-                            >
-                              <Plus className="w-3 h-3 mr-1" />
-                              Add Role
-                            </Button>
-                          )}
+                          <div className="flex items-center justify-end gap-2">
+                            {isAdminOrOwner && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setEditProfileUserId(u.id)}
+                              >
+                                <Pencil className="w-3 h-3 mr-1" />
+                                Edit Profile
+                              </Button>
+                            )}
+                            {assignableProposals.length > 0 && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedUser(u);
+                                  setNewRole('editor');
+                                  setSelectedProposalId('');
+                                  setDialogOpen(true);
+                                }}
+                              >
+                                <Plus className="w-3 h-3 mr-1" />
+                                Add Role
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
