@@ -91,22 +91,22 @@ export function AdminAvatarUpload({ userId, avatarUrl, initials, onAvatarChange 
       const out = 256;
       canvas.width = out;
       canvas.height = out;
-      // Compute source rectangle directly from crop parameters
+
+      // Use canvas transforms to replicate CSS rendering exactly
       const minDim = Math.min(img.naturalWidth, img.naturalHeight);
-      const srcSize = minDim / zoom[0];
-      const srcCenterX = img.naturalWidth / 2 - (position.x * minDim) / (CROP_SIZE * zoom[0]);
-      const srcCenterY = img.naturalHeight / 2 - (position.y * minDim) / (CROP_SIZE * zoom[0]);
+      const scaleFactor = out / CROP_SIZE;
+      const s = zoom[0] * CROP_SIZE / minDim * scaleFactor;
 
       ctx.beginPath();
       ctx.arc(out / 2, out / 2, out / 2, 0, Math.PI * 2);
       ctx.clip();
       ctx.fillStyle = "#fff";
       ctx.fillRect(0, 0, out, out);
-      ctx.drawImage(
-        img,
-        srcCenterX - srcSize / 2, srcCenterY - srcSize / 2, srcSize, srcSize,
-        0, 0, out, out
-      );
+
+      // Apply transforms matching CSS: center, offset, scale, draw image centered
+      ctx.translate(out / 2 + position.x * scaleFactor, out / 2 + position.y * scaleFactor);
+      ctx.scale(s, s);
+      ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
 
       const blob = await new Promise<Blob>((res, rej) => canvas.toBlob(b => b ? res(b) : rej(), "image/jpeg", 0.9));
       const fileName = `${userId}/avatar-${Date.now()}.jpg`;
@@ -170,10 +170,13 @@ export function AdminAvatarUpload({ userId, avatarUrl, initials, onAvatarChange 
                     alt="Preview"
                     className="absolute select-none pointer-events-none"
                     style={{
-                      width: `${baseWidth * zoom[0]}px`,
-                      height: `${baseHeight * zoom[0]}px`,
-                      left: `${CROP_SIZE / 2 - (baseWidth * zoom[0]) / 2 + position.x}px`,
-                      top: `${CROP_SIZE / 2 - (baseHeight * zoom[0]) / 2 + position.y}px`,
+                      width: `${baseWidth}px`,
+                      height: 'auto',
+                      aspectRatio: `${imgDims.width} / ${imgDims.height}`,
+                      left: '50%',
+                      top: '50%',
+                      transformOrigin: 'center',
+                      transform: `translate(-50%, -50%) scale(${zoom[0]}) translate(${position.x / zoom[0]}px, ${position.y / zoom[0]}px)`,
                     }}
                     draggable={false}
                   />
