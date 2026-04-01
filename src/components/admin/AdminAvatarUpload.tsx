@@ -170,13 +170,10 @@ export function AdminAvatarUpload({ userId, avatarUrl, initials, onAvatarChange 
                     alt="Preview"
                     className="absolute select-none pointer-events-none"
                     style={{
-                      width: `${baseWidth}px`,
-                      height: 'auto',
-                      aspectRatio: `${imgDims.width} / ${imgDims.height}`,
-                      left: '50%',
-                      top: '50%',
-                      transformOrigin: 'center',
-                      transform: `translate(-50%, -50%) scale(${zoom[0]}) translate(${position.x / zoom[0]}px, ${position.y / zoom[0]}px)`,
+                      width: `${baseWidth * zoom[0]}px`,
+                      height: `${baseHeight * zoom[0]}px`,
+                      left: `${CROP_SIZE / 2 - (baseWidth * zoom[0]) / 2 + position.x}px`,
+                      top: `${CROP_SIZE / 2 - (baseHeight * zoom[0]) / 2 + position.y}px`,
                     }}
                     draggable={false}
                   />
