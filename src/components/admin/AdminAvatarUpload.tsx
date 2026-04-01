@@ -91,21 +91,22 @@ export function AdminAvatarUpload({ userId, avatarUrl, initials, onAvatarChange 
       const out = 256;
       canvas.width = out;
       canvas.height = out;
-      const cropSize = 200;
-      const ratio = out / cropSize;
-      const baseScale = cropSize / Math.min(img.naturalWidth, img.naturalHeight);
-      const scale = baseScale * zoom[0];
-      const sw = img.naturalWidth * scale * ratio;
-      const sh = img.naturalHeight * scale * ratio;
-      const ox = (out - sw) / 2 + position.x * ratio;
-      const oy = (out - sh) / 2 + position.y * ratio;
+      // Compute source rectangle directly from crop parameters
+      const minDim = Math.min(img.naturalWidth, img.naturalHeight);
+      const srcSize = minDim / zoom[0];
+      const srcCenterX = img.naturalWidth / 2 - (position.x * minDim) / (CROP_SIZE * zoom[0]);
+      const srcCenterY = img.naturalHeight / 2 - (position.y * minDim) / (CROP_SIZE * zoom[0]);
 
       ctx.beginPath();
       ctx.arc(out / 2, out / 2, out / 2, 0, Math.PI * 2);
       ctx.clip();
       ctx.fillStyle = "#fff";
       ctx.fillRect(0, 0, out, out);
-      ctx.drawImage(img, ox, oy, sw, sh);
+      ctx.drawImage(
+        img,
+        srcCenterX - srcSize / 2, srcCenterY - srcSize / 2, srcSize, srcSize,
+        0, 0, out, out
+      );
 
       const blob = await new Promise<Blob>((res, rej) => canvas.toBlob(b => b ? res(b) : rej(), "image/jpeg", 0.9));
       const fileName = `${userId}/avatar-${Date.now()}.jpg`;
