@@ -543,6 +543,13 @@ export function BudgetPortalSheet({
       if (ws3[eRef]) ws3[eRef].s = { ...ws3[eRef].s, numFmt: '0.0' };
     }
 
+    // Bold Total budget column (B=1) and Requested costs column (D=3)
+    const overviewLastRow = overviewAoa.length;
+    styleCol(ws3, 1, 1, overviewLastRow);
+    styleCol(ws3, 3, 1, overviewLastRow);
+    // Auto-fit columns
+    autoFitCols(ws3, overviewAoa);
+
     XLSX.utils.book_append_sheet(wb, ws3, 'Budget Overview');
 
     const now = new Date();
