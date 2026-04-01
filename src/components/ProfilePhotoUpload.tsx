@@ -134,16 +134,11 @@ export function ProfilePhotoUpload({
       canvas.width = outputSize;
       canvas.height = outputSize;
 
-      const ratio = outputSize / CROP_SIZE;
-      const baseScale = CROP_SIZE / Math.min(img.naturalWidth, img.naturalHeight);
-      const scale = baseScale * zoom[0];
-      
-      const scaledWidth = img.naturalWidth * scale * ratio;
-      const scaledHeight = img.naturalHeight * scale * ratio;
-      
-      // Center the image and apply drag offset
-      const offsetX = (outputSize - scaledWidth) / 2 + (position.x * ratio);
-      const offsetY = (outputSize - scaledHeight) / 2 + (position.y * ratio);
+      // Compute source rectangle directly from crop parameters
+      const minDim = Math.min(img.naturalWidth, img.naturalHeight);
+      const srcSize = minDim / zoom[0];
+      const srcCenterX = img.naturalWidth / 2 - (position.x * minDim) / (CROP_SIZE * zoom[0]);
+      const srcCenterY = img.naturalHeight / 2 - (position.y * minDim) / (CROP_SIZE * zoom[0]);
 
       // Draw circular clip
       ctx.beginPath();
