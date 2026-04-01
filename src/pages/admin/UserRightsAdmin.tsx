@@ -536,6 +536,14 @@ export function UserRightsAdmin() {
           </CardContent>
         </Card>
 
+        {/* Edit Profile Dialog */}
+        <UserProfileDialog
+          open={!!editProfileUserId}
+          onOpenChange={(open) => { if (!open) setEditProfileUserId(null); }}
+          userId={editProfileUserId || ''}
+          editable={true}
+        />
+
         {/* Add Role Dialog */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent>
