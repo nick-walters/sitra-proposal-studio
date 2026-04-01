@@ -37,6 +37,7 @@ interface Collaborator {
   organisation: string | null;
   avatar_url: string | null;
   phone_number: string | null;
+  country_code: string | null;
 }
 
 interface OnlineUser {
