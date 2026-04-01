@@ -238,20 +238,21 @@ export function ProfilePhotoUpload({
   return (
     <>
       <div className="flex items-center gap-4">
-        <div className="relative group">
+        <div
+          className="relative group cursor-pointer"
+          onClick={() => !uploading && fileInputRef.current?.click()}
+        >
           <Avatar className="w-20 h-20 border-2 border-border">
             <AvatarImage src={currentAvatarUrl || undefined} />
             <AvatarFallback className="text-xl bg-primary/10 text-primary font-medium">
               {getInitials()}
             </AvatarFallback>
           </Avatar>
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-            disabled={uploading}
+          <div
+            className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
           >
             <Camera className="w-6 h-6 text-white" />
-          </button>
+          </div>
         </div>
         <div className="flex flex-col gap-2">
           <Button
@@ -282,6 +283,7 @@ export function ProfilePhotoUpload({
           type="file"
           accept="image/*"
           onChange={handleFileSelect}
+          onClick={(e) => { (e.target as HTMLInputElement).value = ''; }}
           className="hidden"
         />
       </div>
