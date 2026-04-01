@@ -548,7 +548,7 @@ export function BudgetPortalSheet({
               }]}
             />
             {activeTab !== 'validation' && (
-              <SaveIndicator saving={saving} lastSaved={null} />
+              <SaveIndicator saving={saving} lastSaved={null} onSaveNow={refetchBudgetRows} />
             )}
           </div>
         </div>
