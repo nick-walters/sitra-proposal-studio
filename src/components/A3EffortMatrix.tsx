@@ -235,23 +235,19 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
                 {wps.map(wp => {
                   const colTotal = participants.reduce((sum, p) => sum + (matrix.get(p.id)?.get(wp.id) || 0), 0);
                   return (
-                    <td key={wp.id} className="p-1 border-r align-middle">
-                      <div className="h-8 min-w-[5.5rem] flex items-center justify-center font-bold tabular-nums">
-                        {colTotal ? formatPM(colTotal) : '—'}
-                      </div>
+                    <td key={wp.id} className="px-2 py-1 text-center border-r font-bold tabular-nums align-middle">
+                      {colTotal ? formatPM(colTotal) : '—'}
                     </td>
                   );
                 })}
-                <td className="p-1 border-r align-middle">
-                  <div className="h-8 min-w-[5.5rem] flex items-center justify-center font-bold tabular-nums">
-                    {(() => {
-                      const grandTotal = participants.reduce((sum, p) => {
-                        const pMap = matrix.get(p.id)!;
-                        return sum + wps.reduce((s, wp) => s + (pMap?.get(wp.id) || 0), 0);
-                      }, 0);
-                      return grandTotal ? formatPM(grandTotal) : '—';
-                    })()}
-                  </div>
+                <td className="px-2 py-1 text-center border-r font-bold tabular-nums align-middle">
+                  {(() => {
+                    const grandTotal = participants.reduce((sum, p) => {
+                      const pMap = matrix.get(p.id)!;
+                      return sum + wps.reduce((s, wp) => s + (pMap?.get(wp.id) || 0), 0);
+                    }, 0);
+                    return grandTotal ? formatPM(grandTotal) : '—';
+                  })()}
                 </td>
               </tr>
             </tfoot>
