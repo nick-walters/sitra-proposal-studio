@@ -317,7 +317,8 @@ export function ProfilePhotoUpload({
                     className="absolute select-none pointer-events-none"
                     style={{
                       width: `${baseWidth}px`,
-                      height: `${baseHeight}px`,
+                      height: 'auto',
+                      aspectRatio: `${naturalDims.width} / ${naturalDims.height}`,
                       left: '50%',
                       top: '50%',
                       transformOrigin: 'center',
