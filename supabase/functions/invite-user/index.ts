@@ -88,7 +88,6 @@ serve(async (req: Request) => {
 
     const origin = req.headers.get("origin")?.trim();
     const redirectBase = origin && /^https?:\/\//i.test(origin) ? origin : supabaseUrl;
-    const redirectUrl = `${redirectBase}/auth?type=invite`;
 
     if (existingProfile) {
       return new Response(
@@ -104,50 +103,55 @@ serve(async (req: Request) => {
       );
     }
 
-    const { data: inviteData, error: inviteError } = await adminClient.auth.admin
-      .inviteUserByEmail(email, {
-        data: {
-          full_name: fullName || email.split("@")[0],
-          invited_to_proposal: proposalAcronym,
-        },
-        redirectTo: redirectUrl,
-      });
+    // Step 1: Create the user account with auto-confirm so they can immediately set a password
+    const { data: createData, error: createError } = await adminClient.auth.admin.createUser({
+      email,
+      email_confirm: true,
+      user_metadata: {
+        full_name: fullName || email.split("@")[0],
+        invited_to_proposal: proposalAcronym,
+      },
+    });
 
-    if (inviteError) {
-      console.error("Invite error:", inviteError);
-      return new Response(JSON.stringify({ error: inviteError.message }), {
+    if (createError) {
+      console.error("Create user error:", createError);
+      return new Response(JSON.stringify({ error: createError.message }), {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
+    const newUserId = createData.user?.id;
+
+    // Step 2: Generate a password recovery link so the user can set their password
+    // This is the most reliable way — the admin shares this link directly
+    const redirectUrl = `${redirectBase}/auth?type=recovery`;
     let signupUrl: string | null = null;
+
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
-      type: "invite",
+      type: "recovery",
       email,
       options: {
-        data: {
-          full_name: fullName || email.split("@")[0],
-          invited_to_proposal: proposalAcronym,
-        },
         redirectTo: redirectUrl,
       },
     });
 
     if (linkError) {
-      console.warn("Failed to generate manual invite link:", linkError.message);
+      console.warn("Failed to generate password-set link:", linkError.message);
+      signupUrl = `${redirectBase}/auth`;
     } else {
-      signupUrl = linkData?.properties?.action_link ?? null;
+      // The action_link goes through Supabase's /verify endpoint and redirects to our auth page
+      signupUrl = linkData?.properties?.action_link ?? `${redirectBase}/auth`;
     }
 
-    console.log(`User ${email} invited successfully for proposal ${proposalAcronym}`);
+    console.log(`User ${email} created and password-set link generated for proposal ${proposalAcronym}`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        userId: inviteData.user?.id,
+        userId: newUserId,
         signupUrl,
-        message: `Invitation sent to ${email}`,
+        message: `Account created for ${email}. Share the link so they can set their password.`,
       }),
       {
         status: 200,

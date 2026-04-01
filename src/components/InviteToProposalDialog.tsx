@@ -198,9 +198,9 @@ export function InviteToProposalDialog({
             console.error('Invite error:', inviteError);
             try {
               await navigator.clipboard.writeText(inviteSignupUrl);
-              toast.info(`${memberData.fullName} added. Invite email failed, so a signup link was copied for manual sharing.`);
+              toast.info(`${memberData.fullName} added. A password-set link has been copied to your clipboard — please share it with them.`);
             } catch {
-              toast.info(`${memberData.fullName} added. Invite email failed — please share this signup link manually: ${inviteSignupUrl}`);
+              toast.info(`${memberData.fullName} added. Share this password-set link: ${inviteSignupUrl}`);
             }
           } else if (inviteResult?.userId) {
             // Grant role to the newly created user
@@ -224,9 +224,9 @@ export function InviteToProposalDialog({
 
             try {
               await navigator.clipboard.writeText(inviteSignupUrl);
-              toast.success(`Invitation sent to ${email}. Backup signup link copied in case the email is blocked.`);
+              toast.success(`Account created for ${email}. A password-set link has been copied to your clipboard — share it with them.`);
             } catch {
-              toast.success(`Invitation sent to ${email}. If they don't receive it, share this signup link: ${inviteSignupUrl}`);
+              toast.success(`Account created for ${email}. Share this password-set link: ${inviteSignupUrl}`);
             }
           } else {
             try {
