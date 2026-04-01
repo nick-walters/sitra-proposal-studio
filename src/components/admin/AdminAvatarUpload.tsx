@@ -111,16 +111,24 @@ export function AdminAvatarUpload({ userId, avatarUrl, initials, onAvatarChange 
 
   // Redraw preview canvas whenever zoom/position/image changes
   useEffect(() => {
-    const canvas = previewCanvasRef.current;
-    const img = loadedImgRef.current;
-    if (!canvas || !img || !cropOpen || imgDims.width === 0) return;
+    if (!cropOpen || imgDims.width === 0) return;
 
-    canvas.width = CROP_SIZE;
-    canvas.height = CROP_SIZE;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const draw = () => {
+      const canvas = previewCanvasRef.current;
+      const img = loadedImgRef.current;
+      if (!canvas || !img) return false;
+      canvas.width = CROP_SIZE;
+      canvas.height = CROP_SIZE;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return false;
+      drawCrop(ctx, img, imgDims.width, imgDims.height, CROP_SIZE, zoom[0], position.x, position.y);
+      return true;
+    };
 
-    drawCrop(ctx, img, imgDims.width, imgDims.height, CROP_SIZE, zoom[0], position.x, position.y);
+    if (!draw()) {
+      const raf = requestAnimationFrame(() => draw());
+      return () => cancelAnimationFrame(raf);
+    }
   }, [zoom, position, imgDims, cropOpen]);
 
   const cropAndUpload = async () => {
