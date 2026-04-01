@@ -1,0 +1,1 @@
+ALTER TABLE public.participants ADD COLUMN main_contact_dept_same_as_org boolean DEFAULT true;
