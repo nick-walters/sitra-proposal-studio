@@ -303,7 +303,7 @@ export function ProfilePhotoUpload({
           <div className="space-y-4">
             {/* Crop preview area */}
             <div 
-              className="relative w-[200px] h-[200px] mx-auto rounded-full overflow-hidden bg-muted cursor-move border-2 border-border"
+              className="relative w-[200px] h-[200px] mx-auto rounded-full overflow-hidden bg-muted cursor-move ring-2 ring-border"
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
