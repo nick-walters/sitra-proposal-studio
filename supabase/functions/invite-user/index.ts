@@ -123,9 +123,20 @@ serve(async (req: Request) => {
 
     const newUserId = createData.user?.id;
 
-    // Step 2: Generate a password recovery link so the user can set their password
-    // This is the most reliable way — the admin shares this link directly
+    // Step 2: Send a password recovery email so the user receives a link to set their password
     const redirectUrl = `${redirectBase}/auth?type=recovery`;
+
+    const { error: resetError } = await adminClient.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectUrl,
+    });
+
+    if (resetError) {
+      console.warn("Failed to send password-set email:", resetError.message);
+    } else {
+      console.log(`Password-set email sent to ${email}`);
+    }
+
+    // Step 3: Also generate a direct link for the admin to share as backup
     let signupUrl: string | null = null;
 
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
@@ -140,18 +151,20 @@ serve(async (req: Request) => {
       console.warn("Failed to generate password-set link:", linkError.message);
       signupUrl = `${redirectBase}/auth`;
     } else {
-      // The action_link goes through Supabase's /verify endpoint and redirects to our auth page
       signupUrl = linkData?.properties?.action_link ?? `${redirectBase}/auth`;
     }
 
-    console.log(`User ${email} created and password-set link generated for proposal ${proposalAcronym}`);
+    console.log(`User ${email} created for proposal ${proposalAcronym}`);
 
     return new Response(
       JSON.stringify({
         success: true,
         userId: newUserId,
         signupUrl,
-        message: `Account created for ${email}. Share the link so they can set their password.`,
+        emailSent: !resetError,
+        message: resetError
+          ? `Account created for ${email}. Email could not be sent — share the link manually.`
+          : `Account created for ${email}. A password-set email has been sent. You can also share the link directly.`,
       }),
       {
         status: 200,
