@@ -31,6 +31,13 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
+interface WPOption {
+  id: string;
+  number: number;
+  short_name: string | null;
+  title: string | null;
+}
+
 interface WPDeliverablesTableProps {
   wpNumber: number;
   deliverables: WPDraftDeliverable[];
@@ -39,8 +46,11 @@ interface WPDeliverablesTableProps {
   onDeliverableAdd: () => Promise<any>;
   onDeliverableDelete: (id: string) => Promise<boolean>;
   onDeliverableReorder?: (newOrder: string[]) => Promise<boolean>;
+  onDeliverableMove?: (deliverableId: string, targetWpDraftId: string) => Promise<boolean>;
   readOnly?: boolean;
-  projectDuration?: number; // Default 72 months
+  projectDuration?: number;
+  allWpDrafts?: WPOption[];
+  currentWpDraftId?: string;
 }
 
 const DELIVERABLE_TYPES = [
