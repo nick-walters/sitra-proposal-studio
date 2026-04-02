@@ -53,6 +53,7 @@ interface InsertTDMSReferenceDropdownsProps {
   onOpenDeliverableChange?: (open: boolean) => void;
   openMilestone?: boolean;
   onOpenMilestoneChange?: (open: boolean) => void;
+  hideMilestone?: boolean;
 }
 
 // Miniature bubble helpers for toolbar buttons
