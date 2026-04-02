@@ -117,19 +117,20 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
       <div className="relative">
          <table
            className={`${tableStyles}`}
-           style={{
+            style={{
              tableLayout: 'fixed',
-             width: '100%',
-             borderCollapse: 'collapse',
+             width: 'auto',
+             borderCollapse: 'separate',
+             borderSpacing: '20pt 0',
            }}
            ref={tableRef}
          >
            <colgroup>
              <col style={{ width: '70pt' }} />
              {wpData.map(wp => (
-               <col key={wp.id} style={{ width: '40pt' }} />
+               <col key={wp.id} style={{ width: '30pt' }} />
              ))}
-             <col style={{ width: '40pt' }} />
+             <col style={{ width: '30pt' }} />
            </colgroup>
            <thead>
              <tr>
