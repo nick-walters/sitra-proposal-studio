@@ -327,25 +327,31 @@ export function useWPDraftEditor(wpId: string | null) {
       const sortedMilestones = (data.milestones || []).sort((a: WPDraftMilestone, b: WPDraftMilestone) => a.order_index - b.order_index);
 
       // Auto-fix numbering gaps on load
-      const fixNumbering = <T extends { id: string; number: number; order_index: number }>(
+      const fixItems = <T extends { id: string; number: number; order_index: number }>(
         items: T[],
-        table: string,
+        updateFn: (id: string, number: number, order_index: number) => void,
       ): T[] => {
         const needsFix = items.some((item, i) => item.number !== i + 1 || item.order_index !== i);
         if (!needsFix) return items;
         const fixed = items.map((item, i) => ({ ...item, number: i + 1, order_index: i }));
-        fixed.forEach((item) => {
-          supabase.from(table).update({ number: item.number, order_index: item.order_index }).eq('id', item.id).then();
-        });
+        fixed.forEach((item) => updateFn(item.id, item.number, item.order_index));
         return fixed;
       };
 
       const sortedData = {
         ...data,
-        tasks: fixNumbering(sortedTasks, 'wp_draft_tasks'),
-        deliverables: fixNumbering(sortedDeliverables, 'wp_draft_deliverables'),
-        risks: fixNumbering(sortedRisks, 'wp_draft_risks'),
-        milestones: fixNumbering(sortedMilestones, 'wp_draft_milestones'),
+        tasks: fixItems(sortedTasks, (id, num, idx) => {
+          supabase.from('wp_draft_tasks').update({ number: num, order_index: idx }).eq('id', id).then();
+        }),
+        deliverables: fixItems(sortedDeliverables, (id, num, idx) => {
+          supabase.from('wp_draft_deliverables').update({ number: num, order_index: idx }).eq('id', id).then();
+        }),
+        risks: fixItems(sortedRisks, (id, num, idx) => {
+          supabase.from('wp_draft_risks').update({ number: num, order_index: idx }).eq('id', id).then();
+        }),
+        milestones: fixItems(sortedMilestones, (id, num, idx) => {
+          supabase.from('wp_draft_milestones').update({ number: num, order_index: idx }).eq('id', id).then();
+        }),
       };
 
       setWPDraft(sortedData);
