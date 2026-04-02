@@ -97,16 +97,6 @@ export function WPRisksTable({
           <AlertTriangle className="h-4 w-4" />
           Risks
         </CardTitle>
-        {/* Colour legend */}
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>Likelihood / Severity:</span>
-          {RISK_LEVELS.map(level => (
-            <span key={level.value} className="inline-flex items-center gap-1">
-              <RiskLevelBubble level={level.value} />
-              <span>= {level.label}</span>
-            </span>
-          ))}
-        </div>
       </CardHeader>
       <CardContent className="space-y-1 px-3 pb-3 pt-0">
         <DndContext
