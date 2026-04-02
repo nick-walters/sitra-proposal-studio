@@ -229,7 +229,7 @@ function SortableMilestoneCard({
       style={style}
       className={`rounded-md border bg-card p-2 ${isDragging ? 'shadow-lg' : ''}`}
     >
-      {/* Row 1: Drag handle, MS number, Title, Due month, Delete */}
+      {/* Row 1: Drag handle, MS number, Title, Delete */}
       <div className="flex items-center gap-1.5">
         {canReorder && (
           <button
@@ -250,6 +250,20 @@ function SortableMilestoneCard({
           className="h-6 text-xs flex-1"
           disabled={readOnly}
         />
+        {!readOnly && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 text-destructive hover:text-destructive flex-shrink-0"
+            onClick={() => onDelete(milestone.id)}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        )}
+      </div>
+
+      {/* Row 2: Related WPs + Due month */}
+      <div className="flex items-center gap-3 mt-1.5 ml-5">
         <div className="flex items-center gap-1 flex-shrink-0">
           <span className="text-xs text-muted-foreground">Related WPs:</span>
           <Popover open={wpPopoverOpen} onOpenChange={setWpPopoverOpen}>
@@ -318,19 +332,9 @@ function SortableMilestoneCard({
             </SelectContent>
           </Select>
         </div>
-        {!readOnly && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 text-destructive hover:text-destructive flex-shrink-0"
-            onClick={() => onDelete(milestone.id)}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        )}
       </div>
 
-      {/* Row 2: Means of verification */}
+      {/* Row 3: Means of verification */}
       <div className="mt-1.5 ml-5">
         <WPSimpleEditor
           value={milestone.means_of_verification || ''}
