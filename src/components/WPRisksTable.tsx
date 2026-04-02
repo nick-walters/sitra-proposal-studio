@@ -241,7 +241,7 @@ function SortableRiskCard({
       {selectedWpNumbers.map(n => {
         const wpDraft = allWpDrafts.find(w => w.number === n);
         const color = wpDraft?.color || getDefaultWPColor(n);
-        const textColor = getContrastingTextColor(color);
+        const textColor = '#ffffff';
         return (
           <span
             key={n}
