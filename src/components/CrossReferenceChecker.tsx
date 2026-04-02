@@ -103,11 +103,11 @@ export function CrossReferenceChecker({ proposalId }: CrossReferenceCheckerProps
 
       (wpDrafts || []).forEach(wp => {
         if ((wpTaskMap.get(wp.id) || 0) === 0)
-          found.push({ id: `wp-notask-${wp.number}`, type: 'warning', category: 'Work Packages', message: `WP${wp.number} "${wp.short_name || wp.title || ''}" has no tasks defined` });
+          found.push({ id: `wp-notask-${wp.number}`, type: 'warning', category: 'Work packages', message: `WP${wp.number} "${wp.short_name || wp.title || ''}" has no tasks defined` });
         if ((wpEffortMap.get(wp.id) || 0) === 0)
-          found.push({ id: `wp-noeffort-${wp.number}`, type: 'warning', category: 'Work Packages', message: `WP${wp.number} "${wp.short_name || wp.title || ''}" has no effort allocated` });
+          found.push({ id: `wp-noeffort-${wp.number}`, type: 'warning', category: 'Work packages', message: `WP${wp.number} "${wp.short_name || wp.title || ''}" has no effort allocated` });
         if (!wp.title?.trim())
-          found.push({ id: `wp-notitle-${wp.number}`, type: 'warning', category: 'Work Packages', message: `WP${wp.number} has no title` });
+          found.push({ id: `wp-notitle-${wp.number}`, type: 'warning', category: 'Work packages', message: `WP${wp.number} has no title` });
       });
 
       // Check risks
@@ -144,7 +144,7 @@ export function CrossReferenceChecker({ proposalId }: CrossReferenceCheckerProps
   const categoryIcons: Record<string, React.ReactNode> = {
     'Deliverables': <Target className="w-4 h-4" />,
     'Milestones': <Milestone className="w-4 h-4" />,
-    'Work Packages': <ListChecks className="w-4 h-4" />,
+    'Work packages': <ListChecks className="w-4 h-4" />,
     'Risks': <AlertTriangle className="w-4 h-4" />,
   };
 

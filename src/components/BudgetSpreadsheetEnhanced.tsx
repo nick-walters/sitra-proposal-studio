@@ -97,14 +97,14 @@ const STANDARD_CATEGORIES = [
 
 // Lump sum categories (work package based)
 const LUMP_SUM_CATEGORIES = [
-  { id: 'WP1', label: 'Work Package 1', description: 'Project Management' },
-  { id: 'WP2', label: 'Work Package 2', description: 'Research & Development' },
-  { id: 'WP3', label: 'Work Package 3', description: 'Validation & Testing' },
-  { id: 'WP4', label: 'Work Package 4', description: 'Dissemination & Exploitation' },
-  { id: 'WP5', label: 'Work Package 5', description: 'Additional Activities' },
-  { id: 'WP6', label: 'Work Package 6', description: 'Additional Activities' },
-  { id: 'WP7', label: 'Work Package 7', description: 'Additional Activities' },
-  { id: 'WP8', label: 'Work Package 8', description: 'Additional Activities' },
+  { id: 'WP1', label: 'Work package 1', description: 'Project Management' },
+  { id: 'WP2', label: 'Work package 2', description: 'Research & Development' },
+  { id: 'WP3', label: 'Work package 3', description: 'Validation & Testing' },
+  { id: 'WP4', label: 'Work package 4', description: 'Dissemination & Exploitation' },
+  { id: 'WP5', label: 'Work package 5', description: 'Additional Activities' },
+  { id: 'WP6', label: 'Work package 6', description: 'Additional Activities' },
+  { id: 'WP7', label: 'Work package 7', description: 'Additional Activities' },
+  { id: 'WP8', label: 'Work package 8', description: 'Additional Activities' },
 ];
 
 interface BudgetSpreadsheetEnhancedProps {

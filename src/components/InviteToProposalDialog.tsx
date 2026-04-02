@@ -300,7 +300,7 @@ export function InviteToProposalDialog({
             )}
           </div>
 
-          {/* Full Name */}
+          {/* Full name */}
           <div className="space-y-2">
             <Label htmlFor="invite-name">Full name</Label>
             <Input

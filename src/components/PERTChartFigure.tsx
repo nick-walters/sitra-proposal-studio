@@ -405,7 +405,7 @@ export function PERTChartFigure({
           <span className="font-semibold">Legend:</span>
           <div className="flex items-center gap-1">
             <div className="w-6 h-4 bg-primary/20 rounded" />
-            <span>Work Package</span>
+            <span>Work package</span>
           </div>
           <div className="flex items-center gap-1">
             <svg width="24" height="10">

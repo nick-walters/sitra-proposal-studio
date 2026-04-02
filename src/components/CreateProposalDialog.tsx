@@ -210,11 +210,11 @@ export function CreateProposalDialog({
               />
             </div>
 
-            {/* Submission Stage */}
+            {/* Submission stage */}
             <div className="grid gap-3">
               <Label className="flex items-center gap-2">
                 <Layers className="w-4 h-4 text-muted-foreground" />
-                Submission Stage *
+                Submission stage *
               </Label>
               <RadioGroup 
                 value={submissionStage} 

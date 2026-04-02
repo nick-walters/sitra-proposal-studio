@@ -98,7 +98,7 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
               <div className="rounded-full bg-muted p-4 mb-4">
                 <Package className="h-8 w-8 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-medium mb-2">No Work Packages Yet</h3>
+              <h3 className="text-lg font-medium mb-2">No Work packages Yet</h3>
               <p className="text-sm text-muted-foreground max-w-sm mb-4">
                 Create work packages in the "Proposal overview" page to start tracking progress. 
                 Each WP tracks methodology, objectives, tasks, deliverables, risks, and interactions.
@@ -163,7 +163,7 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="font-bold">Work Package</TableHead>
+                  <TableHead className="font-bold">Work package</TableHead>
                   <TableHead className="text-center font-bold">Methodology</TableHead>
                   <TableHead className="text-center font-bold">Objectives</TableHead>
                   <TableHead className="text-center font-bold">Tasks</TableHead>

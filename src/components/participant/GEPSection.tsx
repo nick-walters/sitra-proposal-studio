@@ -17,7 +17,7 @@ export function GEPSection({ showGEPSection }: GEPSectionProps) {
         </CardTitle>
         <CardDescription>
           Public bodies, higher education establishments, and research organisations 
-          from EU Member States or Associated Countries must have a GEP in place.{' '}
+          from EU Member States or Associated countries must have a GEP in place.{' '}
           <a 
             href="https://ec.europa.eu/info/funding-tenders/opportunities/docs/2021-2027/common/guidance/aga_en.pdf"
             target="_blank"

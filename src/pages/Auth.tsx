@@ -371,7 +371,7 @@ export default function Auth() {
               <TabsContent value="signup">
                 <form onSubmit={handleSignUp} className="space-y-4" method="post" action="#">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name">Full Name</Label>
+                    <Label htmlFor="signup-name">Full name</Label>
                     <Input
                       id="signup-name"
                       name="name"

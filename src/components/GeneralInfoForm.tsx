@@ -792,7 +792,7 @@ export function GeneralInfoForm({
                       >
                         {updatingStatus && <Loader2 className="w-3 h-3 animate-spin" />}
                         {proposal?.status === 'draft' && <><FileText className="w-3.5 h-3.5" /> Draft</>}
-                        {proposal?.status === 'submitted' && <><Send className="w-3.5 h-3.5" /> Under Evaluation</>}
+                        {proposal?.status === 'submitted' && <><Send className="w-3.5 h-3.5" /> Under evaluation</>}
                         {proposal?.status === 'funded' && <><Trophy className="w-3.5 h-3.5" /> Funded</>}
                         {proposal?.status === 'not_funded' && <><ThumbsDown className="w-3.5 h-3.5" /> Not Funded</>}
                         <ChevronDown className="w-3 h-3 ml-auto" />
@@ -806,7 +806,7 @@ export function GeneralInfoForm({
                       )}
                       {proposal?.status !== 'submitted' && (
                         <DropdownMenuItem onClick={() => onStatusChange('submitted')}>
-                          <Send className="w-4 h-4 mr-2" /> Under Evaluation
+                          <Send className="w-4 h-4 mr-2" /> Under evaluation
                         </DropdownMenuItem>
                       )}
                       {proposal?.status !== 'funded' && (

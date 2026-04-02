@@ -525,7 +525,7 @@ export function ParticipantForm({
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="memberName">Full Name *</Label>
+                <Label htmlFor="memberName">Full name *</Label>
                 <PersonAutocomplete
                   value={newMember.fullName}
                   onChange={(value) => setNewMember({ ...newMember, fullName: value })}

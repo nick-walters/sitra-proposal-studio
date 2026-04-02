@@ -131,8 +131,8 @@ export function CountrySelect({
             {hasResults ? (
               <>
                 {renderGroup("EU Member States", filteredEU)}
-                {renderGroup("Associated Countries", filteredAssociated)}
-                {renderGroup("Third Countries", filteredThird)}
+                {renderGroup("Associated countries", filteredAssociated)}
+                {renderGroup("Third countries", filteredThird)}
               </>
             ) : (
               <div className="py-6 text-center text-sm text-muted-foreground">

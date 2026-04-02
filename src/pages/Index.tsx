@@ -29,7 +29,7 @@ export default function Index() {
   const features = [
     {
       icon: FileText,
-      title: "Structured Templates",
+      title: "Structured templates",
       description: "Pre-built templates following Part B requirements for RIA, IA, and CSA proposals.",
     },
     {
@@ -39,7 +39,7 @@ export default function Index() {
     },
     {
       icon: History,
-      title: "Version Control",
+      title: "Version control",
       description: "Automatic version history with the ability to compare and restore previous versions anytime.",
     },
     {
@@ -49,12 +49,12 @@ export default function Index() {
     },
     {
       icon: Shield,
-      title: "Access Control",
+      title: "Access control",
       description: "Granular permissions with admin, editor, and viewer roles per proposal.",
     },
     {
       icon: Zap,
-      title: "Smart Guidelines",
+      title: "Smart guidelines",
       description: "Integrated writing guidelines with text, images, and video instructions for each section.",
     },
   ];
