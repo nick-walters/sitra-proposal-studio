@@ -20,6 +20,7 @@ export interface B31WPData {
     number: number;
     title: string | null;
     description: string | null;
+    b31_description: string | null;
     lead_participant_id: string | null;
     start_month: number | null;
     end_month: number | null;
