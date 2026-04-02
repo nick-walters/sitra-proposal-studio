@@ -232,7 +232,8 @@ function SortableRiskCard({
   const displayWpBubbles = selectedWpNumbers.length > 0 ? (
     <span className="flex items-center gap-0.5 flex-wrap">
       {selectedWpNumbers.map(n => {
-        const color = getDefaultWPColor(n);
+        const wpDraft = allWpDrafts.find(w => w.number === n);
+        const color = wpDraft?.color || getDefaultWPColor(n);
         const textColor = getContrastingTextColor(color);
         return (
           <span
