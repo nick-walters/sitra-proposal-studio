@@ -2,6 +2,17 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 
+export interface B31Task {
+  id: string;
+  number: number;
+  title: string | null;
+  description: string | null;
+  lead_participant_id: string | null;
+  start_month: number | null;
+  end_month: number | null;
+  participants: { participant_id: string }[];
+}
+
 export interface B31WPData {
   id: string;
   number: number;
@@ -15,6 +26,7 @@ export interface B31WPData {
   methodology: string | null;
   manual_person_months: number | null;
   manual_duration: string | null;
+  b31_tasks: B31Task[];
   tasks: {
     id: string;
     number: number;
