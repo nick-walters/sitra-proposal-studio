@@ -316,7 +316,7 @@ function SortableTaskCard({
       {/* Row 2: Leader, Participants, Timing */}
       <div className="flex items-center gap-1.5 mt-1.5 ml-5">
         <div className="flex items-center gap-1 flex-shrink-0">
-          <span className="text-xs text-muted-foreground flex-shrink-0">Task leader:</span>
+          <span className="text-xs text-muted-foreground flex-shrink-0">Task Leader:</span>
           <Select
             value={task.lead_participant_id || ''}
             onValueChange={(value) => onUpdate(task.id, { lead_participant_id: value || null })}
