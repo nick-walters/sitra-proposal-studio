@@ -318,7 +318,20 @@ function SortableDeliverableCard({
             onValueChange={(value) => onUpdate(deliverable.id, { responsible_participant_id: value || null })}
             disabled={readOnly}
           >
-            <SelectTrigger hideArrow className="h-6 w-[80px] text-xs px-1.5">
+            <SelectTrigger
+              className="h-auto border-0 shadow-none p-0 w-auto gap-0 text-xs font-bold"
+              style={deliverable.responsible_participant_id ? {
+                backgroundColor: '#000000',
+                color: '#ffffff',
+                height: '17px',
+                fontFamily: 'Times New Roman, serif',
+                fontSize: '11pt',
+                lineHeight: '17px',
+                borderRadius: '9999px',
+                paddingLeft: '6px',
+                paddingRight: '6px',
+              } : undefined}
+            >
               <SelectValue placeholder="Select" />
             </SelectTrigger>
             <SelectContent>
