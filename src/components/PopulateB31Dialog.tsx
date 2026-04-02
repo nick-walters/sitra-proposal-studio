@@ -151,7 +151,7 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[80vh] flex flex-col">
+      <DialogContent className="max-w-lg max-h-[80vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>Populate Part B3.1</DialogTitle>
           <DialogDescription>
