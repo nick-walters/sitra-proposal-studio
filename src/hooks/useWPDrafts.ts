@@ -118,6 +118,7 @@ export function useWPDrafts(proposalId: string | null) {
       // Sort nested data
       const sortedData = (data || []).map(wp => ({
         ...wp,
+        methodologies_list: (wp.methodologies_list || []) as { name: string; description: string }[],
         tasks: (wp.tasks || []).sort((a: WPDraftTask, b: WPDraftTask) => a.order_index - b.order_index),
         deliverables: (wp.deliverables || []).sort((a: WPDraftDeliverable, b: WPDraftDeliverable) => a.order_index - b.order_index),
         risks: (wp.risks || []).sort((a: WPDraftRisk, b: WPDraftRisk) => a.order_index - b.order_index),
