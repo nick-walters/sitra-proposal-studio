@@ -143,7 +143,7 @@ export function BudgetSpreadsheetEnhanced({
   const [selectedParticipant, setSelectedParticipant] = useState<string | 'all'>('all');
   const [showChangeHistory, setShowChangeHistory] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
-  const [isCopying, setIsCopying] = useState(false);
+  
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
