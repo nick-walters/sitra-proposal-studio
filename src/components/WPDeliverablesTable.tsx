@@ -236,7 +236,7 @@ function SortableDeliverableCard({
             {...listeners}
             className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted rounded touch-none flex-shrink-0"
           >
-            <GripVertical className="w-4 h-4 text-muted-foreground" />
+            <GripVertical className="w-4 h-4 text-blue-500" />
           </button>
         )}
         <span className="text-sm text-foreground font-medium flex-shrink-0" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
