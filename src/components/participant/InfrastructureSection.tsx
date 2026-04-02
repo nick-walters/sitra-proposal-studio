@@ -82,7 +82,7 @@ function SortableInfraRow({
         <Button
           variant="ghost"
           size="icon"
-          className="flex-shrink-0 text-muted-foreground hover:text-destructive"
+          className="flex-shrink-0 text-destructive hover:text-destructive"
           onClick={() => onDelete(infra.id)}
         >
           <Trash2 className="w-4 h-4" />

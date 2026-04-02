@@ -150,7 +150,7 @@ export function WPDependencySelector({ proposalId, isCoordinator }: WPDependency
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="ml-auto h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                    className="ml-auto h-6 w-6 p-0 text-destructive hover:text-destructive"
                     onClick={() => deleteMutation.mutate(dep.id)}
                   >
                     <Trash2 className="w-3 h-3" />
