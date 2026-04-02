@@ -473,7 +473,7 @@ export function UserRightsAdmin() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="h-6 px-1.5 text-xs"
+className="h-6 px-1.5 text-xs text-primary"
                                   title="Resend signup / password reset email"
                                   onClick={() => handleResendSignupLink(u)}
                                 >
