@@ -156,7 +156,7 @@ export function WPSimpleEditor({
               <TooltipTrigger asChild>
                 <DropdownMenuTrigger asChild>
                   <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1">
-                    <span className="text-draft font-black underline">Subheading</span>
+                    <span className="text-xs font-black underline">Subheading</span>
                     <ChevronDown className="w-3 h-3" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -271,14 +271,14 @@ export function WPSimpleEditor({
                 <PopoverTrigger asChild>
                   <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1">
                     <Table2 className="h-4 w-4" />
-                    <span className="text-draft">Table</span>
+                    <span className="text-xs">Table</span>
                   </Button>
                 </PopoverTrigger>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-xs">Insert table</TooltipContent>
             </Tooltip>
             <PopoverContent className="w-auto p-2" align="start">
-              <div className="text-draft text-muted-foreground mb-2">
+              <div className="text-xs text-muted-foreground mb-2">
                 {hoveredCell ? `${hoveredCell.row} × ${hoveredCell.col}` : 'Select size'}
               </div>
               <div className="grid gap-0.5" style={{ gridTemplateColumns: 'repeat(8, 1fr)' }}>
@@ -314,7 +314,7 @@ export function WPSimpleEditor({
               <TooltipTrigger asChild>
                 <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={onOpenFigureDialog}>
                   <ImageIcon className="h-4 w-4" />
-                  <span className="text-draft">Figure</span>
+                  <span className="text-xs">Figure</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-xs">Insert figure</TooltipContent>
@@ -327,7 +327,7 @@ export function WPSimpleEditor({
               <TooltipTrigger asChild>
                 <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={onOpenCitationDialog}>
                   <FileText className="h-4 w-4" />
-                  <span className="text-draft">Citations</span>
+                  <span className="text-xs">Citations</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-xs">Manage citations</TooltipContent>
@@ -342,7 +342,7 @@ export function WPSimpleEditor({
                   <DropdownMenuTrigger asChild>
                     <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1">
                       <Link2 className="w-4 h-4" />
-                      <span className="text-draft">Cross-ref</span>
+                      <span className="text-xs">Cross-ref</span>
                     </Button>
                   </DropdownMenuTrigger>
                 </TooltipTrigger>
