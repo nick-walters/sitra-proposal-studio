@@ -997,7 +997,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               } else if (taskStartMonths.length > 0 || taskEndMonths.length > 0) {
                 return (
                   <div className="flex items-center gap-2">
-                    <span className="text-sm opacity-80">Duration:</span>
+                    <span className="text-xs opacity-80">Duration:</span>
                     <span className="text-xs opacity-60 italic">Add dates to all tasks</span>
                   </div>
                 );
