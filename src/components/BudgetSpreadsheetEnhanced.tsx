@@ -44,7 +44,7 @@ import { BudgetChangeHistory } from './BudgetChangeHistory';
 import { Plus, Trash2, Download, Euro, Calculator, History, Info, FileSpreadsheet, AlertCircle, BookOpen, Loader2, TableProperties } from 'lucide-react';
 import { toast } from 'sonner';
 import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
-import { appendCostJustificationsToB31 } from '@/lib/b31Population';
+
 import { useAuth } from '@/hooks/useAuth';
 import { useQueryClient } from '@tanstack/react-query';
 
