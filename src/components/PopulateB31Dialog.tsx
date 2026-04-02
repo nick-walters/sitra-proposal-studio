@@ -26,20 +26,24 @@ interface PopulateB31DialogProps {
   proposalId: string;
 }
 
+type Step = 'wp-select' | 'item-select';
+
 export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB31DialogProps) {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [populating, setPopulating] = useState(false);
   const [wpDrafts, setWpDrafts] = useState<WPDraftForPopulate[]>([]);
+  const [step, setStep] = useState<Step>('wp-select');
 
-  // Selection state
+  // WP selection (step 1)
+  const [wpChecks, setWpChecks] = useState<Record<string, boolean>>({});
+
+  // Item selection (step 2)
   const [objectivesChecked, setObjectivesChecked] = useState(true);
   const [taskChecks, setTaskChecks] = useState<Record<string, boolean>>({});
   const [deliverableChecks, setDeliverableChecks] = useState<Record<string, boolean>>({});
   const [milestoneChecks, setMilestoneChecks] = useState<Record<string, boolean>>({});
   const [riskChecks, setRiskChecks] = useState<Record<string, boolean>>({});
-
-  // Section-level toggles
   const [tasksEnabled, setTasksEnabled] = useState(true);
   const [deliverablesEnabled, setDeliverablesEnabled] = useState(true);
   const [milestonesEnabled, setMilestonesEnabled] = useState(true);
@@ -47,49 +51,48 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
 
   useEffect(() => {
     if (!open) return;
+    setStep('wp-select');
     setLoading(true);
     fetchWPDraftsForPopulate(proposalId)
       .then((data) => {
         setWpDrafts(data);
-        // Default all checks to true
-        const tasks: Record<string, boolean> = {};
-        const deliverables: Record<string, boolean> = {};
-        const milestones: Record<string, boolean> = {};
-        const risks: Record<string, boolean> = {};
-        for (const wp of data) {
-          for (const t of wp.tasks) tasks[t.id] = true;
-          for (const d of wp.deliverables) deliverables[d.id] = true;
-          for (const m of wp.milestones) milestones[m.id] = true;
-          for (const r of wp.risks) risks[r.id] = true;
-        }
-        setTaskChecks(tasks);
-        setDeliverableChecks(deliverables);
-        setMilestoneChecks(milestones);
-        setRiskChecks(risks);
-        setObjectivesChecked(true);
-        setTasksEnabled(true);
-        setDeliverablesEnabled(true);
-        setMilestonesEnabled(true);
-        setRisksEnabled(true);
+        const wps: Record<string, boolean> = {};
+        for (const wp of data) wps[wp.id] = true;
+        setWpChecks(wps);
       })
       .catch(() => toast.error('Failed to load WP data'))
       .finally(() => setLoading(false));
   }, [open, proposalId]);
 
-  const toggleAllInSection = (
-    checks: Record<string, boolean>,
-    setChecks: (v: Record<string, boolean>) => void,
-    val: boolean
-  ) => {
-    const next = { ...checks };
-    for (const key of Object.keys(next)) next[key] = val;
-    setChecks(next);
-  };
+  const selectedWpDrafts = wpDrafts.filter((wp) => wpChecks[wp.id]);
 
-  const allChecked = (checks: Record<string, boolean>) =>
-    Object.values(checks).length > 0 && Object.values(checks).every(Boolean);
-  const someChecked = (checks: Record<string, boolean>) =>
-    Object.values(checks).some(Boolean);
+  const proceedToItemSelect = () => {
+    if (selectedWpDrafts.length === 0) {
+      toast.error('Select at least one work package');
+      return;
+    }
+    // Initialize item checks for selected WPs only
+    const tasks: Record<string, boolean> = {};
+    const deliverables: Record<string, boolean> = {};
+    const milestones: Record<string, boolean> = {};
+    const risks: Record<string, boolean> = {};
+    for (const wp of selectedWpDrafts) {
+      for (const t of wp.tasks) tasks[t.id] = true;
+      for (const d of wp.deliverables) deliverables[d.id] = true;
+      for (const m of wp.milestones) milestones[m.id] = true;
+      for (const r of wp.risks) risks[r.id] = true;
+    }
+    setTaskChecks(tasks);
+    setDeliverableChecks(deliverables);
+    setMilestoneChecks(milestones);
+    setRiskChecks(risks);
+    setObjectivesChecked(true);
+    setTasksEnabled(true);
+    setDeliverablesEnabled(true);
+    setMilestonesEnabled(true);
+    setRisksEnabled(true);
+    setStep('item-select');
+  };
 
   const handlePopulate = async () => {
     setPopulating(true);
@@ -102,7 +105,7 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
         risks: risksEnabled ? riskChecks : {},
       };
 
-      const result = await populateB31(proposalId, wpDrafts, selections);
+      const result = await populateB31(proposalId, selectedWpDrafts, selections);
 
       if (result.success) {
         const parts: string[] = [];
@@ -128,10 +131,22 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
     }
   };
 
+  const toggleAllInSection = (
+    checks: Record<string, boolean>,
+    setChecks: (v: Record<string, boolean>) => void,
+    val: boolean
+  ) => {
+    const next = { ...checks };
+    for (const key of Object.keys(next)) next[key] = val;
+    setChecks(next);
+  };
+
   const totalTasks = Object.keys(taskChecks).length;
   const totalDeliverables = Object.keys(deliverableChecks).length;
   const totalMilestones = Object.keys(milestoneChecks).length;
   const totalRisks = Object.keys(riskChecks).length;
+
+  const allWpsSelected = wpDrafts.length > 0 && wpDrafts.every((wp) => wpChecks[wp.id]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -139,7 +154,9 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
         <DialogHeader>
           <DialogTitle>Populate Part B3.1</DialogTitle>
           <DialogDescription>
-            Select which content to copy from WP drafts to Part B3.1. Existing B3.1 entries with matching numbers will be updated.
+            {step === 'wp-select'
+              ? 'Select which work packages to copy from drafts to Part B3.1.'
+              : 'Select which content to copy. Existing B3.1 entries with matching numbers will be updated.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -147,10 +164,46 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
           <div className="flex items-center justify-center py-8">
             <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
           </div>
+        ) : step === 'wp-select' ? (
+          /* ── Step 1: WP selection ── */
+          <ScrollArea className="flex-1 -mx-6 px-6">
+            <div className="space-y-2 pb-2">
+              {wpDrafts.length > 1 && (
+                <button
+                  className="text-xs text-muted-foreground hover:text-foreground cursor-pointer underline"
+                  onClick={() => {
+                    const newVal = !allWpsSelected;
+                    const next: Record<string, boolean> = {};
+                    for (const wp of wpDrafts) next[wp.id] = newVal;
+                    setWpChecks(next);
+                  }}
+                >
+                  {allWpsSelected ? 'Deselect all' : 'Select all'}
+                </button>
+              )}
+              {wpDrafts.map((wp) => (
+                <label key={wp.id} className="flex items-start gap-2 cursor-pointer border rounded-md p-3">
+                  <Checkbox
+                    checked={wpChecks[wp.id] ?? false}
+                    onCheckedChange={(v) => setWpChecks({ ...wpChecks, [wp.id]: v === true })}
+                    className="mt-0.5"
+                  />
+                  <div>
+                    <span className="text-sm font-medium">
+                      WP{wp.number}{wp.short_name ? `: ${wp.short_name}` : ''}{wp.title ? ` – ${wp.title}` : ''}
+                    </span>
+                    <p className="text-xs text-muted-foreground">
+                      {wp.tasks.length} tasks · {wp.deliverables.length} deliverables · {wp.milestones.length} milestones · {wp.risks.length} risks
+                    </p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </ScrollArea>
         ) : (
+          /* ── Step 2: Item selection ── */
           <ScrollArea className="flex-1 -mx-6 px-6">
             <div className="space-y-4 pb-2">
-              {/* Objectives */}
               <SectionBlock
                 label="WP objectives"
                 description="Copies objectives to the corresponding WP in Table 3.1.b"
@@ -158,20 +211,18 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
                 onCheckedChange={setObjectivesChecked}
               />
 
-              {/* Tasks */}
               <SectionBlock
                 label={`Task descriptions (${totalTasks})`}
                 description="Copies task content to the corresponding WP in Table 3.1.b"
                 checked={tasksEnabled}
                 onCheckedChange={(v) => {
                   setTasksEnabled(v);
-                  if (!v) toggleAllInSection(taskChecks, setTaskChecks, false);
-                  else toggleAllInSection(taskChecks, setTaskChecks, true);
+                  toggleAllInSection(taskChecks, setTaskChecks, v);
                 }}
               >
                 {tasksEnabled && totalTasks > 0 && (
                   <ItemList
-                    items={wpDrafts.flatMap((wp) =>
+                    items={selectedWpDrafts.flatMap((wp) =>
                       wp.tasks.map((t) => ({
                         id: t.id,
                         label: `T${wp.number}.${t.number}${t.title ? `: ${t.title}` : ''}`,
@@ -183,20 +234,18 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
                 )}
               </SectionBlock>
 
-              {/* Deliverables */}
               <SectionBlock
                 label={`Deliverables (${totalDeliverables})`}
                 description="Copies to the combined Table 3.1.c"
                 checked={deliverablesEnabled}
                 onCheckedChange={(v) => {
                   setDeliverablesEnabled(v);
-                  if (!v) toggleAllInSection(deliverableChecks, setDeliverableChecks, false);
-                  else toggleAllInSection(deliverableChecks, setDeliverableChecks, true);
+                  toggleAllInSection(deliverableChecks, setDeliverableChecks, v);
                 }}
               >
                 {deliverablesEnabled && totalDeliverables > 0 && (
                   <ItemList
-                    items={wpDrafts.flatMap((wp) =>
+                    items={selectedWpDrafts.flatMap((wp) =>
                       wp.deliverables.map((d) => ({
                         id: d.id,
                         label: `D${wp.number}.${d.number}${d.title ? `: ${d.title}` : ''}`,
@@ -208,20 +257,18 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
                 )}
               </SectionBlock>
 
-              {/* Milestones */}
               <SectionBlock
                 label={`Milestones (${totalMilestones})`}
                 description="Copies to Table 3.1.d"
                 checked={milestonesEnabled}
                 onCheckedChange={(v) => {
                   setMilestonesEnabled(v);
-                  if (!v) toggleAllInSection(milestoneChecks, setMilestoneChecks, false);
-                  else toggleAllInSection(milestoneChecks, setMilestoneChecks, true);
+                  toggleAllInSection(milestoneChecks, setMilestoneChecks, v);
                 }}
               >
                 {milestonesEnabled && totalMilestones > 0 && (
                   <ItemList
-                    items={wpDrafts.flatMap((wp) =>
+                    items={selectedWpDrafts.flatMap((wp) =>
                       wp.milestones.map((m) => ({
                         id: m.id,
                         label: `MS${m.number}${m.title ? `: ${m.title}` : ''}`,
@@ -233,20 +280,18 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
                 )}
               </SectionBlock>
 
-              {/* Risks */}
               <SectionBlock
                 label={`Risks (${totalRisks})`}
                 description="Copies to Table 3.1.e"
                 checked={risksEnabled}
                 onCheckedChange={(v) => {
                   setRisksEnabled(v);
-                  if (!v) toggleAllInSection(riskChecks, setRiskChecks, false);
-                  else toggleAllInSection(riskChecks, setRiskChecks, true);
+                  toggleAllInSection(riskChecks, setRiskChecks, v);
                 }}
               >
                 {risksEnabled && totalRisks > 0 && (
                   <ItemList
-                    items={wpDrafts.flatMap((wp) =>
+                    items={selectedWpDrafts.flatMap((wp) =>
                       wp.risks.map((r) => ({
                         id: r.id,
                         label: `R${r.number} (WP${wp.number})${r.title ? `: ${r.title}` : ''}`,
@@ -262,19 +307,30 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
         )}
 
         <DialogFooter>
+          {step === 'item-select' && (
+            <Button variant="outline" onClick={() => setStep('wp-select')} disabled={populating} className="mr-auto">
+              Back
+            </Button>
+          )}
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={populating}>
             Cancel
           </Button>
-          <Button onClick={handlePopulate} disabled={populating || loading}>
-            {populating ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-                Populating…
-              </>
-            ) : (
-              'Populate'
-            )}
-          </Button>
+          {step === 'wp-select' ? (
+            <Button onClick={proceedToItemSelect} disabled={loading || selectedWpDrafts.length === 0}>
+              Next
+            </Button>
+          ) : (
+            <Button onClick={handlePopulate} disabled={populating || loading}>
+              {populating ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                  Populating…
+                </>
+              ) : (
+                'Populate'
+              )}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
