@@ -396,6 +396,19 @@ function SortableTaskCard({
             </DropdownMenu>
           )}
         </div>
+      </div>
+
+      {/* Row 3: Description editor */}
+      <div className="mt-2 ml-5">
+        <WPSimpleEditor
+          value={task.description || ''}
+          onChange={handleDescriptionChange}
+          placeholder="Task description..."
+          disabled={readOnly}
+          minHeight="60px"
+          hideToolbar={hideToolbar}
+        />
+      </div>
     </div>
   );
 }
