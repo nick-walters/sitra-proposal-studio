@@ -120,8 +120,8 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
            style={{
              tableLayout: 'fixed',
              width: '100%',
-             borderCollapse: 'separate',
-             borderSpacing: '0 2pt',
+             borderCollapse: 'collapse',
+             border: 'none',
              border: 'none',
            }}
            ref={tableRef}
