@@ -845,8 +845,8 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
                     style={{ border: 'none', padding: '2px 6px' }}
                   >
                     <EditableText
-                      value={wp.objectives || ''}
-                      onSave={(val) => saveWPField(wp.id, 'objectives', val)}
+                      value={wp.b31_objectives || ''}
+                      onSave={(val) => saveWPField(wp.id, 'b31_objectives', val)}
                       placeholder="Click to add objectives…"
                     />
                   </td>
