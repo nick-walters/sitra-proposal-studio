@@ -259,71 +259,132 @@ function SortableRiskCard({
       className={`rounded-md border bg-card p-2 ${isDragging ? 'shadow-lg' : ''}`}
     >
       {/* Row 1: Drag handle, Risk title, Likelihood, Severity, Delete */}
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-start gap-1.5">
         {canReorder && (
           <button
             {...attributes}
             {...listeners}
-            className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted rounded touch-none flex-shrink-0"
+            className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted rounded touch-none flex-shrink-0 mt-1"
           >
             <GripVertical className="w-4 h-4 text-muted-foreground" />
           </button>
         )}
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-1 flex-shrink-0 mt-1">
           <span className="text-xs text-muted-foreground">Risk:</span>
         </div>
-        <Input
+        <Textarea
           value={localTitle}
-          onChange={handleTitleChange}
+          onChange={(e) => {
+            const newValue = e.target.value;
+            setLocalTitle(newValue);
+            if (titleTimeout) clearTimeout(titleTimeout);
+            const timeout = setTimeout(() => {
+              onUpdate(risk.id, { title: newValue });
+            }, 500);
+            setTitleTimeout(timeout);
+          }}
           onFocus={() => { isFocused.current = true; }}
           onBlur={() => { isFocused.current = false; }}
           placeholder="Describe the risk..."
-          className="h-6 text-xs flex-1"
+          className="h-12 min-h-[48px] resize-y text-xs flex-1"
           disabled={readOnly}
         />
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <span className="text-xs text-muted-foreground">Likelihood:</span>
-          <Select
-            value={risk.likelihood || ''}
-            onValueChange={(value) => onUpdate(risk.id, { likelihood: value })}
-            disabled={readOnly}
-          >
-            <SelectTrigger hideArrow className={cn("h-6 w-[32px] text-xs px-1.5", getRiskLevelColor(risk.likelihood))}>
-              <SelectValue placeholder="—" />
-            </SelectTrigger>
-            <SelectContent>
-              {RISK_LEVELS.map((level) => (
-                <SelectItem key={level.value} value={level.value}>
-                  {level.value}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <span className="text-xs text-muted-foreground">Severity:</span>
-          <Select
-            value={risk.severity || ''}
-            onValueChange={(value) => onUpdate(risk.id, { severity: value })}
-            disabled={readOnly}
-          >
-            <SelectTrigger hideArrow className={cn("h-6 w-[32px] text-xs px-1.5", getRiskLevelColor(risk.severity))}>
-              <SelectValue placeholder="—" />
-            </SelectTrigger>
-            <SelectContent>
-              {RISK_LEVELS.map((level) => (
-                <SelectItem key={level.value} value={level.value}>
-                  {level.value}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex flex-col gap-1 flex-shrink-0">
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-muted-foreground">Likelihood:</span>
+            <Select
+              value={risk.likelihood || ''}
+              onValueChange={(value) => onUpdate(risk.id, { likelihood: value })}
+              disabled={readOnly}
+            >
+              <SelectTrigger hideArrow className={cn("h-6 w-[32px] text-xs px-1.5", getRiskLevelColor(risk.likelihood))}>
+                <SelectValue placeholder="—" />
+              </SelectTrigger>
+              <SelectContent>
+                {RISK_LEVELS.map((level) => (
+                  <SelectItem key={level.value} value={level.value}>
+                    {level.value}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-muted-foreground">Severity:</span>
+            <Select
+              value={risk.severity || ''}
+              onValueChange={(value) => onUpdate(risk.id, { severity: value })}
+              disabled={readOnly}
+            >
+              <SelectTrigger hideArrow className={cn("h-6 w-[32px] text-xs px-1.5 ml-3", getRiskLevelColor(risk.severity))}>
+                <SelectValue placeholder="—" />
+              </SelectTrigger>
+              <SelectContent>
+                {RISK_LEVELS.map((level) => (
+                  <SelectItem key={level.value} value={level.value}>
+                    {level.value}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-muted-foreground">WPs:</span>
+            <Popover open={wpPopoverOpen} onOpenChange={setWpPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-6 text-xs px-2 min-w-[70px] max-w-[200px] justify-between font-normal ml-5"
+                  disabled={readOnly}
+                >
+                  {displayWpBubbles || <span className="text-muted-foreground">Select</span>}
+                  <ChevronsUpDown className="h-3 w-3 shrink-0 opacity-50 ml-1" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-48 p-2" align="start">
+                <div className="space-y-1 max-h-48 overflow-y-auto">
+                  {allWpDrafts.map(wp => {
+                    const color = getDefaultWPColor(wp.number);
+                    const textColor = getContrastingTextColor(color);
+                    return (
+                      <label
+                        key={wp.id}
+                        className="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted cursor-pointer text-xs"
+                      >
+                        <Checkbox
+                          checked={selectedWpNumbers.includes(wp.number)}
+                          onCheckedChange={() => toggleWp(wp.number)}
+                        />
+                        <span
+                          className="inline-flex items-center justify-center px-1.5 rounded-full font-bold"
+                          style={{
+                            backgroundColor: color,
+                            color: textColor,
+                            height: '17px',
+                            fontFamily: 'Times New Roman, serif',
+                            fontSize: '11pt',
+                            lineHeight: '17px',
+                          }}
+                        >
+                          WP{wp.number}
+                        </span>
+                      </label>
+                    );
+                  })}
+                  {allWpDrafts.length === 0 && (
+                    <p className="text-xs text-muted-foreground px-1">No WPs found</p>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
         {!readOnly && (
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 text-destructive hover:text-destructive/80 flex-shrink-0"
+            className="h-6 w-6 text-destructive hover:text-destructive/80 flex-shrink-0 mt-0.5"
             onClick={() => onDelete(risk.id)}
           >
             <Trash2 className="h-3.5 w-3.5" />
@@ -331,59 +392,8 @@ function SortableRiskCard({
         )}
       </div>
 
-      {/* Row 2: WPs + Mitigation */}
+      {/* Row 2: Mitigation */}
       <div className="flex items-start gap-1.5 mt-1.5 ml-5">
-        <div className="flex items-center gap-1 flex-shrink-0 pt-1">
-          <span className="text-xs text-muted-foreground">WPs:</span>
-          <Popover open={wpPopoverOpen} onOpenChange={setWpPopoverOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-6 text-xs px-2 min-w-[70px] max-w-[200px] justify-between font-normal"
-                disabled={readOnly}
-              >
-                {displayWpBubbles || <span className="text-muted-foreground">Select</span>}
-                <ChevronsUpDown className="h-3 w-3 shrink-0 opacity-50 ml-1" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-48 p-2" align="start">
-              <div className="space-y-1 max-h-48 overflow-y-auto">
-                {allWpDrafts.map(wp => {
-                  const color = getDefaultWPColor(wp.number);
-                  const textColor = getContrastingTextColor(color);
-                  return (
-                    <label
-                      key={wp.id}
-                      className="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted cursor-pointer text-xs"
-                    >
-                      <Checkbox
-                        checked={selectedWpNumbers.includes(wp.number)}
-                        onCheckedChange={() => toggleWp(wp.number)}
-                      />
-                      <span
-                        className="inline-flex items-center justify-center px-1.5 rounded-full font-bold"
-                        style={{
-                          backgroundColor: color,
-                          color: textColor,
-                          height: '17px',
-                          fontFamily: 'Times New Roman, serif',
-                          fontSize: '11pt',
-                          lineHeight: '17px',
-                        }}
-                      >
-                        WP{wp.number}
-                      </span>
-                    </label>
-                  );
-                })}
-                {allWpDrafts.length === 0 && (
-                  <p className="text-xs text-muted-foreground px-1">No WPs found</p>
-                )}
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
         <Textarea
           value={localMitigation}
           onChange={handleMitigationChange}
