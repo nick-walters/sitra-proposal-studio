@@ -436,7 +436,7 @@ export function UserRightsAdmin() {
                                 />
                               </div>
                             ) : (
-                              <Avatar className="h-36 w-36 flex-shrink-0">
+                              <Avatar className="h-18 w-18 flex-shrink-0">
                                 <AvatarImage src={u.avatar_url || undefined} />
                                 <AvatarFallback>{getInitials(u)}</AvatarFallback>
                               </Avatar>
