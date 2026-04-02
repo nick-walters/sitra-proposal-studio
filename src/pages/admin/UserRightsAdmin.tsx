@@ -533,9 +533,9 @@ export function UserRightsAdmin() {
                           <div className="flex items-center justify-end gap-1">
                             {isAdminOrOwner && (
                               <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="sm"
-                                className="h-7 px-2 text-xs"
+                                className="h-6 px-1.5 text-xs"
                                 title="Resend signup / password reset email"
                                 onClick={() => handleResendSignupLink(u)}
                               >
