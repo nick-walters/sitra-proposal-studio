@@ -80,8 +80,11 @@ export function WPDeliverablesTable({
   onDeliverableAdd,
   onDeliverableDelete,
   onDeliverableReorder,
+  onDeliverableMove,
   readOnly = false,
   projectDuration = 36,
+  allWpDrafts = [],
+  currentWpDraftId,
 }: WPDeliverablesTableProps) {
   const sensors = useSensors(
     useSensor(PointerSensor),
