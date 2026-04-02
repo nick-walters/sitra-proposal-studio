@@ -302,7 +302,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     queryFn: async () => {
       const { data, error } = await supabase
         .from('proposals')
-        .select('budget_type, use_wp_themes')
+        .select('budget_type, use_wp_themes, wp_drafts_visible, case_drafts_visible')
         .eq('id', proposalId)
         .single();
       if (error) throw error;
