@@ -438,7 +438,7 @@ export function WPSimpleEditor({
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           className={cn(
-            "p-3 outline-none resize-y overflow-auto text-sm",
+            "p-3 outline-none resize-y overflow-auto text-xs",
             "[&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4",
             "[&_table]:w-full [&_table]:border-collapse",
             "[&_th]:border [&_th]:border-foreground [&_th]:p-1 [&_th]:bg-foreground [&_th]:text-background [&_th]:font-bold",
@@ -449,7 +449,7 @@ export function WPSimpleEditor({
           suppressContentEditableWarning
         />
         {showPlaceholder && (
-          <div className="absolute top-3 left-3 text-muted-foreground text-sm pointer-events-none">
+          <div className="absolute top-3 left-3 text-muted-foreground text-xs pointer-events-none">
             {placeholder}
           </div>
         )}
