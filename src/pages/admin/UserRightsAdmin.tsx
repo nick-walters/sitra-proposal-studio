@@ -412,8 +412,8 @@ export function UserRightsAdmin() {
                    <TableRow>
                      <TableHead className="font-bold">User</TableHead>
                      <TableHead className="font-bold">Email</TableHead>
-                     <TableHead className="font-bold w-[130px]">Role</TableHead>
                      <TableHead className="font-bold">Item</TableHead>
+                     <TableHead className="font-bold w-[160px]">Role</TableHead>
                      <TableHead className="w-[40px]"></TableHead>
                    </TableRow>
                 </TableHeader>
