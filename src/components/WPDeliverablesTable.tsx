@@ -165,9 +165,12 @@ interface SortableDeliverableCardProps {
   monthOptions: number[];
   onUpdate: (id: string, updates: Partial<WPDraftDeliverable>) => Promise<boolean>;
   onDelete: (id: string) => Promise<boolean>;
+  onMove?: (deliverableId: string, targetWpDraftId: string) => Promise<boolean>;
   readOnly: boolean;
   formatNumber: (num: number) => string;
   canReorder: boolean;
+  allWpDrafts?: WPOption[];
+  currentWpDraftId?: string;
 }
 
 function SortableDeliverableCard({
@@ -177,9 +180,12 @@ function SortableDeliverableCard({
   monthOptions,
   onUpdate,
   onDelete,
+  onMove,
   readOnly,
   formatNumber,
   canReorder,
+  allWpDrafts = [],
+  currentWpDraftId,
 }: SortableDeliverableCardProps) {
   const {
     attributes,
