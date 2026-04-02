@@ -197,19 +197,19 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                     return (
                       <td
                         key={wp.id}
-                        className={`${cellStyles} relative overflow-hidden`}
-                        style={{ padding: 0 }}
+                        className={`${cellStyles}`}
+                        style={{
+                          padding: 0,
+                          backgroundColor: wpColor,
+                          border: `1.5px solid ${wpColor}`,
+                          borderTop: 'none',
+                          borderBottom: 'none',
+                        }}
                       >
-                        {/* WP column background layer */}
-                        <div
-                          className="absolute inset-0"
-                          style={{ backgroundColor: wpColor, opacity: 0.18 }}
-                        />
-                        {/* Content */}
                         <input
                           type="text"
-                          className="relative z-10 w-full bg-transparent outline-none border-none p-0 m-0 font-['Times_New_Roman',Times,serif] text-[11pt] text-center"
-                          style={{ minWidth: '30px' }}
+                          className="w-full bg-transparent outline-none border-none p-0 m-0 font-['Times_New_Roman',Times,serif] text-[11pt] text-center"
+                          style={{ minWidth: '30px', color: '#FFFFFF' }}
                           value={isEditing ? editValue : (val ? formatPM(val) : '')}
                           onChange={e => {
                             if (!isEditing) startEdit(p.id, wp.id, val);
