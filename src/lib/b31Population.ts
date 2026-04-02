@@ -63,7 +63,7 @@ export async function fetchWPDraftsForPopulate(proposalId: string): Promise<WPDr
   const { data, error } = await supabase
     .from('wp_drafts')
     .select(`
-      id, number, short_name, title, objectives,
+      id, number, short_name, title, objectives, description_before_tasks,
       tasks:wp_draft_tasks(id, number, title, description, lead_participant_id, start_month, end_month,
         participants:wp_draft_task_participants(participant_id)
       ),
