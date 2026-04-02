@@ -503,7 +503,7 @@ function SortableTaskGroup({
   saveTaskField,
   onDeleteTask,
 }: {
-  task: B31WPData['tasks'][0];
+  task: B31Task;
   wp: B31WPData;
   participants: B31Participant[];
   proposalId: string;
