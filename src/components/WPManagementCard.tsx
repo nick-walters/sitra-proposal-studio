@@ -275,6 +275,7 @@ interface WPManagementCardProps {
   proposalId: string;
   isCoordinator: boolean;
   isFullProposal?: boolean;
+  onDraftVisibilityChange?: () => void;
 }
 
 export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = true }: WPManagementCardProps) {
