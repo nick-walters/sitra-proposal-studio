@@ -108,16 +108,16 @@ export function WPMethodologySection({
 
           {/* Subsection 2: Methodologies (dynamic list) */}
           <div className="space-y-2">
-            <p className="text-draft font-bold" style={{ fontFamily: 'Times New Roman, serif', fontSize: '11pt' }}>
+            <p className="font-bold" style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '11pt' }}>
               How will you do this?
             </p>
-            <p className="text-draft text-muted-foreground italic" style={{ fontFamily: 'Times New Roman, serif', fontSize: '11pt' }}>
+            <p className="text-muted-foreground italic" style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '11pt' }}>
               Describe in detail the methodologies that will be used to implement this WP. Think about this section as being equivalent to the methodologies section in a scientific article, rather than being about how the work is organised into tasks. Cite relevant methodologies and refer to any relevant preliminary data from the consortium's existing work.
             </p>
-            <p className="text-draft text-muted-foreground italic" style={{ fontFamily: 'Times New Roman, serif', fontSize: '11pt' }}>
+            <p className="text-muted-foreground italic" style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '11pt' }}>
               After describing an activity, mention the relevant task number in square brackets, e.g. "X will be done [T1.1]", but do not start each paragraph "T1.1 will do X" – the whole section should read as a narrative, i.e. an engaging story, and not as a list of tasks.
             </p>
-            <p className="text-draft text-muted-foreground italic" style={{ fontFamily: 'Times New Roman, serif', fontSize: '11pt' }}>
+            <p className="text-muted-foreground italic" style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '11pt' }}>
               Describe important interactions and flows of data, knowledge, expertise or outputs between tasks, or between this and other WPs. Do not list who will do what and when – that belongs in Part B3.1 in the WP description table (who does what) and Gantt chart (when).
             </p>
 
