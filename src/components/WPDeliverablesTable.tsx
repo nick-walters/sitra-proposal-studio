@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -328,7 +329,7 @@ function SortableDeliverableCard({
             disabled={readOnly}
           >
             <SelectTrigger
-              className="h-auto border-0 shadow-none p-0 w-auto gap-0 text-xs font-bold"
+              className={cn("h-auto border-0 shadow-none p-0 w-auto gap-0 text-xs", deliverable.responsible_participant_id ? "font-bold" : "font-normal")}
               style={deliverable.responsible_participant_id ? {
                 backgroundColor: '#000000',
                 color: '#ffffff',
@@ -341,7 +342,7 @@ function SortableDeliverableCard({
                 paddingRight: '6px',
               } : undefined}
             >
-              <SelectValue placeholder="Select" />
+              <SelectValue placeholder="Select" className="font-normal" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__clear__">
