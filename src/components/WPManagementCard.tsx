@@ -564,51 +564,6 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     }
   }, [deleteWPMutation]);
 
-  const handleToggleWP = (wpId: string) => {
-    const newSelection = new Set(selectedWPs);
-    if (newSelection.has(wpId)) {
-      newSelection.delete(wpId);
-    } else {
-      newSelection.add(wpId);
-    }
-    setSelectedWPs(newSelection);
-  };
-
-  const handleSelectAll = () => {
-    if (selectedWPs.size === wpDrafts.length) {
-      setSelectedWPs(new Set());
-    } else {
-      setSelectedWPs(new Set(wpDrafts.map((wp) => wp.id)));
-    }
-  };
-
-  const handlePopulate = async (all: boolean) => {
-    if (!user?.id) {
-      toast.error('You must be logged in to populate content');
-      return;
-    }
-    
-    setIsPopulating(true);
-    try {
-      const wpsToPopulate = all ? wpDrafts : wpDrafts.filter((wp) => selectedWPs.has(wp.id));
-      const wpIds = wpsToPopulate.map((wp) => wp.id);
-      
-      const result = await populateB31(proposalId, wpIds, user.id);
-      
-      if (result.success) {
-        toast.success(`Populated ${wpsToPopulate.length} work package(s) to Part B3.1`);
-        // Invalidate section content queries to refresh the editor
-        queryClient.invalidateQueries({ queryKey: ['section-content'] });
-      } else {
-        toast.error(result.error || 'Failed to populate work packages');
-      }
-    } catch (error) {
-      console.error('Error populating B3.1:', error);
-      toast.error('Failed to populate work packages');
-    } finally {
-      setIsPopulating(false);
-    }
-  };
 
   if (wpsLoading) {
     return (
