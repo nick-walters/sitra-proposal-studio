@@ -121,7 +121,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
              tableLayout: 'fixed',
              width: 'auto',
              borderCollapse: 'separate',
-             borderSpacing: '5pt 2pt',
+             borderSpacing: '5pt 0',
            }}
            ref={tableRef}
          >
@@ -168,20 +168,16 @@ borderTopLeftRadius: '15px',
               const rowTotal = wpData.reduce((sum, wp) => sum + (pMap.get(wp.id) || 0), 0);
 
               return (
-                <tr key={p.id} style={{ backgroundColor: '#000000' }}>
-                  {/* Participant bubble cell — black bar with left rounding */}
+                <tr key={p.id}>
+                  {/* Participant bubble cell — standard participant badge, no elongation */}
                   <td
                     className="px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle"
-                    style={{
-                      textAlign: 'left',
-                      backgroundColor: '#000000',
-                      borderTopLeftRadius: '9999px',
-                      borderBottomLeftRadius: '9999px',
-                    }}
+                    style={{ textAlign: 'left' }}
                   >
                     <span
-                      className="inline-flex items-center font-bold italic whitespace-nowrap"
+                      className="inline-flex items-center font-bold italic whitespace-nowrap rounded-full"
                       style={{
+                        backgroundColor: '#000000',
                         color: '#FFFFFF',
                         fontFamily: "'Times New Roman', Times, serif",
                         fontSize: '11pt',
@@ -190,22 +186,17 @@ borderTopLeftRadius: '15px',
                         lineHeight: 1,
                         verticalAlign: 'baseline',
                         padding: '0px 5px',
+                        border: '1.5px solid #000000',
                       }}
                     >
                       {p.participant_number}. {p.organisation_short_name || p.organisation_name}
                     </span>
                   </td>
-                  {/* Data cells — WP color at 50% over black */}
+                  {/* Data cells — WP column color behind */}
                   {wpData.map((wp) => {
                     const val = pMap.get(wp.id) || 0;
                     const wpColor = wp.color || '#2563EB';
                     const isEditing = editingCell?.participantId === p.id && editingCell?.wpId === wp.id;
-
-                    // Parse hex to rgba at 50%
-                    const r = parseInt(wpColor.slice(1, 3), 16);
-                    const g = parseInt(wpColor.slice(3, 5), 16);
-                    const b = parseInt(wpColor.slice(5, 7), 16);
-                    const semiColor = `rgba(${r}, ${g}, ${b}, 0.5)`;
 
                     return (
                       <td
@@ -213,20 +204,13 @@ borderTopLeftRadius: '15px',
                         className={`${cellStyles}`}
                         style={{
                           padding: 0,
-                          backgroundColor: '#000000',
-                          position: 'relative',
-                          boxShadow: '-5pt 0 0 0 #000000',
+                          backgroundColor: wpColor,
                         }}
                       >
-                        <div style={{
-                          position: 'absolute',
-                          inset: 0,
-                          backgroundColor: semiColor,
-                        }} />
                         <input
                           type="text"
                           className="w-full bg-transparent outline-none border-none p-0 m-0 font-['Times_New_Roman',Times,serif] text-[11pt] text-center"
-                          style={{ minWidth: '30px', color: '#FFFFFF', position: 'relative', zIndex: 1 }}
+                          style={{ minWidth: '30px', color: '#FFFFFF' }}
                           value={isEditing ? editValue : (val ? formatPM(val) : '')}
                           onChange={e => {
                             if (!isEditing) startEdit(p.id, wp.id, val);
@@ -242,16 +226,7 @@ borderTopLeftRadius: '15px',
                       </td>
                     );
                   })}
-                  <td
-                    className={`${cellStyles} font-bold`}
-                    style={{
-                      backgroundColor: '#000000',
-                      color: '#FFFFFF',
-                      borderTopRightRadius: '9999px',
-                      borderBottomRightRadius: '9999px',
-                      boxShadow: '-5pt 0 0 0 #000000',
-                    }}
-                  >
+                  <td className={`${cellStyles} font-bold`}>
                     {rowTotal ? formatPM(rowTotal) : '—'}
                   </td>
                 </tr>
