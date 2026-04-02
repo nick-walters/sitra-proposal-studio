@@ -68,7 +68,7 @@ export function useWPDraftUndoRedo(wpDraftId: string | null) {
     try {
       if (action.type === 'delete') {
         // Re-insert the deleted item
-        const table = tableMap[action.itemType];
+        const table = getTable(action.itemType);
         const { id, participants, effort, ...insertData } = action.item as any;
 
         // Re-insert with same id
@@ -101,7 +101,7 @@ export function useWPDraftUndoRedo(wpDraftId: string | null) {
 
       } else if (action.type === 'add') {
         // Undo an add = delete it
-        const table = tableMap[action.itemType];
+        const table = getTable(action.itemType);
 
         // Fetch full item data before deleting (for redo)
         const { data: itemData } = await supabase
@@ -165,7 +165,7 @@ export function useWPDraftUndoRedo(wpDraftId: string | null) {
     try {
       if (action.type === 'delete') {
         // Redo a delete = re-insert
-        const table = tableMap[action.itemType];
+        const table = getTable(action.itemType);
         const { id, participants, effort, ...insertData } = action.item as any;
 
         const { error } = await supabase
@@ -194,7 +194,7 @@ export function useWPDraftUndoRedo(wpDraftId: string | null) {
 
       } else if (action.type === 'add') {
         // Redo an add = delete it again
-        const table = tableMap[action.itemType];
+        const table = getTable(action.itemType);
 
         const { data: itemData } = await supabase
           .from(table)
