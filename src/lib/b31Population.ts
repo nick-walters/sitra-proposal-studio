@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export interface PopulateSelections {
   objectives: boolean;
+  descriptionBeforeTasks: boolean;
   tasks: Record<string, boolean>; // taskId → selected
   deliverables: Record<string, boolean>; // deliverableId → selected
   milestones: Record<string, boolean>; // milestoneId → selected
