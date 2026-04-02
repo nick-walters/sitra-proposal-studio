@@ -341,7 +341,7 @@ function SortableDeliverableCard({
                 paddingRight: '6px',
               } : undefined}
             >
-              <SelectValue placeholder="Select" />
+              <SelectValue placeholder="Select" className="font-normal" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__clear__">
