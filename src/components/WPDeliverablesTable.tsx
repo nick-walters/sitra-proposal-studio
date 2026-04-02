@@ -3,7 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Package, Plus, Trash2, GripVertical } from 'lucide-react';
+import { Package, Plus, Trash2, GripVertical, ArrowLeft } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import type { WPDraftDeliverable } from '@/hooks/useWPDrafts';
 import type { ParticipantSummary } from '@/types/proposal';
 import {
@@ -24,6 +31,13 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
+interface WPOption {
+  id: string;
+  number: number;
+  short_name: string | null;
+  title: string | null;
+}
+
 interface WPDeliverablesTableProps {
   wpNumber: number;
   deliverables: WPDraftDeliverable[];
@@ -32,8 +46,11 @@ interface WPDeliverablesTableProps {
   onDeliverableAdd: () => Promise<any>;
   onDeliverableDelete: (id: string) => Promise<boolean>;
   onDeliverableReorder?: (newOrder: string[]) => Promise<boolean>;
+  onDeliverableMove?: (deliverableId: string, targetWpDraftId: string) => Promise<boolean>;
   readOnly?: boolean;
-  projectDuration?: number; // Default 72 months
+  projectDuration?: number;
+  allWpDrafts?: WPOption[];
+  currentWpDraftId?: string;
 }
 
 const DELIVERABLE_TYPES = [
@@ -63,8 +80,11 @@ export function WPDeliverablesTable({
   onDeliverableAdd,
   onDeliverableDelete,
   onDeliverableReorder,
+  onDeliverableMove,
   readOnly = false,
   projectDuration = 36,
+  allWpDrafts = [],
+  currentWpDraftId,
 }: WPDeliverablesTableProps) {
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -111,9 +131,12 @@ export function WPDeliverablesTable({
                   monthOptions={monthOptions}
                   onUpdate={onDeliverableUpdate}
                   onDelete={onDeliverableDelete}
+                  onMove={onDeliverableMove}
                   readOnly={readOnly}
                   formatNumber={formatDeliverableNumber}
                   canReorder={!readOnly && !!onDeliverableReorder}
+                  allWpDrafts={allWpDrafts}
+                  currentWpDraftId={currentWpDraftId}
                 />
               ))}
             </div>
@@ -142,9 +165,12 @@ interface SortableDeliverableCardProps {
   monthOptions: number[];
   onUpdate: (id: string, updates: Partial<WPDraftDeliverable>) => Promise<boolean>;
   onDelete: (id: string) => Promise<boolean>;
+  onMove?: (deliverableId: string, targetWpDraftId: string) => Promise<boolean>;
   readOnly: boolean;
   formatNumber: (num: number) => string;
   canReorder: boolean;
+  allWpDrafts?: WPOption[];
+  currentWpDraftId?: string;
 }
 
 function SortableDeliverableCard({
@@ -154,9 +180,12 @@ function SortableDeliverableCard({
   monthOptions,
   onUpdate,
   onDelete,
+  onMove,
   readOnly,
   formatNumber,
   canReorder,
+  allWpDrafts = [],
+  currentWpDraftId,
 }: SortableDeliverableCardProps) {
   const {
     attributes,
@@ -320,6 +349,33 @@ function SortableDeliverableCard({
           </Select>
         </div>
       </div>
+
+      {/* Move to another WP */}
+      {!readOnly && onMove && allWpDrafts.filter(wp => wp.id !== currentWpDraftId).length > 0 && (
+        <div className="mt-1.5 ml-5">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-5 px-1.5 text-xs text-muted-foreground hover:text-foreground gap-1">
+                <ArrowLeft className="h-3 w-3" />
+                Move
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuLabel>Move to another WP draft</DropdownMenuLabel>
+              {allWpDrafts
+                .filter(wp => wp.id !== currentWpDraftId)
+                .map(wp => (
+                  <DropdownMenuItem
+                    key={wp.id}
+                    onClick={() => onMove(deliverable.id, wp.id)}
+                  >
+                    WP{wp.number}{wp.short_name ? `: ${wp.short_name}` : wp.title ? `: ${wp.title}` : ''}
+                  </DropdownMenuItem>
+                ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
     </div>
   );
 }

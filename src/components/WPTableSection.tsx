@@ -3,7 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Target, Plus, Trash2, GripVertical } from 'lucide-react';
+import { Target, Plus, Trash2, GripVertical, ArrowLeft } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { ParticipantMultiSelect } from '@/components/ParticipantMultiSelect';
 import { WPSimpleEditor } from '@/components/WPSimpleEditor';
 import type { WPDraftTask } from '@/hooks/useWPDrafts';
@@ -26,6 +33,13 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
+interface WPOption {
+  id: string;
+  number: number;
+  short_name: string | null;
+  title: string | null;
+}
+
 interface WPTableSectionProps {
   wpNumber: number;
   objectives: string | null;
@@ -39,9 +53,12 @@ interface WPTableSectionProps {
   onTaskDelete: (taskId: string) => Promise<boolean>;
   onTaskParticipantsChange: (taskId: string, participantIds: string[]) => Promise<boolean>;
   onTaskReorder?: (newOrder: string[]) => Promise<boolean>;
+  onTaskMove?: (taskId: string, targetWpDraftId: string) => Promise<boolean>;
   readOnly?: boolean;
   projectDuration?: number;
   hideToolbar?: boolean;
+  allWpDrafts?: WPOption[];
+  currentWpDraftId?: string;
 }
 
 export function WPTableSection({
@@ -57,9 +74,12 @@ export function WPTableSection({
   onTaskDelete,
   onTaskParticipantsChange,
   onTaskReorder,
+  onTaskMove,
   readOnly = false,
   projectDuration = 36,
   hideToolbar = false,
+  allWpDrafts = [],
+  currentWpDraftId,
 }: WPTableSectionProps) {
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -137,10 +157,13 @@ export function WPTableSection({
                     onUpdate={onTaskUpdate}
                     onDelete={onTaskDelete}
                     onParticipantsChange={onTaskParticipantsChange}
+                    onMove={onTaskMove}
                     readOnly={readOnly}
                     formatTaskNumber={formatTaskNumber}
                     canReorder={!readOnly && !!onTaskReorder}
                     hideToolbar={hideToolbar}
+                    allWpDrafts={allWpDrafts}
+                    currentWpDraftId={currentWpDraftId}
                   />
                 ))}
               </div>
@@ -171,10 +194,13 @@ interface SortableTaskCardProps {
   onUpdate: (taskId: string, updates: Partial<WPDraftTask>) => Promise<boolean>;
   onDelete: (taskId: string) => Promise<boolean>;
   onParticipantsChange: (taskId: string, participantIds: string[]) => Promise<boolean>;
+  onMove?: (taskId: string, targetWpDraftId: string) => Promise<boolean>;
   readOnly: boolean;
   formatTaskNumber: (num: number) => string;
   canReorder: boolean;
   hideToolbar?: boolean;
+  allWpDrafts?: WPOption[];
+  currentWpDraftId?: string;
 }
 
 function SortableTaskCard({
@@ -185,10 +211,13 @@ function SortableTaskCard({
   onUpdate,
   onDelete,
   onParticipantsChange,
+  onMove,
   readOnly,
   formatTaskNumber,
   canReorder,
   hideToolbar = false,
+  allWpDrafts = [],
+  currentWpDraftId,
 }: SortableTaskCardProps) {
   const {
     attributes,
@@ -356,6 +385,33 @@ function SortableTaskCard({
           hideToolbar={hideToolbar}
         />
       </div>
+
+      {/* Row 4: Move to another WP */}
+      {!readOnly && onMove && allWpDrafts.filter(wp => wp.id !== currentWpDraftId).length > 0 && (
+        <div className="mt-1.5 ml-5">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-5 px-1.5 text-xs text-muted-foreground hover:text-foreground gap-1">
+                <ArrowLeft className="h-3 w-3" />
+                Move
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuLabel>Move to another WP draft</DropdownMenuLabel>
+              {allWpDrafts
+                .filter(wp => wp.id !== currentWpDraftId)
+                .map(wp => (
+                  <DropdownMenuItem
+                    key={wp.id}
+                    onClick={() => onMove(task.id, wp.id)}
+                  >
+                    WP{wp.number}{wp.short_name ? `: ${wp.short_name}` : wp.title ? `: ${wp.title}` : ''}
+                  </DropdownMenuItem>
+                ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
     </div>
   );
 }

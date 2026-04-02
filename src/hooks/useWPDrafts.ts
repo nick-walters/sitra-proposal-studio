@@ -968,6 +968,118 @@ export function useWPDraftEditor(wpId: string | null) {
     }
   }, [wpDraft]);
 
+  // Move task to another WP
+  const moveTaskToWP = useCallback(async (taskId: string, targetWpDraftId: string) => {
+    if (!wpDraft) return false;
+
+    try {
+      // Get the target WP's current tasks to determine next number and order_index
+      const { data: targetTasks, error: fetchErr } = await supabase
+        .from('wp_draft_tasks')
+        .select('number, order_index')
+        .eq('wp_draft_id', targetWpDraftId)
+        .order('order_index', { ascending: false })
+        .limit(1);
+
+      if (fetchErr) throw fetchErr;
+
+      const nextNumber = targetTasks && targetTasks.length > 0 ? targetTasks[0].number + 1 : 1;
+      const nextOrderIndex = targetTasks && targetTasks.length > 0 ? targetTasks[0].order_index + 1 : 0;
+
+      // Move the task
+      const { error } = await supabase
+        .from('wp_draft_tasks')
+        .update({ wp_draft_id: targetWpDraftId, number: nextNumber, order_index: nextOrderIndex })
+        .eq('id', taskId);
+
+      if (error) throw error;
+
+      // Also move task participants
+      // (they reference task id, so they follow automatically)
+
+      // Renumber remaining tasks in source WP
+      const remaining = (wpDraft.tasks || [])
+        .filter(t => t.id !== taskId)
+        .sort((a, b) => a.order_index - b.order_index);
+
+      for (let i = 0; i < remaining.length; i++) {
+        await supabase
+          .from('wp_draft_tasks')
+          .update({ number: i + 1, order_index: i })
+          .eq('id', remaining[i].id);
+      }
+
+      // Update local state
+      setWPDraft(prev => {
+        if (!prev?.tasks) return prev;
+        const updated = prev.tasks
+          .filter(t => t.id !== taskId)
+          .map((t, i) => ({ ...t, number: i + 1, order_index: i }));
+        return { ...prev, tasks: updated };
+      });
+
+      toast.success('Task moved successfully');
+      return true;
+    } catch (err) {
+      console.error('Error moving task:', err);
+      toast.error('Failed to move task');
+      return false;
+    }
+  }, [wpDraft]);
+
+  // Move deliverable to another WP
+  const moveDeliverableToWP = useCallback(async (deliverableId: string, targetWpDraftId: string) => {
+    if (!wpDraft) return false;
+
+    try {
+      const { data: targetDeliverables, error: fetchErr } = await supabase
+        .from('wp_draft_deliverables')
+        .select('number, order_index')
+        .eq('wp_draft_id', targetWpDraftId)
+        .order('order_index', { ascending: false })
+        .limit(1);
+
+      if (fetchErr) throw fetchErr;
+
+      const nextNumber = targetDeliverables && targetDeliverables.length > 0 ? targetDeliverables[0].number + 1 : 1;
+      const nextOrderIndex = targetDeliverables && targetDeliverables.length > 0 ? targetDeliverables[0].order_index + 1 : 0;
+
+      const { error } = await supabase
+        .from('wp_draft_deliverables')
+        .update({ wp_draft_id: targetWpDraftId, number: nextNumber, order_index: nextOrderIndex })
+        .eq('id', deliverableId);
+
+      if (error) throw error;
+
+      // Renumber remaining deliverables in source WP
+      const remaining = (wpDraft.deliverables || [])
+        .filter(d => d.id !== deliverableId)
+        .sort((a, b) => a.order_index - b.order_index);
+
+      for (let i = 0; i < remaining.length; i++) {
+        await supabase
+          .from('wp_draft_deliverables')
+          .update({ number: i + 1, order_index: i })
+          .eq('id', remaining[i].id);
+      }
+
+      setWPDraft(prev => {
+        if (!prev?.deliverables) return prev;
+        const updated = prev.deliverables
+          .filter(d => d.id !== deliverableId)
+          .map((d, i) => ({ ...d, number: i + 1, order_index: i }));
+        return { ...prev, deliverables: updated };
+      });
+
+      toast.success('Deliverable moved successfully');
+      return true;
+    } catch (err) {
+      console.error('Error moving deliverable:', err);
+      toast.error('Failed to move deliverable');
+      return false;
+    }
+  }, [wpDraft]);
+
   return {
     wpDraft,
     loading,
@@ -983,11 +1095,13 @@ export function useWPDraftEditor(wpId: string | null) {
     reorderTasks,
     updateWPEffort,
     setTaskParticipants,
+    moveTaskToWP,
     // Deliverables
     addDeliverable,
     updateDeliverable,
     deleteDeliverable,
     reorderDeliverables,
+    moveDeliverableToWP,
     // Risks
     addRisk,
     updateRisk,
