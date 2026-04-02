@@ -3,7 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Target, Plus, Trash2, GripVertical } from 'lucide-react';
+import { Target, Plus, Trash2, GripVertical, ArrowLeft } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { ParticipantMultiSelect } from '@/components/ParticipantMultiSelect';
 import { WPSimpleEditor } from '@/components/WPSimpleEditor';
 import type { WPDraftTask } from '@/hooks/useWPDrafts';
