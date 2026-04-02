@@ -356,7 +356,7 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
 
               {currentWp.risks.length > 0 && (
                 <SectionBlock
-                  label={`Risks (${currentWp.risks.length})`}
+                  label={`${currentWp.risks.length === 1 ? 'Risk' : 'Risks'} (${currentWp.risks.length})`}
                   description="Copies to Table 3.1.e"
                   checked={currentSel.risksEnabled}
                   onCheckedChange={(v) => {
