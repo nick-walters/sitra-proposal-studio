@@ -665,6 +665,25 @@ export function UserRightsAdmin() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Delete user confirmation dialog */}
+        <Dialog open={!!deleteConfirmUser} onOpenChange={(open) => { if (!open) setDeleteConfirmUser(null); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-destructive" />
+                Remove all access
+              </DialogTitle>
+              <DialogDescription>
+                Are you sure you want to remove all platform and proposal access for <strong>{deleteConfirmUser ? getDisplayName(deleteConfirmUser) : ''}</strong>? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteConfirmUser(null)}>Cancel</Button>
+              <Button variant="destructive" onClick={() => deleteConfirmUser && handleDeleteUser(deleteConfirmUser)}>Remove all access</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
