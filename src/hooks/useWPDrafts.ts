@@ -345,6 +345,7 @@ export function useWPDraftEditor(wpId: string | null) {
 
       const sortedData = {
         ...data,
+        methodologies_list: (data.methodologies_list || []) as { name: string; description: string }[],
         tasks: fixItems(sortedTasks, (id, num, idx) => {
           supabase.from('wp_draft_tasks').update({ number: num, order_index: idx }).eq('id', id).then();
         }),
