@@ -320,6 +320,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     await supabase.from('proposals').update({ [field]: visible } as any).eq('id', proposalId);
     queryClient.invalidateQueries({ queryKey: ['proposal-for-themes', proposalId] });
     queryClient.invalidateQueries({ queryKey: ['proposal'] });
+    onDraftVisibilityChange?.();
   };
 
   // Toggle use_wp_themes
