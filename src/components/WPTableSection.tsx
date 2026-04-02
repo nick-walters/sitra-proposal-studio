@@ -284,7 +284,7 @@ function SortableTaskCard({
             <GripVertical className="w-4 h-4 text-blue-500" />
           </button>
         )}
-        <span className="text-sm text-foreground font-medium flex-shrink-0" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
+        <span className="text-sm text-foreground font-bold flex-shrink-0" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
           {formatTaskNumber(task.number)}:
         </span>
         <Input
@@ -293,7 +293,7 @@ function SortableTaskCard({
           onFocus={() => { isFocused.current = true; }}
           onBlur={() => { isFocused.current = false; }}
           placeholder="Task title..."
-          className="h-6 text-xs flex-1"
+          className="h-6 text-xs flex-1 font-bold"
           disabled={readOnly}
         />
         {!readOnly && (
@@ -311,7 +311,7 @@ function SortableTaskCard({
       {/* Row 2: Leader, Participants, Timing */}
       <div className="flex items-center gap-1.5 mt-1.5 ml-5">
         <div className="flex items-center gap-1 flex-shrink-0">
-          <Crown className="w-3 h-3 text-amber-500 flex-shrink-0" />
+          <span className="text-xs text-muted-foreground flex-shrink-0">Task leader:</span>
           <Select
             value={task.lead_participant_id || ''}
             onValueChange={(value) => onUpdate(task.id, { lead_participant_id: value || null })}
@@ -327,10 +327,14 @@ function SortableTaskCard({
                 fontSize: '11pt',
                 lineHeight: '17px',
                 borderRadius: '9999px',
-                paddingLeft: '6px',
+                paddingLeft: '18px',
                 paddingRight: '6px',
+                position: 'relative',
               } : undefined}
             >
+              {task.lead_participant_id && (
+                <Crown className="w-3 h-3 text-white fill-white absolute left-1.5 top-1/2 -translate-y-1/2" style={{ zIndex: 1 }} />
+              )}
               <SelectValue placeholder="Select leader" />
             </SelectTrigger>
             <SelectContent>
