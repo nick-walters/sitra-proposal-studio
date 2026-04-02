@@ -229,27 +229,6 @@ export function BudgetSpreadsheetEnhanced({
     toast.success('Budget exported to CSV');
   };
 
-  const handleCopyCostJustifications = async () => {
-    if (!user?.id) {
-      toast.error('You must be logged in');
-      return;
-    }
-    setIsCopying(true);
-    try {
-      const result = await appendCostJustificationsToB31(proposalId, user.id);
-      if (result.success) {
-        toast.success('Cost justifications copied to Part B3.1 (Tables 3.1g & 3.1h)');
-        queryClient.invalidateQueries({ queryKey: ['section-content'] });
-      } else {
-        toast.error(result.error || 'Failed to copy cost justifications');
-      }
-    } catch (error) {
-      console.error('Error copying cost justifications:', error);
-      toast.error('Failed to copy cost justifications');
-    } finally {
-      setIsCopying(false);
-    }
-  };
 
   return (
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
