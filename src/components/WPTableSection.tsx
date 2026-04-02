@@ -474,7 +474,7 @@ function TimingRangePicker({
       <span className="text-xs text-muted-foreground">Timing:</span>
       <Popover open={open} onOpenChange={handleOpen}>
         <PopoverTrigger asChild>
-          <button className="cursor-pointer hover:opacity-80 text-xs h-6 px-2 border rounded-md bg-muted" disabled={readOnly}>
+          <button className="cursor-pointer hover:opacity-80 text-xs h-6 px-2 border rounded-md bg-background" disabled={readOnly}>
             {task.start_month != null && task.end_month != null ? (
               <>{fmt(task.start_month)}–{fmt(task.end_month)}</>
             ) : task.start_month != null ? (
