@@ -217,7 +217,7 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
           </div>
         ) : (
           /* ── Step 2: Item selection ── */
-          <ScrollArea className="flex-1 -mx-6 px-6">
+          <div className="flex-1 overflow-y-auto -mx-6 px-6">
             <div className="space-y-4 pb-2">
               <SectionBlock
                 label="WP objectives"
