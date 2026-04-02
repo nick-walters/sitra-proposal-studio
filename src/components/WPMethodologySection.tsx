@@ -90,10 +90,10 @@ export function WPMethodologySection({
         <CardContent className="space-y-6 px-3 pb-3 pt-0">
           {/* Subsection 1: Approach summary */}
           <div className="space-y-2">
-            <p className="text-draft font-bold" style={{ fontFamily: 'Times New Roman, serif', fontSize: '11pt' }}>
+            <p className="font-bold" style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '11pt' }}>
               Briefly, what is the approach of this WP as a whole?
             </p>
-            <p className="text-draft text-muted-foreground italic" style={{ fontFamily: 'Times New Roman, serif', fontSize: '11pt' }}>
+            <p className="text-muted-foreground italic" style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '11pt' }}>
               Briefly summarise the approaches of this WP, why they will be done, and how they will contribute to achieving the project's objectives. Do not go into details of the methodologies.
             </p>
             <WPSimpleEditor
