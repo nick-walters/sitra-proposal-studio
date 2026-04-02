@@ -898,7 +898,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
         <div className="space-y-2 -mx-2">
           {/* Full-width pill badge: WPX: Short Name – Title */}
           <div
-            className="rounded-full flex items-center px-4 py-1.5 gap-0 min-h-[36px]"
+            className="rounded-full flex items-center px-4 py-1 gap-0 min-h-[29px]"
             style={{
               backgroundColor: effectiveColor,
               color: '#FFFFFF',
