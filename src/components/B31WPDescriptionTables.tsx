@@ -829,12 +829,14 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
                         value={shortName}
                         onSave={(val) => saveWPField(wp.id, 'short_name', val)}
                         className="text-white"
+                        style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif" }}
                       />
                       {shortName && title ? <>&nbsp;–&nbsp;</> : null}
                       <EditableHeaderText
                         value={title}
                         onSave={(val) => saveWPField(wp.id, 'title', val)}
                         className="text-white"
+                        style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif" }}
                       />
                     </span>
                   </td>
