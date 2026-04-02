@@ -339,7 +339,26 @@ export function CaseManagementCard({
     enabled: casesEnabled,
   });
 
-  // Update case mutation
+  // Case draft visibility
+  const { data: caseDraftsVisibleData } = useQuery({
+    queryKey: ['case-drafts-visible', proposalId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('proposals')
+        .select('case_drafts_visible')
+        .eq('id', proposalId)
+        .single();
+      return (data as any)?.case_drafts_visible !== false;
+    },
+  });
+  const caseDraftsVisible = caseDraftsVisibleData !== false;
+
+  const handleCaseDraftVisibility = async (visible: boolean) => {
+    await supabase.from('proposals').update({ case_drafts_visible: visible } as any).eq('id', proposalId);
+    queryClient.invalidateQueries({ queryKey: ['case-drafts-visible', proposalId] });
+    queryClient.invalidateQueries({ queryKey: ['proposal-for-themes', proposalId] });
+  };
+
   const updateCaseMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<CaseDraft> }) => {
       const { error } = await supabase
