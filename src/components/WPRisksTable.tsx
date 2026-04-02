@@ -308,8 +308,8 @@ function SortableRiskCard({
             disabled={readOnly}
           >
             <SelectTrigger hideArrow className="h-6 w-auto min-w-[28px] px-0.5 border-0 bg-transparent focus:ring-0">
-              <SelectValue>
-                {risk.likelihood ? <RiskLevelBubble level={risk.likelihood} /> : <span className="text-muted-foreground text-xs">Select</span>}
+              <SelectValue placeholder={<span className="text-muted-foreground text-xs">Select</span>}>
+                {risk.likelihood ? <RiskLevelBubble level={risk.likelihood} /> : undefined}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
