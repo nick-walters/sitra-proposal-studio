@@ -71,7 +71,7 @@ function LeaderPicker({
   arrowPosition = 'right',
 }: {
   entityId: string;
-  entityTable: 'wp_drafts' | 'wp_draft_tasks';
+  entityTable: 'wp_drafts' | 'wp_draft_tasks' | 'b31_tasks';
   currentLeaderId: string | null;
   participants: B31Participant[];
   proposalId: string;
