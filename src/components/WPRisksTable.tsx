@@ -303,14 +303,12 @@ function SortableRiskCard({
         <div className="flex items-center gap-1">
           <span className="text-xs text-muted-foreground">Likelihood:</span>
           <Select
-            value={risk.likelihood || ''}
+            value={risk.likelihood || undefined}
             onValueChange={(value) => onUpdate(risk.id, { likelihood: value === '__clear__' ? null : value })}
             disabled={readOnly}
           >
             <SelectTrigger hideArrow className="h-6 w-auto min-w-[28px] px-0.5 border-0 bg-transparent focus:ring-0">
-              <SelectValue>
-                {risk.likelihood ? <RiskLevelBubble level={risk.likelihood} /> : <span className="text-muted-foreground text-xs">Select</span>}
-              </SelectValue>
+              {risk.likelihood ? <RiskLevelBubble level={risk.likelihood} /> : <span className="text-muted-foreground text-xs">Select</span>}
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__clear__">
@@ -330,14 +328,12 @@ function SortableRiskCard({
         <div className="flex items-center gap-1">
           <span className="text-xs text-muted-foreground">Severity:</span>
           <Select
-            value={risk.severity || ''}
+            value={risk.severity || undefined}
             onValueChange={(value) => onUpdate(risk.id, { severity: value === '__clear__' ? null : value })}
             disabled={readOnly}
           >
             <SelectTrigger hideArrow className="h-6 w-auto min-w-[28px] px-0.5 border-0 bg-transparent focus:ring-0">
-              <SelectValue>
-                {risk.severity ? <RiskLevelBubble level={risk.severity} /> : <span className="text-muted-foreground text-xs">Select</span>}
-              </SelectValue>
+              {risk.severity ? <RiskLevelBubble level={risk.severity} /> : <span className="text-muted-foreground text-xs">Select</span>}
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__clear__">
