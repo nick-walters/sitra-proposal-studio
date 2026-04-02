@@ -52,7 +52,7 @@ export function SortableFigureItem({ figure, onSelect, canEdit }: SortableFigure
           className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded touch-none"
           aria-label="Drag to reorder"
         >
-          <GripVertical className="w-4 h-4 text-muted-foreground" />
+          <GripVertical className="w-4 h-4 text-[#2563EB]" />
         </button>
       )}
       <button

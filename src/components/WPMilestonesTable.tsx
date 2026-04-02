@@ -237,7 +237,7 @@ function SortableMilestoneCard({
             {...listeners}
             className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted rounded touch-none flex-shrink-0"
           >
-            <GripVertical className="w-4 h-4 text-muted-foreground" />
+            <GripVertical className="w-4 h-4 text-[#2563EB]" />
           </button>
         )}
         <span className="text-xs text-muted-foreground flex-shrink-0">MS:</span>
