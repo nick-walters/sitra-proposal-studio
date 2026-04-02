@@ -159,25 +159,69 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
     updateField,
     addTask,
     updateTask,
-    deleteTask,
+    deleteTask: rawDeleteTask,
     reorderTasks,
     updateWPEffort,
     setTaskParticipants,
     moveTaskToWP,
     addDeliverable,
     updateDeliverable,
-    deleteDeliverable,
+    deleteDeliverable: rawDeleteDeliverable,
     reorderDeliverables,
     moveDeliverableToWP,
     addRisk,
     updateRisk,
-    deleteRisk,
+    deleteRisk: rawDeleteRisk,
     reorderRisks,
     addMilestone,
     updateMilestone,
-    deleteMilestone,
+    deleteMilestone: rawDeleteMilestone,
     reorderMilestones,
+    refetch: refetchDraft,
   } = useWPDraftEditor(wpId);
+
+  const {
+    canUndo, canRedo, undoLabel, redoLabel,
+    undo, redo, recordDelete, recordAdd, reset: resetUndoRedo,
+  } = useWPDraftUndoRedo(wpId);
+
+  // Reset undo/redo when WP changes
+  useEffect(() => { resetUndoRedo(); }, [wpId, resetUndoRedo]);
+
+  // Wrapped delete functions that record for undo
+  const deleteTask = useCallback(async (taskId: string) => {
+    const task = wpDraft?.tasks?.find(t => t.id === taskId);
+    if (task) recordDelete('task', task, { participants: task.participants, effort: task.effort });
+    return rawDeleteTask(taskId);
+  }, [rawDeleteTask, wpDraft, recordDelete]);
+
+  const deleteDeliverable = useCallback(async (deliverableId: string) => {
+    const d = wpDraft?.deliverables?.find(d => d.id === deliverableId);
+    if (d) recordDelete('deliverable', d);
+    return rawDeleteDeliverable(deliverableId);
+  }, [rawDeleteDeliverable, wpDraft, recordDelete]);
+
+  const deleteRisk = useCallback(async (riskId: string) => {
+    const r = wpDraft?.risks?.find(r => r.id === riskId);
+    if (r) recordDelete('risk', r);
+    return rawDeleteRisk(riskId);
+  }, [rawDeleteRisk, wpDraft, recordDelete]);
+
+  const deleteMilestone = useCallback(async (milestoneId: string) => {
+    const m = wpDraft?.milestones?.find(m => m.id === milestoneId);
+    if (m) recordDelete('milestone', m);
+    return rawDeleteMilestone(milestoneId);
+  }, [rawDeleteMilestone, wpDraft, recordDelete]);
+
+  const handleUndo = useCallback(async () => {
+    const result = await undo();
+    if (result?.refetch) refetchDraft();
+  }, [undo, refetchDraft]);
+
+  const handleRedo = useCallback(async () => {
+    const result = await redo();
+    if (result?.refetch) refetchDraft();
+  }, [redo, refetchDraft]);
 
   // Fetch proposal's use_wp_themes flag
   const { data: proposalData } = useQuery({
