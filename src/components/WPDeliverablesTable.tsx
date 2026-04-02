@@ -347,35 +347,31 @@ function SortableDeliverableCard({
               ))}
             </SelectContent>
           </Select>
-        </div>
-      </div>
 
-      {/* Move to another WP */}
-      {!readOnly && onMove && allWpDrafts.filter(wp => wp.id !== currentWpDraftId).length > 0 && (
-        <div className="mt-1.5 ml-5">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-5 px-1.5 text-xs text-muted-foreground hover:text-foreground gap-1">
-                <ArrowLeft className="h-3 w-3" />
-                Move
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56">
-              <DropdownMenuLabel>Move to another WP draft</DropdownMenuLabel>
-              {allWpDrafts
-                .filter(wp => wp.id !== currentWpDraftId)
-                .map(wp => (
-                  <DropdownMenuItem
-                    key={wp.id}
-                    onClick={() => onMove(deliverable.id, wp.id)}
-                  >
-                    WP{wp.number}{wp.short_name ? `: ${wp.short_name}` : wp.title ? `: ${wp.title}` : ''}
-                  </DropdownMenuItem>
-                ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Move to another WP */}
+          {!readOnly && onMove && allWpDrafts.filter(wp => wp.id !== currentWpDraftId).length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0">
+                  <ArrowRight className="h-3.5 w-3.5 text-blue-500" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Move to another WP draft</DropdownMenuLabel>
+                {allWpDrafts
+                  .filter(wp => wp.id !== currentWpDraftId)
+                  .map(wp => (
+                    <DropdownMenuItem
+                      key={wp.id}
+                      onClick={() => onMove(deliverable.id, wp.id)}
+                    >
+                      WP{wp.number}{wp.short_name ? `: ${wp.short_name}` : wp.title ? `: ${wp.title}` : ''}
+                    </DropdownMenuItem>
+                  ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
-      )}
     </div>
   );
 }
