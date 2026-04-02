@@ -121,7 +121,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
              tableLayout: 'fixed',
              width: 'auto',
              borderCollapse: 'separate',
-             borderSpacing: '10pt 0',
+             borderSpacing: '5pt 0',
            }}
            ref={tableRef}
          >
