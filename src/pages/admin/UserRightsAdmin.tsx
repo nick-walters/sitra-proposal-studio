@@ -405,8 +405,8 @@ export function UserRightsAdmin() {
               <Table className="table-fixed">
                 <TableHeader>
                    <TableRow>
-                     <TableHead className="font-bold w-[250px]">User</TableHead>
-                     <TableHead className="font-bold w-[250px]">Email</TableHead>
+                     <TableHead className="font-bold w-[300px]">User</TableHead>
+                     <TableHead className="font-bold w-[225px]">Email</TableHead>
                      <TableHead className="font-bold">Rights</TableHead>
                    </TableRow>
                 </TableHeader>
