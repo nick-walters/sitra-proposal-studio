@@ -88,6 +88,7 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
       for (const r of wp.risks) riskChecks[r.id] = true;
       sels[wp.id] = {
         objectives: true,
+        descriptionBeforeTasks: !!wp.description_before_tasks,
         tasksEnabled: true,
         taskChecks,
         deliverablesEnabled: true,
