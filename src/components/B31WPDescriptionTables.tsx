@@ -447,10 +447,12 @@ function EditableHeaderText({
   value,
   onSave,
   className,
+  style: styleProp,
 }: {
   value: string;
   onSave: (newValue: string) => void;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   const ref = useRef<HTMLSpanElement>(null);
   const savedRef = useRef(value);
@@ -484,6 +486,7 @@ function EditableHeaderText({
         !focused && isEmpty && "text-muted-foreground/50 italic",
         className
       )}
+      style={styleProp}
       onBlur={handleBlur}
       onFocus={handleFocus}
     >
