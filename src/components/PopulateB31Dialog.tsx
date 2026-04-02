@@ -284,6 +284,15 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
                 onCheckedChange={(v) => updateCurrentSel({ objectives: v })}
               />
 
+              {currentWp.description_before_tasks && (
+                <SectionBlock
+                  label="Optional field before tasks"
+                  description="Copies the optional content that appears before tasks in Table 3.1.b"
+                  checked={currentSel.descriptionBeforeTasks}
+                  onCheckedChange={(v) => updateCurrentSel({ descriptionBeforeTasks: v })}
+                />
+              )}
+
               {currentWp.tasks.length > 0 && (
                 <SectionBlock
                   label={`${currentWp.tasks.length === 1 ? 'Task' : 'Tasks'} (${currentWp.tasks.length})`}
