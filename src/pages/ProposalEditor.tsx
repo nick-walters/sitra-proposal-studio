@@ -1217,6 +1217,8 @@ export function ProposalEditor() {
               collaborators={collaborators}
               lockedSections={lockedSections}
               onToggleLock={toggleSectionLock}
+              wpDraftsVisible={proposal?.wpDraftsVisible !== false}
+              caseDraftsVisible={proposal?.caseDraftsVisible !== false}
             />
           </div>
         </aside>
