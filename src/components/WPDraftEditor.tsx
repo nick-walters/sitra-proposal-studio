@@ -610,7 +610,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           {/* Undo / Redo */}
           {!readOnly && (
             <>
-              <Separator orientation="vertical" className="h-5" />
+              
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
