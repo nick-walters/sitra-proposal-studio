@@ -164,10 +164,10 @@ function PartnersPicker({
     const next = filteredSelectedIds.includes(pid)
       ? filteredSelectedIds.filter(id => id !== pid)
       : [...filteredSelectedIds, pid];
-    await supabase.from('wp_draft_task_participants').delete().eq('task_id', taskId);
+    await supabase.from('b31_task_participants').delete().eq('task_id', taskId);
     if (next.length > 0) {
       await supabase
-        .from('wp_draft_task_participants')
+        .from('b31_task_participants')
         .insert(next.map(participant_id => ({ task_id: taskId, participant_id })));
     }
     queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
