@@ -289,6 +289,37 @@ export function UserRightsAdmin() {
     }
   };
 
+  const handleResendSignupLink = async (targetUser: UserWithRoles) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('invite-user', {
+        body: {
+          email: targetUser.email,
+          fullName: getDisplayName(targetUser),
+          proposalId: '00000000-0000-0000-0000-000000000000',
+          proposalAcronym: 'Sitra Proposal Studio',
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.alreadyExists) {
+        // User exists — trigger a password reset directly
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(targetUser.email, {
+          redirectTo: 'https://sitra-proposal-studio.lovable.app/auth?type=recovery',
+        });
+        if (resetError) throw resetError;
+        toast.success(`Password reset email sent to ${targetUser.email}`);
+      } else if (data?.success) {
+        toast.success(data.message || `Signup link sent to ${targetUser.email}`);
+      } else {
+        toast.success(`Signup link sent to ${targetUser.email}`);
+      }
+    } catch (error: any) {
+      console.error('Error resending signup link:', error);
+      toast.error(error.message || 'Failed to resend signup link');
+    }
+  };
+
   const getSurname = (u: UserWithRoles) => {
     if (u.last_name) return u.last_name;
     const parts = (u.full_name || u.email).split(' ');
