@@ -292,7 +292,7 @@ function SortableRiskCard({
           onFocus={() => { isFocused.current = true; }}
           onBlur={() => { isFocused.current = false; }}
           placeholder="Describe the risk..."
-          className="min-h-[28px] resize-none text-xs flex-1 overflow-hidden"
+          className="min-h-[28px] resize-none text-xs flex-1 overflow-hidden font-bold"
           style={{ height: 'auto', fieldSizing: 'content' } as any}
           disabled={readOnly}
         />

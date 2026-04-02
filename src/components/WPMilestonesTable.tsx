@@ -248,7 +248,7 @@ function SortableMilestoneCard({
           onFocus={() => { isFocused.current = true; }}
           onBlur={() => { isFocused.current = false; }}
           placeholder="Milestone title..."
-          className="h-6 text-xs flex-1"
+          className="h-6 text-xs flex-1 font-bold"
           disabled={readOnly}
         />
         {!readOnly && (
