@@ -167,7 +167,7 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
           </div>
         ) : step === 'wp-select' ? (
           /* ── Step 1: WP selection ── */
-          <ScrollArea className="flex-1 -mx-6 px-6">
+          <div className="flex-1 overflow-y-auto -mx-6 px-6">
             <div className="space-y-2 pb-2">
               {wpDrafts.length > 1 && (
                 <button
@@ -182,25 +182,39 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
                   {allWpsSelected ? 'Deselect all' : 'Select all'}
                 </button>
               )}
-              {wpDrafts.map((wp) => (
-                <label key={wp.id} className="flex items-start gap-2 cursor-pointer border rounded-md p-3">
-                  <Checkbox
-                    checked={wpChecks[wp.id] ?? false}
-                    onCheckedChange={(v) => setWpChecks({ ...wpChecks, [wp.id]: v === true })}
-                    className="mt-0.5"
-                  />
-                  <div>
-                    <span className="text-sm font-medium">
-                      WP{wp.number}{wp.short_name ? `: ${wp.short_name}` : ''}{wp.title ? ` – ${wp.title}` : ''}
-                    </span>
-                    <p className="text-xs text-muted-foreground">
-                      {wp.tasks.length} tasks · {wp.deliverables.length} deliverables · {wp.milestones.length} milestones · {wp.risks.length} risks
-                    </p>
-                  </div>
-                </label>
-              ))}
+              {wpDrafts.map((wp) => {
+                const wpColor = getDefaultWPColor(wp.number);
+                return (
+                  <label key={wp.id} className="flex items-start gap-2 cursor-pointer border rounded-md p-3">
+                    <Checkbox
+                      checked={wpChecks[wp.id] ?? false}
+                      onCheckedChange={(v) => setWpChecks({ ...wpChecks, [wp.id]: v === true })}
+                      className="mt-0.5"
+                    />
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span
+                        className="inline-flex items-center rounded-full font-bold text-white whitespace-nowrap"
+                        style={{
+                          backgroundColor: wpColor,
+                          fontFamily: "'Times New Roman', Times, serif",
+                          fontSize: '11pt',
+                          fontWeight: 700,
+                          lineHeight: 1,
+                          padding: '0px 6px',
+                          height: '20px',
+                        }}
+                      >
+                        WP{wp.number}{wp.short_name ? `: ${wp.short_name}` : ''}{wp.title ? ` – ${wp.title}` : ''}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {wp.tasks.length} tasks · {wp.deliverables.length} deliverables · {wp.milestones.length} milestones · {wp.risks.length} risks
+                      </span>
+                    </div>
+                  </label>
+                );
+              })}
             </div>
-          </ScrollArea>
+          </div>
         ) : (
           /* ── Step 2: Item selection ── */
           <ScrollArea className="flex-1 -mx-6 px-6">
