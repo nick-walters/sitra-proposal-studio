@@ -177,6 +177,7 @@ export function InsertTDMSReferenceDropdowns({
   onOpenDeliverableChange,
   openMilestone: externalOpenMilestone,
   onOpenMilestoneChange,
+  hideMilestone = false,
 }: InsertTDMSReferenceDropdownsProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
