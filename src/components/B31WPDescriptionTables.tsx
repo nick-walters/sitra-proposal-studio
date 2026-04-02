@@ -448,8 +448,12 @@ function EditableHeaderText({
 }) {
   const ref = useRef<HTMLSpanElement>(null);
   const savedRef = useRef(value);
+  const [focused, setFocused] = useState(false);
+
+  const isEmpty = !value || value.trim() === '';
 
   const handleBlur = useCallback(() => {
+    setFocused(false);
     const current = ref.current?.textContent || '';
     if (current !== savedRef.current) {
       savedRef.current = current;
@@ -457,7 +461,12 @@ function EditableHeaderText({
     }
   }, [onSave]);
 
-  const isEmpty = !value || value.trim() === '';
+  const handleFocus = useCallback(() => {
+    setFocused(true);
+    if (isEmpty && ref.current) {
+      ref.current.textContent = '';
+    }
+  }, [isEmpty]);
 
   return (
     <span
@@ -466,13 +475,13 @@ function EditableHeaderText({
       suppressContentEditableWarning
       className={cn(
         "outline-none font-['Times_New_Roman',Times,serif] text-[11pt] min-h-[1.2em] inline-block cursor-text rounded px-0.5 transition-colors hover:bg-muted/40 focus:bg-muted/20",
-        isEmpty && "text-muted-foreground/50 italic",
+        !focused && isEmpty && "text-muted-foreground/50 italic",
         className
       )}
       onBlur={handleBlur}
-      data-placeholder="Click to add title"
+      onFocus={handleFocus}
     >
-      {isEmpty ? 'Click to add title' : value}
+      {!focused && isEmpty ? 'Click to add title' : value}
     </span>
   );
 }
