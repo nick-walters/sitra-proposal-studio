@@ -128,7 +128,7 @@ export function WPMethodologySection({
                   <div className="flex items-center gap-2">
                     <DebouncedInput
                       value={item.name}
-                      onValueChange={(val) => updateMethodology(index, 'name', val)}
+                      onDebouncedChange={(val) => updateMethodology(index, 'name', val)}
                       placeholder="Methodology name"
                       className="flex-1 text-draft font-bold underline bg-background border-none shadow-none h-7 px-1"
                       style={{ fontFamily: 'Times New Roman, serif', fontSize: '11pt' }}
