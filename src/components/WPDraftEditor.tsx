@@ -638,7 +638,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
             </>
           )}
           
-          <Separator orientation="vertical" className="h-5" />
+          <Separator orientation="vertical" className="h-5 mx-1.5" />
           
           {/* Subheading */}
           {!readOnly && (
@@ -657,7 +657,6 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
                 </Tooltip>
                 <DropdownMenuContent align="start" className="w-64">
                   <DropdownMenuItem onClick={() => {
-                    // Numbered H3 subheading
                     const wpNum = wpDraft?.number || 1;
                     const editorEl = document.activeElement?.closest('[contenteditable]') as HTMLElement | null;
                     const h3s = editorEl?.querySelectorAll('h3') || [];
@@ -676,221 +675,216 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
                 </DropdownMenuContent>
               </DropdownMenu>
               
-              <Separator orientation="vertical" className="h-5" />
-              
               {/* Bold, Italic, Underline */}
-              <div className="flex items-center gap-0.5">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => execCommand('bold')}>
-                      <span className="font-black text-sm">B</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Bold (Ctrl+B)</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => execCommand('italic')}>
-                      <Italic className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Italic (Ctrl+I)</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => execCommand('underline')}>
-                      <Underline className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Underline (Ctrl+U)</TooltipContent>
-                </Tooltip>
-              </div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => execCommand('bold')}>
+                    <span className="font-black text-sm">B</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">Bold (Ctrl+B)</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => execCommand('italic')}>
+                    <Italic className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">Italic (Ctrl+I)</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => execCommand('underline')}>
+                    <Underline className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">Underline (Ctrl+U)</TooltipContent>
+              </Tooltip>
               
-              <Separator orientation="vertical" className="h-5" />
+              <Separator orientation="vertical" className="h-5 mx-1.5" />
               
               {/* Lists */}
-              <div className="flex items-center gap-0.5">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => execCommand('insertUnorderedList')}>
-                      <List className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Bullet list</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => execCommand('insertOrderedList')}>
-                      <ListOrdered className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Numbered list</TooltipContent>
-                </Tooltip>
-              </div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => execCommand('insertUnorderedList')}>
+                    <List className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">Bullet list</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => execCommand('insertOrderedList')}>
+                    <ListOrdered className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">Numbered list</TooltipContent>
+              </Tooltip>
               
-              <Separator orientation="vertical" className="h-5" />
+              <Separator orientation="vertical" className="h-5 mx-1.5" />
               
               {/* Alignment */}
-              <div className="flex items-center gap-0.5">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => execCommand('justifyLeft')}>
-                      <AlignLeft className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Align left</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => execCommand('justifyCenter')}>
-                      <AlignCenter className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Align center</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => execCommand('justifyRight')}>
-                      <AlignRight className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Align right</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => execCommand('justifyFull')}>
-                      <AlignJustify className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Justify</TooltipContent>
-                </Tooltip>
-              </div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => execCommand('justifyLeft')}>
+                    <AlignLeft className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">Align left</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => execCommand('justifyCenter')}>
+                    <AlignCenter className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">Align center</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => execCommand('justifyRight')}>
+                    <AlignRight className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">Align right</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => execCommand('justifyFull')}>
+                    <AlignJustify className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">Justify</TooltipContent>
+              </Tooltip>
               
-              <Separator orientation="vertical" className="h-5" />
+              <Separator orientation="vertical" className="h-5 mx-1.5" />
               
-              {/* Insert tools */}
-              <div className="flex items-center gap-0.5">
+              {/* Table */}
+              <Popover open={tablePopoverOpen} onOpenChange={setTablePopoverOpen}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => setIsCitationOpen(true)}>
-                      <FileText className="h-3.5 w-3.5" />
-                      <span className="text-xs">Add citation</span>
-                    </Button>
+                    <PopoverTrigger asChild>
+                      <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1">
+                        <Table2 className="h-4 w-4" />
+                        <span className="text-xs">Table</span>
+                      </Button>
+                    </PopoverTrigger>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Add Citation</TooltipContent>
+                  <TooltipContent side="bottom" className="text-xs">Insert table</TooltipContent>
                 </Tooltip>
-                
-                <DropdownMenu>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <DropdownMenuTrigger asChild>
-                        <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1">
-                          <Link2 className="w-4 h-4" />
-                          <span className="text-xs">Cross-ref</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="text-xs">Insert cross-reference</TooltipContent>
-                  </Tooltip>
-                  <DropdownMenuContent align="start" className="w-64 bg-popover z-50">
-                    <DropdownMenuItem onClick={() => setIsCrossRefOpen(true)} className="flex items-center gap-2">
-                      <span className="w-16 flex justify-start shrink-0"><ImageIcon className="w-3.5 h-3.5 text-foreground" /></span>
-                      <span>Figure / Table number</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setIsWPRefOpen(true)} className="flex items-center gap-2">
-                      <span className="w-16 flex justify-start shrink-0">
-                        <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#2563EB', border: '1.5px solid #2563EB', borderRadius: '9999px' }} />
+                <PopoverContent className="w-auto p-2" align="start">
+                  <div className="text-xs text-muted-foreground mb-2">
+                    {hoveredCell ? `${hoveredCell.row} × ${hoveredCell.col}` : 'Select size'}
+                  </div>
+                  <div className="grid gap-0.5" style={{ gridTemplateColumns: 'repeat(8, 1fr)' }}>
+                    {Array.from({ length: 8 }, (_, row) =>
+                      Array.from({ length: 8 }, (_, col) => {
+                        const isHighlighted = hoveredCell && row < hoveredCell.row && col < hoveredCell.col;
+                        const isFirstRow = row === 0;
+                        return (
+                          <button
+                            key={`${row}-${col}`}
+                            className={cn(
+                              "w-4 h-4 border border-border rounded-sm transition-colors",
+                              isHighlighted
+                                ? isFirstRow
+                                  ? "bg-foreground"
+                                  : "bg-primary/40"
+                                : "bg-background hover:bg-muted"
+                            )}
+                            onMouseEnter={() => setHoveredCell({ row: row + 1, col: col + 1 })}
+                            onMouseLeave={() => setHoveredCell(null)}
+                            onClick={() => insertTable(row + 1, col + 1)}
+                          />
+                        );
+                      })
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              
+              {/* Figure */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => setIsFigureDialogOpen(true)}>
+                    <ImageIcon className="h-4 w-4" />
+                    <span className="text-xs">Figure</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">Insert figure</TooltipContent>
+              </Tooltip>
+              
+              {/* Citations */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => setIsCitationOpen(true)}>
+                    <FileText className="h-4 w-4" />
+                    <span className="text-xs">Citations</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">Manage citations</TooltipContent>
+              </Tooltip>
+              
+              {/* Cross-ref dropdown */}
+              <DropdownMenu>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1">
+                        <Link2 className="w-4 h-4" />
+                        <span className="text-xs">Cross-ref</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs">Insert cross-reference</TooltipContent>
+                </Tooltip>
+                <DropdownMenuContent align="start" className="w-64 bg-popover z-50">
+                  <DropdownMenuItem onClick={() => setIsCrossRefOpen(true)} className="flex items-center gap-2">
+                    <span className="w-16 flex justify-start shrink-0"><ImageIcon className="w-3.5 h-3.5 text-foreground" /></span>
+                    <span>Figure / Table number</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsWPRefOpen(true)} className="flex items-center gap-2">
+                    <span className="w-16 flex justify-start shrink-0">
+                      <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#2563EB', border: '1.5px solid #2563EB', borderRadius: '9999px' }} />
+                    </span>
+                    <span>Work package</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsTaskRefOpen(true)} className="flex items-center gap-2">
+                    <span className="w-16 flex justify-start shrink-0">
+                      <span style={{ display: 'inline-block', width: '22px', height: '14px', borderRadius: '9999px', border: '1.5px solid #2563EB', background: '#ffffff' }} />
+                    </span>
+                    <span>Task</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsDeliverableRefOpen(true)} className="flex items-center gap-2">
+                    <span className="w-16 flex justify-start shrink-0">
+                      <span style={{ display: 'inline-block', width: '22px', height: '14px', background: '#2563EB', clipPath: 'polygon(0% 0%, calc(100% - 6px) 0%, 100% 50%, calc(100% - 6px) 100%, 0% 100%)', position: 'relative' }}>
+                        <span style={{ position: 'absolute', inset: '1.5px', right: '2px', background: '#ffffff', clipPath: 'polygon(0% 0%, calc(100% - 5px) 0%, 100% 50%, calc(100% - 5px) 100%, 0% 100%)' }} />
                       </span>
-                      <span>Work package</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setIsTaskRefOpen(true)} className="flex items-center gap-2">
-                      <span className="w-16 flex justify-start shrink-0">
-                        <span style={{ display: 'inline-block', width: '22px', height: '14px', borderRadius: '9999px', border: '1.5px solid #2563EB', background: '#ffffff' }} />
-                      </span>
-                      <span>Task</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setIsDeliverableRefOpen(true)} className="flex items-center gap-2">
-                      <span className="w-16 flex justify-start shrink-0">
-                        <span style={{ display: 'inline-block', width: '22px', height: '14px', background: '#2563EB', clipPath: 'polygon(0% 0%, calc(100% - 6px) 0%, 100% 50%, calc(100% - 6px) 100%, 0% 100%)', position: 'relative' }}>
-                          <span style={{ position: 'absolute', inset: '1.5px', right: '2px', background: '#ffffff', clipPath: 'polygon(0% 0%, calc(100% - 5px) 0%, 100% 50%, calc(100% - 5px) 100%, 0% 100%)' }} />
-                        </span>
-                      </span>
-                      <span>Deliverable</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setIsParticipantRefOpen(true)} className="flex items-center gap-2">
-                      <span className="w-16 flex justify-start shrink-0">
-                        <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#000000', border: '1.5px solid #000000', borderRadius: '9999px' }} />
-                      </span>
-                      <span>Participant</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                    </span>
+                    <span>Deliverable</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsParticipantRefOpen(true)} className="flex items-center gap-2">
+                    <span className="w-16 flex justify-start shrink-0">
+                      <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#000000', border: '1.5px solid #000000', borderRadius: '9999px' }} />
+                    </span>
+                    <span>Participant</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-                <InsertTDMSReferenceDropdowns
-                  proposalId={proposalId}
-                  disabled={readOnly}
-                  onInsertTask={insertTaskRefAtCursor}
-                  onInsertDeliverable={insertDeliverableRefAtCursor}
-                  onInsertMilestone={insertMilestoneRefAtCursor}
-                  dialogsOnly
-                  openTask={isTaskRefOpen}
-                  onOpenTaskChange={setIsTaskRefOpen}
-                  openDeliverable={isDeliverableRefOpen}
-                  onOpenDeliverableChange={setIsDeliverableRefOpen}
-                  hideMilestone
-                />
-                <Popover open={tablePopoverOpen} onOpenChange={setTablePopoverOpen}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <PopoverTrigger asChild>
-                        <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1">
-                          <Table2 className="h-3.5 w-3.5" />
-                          <span className="text-xs">Table</span>
-                        </Button>
-                      </PopoverTrigger>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="text-xs">Insert table</TooltipContent>
-                  </Tooltip>
-                  <PopoverContent className="w-auto p-2" align="start">
-                    <div className="text-xs text-muted-foreground mb-2">
-                      {hoveredCell ? `${hoveredCell.row} × ${hoveredCell.col}` : 'Select size'}
-                    </div>
-                    <div className="grid gap-0.5" style={{ gridTemplateColumns: 'repeat(8, 1fr)' }}>
-                      {Array.from({ length: 8 }, (_, row) =>
-                        Array.from({ length: 8 }, (_, col) => {
-                          const isHighlighted = hoveredCell && row < hoveredCell.row && col < hoveredCell.col;
-                          const isFirstRow = row === 0;
-                          return (
-                            <button
-                              key={`${row}-${col}`}
-                              className={cn(
-                                "w-4 h-4 border border-border rounded-sm transition-colors",
-                                isHighlighted
-                                  ? isFirstRow
-                                    ? "bg-foreground"
-                                    : "bg-primary/40"
-                                  : "bg-background hover:bg-muted"
-                              )}
-                              onMouseEnter={() => setHoveredCell({ row: row + 1, col: col + 1 })}
-                              onMouseLeave={() => setHoveredCell(null)}
-                              onClick={() => insertTable(row + 1, col + 1)}
-                            />
-                          );
-                        })
-                      )}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => setIsFigureDialogOpen(true)}>
-                      <ImageIcon className="h-3.5 w-3.5" />
-                      <span className="text-xs">Figure</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Insert figure</TooltipContent>
-                </Tooltip>
-              </div>
+              <InsertTDMSReferenceDropdowns
+                proposalId={proposalId}
+                disabled={readOnly}
+                onInsertTask={insertTaskRefAtCursor}
+                onInsertDeliverable={insertDeliverableRefAtCursor}
+                onInsertMilestone={insertMilestoneRefAtCursor}
+                dialogsOnly
+                openTask={isTaskRefOpen}
+                onOpenTaskChange={setIsTaskRefOpen}
+                openDeliverable={isDeliverableRefOpen}
+                onOpenDeliverableChange={setIsDeliverableRefOpen}
+                hideMilestone
+              />
             </>
           )}
         </div>
