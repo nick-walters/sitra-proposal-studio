@@ -988,8 +988,8 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
                 const formatMonth = (m: number) => `M${m.toString().padStart(2, '0')}`;
                 return (
                   <div className="flex items-center gap-2">
-                    <span className="text-sm opacity-80">Duration:</span>
-                    <span className="text-sm font-medium">
+                    <span className="text-xs opacity-80">Duration:</span>
+                    <span className="text-xs font-medium">
                       {formatMonth(startMonth)}–{formatMonth(endMonth)}
                     </span>
                   </div>
