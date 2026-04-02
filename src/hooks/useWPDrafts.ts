@@ -37,6 +37,7 @@ export interface WPDraftRisk {
   likelihood: string | null;
   severity: string | null;
   mitigation: string | null;
+  related_wps: string | null;
   order_index: number;
 }
 
