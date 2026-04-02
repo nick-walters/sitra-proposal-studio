@@ -274,7 +274,7 @@ function SortableDeliverableCard({
             onValueChange={(value) => onUpdate(deliverable.id, { type: value })}
             disabled={readOnly}
           >
-            <SelectTrigger hideArrow className="h-6 w-[60px] text-xs px-1.5">
+            <SelectTrigger hideArrow className="h-6 w-[75px] text-xs px-1.5">
               <span>{deliverable.type || 'Select'}</span>
             </SelectTrigger>
             <SelectContent className="bg-popover">
