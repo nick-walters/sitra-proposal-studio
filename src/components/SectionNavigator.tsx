@@ -101,6 +101,8 @@ interface SectionNavigatorProps {
   collaborators?: CollaboratorPresence[];
   lockedSections?: Set<string>;
   onToggleLock?: (sectionId: string) => void;
+  wpDraftsVisible?: boolean;
+  caseDraftsVisible?: boolean;
 }
 
 // Format section number for display in left navigation
