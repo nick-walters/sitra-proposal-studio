@@ -480,7 +480,7 @@ export function PERTChartFigure({
                   </Select>
                   <Button
                     variant="ghost" size="sm"
-                    className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive shrink-0"
+                     className="h-7 w-7 p-0 text-destructive hover:text-destructive shrink-0"
                     onClick={() => deleteMutation.mutate(dep.id)}
                   >
                     <Trash2 className="w-3 h-3" />
