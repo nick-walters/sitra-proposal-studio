@@ -362,43 +362,12 @@ function SortableTaskCard({
           />
         </div>
 
-        <div className="flex items-center gap-1 flex-shrink-0 ml-auto">
-          <span className="text-xs text-muted-foreground">Timing:</span>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-6 text-xs px-2 min-w-[90px]" disabled={readOnly}>
-                {task.start_month && task.end_month
-                  ? `M${task.start_month.toString().padStart(2, '0')} – M${task.end_month.toString().padStart(2, '0')}`
-                  : task.start_month
-                    ? `M${task.start_month.toString().padStart(2, '0')} – ...`
-                    : task.end_month
-                      ? `... – M${task.end_month.toString().padStart(2, '0')}`
-                      : 'Select range'}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-64 p-3" align="end">
-              <div className="space-y-3">
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>M{(task.start_month || 1).toString().padStart(2, '0')}</span>
-                  <span>M{(task.end_month || projectDuration).toString().padStart(2, '0')}</span>
-                </div>
-                <Slider
-                  min={1}
-                  max={projectDuration}
-                  step={1}
-                  value={[task.start_month || 1, task.end_month || projectDuration]}
-                  onValueChange={(values) => {
-                    onUpdate(task.id, { start_month: values[0], end_month: values[1] });
-                  }}
-                  minStepsBetweenThumbs={0}
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>M01</span>
-                  <span>M{projectDuration.toString().padStart(2, '0')}</span>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
+        <TimingRangePicker
+          task={task}
+          projectDuration={projectDuration}
+          readOnly={readOnly}
+          onUpdate={onUpdate}
+        />
 
           {/* Move to another WP */}
           {!readOnly && onMove && allWpDrafts.filter(wp => wp.id !== currentWpDraftId).length > 0 && (
