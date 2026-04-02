@@ -606,10 +606,24 @@ export function useWPDraftEditor(wpId: string | null) {
 
       if (error) throw error;
 
-      setWPDraft(prev => prev ? {
-        ...prev,
-        deliverables: prev.deliverables?.filter(d => d.id !== deliverableId),
-      } : null);
+      setWPDraft(prev => {
+        if (!prev) return null;
+        const remaining = (prev.deliverables || [])
+          .filter(d => d.id !== deliverableId)
+          .sort((a, b) => a.order_index - b.order_index)
+          .map((d, i) => ({ ...d, number: i + 1, order_index: i }));
+
+        // Update numbers in database
+        remaining.forEach((d) => {
+          supabase
+            .from('wp_draft_deliverables')
+            .update({ number: d.number, order_index: d.order_index })
+            .eq('id', d.id)
+            .then();
+        });
+
+        return { ...prev, deliverables: remaining };
+      });
 
       return true;
     } catch (err) {
