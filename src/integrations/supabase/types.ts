@@ -4753,16 +4753,20 @@ export type Database = {
       }
       wp_drafts: {
         Row: {
+          approach_summary: string | null
           b31_objectives: string | null
+          background_knowledge: string | null
           bottlenecks_question: string | null
           color: string
           created_at: string
           description_before_tasks: string | null
+          foreseen_challenges: string | null
           id: string
           inputs_question: string | null
           lead_participant_id: string | null
           manual_duration: string | null
           manual_person_months: number | null
+          methodologies_list: Json | null
           methodology: string | null
           number: number
           objectives: string | null
@@ -4775,16 +4779,20 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          approach_summary?: string | null
           b31_objectives?: string | null
+          background_knowledge?: string | null
           bottlenecks_question?: string | null
           color?: string
           created_at?: string
           description_before_tasks?: string | null
+          foreseen_challenges?: string | null
           id?: string
           inputs_question?: string | null
           lead_participant_id?: string | null
           manual_duration?: string | null
           manual_person_months?: number | null
+          methodologies_list?: Json | null
           methodology?: string | null
           number: number
           objectives?: string | null
@@ -4797,16 +4805,20 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          approach_summary?: string | null
           b31_objectives?: string | null
+          background_knowledge?: string | null
           bottlenecks_question?: string | null
           color?: string
           created_at?: string
           description_before_tasks?: string | null
+          foreseen_challenges?: string | null
           id?: string
           inputs_question?: string | null
           lead_participant_id?: string | null
           manual_duration?: string | null
           manual_person_months?: number | null
+          methodologies_list?: Json | null
           methodology?: string | null
           number?: number
           objectives?: string | null
