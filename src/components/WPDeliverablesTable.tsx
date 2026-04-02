@@ -272,13 +272,16 @@ function SortableDeliverableCard({
           <span className="text-xs text-muted-foreground">Type:</span>
           <Select
             value={deliverable.type || ''}
-            onValueChange={(value) => onUpdate(deliverable.id, { type: value })}
+            onValueChange={(value) => onUpdate(deliverable.id, { type: value === '__clear__' ? null : value })}
             disabled={readOnly}
           >
             <SelectTrigger hideArrow className="h-6 w-[75px] text-xs px-1.5">
               <span>{deliverable.type || 'Select'}</span>
             </SelectTrigger>
             <SelectContent className="bg-popover">
+              <SelectItem value="__clear__">
+                <span className="text-muted-foreground italic">Clear</span>
+              </SelectItem>
               {DELIVERABLE_TYPES.map((type) => (
                 <SelectItem key={type.value} value={type.value} textValue={type.value}>
                   <div className="flex flex-col">
