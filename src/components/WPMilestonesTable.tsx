@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Flag, Plus, Trash2, GripVertical, ChevronsUpDown } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getDefaultWPColor, getContrastingTextColor } from '@/lib/wpColors';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { WPSimpleEditor } from '@/components/WPSimpleEditor';
@@ -196,9 +197,29 @@ function SortableMilestoneCard({
     onUpdate(milestone.id, { means_of_verification: newValue });
   };
 
-  const displayWps = selectedWpNumbers.length > 0
-    ? selectedWpNumbers.map(n => `WP${n}`).join(', ')
-    : '';
+  const displayWpBubbles = selectedWpNumbers.length > 0 ? (
+    <span className="flex items-center gap-0.5 flex-wrap">
+      {selectedWpNumbers.map(n => {
+        const color = getDefaultWPColor(n);
+        const textColor = getContrastingTextColor(color);
+        return (
+          <span
+            key={n}
+            className="inline-flex items-center justify-center px-1.5 rounded-full text-[10px] font-bold leading-[17px]"
+            style={{
+              backgroundColor: color,
+              color: textColor,
+              height: '17px',
+              fontFamily: 'Times New Roman, serif',
+              fontSize: '11pt',
+            }}
+          >
+            WP{n}
+          </span>
+        );
+      })}
+    </span>
+  ) : null;
 
   return (
     <div
@@ -234,27 +255,43 @@ function SortableMilestoneCard({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-6 text-xs px-2 min-w-[90px] max-w-[160px] justify-between font-normal"
+                className="h-6 text-xs px-2 min-w-[70px] max-w-[200px] justify-between font-normal"
                 disabled={readOnly}
               >
-                <span className="truncate">{displayWps || 'Select'}</span>
+                {displayWpBubbles || <span className="text-muted-foreground">Select</span>}
                 <ChevronsUpDown className="h-3 w-3 shrink-0 opacity-50 ml-1" />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-48 p-2" align="start">
               <div className="space-y-1 max-h-48 overflow-y-auto">
-                {allWpDrafts.map(wp => (
-                  <label
-                    key={wp.id}
-                    className="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted cursor-pointer text-xs"
-                  >
-                    <Checkbox
-                      checked={selectedWpNumbers.includes(wp.number)}
-                      onCheckedChange={() => toggleWp(wp.number)}
-                    />
-                    <span>WP{wp.number}{wp.short_name ? `: ${wp.short_name}` : wp.title ? `: ${wp.title}` : ''}</span>
-                  </label>
-                ))}
+                {allWpDrafts.map(wp => {
+                  const color = getDefaultWPColor(wp.number);
+                  const textColor = getContrastingTextColor(color);
+                  return (
+                    <label
+                      key={wp.id}
+                      className="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted cursor-pointer text-xs"
+                    >
+                      <Checkbox
+                        checked={selectedWpNumbers.includes(wp.number)}
+                        onCheckedChange={() => toggleWp(wp.number)}
+                      />
+                      <span
+                        className="inline-flex items-center justify-center px-1.5 rounded-full font-bold"
+                        style={{
+                          backgroundColor: color,
+                          color: textColor,
+                          height: '17px',
+                          fontFamily: 'Times New Roman, serif',
+                          fontSize: '11pt',
+                          lineHeight: '17px',
+                        }}
+                      >
+                        WP{wp.number}
+                      </span>
+                    </label>
+                  );
+                })}
                 {allWpDrafts.length === 0 && (
                   <p className="text-xs text-muted-foreground px-1">No WPs found</p>
                 )}

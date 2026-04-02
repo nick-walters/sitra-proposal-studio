@@ -290,43 +290,45 @@ function SortableRiskCard({
           disabled={readOnly}
         />
         <div className="flex flex-col gap-1 flex-shrink-0">
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-muted-foreground">Likelihood:</span>
-            <Select
-              value={risk.likelihood || ''}
-              onValueChange={(value) => onUpdate(risk.id, { likelihood: value })}
-              disabled={readOnly}
-            >
-              <SelectTrigger hideArrow className={cn("h-6 w-[32px] text-xs px-1.5", getRiskLevelColor(risk.likelihood))}>
-                <SelectValue placeholder="—" />
-              </SelectTrigger>
-              <SelectContent>
-                {RISK_LEVELS.map((level) => (
-                  <SelectItem key={level.value} value={level.value}>
-                    {level.value}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-muted-foreground">Severity:</span>
-            <Select
-              value={risk.severity || ''}
-              onValueChange={(value) => onUpdate(risk.id, { severity: value })}
-              disabled={readOnly}
-            >
-              <SelectTrigger hideArrow className={cn("h-6 w-[32px] text-xs px-1.5 ml-3", getRiskLevelColor(risk.severity))}>
-                <SelectValue placeholder="—" />
-              </SelectTrigger>
-              <SelectContent>
-                {RISK_LEVELS.map((level) => (
-                  <SelectItem key={level.value} value={level.value}>
-                    {level.value}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-muted-foreground">Likelihood:</span>
+              <Select
+                value={risk.likelihood || ''}
+                onValueChange={(value) => onUpdate(risk.id, { likelihood: value })}
+                disabled={readOnly}
+              >
+                <SelectTrigger hideArrow className={cn("h-6 w-[32px] text-xs px-1.5", getRiskLevelColor(risk.likelihood))}>
+                  <SelectValue placeholder="—" />
+                </SelectTrigger>
+                <SelectContent>
+                  {RISK_LEVELS.map((level) => (
+                    <SelectItem key={level.value} value={level.value}>
+                      {level.value}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-muted-foreground">Severity:</span>
+              <Select
+                value={risk.severity || ''}
+                onValueChange={(value) => onUpdate(risk.id, { severity: value })}
+                disabled={readOnly}
+              >
+                <SelectTrigger hideArrow className={cn("h-6 w-[32px] text-xs px-1.5", getRiskLevelColor(risk.severity))}>
+                  <SelectValue placeholder="—" />
+                </SelectTrigger>
+                <SelectContent>
+                  {RISK_LEVELS.map((level) => (
+                    <SelectItem key={level.value} value={level.value}>
+                      {level.value}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="flex items-center gap-1">
             <span className="text-xs text-muted-foreground">WPs:</span>
