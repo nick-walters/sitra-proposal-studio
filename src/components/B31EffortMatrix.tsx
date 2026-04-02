@@ -15,7 +15,6 @@ import { EditableCaption } from '@/components/EditableCaption';
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 const cellStyles = "px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle";
 const headerCellStyles = "px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle";
-const editableCellStyles = `${cellStyles} cursor-text hover:bg-muted/30`;
 
 function formatPM(value: number): string {
   if (value === 0) return '0';
@@ -97,6 +96,8 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
 
   if (wpData.length === 0 || participants.length === 0 || !hasData) return null;
 
+  const totalColCount = wpData.length + 2; // participant col + wp cols + total col
+
   return (
     <div>
       {isAdminOrOwner && (
@@ -113,94 +114,194 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
         defaultCaption="Person months per participant per work package"
         className="mb-0"
       />
-      <table className={`${tableStyles} border-collapse [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_td]:border-y [&_td]:border-gray-200 [&_tr]:border-0 [&_tr:last-child_td]:border-b-0 [&_tbody_tr:first-child_td]:border-t-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', width: colWidths.length > 0 ? `${colWidths.reduce((s, w) => s + w, 0)}px` : '100%' }} ref={tableRef}>
-        <thead>
-          <tr>
-            <th className={`${headerCellStyles} relative`} style={{ textAlign: 'left', fontWeight: 'bold', ...(colWidths.length > 0 ? { width: colWidths[0] } : {}) }}>
-              Participant
-              {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
-            </th>
-            {wpData.map((wp, i) => {
-              const wpColor = wp.color || '#2563EB';
-              return (
-                 <th key={wp.id} className={`${headerCellStyles} relative`} style={{ ...(colWidths.length > 0 ? { width: colWidths[i + 1] } : {}) }}>
-                  <span
-                    className="inline-flex items-center rounded-full font-bold whitespace-nowrap"
-                    style={{ backgroundColor: wpColor, color: '#FFFFFF', border: `1.5px solid ${wpColor}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
+      <div className="relative">
+        <table
+          className={`${tableStyles} border-collapse`}
+          style={{
+            tableLayout: colWidths.length > 0 ? 'fixed' : 'auto',
+            width: colWidths.length > 0 ? `${colWidths.reduce((s, w) => s + w, 0)}px` : '100%',
+            borderSpacing: 0,
+          }}
+          ref={tableRef}
+        >
+          <thead>
+            <tr>
+              {/* Empty top-left corner */}
+              <th
+                className={`${headerCellStyles} relative`}
+                style={{ textAlign: 'left', fontWeight: 'bold', ...(colWidths.length > 0 ? { width: colWidths[0] } : {}) }}
+              >
+                {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
+              </th>
+              {wpData.map((wp, i) => {
+                const wpColor = wp.color || '#2563EB';
+                return (
+                  <th
+                    key={wp.id}
+                    className={`${headerCellStyles} relative`}
+                    style={{ ...(colWidths.length > 0 ? { width: colWidths[i + 1] } : {}) }}
                   >
-                    WP{wp.number}
-                  </span>
-                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(i + 1)} />}
-                </th>
+                    <span
+                      className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
+                      style={{
+                        backgroundColor: wpColor,
+                        color: '#FFFFFF',
+                        border: `1.5px solid ${wpColor}`,
+                        fontFamily: "'Times New Roman', Times, serif",
+                        fontSize: '11pt',
+                        fontWeight: 700,
+                        lineHeight: 1,
+                        verticalAlign: 'baseline',
+                        padding: '0px 5px',
+                      }}
+                    >
+                      WP{wp.number}
+                    </span>
+                    {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(i + 1)} />}
+                  </th>
+                );
+              })}
+              <th className={headerCellStyles} style={{ fontWeight: 'bold' }}>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {participants.map((p, rowIdx) => {
+              const pMap = matrix.get(p.id)!;
+              const rowTotal = wpData.reduce((sum, wp) => sum + (pMap.get(wp.id) || 0), 0);
+              const isFirst = rowIdx === 0;
+              const isLast = rowIdx === participants.length - 1;
+
+              return (
+                <tr key={p.id} className="relative">
+                  {/* Participant bubble cell — extends rightward via background */}
+                  <td
+                    className="px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle relative"
+                    style={{
+                      textAlign: 'left',
+                      backgroundColor: '#000000',
+                      color: '#FFFFFF',
+                      borderTopLeftRadius: '9999px',
+                      borderBottomLeftRadius: '9999px',
+                      borderTop: isFirst ? '1.5px solid #000000' : undefined,
+                      borderLeft: '1.5px solid #000000',
+                      borderBottom: isLast ? '1.5px solid #000000' : undefined,
+                    }}
+                  >
+                    <span
+                      className="inline-flex items-center font-bold italic whitespace-nowrap"
+                      style={{
+                        fontFamily: "'Times New Roman', Times, serif",
+                        fontSize: '11pt',
+                        fontWeight: 700,
+                        fontStyle: 'italic',
+                        lineHeight: 1,
+                        verticalAlign: 'baseline',
+                        padding: '0px 5px',
+                        color: '#FFFFFF',
+                      }}
+                    >
+                      {p.participant_number}. {p.organisation_short_name || p.organisation_name}
+                    </span>
+                  </td>
+                  {/* Data cells — WP column color behind, participant row color behind */}
+                  {wpData.map((wp, colIdx) => {
+                    const val = pMap.get(wp.id) || 0;
+                    const wpColor = wp.color || '#2563EB';
+                    const isEditing = editingCell?.participantId === p.id && editingCell?.wpId === wp.id;
+
+                    return (
+                      <td
+                        key={wp.id}
+                        className={`${cellStyles} relative overflow-hidden`}
+                        style={{
+                          padding: 0,
+                          borderTop: isFirst ? `1.5px solid ${wpColor}` : undefined,
+                          borderBottom: isLast ? `1.5px solid ${wpColor}` : undefined,
+                        }}
+                      >
+                        {/* WP column background layer */}
+                        <div
+                          className="absolute inset-0"
+                          style={{ backgroundColor: wpColor, opacity: 0.18 }}
+                        />
+                        {/* Participant row background layer */}
+                        <div
+                          className="absolute inset-0"
+                          style={{ backgroundColor: '#000000', opacity: 0.55 }}
+                        />
+                        {/* Content */}
+                        <input
+                          type="text"
+                          className="relative z-10 w-full bg-transparent outline-none border-none p-0 m-0 font-['Times_New_Roman',Times,serif] text-[11pt] text-center"
+                          style={{ color: '#FFFFFF', minWidth: '30px' }}
+                          value={isEditing ? editValue : (val ? formatPM(val) : '')}
+                          onChange={e => {
+                            if (!isEditing) startEdit(p.id, wp.id, val);
+                            setEditValue(e.target.value);
+                          }}
+                          onFocus={() => {
+                            if (!isEditing) startEdit(p.id, wp.id, val);
+                          }}
+                          onBlur={saveEdit}
+                          onKeyDown={handleKeyDown}
+                          placeholder="—"
+                        />
+                      </td>
+                    );
+                  })}
+                  {/* Total cell — participant row color continues */}
+                  <td
+                    className={`${cellStyles} font-bold relative overflow-hidden`}
+                    style={{
+                      backgroundColor: '#000000',
+                      color: '#FFFFFF',
+                      borderTopRightRadius: isFirst ? '9999px' : undefined,
+                      borderBottomRightRadius: isLast ? '9999px' : undefined,
+                      borderTop: isFirst ? '1.5px solid #000000' : undefined,
+                      borderRight: '1.5px solid #000000',
+                      borderBottom: isLast ? '1.5px solid #000000' : undefined,
+                    }}
+                  >
+                    {rowTotal ? formatPM(rowTotal) : '—'}
+                  </td>
+                </tr>
               );
             })}
-            <th className={headerCellStyles} style={{ fontWeight: 'bold' }}>Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          {participants.map(p => {
-            const pMap = matrix.get(p.id)!;
-            const rowTotal = wpData.reduce((sum, wp) => sum + (pMap.get(wp.id) || 0), 0);
-            return (
-              <tr key={p.id}>
-                <td className="px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle border-y border-gray-200" style={{ textAlign: 'left' }}>
-                  <span
-                    className="inline-flex items-center rounded-full font-bold italic whitespace-nowrap"
-                    style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'italic', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
+            {/* Total row */}
+            <tr>
+              <td className="px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle font-bold" style={{ textAlign: 'left' }}>Total</td>
+              {wpData.map(wp => {
+                const wpColor = wp.color || '#2563EB';
+                const colTotal = participants.reduce((sum, p) => sum + (matrix.get(p.id)!.get(wp.id) || 0), 0);
+                return (
+                  <td
+                    key={wp.id}
+                    className={`${cellStyles} font-bold relative overflow-hidden`}
+                    style={{
+                      borderBottomLeftRadius: '9999px',
+                      borderBottomRightRadius: '9999px',
+                      backgroundColor: wpColor,
+                      color: '#FFFFFF',
+                      border: `1.5px solid ${wpColor}`,
+                    }}
                   >
-                    {p.participant_number}. {p.organisation_short_name || p.organisation_name}
-                  </span>
-                </td>
-                {wpData.map(wp => {
-                  const val = pMap.get(wp.id) || 0;
-                  return (
-                    <td key={wp.id} className={cellStyles}>
-                      <input
-                        type="text"
-                        className="w-full bg-transparent outline-none border-none p-0 m-0 font-['Times_New_Roman',Times,serif] text-[11pt] text-center"
-                        value={editingCell?.participantId === p.id && editingCell?.wpId === wp.id ? editValue : (val ? formatPM(val) : '')}
-                        onChange={e => {
-                          if (!(editingCell?.participantId === p.id && editingCell?.wpId === wp.id)) {
-                            startEdit(p.id, wp.id, val);
-                          }
-                          setEditValue(e.target.value);
-                        }}
-                        onFocus={() => {
-                          if (!(editingCell?.participantId === p.id && editingCell?.wpId === wp.id)) {
-                            startEdit(p.id, wp.id, val);
-                          }
-                        }}
-                        onBlur={saveEdit}
-                        onKeyDown={handleKeyDown}
-                        placeholder="—"
-                        style={{ minWidth: '30px' }}
-                      />
-                    </td>
-                  );
-                })}
-                <td className={`${cellStyles} font-bold`}>{rowTotal ? formatPM(rowTotal) : '—'}</td>
-              </tr>
-            );
-          })}
-          {/* Total row */}
-          <tr>
-            <td className="px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle font-bold border-y border-gray-200" style={{ textAlign: 'left' }}>Total</td>
-            {wpData.map(wp => {
-              const colTotal = participants.reduce((sum, p) => sum + (matrix.get(p.id)!.get(wp.id) || 0), 0);
-              return <td key={wp.id} className={`${cellStyles} font-bold`}>{colTotal ? formatPM(colTotal) : '—'}</td>;
-            })}
-            <td className={`${cellStyles} font-bold`}>
-              {(() => {
-                const grandTotal = participants.reduce((sum, p) => {
-                  const pMap = matrix.get(p.id)!;
-                  return sum + wpData.reduce((s, wp) => s + (pMap.get(wp.id) || 0), 0);
-                }, 0);
-                return grandTotal ? formatPM(grandTotal) : '—';
-              })()}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+                    {colTotal ? formatPM(colTotal) : '—'}
+                  </td>
+                );
+              })}
+              <td className={`${cellStyles} font-bold`}>
+                {(() => {
+                  const grandTotal = participants.reduce((sum, p) => {
+                    const pMap = matrix.get(p.id)!;
+                    return sum + wpData.reduce((s, wp) => s + (pMap.get(wp.id) || 0), 0);
+                  }, 0);
+                  return grandTotal ? formatPM(grandTotal) : '—';
+                })()}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
