@@ -9,10 +9,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Palette, RotateCcw } from 'lucide-react';
-import { DEFAULT_WP_COLORS, getContrastingTextColor } from '@/lib/wpColors';
-import { cn } from '@/lib/utils';
+import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 import { toast } from 'sonner';
 
 interface WPColorPaletteEditorProps {
@@ -71,17 +69,6 @@ export function WPColorPaletteEditor({
     }
   };
 
-  const colorNames = [
-    'WP1 Color',
-    'WP2 Color',
-    'WP3 Color',
-    'WP4 Color',
-    'WP5 Color',
-    'WP6 Color',
-    'WP7 Color',
-    'WP8 Color',
-    'WP9 Color',
-  ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -96,31 +83,28 @@ export function WPColorPaletteEditor({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-3 py-4">
+        <div className="flex flex-col gap-2 py-4">
           {editedColors.map((color, index) => (
             <div key={index} className="flex items-center gap-2">
-              <div
-                className={cn(
-                  "w-8 h-8 rounded-md border flex items-center justify-center text-xs font-bold flex-shrink-0"
-                )}
+              <span
+                className="inline-flex items-center justify-center rounded-full px-2 flex-shrink-0"
                 style={{
                   backgroundColor: color,
-                  color: getContrastingTextColor(color),
+                  color: '#ffffff',
+                  height: '22px',
+                  fontSize: '11pt',
+                  fontWeight: 700,
+                  minWidth: '42px',
                 }}
               >
-                {index + 1}
-              </div>
-              <div className="flex-1">
-                <Label className="text-xs text-muted-foreground">
-                  {colorNames[index]}
-                </Label>
-                <Input
-                  value={color}
-                  onChange={(e) => handleColorChange(index, e.target.value)}
-                  placeholder="#000000"
-                  className="h-8 font-mono text-sm"
-                />
-              </div>
+                WP{index + 1}
+              </span>
+              <Input
+                value={color}
+                onChange={(e) => handleColorChange(index, e.target.value)}
+                placeholder="#000000"
+                className="h-8 font-mono text-sm flex-1"
+              />
               <input
                 type="color"
                 value={color}
