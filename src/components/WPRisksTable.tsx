@@ -303,7 +303,7 @@ function SortableRiskCard({
         <div className="flex items-center gap-1">
           <span className="text-xs text-muted-foreground">Likelihood:</span>
           <Select
-            value={risk.likelihood || ''}
+            value={risk.likelihood || undefined}
             onValueChange={(value) => onUpdate(risk.id, { likelihood: value === '__clear__' ? null : value })}
             disabled={readOnly}
           >
