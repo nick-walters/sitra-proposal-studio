@@ -165,31 +165,22 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
             </tr>
           </thead>
           <tbody>
-            {participants.map((p, rowIdx) => {
+            {participants.map((p) => {
               const pMap = matrix.get(p.id)!;
               const rowTotal = wpData.reduce((sum, wp) => sum + (pMap.get(wp.id) || 0), 0);
-              const isFirst = rowIdx === 0;
-              const isLast = rowIdx === participants.length - 1;
 
               return (
-                <tr key={p.id} className="relative">
-                  {/* Participant bubble cell — extends rightward via background */}
+                <tr key={p.id}>
+                  {/* Participant bubble cell — standard participant badge, no elongation */}
                   <td
-                    className="px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle relative"
-                    style={{
-                      textAlign: 'left',
-                      backgroundColor: '#000000',
-                      color: '#FFFFFF',
-                      borderTopLeftRadius: '9999px',
-                      borderBottomLeftRadius: '9999px',
-                      borderTop: isFirst ? '1.5px solid #000000' : undefined,
-                      borderLeft: '1.5px solid #000000',
-                      borderBottom: isLast ? '1.5px solid #000000' : undefined,
-                    }}
+                    className="px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle"
+                    style={{ textAlign: 'left' }}
                   >
                     <span
-                      className="inline-flex items-center font-bold italic whitespace-nowrap"
+                      className="inline-flex items-center font-bold italic whitespace-nowrap rounded-full"
                       style={{
+                        backgroundColor: '#000000',
+                        color: '#FFFFFF',
                         fontFamily: "'Times New Roman', Times, serif",
                         fontSize: '11pt',
                         fontWeight: 700,
@@ -197,14 +188,14 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                         lineHeight: 1,
                         verticalAlign: 'baseline',
                         padding: '0px 5px',
-                        color: '#FFFFFF',
+                        border: '1.5px solid #000000',
                       }}
                     >
                       {p.participant_number}. {p.organisation_short_name || p.organisation_name}
                     </span>
                   </td>
-                  {/* Data cells — WP column color behind, participant row color behind */}
-                  {wpData.map((wp, colIdx) => {
+                  {/* Data cells — WP column color behind */}
+                  {wpData.map((wp) => {
                     const val = pMap.get(wp.id) || 0;
                     const wpColor = wp.color || '#2563EB';
                     const isEditing = editingCell?.participantId === p.id && editingCell?.wpId === wp.id;
@@ -213,27 +204,18 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                       <td
                         key={wp.id}
                         className={`${cellStyles} relative overflow-hidden`}
-                        style={{
-                          padding: 0,
-                          borderTop: isFirst ? `1.5px solid ${wpColor}` : undefined,
-                          borderBottom: isLast ? `1.5px solid ${wpColor}` : undefined,
-                        }}
+                        style={{ padding: 0 }}
                       >
                         {/* WP column background layer */}
                         <div
                           className="absolute inset-0"
                           style={{ backgroundColor: wpColor, opacity: 0.18 }}
                         />
-                        {/* Participant row background layer */}
-                        <div
-                          className="absolute inset-0"
-                          style={{ backgroundColor: '#000000', opacity: 0.55 }}
-                        />
                         {/* Content */}
                         <input
                           type="text"
                           className="relative z-10 w-full bg-transparent outline-none border-none p-0 m-0 font-['Times_New_Roman',Times,serif] text-[11pt] text-center"
-                          style={{ color: '#FFFFFF', minWidth: '30px' }}
+                          style={{ minWidth: '30px' }}
                           value={isEditing ? editValue : (val ? formatPM(val) : '')}
                           onChange={e => {
                             if (!isEditing) startEdit(p.id, wp.id, val);
@@ -249,19 +231,8 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                       </td>
                     );
                   })}
-                  {/* Total cell — participant row color continues */}
-                  <td
-                    className={`${cellStyles} font-bold relative overflow-hidden`}
-                    style={{
-                      backgroundColor: '#000000',
-                      color: '#FFFFFF',
-                      borderTopRightRadius: isFirst ? '9999px' : undefined,
-                      borderBottomRightRadius: isLast ? '9999px' : undefined,
-                      borderTop: isFirst ? '1.5px solid #000000' : undefined,
-                      borderRight: '1.5px solid #000000',
-                      borderBottom: isLast ? '1.5px solid #000000' : undefined,
-                    }}
-                  >
+                  {/* Total cell */}
+                  <td className={`${cellStyles} font-bold`}>
                     {rowTotal ? formatPM(rowTotal) : '—'}
                   </td>
                 </tr>
