@@ -290,7 +290,7 @@ function SortableTaskCard({
           </button>
         )}
         <span
-          className="inline-flex items-center justify-center rounded-full font-bold select-none flex-shrink-0 px-2"
+          className="inline-flex items-center justify-center rounded-full font-bold select-none flex-shrink-0"
           style={{
             backgroundColor: '#ffffff',
             border: '1.5px solid #2563EB',
@@ -299,6 +299,7 @@ function SortableTaskCard({
             fontFamily: "'Times New Roman', Times, serif",
             fontSize: '11pt',
             lineHeight: '22px',
+            padding: '0px 5px',
           }}
         >
           {formatTaskNumber(task.number)}
