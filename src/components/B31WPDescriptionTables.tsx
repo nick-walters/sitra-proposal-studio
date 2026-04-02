@@ -885,8 +885,8 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
                   </td>
                 </tr>
 
-                {/* Optional field before tasks - only if content exists */}
-                {wp.description_before_tasks && wp.description_before_tasks.replace(/<[^>]*>/g, '').trim() !== '' && (
+                {/* Optional field before tasks */}
+                {wp.b31_description_before_tasks && (wp.b31_description_before_tasks as string).replace(/<[^>]*>/g, '').trim() !== '' && (
                   <tr>
                     <td
                       colSpan={2}
@@ -894,8 +894,8 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
                       style={{ border: 'none', padding: '2px 6px' }}
                     >
                       <EditableText
-                        value={wp.description_before_tasks}
-                        onSave={(val) => saveWPField(wp.id, 'description_before_tasks', val)}
+                        value={wp.b31_description_before_tasks as string}
+                        onSave={(val) => saveWPField(wp.id, 'b31_description_before_tasks', val)}
                         placeholder=""
                       />
                     </td>
