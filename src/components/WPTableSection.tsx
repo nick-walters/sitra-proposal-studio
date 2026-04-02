@@ -342,7 +342,7 @@ function SortableTaskCard({
               {task.lead_participant_id && (
                 <Crown className="w-3 h-3 text-white fill-white absolute left-1.5 top-1/2 -translate-y-1/2" style={{ zIndex: 1 }} />
               )}
-              <SelectValue placeholder="Select leader" className="font-normal" />
+              <SelectValue placeholder="Select" className="font-normal" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__clear__">
