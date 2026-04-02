@@ -600,6 +600,41 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
             saveError={saveError}
             onSaveNow={() => {}}
           />
+
+          {/* Undo / Redo */}
+          {!readOnly && (
+            <>
+              <Separator orientation="vertical" className="h-5" />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    disabled={!canUndo}
+                    onClick={handleUndo}
+                  >
+                    <Undo2 className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">{undoLabel}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    disabled={!canRedo}
+                    onClick={handleRedo}
+                  >
+                    <Redo2 className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">{redoLabel}</TooltipContent>
+              </Tooltip>
+            </>
+          )}
           
           <Separator orientation="vertical" className="h-5" />
           
