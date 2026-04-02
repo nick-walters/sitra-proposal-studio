@@ -605,7 +605,7 @@ function SortableTaskGroup({
             <span className="font-['Times_New_Roman',Times,serif] text-[11pt] text-muted-foreground mx-1">&nbsp;|&nbsp;</span>
             <LeaderPicker
               entityId={task.id}
-              entityTable="wp_draft_tasks"
+              entityTable="b31_tasks"
               currentLeaderId={task.lead_participant_id}
               participants={participants}
               proposalId={proposalId}
