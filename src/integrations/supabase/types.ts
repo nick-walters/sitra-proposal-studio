@@ -4754,6 +4754,7 @@ export type Database = {
       wp_drafts: {
         Row: {
           approach_summary: string | null
+          b31_description_before_tasks: string | null
           b31_objectives: string | null
           background_knowledge: string | null
           bottlenecks_question: string | null
@@ -4780,6 +4781,7 @@ export type Database = {
         }
         Insert: {
           approach_summary?: string | null
+          b31_description_before_tasks?: string | null
           b31_objectives?: string | null
           background_knowledge?: string | null
           bottlenecks_question?: string | null
@@ -4806,6 +4808,7 @@ export type Database = {
         }
         Update: {
           approach_summary?: string | null
+          b31_description_before_tasks?: string | null
           b31_objectives?: string | null
           background_knowledge?: string | null
           bottlenecks_question?: string | null
