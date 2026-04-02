@@ -891,6 +891,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               />
             </>
           )}
+          </div>
         </div>
 
         {/* Header with color */}
