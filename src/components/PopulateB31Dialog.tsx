@@ -420,31 +420,6 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
             </Button>
           )}
         </DialogFooter>
-          {step === 'item-select' && (
-            <Button variant="outline" onClick={() => setStep('wp-select')} disabled={populating} className="mr-auto">
-              Back
-            </Button>
-          )}
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={populating}>
-            Cancel
-          </Button>
-          {step === 'wp-select' ? (
-            <Button onClick={proceedToItemSelect} disabled={loading || selectedWpDrafts.length === 0}>
-              Next
-            </Button>
-          ) : (
-            <Button onClick={handlePopulate} disabled={populating || loading}>
-              {populating ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-                  Populating…
-                </>
-              ) : (
-                'Populate'
-              )}
-            </Button>
-          )}
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
