@@ -396,8 +396,8 @@ export function UserRightsAdmin() {
                    <TableRow>
                      <TableHead className="font-bold">User</TableHead>
                      <TableHead className="font-bold">Email</TableHead>
-                     <TableHead className="font-bold">Proposal</TableHead>
                      <TableHead className="font-bold w-[130px]">Role</TableHead>
+                     <TableHead className="font-bold">Item</TableHead>
                      <TableHead className="w-[40px]"></TableHead>
                    </TableRow>
                 </TableHeader>
@@ -405,62 +405,34 @@ export function UserRightsAdmin() {
                   {filteredUsers.map((u) => {
                     const proposalRoles = u.roles.filter(r => r.proposal_id);
                     const globalRoles = u.roles.filter(r => !r.proposal_id);
+                    const globalRole = globalRoles[0];
+                    const currentGlobalValue = globalRole?.role || 'none';
+                    const isSelf = u.id === user?.id;
+                    const canEditGlobal = isOwner && !isSelf;
 
                     return (
                       <TableRow key={u.id}>
                         <TableCell className="align-top">
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-start gap-3">
                             {isOwner ? (
-                              <AdminAvatarUpload
-                                userId={u.id}
-                                avatarUrl={u.avatar_url}
-                                initials={getInitials(u)}
-                                onAvatarChange={(uid, newUrl) => {
-                                  setUsers(prev => prev.map(x => x.id === uid ? { ...x, avatar_url: newUrl } : x));
-                                }}
-                              />
+                              <div className="flex-shrink-0 [&_.relative]:!cursor-pointer [&_[class*=avatar]]:!h-12 [&_[class*=avatar]]:!w-12">
+                                <AdminAvatarUpload
+                                  userId={u.id}
+                                  avatarUrl={u.avatar_url}
+                                  initials={getInitials(u)}
+                                  onAvatarChange={(uid, newUrl) => {
+                                    setUsers(prev => prev.map(x => x.id === uid ? { ...x, avatar_url: newUrl } : x));
+                                  }}
+                                />
+                              </div>
                             ) : (
-                              <Avatar className="h-8 w-8">
+                              <Avatar className="h-12 w-12 flex-shrink-0">
                                 <AvatarImage src={u.avatar_url || undefined} />
                                 <AvatarFallback>{getInitials(u)}</AvatarFallback>
                               </Avatar>
                             )}
                             <div>
-                              <span className="font-medium">{getDisplayName(u)}</span>
-                              {(() => {
-                                const globalRole = globalRoles[0];
-                                const currentGlobalValue = globalRole?.role || 'none';
-                                const isSelf = u.id === user?.id;
-                                const canEditGlobal = isOwner && !isSelf;
-
-                                if (canEditGlobal) {
-                                  return (
-                                    <Select
-                                      value={currentGlobalValue}
-                                      onValueChange={(v) => handleChangeGlobalRole(u, globalRole?.id || null, v)}
-                                    >
-                                      <SelectTrigger className="h-5 w-auto min-w-[70px] text-[10px] mt-0.5 px-1.5 py-0 rounded-full bg-secondary border-border cursor-pointer hover:bg-secondary/80">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="none">Standard user</SelectItem>
-                                        <SelectItem value="admin">Admin</SelectItem>
-                                        <SelectItem value="owner">Owner</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  );
-                                }
-
-                                if (globalRole) {
-                                  return (
-                                    <div className="h-5 min-w-[70px] text-[10px] mt-0.5 px-1.5 py-0 rounded-full bg-secondary border border-border flex items-center capitalize">
-                                      {globalRole.role}
-                                    </div>
-                                  );
-                                }
-
-                                return null;
-                              })()}
+                              <span className="font-bold">{getDisplayName(u)}</span>
                               {isAdminOrOwner && (
                                 <div className="mt-1">
                                   <Button
@@ -497,18 +469,59 @@ export function UserRightsAdmin() {
                           </div>
                         </TableCell>
                         <TableCell className="align-top">
-                          <div>
-                            {proposalRoles.length === 0 ? (
-                              <span className="text-muted-foreground text-sm">—</span>
-                            ) : (
-                              <div className="space-y-1">
-                                {proposalRoles.map(r => (
-                                  <div key={r.id} className="h-7 flex items-center">
-                                    <span className="text-sm font-medium">{r.proposal_acronym || 'Unknown'}</span>
-                                  </div>
-                                ))}
+                          <div className="space-y-1">
+                            {/* Platform role */}
+                            <div className="h-7 flex items-center">
+                              {canEditGlobal ? (
+                                <Select
+                                  value={currentGlobalValue}
+                                  onValueChange={(v) => handleChangeGlobalRole(u, globalRole?.id || null, v)}
+                                >
+                                  <SelectTrigger className="h-7 w-28 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">Standard user</SelectItem>
+                                    <SelectItem value="admin">Admin</SelectItem>
+                                    <SelectItem value="owner">Owner</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                <Select value={currentGlobalValue} disabled>
+                                  <SelectTrigger className="h-7 w-28 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">Standard user</SelectItem>
+                                    <SelectItem value="admin">Admin</SelectItem>
+                                    <SelectItem value="owner">Owner</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              )}
+                            </div>
+                            {/* Proposal roles */}
+                            {proposalRoles.map(r => (
+                              <div key={r.id} className="h-7 flex items-center">
+                                {canManageProposalRole(r.proposal_id) ? (
+                                  <Select
+                                    value={r.role}
+                                    onValueChange={(v) => handleChangeProposalRole(u, r.id, v, r.proposal_id)}
+                                  >
+                                    <SelectTrigger className="h-7 w-28 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="coordinator">Coordinator</SelectItem>
+                                      <SelectItem value="editor">Editor</SelectItem>
+                                      <SelectItem value="viewer">Viewer</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
+                                  <Badge variant="outline" className="text-xs capitalize">{r.role}</Badge>
+                                )}
                               </div>
-                            )}
+                            ))}
+                            {/* Add role button */}
                             {assignableProposals.length > 0 && (
                               <div className="mt-1">
                                 <Button
@@ -530,53 +543,39 @@ export function UserRightsAdmin() {
                           </div>
                         </TableCell>
                         <TableCell className="align-top">
-                          {proposalRoles.length === 0 ? (
-                            <span className="text-muted-foreground text-sm">No proposal roles</span>
-                          ) : (
-                            <div className="space-y-1">
-                              {proposalRoles.map(r => (
-                                <div key={r.id} className="h-7 flex items-center">
-                                  {canManageProposalRole(r.proposal_id) ? (
-                                    <Select
-                                      value={r.role}
-                                      onValueChange={(v) => handleChangeProposalRole(u, r.id, v, r.proposal_id)}
-                                    >
-                                      <SelectTrigger className="h-7 w-28 text-xs">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="coordinator">Coordinator</SelectItem>
-                                        <SelectItem value="editor">Editor</SelectItem>
-                                        <SelectItem value="viewer">Viewer</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  ) : (
-                                    <Badge variant="outline" className="text-xs capitalize">{r.role}</Badge>
-                                  )}
-                                </div>
-                              ))}
+                          <div className="space-y-1">
+                            {/* Platform label */}
+                            <div className="h-7 flex items-center">
+                              <span className="text-sm font-medium">Platform</span>
                             </div>
-                          )}
+                            {/* Proposal names */}
+                            {proposalRoles.map(r => (
+                              <div key={r.id} className="h-7 flex items-center">
+                                <span className="text-sm font-medium">{r.proposal_acronym || 'Unknown'}</span>
+                              </div>
+                            ))}
+                          </div>
                         </TableCell>
                         <TableCell className="align-top">
-                          {proposalRoles.length > 0 && (
-                            <div className="space-y-1">
-                              {proposalRoles.map(r => (
-                                <div key={r.id} className="h-7 flex items-center">
-                                  {canManageProposalRole(r.proposal_id) && (
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-6 w-6"
-                                      onClick={() => handleRemoveRole(u, r.id, r.proposal_id)}
-                                    >
-                                      <Trash2 className="w-3 h-3 text-destructive" />
-                                    </Button>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                          <div className="space-y-1">
+                            {/* Empty row for platform */}
+                            <div className="h-7"></div>
+                            {/* Delete buttons for proposal roles */}
+                            {proposalRoles.map(r => (
+                              <div key={r.id} className="h-7 flex items-center">
+                                {canManageProposalRole(r.proposal_id) && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={() => handleRemoveRole(u, r.id, r.proposal_id)}
+                                  >
+                                    <Trash2 className="w-3 h-3 text-destructive" />
+                                  </Button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
