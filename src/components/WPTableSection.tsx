@@ -410,3 +410,114 @@ function SortableTaskCard({
     </div>
   );
 }
+
+/* ── Timing range picker (grid-based, same as B3.1) ── */
+function TimingRangePicker({
+  task,
+  projectDuration,
+  readOnly,
+  onUpdate,
+}: {
+  task: WPDraftTask;
+  projectDuration: number;
+  readOnly: boolean;
+  onUpdate: (taskId: string, updates: Partial<WPDraftTask>) => Promise<boolean>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [selecting, setSelecting] = useState<'start' | 'end' | null>(null);
+  const [localStart, setLocalStart] = useState(task.start_month);
+  const [localEnd, setLocalEnd] = useState(task.end_month);
+
+  const months = Array.from({ length: projectDuration }, (_, i) => i + 1);
+
+  const handleClick = (m: number) => {
+    if (selecting === 'start' || !selecting) {
+      setLocalStart(m);
+      if (localEnd != null && m > localEnd) setLocalEnd(null);
+      setSelecting('end');
+    } else {
+      if (m < (localStart ?? 1)) {
+        setLocalStart(m);
+        setSelecting('end');
+      } else {
+        setLocalEnd(m);
+        setSelecting(null);
+        onUpdate(task.id, { start_month: localStart, end_month: m });
+        setOpen(false);
+      }
+    }
+  };
+
+  const handleOpen = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (isOpen) {
+      setLocalStart(task.start_month);
+      setLocalEnd(task.end_month);
+      setSelecting('start');
+    }
+  };
+
+  const fmt = (m: number | null) => m != null ? `M${String(m).padStart(2, '0')}` : null;
+
+  return (
+    <>
+      <span className="text-xs text-muted-foreground">Timing:</span>
+      <Popover open={open} onOpenChange={handleOpen}>
+        <PopoverTrigger asChild>
+          <button className="cursor-pointer hover:opacity-80 text-xs font-bold h-6 px-2 border rounded-md" disabled={readOnly}>
+            {task.start_month != null && task.end_month != null ? (
+              <>{fmt(task.start_month)}–{fmt(task.end_month)}</>
+            ) : task.start_month != null ? (
+              <>{fmt(task.start_month)}–<span className="text-muted-foreground italic">M??</span></>
+            ) : (
+              <span className="text-muted-foreground italic font-normal">Select</span>
+            )}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[280px] p-2" align="end">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-xs text-muted-foreground font-medium">
+              {selecting === 'start' ? 'Select start month' : selecting === 'end' ? 'Select end month' : 'Select start month'}
+            </span>
+            {(task.start_month != null || task.end_month != null) && (
+              <button
+                className="text-xs text-muted-foreground hover:text-foreground italic cursor-pointer"
+                onClick={() => {
+                  setLocalStart(null);
+                  setLocalEnd(null);
+                  onUpdate(task.id, { start_month: null, end_month: null });
+                  setOpen(false);
+                }}
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-6 gap-0.5">
+            {months.map(m => {
+              const isStart = m === localStart;
+              const isEnd = m === localEnd;
+              const isInRange = localStart != null && localEnd != null && m >= localStart && m <= localEnd;
+              const isPartialRange = selecting === 'end' && localStart != null && localEnd == null && m >= localStart;
+              return (
+                <button
+                  key={m}
+                  className={cn(
+                    'px-1 py-0.5 text-xs rounded cursor-pointer text-center',
+                    (isStart || isEnd) && 'bg-primary text-primary-foreground font-bold',
+                    !isStart && !isEnd && isInRange && 'bg-primary/20',
+                    !isStart && !isEnd && !isInRange && isPartialRange && 'bg-primary/10',
+                    !isStart && !isEnd && !isInRange && !isPartialRange && 'hover:bg-accent',
+                  )}
+                  onClick={() => handleClick(m)}
+                >
+                  M{String(m).padStart(2, '0')}
+                </button>
+              );
+            })}
+          </div>
+        </PopoverContent>
+      </Popover>
+    </>
+  );
+}
