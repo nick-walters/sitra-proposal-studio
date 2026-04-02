@@ -32,6 +32,7 @@ type Step = 'wp-select' | 'item-select';
 // Per-WP selections
 interface WPSelections {
   objectives: boolean;
+  descriptionBeforeTasks: boolean;
   tasksEnabled: boolean;
   taskChecks: Record<string, boolean>;
   deliverablesEnabled: boolean;
@@ -87,6 +88,7 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
       for (const r of wp.risks) riskChecks[r.id] = true;
       sels[wp.id] = {
         objectives: true,
+        descriptionBeforeTasks: !!wp.description_before_tasks,
         tasksEnabled: true,
         taskChecks,
         deliverablesEnabled: true,
@@ -136,11 +138,13 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
       const allMilestoneChecks: Record<string, boolean> = {};
       const allRiskChecks: Record<string, boolean> = {};
       let anyObjectives = false;
+      let anyDescBefore = false;
 
       for (const wp of selectedWpDrafts) {
         const sel = wpSelections[wp.id];
         if (!sel) continue;
         if (sel.objectives) anyObjectives = true;
+        if (sel.descriptionBeforeTasks) anyDescBefore = true;
         if (sel.tasksEnabled) Object.assign(allTaskChecks, sel.taskChecks);
         if (sel.deliverablesEnabled) Object.assign(allDeliverableChecks, sel.deliverableChecks);
         if (sel.milestonesEnabled) Object.assign(allMilestoneChecks, sel.milestoneChecks);
@@ -149,6 +153,7 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
 
       const selections: PopulateSelections = {
         objectives: anyObjectives,
+        descriptionBeforeTasks: anyDescBefore,
         tasks: allTaskChecks,
         deliverables: allDeliverableChecks,
         milestones: allMilestoneChecks,
@@ -278,6 +283,15 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
                 checked={currentSel.objectives}
                 onCheckedChange={(v) => updateCurrentSel({ objectives: v })}
               />
+
+              {currentWp.description_before_tasks && (
+                <SectionBlock
+                  label="Optional field before tasks"
+                  description="Copies the optional content that appears before tasks in Table 3.1.b"
+                  checked={currentSel.descriptionBeforeTasks}
+                  onCheckedChange={(v) => updateCurrentSel({ descriptionBeforeTasks: v })}
+                />
+              )}
 
               {currentWp.tasks.length > 0 && (
                 <SectionBlock

@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export interface PopulateSelections {
   objectives: boolean;
+  descriptionBeforeTasks: boolean;
   tasks: Record<string, boolean>; // taskId → selected
   deliverables: Record<string, boolean>; // deliverableId → selected
   milestones: Record<string, boolean>; // milestoneId → selected
@@ -14,6 +15,7 @@ export interface WPDraftForPopulate {
   short_name: string | null;
   title: string | null;
   objectives: string | null;
+  description_before_tasks: string | null;
   tasks: {
     id: string;
     number: number;
@@ -61,7 +63,7 @@ export async function fetchWPDraftsForPopulate(proposalId: string): Promise<WPDr
   const { data, error } = await supabase
     .from('wp_drafts')
     .select(`
-      id, number, short_name, title, objectives,
+      id, number, short_name, title, objectives, description_before_tasks,
       tasks:wp_draft_tasks(id, number, title, description, lead_participant_id, start_month, end_month,
         participants:wp_draft_task_participants(participant_id)
       ),
@@ -102,6 +104,16 @@ export async function populateB31(
           .update({ b31_objectives: wp.objectives || null })
           .eq('id', wp.id);
         counts.objectives++;
+      }
+    }
+
+    // 1b. Copy description before tasks
+    if (selections.descriptionBeforeTasks) {
+      for (const wp of wpDrafts) {
+        await supabase
+          .from('wp_drafts')
+          .update({ b31_description_before_tasks: wp.description_before_tasks || null } as any)
+          .eq('id', wp.id);
       }
     }
 
