@@ -644,6 +644,8 @@ export function SectionNavigator({
   collaborators = [],
   lockedSections,
   onToggleLock,
+  wpDraftsVisible = true,
+  caseDraftsVisible = true,
 }: SectionNavigatorProps) {
   // All users with proposal access can see all participants
   const visibleParticipants = useMemo(() => {
