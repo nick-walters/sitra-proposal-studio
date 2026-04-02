@@ -945,7 +945,10 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
                         >
                           {p.id === wpDraft.lead_participant_id && <Check className="h-3 w-3 text-primary-foreground" />}
                         </div>
-                        <span className="truncate">
+                        <span
+                          className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
+                          style={{ backgroundColor: '#000000', color: '#ffffff', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, padding: '0px 5px', height: '17px' }}
+                        >
                           {p.participant_number}. {p.organisation_short_name || p.organisation_name}
                         </span>
                       </button>
