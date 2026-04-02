@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { SaveIndicator } from '@/components/SaveIndicator';
 import { useWPDraftEditor } from '@/hooks/useWPDrafts';
+import { useWPDraftUndoRedo } from '@/hooks/useWPDraftUndoRedo';
 import { WPMethodologySection } from '@/components/WPMethodologySection';
 import { WPTableSection } from '@/components/WPTableSection';
 import { WPPlanningQuestions } from '@/components/WPPlanningQuestions';
