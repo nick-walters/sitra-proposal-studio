@@ -26,8 +26,8 @@ interface QuestionFieldProps {
 function QuestionField({ id, label, question, value, onChange, placeholder, readOnly }: QuestionFieldProps) {
   return (
     <div className="space-y-2">
-      <Label htmlFor={id} className="text-xs font-medium">{label}</Label>
-      <p className="text-xs text-muted-foreground">{question}</p>
+      <Label htmlFor={id} className="text-draft font-medium">{label}</Label>
+      <p className="text-draft text-muted-foreground">{question}</p>
       <WPSimpleEditor
         value={value || ''}
         onChange={onChange}

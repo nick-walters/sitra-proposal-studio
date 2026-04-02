@@ -242,7 +242,7 @@ function SortableDeliverableCard({
           </button>
         )}
         <div className="flex items-center h-6 flex-1 border rounded-md bg-background overflow-hidden focus-within:ring-1 focus-within:ring-ring">
-          <span className="text-xs font-bold flex-shrink-0 pl-2 pr-0.5 select-none text-foreground" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
+          <span className="text-draft font-bold flex-shrink-0 pl-2 pr-0.5 select-none text-foreground" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
             {formatNumber(deliverable.number)}:
           </span>
           <input
@@ -251,7 +251,7 @@ function SortableDeliverableCard({
             onFocus={() => { isFocused.current = true; }}
             onBlur={() => { isFocused.current = false; }}
             placeholder="Deliverable title..."
-            className="h-full text-xs flex-1 font-bold bg-transparent border-0 outline-none px-1"
+            className="h-full text-draft flex-1 font-bold bg-transparent border-0 outline-none px-1"
             disabled={readOnly}
           />
         </div>
@@ -270,13 +270,13 @@ function SortableDeliverableCard({
       {/* Row 2: Type, Responsible, Dissemination, Due month */}
       <div className="flex items-center gap-1.5 mt-1.5 ml-5">
         <div className="flex items-center gap-1 flex-shrink-0">
-          <span className="text-xs text-muted-foreground">Type:</span>
+          <span className="text-draft text-muted-foreground">Type:</span>
           <Select
             value={deliverable.type || ''}
             onValueChange={(value) => onUpdate(deliverable.id, { type: value === '__clear__' ? null : value })}
             disabled={readOnly}
           >
-            <SelectTrigger hideArrow className="h-6 w-[75px] text-xs px-1.5">
+            <SelectTrigger hideArrow className="h-6 w-[75px] text-draft px-1.5">
               <span>{deliverable.type || 'Select'}</span>
             </SelectTrigger>
             <SelectContent className="bg-popover">
@@ -287,7 +287,7 @@ function SortableDeliverableCard({
                 <SelectItem key={type.value} value={type.value} textValue={type.value}>
                   <div className="flex flex-col">
                     <span>{type.value} – {type.label}</span>
-                    <span className="text-xs text-muted-foreground">{type.description}</span>
+                    <span className="text-draft text-muted-foreground">{type.description}</span>
                   </div>
                 </SelectItem>
               ))}
@@ -296,13 +296,13 @@ function SortableDeliverableCard({
         </div>
 
         <div className="flex items-center gap-1 flex-shrink-0">
-          <span className="text-xs text-muted-foreground">Dissemination level:</span>
+          <span className="text-draft text-muted-foreground">Dissemination level:</span>
           <Select
             value={deliverable.dissemination_level || 'PU'}
             onValueChange={(value) => onUpdate(deliverable.id, { dissemination_level: value === '__clear__' ? null : value })}
             disabled={readOnly}
           >
-            <SelectTrigger hideArrow className="h-6 w-[77px] text-xs px-1.5">
+            <SelectTrigger hideArrow className="h-6 w-[77px] text-draft px-1.5">
               <span>{deliverable.dissemination_level || 'Select'}</span>
             </SelectTrigger>
             <SelectContent>
@@ -313,7 +313,7 @@ function SortableDeliverableCard({
                 <SelectItem key={level.value} value={level.value} textValue={level.value}>
                   <div className="flex flex-col">
                     <span>{level.value} – {level.label}</span>
-                    <span className="text-xs text-muted-foreground">{level.description}</span>
+                    <span className="text-draft text-muted-foreground">{level.description}</span>
                   </div>
                 </SelectItem>
               ))}
@@ -322,14 +322,14 @@ function SortableDeliverableCard({
         </div>
 
         <div className="flex items-center gap-1 flex-shrink-0">
-          <span className="text-xs text-muted-foreground">Partner responsible:</span>
+          <span className="text-draft text-muted-foreground">Partner responsible:</span>
           <Select
             value={deliverable.responsible_participant_id || ''}
             onValueChange={(value) => onUpdate(deliverable.id, { responsible_participant_id: value === '__clear__' ? null : value || null })}
             disabled={readOnly}
           >
             <SelectTrigger
-              className={cn("h-auto border-0 shadow-none p-0 w-auto gap-0 text-xs", deliverable.responsible_participant_id ? "font-bold" : "font-normal")}
+              className={cn("h-auto border-0 shadow-none p-0 w-auto gap-0 text-draft", deliverable.responsible_participant_id ? "font-bold" : "font-normal")}
               style={deliverable.responsible_participant_id ? {
                 backgroundColor: '#000000',
                 color: '#ffffff',

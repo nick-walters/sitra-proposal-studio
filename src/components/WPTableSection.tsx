@@ -114,7 +114,7 @@ export function WPTableSection({
       <CardContent className="space-y-2 px-3 pb-3 pt-0">
         {/* Objectives section */}
         <div className="space-y-2">
-          <label className="text-xs font-medium">Objective</label>
+          <label className="text-draft font-medium">Objective</label>
           <WPSimpleEditor
             value={objectives || ''}
             onChange={onObjectivesChange}
@@ -123,12 +123,12 @@ export function WPTableSection({
             minHeight="80px"
             hideToolbar={hideToolbar}
           />
-          <p className="text-xs text-muted-foreground">Describe the main objective of this work package. Use the bullet list button if you need multiple objectives.</p>
+          <p className="text-draft text-muted-foreground">Describe the main objective of this work package. Use the bullet list button if you need multiple objectives.</p>
         </div>
 
         {/* Optional field before tasks */}
         <div className="space-y-2">
-          <label className="text-xs font-medium">Optional field before tasks</label>
+          <label className="text-draft font-medium">Optional field before tasks</label>
           <WPSimpleEditor
             value={descriptionBeforeTasks || ''}
             onChange={onDescriptionBeforeTasksChange}
@@ -141,7 +141,7 @@ export function WPTableSection({
 
         {/* Tasks list */}
         <div className="space-y-2">
-          <label className="text-xs font-medium">Tasks</label>
+          <label className="text-draft font-medium">Tasks</label>
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -290,7 +290,7 @@ function SortableTaskCard({
           </button>
         )}
         <div className="flex items-center h-6 flex-1 border rounded-md bg-background overflow-hidden focus-within:ring-1 focus-within:ring-ring">
-          <span className="text-xs font-bold flex-shrink-0 pl-2 pr-0.5 select-none text-foreground" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
+          <span className="text-draft font-bold flex-shrink-0 pl-2 pr-0.5 select-none text-foreground" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
             {formatTaskNumber(task.number)}:
           </span>
           <input
@@ -299,7 +299,7 @@ function SortableTaskCard({
             onFocus={() => { isFocused.current = true; }}
             onBlur={() => { isFocused.current = false; }}
             placeholder="Task title..."
-            className="h-full text-xs flex-1 font-bold bg-transparent border-0 outline-none px-1"
+            className="h-full text-draft flex-1 font-bold bg-transparent border-0 outline-none px-1"
             disabled={readOnly}
           />
         </div>
@@ -318,14 +318,14 @@ function SortableTaskCard({
       {/* Row 2: Leader, Participants, Timing */}
       <div className="flex items-center gap-1.5 mt-1.5 ml-5">
         <div className="flex items-center gap-1 flex-shrink-0">
-          <span className="text-xs text-muted-foreground flex-shrink-0">Task Leader:</span>
+          <span className="text-draft text-muted-foreground flex-shrink-0">Task Leader:</span>
           <Select
             value={task.lead_participant_id || ''}
             onValueChange={(value) => onUpdate(task.id, { lead_participant_id: value === '__clear__' ? null : value || null })}
             disabled={readOnly}
           >
             <SelectTrigger
-              className={cn("h-auto border-0 shadow-none p-0 w-auto gap-0 text-xs", task.lead_participant_id ? "font-bold" : "font-normal")}
+              className={cn("h-auto border-0 shadow-none p-0 w-auto gap-0 text-draft", task.lead_participant_id ? "font-bold" : "font-normal")}
               style={task.lead_participant_id ? {
                 backgroundColor: '#000000',
                 color: '#ffffff',
@@ -363,7 +363,7 @@ function SortableTaskCard({
         </div>
 
         <div className="flex items-center gap-1 flex-1 min-w-0">
-          <span className="text-xs text-muted-foreground flex-shrink-0">Participants:</span>
+          <span className="text-draft text-muted-foreground flex-shrink-0">Participants:</span>
           <ParticipantMultiSelect
             participants={availableParticipants}
             selectedIds={selectedParticipantIds}
@@ -471,10 +471,10 @@ function TimingRangePicker({
 
   return (
     <>
-      <span className="text-xs text-muted-foreground">Timing:</span>
+      <span className="text-draft text-muted-foreground">Timing:</span>
       <Popover open={open} onOpenChange={handleOpen}>
         <PopoverTrigger asChild>
-          <button className="cursor-pointer hover:opacity-80 text-xs h-6 px-2 border rounded-md bg-background" disabled={readOnly}>
+          <button className="cursor-pointer hover:opacity-80 text-draft h-6 px-2 border rounded-md bg-background" disabled={readOnly}>
             {task.start_month != null && task.end_month != null ? (
               <>{fmt(task.start_month)}–{fmt(task.end_month)}</>
             ) : task.start_month != null ? (
@@ -486,12 +486,12 @@ function TimingRangePicker({
         </PopoverTrigger>
         <PopoverContent className="w-[280px] p-2" align="end">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs text-muted-foreground font-medium">
+            <span className="text-draft text-muted-foreground font-medium">
               {selecting === 'start' ? 'Select start month' : selecting === 'end' ? 'Select end month' : 'Select start month'}
             </span>
             {(task.start_month != null || task.end_month != null) && (
               <button
-                className="text-xs text-muted-foreground hover:text-foreground italic cursor-pointer"
+                className="text-draft text-muted-foreground hover:text-foreground italic cursor-pointer"
                 onClick={() => {
                   setLocalStart(null);
                   setLocalEnd(null);
@@ -513,7 +513,7 @@ function TimingRangePicker({
                 <button
                   key={m}
                   className={cn(
-                    'px-1 py-0.5 text-xs rounded cursor-pointer text-center',
+                    'px-1 py-0.5 text-draft rounded cursor-pointer text-center',
                     (isStart || isEnd) && 'bg-primary text-primary-foreground font-bold',
                     !isStart && !isEnd && isInRange && 'bg-primary/20',
                     !isStart && !isEnd && !isInRange && isPartialRange && 'bg-primary/10',

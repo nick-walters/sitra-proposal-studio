@@ -156,12 +156,12 @@ export function WPSimpleEditor({
               <TooltipTrigger asChild>
                 <DropdownMenuTrigger asChild>
                   <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1">
-                    <span className="text-xs font-black underline">Subheading</span>
+                    <span className="text-draft font-black underline">Subheading</span>
                     <ChevronDown className="w-3 h-3" />
                   </Button>
                 </DropdownMenuTrigger>
               </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs">Insert subheading</TooltipContent>
+              <TooltipContent side="bottom" className="text-draft">Insert subheading</TooltipContent>
             </Tooltip>
             <DropdownMenuContent align="start" className="w-64">
               <DropdownMenuItem onClick={() => {
@@ -187,7 +187,7 @@ export function WPSimpleEditor({
                 <span className="font-black text-sm">B</span>
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">Bold (Ctrl+B)</TooltipContent>
+            <TooltipContent side="bottom" className="text-draft">Bold (Ctrl+B)</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -195,7 +195,7 @@ export function WPSimpleEditor({
                 <Italic className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">Italic (Ctrl+I)</TooltipContent>
+            <TooltipContent side="bottom" className="text-draft">Italic (Ctrl+I)</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -203,7 +203,7 @@ export function WPSimpleEditor({
                 <Underline className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">Underline (Ctrl+U)</TooltipContent>
+            <TooltipContent side="bottom" className="text-draft">Underline (Ctrl+U)</TooltipContent>
           </Tooltip>
 
           <Separator orientation="vertical" className="h-5 mx-1.5" />
@@ -215,7 +215,7 @@ export function WPSimpleEditor({
                 <List className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">Bullet list</TooltipContent>
+            <TooltipContent side="bottom" className="text-draft">Bullet list</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -223,7 +223,7 @@ export function WPSimpleEditor({
                 <ListOrdered className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">Numbered list</TooltipContent>
+            <TooltipContent side="bottom" className="text-draft">Numbered list</TooltipContent>
           </Tooltip>
 
           <Separator orientation="vertical" className="h-5 mx-1.5" />
@@ -235,7 +235,7 @@ export function WPSimpleEditor({
                 <AlignLeft className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">Align left</TooltipContent>
+            <TooltipContent side="bottom" className="text-draft">Align left</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -243,7 +243,7 @@ export function WPSimpleEditor({
                 <AlignCenter className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">Align center</TooltipContent>
+            <TooltipContent side="bottom" className="text-draft">Align center</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -251,7 +251,7 @@ export function WPSimpleEditor({
                 <AlignRight className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">Align right</TooltipContent>
+            <TooltipContent side="bottom" className="text-draft">Align right</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -259,7 +259,7 @@ export function WPSimpleEditor({
                 <AlignJustify className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">Justify</TooltipContent>
+            <TooltipContent side="bottom" className="text-draft">Justify</TooltipContent>
           </Tooltip>
 
           <Separator orientation="vertical" className="h-5 mx-1.5" />
@@ -271,14 +271,14 @@ export function WPSimpleEditor({
                 <PopoverTrigger asChild>
                   <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1">
                     <Table2 className="h-4 w-4" />
-                    <span className="text-xs">Table</span>
+                    <span className="text-draft">Table</span>
                   </Button>
                 </PopoverTrigger>
               </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs">Insert table</TooltipContent>
+              <TooltipContent side="bottom" className="text-draft">Insert table</TooltipContent>
             </Tooltip>
             <PopoverContent className="w-auto p-2" align="start">
-              <div className="text-xs text-muted-foreground mb-2">
+              <div className="text-draft text-muted-foreground mb-2">
                 {hoveredCell ? `${hoveredCell.row} × ${hoveredCell.col}` : 'Select size'}
               </div>
               <div className="grid gap-0.5" style={{ gridTemplateColumns: 'repeat(8, 1fr)' }}>
@@ -314,10 +314,10 @@ export function WPSimpleEditor({
               <TooltipTrigger asChild>
                 <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={onOpenFigureDialog}>
                   <ImageIcon className="h-4 w-4" />
-                  <span className="text-xs">Figure</span>
+                  <span className="text-draft">Figure</span>
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs">Insert figure</TooltipContent>
+              <TooltipContent side="bottom" className="text-draft">Insert figure</TooltipContent>
             </Tooltip>
           )}
 
@@ -327,10 +327,10 @@ export function WPSimpleEditor({
               <TooltipTrigger asChild>
                 <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={onOpenCitationDialog}>
                   <FileText className="h-4 w-4" />
-                  <span className="text-xs">Citations</span>
+                  <span className="text-draft">Citations</span>
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs">Manage citations</TooltipContent>
+              <TooltipContent side="bottom" className="text-draft">Manage citations</TooltipContent>
             </Tooltip>
           )}
 
@@ -342,11 +342,11 @@ export function WPSimpleEditor({
                   <DropdownMenuTrigger asChild>
                     <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1">
                       <Link2 className="w-4 h-4" />
-                      <span className="text-xs">Cross-ref</span>
+                      <span className="text-draft">Cross-ref</span>
                     </Button>
                   </DropdownMenuTrigger>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">Insert cross-reference</TooltipContent>
+                <TooltipContent side="bottom" className="text-draft">Insert cross-reference</TooltipContent>
               </Tooltip>
               <DropdownMenuContent align="start" className="w-64 bg-popover z-50">
                 {onOpenCrossRefDialog && (
@@ -438,7 +438,7 @@ export function WPSimpleEditor({
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           className={cn(
-            "p-3 outline-none resize-y overflow-auto text-xs",
+            "p-3 outline-none resize-y overflow-auto text-draft",
             "[&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4",
             "[&_table]:w-full [&_table]:border-collapse",
             "[&_th]:border [&_th]:border-foreground [&_th]:p-1 [&_th]:bg-foreground [&_th]:text-background [&_th]:font-bold",
@@ -449,7 +449,7 @@ export function WPSimpleEditor({
           suppressContentEditableWarning
         />
         {showPlaceholder && (
-          <div className="absolute top-3 left-3 text-muted-foreground text-xs pointer-events-none">
+          <div className="absolute top-3 left-3 text-muted-foreground text-draft pointer-events-none">
             {placeholder}
           </div>
         )}

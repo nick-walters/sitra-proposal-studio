@@ -282,7 +282,7 @@ function SortableRiskCard({
           onFocus={() => { isFocused.current = true; }}
           onBlur={() => { isFocused.current = false; }}
           placeholder="Describe the risk..."
-          className="min-h-[28px] resize-none text-xs flex-1 overflow-hidden font-bold"
+          className="min-h-[28px] resize-none text-draft flex-1 overflow-hidden font-bold"
           style={{ height: 'auto', fieldSizing: 'content' } as any}
           disabled={readOnly}
         />
@@ -301,14 +301,14 @@ function SortableRiskCard({
       {/* Row 2: Likelihood, Severity, WPs */}
       <div className="flex items-center gap-3 mt-1.5 ml-5">
         <div className="flex items-center gap-1">
-          <span className="text-xs text-muted-foreground">Likelihood:</span>
+          <span className="text-draft text-muted-foreground">Likelihood:</span>
           <Select
             value={risk.likelihood || undefined}
             onValueChange={(value) => onUpdate(risk.id, { likelihood: value === '__clear__' ? null : value })}
             disabled={readOnly}
           >
             <SelectTrigger hideArrow className="h-6 w-auto min-w-[28px] px-0.5 border-0 bg-transparent focus:ring-0">
-              {risk.likelihood ? <RiskLevelBubble level={risk.likelihood} /> : <span className="text-muted-foreground text-xs">Select</span>}
+              {risk.likelihood ? <RiskLevelBubble level={risk.likelihood} /> : <span className="text-muted-foreground text-draft">Select</span>}
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__clear__">
@@ -326,14 +326,14 @@ function SortableRiskCard({
           </Select>
         </div>
         <div className="flex items-center gap-1">
-          <span className="text-xs text-muted-foreground">Severity:</span>
+          <span className="text-draft text-muted-foreground">Severity:</span>
           <Select
             value={risk.severity || undefined}
             onValueChange={(value) => onUpdate(risk.id, { severity: value === '__clear__' ? null : value })}
             disabled={readOnly}
           >
             <SelectTrigger hideArrow className="h-6 w-auto min-w-[28px] px-0.5 border-0 bg-transparent focus:ring-0">
-              {risk.severity ? <RiskLevelBubble level={risk.severity} /> : <span className="text-muted-foreground text-xs">Select</span>}
+              {risk.severity ? <RiskLevelBubble level={risk.severity} /> : <span className="text-muted-foreground text-draft">Select</span>}
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__clear__">
@@ -351,13 +351,13 @@ function SortableRiskCard({
           </Select>
         </div>
         <div className="flex items-center gap-1">
-          <span className="text-xs text-muted-foreground">WPs:</span>
+          <span className="text-draft text-muted-foreground">WPs:</span>
           <Popover open={wpPopoverOpen} onOpenChange={setWpPopoverOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 size="sm"
-                className="h-6 text-xs px-2 min-w-[339px] max-w-[440px] justify-between font-normal"
+                className="h-6 text-draft px-2 min-w-[339px] max-w-[440px] justify-between font-normal"
                 disabled={readOnly}
               >
                 {displayWpBubbles || <span className="text-muted-foreground">Select</span>}
@@ -372,7 +372,7 @@ function SortableRiskCard({
                   return (
                     <label
                       key={wp.id}
-                      className="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted cursor-pointer text-xs"
+                      className="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted cursor-pointer text-draft"
                     >
                       <Checkbox
                         checked={selectedWpNumbers.includes(wp.number)}
@@ -395,7 +395,7 @@ function SortableRiskCard({
                   );
                 })}
                 {allWpDrafts.length === 0 && (
-                  <p className="text-xs text-muted-foreground px-1">No WPs found</p>
+                  <p className="text-draft text-muted-foreground px-1">No WPs found</p>
                 )}
               </div>
             </PopoverContent>
@@ -411,7 +411,7 @@ function SortableRiskCard({
           onFocus={() => { isFocused.current = true; }}
           onBlur={() => { isFocused.current = false; }}
           placeholder="Describe mitigation & adaptation measures..."
-          className="min-h-[40px] resize-y text-xs flex-1"
+          className="min-h-[40px] resize-y text-draft flex-1"
           disabled={readOnly}
         />
       </div>

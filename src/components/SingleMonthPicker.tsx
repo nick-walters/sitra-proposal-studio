@@ -29,10 +29,10 @@ export function SingleMonthPicker({
 
   return (
     <>
-      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-draft text-muted-foreground">{label}</span>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <button className="cursor-pointer hover:opacity-80 text-xs h-6 px-2 border rounded-md bg-background" disabled={readOnly}>
+          <button className="cursor-pointer hover:opacity-80 text-draft h-6 px-2 border rounded-md bg-background" disabled={readOnly}>
             {value != null ? (
               fmt(value)
             ) : (
@@ -42,10 +42,10 @@ export function SingleMonthPicker({
         </PopoverTrigger>
         <PopoverContent className="w-[280px] p-2" align="end">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs text-muted-foreground font-medium">Select month</span>
+            <span className="text-draft text-muted-foreground font-medium">Select month</span>
             {value != null && (
               <button
-                className="text-xs text-muted-foreground hover:text-foreground italic cursor-pointer"
+                className="text-draft text-muted-foreground hover:text-foreground italic cursor-pointer"
                 onClick={() => {
                   onChange(null);
                   setOpen(false);
@@ -62,7 +62,7 @@ export function SingleMonthPicker({
                 <button
                   key={m}
                   className={cn(
-                    'px-1 py-0.5 text-xs rounded cursor-pointer text-center',
+                    'px-1 py-0.5 text-draft rounded cursor-pointer text-center',
                     isSelected && 'bg-primary text-primary-foreground font-bold',
                     !isSelected && 'hover:bg-accent',
                   )}
