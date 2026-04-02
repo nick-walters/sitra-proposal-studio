@@ -321,12 +321,37 @@ export function useWPDraftEditor(wpId: string | null) {
       if (error) throw error;
 
       // Sort nested data
+      const sortedTasks = (data.tasks || []).sort((a: WPDraftTask, b: WPDraftTask) => a.order_index - b.order_index);
+      const sortedDeliverables = (data.deliverables || []).sort((a: WPDraftDeliverable, b: WPDraftDeliverable) => a.order_index - b.order_index);
+      const sortedRisks = (data.risks || []).sort((a: WPDraftRisk, b: WPDraftRisk) => a.order_index - b.order_index);
+      const sortedMilestones = (data.milestones || []).sort((a: WPDraftMilestone, b: WPDraftMilestone) => a.order_index - b.order_index);
+
+      // Auto-fix numbering gaps on load
+      const fixItems = <T extends { id: string; number: number; order_index: number }>(
+        items: T[],
+        updateFn: (id: string, number: number, order_index: number) => void,
+      ): T[] => {
+        const needsFix = items.some((item, i) => item.number !== i + 1 || item.order_index !== i);
+        if (!needsFix) return items;
+        const fixed = items.map((item, i) => ({ ...item, number: i + 1, order_index: i }));
+        fixed.forEach((item) => updateFn(item.id, item.number, item.order_index));
+        return fixed;
+      };
+
       const sortedData = {
         ...data,
-        tasks: (data.tasks || []).sort((a: WPDraftTask, b: WPDraftTask) => a.order_index - b.order_index),
-        deliverables: (data.deliverables || []).sort((a: WPDraftDeliverable, b: WPDraftDeliverable) => a.order_index - b.order_index),
-        risks: (data.risks || []).sort((a: WPDraftRisk, b: WPDraftRisk) => a.order_index - b.order_index),
-        milestones: (data.milestones || []).sort((a: WPDraftMilestone, b: WPDraftMilestone) => a.order_index - b.order_index),
+        tasks: fixItems(sortedTasks, (id, num, idx) => {
+          supabase.from('wp_draft_tasks').update({ number: num, order_index: idx }).eq('id', id).then();
+        }),
+        deliverables: fixItems(sortedDeliverables, (id, num, idx) => {
+          supabase.from('wp_draft_deliverables').update({ number: num, order_index: idx }).eq('id', id).then();
+        }),
+        risks: fixItems(sortedRisks, (id, num, idx) => {
+          supabase.from('wp_draft_risks').update({ number: num, order_index: idx }).eq('id', id).then();
+        }),
+        milestones: fixItems(sortedMilestones, (id, num, idx) => {
+          supabase.from('wp_draft_milestones').update({ number: num, order_index: idx }).eq('id', id).then();
+        }),
       };
 
       setWPDraft(sortedData);
@@ -606,10 +631,24 @@ export function useWPDraftEditor(wpId: string | null) {
 
       if (error) throw error;
 
-      setWPDraft(prev => prev ? {
-        ...prev,
-        deliverables: prev.deliverables?.filter(d => d.id !== deliverableId),
-      } : null);
+      setWPDraft(prev => {
+        if (!prev) return null;
+        const remaining = (prev.deliverables || [])
+          .filter(d => d.id !== deliverableId)
+          .sort((a, b) => a.order_index - b.order_index)
+          .map((d, i) => ({ ...d, number: i + 1, order_index: i }));
+
+        // Update numbers in database
+        remaining.forEach((d) => {
+          supabase
+            .from('wp_draft_deliverables')
+            .update({ number: d.number, order_index: d.order_index })
+            .eq('id', d.id)
+            .then();
+        });
+
+        return { ...prev, deliverables: remaining };
+      });
 
       return true;
     } catch (err) {
