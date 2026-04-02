@@ -707,19 +707,17 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    const oldIndex = wp.tasks.findIndex(t => t.id === active.id);
-    const newIndex = wp.tasks.findIndex(t => t.id === over.id);
+    const oldIndex = wp.b31_tasks.findIndex(t => t.id === active.id);
+    const newIndex = wp.b31_tasks.findIndex(t => t.id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
 
-    // Save previous order for undo
-    const previousOrder = wp.tasks.map(t => t.id);
-
-    const reordered = arrayMove(wp.tasks, oldIndex, newIndex);
+    const previousOrder = wp.b31_tasks.map(t => t.id);
+    const reordered = arrayMove(wp.b31_tasks, oldIndex, newIndex);
 
     const applyOrder = async (taskIds: string[], _label: string) => {
       for (let i = 0; i < taskIds.length; i++) {
         const { error } = await supabase
-          .from('wp_draft_tasks')
+          .from('b31_tasks')
           .update({ order_index: i, number: i + 1 })
           .eq('id', taskIds[i]);
         if (error) {
@@ -728,8 +726,6 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
         }
       }
       await queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
-      await queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] });
-      window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
       return true;
     };
 
