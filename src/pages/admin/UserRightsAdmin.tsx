@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Plus, Trash2, Users, Shield, Search, Pencil, Send } from "lucide-react";
+import { Plus, Trash2, Users, Shield, Search, Pencil, Send, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { UserProfileDialog } from "@/components/UserProfileDialog";
@@ -52,7 +52,7 @@ export function UserRightsAdmin() {
   const [selectedProposalId, setSelectedProposalId] = useState<string>("");
   const [proposals, setProposals] = useState<ProposalOption[]>([]);
   const [editProfileUserId, setEditProfileUserId] = useState<string | null>(null);
-
+  const [deleteConfirmUser, setDeleteConfirmUser] = useState<UserWithRoles | null>(null);
   // Coordinators who are not owners need at least one coordinator role
   const canAccess = isOwner || (isAdminOrOwner && hasAnyCoordinatorRole);
 
@@ -303,7 +303,6 @@ export function UserRightsAdmin() {
       if (error) throw error;
 
       if (data?.alreadyExists) {
-        // User exists — trigger a password reset directly
         const { error: resetError } = await supabase.auth.resetPasswordForEmail(targetUser.email, {
           redirectTo: 'https://sitra-proposal-studio.lovable.app/auth?type=recovery',
         });
@@ -317,6 +316,23 @@ export function UserRightsAdmin() {
     } catch (error: any) {
       console.error('Error resending signup link:', error);
       toast.error(error.message || 'Failed to resend signup link');
+    }
+  };
+
+  const handleDeleteUser = async (targetUser: UserWithRoles) => {
+    try {
+      // Delete all roles for this user
+      const { error } = await supabase.from('user_roles').delete().eq('user_id', targetUser.id);
+      if (error) throw error;
+
+      setUsers(prev => prev.map(u =>
+        u.id === targetUser.id ? { ...u, roles: [] } : u
+      ));
+      toast.success(`Removed all access for ${getDisplayName(targetUser)}`);
+      setDeleteConfirmUser(null);
+    } catch (error) {
+      console.error('Error deleting user access:', error);
+      toast.error("Failed to remove user access");
     }
   };
 
@@ -396,8 +412,8 @@ export function UserRightsAdmin() {
                    <TableRow>
                      <TableHead className="font-bold">User</TableHead>
                      <TableHead className="font-bold">Email</TableHead>
-                     <TableHead className="font-bold w-[130px]">Role</TableHead>
                      <TableHead className="font-bold">Item</TableHead>
+                     <TableHead className="font-bold w-[160px]">Role</TableHead>
                      <TableHead className="w-[40px]"></TableHead>
                    </TableRow>
                 </TableHeader>
@@ -415,7 +431,7 @@ export function UserRightsAdmin() {
                         <TableCell className="align-top">
                           <div className="flex items-start gap-3">
                             {isOwner ? (
-                              <div className="flex-shrink-0 [&_.relative]:!cursor-pointer [&_[class*=avatar]]:!h-12 [&_[class*=avatar]]:!w-12">
+                              <div className="flex-shrink-0 [&_.relative]:!cursor-pointer [&_[class*=avatar]]:!h-16 [&_[class*=avatar]]:!w-16">
                                 <AdminAvatarUpload
                                   userId={u.id}
                                   avatarUrl={u.avatar_url}
@@ -426,7 +442,7 @@ export function UserRightsAdmin() {
                                 />
                               </div>
                             ) : (
-                              <Avatar className="h-12 w-12 flex-shrink-0">
+                              <Avatar className="h-16 w-16 flex-shrink-0">
                                 <AvatarImage src={u.avatar_url || undefined} />
                                 <AvatarFallback>{getInitials(u)}</AvatarFallback>
                               </Avatar>
@@ -470,6 +486,31 @@ export function UserRightsAdmin() {
                         </TableCell>
                         <TableCell className="align-top">
                           <div className="space-y-1">
+                            {/* Platform label */}
+                            <div className="h-7 flex items-center gap-2">
+                              <span className="text-sm font-bold">Sitra Proposal Studio</span>
+                              {isOwner && !isSelf && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  title="Remove all access"
+                                  onClick={() => setDeleteConfirmUser(u)}
+                                >
+                                  <Trash2 className="w-3 h-3 text-destructive" />
+                                </Button>
+                              )}
+                            </div>
+                            {/* Proposal names */}
+                            {proposalRoles.map(r => (
+                              <div key={r.id} className="h-7 flex items-center">
+                                <span className="text-sm font-medium">{r.proposal_acronym || 'Unknown'}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell className="align-top">
+                          <div className="space-y-1">
                             {/* Platform role */}
                             <div className="h-7 flex items-center">
                               {canEditGlobal ? (
@@ -477,7 +518,7 @@ export function UserRightsAdmin() {
                                   value={currentGlobalValue}
                                   onValueChange={(v) => handleChangeGlobalRole(u, globalRole?.id || null, v)}
                                 >
-                                  <SelectTrigger className="h-7 w-28 text-xs">
+                                  <SelectTrigger className="h-7 w-36 text-xs [&>span]:pl-0">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -488,7 +529,7 @@ export function UserRightsAdmin() {
                                 </Select>
                               ) : (
                                 <Select value={currentGlobalValue} disabled>
-                                  <SelectTrigger className="h-7 w-28 text-xs">
+                                  <SelectTrigger className="h-7 w-36 text-xs [&>span]:pl-0">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -507,7 +548,7 @@ export function UserRightsAdmin() {
                                     value={r.role}
                                     onValueChange={(v) => handleChangeProposalRole(u, r.id, v, r.proposal_id)}
                                   >
-                                    <SelectTrigger className="h-7 w-28 text-xs">
+                                    <SelectTrigger className="h-7 w-36 text-xs">
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -527,7 +568,7 @@ export function UserRightsAdmin() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="h-6 px-1.5 text-xs"
+                                  className="h-6 px-1.5 text-xs text-primary"
                                   onClick={() => {
                                     setSelectedUser(u);
                                     setNewRole('editor');
@@ -535,25 +576,11 @@ export function UserRightsAdmin() {
                                     setDialogOpen(true);
                                   }}
                                 >
-                                  <Plus className="w-3 h-3 mr-1" />
+                                  <Plus className="w-3 h-3 mr-1 text-primary" />
                                   Add role
                                 </Button>
                               </div>
                             )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="align-top">
-                          <div className="space-y-1">
-                            {/* Platform label */}
-                            <div className="h-7 flex items-center">
-                              <span className="text-sm font-medium">Platform</span>
-                            </div>
-                            {/* Proposal names */}
-                            {proposalRoles.map(r => (
-                              <div key={r.id} className="h-7 flex items-center">
-                                <span className="text-sm font-medium">{r.proposal_acronym || 'Unknown'}</span>
-                              </div>
-                            ))}
                           </div>
                         </TableCell>
                         <TableCell className="align-top">
@@ -635,6 +662,25 @@ export function UserRightsAdmin() {
             <DialogFooter>
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
               <Button onClick={handleAddRole} disabled={!selectedProposalId}>Add role</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete user confirmation dialog */}
+        <Dialog open={!!deleteConfirmUser} onOpenChange={(open) => { if (!open) setDeleteConfirmUser(null); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-destructive" />
+                Remove all access
+              </DialogTitle>
+              <DialogDescription>
+                Are you sure you want to remove all platform and proposal access for <strong>{deleteConfirmUser ? getDisplayName(deleteConfirmUser) : ''}</strong>? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteConfirmUser(null)}>Cancel</Button>
+              <Button variant="destructive" onClick={() => deleteConfirmUser && handleDeleteUser(deleteConfirmUser)}>Remove all access</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
