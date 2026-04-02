@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Target, Plus, Trash2, GripVertical, ArrowRight } from 'lucide-react';
+import { Target, Plus, Trash2, GripVertical, ArrowRight, Crown } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -311,14 +311,27 @@ function SortableTaskCard({
       {/* Row 2: Leader, Participants, Timing */}
       <div className="flex items-center gap-1.5 mt-1.5 ml-5">
         <div className="flex items-center gap-1 flex-shrink-0">
-          <span className="text-xs text-muted-foreground">Task leader:</span>
+          <Crown className="w-3 h-3 text-amber-500 flex-shrink-0" />
           <Select
             value={task.lead_participant_id || ''}
             onValueChange={(value) => onUpdate(task.id, { lead_participant_id: value || null })}
             disabled={readOnly}
           >
-            <SelectTrigger className="h-6 w-[90px] text-xs px-1.5">
-              <SelectValue placeholder="Select" />
+            <SelectTrigger
+              className="h-auto border-0 shadow-none p-0 w-auto gap-0 text-xs font-bold"
+              style={task.lead_participant_id ? {
+                backgroundColor: '#000000',
+                color: '#ffffff',
+                height: '17px',
+                fontFamily: 'Times New Roman, serif',
+                fontSize: '11pt',
+                lineHeight: '17px',
+                borderRadius: '9999px',
+                paddingLeft: '6px',
+                paddingRight: '6px',
+              } : undefined}
+            >
+              <SelectValue placeholder="Select leader" />
             </SelectTrigger>
             <SelectContent>
               {participants.map((p) => (
