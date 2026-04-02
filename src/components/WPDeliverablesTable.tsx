@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Package, Plus, Trash2, GripVertical, ArrowLeft } from 'lucide-react';
+import { Package, Plus, Trash2, GripVertical, ArrowRight } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -236,7 +236,7 @@ function SortableDeliverableCard({
             {...listeners}
             className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted rounded touch-none flex-shrink-0"
           >
-            <GripVertical className="w-4 h-4 text-muted-foreground" />
+            <GripVertical className="w-4 h-4 text-blue-500" />
           </button>
         )}
         <span className="text-sm text-foreground font-medium flex-shrink-0" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
@@ -255,7 +255,7 @@ function SortableDeliverableCard({
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 text-muted-foreground hover:text-destructive flex-shrink-0"
+            className="h-6 w-6 text-destructive hover:text-destructive flex-shrink-0"
             onClick={() => onDelete(deliverable.id)}
           >
             <Trash2 className="h-3.5 w-3.5" />
@@ -347,35 +347,32 @@ function SortableDeliverableCard({
               ))}
             </SelectContent>
           </Select>
+
+          {/* Move to another WP */}
+          {!readOnly && onMove && allWpDrafts.filter(wp => wp.id !== currentWpDraftId).length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0">
+                  <ArrowRight className="h-3.5 w-3.5 text-blue-500" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Move to another WP draft</DropdownMenuLabel>
+                {allWpDrafts
+                  .filter(wp => wp.id !== currentWpDraftId)
+                  .map(wp => (
+                    <DropdownMenuItem
+                      key={wp.id}
+                      onClick={() => onMove(deliverable.id, wp.id)}
+                    >
+                      WP{wp.number}{wp.short_name ? `: ${wp.short_name}` : wp.title ? `: ${wp.title}` : ''}
+                    </DropdownMenuItem>
+                  ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
-
-      {/* Move to another WP */}
-      {!readOnly && onMove && allWpDrafts.filter(wp => wp.id !== currentWpDraftId).length > 0 && (
-        <div className="mt-1.5 ml-5">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-5 px-1.5 text-xs text-muted-foreground hover:text-foreground gap-1">
-                <ArrowLeft className="h-3 w-3" />
-                Move
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56">
-              <DropdownMenuLabel>Move to another WP draft</DropdownMenuLabel>
-              {allWpDrafts
-                .filter(wp => wp.id !== currentWpDraftId)
-                .map(wp => (
-                  <DropdownMenuItem
-                    key={wp.id}
-                    onClick={() => onMove(deliverable.id, wp.id)}
-                  >
-                    WP{wp.number}{wp.short_name ? `: ${wp.short_name}` : wp.title ? `: ${wp.title}` : ''}
-                  </DropdownMenuItem>
-                ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      )}
     </div>
   );
 }
