@@ -215,6 +215,7 @@ borderTopLeftRadius: '15px',
                           padding: 0,
                           backgroundColor: '#000000',
                           position: 'relative',
+                          boxShadow: '-5pt 0 0 0 #000000',
                         }}
                       >
                         <div style={{
