@@ -905,22 +905,54 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm opacity-80">WP Leader:</span>
-              <Select
-                value={wpDraft.lead_participant_id || ''}
-                onValueChange={(value) => updateField('lead_participant_id', value || null)}
-                disabled={readOnly}
-              >
-                <SelectTrigger className="bg-white/90 text-foreground h-7 w-[160px] text-sm">
-                  <SelectValue placeholder="Select lead..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {participants.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.organisation_short_name || p.organisation_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80" disabled={readOnly}>
+                    {(() => {
+                      const leader = participants.find(p => p.id === wpDraft.lead_participant_id);
+                      if (leader) {
+                        return (
+                          <span
+                            className="inline-flex items-center rounded-full font-bold italic whitespace-nowrap"
+                            style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'italic', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', height: '17px' }}
+                          >
+                            <Crown className="w-3 h-3 mr-1 text-white fill-white" />
+                            {leader.participant_number}. {leader.organisation_short_name || leader.organisation_name}
+                          </span>
+                        );
+                      }
+                      return <span className="text-sm opacity-60 italic">Select lead...</span>;
+                    })()}
+                    <ChevronsUpDown className="h-3 w-3 opacity-50 shrink-0" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[220px] p-0" align="start">
+                  <div className="max-h-[200px] overflow-y-auto">
+                    {participants.map(p => (
+                      <button
+                        key={p.id}
+                        className={cn(
+                          'flex items-center gap-2 w-full px-2 py-1.5 text-sm hover:bg-accent cursor-pointer',
+                          p.id === wpDraft.lead_participant_id && 'bg-accent',
+                        )}
+                        onClick={() => updateField('lead_participant_id', p.id)}
+                      >
+                        <div
+                          className={cn(
+                            'flex h-4 w-4 items-center justify-center rounded-full border',
+                            p.id === wpDraft.lead_participant_id ? 'bg-primary border-primary' : 'border-muted-foreground',
+                          )}
+                        >
+                          {p.id === wpDraft.lead_participant_id && <Check className="h-3 w-3 text-primary-foreground" />}
+                        </div>
+                        <span className="truncate">
+                          {p.participant_number}. {p.organisation_short_name || p.organisation_name}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
             {/* Auto-calculated duration from tasks */}
             {(() => {
