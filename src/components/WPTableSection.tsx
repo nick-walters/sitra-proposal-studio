@@ -212,6 +212,7 @@ function SortableTaskCard({
   wpNumber,
   participants,
   monthOptions,
+  projectDuration,
   onUpdate,
   onDelete,
   onParticipantsChange,
