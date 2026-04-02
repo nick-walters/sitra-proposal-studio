@@ -226,7 +226,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                     );
                   })}
                   {/* Total cell */}
-                  <td className={`${cellStyles} font-bold`}>
+                  <td className={`${cellStyles} font-bold`} style={{ color: '#FFFFFF' }}>
                     {rowTotal ? formatPM(rowTotal) : '—'}
                   </td>
                 </tr>
