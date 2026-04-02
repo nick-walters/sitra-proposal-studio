@@ -886,7 +886,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               value={wpDraft.title || ''}
               onDebouncedChange={(v) => updateField('title', v)}
               placeholder="Work package title"
-              className="bg-white/90 text-foreground flex-1"
+              className="bg-white/90 text-foreground flex-1 font-bold"
               disabled={readOnly}
             />
           </div>
