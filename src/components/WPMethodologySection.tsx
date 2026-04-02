@@ -173,10 +173,10 @@ export function WPMethodologySection({
 
           {/* Subsection 3: Foreseen challenges */}
           <div className="space-y-2">
-            <p className="text-draft font-bold" style={{ fontFamily: 'Times New Roman, serif', fontSize: '11pt' }}>
+            <p className="font-bold" style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '11pt' }}>
               What issues could get in your way when implementing this WP?
             </p>
-            <p className="text-draft text-muted-foreground italic" style={{ fontFamily: 'Times New Roman, serif', fontSize: '11pt' }}>
+            <p className="text-muted-foreground italic" style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '11pt' }}>
               Describe any foreseen challenges related to the implementation of this WP and how they will be overcome. This means challenges relating to the approaches/methodologies and is not the same as critical risks for implementation. For example, a "critical risk" (described in the implementation section in Table 3.1.e) may be that there is difficulty engaging stakeholders in a project's multi-actor approach, e.g. lack of attendance at workshops to provide feedback. By contrast, the "foreseen challenge" related to the multi-actor approach to be described here in the methodology narrative (in Part B1.2) would be an acknowledgement in the design of the project's methodologies that this may be a challenge, and proposing ways of overcoming this challenge, e.g. by involving associations, NGOs, CSOs or other types of organisations to support in engaging stakeholders and local communities in the project.
             </p>
             <WPSimpleEditor
