@@ -100,12 +100,14 @@ export function WPRisksTable({
           Risks
         </CardTitle>
         {/* Colour legend */}
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span>Likelihood / Severity:</span>
           {RISK_LEVELS.map(level => (
-            <span key={level.value} className={cn("px-1.5 py-0.5 rounded text-xs font-medium", level.color)}>
-              {level.value} = {level.label}
+            <span key={level.value} className="inline-flex items-center gap-1">
+              <RiskLevelBubble level={level.value} />
+              <span>= {level.label}</span>
             </span>
+          ))}
           ))}
         </div>
       </CardHeader>
