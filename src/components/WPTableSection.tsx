@@ -156,6 +156,7 @@ export function WPTableSection({
                     wpNumber={wpNumber}
                     participants={participants}
                     monthOptions={monthOptions}
+                    projectDuration={projectDuration}
                     onUpdate={onTaskUpdate}
                     onDelete={onTaskDelete}
                     onParticipantsChange={onTaskParticipantsChange}
