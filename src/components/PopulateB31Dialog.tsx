@@ -281,7 +281,7 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
 
               {currentWp.tasks.length > 0 && (
                 <SectionBlock
-                  label={`Tasks (${currentWp.tasks.length})`}
+                  label={`${currentWp.tasks.length === 1 ? 'Task' : 'Tasks'} (${currentWp.tasks.length})`}
                   description="Copies task content to Table 3.1.b"
                   checked={currentSel.tasksEnabled}
                   onCheckedChange={(v) => {
