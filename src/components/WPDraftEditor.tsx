@@ -912,17 +912,17 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           {/* Short name, Lead partner, and Duration */}
           <div className="mt-2 flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2">
-              <span className="text-sm opacity-80">Short name:</span>
+              <span className="text-xs opacity-80">Short name:</span>
               <DebouncedInput
                 value={wpDraft.short_name || ''}
                 onDebouncedChange={(v) => updateField('short_name', v)}
                 placeholder="e.g. COORD"
-                className="bg-white/90 text-foreground h-7 w-[140px] text-sm font-bold"
+                className="bg-white/90 text-foreground h-7 w-[140px] text-xs font-bold"
                 disabled={readOnly}
               />
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm opacity-80">WP Leader:</span>
+              <span className="text-xs opacity-80">WP Leader:</span>
               <Popover>
                 <PopoverTrigger asChild>
                   <button className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80" disabled={readOnly}>
@@ -939,7 +939,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
                           </span>
                         );
                       }
-                      return <span className="text-sm opacity-60 italic">Select lead...</span>;
+                      return <span className="text-xs opacity-60 italic">Select lead...</span>;
                     })()}
                     <ChevronsUpDown className="h-3 w-3 opacity-50 shrink-0" />
                   </button>
@@ -988,8 +988,8 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
                 const formatMonth = (m: number) => `M${m.toString().padStart(2, '0')}`;
                 return (
                   <div className="flex items-center gap-2">
-                    <span className="text-sm opacity-80">Duration:</span>
-                    <span className="text-sm font-medium">
+                    <span className="text-xs opacity-80">Duration:</span>
+                    <span className="text-xs font-medium">
                       {formatMonth(startMonth)}–{formatMonth(endMonth)}
                     </span>
                   </div>
@@ -997,7 +997,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               } else if (taskStartMonths.length > 0 || taskEndMonths.length > 0) {
                 return (
                   <div className="flex items-center gap-2">
-                    <span className="text-sm opacity-80">Duration:</span>
+                    <span className="text-xs opacity-80">Duration:</span>
                     <span className="text-xs opacity-60 italic">Add dates to all tasks</span>
                   </div>
                 );
