@@ -249,6 +249,7 @@ borderTopLeftRadius: '15px',
                       color: '#FFFFFF',
                       borderTopRightRadius: '9999px',
                       borderBottomRightRadius: '9999px',
+                      boxShadow: '-5pt 0 0 0 #000000',
                     }}
                   >
                     {rowTotal ? formatPM(rowTotal) : '—'}
