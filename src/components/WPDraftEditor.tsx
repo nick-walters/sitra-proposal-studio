@@ -898,15 +898,18 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
         <div className="space-y-2 -mx-2">
           {/* Full-width pill badge: WPX: Short Name – Title */}
           <div
-            className="rounded-full flex items-center px-4 py-1 gap-0 min-h-[29px]"
+            className="rounded-full flex items-baseline gap-0"
             style={{
               backgroundColor: effectiveColor,
               color: '#FFFFFF',
+              border: `1.5px solid ${effectiveColor}`,
+              padding: '0px 6px',
+              lineHeight: 1,
             }}
           >
             <span
               className="font-bold whitespace-nowrap shrink-0"
-              style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif", fontSize: '14pt' }}
+              style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif", fontSize: '11pt' }}
             >
               WP{wpDraft.number}:&nbsp;
             </span>
@@ -915,13 +918,13 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               onDebouncedChange={(v) => updateField('short_name', v)}
               placeholder="SHORT"
               className="bg-transparent text-white placeholder:text-white/40 border-none shadow-none focus-visible:ring-0 h-auto p-0 font-bold shrink-0 min-w-0"
-              style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif", fontSize: '14pt', width: `${Math.max(4, (wpDraft.short_name || '').length + 1)}ch` }}
+              style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif", fontSize: '11pt', width: `${Math.max(4, (wpDraft.short_name || '').length + 1)}ch` }}
               disabled={readOnly}
             />
             {(wpDraft.short_name || wpDraft.title || !readOnly) && (
               <span
                 className="font-bold whitespace-nowrap shrink-0"
-                style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif", fontSize: '14pt' }}
+                style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif", fontSize: '11pt' }}
               >
               {wpDraft.short_name ? ' –\u00A0' : ''}
             </span>
@@ -931,7 +934,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               onDebouncedChange={(v) => updateField('title', v)}
               placeholder="Work package title"
               className="bg-transparent text-white placeholder:text-white/40 border-none shadow-none focus-visible:ring-0 h-auto p-0 font-bold flex-1 min-w-0"
-              style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif", fontSize: '14pt' }}
+              style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif", fontSize: '11pt' }}
               disabled={readOnly}
             />
           </div>
