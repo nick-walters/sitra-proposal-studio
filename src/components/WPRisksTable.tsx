@@ -314,7 +314,7 @@ function SortableRiskCard({
           <span className="text-xs text-muted-foreground">Likelihood:</span>
           <Select
             value={risk.likelihood || ''}
-            onValueChange={(value) => onUpdate(risk.id, { likelihood: value })}
+            onValueChange={(value) => onUpdate(risk.id, { likelihood: value === '__clear__' ? null : value })}
             disabled={readOnly}
           >
             <SelectTrigger hideArrow className="h-6 w-auto min-w-[28px] px-0.5 border-0 bg-transparent focus:ring-0">
@@ -323,6 +323,9 @@ function SortableRiskCard({
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="__clear__">
+                <span className="text-muted-foreground italic">Clear</span>
+              </SelectItem>
               {RISK_LEVELS.map((level) => (
                 <SelectItem key={level.value} value={level.value}>
                   <div className="flex items-center gap-2">
@@ -338,7 +341,7 @@ function SortableRiskCard({
           <span className="text-xs text-muted-foreground">Severity:</span>
           <Select
             value={risk.severity || ''}
-            onValueChange={(value) => onUpdate(risk.id, { severity: value })}
+            onValueChange={(value) => onUpdate(risk.id, { severity: value === '__clear__' ? null : value })}
             disabled={readOnly}
           >
             <SelectTrigger hideArrow className="h-6 w-auto min-w-[28px] px-0.5 border-0 bg-transparent focus:ring-0">
@@ -347,6 +350,9 @@ function SortableRiskCard({
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="__clear__">
+                <span className="text-muted-foreground italic">Clear</span>
+              </SelectItem>
               {RISK_LEVELS.map((level) => (
                 <SelectItem key={level.value} value={level.value}>
                   <div className="flex items-center gap-2">

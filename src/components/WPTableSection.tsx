@@ -321,7 +321,7 @@ function SortableTaskCard({
           <span className="text-xs text-muted-foreground flex-shrink-0">Task Leader:</span>
           <Select
             value={task.lead_participant_id || ''}
-            onValueChange={(value) => onUpdate(task.id, { lead_participant_id: value || null })}
+            onValueChange={(value) => onUpdate(task.id, { lead_participant_id: value === '__clear__' ? null : value || null })}
             disabled={readOnly}
           >
             <SelectTrigger
@@ -345,6 +345,9 @@ function SortableTaskCard({
               <SelectValue placeholder="Select leader" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="__clear__">
+                <span className="text-muted-foreground italic">Clear selection</span>
+              </SelectItem>
               {participants.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
                   {p.organisation_short_name || p.organisation_name}

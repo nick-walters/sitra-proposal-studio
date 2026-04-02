@@ -272,13 +272,16 @@ function SortableDeliverableCard({
           <span className="text-xs text-muted-foreground">Type:</span>
           <Select
             value={deliverable.type || ''}
-            onValueChange={(value) => onUpdate(deliverable.id, { type: value })}
+            onValueChange={(value) => onUpdate(deliverable.id, { type: value === '__clear__' ? null : value })}
             disabled={readOnly}
           >
             <SelectTrigger hideArrow className="h-6 w-[75px] text-xs px-1.5">
               <span>{deliverable.type || 'Select'}</span>
             </SelectTrigger>
             <SelectContent className="bg-popover">
+              <SelectItem value="__clear__">
+                <span className="text-muted-foreground italic">Clear</span>
+              </SelectItem>
               {DELIVERABLE_TYPES.map((type) => (
                 <SelectItem key={type.value} value={type.value} textValue={type.value}>
                   <div className="flex flex-col">
@@ -295,13 +298,16 @@ function SortableDeliverableCard({
           <span className="text-xs text-muted-foreground">Dissemination level:</span>
           <Select
             value={deliverable.dissemination_level || 'PU'}
-            onValueChange={(value) => onUpdate(deliverable.id, { dissemination_level: value })}
+            onValueChange={(value) => onUpdate(deliverable.id, { dissemination_level: value === '__clear__' ? null : value })}
             disabled={readOnly}
           >
-            <SelectTrigger hideArrow className="h-6 w-[110px] text-xs px-1.5">
-              <span>{deliverable.dissemination_level || 'PU'}</span>
+            <SelectTrigger hideArrow className="h-6 w-[77px] text-xs px-1.5">
+              <span>{deliverable.dissemination_level || 'Select'}</span>
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="__clear__">
+                <span className="text-muted-foreground italic">Clear</span>
+              </SelectItem>
               {DISSEMINATION_LEVELS.map((level) => (
                 <SelectItem key={level.value} value={level.value} textValue={level.value}>
                   <div className="flex flex-col">
@@ -318,7 +324,7 @@ function SortableDeliverableCard({
           <span className="text-xs text-muted-foreground">Partner responsible:</span>
           <Select
             value={deliverable.responsible_participant_id || ''}
-            onValueChange={(value) => onUpdate(deliverable.id, { responsible_participant_id: value || null })}
+            onValueChange={(value) => onUpdate(deliverable.id, { responsible_participant_id: value === '__clear__' ? null : value || null })}
             disabled={readOnly}
           >
             <SelectTrigger
@@ -338,6 +344,9 @@ function SortableDeliverableCard({
               <SelectValue placeholder="Select" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="__clear__">
+                <span className="text-muted-foreground italic">Clear selection</span>
+              </SelectItem>
               {participants.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
                   {p.organisation_short_name || p.organisation_name}
