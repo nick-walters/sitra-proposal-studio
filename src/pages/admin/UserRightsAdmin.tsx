@@ -487,19 +487,8 @@ export function UserRightsAdmin() {
                         <TableCell className="align-top">
                           <div className="space-y-1">
                             {/* Platform label */}
-                            <div className="h-7 flex items-center gap-2">
+                            <div className="h-7 flex items-center">
                               <span className="text-sm font-bold">Sitra Proposal Studio</span>
-                              {isOwner && !isSelf && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6"
-                                  title="Remove all access"
-                                  onClick={() => setDeleteConfirmUser(u)}
-                                >
-                                  <Trash2 className="w-3 h-3 text-destructive" />
-                                </Button>
-                              )}
                             </div>
                             {/* Proposal names */}
                             {proposalRoles.map(r => (
