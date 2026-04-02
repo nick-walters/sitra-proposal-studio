@@ -275,9 +275,10 @@ interface WPManagementCardProps {
   proposalId: string;
   isCoordinator: boolean;
   isFullProposal?: boolean;
+  onDraftVisibilityChange?: () => void;
 }
 
-export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = true }: WPManagementCardProps) {
+export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = true, onDraftVisibilityChange }: WPManagementCardProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [selectedWPs, setSelectedWPs] = useState<Set<string>>(new Set());
@@ -302,7 +303,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     queryFn: async () => {
       const { data, error } = await supabase
         .from('proposals')
-        .select('budget_type, use_wp_themes')
+        .select('budget_type, use_wp_themes, wp_drafts_visible, case_drafts_visible')
         .eq('id', proposalId)
         .single();
       if (error) throw error;
@@ -312,6 +313,15 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
 
   const isLumpSum = proposal?.budget_type === 'lump_sum';
   const useWpThemes = proposal?.use_wp_themes ?? false;
+  const wpDraftsVisible = (proposal as any)?.wp_drafts_visible !== false;
+  const caseDraftsVisible = (proposal as any)?.case_drafts_visible !== false;
+
+  const handleDraftVisibility = async (field: 'wp_drafts_visible' | 'case_drafts_visible', visible: boolean) => {
+    await supabase.from('proposals').update({ [field]: visible } as any).eq('id', proposalId);
+    queryClient.invalidateQueries({ queryKey: ['proposal-for-themes', proposalId] });
+    queryClient.invalidateQueries({ queryKey: ['proposal'] });
+    onDraftVisibilityChange?.();
+  };
 
   // Toggle use_wp_themes
   const toggleWpThemesMutation = useMutation({
@@ -810,10 +820,44 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
           onSave={updatePalette}
         />
 
-        {/* Populate B3.1 Section (Full proposals Only) */}
+        {/* Draft Visibility & Populate B3.1 Section (Full proposals Only) */}
         {isFullProposal && isCoordinator && (
           <>
             <div className="border-t pt-4 mt-4">
+              {/* Draft Visibility Controls */}
+              <div className="flex flex-wrap items-center gap-4 mb-4">
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm font-medium whitespace-nowrap">WP draft visibility</Label>
+                  <Select
+                    value={wpDraftsVisible ? 'visible' : 'hidden'}
+                    onValueChange={(v) => handleDraftVisibility('wp_drafts_visible', v === 'visible')}
+                  >
+                    <SelectTrigger className="h-7 w-[100px] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="visible">Visible</SelectItem>
+                      <SelectItem value="hidden">Hidden</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm font-medium whitespace-nowrap">Case draft visibility</Label>
+                  <Select
+                    value={caseDraftsVisible ? 'visible' : 'hidden'}
+                    onValueChange={(v) => handleDraftVisibility('case_drafts_visible', v === 'visible')}
+                  >
+                    <SelectTrigger className="h-7 w-[100px] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="visible">Visible</SelectItem>
+                      <SelectItem value="hidden">Hidden</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <h4 className="text-sm font-semibold mb-3">Populate Part B3.1</h4>
               
               {/* WP Selection */}

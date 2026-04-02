@@ -63,6 +63,8 @@ interface ProposalData {
   fstpBudgetPerThirdParty?: string;
   casesEnabled?: boolean;
   casesType?: string;
+  wpDraftsVisible?: boolean;
+  caseDraftsVisible?: boolean;
   reportingPeriods?: { number: number; startMonth: number; endMonth: number }[];
   acronymSegments?: { text: string; color: string }[];
   createdAt: Date;
@@ -136,6 +138,8 @@ export function useProposalData(proposalId: string) {
         fstpBudgetPerThirdParty: (data as any).fstp_budget_per_third_party || undefined,
         casesEnabled: (data as any).cases_enabled || false,
         casesType: (data as any).cases_type || undefined,
+        wpDraftsVisible: (data as any).wp_drafts_visible !== false,
+        caseDraftsVisible: (data as any).case_drafts_visible !== false,
         reportingPeriods: (data as any).reporting_periods || undefined,
         acronymSegments: (data as any).acronym_segments || undefined,
         createdAt: new Date(data.created_at),

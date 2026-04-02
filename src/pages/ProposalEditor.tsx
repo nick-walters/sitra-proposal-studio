@@ -138,6 +138,7 @@ export function ProposalEditor() {
     updateParticipantMember,
     deleteParticipantMember,
     updateEthics,
+    refreshProposal,
   } = useProposalData(id || '');
 
   // Budget data
@@ -917,6 +918,7 @@ export function ProposalEditor() {
             proposalId={id || ''}
             isCoordinator={canEdit}
             isFullProposal={proposal?.submissionStage !== 'stage_1'}
+            onDraftVisibilityChange={refreshProposal}
           />
           <CaseManagementCard
             proposalId={id || ''}
@@ -1217,6 +1219,8 @@ export function ProposalEditor() {
               collaborators={collaborators}
               lockedSections={lockedSections}
               onToggleLock={toggleSectionLock}
+              wpDraftsVisible={proposal?.wpDraftsVisible !== false}
+              caseDraftsVisible={proposal?.caseDraftsVisible !== false}
             />
           </div>
         </aside>
