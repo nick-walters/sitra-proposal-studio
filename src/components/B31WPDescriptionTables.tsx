@@ -622,7 +622,20 @@ function SortableTaskGroup({
         </td>
       </tr>
 
-      {/* Task description - only shown after populate via TipTap editor */}
+      {/* Task description */}
+      <tr>
+        <td
+          colSpan={2}
+          className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-top"
+          style={{ border: 'none', padding: '2px 6px' }}
+        >
+          <EditableText
+            value={task.description || ''}
+            onSave={(val) => saveTaskField(task.id, 'description', val)}
+            placeholder="Click to add task description…"
+          />
+        </td>
+      </tr>
 
     </tbody>
   );
