@@ -55,6 +55,8 @@ export function WPSimpleEditor({
   const [isFocused, setIsFocused] = useState(false);
   const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
   const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number } | null>(null);
+  const [isTaskRefOpen, setIsTaskRefOpen] = useState(false);
+  const [isDeliverableRefOpen, setIsDeliverableRefOpen] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const isInitialMount = useRef(true);
 
