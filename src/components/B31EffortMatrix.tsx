@@ -13,8 +13,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { EditableCaption } from '@/components/EditableCaption';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
-const cellStyles = "px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle";
-const headerCellStyles = "px-[1pt] py-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle";
+const cellStyles = "px-[1pt] py-[1pt] font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle border-none";
+const headerCellStyles = "px-[1pt] py-[1pt] font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight text-center align-middle border-none";
 
 function formatPM(value: number): string {
   if (value === 0) return '0';
