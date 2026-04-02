@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Flag, Plus, Trash2, GripVertical, ChevronsUpDown } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getDefaultWPColor, getContrastingTextColor } from '@/lib/wpColors';
+import { getDefaultWPColor } from '@/lib/wpColors';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { WPSimpleEditor } from '@/components/WPSimpleEditor';
