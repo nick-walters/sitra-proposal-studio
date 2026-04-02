@@ -289,18 +289,20 @@ function SortableTaskCard({
             <GripVertical className="w-4 h-4 text-blue-500" />
           </button>
         )}
-        <span className="text-sm text-foreground font-bold flex-shrink-0" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
-          {formatTaskNumber(task.number)}:
-        </span>
-        <Input
-          value={localTitle}
-          onChange={handleTitleChange}
-          onFocus={() => { isFocused.current = true; }}
-          onBlur={() => { isFocused.current = false; }}
-          placeholder="Task title..."
-          className="h-6 text-xs flex-1 font-bold"
-          disabled={readOnly}
-        />
+        <div className="flex items-center h-6 flex-1 border rounded-md bg-background overflow-hidden focus-within:ring-1 focus-within:ring-ring">
+          <span className="text-xs font-bold flex-shrink-0 pl-2 pr-0.5 select-none text-foreground" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
+            {formatTaskNumber(task.number)}:
+          </span>
+          <input
+            value={localTitle}
+            onChange={handleTitleChange}
+            onFocus={() => { isFocused.current = true; }}
+            onBlur={() => { isFocused.current = false; }}
+            placeholder="Task title..."
+            className="h-full text-xs flex-1 font-bold bg-transparent border-0 outline-none px-1"
+            disabled={readOnly}
+          />
+        </div>
         {!readOnly && (
           <Button
             variant="ghost"
