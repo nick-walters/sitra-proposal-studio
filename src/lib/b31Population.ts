@@ -15,6 +15,7 @@ export interface WPDraftForPopulate {
   short_name: string | null;
   title: string | null;
   objectives: string | null;
+  description_before_tasks: string | null;
   tasks: {
     id: string;
     number: number;
