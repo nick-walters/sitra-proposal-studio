@@ -560,7 +560,7 @@ function SortableTableRow({
               {...attributes} 
               {...listeners}
             >
-              <GripVertical className="h-4 w-4 text-muted-foreground" />
+              <GripVertical className="h-4 w-4 text-[#2563EB]" />
             </div>
             {(child as React.ReactElement<any>).props.children}
           </>

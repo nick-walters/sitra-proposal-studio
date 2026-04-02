@@ -74,7 +74,7 @@ function SortableAchievementRow({
           {...attributes}
           {...listeners}
         >
-          <GripVertical className="w-4 h-4" />
+          <GripVertical className="w-4 h-4 text-[#2563EB]" />
         </button>
       )}
       <Award className="w-5 h-5 text-primary flex-shrink-0" />

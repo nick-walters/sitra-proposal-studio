@@ -242,7 +242,7 @@ function ParticipantCard({
               className="cursor-grab active:cursor-grabbing p-0.5 -m-0.5 text-muted-foreground hover:text-foreground touch-none"
               onClick={(e) => e.stopPropagation()}
             >
-              <GripVertical className="w-4 h-4" />
+              <GripVertical className="w-4 h-4 text-[#2563EB]" />
             </button>
           )}
           

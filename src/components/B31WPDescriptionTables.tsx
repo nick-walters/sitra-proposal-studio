@@ -549,7 +549,7 @@ function SortableTaskGroup({
             title="Drag to reorder"
             style={{ position: 'absolute', left: '-28px', top: '50%', transform: 'translateY(-50%)' }}
           >
-            <GripVertical className="w-3.5 h-3.5 text-muted-foreground" />
+            <GripVertical className="w-3.5 h-3.5 text-[#2563EB]" />
           </button>
           {/* Delete button – right margin */}
           <AlertDialog>
