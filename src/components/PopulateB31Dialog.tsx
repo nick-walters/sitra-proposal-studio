@@ -32,6 +32,7 @@ type Step = 'wp-select' | 'item-select';
 // Per-WP selections
 interface WPSelections {
   objectives: boolean;
+  descriptionBeforeTasks: boolean;
   tasksEnabled: boolean;
   taskChecks: Record<string, boolean>;
   deliverablesEnabled: boolean;
