@@ -605,7 +605,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
             />
           </div>
           {/* Row 2: Formatting toolbar */}
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-0.5 flex-wrap">
 
           {/* Undo / Redo */}
           {!readOnly && (
