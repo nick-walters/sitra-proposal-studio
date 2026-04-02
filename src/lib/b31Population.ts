@@ -19,6 +19,10 @@ export interface WPDraftForPopulate {
     number: number;
     title: string | null;
     description: string | null;
+    lead_participant_id: string | null;
+    start_month: number | null;
+    end_month: number | null;
+    participants: { participant_id: string }[];
   }[];
   deliverables: {
     id: string;
