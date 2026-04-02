@@ -32,7 +32,7 @@ export function SingleMonthPicker({
       <span className="text-xs text-muted-foreground">{label}</span>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <button className="cursor-pointer hover:opacity-80 text-xs font-bold h-6 px-2 border rounded-md" disabled={readOnly}>
+          <button className={cn("cursor-pointer hover:opacity-80 text-xs font-bold h-6 px-2 border rounded-md", value == null && "bg-muted")} disabled={readOnly}>
             {value != null ? (
               fmt(value)
             ) : (
