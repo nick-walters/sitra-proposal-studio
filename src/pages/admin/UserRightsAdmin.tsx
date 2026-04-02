@@ -408,7 +408,7 @@ export function UserRightsAdmin() {
 
                     return (
                       <TableRow key={u.id}>
-                        <TableCell>
+                        <TableCell className="align-top">
                           <div className="flex items-center gap-3">
                             {isOwner ? (
                               <AdminAvatarUpload
@@ -428,9 +428,8 @@ export function UserRightsAdmin() {
                             <div>
                               <span className="font-medium">{getDisplayName(u)}</span>
                               {(() => {
-                                const globalRole = globalRoles[0]; // At most one global role
+                                const globalRole = globalRoles[0];
                                 const currentGlobalValue = globalRole?.role || 'none';
-                                const isTargetOwner = currentGlobalValue === 'owner';
                                 const isSelf = u.id === user?.id;
                                 const canEditGlobal = isOwner && !isSelf;
 
@@ -462,24 +461,75 @@ export function UserRightsAdmin() {
 
                                 return null;
                               })()}
+                              {isAdminOrOwner && (
+                                <div className="mt-1">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-6 px-1.5 text-xs"
+                                    onClick={() => setEditProfileUserId(u.id)}
+                                  >
+                                    <Pencil className="w-3 h-3 mr-1" />
+                                    Edit profile
+                                  </Button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="text-muted-foreground">{u.email}</TableCell>
-                        <TableCell>
-                          {proposalRoles.length === 0 ? (
-                            <span className="text-muted-foreground text-sm">—</span>
-                          ) : (
-                            <div className="space-y-1">
-                              {proposalRoles.map(r => (
-                                <div key={r.id} className="h-7 flex items-center">
-                                  <span className="text-sm font-medium">{r.proposal_acronym || 'Unknown'}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                        <TableCell className="text-muted-foreground align-top">
+                          <div>
+                            {u.email}
+                            {isAdminOrOwner && (
+                              <div className="mt-1">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-6 px-1.5 text-xs"
+                                  title="Resend signup / password reset email"
+                                  onClick={() => handleResendSignupLink(u)}
+                                >
+                                  <Send className="w-3 h-3 mr-1" />
+                                  Resend link
+                                </Button>
+                              </div>
+                            )}
+                          </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="align-top">
+                          <div>
+                            {proposalRoles.length === 0 ? (
+                              <span className="text-muted-foreground text-sm">—</span>
+                            ) : (
+                              <div className="space-y-1">
+                                {proposalRoles.map(r => (
+                                  <div key={r.id} className="h-7 flex items-center">
+                                    <span className="text-sm font-medium">{r.proposal_acronym || 'Unknown'}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {assignableProposals.length > 0 && (
+                              <div className="mt-1">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-6 px-1.5 text-xs"
+                                  onClick={() => {
+                                    setSelectedUser(u);
+                                    setNewRole('editor');
+                                    setSelectedProposalId('');
+                                    setDialogOpen(true);
+                                  }}
+                                >
+                                  <Plus className="w-3 h-3 mr-1" />
+                                  Add role
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="align-top">
                           {proposalRoles.length === 0 ? (
                             <span className="text-muted-foreground text-sm">No proposal roles</span>
                           ) : (
@@ -508,7 +558,7 @@ export function UserRightsAdmin() {
                             </div>
                           )}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="align-top">
                           {proposalRoles.length > 0 && (
                             <div className="space-y-1">
                               {proposalRoles.map(r => (
@@ -527,49 +577,6 @@ export function UserRightsAdmin() {
                               ))}
                             </div>
                           )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            {isAdminOrOwner && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-6 px-1.5 text-xs"
-                                title="Resend signup / password reset email"
-                                onClick={() => handleResendSignupLink(u)}
-                              >
-                                <Send className="w-3 h-3 mr-1" />
-                                Resend link
-                              </Button>
-                            )}
-                            {isAdminOrOwner && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-6 px-1.5 text-xs"
-                                onClick={() => setEditProfileUserId(u.id)}
-                              >
-                                <Pencil className="w-3 h-3 mr-1" />
-                                Edit profile
-                              </Button>
-                            )}
-                            {assignableProposals.length > 0 && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-6 px-1.5 text-xs"
-                                onClick={() => {
-                                  setSelectedUser(u);
-                                  setNewRole('editor');
-                                  setSelectedProposalId('');
-                                  setDialogOpen(true);
-                                }}
-                              >
-                                <Plus className="w-3 h-3 mr-1" />
-                                Add role
-                              </Button>
-                            )}
-                          </div>
                         </TableCell>
                       </TableRow>
                     );
