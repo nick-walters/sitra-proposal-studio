@@ -9,10 +9,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Palette, RotateCcw } from 'lucide-react';
-import { DEFAULT_WP_COLORS, getContrastingTextColor } from '@/lib/wpColors';
-import { cn } from '@/lib/utils';
+import { DEFAULT_WP_COLORS } from '@/lib/wpColors';
 import { toast } from 'sonner';
 
 interface WPColorPaletteEditorProps {
