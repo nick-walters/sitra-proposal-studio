@@ -339,7 +339,26 @@ export function CaseManagementCard({
     enabled: casesEnabled,
   });
 
-  // Update case mutation
+  // Case draft visibility
+  const { data: caseDraftsVisibleData } = useQuery({
+    queryKey: ['case-drafts-visible', proposalId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('proposals')
+        .select('case_drafts_visible')
+        .eq('id', proposalId)
+        .single();
+      return (data as any)?.case_drafts_visible !== false;
+    },
+  });
+  const caseDraftsVisible = caseDraftsVisibleData !== false;
+
+  const handleCaseDraftVisibility = async (visible: boolean) => {
+    await supabase.from('proposals').update({ case_drafts_visible: visible } as any).eq('id', proposalId);
+    queryClient.invalidateQueries({ queryKey: ['case-drafts-visible', proposalId] });
+    queryClient.invalidateQueries({ queryKey: ['proposal-for-themes', proposalId] });
+  };
+
   const updateCaseMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<CaseDraft> }) => {
       const { error } = await supabase
@@ -605,9 +624,9 @@ export function CaseManagementCard({
                   </DndContext>
                 </div>
 
-                {/* Add button */}
+                {/* Add button & visibility */}
                 {isCoordinator && (
-                  <div className="pt-2">
+                  <div className="pt-2 flex items-center justify-between">
                     <Button
                       variant="outline"
                       size="sm"
@@ -617,6 +636,21 @@ export function CaseManagementCard({
                       <Plus className="w-4 h-4 mr-1" />
                       Add Case
                     </Button>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm font-medium whitespace-nowrap">Case draft visibility</Label>
+                      <Select
+                        value={caseDraftsVisible ? 'visible' : 'hidden'}
+                        onValueChange={(v) => handleCaseDraftVisibility(v === 'visible')}
+                      >
+                        <SelectTrigger className="h-7 w-[100px] text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="visible">Visible</SelectItem>
+                          <SelectItem value="hidden">Hidden</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 )}
               </>

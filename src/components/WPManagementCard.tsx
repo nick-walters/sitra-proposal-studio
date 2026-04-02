@@ -795,21 +795,6 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm font-medium whitespace-nowrap">Case draft visibility</Label>
-                  <Select
-                    value={caseDraftsVisible ? 'visible' : 'hidden'}
-                    onValueChange={(v) => handleDraftVisibility('case_drafts_visible', v === 'visible')}
-                  >
-                    <SelectTrigger className="h-7 w-[100px] text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="visible">Visible</SelectItem>
-                      <SelectItem value="hidden">Hidden</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
               </div>
 
               <h4 className="text-sm font-semibold mb-3">Populate Part B3.1</h4>
