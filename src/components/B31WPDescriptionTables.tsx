@@ -447,10 +447,12 @@ function EditableHeaderText({
   value,
   onSave,
   className,
+  style: styleProp,
 }: {
   value: string;
   onSave: (newValue: string) => void;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   const ref = useRef<HTMLSpanElement>(null);
   const savedRef = useRef(value);
@@ -484,6 +486,7 @@ function EditableHeaderText({
         !focused && isEmpty && "text-muted-foreground/50 italic",
         className
       )}
+      style={styleProp}
       onBlur={handleBlur}
       onFocus={handleFocus}
     >
@@ -826,12 +829,14 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
                         value={shortName}
                         onSave={(val) => saveWPField(wp.id, 'short_name', val)}
                         className="text-white"
+                        style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif" }}
                       />
                       {shortName && title ? <>&nbsp;–&nbsp;</> : null}
                       <EditableHeaderText
                         value={title}
                         onSave={(val) => saveWPField(wp.id, 'title', val)}
                         className="text-white"
+                        style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif" }}
                       />
                     </span>
                   </td>
