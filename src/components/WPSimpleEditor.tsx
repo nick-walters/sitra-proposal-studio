@@ -445,7 +445,7 @@ export function WPSimpleEditor({
             "[&_td]:border [&_td]:border-foreground [&_td]:p-1",
             disabled && "cursor-not-allowed"
           )}
-          style={{ minHeight, fontFamily: 'Arial, Helvetica, sans-serif' }}
+          style={{ minHeight, fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '11pt' }}
           suppressContentEditableWarning
         />
         {showPlaceholder && (
