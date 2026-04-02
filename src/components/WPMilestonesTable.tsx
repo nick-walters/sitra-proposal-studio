@@ -32,6 +32,7 @@ interface WPOption {
   number: number;
   short_name: string | null;
   title: string | null;
+  color?: string | null;
 }
 
 interface WPMilestonesTableProps {
