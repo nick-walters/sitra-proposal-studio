@@ -283,17 +283,6 @@ export function BudgetSpreadsheetEnhanced({
               <Download className="w-4 h-4" />
               Export
             </Button>
-            {isFullProposal && isCoordinator && (
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={handleCopyCostJustifications}
-                disabled={isCopying}
-              >
-                {isCopying ? <Loader2 className="w-4 h-4 animate-spin" /> : <TableProperties className="w-4 h-4" />}
-                Copy justifications to B3.1
-              </Button>
-            )}
           </div>
         </div>
 
