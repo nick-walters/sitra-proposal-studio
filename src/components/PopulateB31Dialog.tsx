@@ -29,6 +29,19 @@ interface PopulateB31DialogProps {
 
 type Step = 'wp-select' | 'item-select';
 
+// Per-WP selections
+interface WPSelections {
+  objectives: boolean;
+  tasksEnabled: boolean;
+  taskChecks: Record<string, boolean>;
+  deliverablesEnabled: boolean;
+  deliverableChecks: Record<string, boolean>;
+  milestonesEnabled: boolean;
+  milestoneChecks: Record<string, boolean>;
+  risksEnabled: boolean;
+  riskChecks: Record<string, boolean>;
+}
+
 export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB31DialogProps) {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
@@ -39,20 +52,14 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
   // WP selection (step 1)
   const [wpChecks, setWpChecks] = useState<Record<string, boolean>>({});
 
-  // Item selection (step 2)
-  const [objectivesChecked, setObjectivesChecked] = useState(true);
-  const [taskChecks, setTaskChecks] = useState<Record<string, boolean>>({});
-  const [deliverableChecks, setDeliverableChecks] = useState<Record<string, boolean>>({});
-  const [milestoneChecks, setMilestoneChecks] = useState<Record<string, boolean>>({});
-  const [riskChecks, setRiskChecks] = useState<Record<string, boolean>>({});
-  const [tasksEnabled, setTasksEnabled] = useState(true);
-  const [deliverablesEnabled, setDeliverablesEnabled] = useState(true);
-  const [milestonesEnabled, setMilestonesEnabled] = useState(true);
-  const [risksEnabled, setRisksEnabled] = useState(true);
+  // Per-WP item selections (step 2)
+  const [wpSelections, setWpSelections] = useState<Record<string, WPSelections>>({});
+  const [currentWpIndex, setCurrentWpIndex] = useState(0);
 
   useEffect(() => {
     if (!open) return;
     setStep('wp-select');
+    setCurrentWpIndex(0);
     setLoading(true);
     fetchWPDraftsForPopulate(proposalId)
       .then((data) => {
@@ -67,43 +74,85 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
 
   const selectedWpDrafts = wpDrafts.filter((wp) => wpChecks[wp.id]);
 
+  const initWpSelections = () => {
+    const sels: Record<string, WPSelections> = {};
+    for (const wp of selectedWpDrafts) {
+      const taskChecks: Record<string, boolean> = {};
+      const deliverableChecks: Record<string, boolean> = {};
+      const milestoneChecks: Record<string, boolean> = {};
+      const riskChecks: Record<string, boolean> = {};
+      for (const t of wp.tasks) taskChecks[t.id] = true;
+      for (const d of wp.deliverables) deliverableChecks[d.id] = true;
+      for (const m of wp.milestones) milestoneChecks[m.id] = true;
+      for (const r of wp.risks) riskChecks[r.id] = true;
+      sels[wp.id] = {
+        objectives: true,
+        tasksEnabled: true,
+        taskChecks,
+        deliverablesEnabled: true,
+        deliverableChecks,
+        milestonesEnabled: true,
+        milestoneChecks,
+        risksEnabled: true,
+        riskChecks,
+      };
+    }
+    return sels;
+  };
+
   const proceedToItemSelect = () => {
     if (selectedWpDrafts.length === 0) {
       toast.error('Select at least one work package');
       return;
     }
-    // Initialize item checks for selected WPs only
-    const tasks: Record<string, boolean> = {};
-    const deliverables: Record<string, boolean> = {};
-    const milestones: Record<string, boolean> = {};
-    const risks: Record<string, boolean> = {};
-    for (const wp of selectedWpDrafts) {
-      for (const t of wp.tasks) tasks[t.id] = true;
-      for (const d of wp.deliverables) deliverables[d.id] = true;
-      for (const m of wp.milestones) milestones[m.id] = true;
-      for (const r of wp.risks) risks[r.id] = true;
-    }
-    setTaskChecks(tasks);
-    setDeliverableChecks(deliverables);
-    setMilestoneChecks(milestones);
-    setRiskChecks(risks);
-    setObjectivesChecked(true);
-    setTasksEnabled(true);
-    setDeliverablesEnabled(true);
-    setMilestonesEnabled(true);
-    setRisksEnabled(true);
+    setWpSelections(initWpSelections());
+    setCurrentWpIndex(0);
     setStep('item-select');
+  };
+
+  const currentWp = selectedWpDrafts[currentWpIndex];
+  const currentSel = currentWp ? wpSelections[currentWp.id] : null;
+
+  const updateCurrentSel = (updates: Partial<WPSelections>) => {
+    if (!currentWp) return;
+    setWpSelections((prev) => ({
+      ...prev,
+      [currentWp.id]: { ...prev[currentWp.id], ...updates },
+    }));
+  };
+
+  const toggleAllInRecord = (checks: Record<string, boolean>, val: boolean) => {
+    const next = { ...checks };
+    for (const key of Object.keys(next)) next[key] = val;
+    return next;
   };
 
   const handlePopulate = async () => {
     setPopulating(true);
     try {
+      // Merge per-WP selections into a single PopulateSelections
+      const allTaskChecks: Record<string, boolean> = {};
+      const allDeliverableChecks: Record<string, boolean> = {};
+      const allMilestoneChecks: Record<string, boolean> = {};
+      const allRiskChecks: Record<string, boolean> = {};
+      let anyObjectives = false;
+
+      for (const wp of selectedWpDrafts) {
+        const sel = wpSelections[wp.id];
+        if (!sel) continue;
+        if (sel.objectives) anyObjectives = true;
+        if (sel.tasksEnabled) Object.assign(allTaskChecks, sel.taskChecks);
+        if (sel.deliverablesEnabled) Object.assign(allDeliverableChecks, sel.deliverableChecks);
+        if (sel.milestonesEnabled) Object.assign(allMilestoneChecks, sel.milestoneChecks);
+        if (sel.risksEnabled) Object.assign(allRiskChecks, sel.riskChecks);
+      }
+
       const selections: PopulateSelections = {
-        objectives: objectivesChecked,
-        tasks: tasksEnabled ? taskChecks : {},
-        deliverables: deliverablesEnabled ? deliverableChecks : {},
-        milestones: milestonesEnabled ? milestoneChecks : {},
-        risks: risksEnabled ? riskChecks : {},
+        objectives: anyObjectives,
+        tasks: allTaskChecks,
+        deliverables: allDeliverableChecks,
+        milestones: allMilestoneChecks,
+        risks: allRiskChecks,
       };
 
       const result = await populateB31(proposalId, selectedWpDrafts, selections);
@@ -132,22 +181,8 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
     }
   };
 
-  const toggleAllInSection = (
-    checks: Record<string, boolean>,
-    setChecks: (v: Record<string, boolean>) => void,
-    val: boolean
-  ) => {
-    const next = { ...checks };
-    for (const key of Object.keys(next)) next[key] = val;
-    setChecks(next);
-  };
-
-  const totalTasks = Object.keys(taskChecks).length;
-  const totalDeliverables = Object.keys(deliverableChecks).length;
-  const totalMilestones = Object.keys(milestoneChecks).length;
-  const totalRisks = Object.keys(riskChecks).length;
-
   const allWpsSelected = wpDrafts.length > 0 && wpDrafts.every((wp) => wpChecks[wp.id]);
+  const isLastWp = currentWpIndex === selectedWpDrafts.length - 1;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -157,7 +192,7 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
           <DialogDescription>
             {step === 'wp-select'
               ? 'Select which work packages to copy from drafts to Part B3.1.'
-              : 'Select which content to copy. Existing B3.1 entries with matching numbers will be updated.'}
+              : `Select content to copy (${currentWpIndex + 1} of ${selectedWpDrafts.length}).`}
           </DialogDescription>
         </DialogHeader>
 
@@ -215,115 +250,149 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
               })}
             </div>
           </div>
-        ) : (
-          /* ── Step 2: Item selection ── */
+        ) : currentWp && currentSel ? (
+          /* ── Step 2: Per-WP item selection ── */
           <div className="flex-1 overflow-y-auto -mx-6 px-6">
+            {/* WP header bubble */}
+            <div className="mb-3">
+              <span
+                className="inline-flex items-center rounded-full font-bold text-white whitespace-nowrap"
+                style={{
+                  backgroundColor: getDefaultWPColor(currentWp.number),
+                  fontFamily: "'Times New Roman', Times, serif",
+                  fontSize: '11pt',
+                  fontWeight: 700,
+                  lineHeight: 1,
+                  padding: '0px 6px',
+                  height: '20px',
+                }}
+              >
+                WP{currentWp.number}{currentWp.short_name ? `: ${currentWp.short_name}` : ''}{currentWp.title ? ` – ${currentWp.title}` : ''}
+              </span>
+            </div>
+
             <div className="space-y-4 pb-2">
               <SectionBlock
-                label="WP objectives"
-                description="Copies objectives to the corresponding WP in Table 3.1.b"
-                checked={objectivesChecked}
-                onCheckedChange={setObjectivesChecked}
+                label="Objectives"
+                description="Copies objectives to Table 3.1.b"
+                checked={currentSel.objectives}
+                onCheckedChange={(v) => updateCurrentSel({ objectives: v })}
               />
 
-              <SectionBlock
-                label={`Task descriptions (${totalTasks})`}
-                description="Copies task content to the corresponding WP in Table 3.1.b"
-                checked={tasksEnabled}
-                onCheckedChange={(v) => {
-                  setTasksEnabled(v);
-                  toggleAllInSection(taskChecks, setTaskChecks, v);
-                }}
-              >
-                {tasksEnabled && totalTasks > 0 && (
-                  <ItemList
-                    items={selectedWpDrafts.flatMap((wp) =>
-                      wp.tasks.map((t) => ({
+              {currentWp.tasks.length > 0 && (
+                <SectionBlock
+                  label={`Tasks (${currentWp.tasks.length})`}
+                  description="Copies task content to Table 3.1.b"
+                  checked={currentSel.tasksEnabled}
+                  onCheckedChange={(v) => {
+                    updateCurrentSel({
+                      tasksEnabled: v,
+                      taskChecks: toggleAllInRecord(currentSel.taskChecks, v),
+                    });
+                  }}
+                >
+                  {currentSel.tasksEnabled && (
+                    <ItemList
+                      items={currentWp.tasks.map((t) => ({
                         id: t.id,
-                        label: `T${wp.number}.${t.number}${t.title ? `: ${t.title}` : ''}`,
-                      }))
-                    )}
-                    checks={taskChecks}
-                    setChecks={setTaskChecks}
-                  />
-                )}
-              </SectionBlock>
+                        label: `T${currentWp.number}.${t.number}${t.title ? `: ${t.title}` : ''}`,
+                      }))}
+                      checks={currentSel.taskChecks}
+                      setChecks={(c) => updateCurrentSel({ taskChecks: c })}
+                    />
+                  )}
+                </SectionBlock>
+              )}
 
-              <SectionBlock
-                label={`Deliverables (${totalDeliverables})`}
-                description="Copies to the combined Table 3.1.c"
-                checked={deliverablesEnabled}
-                onCheckedChange={(v) => {
-                  setDeliverablesEnabled(v);
-                  toggleAllInSection(deliverableChecks, setDeliverableChecks, v);
-                }}
-              >
-                {deliverablesEnabled && totalDeliverables > 0 && (
-                  <ItemList
-                    items={selectedWpDrafts.flatMap((wp) =>
-                      wp.deliverables.map((d) => ({
+              {currentWp.deliverables.length > 0 && (
+                <SectionBlock
+                  label={`Deliverables (${currentWp.deliverables.length})`}
+                  description="Copies to Table 3.1.c"
+                  checked={currentSel.deliverablesEnabled}
+                  onCheckedChange={(v) => {
+                    updateCurrentSel({
+                      deliverablesEnabled: v,
+                      deliverableChecks: toggleAllInRecord(currentSel.deliverableChecks, v),
+                    });
+                  }}
+                >
+                  {currentSel.deliverablesEnabled && (
+                    <ItemList
+                      items={currentWp.deliverables.map((d) => ({
                         id: d.id,
-                        label: `D${wp.number}.${d.number}${d.title ? `: ${d.title}` : ''}`,
-                      }))
-                    )}
-                    checks={deliverableChecks}
-                    setChecks={setDeliverableChecks}
-                  />
-                )}
-              </SectionBlock>
+                        label: `D${currentWp.number}.${d.number}${d.title ? `: ${d.title}` : ''}`,
+                      }))}
+                      checks={currentSel.deliverableChecks}
+                      setChecks={(c) => updateCurrentSel({ deliverableChecks: c })}
+                    />
+                  )}
+                </SectionBlock>
+              )}
 
-              <SectionBlock
-                label={`Milestones (${totalMilestones})`}
-                description="Copies to Table 3.1.d"
-                checked={milestonesEnabled}
-                onCheckedChange={(v) => {
-                  setMilestonesEnabled(v);
-                  toggleAllInSection(milestoneChecks, setMilestoneChecks, v);
-                }}
-              >
-                {milestonesEnabled && totalMilestones > 0 && (
-                  <ItemList
-                    items={selectedWpDrafts.flatMap((wp) =>
-                      wp.milestones.map((m) => ({
+              {currentWp.milestones.length > 0 && (
+                <SectionBlock
+                  label={`Milestones (${currentWp.milestones.length})`}
+                  description="Copies to Table 3.1.d"
+                  checked={currentSel.milestonesEnabled}
+                  onCheckedChange={(v) => {
+                    updateCurrentSel({
+                      milestonesEnabled: v,
+                      milestoneChecks: toggleAllInRecord(currentSel.milestoneChecks, v),
+                    });
+                  }}
+                >
+                  {currentSel.milestonesEnabled && (
+                    <ItemList
+                      items={currentWp.milestones.map((m) => ({
                         id: m.id,
                         label: `MS${m.number}${m.title ? `: ${m.title}` : ''}`,
-                      }))
-                    )}
-                    checks={milestoneChecks}
-                    setChecks={setMilestoneChecks}
-                  />
-                )}
-              </SectionBlock>
+                      }))}
+                      checks={currentSel.milestoneChecks}
+                      setChecks={(c) => updateCurrentSel({ milestoneChecks: c })}
+                    />
+                  )}
+                </SectionBlock>
+              )}
 
-              <SectionBlock
-                label={`Risks (${totalRisks})`}
-                description="Copies to Table 3.1.e"
-                checked={risksEnabled}
-                onCheckedChange={(v) => {
-                  setRisksEnabled(v);
-                  toggleAllInSection(riskChecks, setRiskChecks, v);
-                }}
-              >
-                {risksEnabled && totalRisks > 0 && (
-                  <ItemList
-                    items={selectedWpDrafts.flatMap((wp) =>
-                      wp.risks.map((r) => ({
+              {currentWp.risks.length > 0 && (
+                <SectionBlock
+                  label={`Risks (${currentWp.risks.length})`}
+                  description="Copies to Table 3.1.e"
+                  checked={currentSel.risksEnabled}
+                  onCheckedChange={(v) => {
+                    updateCurrentSel({
+                      risksEnabled: v,
+                      riskChecks: toggleAllInRecord(currentSel.riskChecks, v),
+                    });
+                  }}
+                >
+                  {currentSel.risksEnabled && (
+                    <ItemList
+                      items={currentWp.risks.map((r) => ({
                         id: r.id,
-                        label: `R${r.number} (WP${wp.number})${r.title ? `: ${r.title}` : ''}`,
-                      }))
-                    )}
-                    checks={riskChecks}
-                    setChecks={setRiskChecks}
-                  />
-                )}
-              </SectionBlock>
+                        label: `R${r.number}${r.title ? `: ${r.title}` : ''}`,
+                      }))}
+                      checks={currentSel.riskChecks}
+                      setChecks={(c) => updateCurrentSel({ riskChecks: c })}
+                    />
+                  )}
+                </SectionBlock>
+              )}
             </div>
           </div>
-        )}
+        ) : null}
 
         <DialogFooter>
           {step === 'item-select' && (
-            <Button variant="outline" onClick={() => setStep('wp-select')} disabled={populating} className="mr-auto">
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (currentWpIndex > 0) setCurrentWpIndex(currentWpIndex - 1);
+                else setStep('wp-select');
+              }}
+              disabled={populating}
+              className="mr-auto"
+            >
               Back
             </Button>
           )}
@@ -334,7 +403,7 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
             <Button onClick={proceedToItemSelect} disabled={loading || selectedWpDrafts.length === 0}>
               Next
             </Button>
-          ) : (
+          ) : isLastWp ? (
             <Button onClick={handlePopulate} disabled={populating || loading}>
               {populating ? (
                 <>
@@ -344,6 +413,10 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
               ) : (
                 'Populate'
               )}
+            </Button>
+          ) : (
+            <Button onClick={() => setCurrentWpIndex(currentWpIndex + 1)}>
+              Next
             </Button>
           )}
         </DialogFooter>
