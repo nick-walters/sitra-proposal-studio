@@ -805,6 +805,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
                   onInsertDeliverable={insertDeliverableRefAtCursor}
                   onInsertMilestone={insertMilestoneRefAtCursor}
                   variant="ghost"
+                  hideMilestone
                 />
                 <Tooltip>
                   <TooltipTrigger asChild>

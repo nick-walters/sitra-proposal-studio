@@ -418,6 +418,7 @@ export function WPSimpleEditor({
                 onInsertDeliverable={onInsertDeliverableRef}
                 onInsertMilestone={onInsertMilestoneRef}
                 variant="ghost"
+                hideMilestone
               />
             )}
 

@@ -53,6 +53,7 @@ interface InsertTDMSReferenceDropdownsProps {
   onOpenDeliverableChange?: (open: boolean) => void;
   openMilestone?: boolean;
   onOpenMilestoneChange?: (open: boolean) => void;
+  hideMilestone?: boolean;
 }
 
 // Miniature bubble helpers for toolbar buttons
@@ -176,6 +177,7 @@ export function InsertTDMSReferenceDropdowns({
   onOpenDeliverableChange,
   openMilestone: externalOpenMilestone,
   onOpenMilestoneChange,
+  hideMilestone = false,
 }: InsertTDMSReferenceDropdownsProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
@@ -346,20 +348,22 @@ export function InsertTDMSReferenceDropdowns({
           </Tooltip>
 
           {/* Milestone button */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant={variant}
-                size={size}
-                className={buttonClass}
-                disabled={disabled}
-                onClick={() => setMilestoneDialogOpen(true)}
-              >
-                <MiniTriangle text="MS" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Insert milestone reference</TooltipContent>
-          </Tooltip>
+          {!hideMilestone && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={variant}
+                  size={size}
+                  className={buttonClass}
+                  disabled={disabled}
+                  onClick={() => setMilestoneDialogOpen(true)}
+                >
+                  <MiniTriangle text="MS" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Insert milestone reference</TooltipContent>
+            </Tooltip>
+          )}
         </>
       )}
 
