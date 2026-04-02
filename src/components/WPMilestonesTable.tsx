@@ -319,7 +319,7 @@ function SortableMilestoneCard({
         <div className="flex items-center gap-1 flex-shrink-0">
           <SingleMonthPicker
             value={milestone.due_month}
-            projectDuration={projectDuration}
+            projectDuration={monthOptions.length}
             readOnly={readOnly}
             onChange={(m) => onUpdate(milestone.id, { due_month: m })}
             label="Due:"

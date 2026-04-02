@@ -350,7 +350,7 @@ function SortableDeliverableCard({
         <div className="flex items-center gap-1 flex-shrink-0 ml-auto">
           <SingleMonthPicker
             value={deliverable.due_month}
-            projectDuration={projectDuration}
+            projectDuration={monthOptions.length}
             readOnly={readOnly}
             onChange={(m) => onUpdate(deliverable.id, { due_month: m })}
             label="Due:"
