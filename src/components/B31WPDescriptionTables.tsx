@@ -819,7 +819,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
                   >
                     <span
                       className="inline-flex items-center rounded-full font-bold text-white w-full"
-                      style={{ backgroundColor: wp.color, border: `1.5px solid ${wp.color}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, padding: '0px 6px', color: '#ffffff' }}
+                      style={{ backgroundColor: wp.color, border: `1.5px solid ${wp.color}`, fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, padding: '0px 6px', color: '#ffffff' }}
                     >
                       WP{wp.number}:&nbsp;
                       <EditableHeaderText
