@@ -869,8 +869,8 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
                 collisionDetection={closestCenter}
                 onDragEnd={(event) => handleTaskDragEnd(event, wp)}
               >
-                <SortableContext items={wp.tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-                  {wp.tasks.map(task => (
+                <SortableContext items={wp.b31_tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+                  {wp.b31_tasks.map(task => (
                     <SortableTaskGroup
                       key={task.id}
                       task={task}
