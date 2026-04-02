@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertTriangle, Plus, Trash2, GripVertical, ChevronsUpDown } from 'lucide-react';
-import { getDefaultWPColor, getContrastingTextColor } from '@/lib/wpColors';
+import { getDefaultWPColor } from '@/lib/wpColors';
 import type { WPDraftRisk } from '@/hooks/useWPDrafts';
 import {
   DndContext,
@@ -241,7 +241,7 @@ function SortableRiskCard({
       {selectedWpNumbers.map(n => {
         const wpDraft = allWpDrafts.find(w => w.number === n);
         const color = wpDraft?.color || getDefaultWPColor(n);
-        const textColor = getContrastingTextColor(color);
+        const textColor = '#ffffff';
         return (
           <span
             key={n}
@@ -376,7 +376,7 @@ function SortableRiskCard({
               <div className="space-y-1 max-h-48 overflow-y-auto">
                 {allWpDrafts.map(wp => {
                   const color = wp.color || getDefaultWPColor(wp.number);
-                  const textColor = getContrastingTextColor(color);
+                  const textColor = '#ffffff';
                   return (
                     <label
                       key={wp.id}

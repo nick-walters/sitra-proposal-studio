@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Flag, Plus, Trash2, GripVertical, ChevronsUpDown } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getDefaultWPColor, getContrastingTextColor } from '@/lib/wpColors';
+import { getDefaultWPColor } from '@/lib/wpColors';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { WPSimpleEditor } from '@/components/WPSimpleEditor';
@@ -203,7 +203,7 @@ function SortableMilestoneCard({
       {selectedWpNumbers.map(n => {
         const wpDraft = allWpDrafts.find(w => w.number === n);
         const color = wpDraft?.color || getDefaultWPColor(n);
-        const textColor = getContrastingTextColor(color);
+        const textColor = '#ffffff';
         return (
           <span
             key={n}
@@ -282,7 +282,7 @@ function SortableMilestoneCard({
               <div className="space-y-1 max-h-48 overflow-y-auto">
                 {allWpDrafts.map(wp => {
                   const color = wp.color || getDefaultWPColor(wp.number);
-                  const textColor = getContrastingTextColor(color);
+                  const textColor = '#ffffff';
                   return (
                     <label
                       key={wp.id}
