@@ -245,7 +245,7 @@ function MonthRangePicker({
   const months = Array.from({ length: projectDuration }, (_, i) => i + 1);
 
   const save = async (start: number | null, end: number | null) => {
-    await supabase.from('wp_draft_tasks').update({ start_month: start, end_month: end }).eq('id', taskId);
+    await supabase.from('b31_tasks').update({ start_month: start, end_month: end }).eq('id', taskId);
     queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
   };
 
