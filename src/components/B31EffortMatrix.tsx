@@ -118,18 +118,25 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
          <table
            className={`${tableStyles}`}
            style={{
-             tableLayout: colWidths.length > 0 ? 'fixed' : 'auto',
-             width: colWidths.length > 0 ? `${colWidths.reduce((s, w) => s + w, 0)}px` : '100%',
+             tableLayout: 'fixed',
+             width: '100%',
              borderCollapse: 'separate',
-             borderSpacing: '8px 0',
+             borderSpacing: `0 2pt`,
            }}
            ref={tableRef}
          >
+           <colgroup>
+             <col style={{ width: '80pt' }} />
+             {wpData.map(wp => (
+               <col key={wp.id} style={{ width: '60pt' }} />
+             ))}
+             <col style={{ width: '60pt' }} />
+           </colgroup>
            <thead>
              <tr>
                <th
                  className={`${headerCellStyles} relative`}
-                 style={{ textAlign: 'left', fontWeight: 'bold', ...(colWidths.length > 0 ? { width: colWidths[0] } : {}) }}
+                 style={{ textAlign: 'left', fontWeight: 'bold' }}
                >
                  {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
                </th>
@@ -145,7 +152,6 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                        borderTopLeftRadius: '9999px',
                        borderTopRightRadius: '9999px',
                        fontWeight: 700,
-                       ...(colWidths.length > 0 ? { width: colWidths[i + 1] } : {}),
                      }}
                    >
                      WP{wp.number}
