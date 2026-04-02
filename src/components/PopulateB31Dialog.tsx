@@ -318,7 +318,7 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
                 )}
               </SectionBlock>
             </div>
-          </ScrollArea>
+          </div>
         )}
 
         <DialogFooter>
