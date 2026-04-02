@@ -271,6 +271,8 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
   const [isWPRefOpen, setIsWPRefOpen] = useState(false);
   const [isParticipantRefOpen, setIsParticipantRefOpen] = useState(false);
   const [isFigureDialogOpen, setIsFigureDialogOpen] = useState(false);
+  const [isTaskRefOpen, setIsTaskRefOpen] = useState(false);
+  const [isDeliverableRefOpen, setIsDeliverableRefOpen] = useState(false);
   const [figures, setFigures] = useState<any[]>([]);
   const [wpDrafts, setWpDrafts] = useState<any[]>([]);
   
