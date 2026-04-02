@@ -44,7 +44,7 @@ export function B31SubcontractingTable({ items, participants, proposalId }: Prop
       <table className={`${tableStyles} border-collapse [&_th]:border-x-0 [&_th]:border-t-0 [&_th]:border-b [&_th]:border-black [&_td]:border-x-0 [&_tr]:border-0`} style={{ tableLayout: colWidths.length > 0 ? 'fixed' : 'auto', width: colWidths.length > 0 ? `${colWidths.reduce((s: number, w: number) => s + w, 0)}px` : '100%' }} ref={tableRef}>
         <colgroup>
           <col style={{ width: colWidths.length > 0 ? `${colWidths[0]}px` : undefined }} />
-          <col style={{ width: colWidths.length > 0 ? `${colWidths[1]}px` : '90px' }} />
+          <col style={{ width: colWidths.length > 0 ? `${colWidths[1]}px` : undefined }} />
           <col />
         </colgroup>
         <thead>
