@@ -923,8 +923,8 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
                 className="font-bold whitespace-nowrap shrink-0"
                 style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '14pt' }}
               >
-                {wpDraft.short_name ? ' – ' : ''}
-              </span>
+              {wpDraft.short_name ? ' –\u00A0' : ''}
+            </span>
             )}
             <DebouncedInput
               value={wpDraft.title || ''}

@@ -230,7 +230,7 @@ function SortableDeliverableCard({
       style={style}
       className={`rounded-md border bg-card p-2 ${isDragging ? 'shadow-lg' : ''}`}
     >
-      {/* Row 1: Drag handle, Deliverable number + Title, Delete */}
+      {/* Row 1: Drag handle, Deliverable pill badge, Delete */}
       <div className="flex items-center gap-1.5">
         {canReorder && (
           <button
@@ -241,8 +241,11 @@ function SortableDeliverableCard({
             <GripVertical className="w-4 h-4 text-blue-500" />
           </button>
         )}
-        <div className="flex items-center h-6 flex-1 border rounded-md bg-background overflow-hidden focus-within:ring-1 focus-within:ring-ring">
-          <span className="text-draft font-bold flex-shrink-0 pl-2 pr-0.5 select-none text-foreground" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
+        <div
+          className="flex items-center h-6 flex-1 rounded-full overflow-hidden px-2.5 gap-0"
+          style={{ backgroundColor: '#ffffff', border: '1.5px solid #2563EB', color: '#2563EB' }}
+        >
+          <span className="text-draft font-bold flex-shrink-0 pr-0.5 select-none" style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}>
             {formatNumber(deliverable.number)}:
           </span>
           <input
@@ -251,7 +254,8 @@ function SortableDeliverableCard({
             onFocus={() => { isFocused.current = true; }}
             onBlur={() => { isFocused.current = false; }}
             placeholder="Deliverable title..."
-            className="h-full text-draft flex-1 font-bold bg-transparent border-0 outline-none px-1"
+            className="h-full text-draft flex-1 font-bold bg-transparent border-0 outline-none px-1 text-[#2563EB] placeholder:text-[#2563EB]/40"
+            style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
             disabled={readOnly}
           />
         </div>
