@@ -48,14 +48,22 @@ interface WPRisksTableProps {
 }
 
 const RISK_LEVELS = [
-  { value: 'H', label: 'High', color: 'text-red-600 bg-red-50' },
-  { value: 'M', label: 'Medium', color: 'text-amber-600 bg-amber-50' },
-  { value: 'L', label: 'Low', color: 'text-green-600 bg-green-50' },
+  { value: 'H', label: 'High', borderColor: '#ef4444' },
+  { value: 'M', label: 'Medium', borderColor: '#f59e0b' },
+  { value: 'L', label: 'Low', borderColor: '#22c55e' },
 ];
 
-function getRiskLevelColor(level: string | null): string {
-  const found = RISK_LEVELS.find(l => l.value === level);
-  return found?.color || '';
+function RiskLevelBubble({ level }: { level: string }) {
+  const colorMap: Record<string, string> = { H: '#ef4444', M: '#f59e0b', L: '#22c55e' };
+  const levelColor = colorMap[level] || '#000';
+  return (
+    <span
+      className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
+      style={{ backgroundColor: '#ffffff', color: levelColor, border: `1.5px solid ${levelColor}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, padding: '0px', width: '19px', height: '17px' }}
+    >
+      {level}
+    </span>
+  );
 }
 
 export function WPRisksTable({
