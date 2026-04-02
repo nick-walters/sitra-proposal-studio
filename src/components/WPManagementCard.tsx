@@ -281,8 +281,6 @@ interface WPManagementCardProps {
 export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = true, onDraftVisibilityChange }: WPManagementCardProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [selectedWPs, setSelectedWPs] = useState<Set<string>>(new Set());
-  const [isPopulating, setIsPopulating] = useState(false);
   const [populateDialogOpen, setPopulateDialogOpen] = useState(false);
   const [paletteEditorOpen, setPaletteEditorOpen] = useState(false);
   
