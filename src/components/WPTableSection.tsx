@@ -194,10 +194,13 @@ interface SortableTaskCardProps {
   onUpdate: (taskId: string, updates: Partial<WPDraftTask>) => Promise<boolean>;
   onDelete: (taskId: string) => Promise<boolean>;
   onParticipantsChange: (taskId: string, participantIds: string[]) => Promise<boolean>;
+  onMove?: (taskId: string, targetWpDraftId: string) => Promise<boolean>;
   readOnly: boolean;
   formatTaskNumber: (num: number) => string;
   canReorder: boolean;
   hideToolbar?: boolean;
+  allWpDrafts?: WPOption[];
+  currentWpDraftId?: string;
 }
 
 function SortableTaskCard({
@@ -208,10 +211,13 @@ function SortableTaskCard({
   onUpdate,
   onDelete,
   onParticipantsChange,
+  onMove,
   readOnly,
   formatTaskNumber,
   canReorder,
   hideToolbar = false,
+  allWpDrafts = [],
+  currentWpDraftId,
 }: SortableTaskCardProps) {
   const {
     attributes,
