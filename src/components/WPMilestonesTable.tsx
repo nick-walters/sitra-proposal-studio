@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Flag, Plus, Trash2, GripVertical, ChevronsUpDown } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SingleMonthPicker } from '@/components/SingleMonthPicker';
 import { getDefaultWPColor } from '@/lib/wpColors';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -316,21 +317,13 @@ function SortableMilestoneCard({
           </Popover>
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
-          <span className="text-xs text-muted-foreground">Due:</span>
-          <Select
-            value={milestone.due_month?.toString() || ''}
-            onValueChange={(value) => onUpdate(milestone.id, { due_month: value ? parseInt(value) : null })}
-            disabled={readOnly}
-          >
-            <SelectTrigger hideArrow className="h-6 w-[45px] text-xs px-1">
-              <SelectValue placeholder="Select" />
-            </SelectTrigger>
-            <SelectContent>
-              {monthOptions.map((m) => (
-                <SelectItem key={m} value={m.toString()}>M{String(m).padStart(2, '0')}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SingleMonthPicker
+            value={milestone.due_month}
+            projectDuration={monthOptions.length}
+            readOnly={readOnly}
+            onChange={(m) => onUpdate(milestone.id, { due_month: m })}
+            label="Due:"
+          />
         </div>
       </div>
 
