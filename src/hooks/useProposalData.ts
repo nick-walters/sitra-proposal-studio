@@ -63,6 +63,8 @@ interface ProposalData {
   fstpBudgetPerThirdParty?: string;
   casesEnabled?: boolean;
   casesType?: string;
+  wpDraftsVisible?: boolean;
+  caseDraftsVisible?: boolean;
   reportingPeriods?: { number: number; startMonth: number; endMonth: number }[];
   acronymSegments?: { text: string; color: string }[];
   createdAt: Date;
