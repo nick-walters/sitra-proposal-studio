@@ -918,7 +918,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               onDebouncedChange={(v) => updateField('short_name', v)}
               placeholder="SHORT"
               className="bg-transparent text-white placeholder:text-white/40 border-none shadow-none focus-visible:ring-0 h-auto p-0 font-bold shrink-0 min-w-0"
-              style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif", fontSize: '11pt', width: `${Math.max(4, (wpDraft.short_name || '').length + 1)}ch` }}
+              style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif", fontSize: '11pt', width: `${Math.max(4, (wpDraft.short_name || '').length)}ch` }}
               disabled={readOnly}
             />
             {(wpDraft.short_name || wpDraft.title || !readOnly) && (
