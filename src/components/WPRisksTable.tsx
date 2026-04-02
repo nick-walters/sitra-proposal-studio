@@ -365,7 +365,7 @@ function SortableRiskCard({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-6 text-xs px-2 min-w-[154px] max-w-[440px] justify-between font-normal"
+                className="h-6 text-xs px-2 min-w-[339px] max-w-[440px] justify-between font-normal"
                 disabled={readOnly}
               >
                 {displayWpBubbles || <span className="text-muted-foreground">Select</span>}
