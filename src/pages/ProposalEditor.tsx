@@ -138,6 +138,7 @@ export function ProposalEditor() {
     updateParticipantMember,
     deleteParticipantMember,
     updateEthics,
+    refreshProposal,
   } = useProposalData(id || '');
 
   // Budget data
