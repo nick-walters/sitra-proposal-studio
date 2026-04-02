@@ -390,16 +390,34 @@ function EditableText({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const savedRef = useRef(value);
+  const [focused, setFocused] = useState(false);
+
+  const isEmpty = !value || value.trim() === '' || value.trim() === '<p></p>' || value.trim() === '<br>';
 
   const handleBlur = useCallback(() => {
+    setFocused(false);
     const current = ref.current?.innerHTML || '';
+    const trimmed = current.replace(/<br\s*\/?>/gi, '').replace(/<p>\s*<\/p>/gi, '').trim();
+    if (trimmed === '' && savedRef.current === '') return;
     if (current !== savedRef.current) {
-      savedRef.current = current;
-      onSave(current);
+      const finalValue = trimmed === '' ? '' : current;
+      savedRef.current = finalValue;
+      onSave(finalValue);
     }
   }, [onSave]);
 
+  const handleFocus = useCallback(() => {
+    setFocused(true);
+    if (isEmpty && ref.current) {
+      ref.current.innerHTML = '';
+    }
+  }, [isEmpty]);
+
   const Tag = inline ? 'span' : 'div';
+
+  const displayHtml = (!focused && isEmpty)
+    ? DOMPurify.sanitize(placeholder || '', { ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'thead', 'tbody', 'tr', 'th', 'td'], ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'colspan', 'rowspan'] })
+    : DOMPurify.sanitize(value || '', { ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'thead', 'tbody', 'tr', 'th', 'td'], ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'colspan', 'rowspan'] });
 
   return (
     <Tag
@@ -408,11 +426,12 @@ function EditableText({
       suppressContentEditableWarning
       className={cn(
         "outline-none min-h-[1.2em] font-['Times_New_Roman',Times,serif] text-[11pt] text-justify",
-        !value && 'text-muted-foreground italic',
+        !focused && isEmpty && 'text-muted-foreground italic',
         className,
       )}
       onBlur={handleBlur}
-      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(value || placeholder || '', { ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'thead', 'tbody', 'tr', 'th', 'td'], ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'colspan', 'rowspan'] }) }}
+      onFocus={handleFocus}
+      dangerouslySetInnerHTML={{ __html: displayHtml }}
     />
   );
 }
