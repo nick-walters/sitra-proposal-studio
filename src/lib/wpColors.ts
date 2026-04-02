@@ -9,7 +9,7 @@ export const DEFAULT_WP_COLORS = [
   '#7E57C2', // Violet
   '#E91E63', // Pink
   '#5C8C14', // Grass Green
-  '#DC2626', // Crimson
+  '#881337', // Burgundy
 ];
 
 
