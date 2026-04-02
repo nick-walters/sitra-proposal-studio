@@ -324,7 +324,7 @@ function SortableDeliverableCard({
           <span className="text-xs text-muted-foreground">Partner responsible:</span>
           <Select
             value={deliverable.responsible_participant_id || ''}
-            onValueChange={(value) => onUpdate(deliverable.id, { responsible_participant_id: value || null })}
+            onValueChange={(value) => onUpdate(deliverable.id, { responsible_participant_id: value === '__clear__' ? null : value || null })}
             disabled={readOnly}
           >
             <SelectTrigger
@@ -344,6 +344,9 @@ function SortableDeliverableCard({
               <SelectValue placeholder="Select" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="__clear__">
+                <span className="text-muted-foreground italic">Clear selection</span>
+              </SelectItem>
               {participants.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
                   {p.organisation_short_name || p.organisation_name}
