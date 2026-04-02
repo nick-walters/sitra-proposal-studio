@@ -115,49 +115,47 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
         className="mb-0"
       />
       <div className="relative">
-        <table
-          className={`${tableStyles} border-collapse`}
-          style={{
-            tableLayout: colWidths.length > 0 ? 'fixed' : 'auto',
-            width: colWidths.length > 0 ? `${colWidths.reduce((s, w) => s + w, 0)}px` : '100%',
-            borderSpacing: 0,
-          }}
-          ref={tableRef}
-        >
-          <thead>
-            <tr>
-              {/* Empty top-left corner */}
-              <th
-                className={`${headerCellStyles} relative`}
-                style={{ textAlign: 'left', fontWeight: 'bold', ...(colWidths.length > 0 ? { width: colWidths[0] } : {}) }}
-              >
-                {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
-              </th>
-              {wpData.map((wp, i) => {
-                const wpColor = wp.color || '#2563EB';
-                return (
-                  <th
-                    key={wp.id}
-                    className={`${headerCellStyles} relative`}
-                    style={{
-                      backgroundColor: wpColor,
-                      color: '#FFFFFF',
-                      borderTopLeftRadius: '9999px',
-                      borderTopRightRadius: '9999px',
-                      border: `1.5px solid ${wpColor}`,
-                      borderBottom: 'none',
-                      fontWeight: 700,
-                      ...(colWidths.length > 0 ? { width: colWidths[i + 1] } : {}),
-                    }}
-                  >
-                    WP{wp.number}
-                    {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(i + 1)} />}
-                  </th>
-                );
-              })}
-              <th className={headerCellStyles} style={{ fontWeight: 'bold' }}>Total</th>
-            </tr>
-          </thead>
+         <table
+           className={`${tableStyles}`}
+           style={{
+             tableLayout: colWidths.length > 0 ? 'fixed' : 'auto',
+             width: colWidths.length > 0 ? `${colWidths.reduce((s, w) => s + w, 0)}px` : '100%',
+             borderCollapse: 'separate',
+             borderSpacing: '3px 0',
+           }}
+           ref={tableRef}
+         >
+           <thead>
+             <tr>
+               <th
+                 className={`${headerCellStyles} relative`}
+                 style={{ textAlign: 'left', fontWeight: 'bold', ...(colWidths.length > 0 ? { width: colWidths[0] } : {}) }}
+               >
+                 {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(0)} />}
+               </th>
+               {wpData.map((wp, i) => {
+                 const wpColor = wp.color || '#2563EB';
+                 return (
+                   <th
+                     key={wp.id}
+                     className={`${headerCellStyles} relative`}
+                     style={{
+                       backgroundColor: wpColor,
+                       color: '#FFFFFF',
+                       borderTopLeftRadius: '9999px',
+                       borderTopRightRadius: '9999px',
+                       fontWeight: 700,
+                       ...(colWidths.length > 0 ? { width: colWidths[i + 1] } : {}),
+                     }}
+                   >
+                     WP{wp.number}
+                     {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(i + 1)} />}
+                   </th>
+                 );
+               })}
+               <th className={headerCellStyles} style={{ fontWeight: 'bold' }}>Total</th>
+             </tr>
+           </thead>
           <tbody>
             {participants.map((p) => {
               const pMap = matrix.get(p.id)!;
@@ -201,9 +199,6 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                         style={{
                           padding: 0,
                           backgroundColor: wpColor,
-                          border: `1.5px solid ${wpColor}`,
-                          borderTop: 'none',
-                          borderBottom: 'none',
                         }}
                       >
                         <input
@@ -225,8 +220,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                       </td>
                     );
                   })}
-                  {/* Total cell */}
-                  <td className={`${cellStyles} font-bold`} style={{ color: '#FFFFFF' }}>
+                  <td className={`${cellStyles} font-bold`}>
                     {rowTotal ? formatPM(rowTotal) : '—'}
                   </td>
                 </tr>
@@ -247,8 +241,6 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                       borderBottomRightRadius: '9999px',
                       backgroundColor: wpColor,
                       color: '#FFFFFF',
-                      border: `1.5px solid ${wpColor}`,
-                      borderTop: 'none',
                     }}
                   >
                     {colTotal ? formatPM(colTotal) : '—'}
