@@ -312,6 +312,14 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
 
   const isLumpSum = proposal?.budget_type === 'lump_sum';
   const useWpThemes = proposal?.use_wp_themes ?? false;
+  const wpDraftsVisible = (proposal as any)?.wp_drafts_visible !== false;
+  const caseDraftsVisible = (proposal as any)?.case_drafts_visible !== false;
+
+  const handleDraftVisibility = async (field: 'wp_drafts_visible' | 'case_drafts_visible', visible: boolean) => {
+    await supabase.from('proposals').update({ [field]: visible } as any).eq('id', proposalId);
+    queryClient.invalidateQueries({ queryKey: ['proposal-for-themes', proposalId] });
+    queryClient.invalidateQueries({ queryKey: ['proposal'] });
+  };
 
   // Toggle use_wp_themes
   const toggleWpThemesMutation = useMutation({
