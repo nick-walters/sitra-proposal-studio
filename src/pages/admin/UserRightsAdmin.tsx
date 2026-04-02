@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Plus, Trash2, Users, Shield, Search, Pencil, Send, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Users, Shield, Search, Pencil, Send, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { UserProfileDialog } from "@/components/UserProfileDialog";
@@ -53,6 +53,7 @@ export function UserRightsAdmin() {
   const [proposals, setProposals] = useState<ProposalOption[]>([]);
   const [editProfileUserId, setEditProfileUserId] = useState<string | null>(null);
   const [deleteConfirmUser, setDeleteConfirmUser] = useState<UserWithRoles | null>(null);
+  const [manageRightsUserId, setManageRightsUserId] = useState<string | null>(null);
   // Coordinators who are not owners need at least one coordinator role
   const canAccess = isOwner || (isAdminOrOwner && hasAnyCoordinatorRole);
 
@@ -406,9 +407,7 @@ export function UserRightsAdmin() {
                    <TableRow>
                      <TableHead className="font-bold">User</TableHead>
                      <TableHead className="font-bold">Email</TableHead>
-                     <TableHead className="font-bold">Item</TableHead>
-                     <TableHead className="font-bold w-[160px]">Role</TableHead>
-                     <TableHead className="w-[40px]"></TableHead>
+                     <TableHead className="font-bold">Rights</TableHead>
                    </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -419,6 +418,7 @@ export function UserRightsAdmin() {
                     const currentGlobalValue = globalRole?.role || 'none';
                     const isSelf = u.id === user?.id;
                     const canEditGlobal = isOwner && !isSelf;
+                    const isExpanded = manageRightsUserId === u.id;
 
                     return (
                       <TableRow key={u.id}>
@@ -467,7 +467,7 @@ export function UserRightsAdmin() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-className="h-6 px-1.5 text-xs text-primary"
+                                  className="h-6 px-1.5 text-xs text-primary"
                                   title="Resend signup / password reset email"
                                   onClick={() => handleResendSignupLink(u)}
                                 >
@@ -479,124 +479,139 @@ className="h-6 px-1.5 text-xs text-primary"
                           </div>
                         </TableCell>
                         <TableCell className="align-top">
-                          <div className="space-y-1">
-                            {/* Platform label */}
-                            <div className="h-7 flex items-center">
-                              <span className="text-sm font-bold">Sitra Proposal Studio</span>
-                            </div>
-                            {/* Proposal names */}
-                            {proposalRoles.map(r => (
-                              <div key={r.id} className="h-7 flex items-center">
-                                <span className="text-sm font-medium">{r.proposal_acronym || 'Unknown'}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell className="align-top">
-                          <div className="space-y-1">
-                            {/* Platform role */}
-                            <div className="h-7 flex items-center">
-                              {canEditGlobal ? (
-                                <Select
-                                  value={currentGlobalValue}
-                                  onValueChange={(v) => handleChangeGlobalRole(u, globalRole?.id || null, v)}
-                                >
-                                  <SelectTrigger className="h-7 w-36 text-xs [&>span]:pl-0">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="none">Standard user</SelectItem>
-                                    <SelectItem value="admin">Admin</SelectItem>
-                                    <SelectItem value="owner">Owner</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              ) : (
-                                <Select value={currentGlobalValue} disabled>
-                                  <SelectTrigger className="h-7 w-36 text-xs [&>span]:pl-0">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="none">Standard user</SelectItem>
-                                    <SelectItem value="admin">Admin</SelectItem>
-                                    <SelectItem value="owner">Owner</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              )}
-                            </div>
-                            {/* Proposal roles */}
-                            {proposalRoles.map(r => (
-                              <div key={r.id} className="h-7 flex items-center">
-                                {canManageProposalRole(r.proposal_id) ? (
-                                  <Select
-                                    value={r.role}
-                                    onValueChange={(v) => handleChangeProposalRole(u, r.id, v, r.proposal_id)}
-                                  >
-                                    <SelectTrigger className="h-7 w-36 text-xs">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="coordinator">Coordinator</SelectItem>
-                                      <SelectItem value="editor">Editor</SelectItem>
-                                      <SelectItem value="viewer">Viewer</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                ) : (
-                                  <Badge variant="outline" className="text-xs capitalize">{r.role}</Badge>
+                          <div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => setManageRightsUserId(isExpanded ? null : u.id)}
+                            >
+                              {isExpanded ? <ChevronUp className="w-3 h-3 mr-1" /> : <ChevronDown className="w-3 h-3 mr-1" />}
+                              Manage user rights
+                            </Button>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              This user has access to {proposalRoles.length} proposal{proposalRoles.length !== 1 ? 's' : ''}
+                            </p>
+                            {isExpanded && (
+                              <div className="mt-2 border rounded-md p-3 space-y-1 bg-muted/30">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead className="text-xs font-bold h-7">Item</TableHead>
+                                      <TableHead className="text-xs font-bold h-7 w-[160px]">Role</TableHead>
+                                      <TableHead className="h-7 w-[40px]"></TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {/* Platform row */}
+                                    <TableRow>
+                                      <TableCell className="py-1">
+                                        <span className="text-sm font-bold">Sitra Proposal Studio</span>
+                                      </TableCell>
+                                      <TableCell className="py-1">
+                                        {canEditGlobal ? (
+                                          <Select
+                                            value={currentGlobalValue}
+                                            onValueChange={(v) => handleChangeGlobalRole(u, globalRole?.id || null, v)}
+                                          >
+                                            <SelectTrigger className="h-7 w-36 text-xs [&>span]:pl-0">
+                                              <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="none">Standard user</SelectItem>
+                                              <SelectItem value="admin">Admin</SelectItem>
+                                              <SelectItem value="owner">Owner</SelectItem>
+                                            </SelectContent>
+                                          </Select>
+                                        ) : (
+                                          <Select value={currentGlobalValue} disabled>
+                                            <SelectTrigger className="h-7 w-36 text-xs [&>span]:pl-0">
+                                              <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="none">Standard user</SelectItem>
+                                              <SelectItem value="admin">Admin</SelectItem>
+                                              <SelectItem value="owner">Owner</SelectItem>
+                                            </SelectContent>
+                                          </Select>
+                                        )}
+                                      </TableCell>
+                                      <TableCell className="py-1">
+                                        {isOwner && !isSelf && (
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-6 w-6"
+                                            title="Remove all access"
+                                            onClick={() => setDeleteConfirmUser(u)}
+                                          >
+                                            <Trash2 className="w-3 h-3 text-destructive" />
+                                          </Button>
+                                        )}
+                                      </TableCell>
+                                    </TableRow>
+                                    {/* Proposal rows */}
+                                    {proposalRoles.map(r => (
+                                      <TableRow key={r.id}>
+                                        <TableCell className="py-1">
+                                          <span className="text-sm font-medium">{r.proposal_acronym || 'Unknown'}</span>
+                                        </TableCell>
+                                        <TableCell className="py-1">
+                                          {canManageProposalRole(r.proposal_id) ? (
+                                            <Select
+                                              value={r.role}
+                                              onValueChange={(v) => handleChangeProposalRole(u, r.id, v, r.proposal_id)}
+                                            >
+                                              <SelectTrigger className="h-7 w-36 text-xs">
+                                                <SelectValue />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="coordinator">Coordinator</SelectItem>
+                                                <SelectItem value="editor">Editor</SelectItem>
+                                                <SelectItem value="viewer">Viewer</SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                          ) : (
+                                            <Badge variant="outline" className="text-xs capitalize">{r.role}</Badge>
+                                          )}
+                                        </TableCell>
+                                        <TableCell className="py-1">
+                                          {canManageProposalRole(r.proposal_id) && (
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-6 w-6"
+                                              onClick={() => handleRemoveRole(u, r.id, r.proposal_id)}
+                                            >
+                                              <Trash2 className="w-3 h-3 text-destructive" />
+                                            </Button>
+                                          )}
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                                {/* Add role button */}
+                                {assignableProposals.length > 0 && (
+                                  <div className="pt-1">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-6 px-1.5 text-xs text-primary"
+                                      onClick={() => {
+                                        setSelectedUser(u);
+                                        setNewRole('editor');
+                                        setSelectedProposalId('');
+                                        setDialogOpen(true);
+                                      }}
+                                    >
+                                      <Plus className="w-3 h-3 mr-1 text-primary" />
+                                      Add role
+                                    </Button>
+                                  </div>
                                 )}
-                              </div>
-                            ))}
-                            {/* Add role button */}
-                            {assignableProposals.length > 0 && (
-                              <div className="mt-1">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-6 px-1.5 text-xs text-primary"
-                                  onClick={() => {
-                                    setSelectedUser(u);
-                                    setNewRole('editor');
-                                    setSelectedProposalId('');
-                                    setDialogOpen(true);
-                                  }}
-                                >
-                                  <Plus className="w-3 h-3 mr-1 text-primary" />
-                                  Add role
-                                </Button>
                               </div>
                             )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="align-top">
-                          <div className="space-y-1">
-                            {/* Delete button for platform access */}
-                            <div className="h-7 flex items-center">
-                              {isOwner && !isSelf && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6"
-                                  title="Remove all access"
-                                  onClick={() => setDeleteConfirmUser(u)}
-                                >
-                                  <Trash2 className="w-3 h-3 text-destructive" />
-                                </Button>
-                              )}
-                            </div>
-                            {/* Delete buttons for proposal roles */}
-                            {proposalRoles.map(r => (
-                              <div key={r.id} className="h-7 flex items-center">
-                                {canManageProposalRole(r.proposal_id) && (
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6"
-                                    onClick={() => handleRemoveRole(u, r.id, r.proposal_id)}
-                                  >
-                                    <Trash2 className="w-3 h-3 text-destructive" />
-                                  </Button>
-                                )}
-                              </div>
-                            ))}
                           </div>
                         </TableCell>
                       </TableRow>
