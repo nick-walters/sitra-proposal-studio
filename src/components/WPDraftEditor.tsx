@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { SaveIndicator } from '@/components/SaveIndicator';
 import { useWPDraftEditor } from '@/hooks/useWPDrafts';
+import { useWPDraftUndoRedo } from '@/hooks/useWPDraftUndoRedo';
 import { WPMethodologySection } from '@/components/WPMethodologySection';
 import { WPTableSection } from '@/components/WPTableSection';
 import { WPPlanningQuestions } from '@/components/WPPlanningQuestions';
@@ -30,7 +31,7 @@ import { Separator } from '@/components/ui/separator';
 import { 
   BookOpen, Lightbulb, Bold, Italic, Underline, List, ListOrdered, 
   AlignLeft, AlignCenter, AlignRight, AlignJustify, FileText, Link2, 
-  Layers, Building2, Table2, ImageIcon, ChevronDown
+  Layers, Building2, Table2, ImageIcon, ChevronDown, Undo2, Redo2
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -158,25 +159,69 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
     updateField,
     addTask,
     updateTask,
-    deleteTask,
+    deleteTask: rawDeleteTask,
     reorderTasks,
     updateWPEffort,
     setTaskParticipants,
     moveTaskToWP,
     addDeliverable,
     updateDeliverable,
-    deleteDeliverable,
+    deleteDeliverable: rawDeleteDeliverable,
     reorderDeliverables,
     moveDeliverableToWP,
     addRisk,
     updateRisk,
-    deleteRisk,
+    deleteRisk: rawDeleteRisk,
     reorderRisks,
     addMilestone,
     updateMilestone,
-    deleteMilestone,
+    deleteMilestone: rawDeleteMilestone,
     reorderMilestones,
+    refetch: refetchDraft,
   } = useWPDraftEditor(wpId);
+
+  const {
+    canUndo, canRedo, undoLabel, redoLabel,
+    undo, redo, recordDelete, recordAdd, reset: resetUndoRedo,
+  } = useWPDraftUndoRedo(wpId);
+
+  // Reset undo/redo when WP changes
+  useEffect(() => { resetUndoRedo(); }, [wpId, resetUndoRedo]);
+
+  // Wrapped delete functions that record for undo
+  const deleteTask = useCallback(async (taskId: string) => {
+    const task = wpDraft?.tasks?.find(t => t.id === taskId);
+    if (task) recordDelete('task', task, { participants: task.participants, effort: task.effort });
+    return rawDeleteTask(taskId);
+  }, [rawDeleteTask, wpDraft, recordDelete]);
+
+  const deleteDeliverable = useCallback(async (deliverableId: string) => {
+    const d = wpDraft?.deliverables?.find(d => d.id === deliverableId);
+    if (d) recordDelete('deliverable', d);
+    return rawDeleteDeliverable(deliverableId);
+  }, [rawDeleteDeliverable, wpDraft, recordDelete]);
+
+  const deleteRisk = useCallback(async (riskId: string) => {
+    const r = wpDraft?.risks?.find(r => r.id === riskId);
+    if (r) recordDelete('risk', r);
+    return rawDeleteRisk(riskId);
+  }, [rawDeleteRisk, wpDraft, recordDelete]);
+
+  const deleteMilestone = useCallback(async (milestoneId: string) => {
+    const m = wpDraft?.milestones?.find(m => m.id === milestoneId);
+    if (m) recordDelete('milestone', m);
+    return rawDeleteMilestone(milestoneId);
+  }, [rawDeleteMilestone, wpDraft, recordDelete]);
+
+  const handleUndo = useCallback(async () => {
+    const result = await undo();
+    if (result?.refetch) refetchDraft();
+  }, [undo, refetchDraft]);
+
+  const handleRedo = useCallback(async () => {
+    const result = await redo();
+    if (result?.refetch) refetchDraft();
+  }, [redo, refetchDraft]);
 
   // Fetch proposal's use_wp_themes flag
   const { data: proposalData } = useQuery({
@@ -555,6 +600,41 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
             saveError={saveError}
             onSaveNow={() => {}}
           />
+
+          {/* Undo / Redo */}
+          {!readOnly && (
+            <>
+              <Separator orientation="vertical" className="h-5" />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    disabled={!canUndo}
+                    onClick={handleUndo}
+                  >
+                    <Undo2 className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">{undoLabel}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    disabled={!canRedo}
+                    onClick={handleRedo}
+                  >
+                    <Redo2 className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">{redoLabel}</TooltipContent>
+              </Tooltip>
+            </>
+          )}
           
           <Separator orientation="vertical" className="h-5" />
           
