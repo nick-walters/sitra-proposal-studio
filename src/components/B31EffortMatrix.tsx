@@ -149,8 +149,8 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                      style={{
                        backgroundColor: wpColor,
                        color: '#FFFFFF',
-                         borderTopLeftRadius: '20px',
-                         borderTopRightRadius: '20px',
+borderTopLeftRadius: '15px',
+                          borderTopRightRadius: '15px',
                        fontWeight: 700,
                      }}
                    >
