@@ -2,12 +2,12 @@
 
 export const DEFAULT_WP_COLORS = [
   '#3B82F6', // Blue
-  '#9F1239', // Burgundy
+  '#BE185D', // Burgundy
   '#166534', // Forest Green
-  '#D9520C', // Orange
+  '#EA580C', // Orange
   '#0891B2', // Turquoise
   '#7E57C2', // Violet
-  '#C2185B', // Pink
+  '#E91E63', // Pink
   '#5C8C14', // Grass Green
   '#DC2626', // Crimson
 ];
