@@ -487,19 +487,8 @@ export function UserRightsAdmin() {
                         <TableCell className="align-top">
                           <div className="space-y-1">
                             {/* Platform label */}
-                            <div className="h-7 flex items-center gap-2">
+                            <div className="h-7 flex items-center">
                               <span className="text-sm font-bold">Sitra Proposal Studio</span>
-                              {isOwner && !isSelf && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6"
-                                  title="Remove all access"
-                                  onClick={() => setDeleteConfirmUser(u)}
-                                >
-                                  <Trash2 className="w-3 h-3 text-destructive" />
-                                </Button>
-                              )}
                             </div>
                             {/* Proposal names */}
                             {proposalRoles.map(r => (
@@ -585,8 +574,20 @@ export function UserRightsAdmin() {
                         </TableCell>
                         <TableCell className="align-top">
                           <div className="space-y-1">
-                            {/* Empty row for platform */}
-                            <div className="h-7"></div>
+                            {/* Delete button for platform access */}
+                            <div className="h-7 flex items-center">
+                              {isOwner && !isSelf && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  title="Remove all access"
+                                  onClick={() => setDeleteConfirmUser(u)}
+                                >
+                                  <Trash2 className="w-3 h-3 text-destructive" />
+                                </Button>
+                              )}
+                            </div>
                             {/* Delete buttons for proposal roles */}
                             {proposalRoles.map(r => (
                               <div key={r.id} className="h-7 flex items-center">
