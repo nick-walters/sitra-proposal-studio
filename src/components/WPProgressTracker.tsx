@@ -88,7 +88,7 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
     return (
       <div className="space-y-6 p-6">
         <div>
-          <h2 className="text-2xl font-bold">WP Progress Tracker</h2>
+          <h2 className="text-2xl font-bold">WP Progress tracker</h2>
           <p className="text-muted-foreground">Track completion status of work package drafts</p>
         </div>
 
@@ -127,7 +127,7 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
   return (
     <div className="space-y-6 p-6">
       <div>
-        <h2 className="text-2xl font-bold">WP Progress Tracker</h2>
+        <h2 className="text-2xl font-bold">WP Progress tracker</h2>
         <p className="text-muted-foreground">Track completion status of work package drafts</p>
       </div>
 
@@ -210,7 +210,7 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
                       {wp.completion.overall ? (
                         <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border-green-200">On Track</Badge>
                       ) : (
-                        <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 border-amber-200">In Progress</Badge>
+                        <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 border-amber-200">In progress</Badge>
                       )}
                     </TableCell>
                   </TableRow>
@@ -240,23 +240,23 @@ export function WPProgressTracker({ proposalId, onNavigateToWP }: WPProgressTrac
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard
               icon={<ListChecks className="h-4 w-4" />}
-              label="Total Tasks"
+              label="Total tasks"
               value={totals.totalTasks}
               subValue={`${totals.tasksWithTiming} with timing`}
             />
             <StatCard
               icon={<Package className="h-4 w-4" />}
-              label="Total Deliverables"
+              label="Total deliverables"
               value={totals.totalDeliverables}
             />
             <StatCard
               icon={<AlertTriangle className="h-4 w-4" />}
-              label="Total Risks"
+              label="Total risks"
               value={totals.totalRisks}
             />
             <StatCard
               icon={<Users className="h-4 w-4" />}
-              label="Total Person Months"
+              label="Total Person months"
               value={totals.totalPersonMonths.toFixed(1)}
             />
           </div>

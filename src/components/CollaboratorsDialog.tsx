@@ -480,9 +480,9 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
 
           <Tabs defaultValue="team" className="mt-4">
             <TabsList className={`grid w-full ${tabGridClass}`}>
-              <TabsTrigger value="team">Team Members</TabsTrigger>
-              {showManageTab && <TabsTrigger value="manage">Manage Access</TabsTrigger>}
-              {canInvite && <TabsTrigger value="invite">Invite New</TabsTrigger>}
+              <TabsTrigger value="team">Team members</TabsTrigger>
+              {showManageTab && <TabsTrigger value="manage">Manage access</TabsTrigger>}
+              {canInvite && <TabsTrigger value="invite">Invite new</TabsTrigger>}
             </TabsList>
 
             <TabsContent value="team" className="space-y-4">
@@ -579,7 +579,7 @@ export function CollaboratorsDialog({ open, onOpenChange }: CollaboratorsDialogP
               </ScrollArea>
             </TabsContent>
 
-            {/* Manage Access Tab - visible when on a proposal page */}
+            {/* Manage access Tab - visible when on a proposal page */}
             {showManageTab && (
               <TabsContent value="manage" className="space-y-4">
                 <div className="space-y-4 py-2">

@@ -355,7 +355,7 @@ export function UserRightsAdmin() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold flex items-center gap-3">
             <Shield className="w-8 h-8" />
-            User Rights Management
+            User rights management
           </h1>
           <p className="text-muted-foreground mt-2">
             Manage proposal-level roles for users
@@ -550,7 +550,7 @@ export function UserRightsAdmin() {
                                 onClick={() => setEditProfileUserId(u.id)}
                               >
                                 <Pencil className="w-3 h-3 mr-1" />
-                                Edit Profile
+                                Edit profile
                               </Button>
                             )}
                             {assignableProposals.length > 0 && (
@@ -565,7 +565,7 @@ export function UserRightsAdmin() {
                                 }}
                               >
                                 <Plus className="w-3 h-3 mr-1" />
-                                Add Role
+                                Add role
                               </Button>
                             )}
                           </div>
@@ -579,7 +579,7 @@ export function UserRightsAdmin() {
           </CardContent>
         </Card>
 
-        {/* Edit Profile Dialog */}
+        {/* Edit profile Dialog */}
         <UserProfileDialog
           open={!!editProfileUserId}
           onOpenChange={(open) => { if (!open) setEditProfileUserId(null); }}
@@ -587,11 +587,11 @@ export function UserRightsAdmin() {
           editable={true}
         />
 
-        {/* Add Role Dialog */}
+        {/* Add role Dialog */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add Proposal Role</DialogTitle>
+              <DialogTitle>Add proposal role</DialogTitle>
               <DialogDescription>
                 Add a proposal role to {selectedUser ? getDisplayName(selectedUser) : 'user'}
               </DialogDescription>
@@ -627,7 +627,7 @@ export function UserRightsAdmin() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleAddRole} disabled={!selectedProposalId}>Add Role</Button>
+              <Button onClick={handleAddRole} disabled={!selectedProposalId}>Add role</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

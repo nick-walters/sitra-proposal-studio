@@ -284,7 +284,7 @@ export function DeclarationsForm({ participants, proposalId, canEdit }: Declarat
                       {/* Declarations Checkboxes */}
                       <Card>
                         <CardHeader>
-                          <CardTitle className="text-base">Required Declarations</CardTitle>
+                          <CardTitle className="text-base">Required declarations</CardTitle>
                           <CardDescription>
                             Confirm each declaration on behalf of {participant.organisationShortName || participant.organisationName}
                           </CardDescription>
@@ -314,10 +314,10 @@ export function DeclarationsForm({ participants, proposalId, canEdit }: Declarat
                         </CardContent>
                       </Card>
 
-                      {/* Additional Information */}
+                      {/* Additional information */}
                       <Card>
                         <CardHeader>
-                          <CardTitle className="text-base">Additional Information</CardTitle>
+                          <CardTitle className="text-base">Additional information</CardTitle>
                           <CardDescription>
                             Provide any relevant additional information
                           </CardDescription>

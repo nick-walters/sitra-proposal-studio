@@ -1883,7 +1883,7 @@ export function DocumentEditor({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Block</AlertDialogTitle>
+            <AlertDialogTitle>Delete block</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete this block? This action cannot be undone.
             </AlertDialogDescription>

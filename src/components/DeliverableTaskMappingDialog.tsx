@@ -75,7 +75,7 @@ export function DeliverableTaskMappingDialog({ proposalId }: DeliverableTaskMapp
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[70vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Assign Deliverables to Tasks</DialogTitle>
+          <DialogTitle>Assign deliverables to tasks</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 mt-2">
           {groupedDeliverables.map(({ wp, deliverables, tasks }) => (

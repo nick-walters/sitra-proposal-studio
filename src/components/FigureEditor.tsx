@@ -137,7 +137,7 @@ export function FigureEditor({
         {/* Title & Caption */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Figure Details</CardTitle>
+            <CardTitle className="text-base">Figure details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">

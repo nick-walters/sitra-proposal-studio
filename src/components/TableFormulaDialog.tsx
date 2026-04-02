@@ -67,7 +67,7 @@ export function TableFormulaDialog({ isOpen, onClose, editor }: TableFormulaDial
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calculator className="w-5 h-5" />
-            Insert Table Formula
+            Insert table Formula
           </DialogTitle>
           <DialogDescription>
             Add a formula to calculate values from table cells
@@ -77,7 +77,7 @@ export function TableFormulaDialog({ isOpen, onClose, editor }: TableFormulaDial
         <div className="space-y-4">
           {/* Formula type selection */}
           <div className="space-y-2">
-            <Label>Formula Type</Label>
+            <Label>Formula type</Label>
             <Select
               value={formulaType}
               onValueChange={(value) => setFormulaType(value as FormulaType)}
@@ -118,7 +118,7 @@ export function TableFormulaDialog({ isOpen, onClose, editor }: TableFormulaDial
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="end-cell">End Cell</Label>
+                <Label htmlFor="end-cell">End cell</Label>
                 <Input
                   id="end-cell"
                   value={endCell}
@@ -130,7 +130,7 @@ export function TableFormulaDialog({ isOpen, onClose, editor }: TableFormulaDial
             </div>
           ) : (
             <div className="space-y-2">
-              <Label htmlFor="custom-formula">Custom Formula</Label>
+              <Label htmlFor="custom-formula">Custom formula</Label>
               <Input
                 id="custom-formula"
                 value={customFormula}

@@ -317,7 +317,7 @@ export function ProfilePhotoUpload({
       <Dialog open={cropDialogOpen} onOpenChange={setCropDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Crop Profile Photo</DialogTitle>
+            <DialogTitle>Crop profile photo</DialogTitle>
             <DialogDescription>
               Drag to reposition and use the slider to zoom
             </DialogDescription>

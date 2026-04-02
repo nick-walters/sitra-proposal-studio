@@ -131,7 +131,7 @@ export function SectionAssignmentDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Assign Section</DialogTitle>
+          <DialogTitle>Assign section</DialogTitle>
           <DialogDescription>
             Assign <strong>{sectionNumber}. {sectionTitle}</strong> to a team member with an optional due date.
           </DialogDescription>

@@ -234,7 +234,7 @@ export function WPSimpleEditor({
 
           <Separator orientation="vertical" className="h-5 mx-1" />
 
-          {/* Bullet List, Numbered List */}
+          {/* Bullet list, Numbered list */}
           <div className="flex items-center gap-0.5">
             <Tooltip>
               <TooltipTrigger asChild>
@@ -249,7 +249,7 @@ export function WPSimpleEditor({
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-xs">
-                Bullet List
+                Bullet list
               </TooltipContent>
             </Tooltip>
             <Tooltip>
@@ -265,7 +265,7 @@ export function WPSimpleEditor({
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-xs">
-                Numbered List
+                Numbered list
               </TooltipContent>
             </Tooltip>
           </div>
@@ -287,7 +287,7 @@ export function WPSimpleEditor({
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-xs">
-                Align Left
+                Align left
               </TooltipContent>
             </Tooltip>
             <Tooltip>
@@ -303,7 +303,7 @@ export function WPSimpleEditor({
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-xs">
-                Align Center
+                Align center
               </TooltipContent>
             </Tooltip>
             <Tooltip>
@@ -319,7 +319,7 @@ export function WPSimpleEditor({
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-xs">
-                Align Right
+                Align right
               </TooltipContent>
             </Tooltip>
             <Tooltip>
@@ -459,7 +459,7 @@ export function WPSimpleEditor({
                   </PopoverTrigger>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="text-xs">
-                  Insert Table
+                  Insert table
                 </TooltipContent>
               </Tooltip>
               <PopoverContent className="w-auto p-2" align="start">
@@ -509,7 +509,7 @@ export function WPSimpleEditor({
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="text-xs">
-                  Insert Figure
+                  Insert figure
                 </TooltipContent>
               </Tooltip>
             )}

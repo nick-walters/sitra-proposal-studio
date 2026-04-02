@@ -373,7 +373,7 @@ export function GuidelineEditorDialog({
 
           {/* Order Index */}
           <div className="space-y-2">
-            <Label htmlFor="order_index">Display Order</Label>
+            <Label htmlFor="order_index">Display order</Label>
             <Input
               id="order_index"
               type="number"

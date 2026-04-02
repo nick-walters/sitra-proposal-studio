@@ -646,10 +646,10 @@ export function BudgetParticipantForm({
         </CardContent>
       </Card>
 
-      {/* Financial Information */}
+      {/* Financial information */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold">Financial Information</CardTitle>
+          <CardTitle className="text-sm font-semibold">Financial information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {[

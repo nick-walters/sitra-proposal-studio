@@ -1104,7 +1104,7 @@ export function ProposalEditor() {
               </span>
             )}
             
-            {/* Work Programme */}
+            {/* Work programme */}
             {workProgramme && (
               <span className="proposal-badge bg-gray-300 text-gray-700 text-[10px]" title={workProgramme.fullName}>
                 {workProgramme.abbreviation}

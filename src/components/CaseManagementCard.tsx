@@ -230,7 +230,7 @@ function SortableCaseRow({ caseItem, participants, casePrefix, onUpdate, onDelet
       <Dialog open={leadOpen} onOpenChange={setLeadOpen}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle>Select Case Lead</DialogTitle>
+            <DialogTitle>Select case lead</DialogTitle>
             <DialogDescription>
               Choose a partner organisation to lead this case.
             </DialogDescription>

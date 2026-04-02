@@ -107,7 +107,7 @@ export function UserAvatarMenu({ userId, email, onLogout }: UserAvatarMenuProps)
               }}
             >
               <User className="w-4 h-4" />
-              Edit Profile
+              Edit profile
             </Button>
             <Button 
               variant="ghost" 

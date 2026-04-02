@@ -155,7 +155,7 @@ export function ProposalKanbanView({ proposals, onProposalClick }: ProposalKanba
               <tr className="align-top">
                 {/* Left column */}
                 <td className="pr-2">
-                  {/* Row 1: Type, Work Programme, Destination badges */}
+                  {/* Row 1: Type, Work programme, Destination badges */}
                   <div className="flex flex-wrap gap-1 mb-2">
                     <span className="proposal-badge bg-white text-foreground border border-foreground text-[9px]">
                       {proposal.type}

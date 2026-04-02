@@ -213,7 +213,7 @@ export function SectionReviewDialog({
 
           {/* My review */}
           <div className="space-y-3 p-3 border rounded-lg">
-            <h4 className="text-sm font-medium">Your Review</h4>
+            <h4 className="text-sm font-medium">Your review</h4>
             <div className="flex items-center gap-4">
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Score</p>
@@ -261,7 +261,7 @@ export function SectionReviewDialog({
           {/* Other reviews */}
           {reviews.filter(r => r.reviewer_id !== user?.id).length > 0 && (
             <div className="space-y-2">
-              <h4 className="text-sm font-medium">Other Reviews</h4>
+              <h4 className="text-sm font-medium">Other reviews</h4>
               <ScrollArea className="max-h-[200px]">
                 <div className="space-y-2 pr-4">
                   {reviews.filter(r => r.reviewer_id !== user?.id).map(review => {

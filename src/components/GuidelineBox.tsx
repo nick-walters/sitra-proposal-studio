@@ -41,7 +41,7 @@ const guidelineConfig = {
   },
   evaluation: {
     icon: ClipboardCheck,
-    label: "Evaluation Criteria",
+    label: "Evaluation criteria",
     borderColor: "border-amber-500",
     titleColor: "text-amber-700",
     bgColor: "bg-amber-50/50",

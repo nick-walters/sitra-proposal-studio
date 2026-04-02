@@ -217,7 +217,7 @@ export function ResearchersTable({
                         <DialogHeader>
                           <DialogTitle className="flex items-center gap-2">
                             <BookOpen className="w-5 h-5" />
-                            Career Stage Definitions
+                            Career stage Definitions
                           </DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4 text-sm">
@@ -319,7 +319,7 @@ export function ResearchersTable({
                   <TableHead>Name</TableHead>
                   <TableHead>Gender</TableHead>
                   <TableHead>Nationality</TableHead>
-                  <TableHead>Career Stage</TableHead>
+                  <TableHead>Career stage</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Identifier</TableHead>
                   {canEdit && <TableHead className="w-[80px]">Actions</TableHead>}

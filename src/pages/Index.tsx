@@ -81,7 +81,7 @@ export default function Index() {
                 onClick={() => navigate('/auth')}
                 className="gap-2"
               >
-                Sign In
+                Sign in
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </div>

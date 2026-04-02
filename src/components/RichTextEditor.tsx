@@ -646,7 +646,7 @@ export function FormattingToolbar({
         {/* Bullet Numbered */}
         <ToolbarButton 
           icon={<List className="w-4 h-4" />} 
-          tooltip="Bullet List"
+          tooltip="Bullet list"
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           active={editor.isActive('bulletList')}
         />
@@ -660,19 +660,19 @@ export function FormattingToolbar({
         {/* Left Centre Right Justify */}
         <ToolbarButton 
           icon={<AlignLeft className="w-4 h-4" />} 
-          tooltip="Align Left"
+          tooltip="Align left"
           onClick={() => editor.chain().focus().setTextAlign('left').run()}
           active={editor.isActive({ textAlign: 'left' })}
         />
         <ToolbarButton 
           icon={<AlignCenter className="w-4 h-4" />} 
-          tooltip="Align Center"
+          tooltip="Align center"
           onClick={() => editor.chain().focus().setTextAlign('center').run()}
           active={editor.isActive({ textAlign: 'center' })}
         />
         <ToolbarButton 
           icon={<AlignRight className="w-4 h-4" />} 
-          tooltip="Align Right"
+          tooltip="Align right"
           onClick={() => editor.chain().focus().setTextAlign('right').run()}
           active={editor.isActive({ textAlign: 'right' })}
         />
@@ -702,7 +702,7 @@ export function FormattingToolbar({
                 </PopoverTrigger>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-xs">
-                Insert Table
+                Insert table
               </TooltipContent>
             </Tooltip>
             <PopoverContent align="start" className="w-auto p-0">
@@ -827,7 +827,7 @@ export function FormattingToolbar({
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="text-xs">
-              Insert Figure
+              Insert figure
             </TooltipContent>
           </Tooltip>
         )}
@@ -972,7 +972,7 @@ export function FormattingToolbar({
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Figure</AlertDialogTitle>
+            <AlertDialogTitle>Delete figure</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete this figure and its caption? This action cannot be undone.
             </AlertDialogDescription>

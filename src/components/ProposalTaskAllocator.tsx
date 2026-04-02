@@ -52,8 +52,8 @@ interface Profile {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  not_started: { label: 'Not Started', color: 'text-muted-foreground', bg: 'bg-muted' },
-  in_progress: { label: 'In Progress', color: 'text-blue-700', bg: 'bg-blue-500' },
+  not_started: { label: 'Not started', color: 'text-muted-foreground', bg: 'bg-muted' },
+  in_progress: { label: 'In progress', color: 'text-blue-700', bg: 'bg-blue-500' },
   completed: { label: 'Completed', color: 'text-green-700', bg: 'bg-green-500' },
   blocked: { label: 'Blocked', color: 'text-red-700', bg: 'bg-red-500' },
 };
@@ -498,7 +498,7 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
               </Popover>
             </div>
             <div>
-              <Label>Responsible Person</Label>
+              <Label>Responsible person</Label>
               <Select value={form.responsible_user_id} onValueChange={v => setForm(f => ({ ...f, responsible_user_id: v }))}>
                 <SelectTrigger><SelectValue placeholder="Select person" /></SelectTrigger>
                 <SelectContent>
@@ -509,7 +509,7 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
               </Select>
             </div>
             <div>
-              <Label>Additional Assignees</Label>
+              <Label>Additional assignees</Label>
               <div className="flex gap-1 flex-wrap mt-1">
                 {members.filter(m => m.id !== form.responsible_user_id).map(m => (
                   <Button

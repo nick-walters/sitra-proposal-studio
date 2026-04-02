@@ -88,7 +88,7 @@ export function DuplicateProposalDialog({
 
         <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <Label htmlFor="acronym">New Acronym</Label>
+            <Label htmlFor="acronym">New acronym</Label>
             <Input
               id="acronym"
               value={acronym}
@@ -98,7 +98,7 @@ export function DuplicateProposalDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="title">New Title</Label>
+            <Label htmlFor="title">New title</Label>
             <Input
               id="title"
               value={title}

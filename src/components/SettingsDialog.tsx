@@ -276,7 +276,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Date Format</Label>
+                  <Label>Date format</Label>
                   <p className="text-sm text-muted-foreground">How dates are displayed</p>
                 </div>
                 <Select
@@ -356,7 +356,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               
               <div className="grid gap-3 max-w-sm">
                 <div>
-                  <Label>Current Password</Label>
+                  <Label>Current password</Label>
                   <Input
                     type="password"
                     value={currentPassword}
@@ -365,7 +365,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                   />
                 </div>
                 <div>
-                  <Label>New Password</Label>
+                  <Label>New password</Label>
                   <Input
                     type="password"
                     value={newPassword}
@@ -374,7 +374,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                   />
                 </div>
                 <div>
-                  <Label>Confirm New Password</Label>
+                  <Label>Confirm New password</Label>
                   <Input
                     type="password"
                     value={confirmPassword}
@@ -452,7 +452,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     </div>
                   )}
                   <div className="space-y-2">
-                    <Label>Verification Code</Label>
+                    <Label>Verification code</Label>
                     <InputOTP maxLength={6} value={verifyCode} onChange={setVerifyCode}>
                       <InputOTPGroup>
                         <InputOTPSlot index={0} />

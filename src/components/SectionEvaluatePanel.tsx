@@ -184,7 +184,7 @@ export function SectionEvaluatePanel({ proposalId, sections }: SectionEvaluatePa
     return (
       <div className="text-center py-12 text-muted-foreground">
         <ClipboardCheck className="w-8 h-8 mx-auto mb-2 opacity-50" />
-        <p className="text-sm">No Part B sections available for evaluation.</p>
+        <p className="text-sm">No part B sections available for evaluation.</p>
       </div>
     );
   }
@@ -241,7 +241,7 @@ export function SectionEvaluatePanel({ proposalId, sections }: SectionEvaluatePa
       {/* My evaluation */}
       <Card>
         <CardContent className="space-y-3 p-4">
-          <h4 className="text-sm font-medium">Your Evaluation</h4>
+          <h4 className="text-sm font-medium">Your evaluation</h4>
           <div className="flex items-center gap-4">
             <div>
               <p className="text-xs text-muted-foreground mb-1">Score</p>
@@ -291,7 +291,7 @@ export function SectionEvaluatePanel({ proposalId, sections }: SectionEvaluatePa
       {reviews.filter(r => r.reviewer_id !== user?.id).length > 0 && (
         <Card>
           <CardContent className="space-y-3 p-4">
-            <h4 className="text-sm font-medium">Other Evaluations</h4>
+            <h4 className="text-sm font-medium">Other evaluations</h4>
             <div className="space-y-2">
               {reviews.filter(r => r.reviewer_id !== user?.id).map(review => {
                 const statusConfig = STATUS_CONFIG[review.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.pending;

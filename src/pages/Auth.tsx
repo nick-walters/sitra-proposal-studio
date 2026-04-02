@@ -202,7 +202,7 @@ export default function Auth() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Create New Password</CardTitle>
+              <CardTitle>Create New password</CardTitle>
               <CardDescription>
                 Enter your new password below.
               </CardDescription>
@@ -210,7 +210,7 @@ export default function Auth() {
             <CardContent>
               <form onSubmit={handleUpdatePassword} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="new-password">New Password</Label>
+                  <Label htmlFor="new-password">New password</Label>
                   <Input
                     id="new-password"
                     type="password"
@@ -223,7 +223,7 @@ export default function Auth() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Confirm Password</Label>
+                  <Label htmlFor="confirm-password">Confirm password</Label>
                   <Input
                     id="confirm-password"
                     type="password"
@@ -263,7 +263,7 @@ export default function Auth() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Reset Password</CardTitle>
+              <CardTitle>Reset password</CardTitle>
               <CardDescription>
                 Enter your email address and we'll send you a link to reset your password.
               </CardDescription>
@@ -291,7 +291,7 @@ export default function Auth() {
                   className="w-full"
                   onClick={() => setShowResetPassword(false)}
                 >
-                  Back to Sign In
+                  Back to Sign in
                 </Button>
               </form>
             </CardContent>
@@ -319,8 +319,8 @@ export default function Auth() {
           <Tabs defaultValue="signin">
             <CardHeader>
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                <TabsTrigger value="signin">Sign in</TabsTrigger>
+                <TabsTrigger value="signup">Sign up</TabsTrigger>
               </TabsList>
             </CardHeader>
 
@@ -354,7 +354,7 @@ export default function Auth() {
                     />
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? 'Signing in...' : 'Sign In'}
+                    {isLoading ? 'Signing in...' : 'Sign in'}
                   </Button>
                   <Button
 

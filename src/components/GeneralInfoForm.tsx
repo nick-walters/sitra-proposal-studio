@@ -658,14 +658,14 @@ export function GeneralInfoForm({
             {onExport && !isCoordinator && (
               <Button variant="outline" size="sm" className="gap-2" onClick={() => onExport('pdf', true)}>
                 <Download className="w-4 h-4" />
-                Export Part B
+                Export part B
               </Button>
             )}
             {onExport && isCoordinator && (
               <>
                 <Button variant="outline" className="h-7 px-2 text-xs gap-1" onClick={() => setIsExportOpen(true)}>
                   <Download className="h-3.5 w-3.5" />
-                  Export Part B
+                  Export part B
                 </Button>
                 <ExportDialog
                   open={isExportOpen}

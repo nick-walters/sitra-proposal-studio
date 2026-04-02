@@ -335,7 +335,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit, isCoordinator }: 
                       <List className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Bullet List</TooltipContent>
+                  <TooltipContent side="bottom" className="text-xs">Bullet list</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -343,7 +343,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit, isCoordinator }: 
                       <ListOrdered className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Numbered List</TooltipContent>
+                  <TooltipContent side="bottom" className="text-xs">Numbered list</TooltipContent>
                 </Tooltip>
               </div>
 
@@ -357,7 +357,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit, isCoordinator }: 
                       <AlignLeft className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Align Left</TooltipContent>
+                  <TooltipContent side="bottom" className="text-xs">Align left</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -365,7 +365,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit, isCoordinator }: 
                       <AlignCenter className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Align Center</TooltipContent>
+                  <TooltipContent side="bottom" className="text-xs">Align center</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -373,7 +373,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit, isCoordinator }: 
                       <AlignRight className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Align Right</TooltipContent>
+                  <TooltipContent side="bottom" className="text-xs">Align right</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -398,7 +398,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit, isCoordinator }: 
                       </Button>
                     </PopoverTrigger>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Insert Table</TooltipContent>
+                  <TooltipContent side="bottom" className="text-xs">Insert table</TooltipContent>
                 </Tooltip>
                 <PopoverContent className="w-auto p-2" align="start">
                   <div className="text-xs text-muted-foreground mb-2">

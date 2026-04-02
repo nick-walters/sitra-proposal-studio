@@ -157,7 +157,7 @@ export function TemplateAdmin() {
             <TemplateModifiersAdmin />
           </TabsContent>
 
-          {/* Work Programme Extensions Tab */}
+          {/* Work programme Extensions Tab */}
           <TabsContent value="extensions">
             <WorkProgrammeExtensionsAdmin />
           </TabsContent>
@@ -309,7 +309,7 @@ function FundingProgrammesPanel({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="short_name">Short Name</Label>
+              <Label htmlFor="short_name">Short name</Label>
               <Input
                 id="short_name"
                 value={formData.short_name}
@@ -648,7 +648,7 @@ function TemplateTypesPanel({
                     <SelectContent>
                       <SelectItem value="not_specified">Not specified</SelectItem>
                       <SelectItem value="stage_1">Stage 1 (Pre-proposal)</SelectItem>
-                      <SelectItem value="full">Full Proposal</SelectItem>
+                      <SelectItem value="full">Full proposal</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -684,7 +684,7 @@ function TemplateTypesPanel({
               </div>
               
               <div className="mt-4 space-y-2">
-                <Label>Action Types</Label>
+                <Label>Action types</Label>
                 <div className="flex gap-2 flex-wrap">
                   {['RIA', 'IA', 'CSA'].map((actionType) => (
                     <Button
