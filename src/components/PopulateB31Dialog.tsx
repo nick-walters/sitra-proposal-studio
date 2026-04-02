@@ -153,6 +153,7 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
 
       const selections: PopulateSelections = {
         objectives: anyObjectives,
+        descriptionBeforeTasks: anyDescBefore,
         tasks: allTaskChecks,
         deliverables: allDeliverableChecks,
         milestones: allMilestoneChecks,
