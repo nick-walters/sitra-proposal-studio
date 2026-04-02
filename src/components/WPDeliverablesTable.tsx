@@ -298,13 +298,16 @@ function SortableDeliverableCard({
           <span className="text-xs text-muted-foreground">Dissemination level:</span>
           <Select
             value={deliverable.dissemination_level || 'PU'}
-            onValueChange={(value) => onUpdate(deliverable.id, { dissemination_level: value })}
+            onValueChange={(value) => onUpdate(deliverable.id, { dissemination_level: value === '__clear__' ? null : value })}
             disabled={readOnly}
           >
-            <SelectTrigger hideArrow className="h-6 w-[110px] text-xs px-1.5">
-              <span>{deliverable.dissemination_level || 'PU'}</span>
+            <SelectTrigger hideArrow className="h-6 w-[77px] text-xs px-1.5">
+              <span>{deliverable.dissemination_level || 'Select'}</span>
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="__clear__">
+                <span className="text-muted-foreground italic">Clear</span>
+              </SelectItem>
               {DISSEMINATION_LEVELS.map((level) => (
                 <SelectItem key={level.value} value={level.value} textValue={level.value}>
                   <div className="flex flex-col">
