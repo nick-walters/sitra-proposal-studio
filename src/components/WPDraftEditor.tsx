@@ -909,7 +909,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           >
             <span
               className="font-bold whitespace-nowrap shrink-0"
-              style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif", fontSize: '11pt' }}
+              style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
             >
               WP{wpDraft.number}:&nbsp;
             </span>
@@ -919,7 +919,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               placeholder="SHORT"
               className="bg-transparent text-white placeholder:text-white/40 border-none shadow-none focus-visible:ring-0 h-auto p-0 font-bold shrink-0 min-w-0"
               style={{
-                fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
+                fontFamily: "'Times New Roman', Times, serif",
                 fontSize: '11pt',
                 width: `${Math.max(5, (wpDraft.short_name?.trim() || '').length)}ch`,
               }}
@@ -929,7 +929,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               <span
                 className="font-bold whitespace-nowrap shrink-0"
                 style={{
-                  fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
+                  fontFamily: "'Times New Roman', Times, serif",
                   fontSize: '11pt',
                   marginLeft: '0.25em',
                   marginRight: '0.25em',
@@ -943,7 +943,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               onDebouncedChange={(v) => updateField('title', v.trim())}
               placeholder="Work package title"
               className="bg-transparent text-white placeholder:text-white/40 border-none shadow-none focus-visible:ring-0 h-auto p-0 font-bold flex-1 min-w-0"
-              style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif", fontSize: '11pt' }}
+              style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
               disabled={readOnly}
             />
           </div>

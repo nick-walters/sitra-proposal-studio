@@ -823,21 +823,21 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
                   >
                      <span
                        className="inline-flex items-baseline rounded-full font-bold text-white w-full"
-                       style={{ backgroundColor: wp.color, border: `1.5px solid ${wp.color}`, fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, padding: '0px 6px', color: '#ffffff' }}
+                        style={{ backgroundColor: wp.color, border: `1.5px solid ${wp.color}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, padding: '0px 6px', color: '#ffffff' }}
                      >
                       WP{wp.number}:&nbsp;
                       <EditableHeaderText
                         value={shortName}
                         onSave={(val) => saveWPField(wp.id, 'short_name', val)}
                         className="text-white"
-                        style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif" }}
+                        style={{ fontFamily: "'Times New Roman', Times, serif" }}
                       />
                       {shortName && title ? <>&nbsp;–&nbsp;</> : null}
                       <EditableHeaderText
                         value={title}
                         onSave={(val) => saveWPField(wp.id, 'title', val)}
                         className="text-white"
-                        style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif" }}
+                        style={{ fontFamily: "'Times New Roman', Times, serif" }}
                       />
                     </span>
                   </td>
