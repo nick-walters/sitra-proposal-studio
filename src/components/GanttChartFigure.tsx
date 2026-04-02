@@ -57,6 +57,7 @@ interface GanttChartFigureProps {
 const TOTAL_WIDTH_PX = 680;
 const MIN_CELL_WIDTH = 7;
 const MARGIN_GAP = 15; // gap between month columns and right margin
+const ROW_HEIGHT = 20;
 
 export function GanttChartFigure({
   figureNumber,
@@ -309,13 +310,13 @@ export function GanttChartFigure({
           <div className="flex">
             {/* Labels column */}
             <div className="shrink-0" style={{ width: labelWidth, paddingTop: 2 }}>
-              <div className={`flex items-center justify-end ${headerLabelStyle}`} style={{ height: 18, padding: '0 2px' }}>
+              <div className={`flex items-center justify-end ${headerLabelStyle}`} style={{ height: ROW_HEIGHT, padding: '0 2px' }}>
                 Reporting period
               </div>
-              <div className={`flex items-center justify-end ${headerLabelStyle}`} style={{ height: 18, padding: '0 2px' }}>
+              <div className={`flex items-center justify-end ${headerLabelStyle}`} style={{ height: ROW_HEIGHT, padding: '0 2px' }}>
                 Year
               </div>
-              <div className={`flex items-center justify-end ${headerLabelStyle}`} style={{ height: 18, padding: '0 2px' }}>
+              <div className={`flex items-center justify-end ${headerLabelStyle}`} style={{ height: ROW_HEIGHT, padding: '0 2px' }}>
                 Quarter
               </div>
             </div>
@@ -329,7 +330,7 @@ export function GanttChartFigure({
                     <div
                       key={rp.number}
                       className="text-center font-bold flex items-center justify-center"
-                      style={{ width: periodMonths * cellWidth, height: 18, borderLeft: rpIdx > 0 ? `1px solid ${borderDark}` : undefined }}
+                      style={{ width: periodMonths * cellWidth, height: ROW_HEIGHT, borderLeft: rpIdx > 0 ? `1px solid ${borderDark}` : undefined }}
                     >
                       RP{rp.number}
                     </div>
@@ -342,7 +343,7 @@ export function GanttChartFigure({
                   <div
                     key={yr.year}
                     className="text-center font-bold flex items-center justify-center"
-                    style={{ width: yr.months.length * cellWidth, height: 18, borderLeft: yrIdx > 0 ? `1px solid ${borderDark}` : undefined }}
+                    style={{ width: yr.months.length * cellWidth, height: ROW_HEIGHT, borderLeft: yrIdx > 0 ? `1px solid ${borderDark}` : undefined }}
                   >
                     Y{yr.year}
                   </div>
@@ -361,7 +362,7 @@ export function GanttChartFigure({
                     <div
                       key={qi}
                       className="flex items-center justify-center"
-                      style={{ width: cellWidth * count, height: 18, padding: 0, borderLeft: leftBorderColor ? `1px solid ${leftBorderColor}` : undefined }}
+                      style={{ width: cellWidth * count, height: ROW_HEIGHT, padding: 0, borderLeft: leftBorderColor ? `1px solid ${leftBorderColor}` : undefined }}
                     >
                       <span style={{ fontSize: '11pt' }}>Q{(qi % 4) + 1}</span>
                     </div>
@@ -393,7 +394,7 @@ export function GanttChartFigure({
                 )}
 
                 {/* WP Header Row - full width bubble extending to margin */}
-                <div className="flex relative" style={{ height: 18 }}>
+                <div className="flex relative" style={{ height: ROW_HEIGHT }}>
                   <div 
                     className="absolute flex items-center font-bold text-white truncate rounded-full"
                     style={{ backgroundColor: wpColor, border: `1.5px solid ${wpColor}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, padding: '0 6px', pointerEvents: 'none', top: 0, bottom: 0, left: 0, right: 0 }}
@@ -551,7 +552,7 @@ export function GanttChartFigure({
 
                   // Allow bubbles to extend left of timeline (negative leftX is OK)
 
-                  const rowHeight = 18;
+                  const rowHeight = ROW_HEIGHT;
                   const titleWidth = labelWidth - 38 - 6;
 
                   return (
@@ -689,7 +690,7 @@ export function GanttChartFigure({
                       {/* Task number bubble */}
                       <div 
                         className="shrink-0 flex items-center justify-center"
-                        style={{ width: 38, height: 18, marginLeft: 6 }}
+                        style={{ width: 38, height: ROW_HEIGHT, marginLeft: 6 }}
                       >
                         <span
                           className="inline-flex items-center justify-center rounded-full font-bold"
@@ -701,7 +702,7 @@ export function GanttChartFigure({
                       {/* Task title */}
                       <div 
                         className="shrink-0 flex items-center overflow-hidden"
-                        style={{ width: labelWidth - 38 - 6, height: 18, padding: '0 2px', borderRight: `1px solid ${wpColor}` }}
+                        style={{ width: labelWidth - 38 - 6, height: ROW_HEIGHT, padding: '0 2px', borderRight: `1px solid ${wpColor}` }}
                       >
                         <span className="text-muted-foreground" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</span>
                       </div>
@@ -711,7 +712,7 @@ export function GanttChartFigure({
                             key={m}
                             style={{ 
                               width: cellWidth, 
-                              height: 18,
+                              height: ROW_HEIGHT,
                               borderRight: `1px solid ${getMonthRightBorder(m, wpColor)}`,
                             }}
                           />
