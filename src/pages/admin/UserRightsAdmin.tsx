@@ -53,6 +53,7 @@ export function UserRightsAdmin() {
   const [proposals, setProposals] = useState<ProposalOption[]>([]);
   const [editProfileUserId, setEditProfileUserId] = useState<string | null>(null);
   const [deleteConfirmUser, setDeleteConfirmUser] = useState<UserWithRoles | null>(null);
+  const [manageRightsUserId, setManageRightsUserId] = useState<string | null>(null);
   // Coordinators who are not owners need at least one coordinator role
   const canAccess = isOwner || (isAdminOrOwner && hasAnyCoordinatorRole);
 
