@@ -348,20 +348,22 @@ export function InsertTDMSReferenceDropdowns({
           </Tooltip>
 
           {/* Milestone button */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant={variant}
-                size={size}
-                className={buttonClass}
-                disabled={disabled}
-                onClick={() => setMilestoneDialogOpen(true)}
-              >
-                <MiniTriangle text="MS" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Insert milestone reference</TooltipContent>
-          </Tooltip>
+          {!hideMilestone && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={variant}
+                  size={size}
+                  className={buttonClass}
+                  disabled={disabled}
+                  onClick={() => setMilestoneDialogOpen(true)}
+                >
+                  <MiniTriangle text="MS" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Insert milestone reference</TooltipContent>
+            </Tooltip>
+          )}
         </>
       )}
 
