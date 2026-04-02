@@ -241,8 +241,6 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                       borderBottomRightRadius: '9999px',
                       backgroundColor: wpColor,
                       color: '#FFFFFF',
-                      border: `1.5px solid ${wpColor}`,
-                      borderTop: 'none',
                     }}
                   >
                     {colTotal ? formatPM(colTotal) : '—'}
