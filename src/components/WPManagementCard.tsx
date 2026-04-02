@@ -283,6 +283,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
   const { user } = useAuth();
   const [selectedWPs, setSelectedWPs] = useState<Set<string>>(new Set());
   const [isPopulating, setIsPopulating] = useState(false);
+  const [populateDialogOpen, setPopulateDialogOpen] = useState(false);
   const [paletteEditorOpen, setPaletteEditorOpen] = useState(false);
   
   
