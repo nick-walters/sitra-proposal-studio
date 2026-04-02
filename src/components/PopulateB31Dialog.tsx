@@ -1,0 +1,352 @@
+import { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  fetchWPDraftsForPopulate,
+  populateB31,
+  type WPDraftForPopulate,
+  type PopulateSelections,
+} from '@/lib/b31Population';
+
+interface PopulateB31DialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  proposalId: string;
+}
+
+export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB31DialogProps) {
+  const queryClient = useQueryClient();
+  const [loading, setLoading] = useState(false);
+  const [populating, setPopulating] = useState(false);
+  const [wpDrafts, setWpDrafts] = useState<WPDraftForPopulate[]>([]);
+
+  // Selection state
+  const [objectivesChecked, setObjectivesChecked] = useState(true);
+  const [taskChecks, setTaskChecks] = useState<Record<string, boolean>>({});
+  const [deliverableChecks, setDeliverableChecks] = useState<Record<string, boolean>>({});
+  const [milestoneChecks, setMilestoneChecks] = useState<Record<string, boolean>>({});
+  const [riskChecks, setRiskChecks] = useState<Record<string, boolean>>({});
+
+  // Section-level toggles
+  const [tasksEnabled, setTasksEnabled] = useState(true);
+  const [deliverablesEnabled, setDeliverablesEnabled] = useState(true);
+  const [milestonesEnabled, setMilestonesEnabled] = useState(true);
+  const [risksEnabled, setRisksEnabled] = useState(true);
+
+  useEffect(() => {
+    if (!open) return;
+    setLoading(true);
+    fetchWPDraftsForPopulate(proposalId)
+      .then((data) => {
+        setWpDrafts(data);
+        // Default all checks to true
+        const tasks: Record<string, boolean> = {};
+        const deliverables: Record<string, boolean> = {};
+        const milestones: Record<string, boolean> = {};
+        const risks: Record<string, boolean> = {};
+        for (const wp of data) {
+          for (const t of wp.tasks) tasks[t.id] = true;
+          for (const d of wp.deliverables) deliverables[d.id] = true;
+          for (const m of wp.milestones) milestones[m.id] = true;
+          for (const r of wp.risks) risks[r.id] = true;
+        }
+        setTaskChecks(tasks);
+        setDeliverableChecks(deliverables);
+        setMilestoneChecks(milestones);
+        setRiskChecks(risks);
+        setObjectivesChecked(true);
+        setTasksEnabled(true);
+        setDeliverablesEnabled(true);
+        setMilestonesEnabled(true);
+        setRisksEnabled(true);
+      })
+      .catch(() => toast.error('Failed to load WP data'))
+      .finally(() => setLoading(false));
+  }, [open, proposalId]);
+
+  const toggleAllInSection = (
+    checks: Record<string, boolean>,
+    setChecks: (v: Record<string, boolean>) => void,
+    val: boolean
+  ) => {
+    const next = { ...checks };
+    for (const key of Object.keys(next)) next[key] = val;
+    setChecks(next);
+  };
+
+  const allChecked = (checks: Record<string, boolean>) =>
+    Object.values(checks).length > 0 && Object.values(checks).every(Boolean);
+  const someChecked = (checks: Record<string, boolean>) =>
+    Object.values(checks).some(Boolean);
+
+  const handlePopulate = async () => {
+    setPopulating(true);
+    try {
+      const selections: PopulateSelections = {
+        objectives: objectivesChecked,
+        tasks: tasksEnabled ? taskChecks : {},
+        deliverables: deliverablesEnabled ? deliverableChecks : {},
+        milestones: milestonesEnabled ? milestoneChecks : {},
+        risks: risksEnabled ? riskChecks : {},
+      };
+
+      const result = await populateB31(proposalId, wpDrafts, selections);
+
+      if (result.success) {
+        const parts: string[] = [];
+        if (result.counts.objectives > 0) parts.push(`${result.counts.objectives} objectives`);
+        if (result.counts.tasks > 0) parts.push(`${result.counts.tasks} task descriptions`);
+        if (result.counts.deliverables > 0) parts.push(`${result.counts.deliverables} deliverables`);
+        if (result.counts.milestones > 0) parts.push(`${result.counts.milestones} milestones`);
+        if (result.counts.risks > 0) parts.push(`${result.counts.risks} risks`);
+        toast.success(`Populated: ${parts.join(', ') || 'nothing selected'}`);
+        queryClient.invalidateQueries({ queryKey: ['b31-wp-data'] });
+        queryClient.invalidateQueries({ queryKey: ['b31-deliverables'] });
+        queryClient.invalidateQueries({ queryKey: ['b31-milestones'] });
+        queryClient.invalidateQueries({ queryKey: ['b31-risks'] });
+        queryClient.invalidateQueries({ queryKey: ['section-content'] });
+        onOpenChange(false);
+      } else {
+        toast.error(result.error || 'Failed to populate');
+      }
+    } catch {
+      toast.error('Failed to populate');
+    } finally {
+      setPopulating(false);
+    }
+  };
+
+  const totalTasks = Object.keys(taskChecks).length;
+  const totalDeliverables = Object.keys(deliverableChecks).length;
+  const totalMilestones = Object.keys(milestoneChecks).length;
+  const totalRisks = Object.keys(riskChecks).length;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg max-h-[80vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Populate Part B3.1</DialogTitle>
+          <DialogDescription>
+            Select which content to copy from WP drafts to Part B3.1. Existing B3.1 entries with matching numbers will be updated.
+          </DialogDescription>
+        </DialogHeader>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <ScrollArea className="flex-1 -mx-6 px-6">
+            <div className="space-y-4 pb-2">
+              {/* Objectives */}
+              <SectionBlock
+                label="WP objectives"
+                description="Copies objectives to the corresponding WP in Table 3.1.b"
+                checked={objectivesChecked}
+                onCheckedChange={setObjectivesChecked}
+              />
+
+              {/* Tasks */}
+              <SectionBlock
+                label={`Task descriptions (${totalTasks})`}
+                description="Copies task content to the corresponding WP in Table 3.1.b"
+                checked={tasksEnabled}
+                onCheckedChange={(v) => {
+                  setTasksEnabled(v);
+                  if (!v) toggleAllInSection(taskChecks, setTaskChecks, false);
+                  else toggleAllInSection(taskChecks, setTaskChecks, true);
+                }}
+              >
+                {tasksEnabled && totalTasks > 0 && (
+                  <ItemList
+                    items={wpDrafts.flatMap((wp) =>
+                      wp.tasks.map((t) => ({
+                        id: t.id,
+                        label: `T${wp.number}.${t.number}${t.title ? `: ${t.title}` : ''}`,
+                      }))
+                    )}
+                    checks={taskChecks}
+                    setChecks={setTaskChecks}
+                  />
+                )}
+              </SectionBlock>
+
+              {/* Deliverables */}
+              <SectionBlock
+                label={`Deliverables (${totalDeliverables})`}
+                description="Copies to the combined Table 3.1.c"
+                checked={deliverablesEnabled}
+                onCheckedChange={(v) => {
+                  setDeliverablesEnabled(v);
+                  if (!v) toggleAllInSection(deliverableChecks, setDeliverableChecks, false);
+                  else toggleAllInSection(deliverableChecks, setDeliverableChecks, true);
+                }}
+              >
+                {deliverablesEnabled && totalDeliverables > 0 && (
+                  <ItemList
+                    items={wpDrafts.flatMap((wp) =>
+                      wp.deliverables.map((d) => ({
+                        id: d.id,
+                        label: `D${wp.number}.${d.number}${d.title ? `: ${d.title}` : ''}`,
+                      }))
+                    )}
+                    checks={deliverableChecks}
+                    setChecks={setDeliverableChecks}
+                  />
+                )}
+              </SectionBlock>
+
+              {/* Milestones */}
+              <SectionBlock
+                label={`Milestones (${totalMilestones})`}
+                description="Copies to Table 3.1.d"
+                checked={milestonesEnabled}
+                onCheckedChange={(v) => {
+                  setMilestonesEnabled(v);
+                  if (!v) toggleAllInSection(milestoneChecks, setMilestoneChecks, false);
+                  else toggleAllInSection(milestoneChecks, setMilestoneChecks, true);
+                }}
+              >
+                {milestonesEnabled && totalMilestones > 0 && (
+                  <ItemList
+                    items={wpDrafts.flatMap((wp) =>
+                      wp.milestones.map((m) => ({
+                        id: m.id,
+                        label: `MS${m.number}${m.title ? `: ${m.title}` : ''}`,
+                      }))
+                    )}
+                    checks={milestoneChecks}
+                    setChecks={setMilestoneChecks}
+                  />
+                )}
+              </SectionBlock>
+
+              {/* Risks */}
+              <SectionBlock
+                label={`Risks (${totalRisks})`}
+                description="Copies to Table 3.1.e"
+                checked={risksEnabled}
+                onCheckedChange={(v) => {
+                  setRisksEnabled(v);
+                  if (!v) toggleAllInSection(riskChecks, setRiskChecks, false);
+                  else toggleAllInSection(riskChecks, setRiskChecks, true);
+                }}
+              >
+                {risksEnabled && totalRisks > 0 && (
+                  <ItemList
+                    items={wpDrafts.flatMap((wp) =>
+                      wp.risks.map((r) => ({
+                        id: r.id,
+                        label: `R${r.number} (WP${wp.number})${r.title ? `: ${r.title}` : ''}`,
+                      }))
+                    )}
+                    checks={riskChecks}
+                    setChecks={setRiskChecks}
+                  />
+                )}
+              </SectionBlock>
+            </div>
+          </ScrollArea>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={populating}>
+            Cancel
+          </Button>
+          <Button onClick={handlePopulate} disabled={populating || loading}>
+            {populating ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                Populating…
+              </>
+            ) : (
+              'Populate'
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ── Section block with header checkbox ── */
+function SectionBlock({
+  label,
+  description,
+  checked,
+  onCheckedChange,
+  children,
+}: {
+  label: string;
+  description: string;
+  checked: boolean;
+  onCheckedChange: (v: boolean) => void;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="border rounded-md p-3">
+      <label className="flex items-start gap-2 cursor-pointer">
+        <Checkbox
+          checked={checked}
+          onCheckedChange={(v) => onCheckedChange(v === true)}
+          className="mt-0.5"
+        />
+        <div>
+          <span className="text-sm font-medium">{label}</span>
+          <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
+      </label>
+      {children}
+    </div>
+  );
+}
+
+/* ── Expandable item checklist ── */
+function ItemList({
+  items,
+  checks,
+  setChecks,
+}: {
+  items: { id: string; label: string }[];
+  checks: Record<string, boolean>;
+  setChecks: (v: Record<string, boolean>) => void;
+}) {
+  const allChecked = items.every((i) => checks[i.id]);
+
+  return (
+    <div className="mt-2 ml-6 space-y-1">
+      <button
+        className="text-xs text-muted-foreground hover:text-foreground cursor-pointer underline"
+        onClick={() => {
+          const next = { ...checks };
+          const newVal = !allChecked;
+          for (const item of items) next[item.id] = newVal;
+          setChecks(next);
+        }}
+      >
+        {allChecked ? 'Deselect all' : 'Select all'}
+      </button>
+      {items.map((item) => (
+        <label key={item.id} className="flex items-center gap-2 text-xs cursor-pointer">
+          <Checkbox
+            checked={checks[item.id] ?? false}
+            onCheckedChange={(v) => setChecks({ ...checks, [item.id]: v === true })}
+          />
+          <span className="truncate">{item.label}</span>
+        </label>
+      ))}
+    </div>
+  );
+}
