@@ -1,0 +1,1 @@
+ALTER TABLE public.wp_drafts ADD COLUMN IF NOT EXISTS b31_description_before_tasks TEXT DEFAULT NULL;
