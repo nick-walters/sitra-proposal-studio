@@ -255,7 +255,7 @@ function SortableDeliverableCard({
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 text-muted-foreground hover:text-destructive flex-shrink-0"
+            className="h-6 w-6 text-destructive hover:text-destructive flex-shrink-0"
             onClick={() => onDelete(deliverable.id)}
           >
             <Trash2 className="h-3.5 w-3.5" />
