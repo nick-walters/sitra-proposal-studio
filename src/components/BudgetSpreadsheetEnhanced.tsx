@@ -651,7 +651,7 @@ export function BudgetSpreadsheetEnhanced({
                                         <Button
                                           variant="ghost"
                                           size="icon"
-                                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                          className="h-8 w-8 text-destructive hover:text-destructive"
                                           onClick={() => onDeleteBudgetItem(item.id)}
                                         >
                                           <Trash2 className="w-4 h-4" />

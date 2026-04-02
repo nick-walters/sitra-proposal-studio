@@ -182,7 +182,7 @@ export function DependenciesSection({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="text-muted-foreground hover:text-destructive"
+                          className="text-destructive hover:text-destructive"
                           onClick={() => onDelete(dep.id)}
                         >
                           <Trash2 className="w-4 h-4" />

@@ -358,7 +358,7 @@ export function ResearchersTable({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
                           onClick={() => setDeleteConfirm({ id: researcher.id, name: `${researcher.firstName} ${researcher.lastName}` })}
                         >
                           <Trash2 className="w-4 h-4" />
