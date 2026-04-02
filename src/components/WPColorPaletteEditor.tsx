@@ -81,9 +81,6 @@ export function WPColorPaletteEditor({
     'WP7 Color',
     'WP8 Color',
     'WP9 Color',
-    'WP10 Color',
-    'WP11 Color',
-    'WP12 Color',
   ];
 
   return (

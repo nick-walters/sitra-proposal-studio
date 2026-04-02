@@ -1,18 +1,15 @@
 // WP Color System - Default palette and utilities
 
 export const DEFAULT_WP_COLORS = [
-  '#2563EB', // Royal Blue
-  '#059669', // Emerald
-  '#D97706', // Amber
-  '#7C3AED', // Violet
-  '#0891B2', // Cyan
-  '#EA580C', // Orange
-  '#DB2777', // Pink
-  '#475569', // Slate
-  '#65A30D', // Lime
-  '#4F46E5', // Indigo
-  '#0D9488', // Teal
-  '#8B5CF6', // Purple
+  '#2E6BC6', // Natural Blue
+  '#881337', // Burgundy
+  '#166534', // Forest Green
+  '#C2410C', // Orange
+  '#0F766E', // Teal
+  '#7E57C2', // Violet
+  '#C2185B', // Pink
+  '#5C8C14', // Grass Green
+  '#B91C1C', // Crimson
 ];
 
 
