@@ -367,51 +367,66 @@ export function WPSimpleEditor({
               </Tooltip>
             )}
 
-            {/* Cross-reference */}
-            {onOpenCrossRefDialog && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2 gap-1"
-                    onClick={onOpenCrossRefDialog}
-                  >
-                    <Link2 className="h-4 w-4" />
-                    <span className="text-xs">Cross-ref citation</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">
-                  Insert Cross-reference Citation
-                </TooltipContent>
-              </Tooltip>
+            {/* Cross-ref dropdown */}
+            {(onOpenCrossRefDialog || onOpenWPRefDialog || onInsertTaskRef || onInsertDeliverableRef || onOpenParticipantRefDialog) && (
+              <DropdownMenu>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1">
+                        <Link2 className="w-4 h-4" />
+                        <span className="text-xs">Cross-ref</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs">Insert cross-reference</TooltipContent>
+                </Tooltip>
+                <DropdownMenuContent align="start" className="w-64 bg-popover z-50">
+                  {onOpenCrossRefDialog && (
+                    <DropdownMenuItem onClick={onOpenCrossRefDialog} className="flex items-center gap-2">
+                      <span className="w-16 flex justify-start shrink-0"><ImageIcon className="w-3.5 h-3.5 text-foreground" /></span>
+                      <span>Figure / Table number</span>
+                    </DropdownMenuItem>
+                  )}
+                  {onOpenWPRefDialog && (
+                    <DropdownMenuItem onClick={onOpenWPRefDialog} className="flex items-center gap-2">
+                      <span className="w-16 flex justify-start shrink-0">
+                        <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#2563EB', border: '1.5px solid #2563EB', borderRadius: '9999px' }} />
+                      </span>
+                      <span>Work package</span>
+                    </DropdownMenuItem>
+                  )}
+                  {onInsertTaskRef && (
+                    <DropdownMenuItem onClick={() => setIsTaskRefOpen(true)} className="flex items-center gap-2">
+                      <span className="w-16 flex justify-start shrink-0">
+                        <span style={{ display: 'inline-block', width: '22px', height: '14px', borderRadius: '9999px', border: '1.5px solid #2563EB', background: '#ffffff' }} />
+                      </span>
+                      <span>Task</span>
+                    </DropdownMenuItem>
+                  )}
+                  {onInsertDeliverableRef && (
+                    <DropdownMenuItem onClick={() => setIsDeliverableRefOpen(true)} className="flex items-center gap-2">
+                      <span className="w-16 flex justify-start shrink-0">
+                        <span style={{ display: 'inline-block', width: '22px', height: '14px', background: '#2563EB', clipPath: 'polygon(0% 0%, calc(100% - 6px) 0%, 100% 50%, calc(100% - 6px) 100%, 0% 100%)', position: 'relative' }}>
+                          <span style={{ position: 'absolute', inset: '1.5px', right: '2px', background: '#ffffff', clipPath: 'polygon(0% 0%, calc(100% - 5px) 0%, 100% 50%, calc(100% - 5px) 100%, 0% 100%)' }} />
+                        </span>
+                      </span>
+                      <span>Deliverable</span>
+                    </DropdownMenuItem>
+                  )}
+                  {onOpenParticipantRefDialog && (
+                    <DropdownMenuItem onClick={onOpenParticipantRefDialog} className="flex items-center gap-2">
+                      <span className="w-16 flex justify-start shrink-0">
+                        <span style={{ display: 'inline-block', width: '22px', height: '14px', backgroundColor: '#000000', border: '1.5px solid #000000', borderRadius: '9999px' }} />
+                      </span>
+                      <span>Participant</span>
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
 
-            <Separator orientation="vertical" className="h-5 mx-1" />
-
-            {/* WP Mention */}
-            {onOpenWPRefDialog && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2 gap-1"
-                    onClick={onOpenWPRefDialog}
-                  >
-                    <Layers className="h-4 w-4" />
-                    <span className="text-xs">WP</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">
-                  Insert WP Reference
-                </TooltipContent>
-              </Tooltip>
-            )}
-
-            {/* T/D/MS Reference Dropdowns */}
+            {/* T/D Reference Dialogs (dialogsOnly mode) */}
             {proposalId && onInsertTaskRef && onInsertDeliverableRef && onInsertMilestoneRef && (
               <InsertTDMSReferenceDropdowns
                 proposalId={proposalId}
@@ -419,30 +434,13 @@ export function WPSimpleEditor({
                 onInsertTask={onInsertTaskRef}
                 onInsertDeliverable={onInsertDeliverableRef}
                 onInsertMilestone={onInsertMilestoneRef}
-                variant="ghost"
+                dialogsOnly
+                openTask={isTaskRefOpen}
+                onOpenTaskChange={setIsTaskRefOpen}
+                openDeliverable={isDeliverableRefOpen}
+                onOpenDeliverableChange={setIsDeliverableRefOpen}
                 hideMilestone
               />
-            )}
-
-            {/* Partner Reference */}
-            {onOpenParticipantRefDialog && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2 gap-1"
-                    onClick={onOpenParticipantRefDialog}
-                  >
-                    <Building2 className="h-4 w-4" />
-                    <span className="text-xs">Partner</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">
-                  Insert Partner Reference
-                </TooltipContent>
-              </Tooltip>
             )}
 
             {/* Table */}
