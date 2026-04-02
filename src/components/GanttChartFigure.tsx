@@ -57,6 +57,7 @@ interface GanttChartFigureProps {
 const TOTAL_WIDTH_PX = 680;
 const MIN_CELL_WIDTH = 7;
 const MARGIN_GAP = 15; // gap between month columns and right margin
+const ROW_HEIGHT = 20;
 
 export function GanttChartFigure({
   figureNumber,
