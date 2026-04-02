@@ -372,6 +372,7 @@ function SortableDeliverableCard({
             </DropdownMenu>
           )}
         </div>
+      </div>
     </div>
   );
 }
