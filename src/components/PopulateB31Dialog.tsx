@@ -242,7 +242,7 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
                         WP{wp.number}{wp.short_name ? `: ${wp.short_name}` : ''}{wp.title ? ` – ${wp.title}` : ''}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {wp.tasks.length} tasks · {wp.deliverables.length} deliverables · {wp.milestones.length} milestones · {wp.risks.length} risks
+                        {wp.tasks.length} {wp.tasks.length === 1 ? 'task' : 'tasks'} · {wp.deliverables.length} {wp.deliverables.length === 1 ? 'deliverable' : 'deliverables'} · {wp.milestones.length} {wp.milestones.length === 1 ? 'milestone' : 'milestones'} · {wp.risks.length} {wp.risks.length === 1 ? 'risk' : 'risks'}
                       </span>
                     </div>
                   </label>
@@ -281,7 +281,7 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
 
               {currentWp.tasks.length > 0 && (
                 <SectionBlock
-                  label={`Tasks (${currentWp.tasks.length})`}
+                  label={`${currentWp.tasks.length === 1 ? 'Task' : 'Tasks'} (${currentWp.tasks.length})`}
                   description="Copies task content to Table 3.1.b"
                   checked={currentSel.tasksEnabled}
                   onCheckedChange={(v) => {
@@ -306,7 +306,7 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
 
               {currentWp.deliverables.length > 0 && (
                 <SectionBlock
-                  label={`Deliverables (${currentWp.deliverables.length})`}
+                  label={`${currentWp.deliverables.length === 1 ? 'Deliverable' : 'Deliverables'} (${currentWp.deliverables.length})`}
                   description="Copies to Table 3.1.c"
                   checked={currentSel.deliverablesEnabled}
                   onCheckedChange={(v) => {
@@ -331,7 +331,7 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
 
               {currentWp.milestones.length > 0 && (
                 <SectionBlock
-                  label={`Milestones (${currentWp.milestones.length})`}
+                  label={`${currentWp.milestones.length === 1 ? 'Milestone' : 'Milestones'} (${currentWp.milestones.length})`}
                   description="Copies to Table 3.1.d"
                   checked={currentSel.milestonesEnabled}
                   onCheckedChange={(v) => {
@@ -356,7 +356,7 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
 
               {currentWp.risks.length > 0 && (
                 <SectionBlock
-                  label={`Risks (${currentWp.risks.length})`}
+                  label={`${currentWp.risks.length === 1 ? 'Risk' : 'Risks'} (${currentWp.risks.length})`}
                   description="Copies to Table 3.1.e"
                   checked={currentSel.risksEnabled}
                   onCheckedChange={(v) => {
