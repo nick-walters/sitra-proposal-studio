@@ -1312,7 +1312,7 @@ export function DocumentEditor({
               </div>
             )}
 
-            {/* Document Page with Rich Text Editor */}
+            {/* Document Page with Rich text editor */}
             <div ref={documentPageRef} className="document-page animate-fade-in">
               {/* Page Header - centered, shows Topic ID: Topic title (type of action) */}
               <div className="document-page-header">
@@ -1883,7 +1883,7 @@ export function DocumentEditor({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Block</AlertDialogTitle>
+            <AlertDialogTitle>Delete block</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete this block? This action cannot be undone.
             </AlertDialogDescription>

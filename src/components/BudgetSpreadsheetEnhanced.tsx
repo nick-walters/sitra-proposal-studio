@@ -97,14 +97,14 @@ const STANDARD_CATEGORIES = [
 
 // Lump sum categories (work package based)
 const LUMP_SUM_CATEGORIES = [
-  { id: 'WP1', label: 'Work Package 1', description: 'Project Management' },
-  { id: 'WP2', label: 'Work Package 2', description: 'Research & Development' },
-  { id: 'WP3', label: 'Work Package 3', description: 'Validation & Testing' },
-  { id: 'WP4', label: 'Work Package 4', description: 'Dissemination & Exploitation' },
-  { id: 'WP5', label: 'Work Package 5', description: 'Additional Activities' },
-  { id: 'WP6', label: 'Work Package 6', description: 'Additional Activities' },
-  { id: 'WP7', label: 'Work Package 7', description: 'Additional Activities' },
-  { id: 'WP8', label: 'Work Package 8', description: 'Additional Activities' },
+  { id: 'WP1', label: 'Work package 1', description: 'Project Management' },
+  { id: 'WP2', label: 'Work package 2', description: 'Research & Development' },
+  { id: 'WP3', label: 'Work package 3', description: 'Validation & Testing' },
+  { id: 'WP4', label: 'Work package 4', description: 'Dissemination & Exploitation' },
+  { id: 'WP5', label: 'Work package 5', description: 'Additional Activities' },
+  { id: 'WP6', label: 'Work package 6', description: 'Additional Activities' },
+  { id: 'WP7', label: 'Work package 7', description: 'Additional Activities' },
+  { id: 'WP8', label: 'Work package 8', description: 'Additional Activities' },
 ];
 
 interface BudgetSpreadsheetEnhancedProps {
@@ -290,7 +290,7 @@ export function BudgetSpreadsheetEnhanced({
               </SheetTrigger>
               <SheetContent className="w-[400px] sm:w-[540px]">
                 <SheetHeader>
-                  <SheetTitle>Budget Change History</SheetTitle>
+                  <SheetTitle>Budget change history</SheetTitle>
                   <SheetDescription>
                     Track all changes made to the budget
                   </SheetDescription>
@@ -327,7 +327,7 @@ export function BudgetSpreadsheetEnhanced({
                   <Euro className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Request</p>
+                  <p className="text-sm text-muted-foreground">Total request</p>
                   <p className="text-xl font-bold">{formatCurrency(totals.overall)}</p>
                 </div>
               </div>
@@ -341,7 +341,7 @@ export function BudgetSpreadsheetEnhanced({
                   <Calculator className="w-5 h-5 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Topic Budget</p>
+                  <p className="text-sm text-muted-foreground">Topic budget</p>
                   <p className="text-xl font-bold">
                     {totalBudget ? formatCurrency(totalBudget) : 'Not set'}
                   </p>
@@ -414,7 +414,7 @@ export function BudgetSpreadsheetEnhanced({
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="detailed">Detailed Entry</TabsTrigger>
+            <TabsTrigger value="detailed">Detailed entry</TabsTrigger>
             <TabsTrigger value="summary">Summary by participant</TabsTrigger>
           </TabsList>
 
@@ -422,7 +422,7 @@ export function BudgetSpreadsheetEnhanced({
           <TabsContent value="overview" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Budget Overview by Category</CardTitle>
+                <CardTitle>Budget overview by category</CardTitle>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -481,7 +481,7 @@ export function BudgetSpreadsheetEnhanced({
             </Card>
           </TabsContent>
 
-          {/* Detailed Entry Tab */}
+          {/* Detailed entry Tab */}
           <TabsContent value="detailed" className="space-y-4">
             {/* Filter */}
             <div className="flex items-center gap-4">
@@ -538,7 +538,7 @@ export function BudgetSpreadsheetEnhanced({
                               {subcategories.length > 0 && <TableHead>Subcategory</TableHead>}
                               <TableHead>Description</TableHead>
                               {budgetType === 'traditional' && category.id === 'A' && (
-                                <TableHead className="text-right">Person Months</TableHead>
+                                <TableHead className="text-right">Person months</TableHead>
                               )}
                               <TableHead className="text-right">Amount (€)</TableHead>
                               <TableHead>Justification</TableHead>

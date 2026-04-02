@@ -326,7 +326,7 @@ export function InsertTDMSReferenceDropdowns({
                 <BubblePill text="T" bg="#ffffff" fg="#000" border="#000" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Insert Task Reference</TooltipContent>
+            <TooltipContent>Insert task reference</TooltipContent>
           </Tooltip>
 
           {/* Deliverable button */}
@@ -342,7 +342,7 @@ export function InsertTDMSReferenceDropdowns({
                 <MiniPentagon text="D" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Insert Deliverable Reference</TooltipContent>
+            <TooltipContent>Insert deliverable reference</TooltipContent>
           </Tooltip>
 
           {/* Milestone button */}
@@ -358,7 +358,7 @@ export function InsertTDMSReferenceDropdowns({
                 <MiniTriangle text="MS" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Insert Milestone Reference</TooltipContent>
+            <TooltipContent>Insert milestone reference</TooltipContent>
           </Tooltip>
         </>
       )}
@@ -369,7 +369,7 @@ export function InsertTDMSReferenceDropdowns({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <TaskPill label="T" />
-              Insert Task Reference
+              Insert task reference
             </DialogTitle>
             <DialogDescription>
               Select a task to insert as an inline reference badge.
@@ -413,7 +413,7 @@ export function InsertTDMSReferenceDropdowns({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <DeliverablePentagon label="D" />
-              Insert Deliverable Reference
+              Insert deliverable reference
             </DialogTitle>
             <DialogDescription>
               Select a deliverable to insert as an inline reference badge.
@@ -457,7 +457,7 @@ export function InsertTDMSReferenceDropdowns({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MilestoneTriangle number={0} />
-              Insert Milestone Reference
+              Insert milestone reference
             </DialogTitle>
             <DialogDescription>
               Select a milestone to insert as an inline reference badge.

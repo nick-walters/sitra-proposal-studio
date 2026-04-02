@@ -578,7 +578,7 @@ export function ProposalMessagingBoard({ proposalId, isCoordinator }: ProposalMe
   return (
     <div className="p-6 space-y-4 max-w-4xl mx-auto">
       <div>
-        <h2 className="text-2xl font-bold">Message Board</h2>
+        <h2 className="text-2xl font-bold">Message board</h2>
         <p className="text-muted-foreground text-sm">Discuss and coordinate with your proposal team</p>
       </div>
 

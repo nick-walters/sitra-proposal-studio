@@ -165,7 +165,7 @@ export function ImageCropDialog({ isOpen, onClose, imageSrc, onCrop }: ImageCrop
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Crop Image</DialogTitle>
+          <DialogTitle>Crop image</DialogTitle>
         </DialogHeader>
         
         <div 
@@ -281,7 +281,7 @@ export function ImageCropDialog({ isOpen, onClose, imageSrc, onCrop }: ImageCrop
         
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleCrop}>Apply Crop</Button>
+          <Button onClick={handleCrop}>Apply crop</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

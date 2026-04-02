@@ -146,7 +146,7 @@ export function ParticipantDetailForm({
 
   const members = participantMembers.filter(m => m.participantId === participant.id);
 
-  // GEP eligibility: HES, RES, or PUB organisations from EU Member States or Associated Countries
+  // GEP eligibility: HES, RES, or PUB organisations from EU Member States or Associated countries
   const showGEPSection = useMemo(() => {
     const GEP_ELIGIBLE_CATEGORIES = ['HES', 'RES', 'PUB'];
     const isEligibleCategory = GEP_ELIGIBLE_CATEGORIES.includes(participant.organisationCategory || '');

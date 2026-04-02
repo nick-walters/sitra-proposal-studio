@@ -77,7 +77,7 @@ export function MilestoneTaskMappingDialog({ proposalId }: MilestoneTaskMappingD
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[70vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Assign Milestones to Tasks</DialogTitle>
+          <DialogTitle>Assign milestones to tasks</DialogTitle>
         </DialogHeader>
         <div className="space-y-3 mt-2">
           {filteredMilestones.map(ms => (

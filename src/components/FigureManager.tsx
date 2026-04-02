@@ -63,7 +63,7 @@ interface FigureManagerProps {
 }
 
 const FIGURE_TYPES = [
-  { id: 'image', label: 'Upload Image', icon: Upload, description: 'Upload an image file (PNG, JPG, etc.)' },
+  { id: 'image', label: 'Upload image', icon: Upload, description: 'Upload an image file (PNG, JPG, etc.)' },
   { id: 'ai', label: 'AI Generated', icon: Sparkles, description: 'Generate an image using AI' },
   { id: 'gantt', label: 'Gantt Chart', icon: BarChart3, description: 'Timeline view of work packages and tasks' },
   { id: 'pert', label: 'PERT Diagram', icon: Network, description: 'Project network diagram' },
@@ -478,7 +478,7 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
     if (newFigureType === 'image') {
       return (
         <div className="space-y-2">
-          <Label>Upload Image</Label>
+          <Label>Upload image</Label>
           <input
             ref={fileInputRef}
             type="file"
@@ -509,7 +509,7 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
     if (newFigureType === 'ai') {
       return (
         <div className="space-y-3">
-          <Label>Image Description</Label>
+          <Label>Image description</Label>
           <Textarea
             value={aiPrompt}
             onChange={(e) => setAiPrompt(e.target.value)}
@@ -555,7 +555,7 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-foreground">Figures</h1>
             <p className="text-muted-foreground">
-              Create and manage figures for your proposal. Insert them into Part B sections using the Insert Figure tool.
+              Create and manage figures for your proposal. Insert them into Part B sections using the Insert figure tool.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -597,7 +597,7 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
                   </DialogTrigger>
               <DialogContent className="max-w-lg">
                 <DialogHeader>
-                  <DialogTitle>Create New Figure</DialogTitle>
+                  <DialogTitle>Create new figure</DialogTitle>
                   <DialogDescription>
                     Add a new figure to your proposal. Figures will be numbered automatically based on their section.
                   </DialogDescription>
@@ -628,7 +628,7 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Figure Type</Label>
+                    <Label>Figure type</Label>
                      <div className="grid gap-2">
                       {FIGURE_TYPES.map((type) => {
                         // Check if PERT or Gantt already exists

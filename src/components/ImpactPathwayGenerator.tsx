@@ -228,7 +228,7 @@ export function ImpactPathwayGenerator({
   const formatOutcomesForInsert = () => {
     if (!result) return '';
     
-    let content = '<h3>Expected Outcomes</h3>\n\n';
+    let content = '<h3>Expected outcomes</h3>\n\n';
     result.outcomes.forEach((outcome, idx) => {
       content += `<p><strong>${idx + 1}. ${outcome.title}</strong></p>\n`;
       content += `<p>${outcome.description}</p>\n`;
@@ -244,7 +244,7 @@ export function ImpactPathwayGenerator({
   const formatImpactsForInsert = () => {
     if (!result) return '';
     
-    let content = '<h3>Wider Impacts</h3>\n\n';
+    let content = '<h3>Wider impacts</h3>\n\n';
     result.impacts.forEach((impact, idx) => {
       content += `<p><strong>${idx + 1}. ${impact.title}</strong></p>\n`;
       content += `<p>${impact.contribution}</p>\n`;
@@ -406,13 +406,13 @@ export function ImpactPathwayGenerator({
                     </CardContent>
                   </Card>
 
-                  {/* Expected Outcomes */}
+                  {/* Expected outcomes */}
                   <Card>
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-base flex items-center gap-2">
                           <ArrowRight className="w-4 h-4" />
-                          Expected Outcomes
+                          Expected outcomes
                         </CardTitle>
                         <div className="flex gap-1">
                           <Button
@@ -449,13 +449,13 @@ export function ImpactPathwayGenerator({
                     </CardContent>
                   </Card>
 
-                  {/* Wider Impacts */}
+                  {/* Wider impacts */}
                   <Card>
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-base flex items-center gap-2">
                           <TrendingUp className="w-4 h-4" />
-                          Wider Impacts
+                          Wider impacts
                         </CardTitle>
                         <div className="flex gap-1">
                           <Button

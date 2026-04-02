@@ -375,7 +375,7 @@ export function GanttChartFigure({
           {/* Slim spacer after header - non-editable */}
           <div style={{ height: 2 }} aria-hidden="true" />
 
-          {/* Work Packages and Tasks */}
+          {/* Work packages and Tasks */}
           {workPackages.map((wp, wpIdx) => {
             const wpColor = wp.color || '#2563EB';
             const taskColor = '#d4d4d4';

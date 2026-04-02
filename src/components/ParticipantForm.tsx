@@ -197,7 +197,7 @@ export function ParticipantForm({
           {canEditAll && (
             <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
               <Plus className="w-4 h-4" />
-              Add Participant
+              Add participant
             </Button>
           )}
         </div>
@@ -214,7 +214,7 @@ export function ParticipantForm({
               {canEditAll && (
                 <Button onClick={() => setIsAddDialogOpen(true)} className="mt-4 gap-2">
                   <Plus className="w-4 h-4" />
-                  Add Participant
+                  Add participant
                 </Button>
               )}
             </CardContent>
@@ -264,7 +264,7 @@ export function ParticipantForm({
                   <CardContent className="space-y-4">
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                       <div className="space-y-2">
-                        <Label>Organisation Name</Label>
+                        <Label>Organisation name</Label>
                         <Input
                           value={participant.organisationName}
                           onChange={(e) =>
@@ -274,7 +274,7 @@ export function ParticipantForm({
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>Short Name</Label>
+                        <Label>Short name</Label>
                         <Input
                           value={participant.organisationShortName || ''}
                           onChange={(e) =>
@@ -326,7 +326,7 @@ export function ParticipantForm({
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>Contact Email</Label>
+                        <Label>Contact email</Label>
                         <Input
                           type="email"
                           value={participant.contactEmail || ''}
@@ -350,12 +350,12 @@ export function ParticipantForm({
                       <Label htmlFor={`sme-${participant.id}`}>SME (Small and Medium Enterprise)</Label>
                     </div>
 
-                    {/* Team Members */}
+                    {/* Team members */}
                     <div className="border-t pt-4 mt-4">
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="font-medium flex items-center gap-2">
                           <User className="w-4 h-4" />
-                          Team Members
+                          Team members
                         </h4>
                         {editable && (
                           <Button
@@ -368,7 +368,7 @@ export function ParticipantForm({
                             className="gap-1"
                           >
                             <Plus className="w-3 h-3" />
-                            Add Member
+                            Add member
                           </Button>
                         )}
                       </div>
@@ -418,18 +418,18 @@ export function ParticipantForm({
           </div>
         )}
 
-        {/* Add Participant Dialog */}
+        {/* Add participant Dialog */}
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <DialogTitle>Add Participant</DialogTitle>
+              <DialogTitle>Add participant</DialogTitle>
               <DialogDescription>
                 Add a new participating organisation to the consortium.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="orgName">Organisation Name *</Label>
+                <Label htmlFor="orgName">Organisation name *</Label>
                 <Input
                   id="orgName"
                   value={newParticipant.organisationName}
@@ -441,7 +441,7 @@ export function ParticipantForm({
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="shortName">Short Name</Label>
+                  <Label htmlFor="shortName">Short name</Label>
                   <Input
                     id="shortName"
                     value={newParticipant.organisationShortName}
@@ -511,21 +511,21 @@ export function ParticipantForm({
               <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleAddParticipant}>Add Participant</Button>
+              <Button onClick={handleAddParticipant}>Add participant</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* Add Member Dialog */}
+        {/* Add member Dialog */}
         <Dialog open={isAddMemberDialogOpen} onOpenChange={setIsAddMemberDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add Team Member</DialogTitle>
+              <DialogTitle>Add team member</DialogTitle>
               <DialogDescription>Add a team member to this participant organisation.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="memberName">Full Name *</Label>
+                <Label htmlFor="memberName">Full name *</Label>
                 <PersonAutocomplete
                   value={newMember.fullName}
                   onChange={(value) => setNewMember({ ...newMember, fullName: value })}
@@ -559,7 +559,7 @@ export function ParticipantForm({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="memberPM">Person Months</Label>
+                  <Label htmlFor="memberPM">Person months</Label>
                   <Input
                     id="memberPM"
                     type="number"
@@ -579,14 +579,14 @@ export function ParticipantForm({
                     setNewMember({ ...newMember, isPrimaryContact: !!checked })
                   }
                 />
-                <Label htmlFor="primaryContact">Primary Contact</Label>
+                <Label htmlFor="primaryContact">Primary contact</Label>
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsAddMemberDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleAddMember}>Add Member</Button>
+              <Button onClick={handleAddMember}>Add member</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

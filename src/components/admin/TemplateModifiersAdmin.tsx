@@ -306,7 +306,7 @@ export function TemplateModifiersAdmin() {
                   checked={formData.is_admin_editable}
                   onCheckedChange={(checked) => setFormData({ ...formData, is_admin_editable: checked })}
                 />
-                <Label>Admin Editable</Label>
+                <Label>Admin editable</Label>
               </div>
             </div>
           </div>

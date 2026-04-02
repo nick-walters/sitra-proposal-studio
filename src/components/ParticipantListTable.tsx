@@ -175,7 +175,7 @@ export function ParticipantListTable({
                                 Coord
                               </span>
                             </TooltipTrigger>
-                            <TooltipContent>Project Coordinator</TooltipContent>
+                            <TooltipContent>Project coordinator</TooltipContent>
                           </Tooltip>
                         )}
                         

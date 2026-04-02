@@ -1104,7 +1104,7 @@ export function ProposalEditor() {
               </span>
             )}
             
-            {/* Work Programme */}
+            {/* Work programme */}
             {workProgramme && (
               <span className="proposal-badge bg-gray-300 text-gray-700 text-[10px]" title={workProgramme.fullName}>
                 {workProgramme.abbreviation}
@@ -1261,7 +1261,7 @@ export function ProposalEditor() {
           <AlertDialogHeader>
             <AlertDialogTitle>Submit proposal for evaluation?</AlertDialogTitle>
             <AlertDialogDescription>
-              Changing the status to <strong>Under Evaluation</strong> will automatically downgrade all <strong>Editor</strong> roles on this proposal to <strong>Viewer</strong>. Editors will no longer be able to make changes.
+              Changing the status to <strong>Under evaluation</strong> will automatically downgrade all <strong>Editor</strong> roles on this proposal to <strong>Viewer</strong>. Editors will no longer be able to make changes.
               <br /><br />
               This action can be reversed by changing the status back to Draft.
             </AlertDialogDescription>

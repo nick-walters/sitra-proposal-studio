@@ -80,7 +80,7 @@ function ProgressRow({ item }: { item: SectionProgressItem }) {
       return (
         <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 gap-1">
           <Edit3 className="h-3 w-3" />
-          In Progress
+          In progress
         </Badge>
       );
     }
@@ -95,7 +95,7 @@ function ProgressRow({ item }: { item: SectionProgressItem }) {
     return (
       <Badge variant="outline" className="bg-muted text-muted-foreground gap-1">
         <FileText className="h-3 w-3" />
-        Not Started
+        Not started
       </Badge>
     );
   };
@@ -278,7 +278,7 @@ export function SectionProgressDashboard({ proposalId, proposalAcronym, currentU
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
             <BarChart3 className="w-8 h-8 text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-medium">No Assignments</h3>
+          <h3 className="text-lg font-medium">No assignments</h3>
           <p className="text-sm text-muted-foreground mt-2">
             You have no sections assigned to you and haven't assigned any sections to others yet. 
             Use the "Assign" button in the editor toolbar when viewing a Part B section.
@@ -313,7 +313,7 @@ export function SectionProgressDashboard({ proposalId, proposalAcronym, currentU
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">Overall Completion</span>
+              <span className="text-sm font-medium">Overall completion</span>
               <span className="text-2xl font-bold text-primary">{summary.completionPercentage}%</span>
             </div>
             <Progress value={summary.completionPercentage} className="h-3" />
@@ -326,7 +326,7 @@ export function SectionProgressDashboard({ proposalId, proposalAcronym, currentU
         {/* Summary cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           <SummaryCard 
-            title="Total Assigned" 
+            title="Total assigned" 
             value={summary.totalAssigned} 
             icon={FileText} 
             color="bg-primary/10 text-primary" 
@@ -338,19 +338,19 @@ export function SectionProgressDashboard({ proposalId, proposalAcronym, currentU
             color="bg-green-100 text-green-700" 
           />
           <SummaryCard 
-            title="In Progress" 
+            title="In progress" 
             value={summary.inProgress} 
             icon={Edit3} 
             color="bg-blue-100 text-blue-700" 
           />
           <SummaryCard 
-            title="Not Started" 
+            title="Not started" 
             value={summary.notStarted} 
             icon={Clock} 
             color="bg-muted text-muted-foreground" 
           />
           <SummaryCard 
-            title="Due Soon" 
+            title="Due soon" 
             value={summary.dueSoon} 
             icon={Clock} 
             color="bg-amber-100 text-amber-700" 

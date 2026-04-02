@@ -110,7 +110,7 @@ export function InsertFigureDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Insert Figure</DialogTitle>
+          <DialogTitle>Insert figure</DialogTitle>
           <DialogDescription>
             Select one or more figures to insert at the cursor position.
           </DialogDescription>

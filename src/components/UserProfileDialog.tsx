@@ -276,7 +276,7 @@ export function UserProfileDialog({ open, onOpenChange, userId, editable = false
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{editable ? 'Edit Profile' : 'User Profile'}</DialogTitle>
+          <DialogTitle>{editable ? 'Edit profile' : 'User Profile'}</DialogTitle>
           <DialogDescription>
             {editable 
               ? <>Update your personal information. Fields marked with <span className="text-destructive">*</span> are required.</>
@@ -291,10 +291,10 @@ export function UserProfileDialog({ open, onOpenChange, userId, editable = false
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Profile Photo Upload (editable) or Avatar display (view only) */}
+            {/* Profile photo Upload (editable) or Avatar display (view only) */}
             {editable ? (
               <div className="pb-4 border-b">
-                <Label className="mb-2 block">Profile Photo</Label>
+                <Label className="mb-2 block">Profile photo</Label>
                 <ProfilePhotoUpload
                   userId={userId}
                   currentAvatarUrl={avatarUrl}
@@ -321,7 +321,7 @@ export function UserProfileDialog({ open, onOpenChange, userId, editable = false
 
             {/* Email (read-only) */}
             <div className="space-y-2">
-              <RequiredLabel htmlFor="profile_email">Email Address</RequiredLabel>
+              <RequiredLabel htmlFor="profile_email">Email address</RequiredLabel>
               <Input
                 id="profile_email"
                 type="email"
@@ -337,7 +337,7 @@ export function UserProfileDialog({ open, onOpenChange, userId, editable = false
             {/* Names */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <RequiredLabel htmlFor="profile_first_name">First Name</RequiredLabel>
+                <RequiredLabel htmlFor="profile_first_name">First name</RequiredLabel>
                 <Input
                   id="profile_first_name"
                   value={formData.first_name}
@@ -352,7 +352,7 @@ export function UserProfileDialog({ open, onOpenChange, userId, editable = false
                 <ErrorMessage message={errors.first_name} />
               </div>
               <div className="space-y-2">
-                <RequiredLabel htmlFor="profile_last_name">Last Name</RequiredLabel>
+                <RequiredLabel htmlFor="profile_last_name">Last name</RequiredLabel>
                 <Input
                   id="profile_last_name"
                   value={formData.last_name}
@@ -405,7 +405,7 @@ export function UserProfileDialog({ open, onOpenChange, userId, editable = false
 
             {/* Phone with country code */}
             <div className="space-y-2">
-              <RequiredLabel htmlFor="profile_phone_number">Phone Number</RequiredLabel>
+              <RequiredLabel htmlFor="profile_phone_number">Phone number</RequiredLabel>
               <div className="flex gap-2">
                 {editable ? (
                   <CountryCodeSelect
@@ -442,7 +442,7 @@ export function UserProfileDialog({ open, onOpenChange, userId, editable = false
 
             {/* Address lines */}
             <div className="space-y-2">
-              <RequiredLabel htmlFor="profile_address">Address Line 1</RequiredLabel>
+              <RequiredLabel htmlFor="profile_address">Address line 1</RequiredLabel>
               <Input
                 id="profile_address"
                 value={formData.address}
@@ -458,7 +458,7 @@ export function UserProfileDialog({ open, onOpenChange, userId, editable = false
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="profile_address_line_2">Address Line 2</Label>
+              <Label htmlFor="profile_address_line_2">Address line 2</Label>
               <Input
                 id="profile_address_line_2"
                 value={formData.address_line_2}

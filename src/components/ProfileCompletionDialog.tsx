@@ -212,9 +212,9 @@ export function ProfileCompletionDialog({
           </div>
         ) : (
           <div className="grid gap-4 mt-4">
-            {/* Profile Photo */}
+            {/* Profile photo */}
             <div className="space-y-2">
-              <Label>Profile Photo</Label>
+              <Label>Profile photo</Label>
               <ProfilePhotoUpload
                 userId={userId}
                 currentAvatarUrl={avatarUrl}
@@ -227,7 +227,7 @@ export function ProfileCompletionDialog({
 
             {/* Email (read-only) */}
             <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
+              <Label htmlFor="email">Email address</Label>
               <Input
                 id="email"
                 type="email"
@@ -240,7 +240,7 @@ export function ProfileCompletionDialog({
             {/* Names */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <RequiredLabel htmlFor="first_name">First Name</RequiredLabel>
+                <RequiredLabel htmlFor="first_name">First name</RequiredLabel>
                 <Input
                   id="first_name"
                   value={profile.first_name}
@@ -254,7 +254,7 @@ export function ProfileCompletionDialog({
                 <ErrorMessage message={errors.first_name} />
               </div>
               <div className="space-y-2">
-                <RequiredLabel htmlFor="last_name">Last Name</RequiredLabel>
+                <RequiredLabel htmlFor="last_name">Last name</RequiredLabel>
                 <Input
                   id="last_name"
                   value={profile.last_name}
@@ -296,7 +296,7 @@ export function ProfileCompletionDialog({
 
             {/* Phone with country code */}
             <div className="space-y-2">
-              <RequiredLabel htmlFor="phone_number">Phone Number</RequiredLabel>
+              <RequiredLabel htmlFor="phone_number">Phone number</RequiredLabel>
               <div className="flex gap-2">
                 <CountryCodeSelect
                   value={profile.country_code}
@@ -324,7 +324,7 @@ export function ProfileCompletionDialog({
 
             {/* Address lines */}
             <div className="space-y-2">
-              <RequiredLabel htmlFor="address">Address Line 1</RequiredLabel>
+              <RequiredLabel htmlFor="address">Address line 1</RequiredLabel>
               <Input
                 id="address"
                 value={profile.address}
@@ -339,7 +339,7 @@ export function ProfileCompletionDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="address_line_2">Address Line 2</Label>
+              <Label htmlFor="address_line_2">Address line 2</Label>
               <Input
                 id="address_line_2"
                 value={profile.address_line_2}
@@ -395,7 +395,7 @@ export function ProfileCompletionDialog({
 
             {/* GDPR Consent */}
             <div className="border rounded-lg p-4 bg-muted/30 space-y-3 mt-2">
-              <h4 className="text-sm font-semibold">Data Sharing Policy</h4>
+              <h4 className="text-sm font-semibold">Data sharing policy</h4>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 By using this platform, your personal information (name, email, phone number, address, and organisation) 
                 will be visible to other users involved in proposals you participate in. This is necessary for the 

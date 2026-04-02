@@ -189,7 +189,7 @@ export function CreateProposalDialog({
           <div className="grid gap-5 py-4">
             {/* Basic Info */}
             <div className="grid gap-2">
-              <Label htmlFor="acronym">Proposal Acronym *</Label>
+              <Label htmlFor="acronym">Proposal acronym *</Label>
               <Input
                 id="acronym"
                 placeholder="e.g. INNOVATE"
@@ -199,7 +199,7 @@ export function CreateProposalDialog({
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="title">Full Title</Label>
+              <Label htmlFor="title">Full title</Label>
               <textarea
                 id="title"
                 placeholder="Enter the full proposal title (optional)"
@@ -210,11 +210,11 @@ export function CreateProposalDialog({
               />
             </div>
 
-            {/* Submission Stage */}
+            {/* Submission stage */}
             <div className="grid gap-3">
               <Label className="flex items-center gap-2">
                 <Layers className="w-4 h-4 text-muted-foreground" />
-                Submission Stage *
+                Submission stage *
               </Label>
               <RadioGroup 
                 value={submissionStage} 
@@ -233,7 +233,7 @@ export function CreateProposalDialog({
                 <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-muted/50 transition-colors">
                   <RadioGroupItem value="full" id="stage-full" />
                   <Label htmlFor="stage-full" className="cursor-pointer flex-1">
-                    <span className="font-medium">Full Proposal</span>
+                    <span className="font-medium">Full proposal</span>
                     <p className="text-xs text-muted-foreground">Single-stage or stage 2 of 2</p>
                   </Label>
                 </div>
@@ -269,7 +269,7 @@ export function CreateProposalDialog({
 
             {/* Proposal Type */}
             <div className="grid gap-2">
-              <Label>Action Type *</Label>
+              <Label>Action type *</Label>
               <Select value={type} onValueChange={(v) => setType(v as ProposalType)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select action type" />
@@ -378,9 +378,9 @@ export function CreateProposalDialog({
               </div>
             </div>
 
-            {/* Work Programme */}
+            {/* Work programme */}
             <div className="grid gap-2">
-              <Label>Work Programme</Label>
+              <Label>Work programme</Label>
               <Select value={workProgramme} onValueChange={handleWorkProgrammeChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select work programme (optional)" />

@@ -741,9 +741,8 @@ export function BudgetPortalSheet({
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Summary by participant</CardTitle>
-                <CardDescription className="flex flex-col">
-                  <span>Justifications for subcontracting costs are mirrored to Tables 3.1.g.</span>
-                  <span>Justifications for equipment purchase costs exceeding 15% of the same participant's personnel costs are mirrored to Table 3.1.h.</span>
+                <CardDescription>
+                  Justifications for subcontracting costs are mirrored to Tables 3.1.g. Justifications for equipment purchase costs exceeding 15% of the same participant's personnel costs are mirrored to Table 3.1.h.
                 </CardDescription>
               </CardHeader>
               <CardContent>

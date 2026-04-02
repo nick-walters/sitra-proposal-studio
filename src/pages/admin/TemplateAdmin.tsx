@@ -100,11 +100,11 @@ export function TemplateAdmin() {
           <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="programmes" className="gap-2">
               <Layers className="w-4 h-4" />
-              Funding Programmes
+              Funding programmes
             </TabsTrigger>
             <TabsTrigger value="types" className="gap-2">
               <FileText className="w-4 h-4" />
-              Template Types
+              Template types
             </TabsTrigger>
             <TabsTrigger value="sections" className="gap-2">
               <BookOpen className="w-4 h-4" />
@@ -120,7 +120,7 @@ export function TemplateAdmin() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Funding Programmes Tab */}
+          {/* Funding programmes Tab */}
           <TabsContent value="programmes">
             <FundingProgrammesPanel
               programmes={fundingProgrammes}
@@ -130,7 +130,7 @@ export function TemplateAdmin() {
             />
           </TabsContent>
 
-          {/* Template Types Tab */}
+          {/* Template types Tab */}
           <TabsContent value="types">
             <TemplateTypesPanel
               types={templateTypes}
@@ -157,7 +157,7 @@ export function TemplateAdmin() {
             <TemplateModifiersAdmin />
           </TabsContent>
 
-          {/* Work Programme Extensions Tab */}
+          {/* Work programme Extensions Tab */}
           <TabsContent value="extensions">
             <WorkProgrammeExtensionsAdmin />
           </TabsContent>
@@ -167,7 +167,7 @@ export function TemplateAdmin() {
   );
 }
 
-// Funding Programmes Panel Component
+// Funding programmes Panel Component
 function FundingProgrammesPanel({
   programmes,
   onCreate,
@@ -239,7 +239,7 @@ function FundingProgrammesPanel({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>Funding Programmes</CardTitle>
+          <CardTitle>Funding programmes</CardTitle>
           <CardDescription>Manage funding programmes like Horizon Europe</CardDescription>
         </div>
         <Button onClick={() => handleOpenDialog()} className="gap-2">
@@ -293,7 +293,7 @@ function FundingProgrammesPanel({
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editing ? 'Edit' : 'Create'} Funding Programme</DialogTitle>
+            <DialogTitle>{editing ? 'Edit' : 'Create'} Funding programme</DialogTitle>
             <DialogDescription>
               {editing ? 'Update the funding programme details.' : 'Add a new funding programme.'}
             </DialogDescription>
@@ -309,7 +309,7 @@ function FundingProgrammesPanel({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="short_name">Short Name</Label>
+              <Label htmlFor="short_name">Short name</Label>
               <Input
                 id="short_name"
                 value={formData.short_name}
@@ -345,7 +345,7 @@ function FundingProgrammesPanel({
   );
 }
 
-// Template Types Panel Component
+// Template types Panel Component
 function TemplateTypesPanel({
   types,
   programmes,
@@ -501,7 +501,7 @@ function TemplateTypesPanel({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>Template Types</CardTitle>
+          <CardTitle>Template types</CardTitle>
           <CardDescription>Manage template types like RIA, IA, CSA</CardDescription>
         </div>
         <Button onClick={() => handleOpenDialog()} className="gap-2">
@@ -587,7 +587,7 @@ function TemplateTypesPanel({
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="funding_programme">Funding Programme</Label>
+              <Label htmlFor="funding_programme">Funding programme</Label>
               <Select
                 value={formData.funding_programme_id}
                 onValueChange={(value) => setFormData({ ...formData, funding_programme_id: value })}
@@ -634,7 +634,7 @@ function TemplateTypesPanel({
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="submission_stage">Submission Stage</Label>
+                  <Label htmlFor="submission_stage">Submission stage</Label>
                   <Select
                     value={formData.submission_stage || "not_specified"}
                     onValueChange={(value) => setFormData({ 
@@ -648,12 +648,12 @@ function TemplateTypesPanel({
                     <SelectContent>
                       <SelectItem value="not_specified">Not specified</SelectItem>
                       <SelectItem value="stage_1">Stage 1 (Pre-proposal)</SelectItem>
-                      <SelectItem value="full">Full Proposal</SelectItem>
+                      <SelectItem value="full">Full proposal</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="base_page_limit">Base Page Limit</Label>
+                  <Label htmlFor="base_page_limit">Base page limit</Label>
                   <Input
                     id="base_page_limit"
                     type="number"
@@ -684,7 +684,7 @@ function TemplateTypesPanel({
               </div>
               
               <div className="mt-4 space-y-2">
-                <Label>Action Types</Label>
+                <Label>Action types</Label>
                 <div className="flex gap-2 flex-wrap">
                   {['RIA', 'IA', 'CSA'].map((actionType) => (
                     <Button
@@ -727,7 +727,7 @@ function TemplateTypesPanel({
       <Dialog open={duplicateDialogOpen} onOpenChange={setDuplicateDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Duplicate Template Type</DialogTitle>
+            <DialogTitle>Duplicate template type</DialogTitle>
             <DialogDescription>
               This will create a copy of "{duplicating?.name}" with all its sections, guidelines, and form fields.
             </DialogDescription>
@@ -1128,15 +1128,15 @@ function SectionsPanel({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="rich_text">Rich Text Editor</SelectItem>
-                  <SelectItem value="form">Form Fields</SelectItem>
-                  <SelectItem value="summary">Summary View</SelectItem>
+                  <SelectItem value="rich_text">Rich text editor</SelectItem>
+                  <SelectItem value="form">Form fields</SelectItem>
+                  <SelectItem value="summary">Summary view</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="word_limit">Word Limit</Label>
+                <Label htmlFor="word_limit">Word limit</Label>
                 <Input
                   id="word_limit"
                   type="number"
@@ -1145,7 +1145,7 @@ function SectionsPanel({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="page_limit">Page Limit</Label>
+                <Label htmlFor="page_limit">Page limit</Label>
                 <Input
                   id="page_limit"
                   type="number"
@@ -1157,7 +1157,7 @@ function SectionsPanel({
             {/* Only show placeholder content field for rich_text editor type */}
             {sectionFormData.editor_type === 'rich_text' && (
               <div className="space-y-2">
-                <Label htmlFor="placeholder_content">Placeholder Content</Label>
+                <Label htmlFor="placeholder_content">Placeholder content</Label>
                 <Textarea
                   id="placeholder_content"
                   value={sectionFormData.placeholder_content}
@@ -1422,10 +1422,10 @@ function SectionAccordionItem({
             </Button>
           </div>
 
-          {/* Form Fields (only for form editor type) */}
+          {/* Form fields (only for form editor type) */}
           {section.editor_type === 'form' && (
             <div className="space-y-2">
-              <h4 className="text-sm font-medium">Form Fields ({section.form_fields?.length || 0})</h4>
+              <h4 className="text-sm font-medium">Form fields ({section.form_fields?.length || 0})</h4>
               {section.form_fields?.map(f => (
                 <div key={f.id} className="flex items-center justify-between p-2 bg-muted/50 rounded text-sm">
                   <div className="flex items-center gap-2">

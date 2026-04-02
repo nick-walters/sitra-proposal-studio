@@ -162,7 +162,7 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
         </Select>
       )}
 
-      {/* Short Name */}
+      {/* Short name */}
       <DebouncedInput
         value={wp.short_name || ''}
         onDebouncedChange={(v) => onUpdate(wp.id, { short_name: v })}
@@ -654,8 +654,8 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
             <div className="grid grid-cols-[24px_50px_100px_1fr_20px] gap-1.5 text-xs font-medium text-muted-foreground border-b pb-1">
               <div />
               <div className="text-center">Theme</div>
-              <div>Short Name</div>
-              <div>Theme Name</div>
+              <div>Short name</div>
+              <div>Theme name</div>
               <div />
             </div>
 
@@ -684,7 +684,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
                     T{theme.number}
                   </button>
                 </div>
-                {/* Short Name */}
+                {/* Short name */}
                 <DebouncedInput
                   value={theme.short_name || ''}
                   onDebouncedChange={(v) => updateTheme(theme.id, { short_name: v })}
@@ -692,7 +692,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
                   className="h-7 text-sm"
                   disabled={!isCoordinator}
                 />
-                {/* Theme Name */}
+                {/* Theme name */}
                 <DebouncedInput
                   value={theme.name || ''}
                   onDebouncedChange={(v) => updateTheme(theme.id, { name: v })}
@@ -810,7 +810,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
           onSave={updatePalette}
         />
 
-        {/* Populate B3.1 Section (Full Proposals Only) */}
+        {/* Populate B3.1 Section (Full proposals Only) */}
         {isFullProposal && isCoordinator && (
           <>
             <div className="border-t pt-4 mt-4">

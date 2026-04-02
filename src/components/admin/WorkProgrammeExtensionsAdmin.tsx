@@ -147,7 +147,7 @@ export function WorkProgrammeExtensionsAdmin() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold">Work Programme Extensions</h2>
+          <h2 className="text-lg font-semibold">Work programme Extensions</h2>
           <p className="text-sm text-muted-foreground">
             Additional sections and settings for specific work programmes
           </p>
@@ -252,7 +252,7 @@ export function WorkProgrammeExtensionsAdmin() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Work Programme *</Label>
+                <Label>Work programme *</Label>
                 <Select
                   value={formData.work_programme_code}
                   onValueChange={(value) => setFormData({ ...formData, work_programme_code: value })}
@@ -270,7 +270,7 @@ export function WorkProgrammeExtensionsAdmin() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Page Limit Delta</Label>
+                <Label>Page limit delta</Label>
                 <Input
                   type="number"
                   value={formData.page_limit_delta}

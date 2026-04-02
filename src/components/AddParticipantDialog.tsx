@@ -155,7 +155,7 @@ export function AddParticipantDialog({
           </Alert>
           
           <div className="grid gap-4">
-            {/* PIC and Short Name */}
+            {/* PIC and Short name */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="pic-number">PIC *</Label>
@@ -276,7 +276,7 @@ export function AddParticipantDialog({
                             </CommandItem>
                           ))}
                         </CommandGroup>
-                        <CommandGroup heading="Associated Countries">
+                        <CommandGroup heading="Associated countries">
                           {ASSOCIATED_COUNTRIES.map((country) => (
                             <CommandItem
                               key={country.code}
@@ -297,7 +297,7 @@ export function AddParticipantDialog({
                             </CommandItem>
                           ))}
                         </CommandGroup>
-                        <CommandGroup heading="Third Countries">
+                        <CommandGroup heading="Third countries">
                           {THIRD_COUNTRIES.map((country) => (
                             <CommandItem
                               key={country.code}

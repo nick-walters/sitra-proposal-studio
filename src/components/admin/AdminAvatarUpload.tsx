@@ -189,7 +189,7 @@ export function AdminAvatarUpload({ userId, avatarUrl, initials, onAvatarChange 
       <Dialog open={cropOpen} onOpenChange={setCropOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Crop Profile Photo</DialogTitle>
+            <DialogTitle>Crop profile photo</DialogTitle>
             <DialogDescription>Drag to reposition and use the slider to zoom</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">

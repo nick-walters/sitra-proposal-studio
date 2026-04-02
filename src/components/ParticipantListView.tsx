@@ -312,7 +312,7 @@ function ParticipantCard({
                 <TooltipTrigger asChild>
                   <Badge className="text-xs py-0 px-1.5 w-fit">Coord</Badge>
                 </TooltipTrigger>
-                <TooltipContent>Project Coordinator</TooltipContent>
+                <TooltipContent>Project coordinator</TooltipContent>
               </Tooltip>
             )}
             {wpLeadership && wpLeadership.length > 0 && (
@@ -687,7 +687,7 @@ export function ParticipantListView({
                   */}
                   <Button size="sm" onClick={() => setIsAddParticipantDialogOpen(true)} className="gap-1.5 h-8">
                     <Plus className="w-3.5 h-3.5" />
-                    Add Participant
+                    Add participant
                   </Button>
                 </>
               )}
@@ -785,7 +785,7 @@ export function ParticipantListView({
                     <Building2 className="w-10 h-10 mx-auto mb-3 text-muted-foreground opacity-50" />
                     <h3 className="text-base font-medium text-muted-foreground">No participants yet</h3>
                     <p className="text-xs text-muted-foreground/70 mt-1">
-                      {canAddParticipant ? 'Click "Add Participant" to add your first partner' : 'Participants will appear here once added'}
+                      {canAddParticipant ? 'Click "Add participant" to add your first partner' : 'Participants will appear here once added'}
                     </p>
                   </CardContent>
                 </Card>
@@ -887,7 +887,7 @@ export function ParticipantListView({
           onMemberAdded={onMemberAdded}
         />
 
-        {/* Add Participant Dialog */}
+        {/* Add participant Dialog */}
         {onAddParticipant && (
           <>
             <AddParticipantDialog

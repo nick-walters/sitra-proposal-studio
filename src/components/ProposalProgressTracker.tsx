@@ -149,7 +149,7 @@ export function ProposalProgressTracker({ proposalId, isCoordinator, sections, o
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h2 className="text-2xl font-bold">Progress Tracker</h2>
+        <h2 className="text-2xl font-bold">Progress tracker</h2>
         <p className="text-muted-foreground text-sm">Track completion status across all proposal sections</p>
       </div>
 
@@ -172,10 +172,10 @@ export function ProposalProgressTracker({ proposalId, isCoordinator, sections, o
         </CardContent>
       </Card>
 
-      {/* Section Progress */}
+      {/* Section progress */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Section Progress</CardTitle>
+          <CardTitle className="text-base">Section progress</CardTitle>
           <CardDescription>
             {isCoordinator ? 'Drag sliders to update progress for each section' : 'View progress for each section'}
           </CardDescription>

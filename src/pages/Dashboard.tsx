@@ -271,7 +271,7 @@ export function Dashboard() {
       const proposalStage = p.submissionStage === 'stage_1' ? 'stage_1' : 'full';
       const matchesStage = stageFilters.size === 0 || stageFilters.has(proposalStage);
       
-      // Work Programme filter (empty = all)
+      // Work programme filter (empty = all)
       const matchesWp = wpFilters.size === 0 || (p.workProgramme && wpFilters.has(p.workProgramme));
       
       // Destination filter (empty = all)
@@ -660,9 +660,9 @@ export function Dashboard() {
                     </div>
                   </div>
 
-                  {/* Work Programme & Destination Section */}
+                  {/* Work programme & Destination Section */}
                   <div className="space-y-2">
-                    <h4 className="font-semibold text-sm">Work Programme & Destination</h4>
+                    <h4 className="font-semibold text-sm">Work programme & Destination</h4>
                     <div className="flex flex-wrap gap-2">
                       {WORK_PROGRAMMES.map(wp => {
                         const count = proposals.filter(p => p.workProgramme === wp.id).length;

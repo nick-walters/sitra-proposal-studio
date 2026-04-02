@@ -355,7 +355,7 @@ export function UserRightsAdmin() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold flex items-center gap-3">
             <Shield className="w-8 h-8" />
-            User Rights Management
+            User rights management
           </h1>
           <p className="text-muted-foreground mt-2">
             Manage proposal-level roles for users
@@ -394,11 +394,12 @@ export function UserRightsAdmin() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                     <TableHead className="font-bold w-[220px]">User</TableHead>
-                     <TableHead className="font-bold w-[220px]">Email</TableHead>
+                     <TableHead className="font-bold">User</TableHead>
+                     <TableHead className="font-bold">Email</TableHead>
                      <TableHead className="font-bold">Proposal</TableHead>
                      <TableHead className="font-bold w-[130px]">Role</TableHead>
                      <TableHead className="w-[40px]"></TableHead>
+                     <TableHead className="text-right font-bold">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -408,8 +409,8 @@ export function UserRightsAdmin() {
 
                     return (
                       <TableRow key={u.id}>
-                        <TableCell className="align-top">
-                          <div className="flex items-start gap-3">
+                        <TableCell>
+                          <div className="flex items-center gap-3">
                             {isOwner ? (
                               <AdminAvatarUpload
                                 userId={u.id}
@@ -428,8 +429,9 @@ export function UserRightsAdmin() {
                             <div>
                               <span className="font-medium">{getDisplayName(u)}</span>
                               {(() => {
-                                const globalRole = globalRoles[0];
+                                const globalRole = globalRoles[0]; // At most one global role
                                 const currentGlobalValue = globalRole?.role || 'none';
+                                const isTargetOwner = currentGlobalValue === 'owner';
                                 const isSelf = u.id === user?.id;
                                 const canEditGlobal = isOwner && !isSelf;
 
@@ -461,69 +463,24 @@ export function UserRightsAdmin() {
 
                                 return null;
                               })()}
-                              {isAdminOrOwner && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 px-1.5 text-xs text-muted-foreground hover:text-foreground mt-1"
-                                  onClick={() => setEditProfileUserId(u.id)}
-                                >
-                                  <Pencil className="w-3 h-3 mr-1" />
-                                  Edit Profile
-                                </Button>
-                              )}
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="align-top">
-                          <div>
-                            <span className="text-muted-foreground">{u.email}</span>
-                            {isAdminOrOwner && (
-                              <div className="mt-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 px-1.5 text-xs text-muted-foreground hover:text-foreground"
-                                  title="Resend signup / password reset email"
-                                  onClick={() => handleResendSignupLink(u)}
-                                >
-                                  <Send className="w-3 h-3 mr-1" />
-                                  Resend link
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="align-top">
-                          <div className="space-y-1">
-                            {proposalRoles.length === 0 ? (
-                              <span className="text-muted-foreground text-sm">—</span>
-                            ) : (
-                              proposalRoles.map(r => (
+                        <TableCell className="text-muted-foreground">{u.email}</TableCell>
+                        <TableCell>
+                          {proposalRoles.length === 0 ? (
+                            <span className="text-muted-foreground text-sm">—</span>
+                          ) : (
+                            <div className="space-y-1">
+                              {proposalRoles.map(r => (
                                 <div key={r.id} className="h-7 flex items-center">
                                   <span className="text-sm font-medium">{r.proposal_acronym || 'Unknown'}</span>
                                 </div>
-                              ))
-                            )}
-                            {assignableProposals.length > 0 && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 px-1.5 text-xs text-muted-foreground hover:text-foreground"
-                                onClick={() => {
-                                  setSelectedUser(u);
-                                  setNewRole('editor');
-                                  setSelectedProposalId('');
-                                  setDialogOpen(true);
-                                }}
-                              >
-                                <Plus className="w-3 h-3 mr-1" />
-                                Add Role
-                              </Button>
-                            )}
-                          </div>
+                              ))}
+                            </div>
+                          )}
                         </TableCell>
-                        <TableCell className="align-top">
+                        <TableCell>
                           {proposalRoles.length === 0 ? (
                             <span className="text-muted-foreground text-sm">No proposal roles</span>
                           ) : (
@@ -552,7 +509,7 @@ export function UserRightsAdmin() {
                             </div>
                           )}
                         </TableCell>
-                        <TableCell className="align-top">
+                        <TableCell>
                           {proposalRoles.length > 0 && (
                             <div className="space-y-1">
                               {proposalRoles.map(r => (
@@ -572,6 +529,47 @@ export function UserRightsAdmin() {
                             </div>
                           )}
                         </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            {isAdminOrOwner && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs"
+                                title="Resend signup / password reset email"
+                                onClick={() => handleResendSignupLink(u)}
+                              >
+                                <Send className="w-3 h-3 mr-1" />
+                                Resend link
+                              </Button>
+                            )}
+                            {isAdminOrOwner && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setEditProfileUserId(u.id)}
+                              >
+                                <Pencil className="w-3 h-3 mr-1" />
+                                Edit profile
+                              </Button>
+                            )}
+                            {assignableProposals.length > 0 && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedUser(u);
+                                  setNewRole('editor');
+                                  setSelectedProposalId('');
+                                  setDialogOpen(true);
+                                }}
+                              >
+                                <Plus className="w-3 h-3 mr-1" />
+                                Add role
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
                       </TableRow>
                     );
                   })}
@@ -581,7 +579,7 @@ export function UserRightsAdmin() {
           </CardContent>
         </Card>
 
-        {/* Edit Profile Dialog */}
+        {/* Edit profile Dialog */}
         <UserProfileDialog
           open={!!editProfileUserId}
           onOpenChange={(open) => { if (!open) setEditProfileUserId(null); }}
@@ -589,11 +587,11 @@ export function UserRightsAdmin() {
           editable={true}
         />
 
-        {/* Add Role Dialog */}
+        {/* Add role Dialog */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add Proposal Role</DialogTitle>
+              <DialogTitle>Add proposal role</DialogTitle>
               <DialogDescription>
                 Add a proposal role to {selectedUser ? getDisplayName(selectedUser) : 'user'}
               </DialogDescription>
@@ -629,7 +627,7 @@ export function UserRightsAdmin() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleAddRole} disabled={!selectedProposalId}>Add Role</Button>
+              <Button onClick={handleAddRole} disabled={!selectedProposalId}>Add role</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

@@ -38,7 +38,7 @@ export function ExportDialog({ open, onOpenChange, onExport, proposalId }: Expor
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
-          <DialogTitle>Export Part B</DialogTitle>
+          <DialogTitle>Export part B</DialogTitle>
           <DialogDescription>
             Choose the format and watermark preference for your export.
           </DialogDescription>

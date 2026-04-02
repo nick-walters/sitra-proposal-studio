@@ -244,7 +244,7 @@ export function CitationDialog({
                 </div>
 
                 <div className="pt-2 border-t border-border">
-                  <Label className="text-xs text-muted-foreground">Formatted Citation:</Label>
+                  <Label className="text-xs text-muted-foreground">Formatted citation:</Label>
                   <p className="text-xs mt-1 p-2 bg-muted rounded" 
                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formattedCitation.replace(/\*([^*]+)\*/g, '<em>$1</em>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>'), { ALLOWED_TAGS: ['em', 'strong'] }) }} 
                   />

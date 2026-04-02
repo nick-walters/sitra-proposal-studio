@@ -634,7 +634,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
                       <List className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Bullet List</TooltipContent>
+                  <TooltipContent side="bottom" className="text-xs">Bullet list</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -642,7 +642,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
                       <ListOrdered className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Numbered List</TooltipContent>
+                  <TooltipContent side="bottom" className="text-xs">Numbered list</TooltipContent>
                 </Tooltip>
               </div>
               
@@ -656,7 +656,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
                       <AlignLeft className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Align Left</TooltipContent>
+                  <TooltipContent side="bottom" className="text-xs">Align left</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -664,7 +664,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
                       <AlignCenter className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Align Center</TooltipContent>
+                  <TooltipContent side="bottom" className="text-xs">Align center</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -672,7 +672,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
                       <AlignRight className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Align Right</TooltipContent>
+                  <TooltipContent side="bottom" className="text-xs">Align right</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -745,7 +745,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
                         </Button>
                       </PopoverTrigger>
                     </TooltipTrigger>
-                    <TooltipContent side="bottom" className="text-xs">Insert Table</TooltipContent>
+                    <TooltipContent side="bottom" className="text-xs">Insert table</TooltipContent>
                   </Tooltip>
                   <PopoverContent className="w-auto p-2" align="start">
                     <div className="text-xs text-muted-foreground mb-2">
@@ -784,7 +784,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
                       <span className="text-xs">Figure</span>
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Insert Figure</TooltipContent>
+                  <TooltipContent side="bottom" className="text-xs">Insert figure</TooltipContent>
                 </Tooltip>
               </div>
             </>
@@ -878,7 +878,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
         <Dialog open={guidelinesDialogOpen} onOpenChange={setGuidelinesDialogOpen}>
           <DialogContent className="max-w-3xl max-h-[90vh] w-[90vw]">
             <DialogHeader>
-              <DialogTitle>Guidelines for WP{wpDraft.number}: {wpDraft.title || wpDraft.short_name || 'Work Package'}</DialogTitle>
+              <DialogTitle>Guidelines for WP{wpDraft.number}: {wpDraft.title || wpDraft.short_name || 'Work package'}</DialogTitle>
             </DialogHeader>
             <ScrollArea className="max-h-[75vh] pr-4">
               <div className="space-y-4">

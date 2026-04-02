@@ -268,7 +268,7 @@ export function ProposalCard({ proposal, onClick, compact = false, isPinned, can
                     {statusInfo.days !== undefined && ` (${statusInfo.days}d)`}
                   </span>
                 </div>
-                {/* Row 2: Type, Work Programme, Destination */}
+                {/* Row 2: Type, Work programme, Destination */}
                 <div className="flex items-center gap-1 flex-wrap mt-1">
                   <span className="proposal-badge bg-white text-foreground border border-foreground text-[9px]">{proposal.type}</span>
                   {workProgramme && (

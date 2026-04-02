@@ -26,7 +26,7 @@ interface ShortcutGroup {
 
 const shortcutGroups: ShortcutGroup[] = [
   {
-    title: "Text Formatting",
+    title: "Text formatting",
     shortcuts: [
       { keys: ["Ctrl", "B"], mac: ["⌘", "B"], description: "Bold" },
       { keys: ["Ctrl", "I"], mac: ["⌘", "I"], description: "Italic" },
@@ -51,7 +51,7 @@ const shortcutGroups: ShortcutGroup[] = [
     ]
   },
   {
-    title: "Text Alignment",
+    title: "Text alignment",
     shortcuts: [
       { keys: ["Ctrl", "Shift", "L"], mac: ["⌘", "Shift", "L"], description: "Align left" },
       { keys: ["Ctrl", "Shift", "E"], mac: ["⌘", "Shift", "E"], description: "Align center" },
@@ -129,7 +129,7 @@ export function KeyboardShortcutsDialog({ isOpen, onClose }: KeyboardShortcutsDi
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Keyboard className="w-5 h-5 text-primary" />
-            Keyboard Shortcuts
+            Keyboard shortcuts
           </DialogTitle>
           <DialogDescription>
             Quick reference for all available keyboard shortcuts in the editor.
