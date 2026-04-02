@@ -175,7 +175,7 @@ export function AdminAvatarUpload({ userId, avatarUrl, initials, onAvatarChange 
   return (
     <>
       <div className="relative group cursor-pointer" onClick={() => fileRef.current?.click()}>
-        <Avatar className="h-8 w-8">
+        <Avatar className="h-36 w-36">
           <AvatarImage src={avatarUrl || undefined} />
           <AvatarFallback>{initials}</AvatarFallback>
         </Avatar>
