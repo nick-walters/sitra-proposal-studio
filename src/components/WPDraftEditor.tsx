@@ -894,40 +894,36 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           </div>
         </div>
 
-        {/* Header with color */}
-        <div 
-          className="rounded-lg p-4 -mx-2"
-          style={{ 
-            backgroundColor: effectiveColor,
-            color: '#FFFFFF',
-          }}
-        >
-          {/* WPX: Title */}
-          <div className="flex items-center gap-2">
-            <span className="text-xl font-bold">WP{wpDraft.number}:</span>
+        {/* Header: pill badge + metadata row */}
+        <div className="space-y-2 -mx-2">
+          {/* Full-width pill badge: WPX: Short Name – Title */}
+          <div
+            className="rounded-full flex items-center px-4 py-1.5 gap-0 min-h-[36px]"
+            style={{
+              backgroundColor: effectiveColor,
+              color: '#FFFFFF',
+            }}
+          >
+            <span
+              className="font-bold whitespace-nowrap shrink-0"
+              style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '14pt' }}
+            >
+              WP{wpDraft.number}:{wpDraft.short_name ? ` ${wpDraft.short_name}` : ''}{wpDraft.short_name && (wpDraft.title || !readOnly) ? ' –' : ''}&nbsp;
+            </span>
             <DebouncedInput
               value={wpDraft.title || ''}
               onDebouncedChange={(v) => updateField('title', v)}
               placeholder="Work package title"
-              className="bg-white/90 text-foreground flex-1 font-bold"
+              className="bg-transparent text-white placeholder:text-white/60 border-none shadow-none focus-visible:ring-0 h-auto p-0 font-bold flex-1 min-w-0"
+              style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '14pt' }}
               disabled={readOnly}
             />
           </div>
-          
-          {/* Short name, Lead partner, and Duration */}
-          <div className="mt-2 flex items-center gap-4 flex-wrap">
+
+          {/* Metadata row: WP Leader (left) + Duration (right) */}
+          <div className="flex items-center justify-between px-2 flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <span className="text-draft opacity-80">Short name:</span>
-              <DebouncedInput
-                value={wpDraft.short_name || ''}
-                onDebouncedChange={(v) => updateField('short_name', v)}
-                placeholder="e.g. COORD"
-                className="bg-white/90 text-foreground h-7 w-[140px] text-draft font-bold"
-                disabled={readOnly}
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-draft opacity-80">WP Leader:</span>
+              <span className="text-draft text-muted-foreground">WP Leader:</span>
               <Popover>
                 <PopoverTrigger asChild>
                   <button className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80" disabled={readOnly}>
@@ -944,7 +940,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
                           </span>
                         );
                       }
-                      return <span className="text-draft opacity-60 italic">Select lead...</span>;
+                      return <span className="text-draft text-muted-foreground italic">Select</span>;
                     })()}
                     <ChevronsUpDown className="h-3 w-3 opacity-50 shrink-0" />
                   </button>
@@ -980,34 +976,32 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
                 </PopoverContent>
               </Popover>
             </div>
-            {/* Auto-calculated duration from tasks */}
+            {/* Auto-calculated duration from tasks (uses whichever tasks have durations) */}
             {(() => {
               const tasks = wpDraft.tasks || [];
-              const taskStartMonths = tasks.filter(t => t.start_month !== null && t.start_month !== undefined).map(t => t.start_month!);
-              const taskEndMonths = tasks.filter(t => t.end_month !== null && t.end_month !== undefined).map(t => t.end_month!);
-              const hasAllTiming = tasks.length > 0 && taskStartMonths.length === tasks.length && taskEndMonths.length === tasks.length;
+              const taskStartMonths = tasks.filter(t => t.start_month != null).map(t => t.start_month!);
+              const taskEndMonths = tasks.filter(t => t.end_month != null).map(t => t.end_month!);
+              const allMonths = [...taskStartMonths, ...taskEndMonths];
               
-              if (hasAllTiming) {
-                const startMonth = Math.min(...taskStartMonths);
-                const endMonth = Math.max(...taskEndMonths);
+              if (allMonths.length > 0) {
+                const startMonth = Math.min(...allMonths);
+                const endMonth = Math.max(...allMonths);
                 const formatMonth = (m: number) => `M${m.toString().padStart(2, '0')}`;
                 return (
                   <div className="flex items-center gap-2">
-                    <span className="text-draft opacity-80">Duration:</span>
+                    <span className="text-draft text-muted-foreground">Duration:</span>
                     <span className="text-draft font-medium">
                       {formatMonth(startMonth)}–{formatMonth(endMonth)}
                     </span>
                   </div>
                 );
-              } else if (taskStartMonths.length > 0 || taskEndMonths.length > 0) {
-                return (
-                  <div className="flex items-center gap-2">
-                    <span className="text-draft opacity-80">Duration:</span>
-                    <span className="text-draft opacity-60 italic">Add dates to all tasks</span>
-                  </div>
-                );
               }
-              return null;
+              return (
+                <div className="flex items-center gap-2">
+                  <span className="text-draft text-muted-foreground">Duration:</span>
+                  <span className="text-draft text-muted-foreground italic">—</span>
+                </div>
+              );
             })()}
           </div>
         </div>
