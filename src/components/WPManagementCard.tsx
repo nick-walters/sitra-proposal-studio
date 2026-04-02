@@ -95,7 +95,7 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
     <div
       ref={setNodeRef}
       style={style}
-      className={`grid ${gridCols} gap-1.5 items-center py-1 border-b ${
+      className={`grid ${gridCols} gap-1.5 items-center py-0.5 border-b ${
         isDragging ? 'bg-muted shadow-lg' : ''
       }`}
     >
