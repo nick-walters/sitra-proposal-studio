@@ -306,7 +306,7 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
 
               {currentWp.deliverables.length > 0 && (
                 <SectionBlock
-                  label={`Deliverables (${currentWp.deliverables.length})`}
+                  label={`${currentWp.deliverables.length === 1 ? 'Deliverable' : 'Deliverables'} (${currentWp.deliverables.length})`}
                   description="Copies to Table 3.1.c"
                   checked={currentSel.deliverablesEnabled}
                   onCheckedChange={(v) => {
