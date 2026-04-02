@@ -402,11 +402,11 @@ export function UserRightsAdmin() {
                 <p>No users found</p>
               </div>
             ) : (
-              <Table>
+              <Table className="table-fixed">
                 <TableHeader>
                    <TableRow>
-                     <TableHead className="font-bold">User</TableHead>
-                     <TableHead className="font-bold">Email</TableHead>
+                     <TableHead className="font-bold w-[250px]">User</TableHead>
+                     <TableHead className="font-bold w-[250px]">Email</TableHead>
                      <TableHead className="font-bold">Rights</TableHead>
                    </TableRow>
                 </TableHeader>
