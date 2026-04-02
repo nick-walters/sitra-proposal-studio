@@ -533,9 +533,9 @@ export function UserRightsAdmin() {
                           <div className="flex items-center justify-end gap-1">
                             {isAdminOrOwner && (
                               <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="sm"
-                                className="h-7 px-2 text-xs"
+                                className="h-6 px-1.5 text-xs"
                                 title="Resend signup / password reset email"
                                 onClick={() => handleResendSignupLink(u)}
                               >
@@ -547,6 +547,7 @@ export function UserRightsAdmin() {
                               <Button
                                 variant="outline"
                                 size="sm"
+                                className="h-6 px-1.5 text-xs"
                                 onClick={() => setEditProfileUserId(u.id)}
                               >
                                 <Pencil className="w-3 h-3 mr-1" />
@@ -557,6 +558,7 @@ export function UserRightsAdmin() {
                               <Button
                                 variant="outline"
                                 size="sm"
+                                className="h-6 px-1.5 text-xs"
                                 onClick={() => {
                                   setSelectedUser(u);
                                   setNewRole('editor');
