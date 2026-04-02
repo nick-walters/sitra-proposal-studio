@@ -303,7 +303,6 @@ export function UserRightsAdmin() {
       if (error) throw error;
 
       if (data?.alreadyExists) {
-        // User exists — trigger a password reset directly
         const { error: resetError } = await supabase.auth.resetPasswordForEmail(targetUser.email, {
           redirectTo: 'https://sitra-proposal-studio.lovable.app/auth?type=recovery',
         });
@@ -317,6 +316,23 @@ export function UserRightsAdmin() {
     } catch (error: any) {
       console.error('Error resending signup link:', error);
       toast.error(error.message || 'Failed to resend signup link');
+    }
+  };
+
+  const handleDeleteUser = async (targetUser: UserWithRoles) => {
+    try {
+      // Delete all roles for this user
+      const { error } = await supabase.from('user_roles').delete().eq('user_id', targetUser.id);
+      if (error) throw error;
+
+      setUsers(prev => prev.map(u =>
+        u.id === targetUser.id ? { ...u, roles: [] } : u
+      ));
+      toast.success(`Removed all access for ${getDisplayName(targetUser)}`);
+      setDeleteConfirmUser(null);
+    } catch (error) {
+      console.error('Error deleting user access:', error);
+      toast.error("Failed to remove user access");
     }
   };
 
