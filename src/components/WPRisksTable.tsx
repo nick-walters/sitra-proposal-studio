@@ -349,7 +349,7 @@ function SortableRiskCard({
               <PopoverContent className="w-48 p-2" align="start">
                 <div className="space-y-1 max-h-48 overflow-y-auto">
                   {allWpDrafts.map(wp => {
-                    const color = getDefaultWPColor(wp.number);
+                    const color = wp.color || getDefaultWPColor(wp.number);
                     const textColor = getContrastingTextColor(color);
                     return (
                       <label
