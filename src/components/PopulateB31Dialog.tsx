@@ -138,6 +138,7 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
       const allMilestoneChecks: Record<string, boolean> = {};
       const allRiskChecks: Record<string, boolean> = {};
       let anyObjectives = false;
+      let anyDescBefore = false;
 
       for (const wp of selectedWpDrafts) {
         const sel = wpSelections[wp.id];
