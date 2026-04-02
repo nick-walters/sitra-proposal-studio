@@ -763,8 +763,8 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
         const wpLeader = participants.find(p => p.id === wp.lead_participant_id);
 
         // Compute month range from tasks
-        const starts = wp.tasks.map(t => t.start_month).filter((m): m is number => m != null);
-        const ends = wp.tasks.map(t => t.end_month).filter((m): m is number => m != null);
+        const starts = wp.b31_tasks.map(t => t.start_month).filter((m): m is number => m != null);
+        const ends = wp.b31_tasks.map(t => t.end_month).filter((m): m is number => m != null);
         const monthRange = starts.length > 0 && ends.length > 0
           ? `M${String(Math.min(...starts)).padStart(2, '0')}–M${String(Math.max(...ends)).padStart(2, '0')}`
           : null;
