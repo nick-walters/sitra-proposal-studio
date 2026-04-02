@@ -161,8 +161,8 @@ export function WPMethodologySection({
               <Button
                 variant="outline"
                 size="sm"
-                className="text-draft"
-                style={{ fontFamily: 'Times New Roman, serif', fontSize: '11pt' }}
+                className=""
+                style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '11pt' }}
                 onClick={addMethodology}
               >
                 <Plus className="h-3.5 w-3.5 mr-1" />
