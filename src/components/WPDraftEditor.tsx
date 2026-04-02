@@ -953,9 +953,12 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           onTaskDelete={deleteTask}
           onTaskParticipantsChange={setTaskParticipants}
           onTaskReorder={reorderTasks}
+          onTaskMove={moveTaskToWP}
           readOnly={readOnly}
           projectDuration={projectDuration}
           hideToolbar={true}
+          allWpDrafts={wpDrafts}
+          currentWpDraftId={wpDraft.id}
         />
 
         {/* Deliverables */}
@@ -967,8 +970,11 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           onDeliverableAdd={addDeliverable}
           onDeliverableDelete={deleteDeliverable}
           onDeliverableReorder={reorderDeliverables}
+          onDeliverableMove={moveDeliverableToWP}
           readOnly={readOnly}
           projectDuration={projectDuration}
+          allWpDrafts={wpDrafts}
+          currentWpDraftId={wpDraft.id}
         />
 
         {/* Task Interactions & Bottlenecks */}
