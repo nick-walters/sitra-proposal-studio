@@ -61,31 +61,26 @@ export function ParticipantMultiSelect({
           )}
           disabled={disabled}
         >
-          <div className="flex flex-wrap gap-1 overflow-hidden max-w-[140px]">
+          <div className="flex flex-wrap gap-0.5 overflow-hidden">
             {selectedIds.length === 0 ? (
               <span className="truncate">{placeholder}</span>
-            ) : selectedIds.length <= 2 ? (
+            ) : (
               selectedParticipants.map(p => (
-                <Badge
+                <span
                   key={p.id}
-                  variant="secondary"
-                  className="h-5 px-1 text-xs truncate max-w-[60px]"
+                  className="inline-flex items-center justify-center px-1.5 rounded-full font-bold"
+                  style={{
+                    backgroundColor: '#000000',
+                    color: '#ffffff',
+                    height: '17px',
+                    fontFamily: 'Times New Roman, serif',
+                    fontSize: '11pt',
+                    lineHeight: '17px',
+                  }}
                 >
                   {p.organisation_short_name || p.organisation_name.substring(0, 8)}
-                  {!disabled && (
-                    <button
-                      className="ml-1 hover:bg-muted rounded-sm"
-                      onClick={(e) => removeParticipant(p.id, e)}
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  )}
-                </Badge>
+                </span>
               ))
-            ) : (
-              <Badge variant="secondary" className="h-5 px-1 text-xs">
-                {selectedIds.length} selected
-              </Badge>
             )}
           </div>
           <ChevronsUpDown className="h-3 w-3 shrink-0 opacity-50" />
