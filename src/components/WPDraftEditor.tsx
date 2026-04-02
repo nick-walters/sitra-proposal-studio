@@ -1010,6 +1010,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           onRiskDelete={deleteRisk}
           onRiskReorder={reorderRisks}
           readOnly={readOnly}
+          allWpDrafts={wpDrafts}
         />
 
       </div>
