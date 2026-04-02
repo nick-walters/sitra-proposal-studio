@@ -688,9 +688,23 @@ export function SectionNavigator({
       });
   }, [isCoordinator, lockedSections, isPartALocked, isPartBLocked]);
 
+  const filterDraftVisibility = useCallback((sectionList: (Section | WPSection | CaseSection)[]): (Section | WPSection | CaseSection)[] => {
+    if (wpDraftsVisible && caseDraftsVisible) return sectionList;
+    return sectionList.filter(s => {
+      if (!wpDraftsVisible && s.id === 'wp-drafts') return false;
+      if (!caseDraftsVisible && s.id === 'case-drafts') return false;
+      return true;
+    }).map(s => {
+      if (s.subsections && s.subsections.length > 0) {
+        return { ...s, subsections: filterDraftVisibility(s.subsections) };
+      }
+      return s;
+    });
+  }, [wpDraftsVisible, caseDraftsVisible]);
+
   const visibleSections = useMemo(
-    () => filterLockedSections(sectionsWithParticipants),
-    [sectionsWithParticipants, filterLockedSections]
+    () => filterDraftVisibility(filterLockedSections(sectionsWithParticipants)),
+    [sectionsWithParticipants, filterLockedSections, filterDraftVisibility]
   );
 
   return (
