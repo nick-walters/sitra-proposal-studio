@@ -240,7 +240,7 @@ function SortableMilestoneCard({
             <GripVertical className="w-4 h-4 text-[#2563EB]" />
           </button>
         )}
-        <span className="text-xs text-muted-foreground flex-shrink-0">MS:</span>
+        
         <Input
           value={localTitle}
           onChange={handleTitleChange}
@@ -271,7 +271,7 @@ function SortableMilestoneCard({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-6 text-xs px-2 min-w-[70px] max-w-[200px] justify-between font-normal"
+                className="h-6 text-xs px-2 min-w-[154px] max-w-[440px] justify-between font-normal"
                 disabled={readOnly}
               >
                 {displayWpBubbles || <span className="text-muted-foreground">Select</span>}

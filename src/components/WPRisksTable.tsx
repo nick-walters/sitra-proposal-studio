@@ -1,13 +1,11 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertTriangle, Plus, Trash2, GripVertical, ChevronsUpDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { getDefaultWPColor, getContrastingTextColor } from '@/lib/wpColors';
 import type { WPDraftRisk } from '@/hooks/useWPDrafts';
 import {
@@ -48,14 +46,22 @@ interface WPRisksTableProps {
 }
 
 const RISK_LEVELS = [
-  { value: 'H', label: 'High', color: 'text-red-600 bg-red-50' },
-  { value: 'M', label: 'Medium', color: 'text-amber-600 bg-amber-50' },
-  { value: 'L', label: 'Low', color: 'text-green-600 bg-green-50' },
+  { value: 'H', label: 'High', borderColor: '#ef4444' },
+  { value: 'M', label: 'Medium', borderColor: '#f59e0b' },
+  { value: 'L', label: 'Low', borderColor: '#22c55e' },
 ];
 
-function getRiskLevelColor(level: string | null): string {
-  const found = RISK_LEVELS.find(l => l.value === level);
-  return found?.color || '';
+function RiskLevelBubble({ level }: { level: string }) {
+  const colorMap: Record<string, string> = { H: '#ef4444', M: '#f59e0b', L: '#22c55e' };
+  const levelColor = colorMap[level] || '#000';
+  return (
+    <span
+      className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
+      style={{ backgroundColor: '#ffffff', color: levelColor, border: `1.5px solid ${levelColor}`, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, padding: '0px', width: '19px', height: '17px' }}
+    >
+      {level}
+    </span>
+  );
 }
 
 export function WPRisksTable({
@@ -92,11 +98,12 @@ export function WPRisksTable({
           Risks
         </CardTitle>
         {/* Colour legend */}
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span>Likelihood / Severity:</span>
           {RISK_LEVELS.map(level => (
-            <span key={level.value} className={cn("px-1.5 py-0.5 rounded text-xs font-medium", level.color)}>
-              {level.value} = {level.label}
+            <span key={level.value} className="inline-flex items-center gap-1">
+              <RiskLevelBubble level={level.value} />
+              <span>= {level.label}</span>
             </span>
           ))}
         </div>
@@ -266,14 +273,11 @@ function SortableRiskCard({
           <button
             {...attributes}
             {...listeners}
-            className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted rounded touch-none flex-shrink-0 mt-1"
+            className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted rounded touch-none flex-shrink-0 mt-0.5"
           >
             <GripVertical className="w-4 h-4 text-[#2563EB]" />
           </button>
         )}
-        <div className="flex items-center gap-1 flex-shrink-0 mt-1">
-          <span className="text-xs text-muted-foreground">Risk:</span>
-        </div>
         <Textarea
           value={localTitle}
           onChange={(e) => {
@@ -288,7 +292,8 @@ function SortableRiskCard({
           onFocus={() => { isFocused.current = true; }}
           onBlur={() => { isFocused.current = false; }}
           placeholder="Describe the risk..."
-          className="h-12 min-h-[48px] resize-y text-xs flex-1"
+          className="min-h-[28px] resize-none text-xs flex-1 overflow-hidden"
+          style={{ height: 'auto', fieldSizing: 'content' } as any}
           disabled={readOnly}
         />
         {!readOnly && (
@@ -312,13 +317,18 @@ function SortableRiskCard({
             onValueChange={(value) => onUpdate(risk.id, { likelihood: value })}
             disabled={readOnly}
           >
-            <SelectTrigger hideArrow className={cn("h-6 w-[32px] text-xs px-1.5", getRiskLevelColor(risk.likelihood))}>
-              <SelectValue placeholder="—" />
+            <SelectTrigger hideArrow className="h-6 w-auto min-w-[28px] px-0.5 border-0 bg-transparent focus:ring-0">
+              <SelectValue>
+                {risk.likelihood ? <RiskLevelBubble level={risk.likelihood} /> : <span className="text-muted-foreground text-xs">—</span>}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {RISK_LEVELS.map((level) => (
                 <SelectItem key={level.value} value={level.value}>
-                  {level.value}
+                  <div className="flex items-center gap-2">
+                    <RiskLevelBubble level={level.value} />
+                    <span>{level.label}</span>
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -331,13 +341,18 @@ function SortableRiskCard({
             onValueChange={(value) => onUpdate(risk.id, { severity: value })}
             disabled={readOnly}
           >
-            <SelectTrigger hideArrow className={cn("h-6 w-[32px] text-xs px-1.5", getRiskLevelColor(risk.severity))}>
-              <SelectValue placeholder="—" />
+            <SelectTrigger hideArrow className="h-6 w-auto min-w-[28px] px-0.5 border-0 bg-transparent focus:ring-0">
+              <SelectValue>
+                {risk.severity ? <RiskLevelBubble level={risk.severity} /> : <span className="text-muted-foreground text-xs">—</span>}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {RISK_LEVELS.map((level) => (
                 <SelectItem key={level.value} value={level.value}>
-                  {level.value}
+                  <div className="flex items-center gap-2">
+                    <RiskLevelBubble level={level.value} />
+                    <span>{level.label}</span>
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -350,7 +365,7 @@ function SortableRiskCard({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-6 text-xs px-2 min-w-[70px] max-w-[200px] justify-between font-normal"
+                className="h-6 text-xs px-2 min-w-[154px] max-w-[440px] justify-between font-normal"
                 disabled={readOnly}
               >
                 {displayWpBubbles || <span className="text-muted-foreground">Select</span>}
