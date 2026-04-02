@@ -321,12 +321,31 @@ export function useWPDraftEditor(wpId: string | null) {
       if (error) throw error;
 
       // Sort nested data
+      const sortedTasks = (data.tasks || []).sort((a: WPDraftTask, b: WPDraftTask) => a.order_index - b.order_index);
+      const sortedDeliverables = (data.deliverables || []).sort((a: WPDraftDeliverable, b: WPDraftDeliverable) => a.order_index - b.order_index);
+      const sortedRisks = (data.risks || []).sort((a: WPDraftRisk, b: WPDraftRisk) => a.order_index - b.order_index);
+      const sortedMilestones = (data.milestones || []).sort((a: WPDraftMilestone, b: WPDraftMilestone) => a.order_index - b.order_index);
+
+      // Auto-fix numbering gaps on load
+      const fixNumbering = <T extends { id: string; number: number; order_index: number }>(
+        items: T[],
+        table: string,
+      ): T[] => {
+        const needsFix = items.some((item, i) => item.number !== i + 1 || item.order_index !== i);
+        if (!needsFix) return items;
+        const fixed = items.map((item, i) => ({ ...item, number: i + 1, order_index: i }));
+        fixed.forEach((item) => {
+          supabase.from(table).update({ number: item.number, order_index: item.order_index }).eq('id', item.id).then();
+        });
+        return fixed;
+      };
+
       const sortedData = {
         ...data,
-        tasks: (data.tasks || []).sort((a: WPDraftTask, b: WPDraftTask) => a.order_index - b.order_index),
-        deliverables: (data.deliverables || []).sort((a: WPDraftDeliverable, b: WPDraftDeliverable) => a.order_index - b.order_index),
-        risks: (data.risks || []).sort((a: WPDraftRisk, b: WPDraftRisk) => a.order_index - b.order_index),
-        milestones: (data.milestones || []).sort((a: WPDraftMilestone, b: WPDraftMilestone) => a.order_index - b.order_index),
+        tasks: fixNumbering(sortedTasks, 'wp_draft_tasks'),
+        deliverables: fixNumbering(sortedDeliverables, 'wp_draft_deliverables'),
+        risks: fixNumbering(sortedRisks, 'wp_draft_risks'),
+        milestones: fixNumbering(sortedMilestones, 'wp_draft_milestones'),
       };
 
       setWPDraft(sortedData);
