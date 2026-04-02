@@ -912,7 +912,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           {/* Short name, Lead partner, and Duration */}
           <div className="mt-2 flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2">
-              <span className="text-sm opacity-80">Short name:</span>
+              <span className="text-xs opacity-80">Short name:</span>
               <DebouncedInput
                 value={wpDraft.short_name || ''}
                 onDebouncedChange={(v) => updateField('short_name', v)}
