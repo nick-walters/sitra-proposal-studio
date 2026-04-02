@@ -1,0 +1,1 @@
+ALTER TABLE public.wp_draft_risks ADD COLUMN related_wps text DEFAULT '' NOT NULL;
