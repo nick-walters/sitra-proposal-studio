@@ -278,7 +278,7 @@ interface WPManagementCardProps {
   onDraftVisibilityChange?: () => void;
 }
 
-export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = true }: WPManagementCardProps) {
+export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = true, onDraftVisibilityChange }: WPManagementCardProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [selectedWPs, setSelectedWPs] = useState<Set<string>>(new Set());
