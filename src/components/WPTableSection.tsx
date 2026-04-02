@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Slider } from '@/components/ui/slider';
+import { cn } from '@/lib/utils';
 import { Target, Plus, Trash2, GripVertical, ArrowRight, Crown } from 'lucide-react';
 import {
   DropdownMenu,
