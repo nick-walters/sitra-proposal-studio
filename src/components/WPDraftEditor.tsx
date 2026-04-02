@@ -585,23 +585,27 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
     <ScrollArea className="h-full">
       <div className="space-y-3 p-4">
         {/* Top Toolbar Row - Guidelines + Formatting */}
-        <div className="flex items-center gap-2 p-2 border rounded-md bg-card flex-wrap sticky top-0 z-10">
-          {/* Guidelines Button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setGuidelinesDialogOpen(true)}
-            className="h-7 px-2 text-xs gap-1 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
-          >
-            <BookOpen className="h-3.5 w-3.5" />
-            Guidelines
-          </Button>
-          <SaveIndicator
-            saving={saving}
-            lastSaved={lastSaved}
-            saveError={saveError}
-            onSaveNow={() => {}}
-          />
+        <div className="p-2 border rounded-md bg-card sticky top-0 z-10 space-y-1.5">
+          {/* Row 1: Guidelines + Save */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setGuidelinesDialogOpen(true)}
+              className="h-7 px-2 text-xs gap-1 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
+            >
+              <BookOpen className="h-3.5 w-3.5" />
+              Guidelines
+            </Button>
+            <SaveIndicator
+              saving={saving}
+              lastSaved={lastSaved}
+              saveError={saveError}
+              onSaveNow={() => {}}
+            />
+          </div>
+          {/* Row 2: Formatting toolbar */}
+          <div className="flex items-center gap-2 flex-wrap">
 
           {/* Undo / Redo */}
           {!readOnly && (
@@ -887,6 +891,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               />
             </>
           )}
+          </div>
         </div>
 
         {/* Header with color */}
