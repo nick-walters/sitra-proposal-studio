@@ -157,10 +157,13 @@ export function WPTableSection({
                     onUpdate={onTaskUpdate}
                     onDelete={onTaskDelete}
                     onParticipantsChange={onTaskParticipantsChange}
+                    onMove={onTaskMove}
                     readOnly={readOnly}
                     formatTaskNumber={formatTaskNumber}
                     canReorder={!readOnly && !!onTaskReorder}
                     hideToolbar={hideToolbar}
+                    allWpDrafts={allWpDrafts}
+                    currentWpDraftId={currentWpDraftId}
                   />
                 ))}
               </div>
