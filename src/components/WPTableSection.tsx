@@ -194,6 +194,7 @@ interface SortableTaskCardProps {
   wpNumber: number;
   participants: ParticipantSummary[];
   monthOptions: number[];
+  projectDuration: number;
   onUpdate: (taskId: string, updates: Partial<WPDraftTask>) => Promise<boolean>;
   onDelete: (taskId: string) => Promise<boolean>;
   onParticipantsChange: (taskId: string, participantIds: string[]) => Promise<boolean>;
