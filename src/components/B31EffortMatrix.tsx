@@ -241,13 +241,14 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                 return (
                   <td
                     key={wp.id}
-                    className={`${cellStyles} font-bold relative overflow-hidden`}
+                    className={`${cellStyles} font-bold`}
                     style={{
                       borderBottomLeftRadius: '9999px',
                       borderBottomRightRadius: '9999px',
                       backgroundColor: wpColor,
                       color: '#FFFFFF',
                       border: `1.5px solid ${wpColor}`,
+                      borderTop: 'none',
                     }}
                   >
                     {colTotal ? formatPM(colTotal) : '—'}
