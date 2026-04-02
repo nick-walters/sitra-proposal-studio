@@ -131,9 +131,12 @@ export function WPDeliverablesTable({
                   monthOptions={monthOptions}
                   onUpdate={onDeliverableUpdate}
                   onDelete={onDeliverableDelete}
+                  onMove={onDeliverableMove}
                   readOnly={readOnly}
                   formatNumber={formatDeliverableNumber}
                   canReorder={!readOnly && !!onDeliverableReorder}
+                  allWpDrafts={allWpDrafts}
+                  currentWpDraftId={currentWpDraftId}
                 />
               ))}
             </div>
