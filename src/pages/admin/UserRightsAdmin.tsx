@@ -547,6 +547,7 @@ export function UserRightsAdmin() {
                               <Button
                                 variant="outline"
                                 size="sm"
+                                className="h-6 px-1.5 text-xs"
                                 onClick={() => setEditProfileUserId(u.id)}
                               >
                                 <Pencil className="w-3 h-3 mr-1" />
