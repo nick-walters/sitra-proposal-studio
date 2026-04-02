@@ -431,7 +431,7 @@ export function UserRightsAdmin() {
                         <TableCell className="align-top">
                           <div className="flex items-start gap-3">
                             {isOwner ? (
-                              <div className="flex-shrink-0 [&_.relative]:!cursor-pointer [&_[class*=avatar]]:!h-12 [&_[class*=avatar]]:!w-12">
+                              <div className="flex-shrink-0 [&_.relative]:!cursor-pointer [&_[class*=avatar]]:!h-16 [&_[class*=avatar]]:!w-16">
                                 <AdminAvatarUpload
                                   userId={u.id}
                                   avatarUrl={u.avatar_url}
@@ -442,7 +442,7 @@ export function UserRightsAdmin() {
                                 />
                               </div>
                             ) : (
-                              <Avatar className="h-12 w-12 flex-shrink-0">
+                              <Avatar className="h-16 w-16 flex-shrink-0">
                                 <AvatarImage src={u.avatar_url || undefined} />
                                 <AvatarFallback>{getInitials(u)}</AvatarFallback>
                               </Avatar>
@@ -486,6 +486,31 @@ export function UserRightsAdmin() {
                         </TableCell>
                         <TableCell className="align-top">
                           <div className="space-y-1">
+                            {/* Platform label */}
+                            <div className="h-7 flex items-center gap-2">
+                              <span className="text-sm font-bold">Sitra Proposal Studio</span>
+                              {isOwner && !isSelf && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  title="Remove all access"
+                                  onClick={() => setDeleteConfirmUser(u)}
+                                >
+                                  <Trash2 className="w-3 h-3 text-destructive" />
+                                </Button>
+                              )}
+                            </div>
+                            {/* Proposal names */}
+                            {proposalRoles.map(r => (
+                              <div key={r.id} className="h-7 flex items-center">
+                                <span className="text-sm font-medium">{r.proposal_acronym || 'Unknown'}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell className="align-top">
+                          <div className="space-y-1">
                             {/* Platform role */}
                             <div className="h-7 flex items-center">
                               {canEditGlobal ? (
@@ -493,7 +518,7 @@ export function UserRightsAdmin() {
                                   value={currentGlobalValue}
                                   onValueChange={(v) => handleChangeGlobalRole(u, globalRole?.id || null, v)}
                                 >
-                                  <SelectTrigger className="h-7 w-28 text-xs">
+                                  <SelectTrigger className="h-7 w-36 text-xs [&>span]:pl-0">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -504,7 +529,7 @@ export function UserRightsAdmin() {
                                 </Select>
                               ) : (
                                 <Select value={currentGlobalValue} disabled>
-                                  <SelectTrigger className="h-7 w-28 text-xs">
+                                  <SelectTrigger className="h-7 w-36 text-xs [&>span]:pl-0">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -523,7 +548,7 @@ export function UserRightsAdmin() {
                                     value={r.role}
                                     onValueChange={(v) => handleChangeProposalRole(u, r.id, v, r.proposal_id)}
                                   >
-                                    <SelectTrigger className="h-7 w-28 text-xs">
+                                    <SelectTrigger className="h-7 w-36 text-xs">
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -543,7 +568,7 @@ export function UserRightsAdmin() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="h-6 px-1.5 text-xs"
+                                  className="h-6 px-1.5 text-xs text-primary"
                                   onClick={() => {
                                     setSelectedUser(u);
                                     setNewRole('editor');
@@ -551,25 +576,11 @@ export function UserRightsAdmin() {
                                     setDialogOpen(true);
                                   }}
                                 >
-                                  <Plus className="w-3 h-3 mr-1" />
+                                  <Plus className="w-3 h-3 mr-1 text-primary" />
                                   Add role
                                 </Button>
                               </div>
                             )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="align-top">
-                          <div className="space-y-1">
-                            {/* Platform label */}
-                            <div className="h-7 flex items-center">
-                              <span className="text-sm font-medium">Platform</span>
-                            </div>
-                            {/* Proposal names */}
-                            {proposalRoles.map(r => (
-                              <div key={r.id} className="h-7 flex items-center">
-                                <span className="text-sm font-medium">{r.proposal_acronym || 'Unknown'}</span>
-                              </div>
-                            ))}
                           </div>
                         </TableCell>
                         <TableCell className="align-top">
