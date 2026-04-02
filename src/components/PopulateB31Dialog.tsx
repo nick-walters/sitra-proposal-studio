@@ -242,7 +242,7 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
                         WP{wp.number}{wp.short_name ? `: ${wp.short_name}` : ''}{wp.title ? ` – ${wp.title}` : ''}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {wp.tasks.length} tasks · {wp.deliverables.length} deliverables · {wp.milestones.length} milestones · {wp.risks.length} risks
+                        {wp.tasks.length} {wp.tasks.length === 1 ? 'task' : 'tasks'} · {wp.deliverables.length} {wp.deliverables.length === 1 ? 'deliverable' : 'deliverables'} · {wp.milestones.length} {wp.milestones.length === 1 ? 'milestone' : 'milestones'} · {wp.risks.length} {wp.risks.length === 1 ? 'risk' : 'risks'}
                       </span>
                     </div>
                   </label>
