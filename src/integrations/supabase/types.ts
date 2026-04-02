@@ -3012,6 +3012,7 @@ export type Database = {
           acronym_segments: Json | null
           budget_template_id: string | null
           budget_type: Database["public"]["Enums"]["budget_type"]
+          case_drafts_visible: boolean
           cases_enabled: boolean
           cases_type: string | null
           created_at: string
@@ -3058,12 +3059,14 @@ export type Database = {
           use_wp_themes: boolean
           uses_fstp: boolean
           work_programme: string | null
+          wp_drafts_visible: boolean
         }
         Insert: {
           acronym: string
           acronym_segments?: Json | null
           budget_template_id?: string | null
           budget_type?: Database["public"]["Enums"]["budget_type"]
+          case_drafts_visible?: boolean
           cases_enabled?: boolean
           cases_type?: string | null
           created_at?: string
@@ -3110,12 +3113,14 @@ export type Database = {
           use_wp_themes?: boolean
           uses_fstp?: boolean
           work_programme?: string | null
+          wp_drafts_visible?: boolean
         }
         Update: {
           acronym?: string
           acronym_segments?: Json | null
           budget_template_id?: string | null
           budget_type?: Database["public"]["Enums"]["budget_type"]
+          case_drafts_visible?: boolean
           cases_enabled?: boolean
           cases_type?: string | null
           created_at?: string
@@ -3162,6 +3167,7 @@ export type Database = {
           use_wp_themes?: boolean
           uses_fstp?: boolean
           work_programme?: string | null
+          wp_drafts_visible?: boolean
         }
         Relationships: [
           {
