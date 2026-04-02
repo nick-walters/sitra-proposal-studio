@@ -144,6 +144,7 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
         const sel = wpSelections[wp.id];
         if (!sel) continue;
         if (sel.objectives) anyObjectives = true;
+        if (sel.descriptionBeforeTasks) anyDescBefore = true;
         if (sel.tasksEnabled) Object.assign(allTaskChecks, sel.taskChecks);
         if (sel.deliverablesEnabled) Object.assign(allDeliverableChecks, sel.deliverableChecks);
         if (sel.milestonesEnabled) Object.assign(allMilestoneChecks, sel.milestoneChecks);
