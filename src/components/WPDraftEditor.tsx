@@ -922,7 +922,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               />
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm opacity-80">WP Leader:</span>
+              <span className="text-xs opacity-80">WP Leader:</span>
               <Popover>
                 <PopoverTrigger asChild>
                   <button className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80" disabled={readOnly}>
