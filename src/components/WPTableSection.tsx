@@ -33,6 +33,13 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
+interface WPOption {
+  id: string;
+  number: number;
+  short_name: string | null;
+  title: string | null;
+}
+
 interface WPTableSectionProps {
   wpNumber: number;
   objectives: string | null;
@@ -46,9 +53,12 @@ interface WPTableSectionProps {
   onTaskDelete: (taskId: string) => Promise<boolean>;
   onTaskParticipantsChange: (taskId: string, participantIds: string[]) => Promise<boolean>;
   onTaskReorder?: (newOrder: string[]) => Promise<boolean>;
+  onTaskMove?: (taskId: string, targetWpDraftId: string) => Promise<boolean>;
   readOnly?: boolean;
   projectDuration?: number;
   hideToolbar?: boolean;
+  allWpDrafts?: WPOption[];
+  currentWpDraftId?: string;
 }
 
 export function WPTableSection({
