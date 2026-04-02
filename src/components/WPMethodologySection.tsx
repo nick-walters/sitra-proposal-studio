@@ -130,8 +130,8 @@ export function WPMethodologySection({
                       value={item.name}
                       onDebouncedChange={(val) => updateMethodology(index, 'name', val)}
                       placeholder="Methodology name"
-                      className="flex-1 text-draft font-bold underline bg-background border-none shadow-none h-7 px-1"
-                      style={{ fontFamily: 'Times New Roman, serif', fontSize: '11pt' }}
+                      className="flex-1 font-bold underline bg-background border-none shadow-none h-7 px-1"
+                      style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '11pt' }}
                       disabled={readOnly}
                     />
                     {!readOnly && (
