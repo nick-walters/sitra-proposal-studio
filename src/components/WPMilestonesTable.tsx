@@ -248,7 +248,7 @@ function SortableMilestoneCard({
           onFocus={() => { isFocused.current = true; }}
           onBlur={() => { isFocused.current = false; }}
           placeholder="Milestone title..."
-          className="h-6 !text-xs flex-1 font-bold"
+          className="h-6 !text-draft flex-1 font-bold"
           disabled={readOnly}
         />
         {!readOnly && (
@@ -266,13 +266,13 @@ function SortableMilestoneCard({
       {/* Row 2: Related WPs + Due month */}
       <div className="flex items-center gap-3 mt-1.5 ml-5">
         <div className="flex items-center gap-1 flex-shrink-0">
-          <span className="text-xs text-muted-foreground">Related WPs:</span>
+          <span className="text-draft text-muted-foreground">Related WPs:</span>
           <Popover open={wpPopoverOpen} onOpenChange={setWpPopoverOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 size="sm"
-                className="h-6 text-xs px-2 min-w-[339px] max-w-[440px] justify-between font-normal"
+                className="h-6 text-draft px-2 min-w-[339px] max-w-[440px] justify-between font-normal"
                 disabled={readOnly}
               >
                 {displayWpBubbles || <span className="text-muted-foreground">Select</span>}
@@ -287,7 +287,7 @@ function SortableMilestoneCard({
                   return (
                     <label
                       key={wp.id}
-                      className="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted cursor-pointer text-xs"
+                      className="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted cursor-pointer text-draft"
                     >
                       <Checkbox
                         checked={selectedWpNumbers.includes(wp.number)}
@@ -310,7 +310,7 @@ function SortableMilestoneCard({
                   );
                 })}
                 {allWpDrafts.length === 0 && (
-                  <p className="text-xs text-muted-foreground px-1">No WPs found</p>
+                  <p className="text-draft text-muted-foreground px-1">No WPs found</p>
                 )}
               </div>
             </PopoverContent>

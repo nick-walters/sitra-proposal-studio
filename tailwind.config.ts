@@ -13,6 +13,9 @@ export default {
       },
     },
     extend: {
+      fontSize: {
+        'draft': ['11pt', { lineHeight: '1.4' }],
+      },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         serif: ['"Source Serif 4"', 'Georgia', 'serif'],
