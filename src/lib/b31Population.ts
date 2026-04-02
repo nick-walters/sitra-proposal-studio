@@ -740,6 +740,21 @@ export async function populateB31(
       risks: (wp.risks || []).sort((a: any, b: any) => a.number - b.number),
     }));
 
+    // Copy draft objectives and task descriptions to b31 fields
+    for (const wp of sortedWPs) {
+      await supabase
+        .from('wp_drafts')
+        .update({ b31_objectives: wp.objectives || null })
+        .eq('id', wp.id);
+
+      for (const task of wp.tasks) {
+        await supabase
+          .from('wp_draft_tasks')
+          .update({ b31_description: task.description || null })
+          .eq('id', task.id);
+      }
+    }
+
     // Generate HTML content for all tables
     let fullContent = '';
 

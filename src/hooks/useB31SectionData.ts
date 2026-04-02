@@ -10,6 +10,7 @@ export interface B31WPData {
   lead_participant_id: string | null;
   color: string;
   objectives: string | null;
+  b31_objectives: string | null;
   description_before_tasks: string | null;
   methodology: string | null;
   manual_person_months: number | null;
@@ -19,6 +20,7 @@ export interface B31WPData {
     number: number;
     title: string | null;
     description: string | null;
+    b31_description: string | null;
     lead_participant_id: string | null;
     start_month: number | null;
     end_month: number | null;
@@ -77,9 +79,9 @@ export function useB31SectionData(proposalId: string) {
         supabase
           .from('wp_drafts')
           .select(`
-            id, number, title, short_name, lead_participant_id, objectives, description_before_tasks, methodology, manual_person_months, manual_duration,
+            id, number, title, short_name, lead_participant_id, objectives, b31_objectives, description_before_tasks, methodology, manual_person_months, manual_duration,
             tasks:wp_draft_tasks(
-              id, number, title, description, lead_participant_id, start_month, end_month,
+              id, number, title, description, b31_description, lead_participant_id, start_month, end_month,
               effort:wp_draft_task_effort(participant_id, person_months),
               participants:wp_draft_task_participants(participant_id)
             ),

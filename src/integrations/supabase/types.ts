@@ -4564,6 +4564,7 @@ export type Database = {
       }
       wp_draft_tasks: {
         Row: {
+          b31_description: string | null
           created_at: string
           description: string | null
           end_month: number | null
@@ -4577,6 +4578,7 @@ export type Database = {
           wp_draft_id: string
         }
         Insert: {
+          b31_description?: string | null
           created_at?: string
           description?: string | null
           end_month?: number | null
@@ -4590,6 +4592,7 @@ export type Database = {
           wp_draft_id: string
         }
         Update: {
+          b31_description?: string | null
           created_at?: string
           description?: string | null
           end_month?: number | null
@@ -4660,6 +4663,7 @@ export type Database = {
       }
       wp_drafts: {
         Row: {
+          b31_objectives: string | null
           bottlenecks_question: string | null
           color: string
           created_at: string
@@ -4681,6 +4685,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          b31_objectives?: string | null
           bottlenecks_question?: string | null
           color?: string
           created_at?: string
@@ -4702,6 +4707,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          b31_objectives?: string | null
           bottlenecks_question?: string | null
           color?: string
           created_at?: string
