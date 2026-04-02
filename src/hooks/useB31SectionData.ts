@@ -79,9 +79,9 @@ export function useB31SectionData(proposalId: string) {
         supabase
           .from('wp_drafts')
           .select(`
-            id, number, title, short_name, lead_participant_id, objectives, description_before_tasks, methodology, manual_person_months, manual_duration,
+            id, number, title, short_name, lead_participant_id, objectives, b31_objectives, description_before_tasks, methodology, manual_person_months, manual_duration,
             tasks:wp_draft_tasks(
-              id, number, title, description, lead_participant_id, start_month, end_month,
+              id, number, title, description, b31_description, lead_participant_id, start_month, end_month,
               effort:wp_draft_task_effort(participant_id, person_months),
               participants:wp_draft_task_participants(participant_id)
             ),
