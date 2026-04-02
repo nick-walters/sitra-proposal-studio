@@ -630,8 +630,8 @@ function SortableTaskGroup({
           style={{ border: 'none', padding: '2px 6px' }}
         >
           <EditableText
-            value={task.description || ''}
-            onSave={(val) => saveTaskField(task.id, 'description', val)}
+            value={task.b31_description || ''}
+            onSave={(val) => saveTaskField(task.id, 'b31_description', val)}
             placeholder="Click to add task description…"
           />
         </td>
