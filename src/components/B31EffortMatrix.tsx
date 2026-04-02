@@ -139,24 +139,18 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                   <th
                     key={wp.id}
                     className={`${headerCellStyles} relative`}
-                    style={{ ...(colWidths.length > 0 ? { width: colWidths[i + 1] } : {}) }}
+                    style={{
+                      backgroundColor: wpColor,
+                      color: '#FFFFFF',
+                      borderTopLeftRadius: '9999px',
+                      borderTopRightRadius: '9999px',
+                      border: `1.5px solid ${wpColor}`,
+                      borderBottom: 'none',
+                      fontWeight: 700,
+                      ...(colWidths.length > 0 ? { width: colWidths[i + 1] } : {}),
+                    }}
                   >
-                    <span
-                      className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-                      style={{
-                        backgroundColor: wpColor,
-                        color: '#FFFFFF',
-                        border: `1.5px solid ${wpColor}`,
-                        fontFamily: "'Times New Roman', Times, serif",
-                        fontSize: '11pt',
-                        fontWeight: 700,
-                        lineHeight: 1,
-                        verticalAlign: 'baseline',
-                        padding: '0px 5px',
-                      }}
-                    >
-                      WP{wp.number}
-                    </span>
+                    WP{wp.number}
                     {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(i + 1)} />}
                   </th>
                 );
