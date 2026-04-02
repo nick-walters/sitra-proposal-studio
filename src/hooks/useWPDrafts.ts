@@ -60,6 +60,10 @@ export interface WPDraft {
   title: string | null;
   lead_participant_id: string | null;
   methodology: string | null;
+  background_knowledge: string | null;
+  approach_summary: string | null;
+  methodologies_list: { name: string; description: string }[] | null;
+  foreseen_challenges: string | null;
   objectives: string | null;
   description_before_tasks: string | null;
   color: string;
@@ -114,6 +118,7 @@ export function useWPDrafts(proposalId: string | null) {
       // Sort nested data
       const sortedData = (data || []).map(wp => ({
         ...wp,
+        methodologies_list: (wp.methodologies_list || []) as { name: string; description: string }[],
         tasks: (wp.tasks || []).sort((a: WPDraftTask, b: WPDraftTask) => a.order_index - b.order_index),
         deliverables: (wp.deliverables || []).sort((a: WPDraftDeliverable, b: WPDraftDeliverable) => a.order_index - b.order_index),
         risks: (wp.risks || []).sort((a: WPDraftRisk, b: WPDraftRisk) => a.order_index - b.order_index),
@@ -340,6 +345,7 @@ export function useWPDraftEditor(wpId: string | null) {
 
       const sortedData = {
         ...data,
+        methodologies_list: (data.methodologies_list || []) as { name: string; description: string }[],
         tasks: fixItems(sortedTasks, (id, num, idx) => {
           supabase.from('wp_draft_tasks').update({ number: num, order_index: idx }).eq('id', id).then();
         }),

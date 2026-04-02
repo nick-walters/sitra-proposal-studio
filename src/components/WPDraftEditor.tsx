@@ -1079,10 +1079,16 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
           </DialogContent>
         </Dialog>
 
-        {/* Methodology Section */}
+        {/* Objectives & Ambition + Methodologies Sections */}
         <WPMethodologySection
-          methodology={wpDraft.methodology}
-          onChange={(value) => updateField('methodology', value)}
+          backgroundKnowledge={wpDraft.background_knowledge}
+          onBackgroundKnowledgeChange={(value) => updateField('background_knowledge', value)}
+          approachSummary={wpDraft.approach_summary}
+          onApproachSummaryChange={(value) => updateField('approach_summary', value)}
+          methodologiesList={wpDraft.methodologies_list}
+          onMethodologiesListChange={(value) => updateField('methodologies_list', value)}
+          foreseenChallenges={wpDraft.foreseen_challenges}
+          onForeseenChallengesChange={(value) => updateField('foreseen_challenges', value)}
           readOnly={readOnly}
           hideToolbar={true}
         />
