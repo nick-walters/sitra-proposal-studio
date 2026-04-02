@@ -139,24 +139,18 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                   <th
                     key={wp.id}
                     className={`${headerCellStyles} relative`}
-                    style={{ ...(colWidths.length > 0 ? { width: colWidths[i + 1] } : {}) }}
+                    style={{
+                      backgroundColor: wpColor,
+                      color: '#FFFFFF',
+                      borderTopLeftRadius: '9999px',
+                      borderTopRightRadius: '9999px',
+                      border: `1.5px solid ${wpColor}`,
+                      borderBottom: 'none',
+                      fontWeight: 700,
+                      ...(colWidths.length > 0 ? { width: colWidths[i + 1] } : {}),
+                    }}
                   >
-                    <span
-                      className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-                      style={{
-                        backgroundColor: wpColor,
-                        color: '#FFFFFF',
-                        border: `1.5px solid ${wpColor}`,
-                        fontFamily: "'Times New Roman', Times, serif",
-                        fontSize: '11pt',
-                        fontWeight: 700,
-                        lineHeight: 1,
-                        verticalAlign: 'baseline',
-                        padding: '0px 5px',
-                      }}
-                    >
-                      WP{wp.number}
-                    </span>
+                    WP{wp.number}
                     {isAdminOrOwner && <ColumnResizer onMouseDown={handleColResizeStart(i + 1)} />}
                   </th>
                 );
@@ -203,19 +197,19 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                     return (
                       <td
                         key={wp.id}
-                        className={`${cellStyles} relative overflow-hidden`}
-                        style={{ padding: 0 }}
+                        className={`${cellStyles}`}
+                        style={{
+                          padding: 0,
+                          backgroundColor: wpColor,
+                          border: `1.5px solid ${wpColor}`,
+                          borderTop: 'none',
+                          borderBottom: 'none',
+                        }}
                       >
-                        {/* WP column background layer */}
-                        <div
-                          className="absolute inset-0"
-                          style={{ backgroundColor: wpColor, opacity: 0.18 }}
-                        />
-                        {/* Content */}
                         <input
                           type="text"
-                          className="relative z-10 w-full bg-transparent outline-none border-none p-0 m-0 font-['Times_New_Roman',Times,serif] text-[11pt] text-center"
-                          style={{ minWidth: '30px' }}
+                          className="w-full bg-transparent outline-none border-none p-0 m-0 font-['Times_New_Roman',Times,serif] text-[11pt] text-center"
+                          style={{ minWidth: '30px', color: '#FFFFFF' }}
                           value={isEditing ? editValue : (val ? formatPM(val) : '')}
                           onChange={e => {
                             if (!isEditing) startEdit(p.id, wp.id, val);
@@ -232,7 +226,7 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                     );
                   })}
                   {/* Total cell */}
-                  <td className={`${cellStyles} font-bold`}>
+                  <td className={`${cellStyles} font-bold`} style={{ color: '#FFFFFF' }}>
                     {rowTotal ? formatPM(rowTotal) : '—'}
                   </td>
                 </tr>
@@ -247,13 +241,14 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                 return (
                   <td
                     key={wp.id}
-                    className={`${cellStyles} font-bold relative overflow-hidden`}
+                    className={`${cellStyles} font-bold`}
                     style={{
                       borderBottomLeftRadius: '9999px',
                       borderBottomRightRadius: '9999px',
                       backgroundColor: wpColor,
                       color: '#FFFFFF',
                       border: `1.5px solid ${wpColor}`,
+                      borderTop: 'none',
                     }}
                   >
                     {colTotal ? formatPM(colTotal) : '—'}
