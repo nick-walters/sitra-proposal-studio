@@ -362,12 +362,13 @@ function SortableTaskCard({
           />
         </div>
 
-        <TimingRangePicker
-          task={task}
-          projectDuration={projectDuration}
-          readOnly={readOnly}
-          onUpdate={onUpdate}
-        />
+        <div className="flex items-center gap-1 flex-shrink-0 ml-auto">
+          <TimingRangePicker
+            task={task}
+            projectDuration={projectDuration}
+            readOnly={readOnly}
+            onUpdate={onUpdate}
+          />
 
           {/* Move to another WP */}
           {!readOnly && onMove && allWpDrafts.filter(wp => wp.id !== currentWpDraftId).length > 0 && (
