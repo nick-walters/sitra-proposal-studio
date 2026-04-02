@@ -449,7 +449,7 @@ export function WPSimpleEditor({
           suppressContentEditableWarning
         />
         {showPlaceholder && (
-          <div className="absolute top-3 left-3 text-muted-foreground text-sm pointer-events-none">
+          <div className="absolute top-3 left-3 text-muted-foreground text-xs pointer-events-none">
             {placeholder}
           </div>
         )}
