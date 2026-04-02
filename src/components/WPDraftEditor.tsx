@@ -917,17 +917,22 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               value={wpDraft.short_name || ''}
               onDebouncedChange={(v) => updateField('short_name', v)}
               placeholder="SHORT"
-              className="bg-transparent text-white placeholder:text-white/40 border-none shadow-none focus-visible:ring-0 h-auto p-0 font-bold shrink-0 min-w-0"
-              style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif", fontSize: '11pt', width: `${Math.max(4, (wpDraft.short_name || '').length)}ch` }}
+              className="bg-transparent text-white placeholder:text-white/40 border-none shadow-none focus-visible:ring-0 h-auto p-0 font-bold shrink-0 w-fit min-w-[5ch]"
+              style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif", fontSize: '11pt' }}
               disabled={readOnly}
             />
-            {(wpDraft.short_name || wpDraft.title || !readOnly) && (
+            {wpDraft.short_name && (wpDraft.title || !readOnly) && (
               <span
                 className="font-bold whitespace-nowrap shrink-0"
-                style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif", fontSize: '11pt' }}
+                style={{
+                  fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
+                  fontSize: '11pt',
+                  marginLeft: '0.25em',
+                  marginRight: '0.25em',
+                }}
               >
-              {wpDraft.short_name ? ' – ' : ''}
-            </span>
+                –
+              </span>
             )}
             <DebouncedInput
               value={wpDraft.title || ''}
