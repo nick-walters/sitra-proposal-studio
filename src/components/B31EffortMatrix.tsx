@@ -243,8 +243,8 @@ borderTopLeftRadius: '12px',
                     key={wp.id}
                     className={`${cellStyles} font-bold`}
                     style={{
-                       borderBottomLeftRadius: '14px',
-                       borderBottomRightRadius: '14px',
+                       borderBottomLeftRadius: '12px',
+                       borderBottomRightRadius: '12px',
                       backgroundColor: wpColor,
                       color: '#FFFFFF',
                     }}
