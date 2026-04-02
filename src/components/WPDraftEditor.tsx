@@ -886,7 +886,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               value={wpDraft.title || ''}
               onDebouncedChange={(v) => updateField('title', v)}
               placeholder="Work package title"
-              className="bg-white/90 text-foreground flex-1"
+              className="bg-white/90 text-foreground flex-1 font-bold"
               disabled={readOnly}
             />
           </div>
@@ -899,7 +899,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
                 value={wpDraft.short_name || ''}
                 onDebouncedChange={(v) => updateField('short_name', v)}
                 placeholder="e.g. COORD"
-                className="bg-white/90 text-foreground h-7 w-[140px] text-sm"
+                className="bg-white/90 text-foreground h-7 w-[140px] text-sm font-bold"
                 disabled={readOnly}
               />
             </div>
