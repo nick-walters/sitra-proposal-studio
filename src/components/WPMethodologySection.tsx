@@ -62,10 +62,10 @@ export function WPMethodologySection({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 px-3 pb-3 pt-0">
-          <p className="text-draft font-bold" style={{ fontFamily: 'Times New Roman, serif', fontSize: '11pt' }}>
+          <p className="font-bold" style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '11pt' }}>
             What is the need for this WP?
           </p>
-          <p className="text-draft text-muted-foreground italic" style={{ fontFamily: 'Times New Roman, serif', fontSize: '11pt' }}>
+          <p className="text-muted-foreground italic" style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '11pt' }}>
             Describe the background knowledge in relation to this WP, i.e. provide a short literature review of the issues specific to this WP, including the concepts, models and assumptions that underpin your work, and citations.
           </p>
           <WPSimpleEditor
