@@ -425,7 +425,7 @@ export function UserRightsAdmin() {
                         <TableCell className="align-top">
                           <div className="flex items-start gap-3">
                             {isOwner ? (
-                              <div className="flex-shrink-0 [&_.relative]:!cursor-pointer [&_[class*=avatar]]:!h-24 [&_[class*=avatar]]:!w-24">
+                              <div className="flex-shrink-0 [&_.relative]:!cursor-pointer [&_[class*=avatar]]:!h-36 [&_[class*=avatar]]:!w-36">
                                 <AdminAvatarUpload
                                   userId={u.id}
                                   avatarUrl={u.avatar_url}
@@ -436,7 +436,7 @@ export function UserRightsAdmin() {
                                 />
                               </div>
                             ) : (
-                              <Avatar className="h-24 w-24 flex-shrink-0">
+                              <Avatar className="h-36 w-36 flex-shrink-0">
                                 <AvatarImage src={u.avatar_url || undefined} />
                                 <AvatarFallback>{getInitials(u)}</AvatarFallback>
                               </Avatar>
