@@ -530,7 +530,19 @@ export function UserRightsAdmin() {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
+                          <div className="flex items-center justify-end gap-1">
+                            {isAdminOrOwner && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs"
+                                title="Resend signup / password reset email"
+                                onClick={() => handleResendSignupLink(u)}
+                              >
+                                <Send className="w-3 h-3 mr-1" />
+                                Resend link
+                              </Button>
+                            )}
                             {isAdminOrOwner && (
                               <Button
                                 variant="outline"
