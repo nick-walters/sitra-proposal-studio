@@ -810,10 +810,44 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
           onSave={updatePalette}
         />
 
-        {/* Populate B3.1 Section (Full proposals Only) */}
+        {/* Draft Visibility & Populate B3.1 Section (Full proposals Only) */}
         {isFullProposal && isCoordinator && (
           <>
             <div className="border-t pt-4 mt-4">
+              {/* Draft Visibility Controls */}
+              <div className="flex flex-wrap items-center gap-4 mb-4">
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm font-medium whitespace-nowrap">WP draft visibility</Label>
+                  <Select
+                    value={wpDraftsVisible ? 'visible' : 'hidden'}
+                    onValueChange={(v) => handleDraftVisibility('wp_drafts_visible', v === 'visible')}
+                  >
+                    <SelectTrigger className="h-7 w-[100px] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="visible">Visible</SelectItem>
+                      <SelectItem value="hidden">Hidden</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm font-medium whitespace-nowrap">Case draft visibility</Label>
+                  <Select
+                    value={caseDraftsVisible ? 'visible' : 'hidden'}
+                    onValueChange={(v) => handleDraftVisibility('case_drafts_visible', v === 'visible')}
+                  >
+                    <SelectTrigger className="h-7 w-[100px] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="visible">Visible</SelectItem>
+                      <SelectItem value="hidden">Hidden</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <h4 className="text-sm font-semibold mb-3">Populate Part B3.1</h4>
               
               {/* WP Selection */}
