@@ -62,7 +62,9 @@ export async function fetchWPDraftsForPopulate(proposalId: string): Promise<WPDr
     .from('wp_drafts')
     .select(`
       id, number, short_name, title, objectives,
-      tasks:wp_draft_tasks(id, number, title, description),
+      tasks:wp_draft_tasks(id, number, title, description, lead_participant_id, start_month, end_month,
+        participants:wp_draft_task_participants(participant_id)
+      ),
       deliverables:wp_draft_deliverables(id, number, title, type, dissemination_level, responsible_participant_id, due_month, description, task_id),
       milestones:wp_draft_milestones(id, number, title, due_month, means_of_verification, related_wps),
       risks:wp_draft_risks(id, number, title, likelihood, severity, mitigation, related_wps)
