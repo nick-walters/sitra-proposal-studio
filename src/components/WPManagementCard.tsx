@@ -40,7 +40,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useWPColorPalette } from '@/hooks/useWPColorPalette';
 import { useWPThemes, WPTheme } from '@/hooks/useWPThemes';
-import { populateB31 } from '@/lib/b31Population';
+import { PopulateB31Dialog } from '@/components/PopulateB31Dialog';
 import { toast } from 'sonner';
 import type { ParticipantSummary } from '@/types/proposal';
 
@@ -281,8 +281,7 @@ interface WPManagementCardProps {
 export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = true, onDraftVisibilityChange }: WPManagementCardProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [selectedWPs, setSelectedWPs] = useState<Set<string>>(new Set());
-  const [isPopulating, setIsPopulating] = useState(false);
+  const [populateDialogOpen, setPopulateDialogOpen] = useState(false);
   const [paletteEditorOpen, setPaletteEditorOpen] = useState(false);
   
   
@@ -563,51 +562,6 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     }
   }, [deleteWPMutation]);
 
-  const handleToggleWP = (wpId: string) => {
-    const newSelection = new Set(selectedWPs);
-    if (newSelection.has(wpId)) {
-      newSelection.delete(wpId);
-    } else {
-      newSelection.add(wpId);
-    }
-    setSelectedWPs(newSelection);
-  };
-
-  const handleSelectAll = () => {
-    if (selectedWPs.size === wpDrafts.length) {
-      setSelectedWPs(new Set());
-    } else {
-      setSelectedWPs(new Set(wpDrafts.map((wp) => wp.id)));
-    }
-  };
-
-  const handlePopulate = async (all: boolean) => {
-    if (!user?.id) {
-      toast.error('You must be logged in to populate content');
-      return;
-    }
-    
-    setIsPopulating(true);
-    try {
-      const wpsToPopulate = all ? wpDrafts : wpDrafts.filter((wp) => selectedWPs.has(wp.id));
-      const wpIds = wpsToPopulate.map((wp) => wp.id);
-      
-      const result = await populateB31(proposalId, wpIds, user.id);
-      
-      if (result.success) {
-        toast.success(`Populated ${wpsToPopulate.length} work package(s) to Part B3.1`);
-        // Invalidate section content queries to refresh the editor
-        queryClient.invalidateQueries({ queryKey: ['section-content'] });
-      } else {
-        toast.error(result.error || 'Failed to populate work packages');
-      }
-    } catch (error) {
-      console.error('Error populating B3.1:', error);
-      toast.error('Failed to populate work packages');
-    } finally {
-      setIsPopulating(false);
-    }
-  };
 
   if (wpsLoading) {
     return (
@@ -860,61 +814,26 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
 
               <h4 className="text-sm font-semibold mb-3">Populate Part B3.1</h4>
               
-              {/* WP Selection */}
-              <div className="flex flex-wrap gap-2 mb-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleSelectAll}
-                  className="text-xs"
-                >
-                  {selectedWPs.size === wpDrafts.length ? 'Deselect All' : 'Select All'}
-                </Button>
-                {wpDrafts.map((wp) => (
-                  <label
-                    key={wp.id}
-                    className="flex items-center gap-1.5 text-sm cursor-pointer"
-                  >
-                    <Checkbox
-                      checked={selectedWPs.has(wp.id)}
-                      onCheckedChange={() => handleToggleWP(wp.id)}
-                    />
-                    <span
-                      className="w-3 h-3 rounded"
-                      style={{ backgroundColor: wp.color }}
-                    />
-                    WP{wp.number}
-                  </label>
-                ))}
-              </div>
-
-              {/* Warning */}
               <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 p-2 rounded mb-3">
                 <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
                 <span>
-                  This will generate Tables 3.1a-f (WP descriptions, deliverables, milestones, risks, staff effort). Existing content will be replaced. Cost justifications (3.1g-h) can be added separately from Part A3: Budget.
+                  Copies selected content from WP drafts to Part B3.1 tables. Existing entries with matching numbers will be updated.
                 </span>
               </div>
 
-              {/* Buttons */}
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePopulate(false)}
-                  disabled={selectedWPs.size === 0 || isPopulating}
-                >
-                  Populate Selected ({selectedWPs.size})
-                </Button>
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => handlePopulate(true)}
-                  disabled={isPopulating}
-                >
-                  Populate All WPs
-                </Button>
-              </div>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setPopulateDialogOpen(true)}
+              >
+                Populate Part B3.1…
+              </Button>
+
+              <PopulateB31Dialog
+                open={populateDialogOpen}
+                onOpenChange={setPopulateDialogOpen}
+                proposalId={proposalId}
+              />
             </div>
           </>
         )}
