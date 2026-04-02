@@ -391,7 +391,6 @@ export function UserRightsAdmin() {
 
         <Card>
           <CardContent className="pt-6">
-          <CardContent>
             {loading ? (
               <div className="space-y-4">
                 {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-16 w-full" />)}
