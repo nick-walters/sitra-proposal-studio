@@ -36,10 +36,10 @@ export function WPColorPaletteEditor({
     if (open) {
       // Ensure we always have 12 colors
       const palette = [...colors];
-      while (palette.length < 12) {
+      while (palette.length < 9) {
         palette.push(DEFAULT_WP_COLORS[palette.length % DEFAULT_WP_COLORS.length]);
       }
-      setEditedColors(palette.slice(0, 12));
+      setEditedColors(palette.slice(0, 9));
     }
   }, [open, colors]);
 
@@ -81,9 +81,6 @@ export function WPColorPaletteEditor({
     'WP7 Color',
     'WP8 Color',
     'WP9 Color',
-    'WP10 Color',
-    'WP11 Color',
-    'WP12 Color',
   ];
 
   return (
