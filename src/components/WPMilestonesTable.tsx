@@ -240,7 +240,7 @@ function SortableMilestoneCard({
             <GripVertical className="w-4 h-4 text-[#2563EB]" />
           </button>
         )}
-        <span className="text-xs text-muted-foreground flex-shrink-0">MS:</span>
+        
         <Input
           value={localTitle}
           onChange={handleTitleChange}
