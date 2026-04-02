@@ -4436,6 +4436,7 @@ export type Database = {
           mitigation: string | null
           number: number
           order_index: number
+          related_wps: string
           severity: string | null
           title: string | null
           updated_at: string
@@ -4448,6 +4449,7 @@ export type Database = {
           mitigation?: string | null
           number: number
           order_index?: number
+          related_wps?: string
           severity?: string | null
           title?: string | null
           updated_at?: string
@@ -4460,6 +4462,7 @@ export type Database = {
           mitigation?: string | null
           number?: number
           order_index?: number
+          related_wps?: string
           severity?: string | null
           title?: string | null
           updated_at?: string
