@@ -250,7 +250,7 @@ function SortableDeliverableCard({
             onFocus={() => { isFocused.current = true; }}
             onBlur={() => { isFocused.current = false; }}
             placeholder="Deliverable title..."
-            className="h-full text-xs flex-1 bg-transparent border-0 outline-none px-1"
+            className="h-full text-xs flex-1 font-bold bg-transparent border-0 outline-none px-1"
             disabled={readOnly}
           />
         </div>
