@@ -622,7 +622,20 @@ function SortableTaskGroup({
         </td>
       </tr>
 
-      {/* Task description - only shown after populate via TipTap editor */}
+      {/* Task description */}
+      <tr>
+        <td
+          colSpan={2}
+          className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-top"
+          style={{ border: 'none', padding: '2px 6px' }}
+        >
+          <EditableText
+            value={task.description || ''}
+            onSave={(val) => saveTaskField(task.id, 'description', val)}
+            placeholder="Click to add task description…"
+          />
+        </td>
+      </tr>
 
     </tbody>
   );
@@ -824,7 +837,20 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
                 {/* Spacer with WP colour border */}
                 <SpacerRow color={wp.color} />
 
-                {/* Objectives - only shown after populate via TipTap editor */}
+                {/* Objectives */}
+                <tr>
+                  <td
+                    colSpan={2}
+                    className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-top"
+                    style={{ border: 'none', padding: '2px 6px' }}
+                  >
+                    <EditableText
+                      value={wp.objectives || ''}
+                      onSave={(val) => saveWPField(wp.id, 'objectives', val)}
+                      placeholder="Click to add objectives…"
+                    />
+                  </td>
+                </tr>
 
                 {/* Optional field before tasks - only if content exists */}
                 {wp.description_before_tasks && wp.description_before_tasks.replace(/<[^>]*>/g, '').trim() !== '' && (
