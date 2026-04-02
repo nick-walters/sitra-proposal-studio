@@ -914,14 +914,18 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               WP{wpDraft.number}:&nbsp;
             </span>
             <DebouncedInput
-              value={wpDraft.short_name || ''}
-              onDebouncedChange={(v) => updateField('short_name', v)}
+              value={wpDraft.short_name?.trim() || ''}
+              onDebouncedChange={(v) => updateField('short_name', v.trim())}
               placeholder="SHORT"
-              className="bg-transparent text-white placeholder:text-white/40 border-none shadow-none focus-visible:ring-0 h-auto p-0 font-bold shrink-0 w-fit min-w-[5ch]"
-              style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif", fontSize: '11pt' }}
+              className="bg-transparent text-white placeholder:text-white/40 border-none shadow-none focus-visible:ring-0 h-auto p-0 font-bold shrink-0 min-w-0"
+              style={{
+                fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif",
+                fontSize: '11pt',
+                width: `${Math.max(5, (wpDraft.short_name?.trim() || '').length)}ch`,
+              }}
               disabled={readOnly}
             />
-            {wpDraft.short_name && (wpDraft.title || !readOnly) && (
+            {Boolean(wpDraft.short_name?.trim()) && (Boolean(wpDraft.title?.trim()) || !readOnly) && (
               <span
                 className="font-bold whitespace-nowrap shrink-0"
                 style={{
@@ -935,8 +939,8 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               </span>
             )}
             <DebouncedInput
-              value={wpDraft.title || ''}
-              onDebouncedChange={(v) => updateField('title', v)}
+              value={wpDraft.title?.trim() || ''}
+              onDebouncedChange={(v) => updateField('title', v.trim())}
               placeholder="Work package title"
               className="bg-transparent text-white placeholder:text-white/40 border-none shadow-none focus-visible:ring-0 h-auto p-0 font-bold flex-1 min-w-0"
               style={{ fontFamily: "'Arial Black', 'Arial Bold', Arial, sans-serif", fontSize: '11pt' }}
