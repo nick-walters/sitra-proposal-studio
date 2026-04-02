@@ -939,7 +939,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
                           </span>
                         );
                       }
-                      return <span className="text-sm opacity-60 italic">Select lead...</span>;
+                      return <span className="text-xs opacity-60 italic">Select lead...</span>;
                     })()}
                     <ChevronsUpDown className="h-3 w-3 opacity-50 shrink-0" />
                   </button>
