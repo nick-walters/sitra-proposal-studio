@@ -918,6 +918,7 @@ export function ProposalEditor() {
             proposalId={id || ''}
             isCoordinator={canEdit}
             isFullProposal={proposal?.submissionStage !== 'stage_1'}
+            onDraftVisibilityChange={refreshProposal}
           />
           <CaseManagementCard
             proposalId={id || ''}
