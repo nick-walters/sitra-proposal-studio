@@ -331,7 +331,7 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
 
               {currentWp.milestones.length > 0 && (
                 <SectionBlock
-                  label={`Milestones (${currentWp.milestones.length})`}
+                  label={`${currentWp.milestones.length === 1 ? 'Milestone' : 'Milestones'} (${currentWp.milestones.length})`}
                   description="Copies to Table 3.1.d"
                   checked={currentSel.milestonesEnabled}
                   onCheckedChange={(v) => {
