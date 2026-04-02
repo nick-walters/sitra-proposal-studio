@@ -521,7 +521,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
     const fetchWpDrafts = async () => {
       const { data } = await supabase
         .from('wp_drafts')
-        .select('id, number, short_name, title')
+        .select('id, number, short_name, title, color')
         .eq('proposal_id', proposalId)
         .order('number');
       

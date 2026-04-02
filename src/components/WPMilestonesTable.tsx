@@ -32,6 +32,7 @@ interface WPOption {
   number: number;
   short_name: string | null;
   title: string | null;
+  color?: string | null;
 }
 
 interface WPMilestonesTableProps {
@@ -200,7 +201,8 @@ function SortableMilestoneCard({
   const displayWpBubbles = selectedWpNumbers.length > 0 ? (
     <span className="flex items-center gap-0.5 flex-wrap">
       {selectedWpNumbers.map(n => {
-        const color = getDefaultWPColor(n);
+        const wpDraft = allWpDrafts.find(w => w.number === n);
+        const color = wpDraft?.color || getDefaultWPColor(n);
         const textColor = getContrastingTextColor(color);
         return (
           <span
@@ -265,7 +267,7 @@ function SortableMilestoneCard({
             <PopoverContent className="w-48 p-2" align="start">
               <div className="space-y-1 max-h-48 overflow-y-auto">
                 {allWpDrafts.map(wp => {
-                  const color = getDefaultWPColor(wp.number);
+                  const color = wp.color || getDefaultWPColor(wp.number);
                   const textColor = getContrastingTextColor(color);
                   return (
                     <label
