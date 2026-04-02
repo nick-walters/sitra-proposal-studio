@@ -26,11 +26,14 @@ export function useWPDraftUndoRedo(wpDraftId: string | null) {
   const [redoStack, setRedoStack] = useState<UndoAction[]>([]);
   const [processing, setProcessing] = useState(false);
 
-  const tableMap: Record<ItemType, string> = {
-    task: 'wp_draft_tasks',
-    deliverable: 'wp_draft_deliverables',
-    risk: 'wp_draft_risks',
-    milestone: 'wp_draft_milestones',
+  const getTable = (itemType: ItemType) => {
+    const map = {
+      task: 'wp_draft_tasks' as const,
+      deliverable: 'wp_draft_deliverables' as const,
+      risk: 'wp_draft_risks' as const,
+      milestone: 'wp_draft_milestones' as const,
+    };
+    return map[itemType];
   };
 
   const pushUndo = useCallback((action: UndoAction) => {
