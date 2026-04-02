@@ -904,7 +904,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               />
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm opacity-80">Lead:</span>
+              <span className="text-sm opacity-80">WP Leader:</span>
               <Select
                 value={wpDraft.lead_participant_id || ''}
                 onValueChange={(value) => updateField('lead_participant_id', value || null)}
