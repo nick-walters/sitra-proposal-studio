@@ -325,7 +325,7 @@ function SortableTaskCard({
             disabled={readOnly}
           >
             <SelectTrigger
-              className="h-auto border-0 shadow-none p-0 w-auto gap-0 text-xs font-bold"
+              className={cn("h-auto border-0 shadow-none p-0 w-auto gap-0 text-xs", task.lead_participant_id ? "font-bold" : "font-normal")}
               style={task.lead_participant_id ? {
                 backgroundColor: '#000000',
                 color: '#ffffff',
