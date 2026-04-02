@@ -74,9 +74,12 @@ export function WPTableSection({
   onTaskDelete,
   onTaskParticipantsChange,
   onTaskReorder,
+  onTaskMove,
   readOnly = false,
   projectDuration = 36,
   hideToolbar = false,
+  allWpDrafts = [],
+  currentWpDraftId,
 }: WPTableSectionProps) {
   const sensors = useSensors(
     useSensor(PointerSensor),
