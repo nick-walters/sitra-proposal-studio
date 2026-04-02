@@ -194,6 +194,96 @@ export type Database = {
           },
         ]
       }
+      b31_task_participants: {
+        Row: {
+          id: string
+          participant_id: string
+          task_id: string
+        }
+        Insert: {
+          id?: string
+          participant_id: string
+          task_id: string
+        }
+        Update: {
+          id?: string
+          participant_id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "b31_task_participants_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "b31_task_participants_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "b31_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      b31_tasks: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          end_month: number | null
+          id: string
+          lead_participant_id: string | null
+          number: number
+          order_index: number | null
+          start_month: number | null
+          title: string | null
+          updated_at: string | null
+          wp_draft_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          end_month?: number | null
+          id?: string
+          lead_participant_id?: string | null
+          number: number
+          order_index?: number | null
+          start_month?: number | null
+          title?: string | null
+          updated_at?: string | null
+          wp_draft_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          end_month?: number | null
+          id?: string
+          lead_participant_id?: string | null
+          number?: number
+          order_index?: number | null
+          start_month?: number | null
+          title?: string | null
+          updated_at?: string | null
+          wp_draft_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "b31_tasks_lead_participant_id_fkey"
+            columns: ["lead_participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "b31_tasks_wp_draft_id_fkey"
+            columns: ["wp_draft_id"]
+            isOneToOne: false
+            referencedRelation: "wp_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budget_changes: {
         Row: {
           budget_item_id: string | null

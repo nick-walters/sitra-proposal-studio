@@ -19,6 +19,10 @@ export interface WPDraftForPopulate {
     number: number;
     title: string | null;
     description: string | null;
+    lead_participant_id: string | null;
+    start_month: number | null;
+    end_month: number | null;
+    participants: { participant_id: string }[];
   }[];
   deliverables: {
     id: string;
@@ -58,7 +62,9 @@ export async function fetchWPDraftsForPopulate(proposalId: string): Promise<WPDr
     .from('wp_drafts')
     .select(`
       id, number, short_name, title, objectives,
-      tasks:wp_draft_tasks(id, number, title, description),
+      tasks:wp_draft_tasks(id, number, title, description, lead_participant_id, start_month, end_month,
+        participants:wp_draft_task_participants(participant_id)
+      ),
       deliverables:wp_draft_deliverables(id, number, title, type, dissemination_level, responsible_participant_id, due_month, description, task_id),
       milestones:wp_draft_milestones(id, number, title, due_month, means_of_verification, related_wps),
       risks:wp_draft_risks(id, number, title, likelihood, severity, mitigation, related_wps)
@@ -99,16 +105,43 @@ export async function populateB31(
       }
     }
 
-    // 2. Copy task descriptions
+    // 2. Copy tasks → b31_tasks (replace existing b31_tasks for selected WPs)
     for (const wp of wpDrafts) {
-      for (const task of wp.tasks) {
-        if (selections.tasks[task.id]) {
+      const selectedTasks = wp.tasks.filter(t => selections.tasks[t.id]);
+      if (selectedTasks.length === 0) continue;
+
+      // Delete existing b31_tasks for this WP
+      await supabase.from('b31_tasks').delete().eq('wp_draft_id', wp.id);
+
+      // Insert new b31_tasks from draft tasks
+      for (let i = 0; i < selectedTasks.length; i++) {
+        const task = selectedTasks[i];
+        const { data: inserted } = await supabase
+          .from('b31_tasks')
+          .insert({
+            wp_draft_id: wp.id,
+            number: i + 1,
+            title: task.title,
+            description: task.description,
+            lead_participant_id: task.lead_participant_id,
+            start_month: task.start_month,
+            end_month: task.end_month,
+            order_index: i,
+          })
+          .select('id')
+          .single();
+
+        // Copy task participants
+        if (inserted && task.participants && task.participants.length > 0) {
           await supabase
-            .from('wp_draft_tasks')
-            .update({ b31_description: task.description || null })
-            .eq('id', task.id);
-          counts.tasks++;
+            .from('b31_task_participants')
+            .insert(task.participants.map(p => ({
+              task_id: inserted.id,
+              participant_id: p.participant_id,
+            })));
         }
+
+        counts.tasks++;
       }
     }
 

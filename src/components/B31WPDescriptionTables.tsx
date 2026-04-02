@@ -36,7 +36,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import type { B31WPData, B31Participant } from '@/hooks/useB31SectionData';
+import type { B31WPData, B31Participant, B31Task } from '@/hooks/useB31SectionData';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 
@@ -71,7 +71,7 @@ function LeaderPicker({
   arrowPosition = 'right',
 }: {
   entityId: string;
-  entityTable: 'wp_drafts' | 'wp_draft_tasks';
+  entityTable: 'wp_drafts' | 'wp_draft_tasks' | 'b31_tasks';
   currentLeaderId: string | null;
   participants: B31Participant[];
   proposalId: string;
@@ -164,10 +164,10 @@ function PartnersPicker({
     const next = filteredSelectedIds.includes(pid)
       ? filteredSelectedIds.filter(id => id !== pid)
       : [...filteredSelectedIds, pid];
-    await supabase.from('wp_draft_task_participants').delete().eq('task_id', taskId);
+    await supabase.from('b31_task_participants').delete().eq('task_id', taskId);
     if (next.length > 0) {
       await supabase
-        .from('wp_draft_task_participants')
+        .from('b31_task_participants')
         .insert(next.map(participant_id => ({ task_id: taskId, participant_id })));
     }
     queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
@@ -245,7 +245,7 @@ function MonthRangePicker({
   const months = Array.from({ length: projectDuration }, (_, i) => i + 1);
 
   const save = async (start: number | null, end: number | null) => {
-    await supabase.from('wp_draft_tasks').update({ start_month: start, end_month: end }).eq('id', taskId);
+    await supabase.from('b31_tasks').update({ start_month: start, end_month: end }).eq('id', taskId);
     queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
   };
 
@@ -503,7 +503,7 @@ function SortableTaskGroup({
   saveTaskField,
   onDeleteTask,
 }: {
-  task: B31WPData['tasks'][0];
+  task: B31Task;
   wp: B31WPData;
   participants: B31Participant[];
   proposalId: string;
@@ -605,7 +605,7 @@ function SortableTaskGroup({
             <span className="font-['Times_New_Roman',Times,serif] text-[11pt] text-muted-foreground mx-1">&nbsp;|&nbsp;</span>
             <LeaderPicker
               entityId={task.id}
-              entityTable="wp_draft_tasks"
+              entityTable="b31_tasks"
               currentLeaderId={task.lead_participant_id}
               participants={participants}
               proposalId={proposalId}
@@ -630,8 +630,8 @@ function SortableTaskGroup({
           style={{ border: 'none', padding: '2px 6px' }}
         >
           <EditableText
-            value={task.b31_description || ''}
-            onSave={(val) => saveTaskField(task.id, 'b31_description', val)}
+            value={task.description || ''}
+            onSave={(val) => saveTaskField(task.id, 'description', val)}
             placeholder="Click to add task description…"
           />
         </td>
@@ -659,42 +659,39 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
   };
 
   const saveTaskField = async (taskId: string, field: string, value: string) => {
-    await supabase.from('wp_draft_tasks').update({ [field]: value || null }).eq('id', taskId);
+    await supabase.from('b31_tasks').update({ [field]: value || null }).eq('id', taskId);
     queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    // Find which WP this task belongs to for renumbering
-    const ownerWp = wpData.find(wp => wp.tasks.some(t => t.id === taskId));
+    const ownerWp = wpData.find(wp => wp.b31_tasks.some(t => t.id === taskId));
 
-    const { error } = await supabase.from('wp_draft_tasks').delete().eq('id', taskId);
+    const { error } = await supabase.from('b31_tasks').delete().eq('id', taskId);
     if (error) {
       toast.error('Failed to delete task');
       return;
     }
 
-    // Renumber remaining tasks in the same WP
     if (ownerWp) {
-      const remaining = ownerWp.tasks
+      const remaining = ownerWp.b31_tasks
         .filter(t => t.id !== taskId)
         .sort((a, b) => a.number - b.number);
       for (let i = 0; i < remaining.length; i++) {
         await supabase
-          .from('wp_draft_tasks')
+          .from('b31_tasks')
           .update({ number: i + 1, order_index: i })
           .eq('id', remaining[i].id);
       }
     }
 
     queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
-    window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
     toast.success('Task deleted');
   };
 
   const handleAddTask = async (wp: B31WPData) => {
-    const nextNumber = wp.tasks.length > 0 ? Math.max(...wp.tasks.map(t => t.number)) + 1 : 1;
-    const nextOrderIndex = wp.tasks.length;
-    const { error } = await supabase.from('wp_draft_tasks').insert({
+    const nextNumber = wp.b31_tasks.length > 0 ? Math.max(...wp.b31_tasks.map(t => t.number)) + 1 : 1;
+    const nextOrderIndex = wp.b31_tasks.length;
+    const { error } = await supabase.from('b31_tasks').insert({
       wp_draft_id: wp.id,
       number: nextNumber,
       order_index: nextOrderIndex,
@@ -704,26 +701,23 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
       return;
     }
     queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
-    window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
   };
 
   const handleTaskDragEnd = async (event: DragEndEvent, wp: B31WPData) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    const oldIndex = wp.tasks.findIndex(t => t.id === active.id);
-    const newIndex = wp.tasks.findIndex(t => t.id === over.id);
+    const oldIndex = wp.b31_tasks.findIndex(t => t.id === active.id);
+    const newIndex = wp.b31_tasks.findIndex(t => t.id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
 
-    // Save previous order for undo
-    const previousOrder = wp.tasks.map(t => t.id);
-
-    const reordered = arrayMove(wp.tasks, oldIndex, newIndex);
+    const previousOrder = wp.b31_tasks.map(t => t.id);
+    const reordered = arrayMove(wp.b31_tasks, oldIndex, newIndex);
 
     const applyOrder = async (taskIds: string[], _label: string) => {
       for (let i = 0; i < taskIds.length; i++) {
         const { error } = await supabase
-          .from('wp_draft_tasks')
+          .from('b31_tasks')
           .update({ order_index: i, number: i + 1 })
           .eq('id', taskIds[i]);
         if (error) {
@@ -732,8 +726,6 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
         }
       }
       await queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
-      await queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] });
-      window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
       return true;
     };
 
@@ -771,8 +763,8 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
         const wpLeader = participants.find(p => p.id === wp.lead_participant_id);
 
         // Compute month range from tasks
-        const starts = wp.tasks.map(t => t.start_month).filter((m): m is number => m != null);
-        const ends = wp.tasks.map(t => t.end_month).filter((m): m is number => m != null);
+        const starts = wp.b31_tasks.map(t => t.start_month).filter((m): m is number => m != null);
+        const ends = wp.b31_tasks.map(t => t.end_month).filter((m): m is number => m != null);
         const monthRange = starts.length > 0 && ends.length > 0
           ? `M${String(Math.min(...starts)).padStart(2, '0')}–M${String(Math.max(...ends)).padStart(2, '0')}`
           : null;
@@ -877,8 +869,8 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
                 collisionDetection={closestCenter}
                 onDragEnd={(event) => handleTaskDragEnd(event, wp)}
               >
-                <SortableContext items={wp.tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-                  {wp.tasks.map(task => (
+                <SortableContext items={wp.b31_tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+                  {wp.b31_tasks.map(task => (
                     <SortableTaskGroup
                       key={task.id}
                       task={task}
