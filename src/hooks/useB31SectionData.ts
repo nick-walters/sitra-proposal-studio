@@ -10,6 +10,7 @@ export interface B31WPData {
   lead_participant_id: string | null;
   color: string;
   objectives: string | null;
+  b31_objectives: string | null;
   description_before_tasks: string | null;
   methodology: string | null;
   manual_person_months: number | null;
