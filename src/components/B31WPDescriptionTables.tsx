@@ -659,7 +659,7 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
   };
 
   const saveTaskField = async (taskId: string, field: string, value: string) => {
-    await supabase.from('wp_draft_tasks').update({ [field]: value || null }).eq('id', taskId);
+    await supabase.from('b31_tasks').update({ [field]: value || null }).eq('id', taskId);
     queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
   };
 
