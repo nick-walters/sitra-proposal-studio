@@ -558,6 +558,7 @@ export function UserRightsAdmin() {
                               <Button
                                 variant="outline"
                                 size="sm"
+                                className="h-6 px-1.5 text-xs"
                                 onClick={() => {
                                   setSelectedUser(u);
                                   setNewRole('editor');
