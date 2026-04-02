@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ChevronsUpDown } from 'lucide-react';
+import { Check, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
