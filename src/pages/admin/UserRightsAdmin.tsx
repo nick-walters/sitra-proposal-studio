@@ -368,34 +368,29 @@ export function UserRightsAdmin() {
     <div className="min-h-screen bg-background">
       <Header />
       <div className="container mx-auto py-8 px-4">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <Shield className="w-8 h-8" />
-            User rights management
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Manage proposal-level roles for users
-          </p>
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold flex items-center gap-3">
+              <Shield className="w-8 h-8" />
+              User rights management
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              {users.length} registered users
+            </p>
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search users..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 w-64"
+            />
+          </div>
         </div>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Users</CardTitle>
-              <CardDescription>{users.length} registered users</CardDescription>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search users..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 w-64"
-                />
-              </div>
-            </div>
-          </CardHeader>
+          <CardContent className="pt-6">
           <CardContent>
             {loading ? (
               <div className="space-y-4">
