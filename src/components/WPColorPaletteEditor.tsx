@@ -69,17 +69,6 @@ export function WPColorPaletteEditor({
     }
   };
 
-  const colorNames = [
-    'WP1 Color',
-    'WP2 Color',
-    'WP3 Color',
-    'WP4 Color',
-    'WP5 Color',
-    'WP6 Color',
-    'WP7 Color',
-    'WP8 Color',
-    'WP9 Color',
-  ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
