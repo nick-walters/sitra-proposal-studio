@@ -230,7 +230,7 @@ function SortableDeliverableCard({
       style={style}
       className={`rounded-md border bg-card p-2 ${isDragging ? 'shadow-lg' : ''}`}
     >
-      {/* Row 1: Drag handle, Deliverable pill badge, Delete */}
+      {/* Row 1: Drag handle, Deliverable number pennant badge, Title, Delete */}
       <div className="flex items-center gap-1.5">
         {canReorder && (
           <button
@@ -241,24 +241,24 @@ function SortableDeliverableCard({
             <GripVertical className="w-4 h-4 text-blue-500" />
           </button>
         )}
-        <div
-          className="flex items-center h-6 flex-1 rounded-full overflow-hidden px-2.5 gap-0"
-          style={{ backgroundColor: '#ffffff', border: '1.5px solid #2563EB', color: '#2563EB' }}
-        >
-          <span className="text-draft font-bold flex-shrink-0 pr-0.5 select-none" style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}>
-            {formatNumber(deliverable.number)}:
+        <span className="flex-shrink-0 select-none" style={{ display: 'inline-block', position: 'relative', width: 52, height: 20 }}>
+          <svg width={52} height={20} viewBox="0 0 52 20" style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
+            <path d="M 0,0 L 42,0 L 52,10 L 42,20 L 0,20 Z" fill="#ffffff" stroke="#2563EB" strokeWidth={1.5} strokeLinejoin="round" />
+          </svg>
+          <span style={{ position: 'absolute', top: 0, left: 0, width: 42, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, lineHeight: 1, color: '#2563EB', whiteSpace: 'nowrap' }}>
+            {formatNumber(deliverable.number)}
           </span>
-          <input
-            value={localTitle}
-            onChange={handleTitleChange}
-            onFocus={() => { isFocused.current = true; }}
-            onBlur={() => { isFocused.current = false; }}
-            placeholder="Deliverable title..."
-            className="h-full text-draft flex-1 font-bold bg-transparent border-0 outline-none px-1 text-[#2563EB] placeholder:text-[#2563EB]/40"
-            style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
-            disabled={readOnly}
-          />
-        </div>
+        </span>
+        <input
+          value={localTitle}
+          onChange={handleTitleChange}
+          onFocus={() => { isFocused.current = true; }}
+          onBlur={() => { isFocused.current = false; }}
+          placeholder="Deliverable title..."
+          className="h-6 text-draft flex-1 font-bold bg-transparent border-0 outline-none px-1 text-foreground placeholder:text-muted-foreground/60"
+          style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
+          disabled={readOnly}
+        />
         {!readOnly && (
           <Button
             variant="ghost"

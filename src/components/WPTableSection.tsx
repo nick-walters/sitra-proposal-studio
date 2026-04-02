@@ -278,7 +278,7 @@ function SortableTaskCard({
       style={style}
       className={`rounded-md border bg-card p-2 ${isDragging ? 'shadow-lg' : ''}`}
     >
-      {/* Row 1: Drag handle, Task pill badge, Delete */}
+      {/* Row 1: Drag handle, Task number badge, Title, Delete */}
       <div className="flex items-center gap-1.5">
         {canReorder && (
           <button
@@ -289,24 +289,30 @@ function SortableTaskCard({
             <GripVertical className="w-4 h-4 text-blue-500" />
           </button>
         )}
-        <div
-          className="flex items-center h-6 flex-1 rounded-full overflow-hidden px-2.5 gap-0"
-          style={{ backgroundColor: '#ffffff', border: '1.5px solid #2563EB', color: '#2563EB' }}
+        <span
+          className="inline-flex items-center justify-center rounded-full font-bold select-none flex-shrink-0 px-2"
+          style={{
+            backgroundColor: '#ffffff',
+            border: '1.5px solid #2563EB',
+            color: '#2563EB',
+            height: '22px',
+            fontFamily: "'Times New Roman', Times, serif",
+            fontSize: '11pt',
+            lineHeight: '22px',
+          }}
         >
-          <span className="text-draft font-bold flex-shrink-0 pr-0.5 select-none" style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}>
-            {formatTaskNumber(task.number)}:
-          </span>
-          <input
-            value={localTitle}
-            onChange={handleTitleChange}
-            onFocus={() => { isFocused.current = true; }}
-            onBlur={() => { isFocused.current = false; }}
-            placeholder="Task title..."
-            className="h-full text-draft flex-1 font-bold bg-transparent border-0 outline-none px-1 text-[#2563EB] placeholder:text-[#2563EB]/40"
-            style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
-            disabled={readOnly}
-          />
-        </div>
+          {formatTaskNumber(task.number)}
+        </span>
+        <input
+          value={localTitle}
+          onChange={handleTitleChange}
+          onFocus={() => { isFocused.current = true; }}
+          onBlur={() => { isFocused.current = false; }}
+          placeholder="Task title..."
+          className="h-6 text-draft flex-1 font-bold bg-transparent border-0 outline-none px-1 text-foreground placeholder:text-muted-foreground/60"
+          style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
+          disabled={readOnly}
+        />
         {!readOnly && (
           <Button
             variant="ghost"
