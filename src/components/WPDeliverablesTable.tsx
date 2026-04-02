@@ -347,21 +347,13 @@ function SortableDeliverableCard({
         </div>
 
         <div className="flex items-center gap-1 flex-shrink-0 ml-auto">
-          <span className="text-xs text-muted-foreground">Due:</span>
-          <Select
-            value={deliverable.due_month?.toString() || ''}
-            onValueChange={(value) => onUpdate(deliverable.id, { due_month: value ? parseInt(value) : null })}
-            disabled={readOnly}
-          >
-            <SelectTrigger hideArrow className="h-6 w-[45px] text-xs px-1">
-              <SelectValue placeholder="Select" />
-            </SelectTrigger>
-            <SelectContent>
-              {monthOptions.map((m) => (
-                <SelectItem key={m} value={m.toString()}>M{m.toString().padStart(2, '0')}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SingleMonthPicker
+            value={deliverable.due_month}
+            projectDuration={projectDuration}
+            readOnly={readOnly}
+            onChange={(m) => onUpdate(deliverable.id, { due_month: m })}
+            label="Due:"
+          />
 
           {/* Move to another WP */}
           {!readOnly && onMove && allWpDrafts.filter(wp => wp.id !== currentWpDraftId).length > 0 && (
