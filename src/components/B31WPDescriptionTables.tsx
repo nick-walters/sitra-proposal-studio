@@ -637,24 +637,25 @@ function SortableTaskGroup({
       {/* Task metadata row: duration | leader | partners */}
       <tr>
         <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0" style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }} data-commentable={`task-meta-${wp.number}-${task.number}`}>
-          <div className="flex items-center flex-wrap gap-0.5">
+          <div className="flex items-center justify-between flex-wrap gap-0.5">
+            <div className="flex items-center gap-0.5">
+              <LeaderPicker
+                entityId={task.id}
+                entityTable="b31_tasks"
+                currentLeaderId={task.lead_participant_id}
+                participants={participants}
+                proposalId={proposalId}
+                showCrown
+              />
+              <PartnersPicker
+                taskId={task.id}
+                selectedIds={partnerIds}
+                participants={participants}
+                proposalId={proposalId}
+                leaderId={task.lead_participant_id}
+              />
+            </div>
             <MonthRangePicker taskId={task.id} startMonth={task.start_month} endMonth={task.end_month} proposalId={proposalId} projectDuration={projectDuration} />
-            <span className="font-['Times_New_Roman',Times,serif] text-[11pt] text-muted-foreground mx-1">&nbsp;|&nbsp;</span>
-            <LeaderPicker
-              entityId={task.id}
-              entityTable="b31_tasks"
-              currentLeaderId={task.lead_participant_id}
-              participants={participants}
-              proposalId={proposalId}
-              showCrown
-            />
-            <PartnersPicker
-              taskId={task.id}
-              selectedIds={partnerIds}
-              participants={participants}
-              proposalId={proposalId}
-              leaderId={task.lead_participant_id}
-            />
           </div>
         </td>
       </tr>
@@ -848,19 +849,20 @@ export function B31WPDescriptionTables({ wpData, participants, proposalId, proje
                 {/* WP duration + leader row */}
                 <tr>
                   <td className="font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle py-0" style={{ border: 'none', paddingLeft: '6px', paddingRight: '6px' }}>
-                    <div className="flex items-center flex-wrap gap-0.5">
+                    <div className="flex items-center justify-between flex-wrap gap-0.5">
+                      <div className="flex items-center gap-0.5">
+                        <LeaderPicker
+                          entityId={wp.id}
+                          entityTable="wp_drafts"
+                          currentLeaderId={wp.lead_participant_id}
+                          participants={participants}
+                          proposalId={proposalId}
+                          showCrown
+                        />
+                      </div>
                       <span className="font-bold text-[11pt] font-['Times_New_Roman',Times,serif] whitespace-nowrap" style={{ color: '#000000' }}>
                         {monthRange || <span className="text-muted-foreground italic font-normal">—</span>}
                       </span>
-                      <span className="font-['Times_New_Roman',Times,serif] text-[11pt] text-muted-foreground mx-1">&nbsp;|&nbsp;</span>
-                      <LeaderPicker
-                        entityId={wp.id}
-                        entityTable="wp_drafts"
-                        currentLeaderId={wp.lead_participant_id}
-                        participants={participants}
-                        proposalId={proposalId}
-                        showCrown
-                      />
                     </div>
                   </td>
                 </tr>
