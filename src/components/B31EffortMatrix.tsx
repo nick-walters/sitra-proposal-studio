@@ -149,8 +149,8 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
                      style={{
                        backgroundColor: wpColor,
                        color: '#FFFFFF',
-borderTopLeftRadius: '15px',
-                          borderTopRightRadius: '15px',
+borderTopLeftRadius: '14px',
+                           borderTopRightRadius: '14px',
                        fontWeight: 700,
                      }}
                    >
@@ -243,8 +243,8 @@ borderTopLeftRadius: '15px',
                     key={wp.id}
                     className={`${cellStyles} font-bold`}
                     style={{
-                       borderBottomLeftRadius: '15px',
-                       borderBottomRightRadius: '15px',
+                       borderBottomLeftRadius: '14px',
+                       borderBottomRightRadius: '14px',
                       backgroundColor: wpColor,
                       color: '#FFFFFF',
                     }}
