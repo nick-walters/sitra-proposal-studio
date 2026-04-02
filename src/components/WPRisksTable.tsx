@@ -108,7 +108,6 @@ export function WPRisksTable({
               <span>= {level.label}</span>
             </span>
           ))}
-          ))}
         </div>
       </CardHeader>
       <CardContent className="space-y-1 px-3 pb-3 pt-0">
