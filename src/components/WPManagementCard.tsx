@@ -475,8 +475,8 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
   const addWPMutation = useMutation({
     mutationFn: async () => {
       const newNumber = wpDrafts.length + 1;
-      const colors = ['#2563EB', '#059669', '#D97706', '#E11D48', '#7C3AED', '#0891B2', '#EA580C', '#DB2777', '#475569', '#65A30D', '#4F46E5', '#0D9488'];
-      const color = colors[(newNumber - 1) % colors.length];
+      const { getWPColor } = await import('@/lib/wpColors');
+      const color = getWPColor(newNumber, newNumber);
       
       const { error } = await supabase.from('wp_drafts').insert({
         proposal_id: proposalId,
