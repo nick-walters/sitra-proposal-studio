@@ -310,13 +310,15 @@ interface CaseManagementCardProps {
   isCoordinator: boolean;
   casesEnabled: boolean;
   onToggleCases: (enabled: boolean) => void;
+  onSaveEvent?: () => void;
 }
 
 export function CaseManagementCard({ 
   proposalId, 
   isCoordinator, 
   casesEnabled, 
-  onToggleCases 
+  onToggleCases,
+  onSaveEvent,
 }: CaseManagementCardProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
