@@ -577,6 +577,23 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     }
   }, [deleteWPMutation]);
 
+  const handleToggleLock = useCallback(async (id: string, locked: boolean) => {
+    const { error } = await supabase
+      .from('wp_drafts')
+      .update({ 
+        is_locked: locked, 
+        locked_by: locked ? user?.id ?? null : null,
+        locked_at: locked ? new Date().toISOString() : null,
+      } as any)
+      .eq('id', id);
+    if (error) {
+      toast.error('Failed to update lock status');
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
+    queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
+    toast.success(locked ? 'Work package locked' : 'Work package unlocked');
+  }, [user, proposalId, queryClient]);
 
   if (wpsLoading) {
     return (
