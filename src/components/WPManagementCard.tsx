@@ -179,7 +179,7 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
         value={wp.title || ''}
         onDebouncedChange={(v) => onUpdate(wp.id, { title: v })}
         placeholder="Work package title"
-        className="h-7 text-sm"
+        className="h-7 text-sm disabled:opacity-100"
         disabled={!canEdit}
       />
 
