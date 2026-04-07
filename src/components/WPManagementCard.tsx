@@ -91,8 +91,8 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
 
   // Grid columns change based on whether themes are enabled
   const gridCols = useThemes 
-    ? 'grid-cols-[24px_50px_100px_90px_1fr_80px_20px]' 
-    : 'grid-cols-[24px_50px_90px_1fr_80px_20px]';
+    ? 'grid-cols-[24px_50px_100px_90px_1fr_80px_20px_20px]' 
+    : 'grid-cols-[24px_50px_90px_1fr_80px_20px_20px]';
 
   return (
     <div
