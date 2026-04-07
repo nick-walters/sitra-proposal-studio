@@ -1525,7 +1525,7 @@ StarterKit.configure({
       const storage = (editor.storage as any)?.trackChanges;
       const wasEnabled = storage?.enabled;
       if (storage) storage.enabled = false;
-      editor.commands.setContent(normalizedContent, { emitUpdate: false });
+      editor.commands.setContent(content, { emitUpdate: false });
       if (storage) storage.enabled = wasEnabled;
     }
   }, [editor, content]);
