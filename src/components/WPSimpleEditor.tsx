@@ -31,6 +31,8 @@ interface WPSimpleEditorProps {
   onInsertTaskRef?: (task: any) => void;
   onInsertDeliverableRef?: (del: any) => void;
   onInsertMilestoneRef?: (ms: any) => void;
+  /** Called before opening a cross-ref dialog so the parent can save the cursor position */
+  onSaveSelection?: () => void;
 }
 
 export function WPSimpleEditor({
