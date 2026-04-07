@@ -31,7 +31,7 @@ import { Separator } from '@/components/ui/separator';
 import { 
   BookOpen, Lightbulb, Bold, Italic, Underline, List, ListOrdered, 
   AlignLeft, AlignCenter, AlignRight, AlignJustify, FileText, Link2, 
-  Layers, Building2, Table2, ImageIcon, ChevronDown, Undo2, Redo2, Crown, ChevronsUpDown, Check
+  Layers, Building2, Table2, ImageIcon, ChevronDown, Undo2, Redo2, Crown, ChevronsUpDown, Check, Lock
 } from 'lucide-react';
 import {
   DropdownMenu,
