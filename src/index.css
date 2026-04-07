@@ -549,6 +549,7 @@
   padding: 0 !important;
   line-height: 1;
   font-family: "Times New Roman", Times, serif !important;
+  text-align: left !important;
 }
 
 /* Caption styles in ProseMirror */
@@ -724,6 +725,7 @@
 .ProseMirror li {
   margin-left: 0 !important;
   padding-left: 0 !important;
+  text-align: justify;
 }
 
 /* Override spacing for caption paragraphs */
