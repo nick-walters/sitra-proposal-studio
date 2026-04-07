@@ -51,7 +51,11 @@ export function WPColorPaletteEditor({
   };
 
   const handleReset = () => {
-    setEditedColors([...DEFAULT_WP_COLORS]);
+    const defaults = [...DEFAULT_WP_COLORS];
+    while (defaults.length < count) {
+      defaults.push(DEFAULT_WP_COLORS[defaults.length % DEFAULT_WP_COLORS.length]);
+    }
+    setEditedColors(defaults.slice(0, count));
   };
 
   const handleSave = async () => {
