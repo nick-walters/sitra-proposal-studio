@@ -310,13 +310,15 @@ interface CaseManagementCardProps {
   isCoordinator: boolean;
   casesEnabled: boolean;
   onToggleCases: (enabled: boolean) => void;
+  onSaveEvent?: () => void;
 }
 
 export function CaseManagementCard({ 
   proposalId, 
   isCoordinator, 
   casesEnabled, 
-  onToggleCases 
+  onToggleCases,
+  onSaveEvent,
 }: CaseManagementCardProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -387,6 +389,7 @@ export function CaseManagementCard({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['case-leadership', proposalId] });
+      onSaveEvent?.();
     },
   });
 
@@ -438,6 +441,7 @@ export function CaseManagementCard({
       queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['case-leadership', proposalId] });
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+      onSaveEvent?.();
     },
   });
 
@@ -477,6 +481,7 @@ export function CaseManagementCard({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['case-leadership', proposalId] });
+      onSaveEvent?.();
       toast.success('Case added');
     },
   });
@@ -494,6 +499,7 @@ export function CaseManagementCard({
       queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['case-leadership', proposalId] });
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+      onSaveEvent?.();
       toast.success('Case deleted');
     },
     onError: () => {

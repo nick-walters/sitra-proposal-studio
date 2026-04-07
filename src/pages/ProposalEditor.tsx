@@ -17,6 +17,7 @@ import { FigureManager } from "@/components/FigureManager";
 import { SectionProgressDashboard } from "@/components/SectionProgressDashboard";
 import { WPDraftEditor } from "@/components/WPDraftEditor";
 import { WPManagementCard } from "@/components/WPManagementCard";
+import { SaveIndicator } from "@/components/SaveIndicator";
 
 import { CaseManagementCard } from "@/components/CaseManagementCard";
 import { CaseDraftEditor } from "@/components/CaseDraftEditor";
@@ -116,6 +117,8 @@ export function ProposalEditor() {
   const [isSubmitConfirmOpen, setIsSubmitConfirmOpen] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [openPanel, setOpenPanel] = useState<'comments' | 'changes' | null>(null);
+  const [managerLastSaved, setManagerLastSaved] = useState<Date | null>(null);
+  const handleManagerSaveEvent = useCallback(() => setManagerLastSaved(new Date()), []);
   const { exportToPdf, exportProposalToPdf } = usePdfExport();
   const { exportProposalToDocx } = useDocxExport();
 
@@ -914,17 +917,22 @@ export function ProposalEditor() {
       
       return (
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="flex justify-end">
+            <SaveIndicator saving={false} lastSaved={managerLastSaved} />
+          </div>
           <WPManagementCard
             proposalId={id || ''}
             isCoordinator={canEdit}
             isFullProposal={proposal?.submissionStage !== 'stage_1'}
             onDraftVisibilityChange={refreshProposal}
+            onSaveEvent={handleManagerSaveEvent}
           />
           <CaseManagementCard
             proposalId={id || ''}
             isCoordinator={canEdit && isCoordinator}
             casesEnabled={proposal?.casesEnabled || false}
             onToggleCases={handleToggleCases}
+            onSaveEvent={handleManagerSaveEvent}
           />
         </div>
       );
