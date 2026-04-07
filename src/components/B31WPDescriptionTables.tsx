@@ -51,8 +51,8 @@ interface Props {
 function ParticipantBubble({ participant, showCrown = false }: { participant: B31Participant; showCrown?: boolean }) {
   return (
     <span
-      className="inline-flex items-center rounded-full font-bold italic whitespace-nowrap"
-      style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'italic', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
+      className="inline-flex items-center rounded-full font-bold whitespace-nowrap"
+      style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'normal', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
     >
       {showCrown && <Crown className="h-2.5 w-2.5 mr-0.5 fill-white" strokeWidth={0} />}
       {participant.organisation_short_name || participant.organisation_name}
@@ -500,7 +500,7 @@ function CaptionParticipantBubble({ showCrown = false }: { showCrown?: boolean }
   return (
     <span
       className="inline-flex items-center justify-center rounded-full font-bold whitespace-nowrap"
-      style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '8pt', fontWeight: 700, fontStyle: 'italic', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 4px', height: '17px' }}
+      style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '8pt', fontWeight: 700, fontStyle: 'normal', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 4px', height: '17px' }}
     >
       {showCrown && <Crown className="h-2.5 w-2.5 fill-white" strokeWidth={0} />}
       {!showCrown && <span style={{ display: 'inline-block', width: 10 }}>&nbsp;</span>}

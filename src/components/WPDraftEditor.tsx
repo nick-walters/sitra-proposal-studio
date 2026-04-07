@@ -389,7 +389,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       if (payload.tableKey) refSpan.setAttribute('data-table-key', payload.tableKey);
       if (payload.refKind) refSpan.setAttribute('data-ref-kind', payload.refKind);
       refSpan.style.fontWeight = 'bold';
-      refSpan.style.fontStyle = 'italic';
+      refSpan.style.fontStyle = 'normal';
       refSpan.style.fontFamily = "'Times New Roman', Times, serif";
       refSpan.style.cursor = 'pointer';
       range.insertNode(refSpan);
@@ -460,7 +460,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       partSpan.style.borderRadius = '9999px';
       partSpan.style.fontFamily = "'Times New Roman', Times, serif";
       partSpan.style.fontWeight = '700';
-      partSpan.style.fontStyle = 'italic';
+      partSpan.style.fontStyle = 'normal';
       partSpan.style.fontSize = '11pt';
       partSpan.style.lineHeight = '1';
       partSpan.style.verticalAlign = 'baseline';
@@ -1078,8 +1078,8 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
                       if (leader) {
                         return (
                           <span
-                            className="inline-flex items-center rounded-full font-bold italic whitespace-nowrap"
-                            style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'italic', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', height: '17px' }}
+                            className="inline-flex items-center rounded-full font-bold whitespace-nowrap"
+                            style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'normal', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px', height: '17px' }}
                           >
                             <Crown className="w-3 h-3 mr-1 text-white fill-white" />
                             {leader.participant_number}. {leader.organisation_short_name || leader.organisation_name}
