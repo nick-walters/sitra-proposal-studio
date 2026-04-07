@@ -1186,7 +1186,7 @@ StarterKit.configure({
         },
       }),
     ],
-    content: normalizePartBBodyAlignment(content),
+    content: normalizePartBLoadedContent(content),
     enableExtensionDispatchTransaction: true,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
@@ -1197,7 +1197,7 @@ StarterKit.configure({
         style: 'font-family: "Times New Roman", Times, serif',
       },
       transformPastedHTML(html) {
-        return normalizePartBBodyAlignment(html);
+        return normalizePartBPastedAlignment(html);
       },
     },
   });
@@ -1245,7 +1245,7 @@ export function useRichTextEditor({
   onBlockDeleteRequest?: (deleteCallback: () => void) => void;
 }) {
   // Track the last content we set to the editor to avoid infinite loops
-  const lastSetContentRef = useRef<string>(normalizePartBBodyAlignment(content));
+  const lastSetContentRef = useRef<string>(normalizePartBLoadedContent(content));
   // Store getReference in a ref to avoid recreating the extension
   const getReferenceRef = useRef(getReference);
   getReferenceRef.current = getReference;
@@ -1529,7 +1529,7 @@ StarterKit.configure({
         },
       }),
     ],
-    content: normalizePartBBodyAlignment(content),
+    content: normalizePartBLoadedContent(content),
     enableExtensionDispatchTransaction: true,
     
     onUpdate: ({ editor }) => {
@@ -1543,7 +1543,7 @@ StarterKit.configure({
         style: 'font-family: "Times New Roman", Times, serif',
       },
       transformPastedHTML(html) {
-        return normalizePartBBodyAlignment(html);
+        return normalizePartBPastedAlignment(html);
       },
     },
   });
