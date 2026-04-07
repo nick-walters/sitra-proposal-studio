@@ -532,6 +532,9 @@
   color: black !important;
   font-weight: bold !important;
   border-bottom: 1.5px solid #000000 !important;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
 }
 
 .ProseMirror table td {
