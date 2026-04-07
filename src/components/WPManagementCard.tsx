@@ -397,6 +397,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
+      onSaveEvent?.();
     },
   });
 
@@ -490,6 +491,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
       queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] });
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+      onSaveEvent?.();
     },
   });
 
@@ -546,6 +548,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
+      onSaveEvent?.();
       toast.success('Work package added');
     },
   });
@@ -590,6 +593,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
       queryClient.invalidateQueries({ queryKey: ['b31-wp-data', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['wp-drafts-gantt', proposalId] });
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+      onSaveEvent?.();
       toast.success('Work package deleted');
     },
     onError: () => {
