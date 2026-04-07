@@ -510,8 +510,9 @@
   margin: 0 0 6pt 0 !important;
   font-family: "Times New Roman", Times, serif !important;
   font-size: 11pt;
-  table-layout: auto;
+  table-layout: fixed;
   width: 100% !important;
+  max-width: 18cm !important;
 }
 
 .ProseMirror table th,
@@ -531,6 +532,9 @@
   color: black !important;
   font-weight: bold !important;
   border-bottom: 1.5px solid #000000 !important;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
 }
 
 .ProseMirror table td {
