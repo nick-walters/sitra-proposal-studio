@@ -628,7 +628,7 @@ export function DocumentEditor({
         {
           type: 'text',
           marks: [{ type: 'italic' }, { type: 'bold' }],
-          text: figureLabel + '.'
+          text: figureLabel + '. '
         },
         {
           type: 'text',
