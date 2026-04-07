@@ -917,17 +917,22 @@ export function ProposalEditor() {
       
       return (
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="flex justify-end">
+            <SaveIndicator saving={false} lastSaved={managerLastSaved} />
+          </div>
           <WPManagementCard
             proposalId={id || ''}
             isCoordinator={canEdit}
             isFullProposal={proposal?.submissionStage !== 'stage_1'}
             onDraftVisibilityChange={refreshProposal}
+            onSaveEvent={handleManagerSaveEvent}
           />
           <CaseManagementCard
             proposalId={id || ''}
             isCoordinator={canEdit && isCoordinator}
             casesEnabled={proposal?.casesEnabled || false}
             onToggleCases={handleToggleCases}
+            onSaveEvent={handleManagerSaveEvent}
           />
         </div>
       );
