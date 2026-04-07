@@ -472,27 +472,18 @@ function useWorkPackages(proposalId: string) {
       // Fetch from wp_drafts table (not work_packages)
       const { data: wps, error: wpError } = await supabase
         .from('wp_drafts')
-        .select('id, number, title')
+        .select('id, number, title, color')
         .eq('proposal_id', proposalId)
         .order('number');
       if (wpError) throw wpError;
       
-      // Fetch color palette
-      const { data: palette } = await supabase
-        .from('wp_color_palette')
-        .select('colors')
-        .eq('proposal_id', proposalId)
-        .single();
-      
-      const colors = (palette?.colors as string[]) || DEFAULT_WP_COLORS;
-      
-      // Map WPs with colors
+      // Map WPs with colors from wp_drafts.color
       return (wps || []).map(wp => ({
         id: wp.id,
         number: wp.number,
         title: wp.title || `WP${wp.number}`,
         short_name: wp.title?.split(':')[0]?.trim() || wp.title || `WP${wp.number}`,
-        color: colors[(wp.number - 1) % colors.length] || DEFAULT_WP_COLORS[0]
+        color: wp.color || DEFAULT_WP_COLORS[(wp.number - 1) % DEFAULT_WP_COLORS.length]
       })) as WorkPackage[];
     },
   });
