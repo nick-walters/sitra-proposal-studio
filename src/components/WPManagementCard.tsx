@@ -778,8 +778,24 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
         {isFullProposal && isCoordinator && (
           <>
             <div className="border-t pt-4 mt-4">
-              {/* Draft Visibility Controls */}
-              <div className="flex flex-wrap items-center gap-4 mb-4">
+              <h4 className="text-sm font-semibold mb-3">Populate Part B3.1</h4>
+              
+              <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 p-2 rounded mb-3">
+                <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
+                <span>
+                  Copies selected content from WP drafts to Part B3.1 tables. Existing entries with matching numbers will be updated.
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => setPopulateDialogOpen(true)}
+                >
+                  Populate Part B3.1…
+                </Button>
+
                 <div className="flex items-center gap-2">
                   <Label className="text-sm font-medium whitespace-nowrap">WP draft visibility</Label>
                   <Select
@@ -796,23 +812,6 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
                   </Select>
                 </div>
               </div>
-
-              <h4 className="text-sm font-semibold mb-3">Populate Part B3.1</h4>
-              
-              <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 p-2 rounded mb-3">
-                <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
-                <span>
-                  Copies selected content from WP drafts to Part B3.1 tables. Existing entries with matching numbers will be updated.
-                </span>
-              </div>
-
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => setPopulateDialogOpen(true)}
-              >
-                Populate Part B3.1…
-              </Button>
 
               <PopulateB31Dialog
                 open={populateDialogOpen}
