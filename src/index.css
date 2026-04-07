@@ -298,8 +298,10 @@
     font-family: Arial, Helvetica, sans-serif;
   }
 
-  /* Body text defaults, no indent */
+  /* Body text defaults – text-align: justify is the default but must NOT use !important
+     so that Tiptap inline styles (style="text-align: left") can override it */
   .document-content p:not(.figure-caption) {
+    text-align: justify;
     text-indent: 0 !important;
     margin-left: 0 !important;
     padding-left: 0 !important;
