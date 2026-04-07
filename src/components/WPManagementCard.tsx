@@ -732,7 +732,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
                   onClick={() => setPaletteEditorOpen(true)}
                 >
                   <Palette className="w-4 h-4 mr-1" />
-                  Edit Color Palette
+                  Edit colour palette
                 </Button>
               </div>
             )}
@@ -794,7 +794,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
                 onClick={() => setPaletteEditorOpen(true)}
               >
                 <Palette className="w-4 h-4 mr-1" />
-                Edit Color Palette
+                Edit colour palette
               </Button>
             )}
             {/* Populate button next to palette button */}
