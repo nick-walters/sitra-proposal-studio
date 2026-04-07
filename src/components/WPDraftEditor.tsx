@@ -312,6 +312,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
   
   // Editor insertion callbacks (these insert HTML into active contentEditable)
   const insertCitationAtCursor = useCallback((citationNumber: number) => {
+    restoreSelection();
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
@@ -329,6 +330,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
   }, []);
   
   const insertCrossRefAtCursor = useCallback((payload: { refText: string; figureId?: string; tableKey?: string; refKind: 'figure' | 'table' }) => {
+    restoreSelection();
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
@@ -352,6 +354,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
   }, []);
   
   const insertWPRefAtCursor = useCallback((wpNumber: number, wpShortName: string, wpColor: string, wpId: string) => {
+    restoreSelection();
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
@@ -391,6 +394,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
   }, []);
 
   const insertParticipantRefAtCursor = useCallback((participantNumber: number, shortName: string, participantId: string) => {
+    restoreSelection();
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
@@ -430,6 +434,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
   }, []);
   
   const insertFigureAtCursor = useCallback((figure: any) => {
+    restoreSelection();
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
@@ -449,6 +454,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
 
   // Handle Task reference insertion (contentEditable) - pill bubble
   const insertTaskRefAtCursor = useCallback((task: { id: string; wp_number: number; number: number; title: string }) => {
+    restoreSelection();
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
@@ -471,6 +477,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
 
   // Handle Deliverable reference insertion - pentagon bubble matching 3.1.c
   const insertDeliverableRefAtCursor = useCallback((del: { id: string; number: string; name: string }) => {
+    restoreSelection();
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
@@ -496,6 +503,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
 
   // Handle Milestone reference insertion - triangle bubble matching 3.1.d
   const insertMilestoneRefAtCursor = useCallback((ms: { id: string; number: number; name: string }) => {
+    restoreSelection();
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
