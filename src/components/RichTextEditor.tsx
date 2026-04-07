@@ -737,8 +737,11 @@ export function FormattingToolbar({
           icon={<AlignLeft className="w-4 h-4" />} 
           tooltip="Align left"
           onClick={() => {
-            editor.view.dispatch(editor.state.tr.setMeta('formatOnly', true));
+            const s = (editor.storage as any).trackChanges;
+            const was = s?.enabled;
+            if (s) s.enabled = false;
             editor.chain().focus().setTextAlign('left').run();
+            if (s) s.enabled = was;
           }}
           active={!isAlignDisabled && editor.isActive({ textAlign: 'left' })}
           disabled={isAlignDisabled}
@@ -747,8 +750,11 @@ export function FormattingToolbar({
           icon={<AlignCenter className="w-4 h-4" />} 
           tooltip="Align center"
           onClick={() => {
-            editor.view.dispatch(editor.state.tr.setMeta('formatOnly', true));
+            const s = (editor.storage as any).trackChanges;
+            const was = s?.enabled;
+            if (s) s.enabled = false;
             editor.chain().focus().setTextAlign('center').run();
+            if (s) s.enabled = was;
           }}
           active={!isAlignDisabled && editor.isActive({ textAlign: 'center' })}
           disabled={isAlignDisabled}
@@ -757,8 +763,11 @@ export function FormattingToolbar({
           icon={<AlignRight className="w-4 h-4" />} 
           tooltip="Align right"
           onClick={() => {
-            editor.view.dispatch(editor.state.tr.setMeta('formatOnly', true));
+            const s = (editor.storage as any).trackChanges;
+            const was = s?.enabled;
+            if (s) s.enabled = false;
             editor.chain().focus().setTextAlign('right').run();
+            if (s) s.enabled = was;
           }}
           active={!isAlignDisabled && editor.isActive({ textAlign: 'right' })}
           disabled={isAlignDisabled}
@@ -767,8 +776,11 @@ export function FormattingToolbar({
           icon={<AlignJustify className="w-4 h-4" />} 
           tooltip="Justify"
           onClick={() => {
-            editor.view.dispatch(editor.state.tr.setMeta('formatOnly', true));
+            const s = (editor.storage as any).trackChanges;
+            const was = s?.enabled;
+            if (s) s.enabled = false;
             editor.chain().focus().setTextAlign('justify').run();
+            if (s) s.enabled = was;
           }}
           active={!isAlignDisabled && editor.isActive({ textAlign: 'justify' })}
           disabled={isAlignDisabled}
