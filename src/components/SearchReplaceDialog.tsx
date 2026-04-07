@@ -21,7 +21,6 @@ import {
   Replace, 
   ChevronUp, 
   ChevronDown, 
-  X,
   CaseSensitive,
   Regex,
   WholeWord,
@@ -29,6 +28,8 @@ import {
 } from 'lucide-react';
 import { Decoration, DecorationSet } from 'prosemirror-view';
 import { Plugin, PluginKey } from 'prosemirror-state';
+
+const searchPluginKey = new PluginKey('searchHighlight');
 
 interface SearchReplaceDialogProps {
   isOpen: boolean;
@@ -52,6 +53,63 @@ export function SearchReplaceDialog({ isOpen, onClose, editor }: SearchReplaceDi
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [regexError, setRegexError] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const pluginRegistered = useRef(false);
+
+  // Register the search highlight plugin once when the dialog opens
+  useEffect(() => {
+    if (!editor) return;
+
+    if (isOpen && !pluginRegistered.current) {
+      // Check if plugin already exists
+      const hasPlugin = editor.state.plugins.some(
+        p => p.spec.key === searchPluginKey
+      );
+      if (!hasPlugin) {
+        const plugin = new Plugin({
+          key: searchPluginKey,
+          state: {
+            init: () => ({ decorations: DecorationSet.empty, matches: [] as SearchMatch[], currentIndex: 0 }),
+            apply: (tr, prev) => {
+              const meta = tr.getMeta(searchPluginKey);
+              if (meta) {
+                // Build decorations from the meta matches
+                const { matches: m, currentIndex } = meta as { matches: SearchMatch[]; currentIndex: number };
+                const decos = m.map((match: SearchMatch, index: number) => {
+                  const isCurrent = index === currentIndex;
+                  return Decoration.inline(match.from, match.to, {
+                    class: isCurrent ? 'search-highlight-current' : 'search-highlight',
+                    style: isCurrent
+                      ? 'background-color: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-radius: 2px;'
+                      : 'background-color: hsl(var(--accent)); border-radius: 2px;',
+                  });
+                });
+                return { decorations: DecorationSet.create(tr.doc, decos), matches: m, currentIndex };
+              }
+              // Map decorations through document changes
+              return { ...prev, decorations: prev.decorations.map(tr.mapping, tr.doc) };
+            },
+          },
+          props: {
+            decorations(state) {
+              return this.getState(state)?.decorations ?? DecorationSet.empty;
+            },
+          },
+        });
+
+        // Use registerPlugin to safely add the plugin
+        editor.registerPlugin(plugin);
+      }
+      pluginRegistered.current = true;
+    }
+
+    if (!isOpen && pluginRegistered.current) {
+      // Clear decorations first, then unregister
+      const tr = editor.state.tr.setMeta(searchPluginKey, { matches: [], currentIndex: 0 });
+      editor.view.dispatch(tr);
+      editor.unregisterPlugin(searchPluginKey);
+      pluginRegistered.current = false;
+    }
+  }, [editor, isOpen]);
 
   // Find all matches in the document
   const findMatches = useCallback(() => {
@@ -69,7 +127,6 @@ export function SearchReplaceDialog({ isOpen, onClose, editor }: SearchReplaceDi
       if (useRegex) {
         searchPattern = new RegExp(searchText, caseSensitive ? 'g' : 'gi');
       } else {
-        // Escape special regex characters for literal search
         const escaped = searchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const pattern = wholeWord ? `\\b${escaped}\\b` : escaped;
         searchPattern = new RegExp(pattern, caseSensitive ? 'g' : 'gi');
@@ -81,7 +138,6 @@ export function SearchReplaceDialog({ isOpen, onClose, editor }: SearchReplaceDi
       return;
     }
 
-    // Iterate through text content
     doc.descendants((node, pos) => {
       if (node.isText && node.text) {
         let match;
@@ -106,72 +162,17 @@ export function SearchReplaceDialog({ isOpen, onClose, editor }: SearchReplaceDi
     findMatches();
   }, [findMatches]);
 
-  // Apply decorations to highlight matches
+  // Update decorations via transaction metadata (no reconfigure!)
   useEffect(() => {
-    if (!editor) return;
+    if (!editor || !pluginRegistered.current) return;
 
-    const decorations: Decoration[] = matches.map((match, index) => {
-      const isCurrentMatch = index === currentMatchIndex;
-      return Decoration.inline(match.from, match.to, {
-        class: isCurrentMatch 
-          ? 'search-highlight-current' 
-          : 'search-highlight',
-        style: isCurrentMatch
-          ? 'background-color: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-radius: 2px;'
-          : 'background-color: hsl(var(--accent)); border-radius: 2px;',
-      });
+    const tr = editor.state.tr.setMeta(searchPluginKey, {
+      matches,
+      currentIndex: currentMatchIndex,
     });
-
-    // Create and register the search highlight plugin
-    const pluginKeyName = 'searchHighlight';
-    
-    // Remove any existing search highlight plugin
-    const existingPlugins = editor.state.plugins.filter(
-      p => (p.spec as any).key !== pluginKeyName
-    );
-
-    if (matches.length > 0) {
-      const plugin = new Plugin({
-        key: new PluginKey(pluginKeyName),
-        state: {
-          init: () => DecorationSet.create(editor.state.doc, decorations),
-          apply: (tr, set) => {
-            // Rebuild decorations on each transaction for simplicity
-            return DecorationSet.create(tr.doc, decorations);
-          },
-        },
-        props: {
-          decorations(state) {
-            return this.getState(state);
-          },
-        },
-        spec: {
-          key: pluginKeyName,
-        },
-      });
-
-      const newState = editor.state.reconfigure({
-        plugins: [...existingPlugins, plugin],
-      });
-      editor.view.updateState(newState);
-    } else {
-      const newState = editor.state.reconfigure({
-        plugins: existingPlugins,
-      });
-      editor.view.updateState(newState);
-    }
-
-    return () => {
-      // Cleanup: remove the plugin when dialog closes
-      if (!isOpen && editor) {
-        const cleanPlugins = editor.state.plugins.filter(
-          p => (p.spec as any).key !== pluginKeyName
-        );
-        const cleanState = editor.state.reconfigure({ plugins: cleanPlugins });
-        editor.view.updateState(cleanState);
-      }
-    };
-  }, [editor, matches, currentMatchIndex, isOpen]);
+    tr.setMeta('addToHistory', false);
+    editor.view.dispatch(tr);
+  }, [editor, matches, currentMatchIndex]);
 
   // Navigate to current match
   useEffect(() => {
@@ -180,7 +181,6 @@ export function SearchReplaceDialog({ isOpen, onClose, editor }: SearchReplaceDi
     const match = matches[currentMatchIndex];
     if (match) {
       editor.commands.setTextSelection({ from: match.from, to: match.to });
-      // Scroll to selection
       const { node } = editor.view.domAtPos(match.from);
       if (node && (node as Element).scrollIntoView) {
         (node as Element).scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -213,7 +213,6 @@ export function SearchReplaceDialog({ isOpen, onClose, editor }: SearchReplaceDi
 
     let replacement = replaceText;
     
-    // Handle regex group replacements ($1, $2, etc.)
     if (useRegex) {
       try {
         const pattern = new RegExp(searchText, caseSensitive ? '' : 'i');
@@ -231,7 +230,6 @@ export function SearchReplaceDialog({ isOpen, onClose, editor }: SearchReplaceDi
       .insertContent(replacement)
       .run();
 
-    // Clear stale decorations immediately, then refresh
     setMatches([]);
     setTimeout(findMatches, 50);
   };
@@ -239,10 +237,8 @@ export function SearchReplaceDialog({ isOpen, onClose, editor }: SearchReplaceDi
   const replaceAll = () => {
     if (!editor || matches.length === 0) return;
 
-    // Process matches in reverse order to maintain positions
     const sortedMatches = [...matches].sort((a, b) => b.from - a.from);
 
-    // Build replacements list
     const replacements = sortedMatches.map(match => {
       let replacement = replaceText;
       if (useRegex) {
@@ -256,7 +252,6 @@ export function SearchReplaceDialog({ isOpen, onClose, editor }: SearchReplaceDi
       return { from: match.from, to: match.to, replacement };
     });
 
-    // Apply all replacements in a single transaction
     editor.chain().focus().command(({ tr }) => {
       for (const { from, to, replacement } of replacements) {
         tr.replaceWith(from, to, replacement ? editor.schema.text(replacement) : editor.schema.text(''));
@@ -264,7 +259,6 @@ export function SearchReplaceDialog({ isOpen, onClose, editor }: SearchReplaceDi
       return true;
     }).run();
 
-    // Clear stale decorations immediately, then refresh
     setMatches([]);
     setTimeout(findMatches, 50);
   };
