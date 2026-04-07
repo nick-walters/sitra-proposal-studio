@@ -736,28 +736,52 @@ export function FormattingToolbar({
         <ToolbarButton 
           icon={<AlignLeft className="w-4 h-4" />} 
           tooltip="Align left"
-          onClick={() => editor.chain().focus().setTextAlign('left').run()}
+          onClick={() => {
+            const s = (editor.storage as any).trackChanges;
+            const was = s?.enabled;
+            if (s) s.enabled = false;
+            editor.chain().focus().setTextAlign('left').run();
+            if (s) s.enabled = was;
+          }}
           active={!isAlignDisabled && editor.isActive({ textAlign: 'left' })}
           disabled={isAlignDisabled}
         />
         <ToolbarButton 
           icon={<AlignCenter className="w-4 h-4" />} 
           tooltip="Align center"
-          onClick={() => editor.chain().focus().setTextAlign('center').run()}
+          onClick={() => {
+            const s = (editor.storage as any).trackChanges;
+            const was = s?.enabled;
+            if (s) s.enabled = false;
+            editor.chain().focus().setTextAlign('center').run();
+            if (s) s.enabled = was;
+          }}
           active={!isAlignDisabled && editor.isActive({ textAlign: 'center' })}
           disabled={isAlignDisabled}
         />
         <ToolbarButton 
           icon={<AlignRight className="w-4 h-4" />} 
           tooltip="Align right"
-          onClick={() => editor.chain().focus().setTextAlign('right').run()}
+          onClick={() => {
+            const s = (editor.storage as any).trackChanges;
+            const was = s?.enabled;
+            if (s) s.enabled = false;
+            editor.chain().focus().setTextAlign('right').run();
+            if (s) s.enabled = was;
+          }}
           active={!isAlignDisabled && editor.isActive({ textAlign: 'right' })}
           disabled={isAlignDisabled}
         />
         <ToolbarButton 
           icon={<AlignJustify className="w-4 h-4" />} 
           tooltip="Justify"
-          onClick={() => editor.chain().focus().setTextAlign('justify').run()}
+          onClick={() => {
+            const s = (editor.storage as any).trackChanges;
+            const was = s?.enabled;
+            if (s) s.enabled = false;
+            editor.chain().focus().setTextAlign('justify').run();
+            if (s) s.enabled = was;
+          }}
           active={!isAlignDisabled && editor.isActive({ textAlign: 'justify' })}
           disabled={isAlignDisabled}
         />
