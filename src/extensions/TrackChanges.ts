@@ -262,14 +262,17 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
 
     // Bypass track-changes logic for attribute-only changes (e.g. textAlign).
     // These transactions change node attrs but don't add/remove text content.
-    // We check the step map: if every range maps to identical size, no text was added/removed.
+    // Detection: check if every step's map is an identity map (no ranges changed at all).
+    // AttrStep and ReplaceAroundStep from setNodeMarkup produce identity maps
+    // because they change node tokens but not content positions.
     const isAttrOnly = tr.steps.every((step: any) => {
       const map = step.getMap();
-      let hasContentChange = false;
+      let hasNonEmptyRange = false;
       map.forEach((oS: number, oE: number, nS: number, nE: number) => {
-        if ((oE - oS) !== (nE - nS)) hasContentChange = true;
+        // Any mapped range means content positions shifted — not just attrs
+        if (oE !== oS || nE !== nS) hasNonEmptyRange = true;
       });
-      return !hasContentChange;
+      return !hasNonEmptyRange;
     });
     if (isAttrOnly) {
       next(tr);
