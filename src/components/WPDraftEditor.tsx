@@ -313,21 +313,34 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
 
   // Save the selection range before opening dialogs so we can restore it when inserting
   const savedRangeRef = useRef<Range | null>(null);
+  const savedEditorRef = useRef<HTMLElement | null>(null);
   const saveSelection = useCallback(() => {
     const sel = window.getSelection();
     if (sel && sel.rangeCount > 0) {
       savedRangeRef.current = sel.getRangeAt(0).cloneRange();
+      // Also save a reference to the contentEditable element so we can refocus it
+      const node = sel.anchorNode;
+      if (node) {
+        const el = node.nodeType === Node.ELEMENT_NODE ? node as HTMLElement : node.parentElement;
+        const editable = el?.closest('[contenteditable="true"]') as HTMLElement | null;
+        savedEditorRef.current = editable;
+      }
     }
   }, []);
   const restoreSelection = useCallback((): Range | null => {
     const range = savedRangeRef.current;
     if (range) {
+      // Refocus the contentEditable element first so the selection sticks
+      if (savedEditorRef.current && document.body.contains(savedEditorRef.current)) {
+        savedEditorRef.current.focus();
+      }
       const sel = window.getSelection();
       if (sel) {
         sel.removeAllRanges();
         sel.addRange(range);
       }
       savedRangeRef.current = null;
+      savedEditorRef.current = null;
       return range;
     }
     return null;
