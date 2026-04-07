@@ -339,7 +339,7 @@ export function WPSimpleEditor({
 
           {/* Cross-ref dropdown */}
           {(onOpenCrossRefDialog || onOpenWPRefDialog || onInsertTaskRef || onInsertDeliverableRef || onOpenParticipantRefDialog) && (
-            <DropdownMenu>
+            <DropdownMenu onOpenChange={(open) => { if (open) onSaveSelection?.(); }}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <DropdownMenuTrigger asChild>
