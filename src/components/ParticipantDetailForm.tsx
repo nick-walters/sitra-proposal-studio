@@ -174,7 +174,7 @@ export function ParticipantDetailForm({
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
       <div className="max-w-7xl mx-auto space-y-4">
         {/* Header */}
-        <div className="flex items-start justify-between gap-4">
+        <div className="space-y-2">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
               <span className="text-lg font-bold text-primary">{participant.participantNumber}</span>
@@ -196,7 +196,9 @@ export function ParticipantDetailForm({
               </p>
             </div>
           </div>
-          {canEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} onSaveNow={() => {}} />}
+          <div className="flex items-center gap-3">
+            {canEdit && <SaveIndicator saving={saving} lastSaved={lastSaved} onSaveNow={() => {}} />}
+          </div>
         </div>
 
         {/* 1. Organisation Details */}

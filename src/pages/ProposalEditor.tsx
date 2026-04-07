@@ -917,9 +917,11 @@ export function ProposalEditor() {
       
       return (
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          <div className="flex items-center gap-3">
+          <div className="space-y-2">
             <h1 className="text-xl font-bold text-foreground">WP/case manager & drafts</h1>
-            <SaveIndicator saving={false} lastSaved={managerLastSaved} />
+            <div className="flex items-center gap-3">
+              <SaveIndicator saving={false} lastSaved={managerLastSaved} />
+            </div>
           </div>
           <WPManagementCard
             proposalId={id || ''}

@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Participant, ParticipantMember, Section, ParticipantType } from '@/types/proposal';
 import { Building2, GripVertical, UserPlus, Plus, Search, Check, Upload, X, Loader2, Hash, FileText, Download } from 'lucide-react';
+import { SaveIndicator } from './SaveIndicator';
 import { BulkPicLookupDialog } from './BulkPicLookupDialog';
 import { ParticipantCompletenessChecker } from './ParticipantCompletenessChecker';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
@@ -572,6 +573,7 @@ export function ParticipantListView({
   const [isBulkPicOpen, setIsBulkPicOpen] = useState(false);
   const [fetchingLogoFor, setFetchingLogoFor] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('participants');
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const { roleTier } = useProposalRole(proposalId);
   const isAdmin = roleTier === 'coordinator';
   const ocd = useOCD(proposalId);
@@ -667,36 +669,33 @@ export function ParticipantListView({
       <div className="flex-1 overflow-auto p-6 bg-muted/30">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Header */}
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-4">
               <h1 className="text-xl font-bold text-foreground">Part A2: Participants</h1>
+              <div className="flex gap-2">
+                {canAddParticipant && onAddParticipant && (
+                  <>
+                    <Button size="sm" onClick={() => setIsAddParticipantDialogOpen(true)} className="gap-1.5 h-8">
+                      <Plus className="w-3.5 h-3.5" />
+                      Add participant
+                    </Button>
+                  </>
+                )}
+                {canInvite && (
+                  <Button variant="outline" size="sm" onClick={() => setIsInviteDialogOpen(true)} className="gap-1.5 h-8">
+                    <UserPlus className="w-3.5 h-3.5" />
+                    Invite
+                  </Button>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
               <PartAGuidelinesDialog
                 sectionTitle="Part A2: Participants"
                 officialGuidelines={officialGuidelines}
                 sitraTips={sitraTips}
               />
-            </div>
-            <div className="flex gap-2">
-              {canAddParticipant && onAddParticipant && (
-                <>
-                  {/* Bulk PIC Lookup - temporarily disabled until PIC lookup is fixed
-                  <Button size="sm" onClick={() => setIsBulkPicOpen(true)} variant="outline" className="gap-1.5 h-8">
-                    <Hash className="w-3.5 h-3.5" />
-                    Bulk PIC Lookup
-                  </Button>
-                  */}
-                  <Button size="sm" onClick={() => setIsAddParticipantDialogOpen(true)} className="gap-1.5 h-8">
-                    <Plus className="w-3.5 h-3.5" />
-                    Add participant
-                  </Button>
-                </>
-              )}
-              {canInvite && (
-                <Button variant="outline" size="sm" onClick={() => setIsInviteDialogOpen(true)} className="gap-1.5 h-8">
-                  <UserPlus className="w-3.5 h-3.5" />
-                  Invite
-                </Button>
-              )}
+              <SaveIndicator saving={false} lastSaved={lastSaved} onSaveNow={() => {}} />
             </div>
           </div>
 

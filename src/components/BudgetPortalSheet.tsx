@@ -573,10 +573,9 @@ export function BudgetPortalSheet({
   return (
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
       <div className="mx-auto space-y-6 max-w-full">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-2">
+          <h1 className="text-xl font-bold text-foreground">Part A3: Budget</h1>
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-foreground">Part A3: Budget</h1>
             <PartAGuidelinesDialog
               sectionTitle="Part A3: Budget"
               officialGuidelines={[{

@@ -886,9 +886,27 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
     <div className="flex-1 overflow-auto p-6 bg-muted/30">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
             <h1 className="text-xl font-bold text-foreground">Part A4: Ethics self-assessment</h1>
+            <Badge
+              variant={issuesCount > 0 ? 'destructive' : 'default'}
+              className="gap-1.5 px-2 py-0.5 text-xs"
+            >
+              {issuesCount > 0 ? (
+                <>
+                  <AlertTriangle className="w-4 h-4" />
+                  {issuesCount} issue{issuesCount !== 1 ? 's' : ''} identified
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4" />
+                  No issues identified
+                </>
+              )}
+            </Badge>
+          </div>
+          <div className="flex items-center gap-3">
             <PartAGuidelinesDialog
               sectionTitle="Part A4: Ethics & Security self-assessment"
               officialGuidelines={[
@@ -916,22 +934,6 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
             />
             {canEdit && <SaveIndicator saving={false} lastSaved={lastSaved} onSaveNow={() => {}} />}
           </div>
-          <Badge
-            variant={issuesCount > 0 ? 'destructive' : 'default'}
-            className="gap-1.5 px-2 py-0.5 text-xs"
-          >
-            {issuesCount > 0 ? (
-              <>
-                <AlertTriangle className="w-4 h-4" />
-                {issuesCount} issue{issuesCount !== 1 ? 's' : ''} identified
-              </>
-            ) : (
-              <>
-                <CheckCircle className="w-4 h-4" />
-                No issues identified
-              </>
-            )}
-          </Badge>
         </div>
 
         {/* ETHICS ISSUES TABLE SUBSECTION */}
