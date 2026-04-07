@@ -736,10 +736,18 @@
   margin-bottom: 0 !important;
 }
 
-/* Ensure all ProseMirror content starts at left margin */
+/* Ensure all ProseMirror content starts at left margin with no extra top spacing */
 .ProseMirror {
   margin-left: 0 !important;
   padding-left: 0 !important;
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Remove top margin from first child in ProseMirror to eliminate gap above h1 */
+.ProseMirror > *:first-child {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
 }
 
 /* Lists also left-aligned without extra indent */
