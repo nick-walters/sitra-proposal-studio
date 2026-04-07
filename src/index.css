@@ -567,6 +567,9 @@
 
 .ProseMirror .table-caption,
 .ProseMirror p.table-caption {
+  display: block !important;
+  width: 100% !important;
+  clear: both;
   margin-top: 6pt !important;
   margin-bottom: 1pt !important;
   padding-bottom: 0 !important;

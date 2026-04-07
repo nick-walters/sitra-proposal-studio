@@ -603,7 +603,7 @@ export function FormattingToolbar({
     // Insert caption paragraph first (italic text, bold label), then table
     editor.chain()
       .focus()
-      .insertContent(`<p class="table-caption"><em><strong>${tableLabel}.</strong> </em></p>`)
+      .insertContent(`<p class="table-caption" style="text-align: left;"><em><strong>${tableLabel}.</strong></em></p>`)
       .insertTable({ rows, cols, withHeaderRow: true })
       .run();
     
