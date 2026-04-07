@@ -573,6 +573,7 @@ export function ParticipantListView({
   const [isBulkPicOpen, setIsBulkPicOpen] = useState(false);
   const [fetchingLogoFor, setFetchingLogoFor] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('participants');
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const { roleTier } = useProposalRole(proposalId);
   const isAdmin = roleTier === 'coordinator';
   const ocd = useOCD(proposalId);
