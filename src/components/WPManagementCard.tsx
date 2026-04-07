@@ -33,7 +33,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { WPColorPicker } from '@/components/WPColorPicker';
-import { WPColorPaletteEditor } from '@/components/WPColorPaletteEditor';
+
 import { Layers, GripVertical, Plus, AlertTriangle, Palette, Trash2, Paintbrush, Lock, LockOpen } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -297,7 +297,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [populateDialogOpen, setPopulateDialogOpen] = useState(false);
-  const [paletteEditorOpen, setPaletteEditorOpen] = useState(false);
+  
   
   
   // Color palette for the proposal
@@ -760,14 +760,6 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
                   <Plus className="w-4 h-4 mr-1" />
                   Add Theme
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPaletteEditorOpen(true)}
-                >
-                  <Palette className="w-4 h-4 mr-1" />
-                  Edit colour palette
-                </Button>
               </div>
             )}
           </div>
@@ -820,17 +812,6 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
               <Plus className="w-4 h-4 mr-1" />
               Add WP
             </Button>
-            {/* Only show color palette button when themes NOT enabled */}
-            {!useWpThemes && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPaletteEditorOpen(true)}
-              >
-                <Palette className="w-4 h-4 mr-1" />
-                Edit colour palette
-              </Button>
-            )}
             {/* Populate button next to palette button */}
             {isFullProposal && isCoordinator && (
               <Button
@@ -874,31 +855,6 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
           </div>
         )}
         
-        {/* Color Palette Editor */}
-        <WPColorPaletteEditor
-          open={paletteEditorOpen}
-          onOpenChange={setPaletteEditorOpen}
-          colors={wpColors}
-          wpCount={wpDrafts.length}
-          onSave={async (newColors) => {
-            const success = await updatePalette(newColors);
-            if (success) {
-              // Sync colors to individual wp_drafts
-              for (let i = 0; i < wpDrafts.length; i++) {
-                const color = newColors[i % newColors.length];
-                if (wpDrafts[i].color !== color) {
-                  await supabase
-                    .from('wp_drafts')
-                    .update({ color })
-                    .eq('id', wpDrafts[i].id);
-                }
-              }
-              queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
-              queryClient.invalidateQueries({ queryKey: ['wp-leadership', proposalId] });
-            }
-            return success;
-          }}
-        />
 
         {isFullProposal && isCoordinator && (
           <PopulateB31Dialog
