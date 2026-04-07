@@ -360,22 +360,27 @@ export function BudgetParticipantForm({
               </>
             )}
           </div>
-          <div className="space-y-1">
-            <label className="text-sm text-muted-foreground">Justification</label>
-            <Textarea
-              value={rowSubItems[0]?.justification ?? ''}
-              onChange={(e) => {
-                if (rowSubItems[0]) {
-                  updateSubcontractingItem(rowSubItems[0].id, 'justification', e.target.value);
-                } else {
-                  addSubcontractingItem(row.id).then(() => {});
-                }
-              }}
-              disabled={!editable}
-              className="text-sm min-h-[60px]"
-              placeholder="Justify why this work needs to be subcontracted"
-            />
-          </div>
+          {row.subcontractingCosts > 0 && (
+            <div className="space-y-1">
+              <label className="text-sm text-muted-foreground">Justification</label>
+              <Textarea
+                value={rowSubItems[0]?.justification ?? ''}
+                onChange={(e) => {
+                  if (rowSubItems[0]) {
+                    updateSubcontractingItem(rowSubItems[0].id, 'justification', e.target.value);
+                  } else {
+                    addSubcontractingItem(row.id).then(() => {});
+                  }
+                }}
+                disabled={!editable}
+                className="text-sm min-h-[60px]"
+                placeholder="Justify why this work needs to be subcontracted"
+              />
+              <p className="text-xs text-muted-foreground italic">
+                Subcontracting cost justifications will be automatically copied to Table 3.1.g. Provide concise descriptions of each cost and what they cover, e.g. Platform development (€25,000); legal advice (€15,000).
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -385,6 +390,9 @@ export function BudgetParticipantForm({
           <CardTitle className="text-sm font-semibold">C. Purchase Costs</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground italic">
+            Sitra collects cost justifications for all cost categories, even though not all are required in Part B, so that we have an understanding of the costs associated with the project. Please complete all fields. Equipment costs exceeding 15% of your organisation's personnel costs will be automatically copied to Table 3.1.h.
+          </p>
           <CostInputRow
             label="C.1. Travel & subsistence"
             totalValue={row.purchaseTravel}
@@ -395,6 +403,18 @@ export function BudgetParticipantForm({
             onTotalChange={(v) => updateRow(row.id, 'purchaseTravel', v)}
             onRequestedChange={(v) => updateRow(row.id, 'requestedTravel', v)}
           />
+          {row.purchaseTravel > 0 && (
+            <div className="space-y-1 pl-[220px]">
+              <label className="text-sm text-muted-foreground">Justification</label>
+              <Textarea
+                value={justifications.find(j => j.budgetRowId === row.id && j.category === 'travel')?.justificationText ?? ''}
+                onChange={(e) => saveJustification(row.id, 'travel', e.target.value)}
+                disabled={!editable}
+                className="text-sm min-h-[60px]"
+                placeholder="Describe travel and subsistence costs, e.g. Consortium meetings (€5,000); conference attendance (€3,000)"
+              />
+            </div>
+          )}
           <CostInputRow
             label="C.2. Equipment"
             totalValue={row.purchaseEquipment}
@@ -405,7 +425,7 @@ export function BudgetParticipantForm({
             onTotalChange={(v) => updateRow(row.id, 'purchaseEquipment', v)}
             onRequestedChange={(v) => updateRow(row.id, 'requestedEquipment', v)}
           />
-          {equipmentJustificationRequired && (
+          {row.purchaseEquipment > 0 && (
             <div className="space-y-1 pl-[220px]">
               <label className="text-sm text-muted-foreground">Equipment justification</label>
               <Textarea
@@ -419,12 +439,14 @@ export function BudgetParticipantForm({
                 }}
                 disabled={!editable}
                 className="text-sm min-h-[60px]"
-                placeholder="Justify this equipment purchase"
+                placeholder="Describe equipment costs, e.g. Sensors and IoT devices (€12,000); server hardware (€8,000)"
               />
-              <div className="flex items-center gap-1 text-xs text-amber-600">
-                <AlertTriangle className="w-3.5 h-3.5" />
-                <span>Equipment costs exceed 15% of personnel costs — justification required and will appear in B3.1</span>
-              </div>
+              {equipmentJustificationRequired && (
+                <div className="flex items-center gap-1 text-xs text-amber-600">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  <span>Equipment costs exceed 15% of personnel costs — justification will appear in Table 3.1.h</span>
+                </div>
+              )}
             </div>
           )}
           <CostInputRow
@@ -437,6 +459,18 @@ export function BudgetParticipantForm({
             onTotalChange={(v) => updateRow(row.id, 'purchaseOtherGoods', v)}
             onRequestedChange={(v) => updateRow(row.id, 'requestedOtherGoods', v)}
           />
+          {row.purchaseOtherGoods > 0 && (
+            <div className="space-y-1 pl-[220px]">
+              <label className="text-sm text-muted-foreground">Justification</label>
+              <Textarea
+                value={justifications.find(j => j.budgetRowId === row.id && j.category === 'other_goods')?.justificationText ?? ''}
+                onChange={(e) => saveJustification(row.id, 'other_goods', e.target.value)}
+                disabled={!editable}
+                className="text-sm min-h-[60px]"
+                placeholder="Describe other goods, works and services costs, e.g. Software licences (€4,000); cloud hosting (€6,000)"
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 
