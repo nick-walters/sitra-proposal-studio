@@ -779,7 +779,7 @@
   margin-top: 6pt !important;
   margin-bottom: 1pt !important;
   text-align: left !important;
-  white-space: nowrap !important;
+  white-space: normal !important;
 }
 
 .ProseMirror p.figure-caption {

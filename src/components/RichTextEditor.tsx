@@ -594,19 +594,72 @@ export function FormattingToolbar({
 
   const insertTable = useCallback((rows: number, cols: number) => {
     if (!editor) return;
-    
+
+    const insertFrom = editor.state.selection.from;
+
     // Get the table label (without B prefix)
     const sectionNum = getSectionNumberWithoutPrefix(sectionNumber || '1.1');
     const tableLetter = getNextTableLetter();
     const tableLabel = `Table ${sectionNum}.${tableLetter}`;
-    
-    // Insert caption paragraph first (italic text, bold label), then table
-    editor.chain()
+
+    const inserted = editor.chain()
       .focus()
-      .insertContent(`<p class="table-caption" style="text-align: left;"><em><strong>${tableLabel}.</strong></em></p>`)
+      .insertContent({
+        type: 'paragraph',
+        attrs: { class: 'table-caption', textAlign: 'left' },
+        content: [
+          {
+            type: 'text',
+            marks: [{ type: 'italic' }, { type: 'bold' }],
+            text: `${tableLabel}.`,
+          },
+          {
+            type: 'text',
+            marks: [{ type: 'italic' }],
+            text: ' ',
+          },
+        ],
+      })
       .insertTable({ rows, cols, withHeaderRow: true })
       .run();
-    
+
+    if (inserted) {
+      const searchFrom = Math.max(0, insertFrom - 1);
+      let captionPos: number | null = null;
+      let captionNodeSize = 0;
+
+      editor.state.doc.descendants((node, pos) => {
+        if (
+          pos >= searchFrom &&
+          node.type.name === 'paragraph' &&
+          typeof node.attrs?.class === 'string' &&
+          node.attrs.class.split(/\s+/).includes('table-caption') &&
+          node.textContent.startsWith(`${tableLabel}.`)
+        ) {
+          captionPos = pos;
+          captionNodeSize = node.nodeSize;
+          return false;
+        }
+
+        return true;
+      });
+
+      if (captionPos !== null) {
+        const cursorPos = captionPos + captionNodeSize - 1;
+        const italicMark = editor.state.schema.marks.italic?.create();
+        const tr = editor.state.tr
+          .setSelection(TextSelection.create(editor.state.doc, cursorPos))
+          .setMeta('addToHistory', false);
+
+        if (italicMark) {
+          tr.setStoredMarks([italicMark]);
+        }
+
+        editor.view.dispatch(tr);
+        editor.view.focus();
+      }
+    }
+
     setTablePopoverOpen(false);
   }, [editor, sectionNumber, getNextTableLetter, getSectionNumberWithoutPrefix]);
 
