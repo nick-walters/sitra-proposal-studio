@@ -991,7 +991,7 @@ export function usePdfExport() {
           { data: budgetItems },
         ] = await Promise.all([
           supabase.from('wp_drafts').select(`
-            id, number, title, short_name, lead_participant_id, objectives, methodology,
+            id, number, title, short_name, lead_participant_id, color, objectives, methodology,
             manual_person_months, manual_duration,
             tasks:wp_draft_tasks(
               id, number, title, description, lead_participant_id, start_month, end_month,
@@ -1016,7 +1016,7 @@ export function usePdfExport() {
         const colors = (palette?.colors as string[]) || defaultColors;
         const wps = (wpDrafts || []).map((wp: any) => ({
           ...wp,
-          color: colors[(wp.number - 1) % colors.length] || defaultColors[0],
+          color: wp.color || colors[(wp.number - 1) % colors.length] || defaultColors[0],
           tasks: (wp.tasks || []).sort((a: any, b: any) => a.number - b.number),
           deliverables: (wp.deliverables || []).sort((a: any, b: any) => a.number - b.number),
         }));
