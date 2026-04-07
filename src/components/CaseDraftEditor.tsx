@@ -14,7 +14,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { WPSimpleEditor } from '@/components/WPSimpleEditor';
 import { SitraTipsBox } from '@/components/SitraTipsBox';
-import { BookOpen, Bold, Italic, Underline, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, AlignJustify, Table2, ChevronDown } from 'lucide-react';
+import { BookOpen, Bold, Italic, Underline, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, AlignJustify, Table2, ChevronDown, Lock } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -115,13 +115,15 @@ interface CaseDraftEditorProps {
   isCoordinator: boolean;
 }
 
-export function CaseDraftEditor({ caseId, proposalId, canEdit, isCoordinator }: CaseDraftEditorProps) {
+export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCoordinator }: CaseDraftEditorProps) {
   const queryClient = useQueryClient();
   const [guidelinesOpen, setGuidelinesOpen] = useState(false);
   const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
   const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number } | null>(null);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [lockWarningDismissed, setLockWarningDismissed] = useState(false);
+  const [showLockWarning, setShowLockWarning] = useState(false);
 
   // Fetch case draft
   const { data: caseDraft, isLoading } = useQuery({
