@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { SaveIndicator } from '@/components/SaveIndicator';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,7 +14,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { WPSimpleEditor } from '@/components/WPSimpleEditor';
 import { SitraTipsBox } from '@/components/SitraTipsBox';
-import { BookOpen, Bold, Italic, Underline, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, AlignJustify, Table2, ChevronDown } from 'lucide-react';
+import { BookOpen, Bold, Italic, Underline, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, AlignJustify, Table2, ChevronDown, Lock } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -115,13 +115,15 @@ interface CaseDraftEditorProps {
   isCoordinator: boolean;
 }
 
-export function CaseDraftEditor({ caseId, proposalId, canEdit, isCoordinator }: CaseDraftEditorProps) {
+export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCoordinator }: CaseDraftEditorProps) {
   const queryClient = useQueryClient();
   const [guidelinesOpen, setGuidelinesOpen] = useState(false);
   const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
   const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number } | null>(null);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [lockWarningDismissed, setLockWarningDismissed] = useState(false);
+  const [showLockWarning, setShowLockWarning] = useState(false);
 
   // Fetch case draft
   const { data: caseDraft, isLoading } = useQuery({
@@ -150,6 +152,35 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit, isCoordinator }: 
       return data as ParticipantSummary[];
     },
   });
+
+  // Lock enforcement
+  const isLocked = (caseDraft as any)?.is_locked === true;
+  const lockedById = (caseDraft as any)?.locked_by as string | null;
+
+  // Reset lock warning dismissal when case changes
+  useEffect(() => { setLockWarningDismissed(false); }, [caseId]);
+
+  // Fetch locker's name
+  const { data: lockerProfile } = useQuery({
+    queryKey: ['profile-name', lockedById],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', lockedById!)
+        .single();
+      return data;
+    },
+    enabled: !!lockedById && isLocked,
+  });
+  const lockerName = lockerProfile?.full_name || lockerProfile?.email || 'another user';
+
+  const canEdit = useMemo(() => {
+    if (!canEditProp) return false;
+    if (!isLocked) return true;
+    if (isCoordinator) return lockWarningDismissed;
+    return false;
+  }, [canEditProp, isLocked, isCoordinator, lockWarningDismissed]);
 
   // Heading and guideline keys that should propagate across all cases
   const PROPAGATED_KEYS = new Set([
@@ -241,6 +272,38 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit, isCoordinator }: 
   return (
     <ScrollArea className="h-full">
       <div className="space-y-3 p-4">
+        {/* Lock warning banner */}
+        {isLocked && !canEdit && (
+          <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/30 text-sm">
+            <Lock className="w-4 h-4 text-destructive shrink-0" />
+            <span>This case has been locked by <strong>{lockerName}</strong>. Editing is disabled.</span>
+            {isCoordinator && (
+              <Button variant="outline" size="sm" className="ml-auto shrink-0 h-7 text-xs" onClick={() => setShowLockWarning(true)}>
+                Edit anyway
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Lock warning dialog for coordinators */}
+        <Dialog open={showLockWarning} onOpenChange={setShowLockWarning}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Lock className="w-5 h-5 text-destructive" />
+                Locked draft
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              This case has been locked by <strong>{lockerName}</strong>. As you are a coordinator, you can still edit it, but doing so may result in differences between the draft and Part B. It is recommended to therefore work on Part B instead.
+            </p>
+            <p className="text-sm font-medium">Do you wish to continue editing the draft?</p>
+            <div className="flex justify-end gap-2 mt-2">
+              <Button variant="outline" size="sm" onClick={() => setShowLockWarning(false)}>Cancel</Button>
+              <Button size="sm" onClick={() => { setLockWarningDismissed(true); setShowLockWarning(false); }}>OK</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
         {/* Top Toolbar Row - Guidelines + Formatting (matches WP editor, sticky) */}
         <div className="flex items-center gap-2 p-2 border rounded-md bg-card flex-wrap sticky top-0 z-10">
           <Button

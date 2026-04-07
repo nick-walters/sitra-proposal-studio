@@ -714,8 +714,11 @@ export type Database = {
           heading_solutions: string | null
           heading_stakeholders: string | null
           id: string
+          is_locked: boolean
           key_stakeholders: string | null
           lead_participant_id: string | null
+          locked_at: string | null
+          locked_by: string | null
           number: number
           order_index: number
           proposal_id: string
@@ -744,8 +747,11 @@ export type Database = {
           heading_solutions?: string | null
           heading_stakeholders?: string | null
           id?: string
+          is_locked?: boolean
           key_stakeholders?: string | null
           lead_participant_id?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
           number: number
           order_index?: number
           proposal_id: string
@@ -774,8 +780,11 @@ export type Database = {
           heading_solutions?: string | null
           heading_stakeholders?: string | null
           id?: string
+          is_locked?: boolean
           key_stakeholders?: string | null
           lead_participant_id?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
           number?: number
           order_index?: number
           proposal_id?: string
@@ -4764,7 +4773,10 @@ export type Database = {
           foreseen_challenges: string | null
           id: string
           inputs_question: string | null
+          is_locked: boolean
           lead_participant_id: string | null
+          locked_at: string | null
+          locked_by: string | null
           manual_duration: string | null
           manual_person_months: number | null
           methodologies_list: Json | null
@@ -4791,7 +4803,10 @@ export type Database = {
           foreseen_challenges?: string | null
           id?: string
           inputs_question?: string | null
+          is_locked?: boolean
           lead_participant_id?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
           manual_duration?: string | null
           manual_person_months?: number | null
           methodologies_list?: Json | null
@@ -4818,7 +4833,10 @@ export type Database = {
           foreseen_challenges?: string | null
           id?: string
           inputs_question?: string | null
+          is_locked?: boolean
           lead_participant_id?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
           manual_duration?: string | null
           manual_person_months?: number | null
           methodologies_list?: Json | null

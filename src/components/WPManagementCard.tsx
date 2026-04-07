@@ -34,7 +34,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { WPColorPicker } from '@/components/WPColorPicker';
 import { WPColorPaletteEditor } from '@/components/WPColorPaletteEditor';
-import { Layers, GripVertical, Plus, AlertTriangle, Palette, Trash2, Paintbrush } from 'lucide-react';
+import { Layers, GripVertical, Plus, AlertTriangle, Palette, Trash2, Paintbrush, Lock, LockOpen } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
@@ -53,6 +53,8 @@ interface WPDraft {
   color: string;
   order_index: number;
   theme_id: string | null;
+  is_locked: boolean;
+  locked_by: string | null;
 }
 
 interface SortableWPRowProps {
@@ -62,10 +64,11 @@ interface SortableWPRowProps {
   useThemes: boolean;
   onUpdate: (id: string, updates: Partial<WPDraft>) => void;
   onDelete: (id: string) => void;
+  onToggleLock: (id: string, locked: boolean) => void;
   canEdit: boolean;
 }
 
-function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete, canEdit }: SortableWPRowProps) {
+function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete, onToggleLock, canEdit }: SortableWPRowProps) {
   const [leadOpen, setLeadOpen] = useState(false);
   const {
     attributes,
@@ -88,8 +91,8 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
 
   // Grid columns change based on whether themes are enabled
   const gridCols = useThemes 
-    ? 'grid-cols-[24px_50px_100px_90px_1fr_80px_20px]' 
-    : 'grid-cols-[24px_50px_90px_1fr_80px_20px]';
+    ? 'grid-cols-[24px_50px_100px_90px_1fr_80px_20px_20px]' 
+    : 'grid-cols-[24px_50px_90px_1fr_80px_20px_20px]';
 
   return (
     <div
@@ -256,6 +259,18 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
         </DialogContent>
       </Dialog>
 
+      {/* Lock Button */}
+      {canEdit && (
+        <button
+          onClick={() => onToggleLock(wp.id, !wp.is_locked)}
+          className={`p-1 rounded transition-colors ${wp.is_locked ? 'text-destructive hover:bg-destructive/10' : 'text-green-600 hover:bg-green-100'}`}
+          title={wp.is_locked ? 'Unlock work package' : 'Lock work package'}
+        >
+          {wp.is_locked ? <Lock className="w-4 h-4" /> : <LockOpen className="w-4 h-4" />}
+        </button>
+      )}
+      {!canEdit && <div />}
+
       {/* Delete Button */}
       {canEdit && (
         <button
@@ -342,7 +357,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     queryFn: async () => {
       const { data, error } = await supabase
         .from('wp_drafts')
-        .select('id, number, short_name, title, lead_participant_id, color, order_index, theme_id')
+        .select('id, number, short_name, title, lead_participant_id, color, order_index, theme_id, is_locked, locked_by')
         .eq('proposal_id', proposalId)
         .order('order_index');
       if (error) throw error;
@@ -562,6 +577,23 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     }
   }, [deleteWPMutation]);
 
+  const handleToggleLock = useCallback(async (id: string, locked: boolean) => {
+    const { error } = await supabase
+      .from('wp_drafts')
+      .update({ 
+        is_locked: locked, 
+        locked_by: locked ? user?.id ?? null : null,
+        locked_at: locked ? new Date().toISOString() : null,
+      } as any)
+      .eq('id', id);
+    if (error) {
+      toast.error('Failed to update lock status');
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
+    queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
+    toast.success(locked ? 'Work package locked' : 'Work package unlocked');
+  }, [user, proposalId, queryClient]);
 
   if (wpsLoading) {
     return (
@@ -708,13 +740,14 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
         )}
 
         {/* Table Header */}
-        <div className={`grid ${useWpThemes ? 'grid-cols-[24px_50px_100px_90px_1fr_80px_20px]' : 'grid-cols-[24px_50px_90px_1fr_80px_20px]'} gap-x-1.5 text-xs font-medium text-muted-foreground border-b pb-1`}>
+        <div className={`grid ${useWpThemes ? 'grid-cols-[24px_50px_100px_90px_1fr_80px_20px_20px]' : 'grid-cols-[24px_50px_90px_1fr_80px_20px_20px]'} gap-x-1.5 text-xs font-medium text-muted-foreground border-b pb-1`}>
           <div />
           <div className="text-center">WP</div>
           {useWpThemes && <div>Theme</div>}
           <div>Short name</div>
           <div>Title</div>
           <div>WP Leader</div>
+          <div />
           <div />
         </div>
 
@@ -734,6 +767,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
                 useThemes={useWpThemes}
                 onUpdate={handleUpdateWP}
                 onDelete={handleDeleteWP}
+                onToggleLock={handleToggleLock}
                 canEdit={isCoordinator}
               />
             ))}

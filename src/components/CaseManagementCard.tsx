@@ -37,9 +37,10 @@ import {
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { FlaskConical, GripVertical, Plus, Trash2 } from 'lucide-react';
+import { FlaskConical, GripVertical, Plus, Trash2, Lock, LockOpen } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import type { ParticipantSummary } from '@/types/proposal';
 
@@ -53,6 +54,8 @@ interface CaseDraft {
   lead_participant_id: string | null;
   color: string;
   order_index: number;
+  is_locked: boolean;
+  locked_by: string | null;
 }
 
 const CASE_TYPES = [
@@ -117,10 +120,11 @@ interface SortableCaseRowProps {
   casePrefix: string;
   onUpdate: (id: string, updates: Partial<CaseDraft>) => void;
   onDelete: (id: string) => void;
+  onToggleLock: (id: string, locked: boolean) => void;
   canEdit: boolean;
 }
 
-function SortableCaseRow({ caseItem, participants, casePrefix, onUpdate, onDelete, canEdit }: SortableCaseRowProps) {
+function SortableCaseRow({ caseItem, participants, casePrefix, onUpdate, onDelete, onToggleLock, canEdit }: SortableCaseRowProps) {
   const [leadOpen, setLeadOpen] = useState(false);
   const [localShortName, setLocalShortName] = useState(caseItem.short_name || '');
   const [localTitle, setLocalTitle] = useState(caseItem.title || '');
@@ -160,7 +164,7 @@ function SortableCaseRow({ caseItem, participants, casePrefix, onUpdate, onDelet
     <div
       ref={setNodeRef}
       style={style}
-      className={`col-span-5 grid grid-cols-subgrid gap-x-1.5 items-center py-1 border-b mb-[4px] ${
+      className={`col-span-6 grid grid-cols-subgrid gap-x-1.5 items-center py-1 border-b mb-[4px] ${
         isDragging ? 'bg-muted shadow-lg' : ''
       }`}
     >
@@ -274,6 +278,18 @@ function SortableCaseRow({ caseItem, participants, casePrefix, onUpdate, onDelet
         </DialogContent>
       </Dialog>
 
+      {/* Lock Button */}
+      {canEdit && (
+        <button
+          onClick={() => onToggleLock(caseItem.id, !caseItem.is_locked)}
+          className={`p-1 rounded transition-colors ${caseItem.is_locked ? 'text-destructive hover:bg-destructive/10' : 'text-green-600 hover:bg-green-100'}`}
+          title={caseItem.is_locked ? 'Unlock case' : 'Lock case'}
+        >
+          {caseItem.is_locked ? <Lock className="w-4 h-4" /> : <LockOpen className="w-4 h-4" />}
+        </button>
+      )}
+      {!canEdit && <div />}
+
       {/* Delete Button */}
       {canEdit && (
         <button
@@ -303,6 +319,7 @@ export function CaseManagementCard({
   onToggleCases 
 }: CaseManagementCardProps) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -315,7 +332,7 @@ export function CaseManagementCard({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('case_drafts')
-        .select('id, number, case_type, custom_type_name, short_name, title, lead_participant_id, color, order_index')
+        .select('id, number, case_type, custom_type_name, short_name, title, lead_participant_id, color, order_index, is_locked, locked_by')
         .eq('proposal_id', proposalId)
         .order('order_index');
       if (error) throw error;
@@ -523,6 +540,23 @@ export function CaseManagementCard({
     }
   }, [deleteCaseMutation]);
 
+  const handleToggleLock = useCallback(async (id: string, locked: boolean) => {
+    const { error } = await supabase
+      .from('case_drafts')
+      .update({ 
+        is_locked: locked, 
+        locked_by: locked ? user?.id ?? null : null,
+        locked_at: locked ? new Date().toISOString() : null,
+      } as any)
+      .eq('id', id);
+    if (error) {
+      toast.error('Failed to update lock status');
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
+    toast.success(locked ? 'Case locked' : 'Case unlocked');
+  }, [user, proposalId, queryClient]);
+
   const handleCheckboxChange = (checked: boolean) => {
     onToggleCases(checked);
   };
@@ -592,13 +626,14 @@ export function CaseManagementCard({
                 </div>
 
                 {/* Table Header */}
-                <div className="grid grid-cols-[24px_max-content_1fr_80px_20px] gap-x-1.5">
+                <div className="grid grid-cols-[24px_max-content_1fr_80px_20px_20px] gap-x-1.5">
                   {/* Header row */}
-                  <div className="col-span-5 grid grid-cols-subgrid gap-x-1.5 text-xs font-medium text-muted-foreground border-b pb-1">
+                  <div className="col-span-6 grid grid-cols-subgrid gap-x-1.5 text-xs font-medium text-muted-foreground border-b pb-1">
                     <div />
                     <div />
                     <div>Title</div>
                     <div>Lead</div>
+                    <div />
                     <div />
                   </div>
 
@@ -617,6 +652,7 @@ export function CaseManagementCard({
                           casePrefix={casePrefix}
                           onUpdate={handleUpdateCase}
                           onDelete={handleDeleteCase}
+                          onToggleLock={handleToggleLock}
                           canEdit={isCoordinator}
                         />
                       ))}

@@ -955,6 +955,7 @@ export function ProposalEditor() {
             wpId={wpSection.wpId}
             proposalId={id || ''}
             canEdit={canEdit}
+            isCoordinator={isCoordinator}
             projectDuration={proposal?.duration || 36}
           />
         </div>

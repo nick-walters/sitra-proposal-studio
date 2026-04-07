@@ -31,7 +31,7 @@ import { Separator } from '@/components/ui/separator';
 import { 
   BookOpen, Lightbulb, Bold, Italic, Underline, List, ListOrdered, 
   AlignLeft, AlignCenter, AlignRight, AlignJustify, FileText, Link2, 
-  Layers, Building2, Table2, ImageIcon, ChevronDown, Undo2, Redo2, Crown, ChevronsUpDown, Check
+  Layers, Building2, Table2, ImageIcon, ChevronDown, Undo2, Redo2, Crown, ChevronsUpDown, Check, Lock
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -49,6 +49,7 @@ interface WPDraftEditorProps {
   wpId: string;
   proposalId: string;
   canEdit: boolean;
+  isCoordinator?: boolean;
   projectDuration?: number;
 }
 
@@ -149,7 +150,7 @@ function parseGuidelineContent(content: string): React.ReactNode {
   );
 }
 
-export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 }: WPDraftEditorProps) {
+export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordinator = false, projectDuration = 36 }: WPDraftEditorProps) {
   const {
     wpDraft,
     loading,
@@ -261,6 +262,40 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
     }
     return wpDraft?.color || '#2563EB';
   }, [proposalData?.use_wp_themes, themeData, wpDraft?.color]);
+
+  // Lock enforcement
+  const isLocked = (wpDraft as any)?.is_locked === true;
+  const lockedById = (wpDraft as any)?.locked_by as string | null;
+  const [lockWarningDismissed, setLockWarningDismissed] = useState(false);
+  const [showLockWarning, setShowLockWarning] = useState(false);
+
+  // Reset lock warning dismissal when WP changes
+  useEffect(() => { setLockWarningDismissed(false); }, [wpId]);
+
+  // Fetch locker's name
+  const { data: lockerProfile } = useQuery({
+    queryKey: ['profile-name', lockedById],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', lockedById!)
+        .single();
+      return data;
+    },
+    enabled: !!lockedById && isLocked,
+  });
+  const lockerName = lockerProfile?.full_name || lockerProfile?.email || 'another user';
+
+  // Determine effective canEdit
+  const canEdit = useMemo(() => {
+    if (!canEditProp) return false;
+    if (!isLocked) return true;
+    // Locked: coordinators can edit after dismissing warning
+    if (isCoordinator) return lockWarningDismissed;
+    // Standard users cannot edit locked drafts
+    return false;
+  }, [canEditProp, isLocked, isCoordinator, lockWarningDismissed]);
 
   const [participants, setParticipants] = useState<ParticipantSummary[]>([]);
   const [guidelinesDialogOpen, setGuidelinesDialogOpen] = useState(false);
@@ -611,9 +646,48 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
     setTablePopoverOpen(false);
   };
 
+  // Handler to intercept first edit attempt on locked WP for coordinators
+  const handleLockedEditAttempt = useCallback(() => {
+    if (isLocked && isCoordinator && !lockWarningDismissed) {
+      setShowLockWarning(true);
+    }
+  }, [isLocked, isCoordinator, lockWarningDismissed]);
+
   return (
     <ScrollArea className="h-full">
       <div className="space-y-3 p-4">
+        {/* Lock warning banner */}
+        {isLocked && !canEdit && (
+          <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/30 text-sm">
+            <Lock className="w-4 h-4 text-destructive shrink-0" />
+            <span>This work package has been locked by <strong>{lockerName}</strong>. Editing is disabled.</span>
+            {isCoordinator && (
+              <Button variant="outline" size="sm" className="ml-auto shrink-0 h-7 text-xs" onClick={() => setShowLockWarning(true)}>
+                Edit anyway
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Lock warning dialog for coordinators */}
+        <Dialog open={showLockWarning} onOpenChange={setShowLockWarning}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Lock className="w-5 h-5 text-destructive" />
+                Locked draft
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              This WP has been locked by <strong>{lockerName}</strong>. As you are a coordinator, you can still edit it, but doing so may result in differences between the draft and Part B. It is recommended to therefore work on Part B instead.
+            </p>
+            <p className="text-sm font-medium">Do you wish to continue editing the draft?</p>
+            <div className="flex justify-end gap-2 mt-2">
+              <Button variant="outline" size="sm" onClick={() => setShowLockWarning(false)}>Cancel</Button>
+              <Button size="sm" onClick={() => { setLockWarningDismissed(true); setShowLockWarning(false); }}>OK</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
         {/* Top Toolbar Row - Guidelines + Formatting */}
         <div className="p-2 border rounded-md bg-card sticky top-0 z-10 space-y-1.5">
           {/* Row 1: Guidelines + Save */}
