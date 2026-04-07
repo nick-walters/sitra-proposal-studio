@@ -708,7 +708,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
         )}
 
         {/* Table Header */}
-        <div className={`grid ${useWpThemes ? 'grid-cols-[24px_50px_100px_90px_1fr_80px_20px]' : 'grid-cols-[24px_50px_90px_1fr_80px_20px]'} gap-1.5 items-center text-xs font-medium text-muted-foreground border-b pb-1`}>
+        <div className={`grid ${useWpThemes ? 'grid-cols-[24px_50px_100px_90px_1fr_80px_20px]' : 'grid-cols-[24px_50px_90px_1fr_80px_20px]'} gap-x-1.5 text-xs font-medium text-muted-foreground border-b pb-1`}>
           <div />
           <div className="text-center">WP</div>
           {useWpThemes && <div>Theme</div>}
