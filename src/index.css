@@ -510,8 +510,9 @@
   margin: 0 0 6pt 0 !important;
   font-family: "Times New Roman", Times, serif !important;
   font-size: 11pt;
-  table-layout: auto;
+  table-layout: fixed;
   width: 100% !important;
+  max-width: 18cm !important;
 }
 
 .ProseMirror table th,
