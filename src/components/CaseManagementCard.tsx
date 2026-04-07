@@ -160,7 +160,7 @@ function SortableCaseRow({ caseItem, participants, casePrefix, onUpdate, onDelet
     <div
       ref={setNodeRef}
       style={style}
-      className={`col-span-5 grid grid-cols-subgrid gap-x-1.5 items-center py-1 [border-bottom:1px_solid_hsl(var(--border))] mb-[4px] ${
+      className={`col-span-5 grid grid-cols-subgrid gap-x-1.5 items-center py-1 border-b mb-[4px] ${
         isDragging ? 'bg-muted shadow-lg' : ''
       }`}
     >
