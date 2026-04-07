@@ -134,7 +134,8 @@ export function usePdfExport() {
       const pageHeight = pdf.internal.pageSize.getHeight();
       const margin = 15; // 1.5cm margins
       const contentWidth = pageWidth - margin * 2;
-      let yPosition = margin + 10; // Leave space for header
+      let yPosition = margin; // Start content at exactly the margin (1.5cm)
+      let isTopOfPage = true; // Track whether we're at the top of a page (no spacing before first element)
 
       // Track current section for footer - maps page number to section name
       let currentSectionName = '';
@@ -170,7 +171,8 @@ export function usePdfExport() {
         const footerSpace = 15;
         if (yPosition + requiredSpace > pageHeight - margin - footerSpace) {
           pdf.addPage();
-          yPosition = margin + 10; // Reset with header space
+          yPosition = margin; // Reset to margin (1.5cm from top)
+          isTopOfPage = true;
           // Record section for the new page
           updatePageSection();
           return true;
@@ -189,7 +191,7 @@ export function usePdfExport() {
         const topicType = proposal.type || '';
         const headerText = `${topicId}${topicId && topicTitle ? ': ' : ''}${topicTitle}${topicType ? ` (${topicType})` : ''}`;
         const truncatedHeader = headerText.length > 120 ? headerText.substring(0, 117) + '...' : headerText;
-        pdf.text(truncatedHeader, pageWidth / 2, margin, { align: 'center' });
+        pdf.text(truncatedHeader, pageWidth / 2, 8, { align: 'center' }); // Header in top margin area (8mm from top)
       };
 
       // Helper: Add footer to a page
@@ -276,7 +278,9 @@ export function usePdfExport() {
 
       // Helper: Add H1 heading (13pt bold, 9pt before, 6pt after)
       const addH1 = (text: string) => {
-        yPosition += paragraphSpacingH1; // 9pt before
+        if (!isTopOfPage) {
+          yPosition += paragraphSpacingH1; // 9pt before (skip if at top of page)
+        }
         checkPageBreak(12);
         pdf.setFontSize(FONT_SIZE_H1);
         pdf.setFont('times', 'bold');
@@ -285,6 +289,7 @@ export function usePdfExport() {
         pdf.text(text, margin, yPosition);
         yPosition += 5 + paragraphSpacingH2; // Line height + 6pt after
         currentSectionName = text;
+        isTopOfPage = false;
       };
 
       // Helper: Add H2 heading (12pt bold, 6pt before, 0pt after)
