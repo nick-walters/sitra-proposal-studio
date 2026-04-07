@@ -125,10 +125,14 @@ function ToolbarButton({ icon, tooltip, onClick, active, disabled }: ToolbarButt
     <Tooltip>
       <TooltipTrigger asChild>
         <Button
+          type="button"
           variant={active ? "secondary" : "ghost"}
           size="icon"
           className="h-7 w-7"
-          onClick={onClick}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            if (!disabled) onClick?.();
+          }}
           disabled={disabled}
         >
           {icon}

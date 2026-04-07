@@ -260,6 +260,31 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
       return;
     }
 
+    // Bypass track-changes logic for attribute-only changes (e.g. textAlign).
+    // These transactions change node attrs but don't add/remove text content.
+    const isAttrOnly = tr.steps.every((step: any) => {
+      // AttrStep changes a single node attribute
+      if (step.constructor?.name === 'AttrStep') return true;
+      // NodeMarkupStep (setNodeMarkup) also only changes node type/attrs/marks
+      if (step.constructor?.name === 'NodeMarkupStep') return true;
+      // ReplaceStep with identical content size means attribute-only
+      if (step.constructor?.name === 'ReplaceStep') {
+        const map = step.getMap();
+        let onlyIdentity = true;
+        map.forEach((oldStart: number, oldEnd: number, newStart: number, newEnd: number) => {
+          if ((oldEnd - oldStart) !== (newEnd - newStart)) onlyIdentity = false;
+        });
+        // If all ranges have identical sizes AND the step slice is empty, it's attribute-only
+        if (onlyIdentity && step.slice && step.slice.content.size === 0 && oldEnd === oldStart) return true;
+        return onlyIdentity && step.slice && step.slice.openStart === 0 && step.slice.openEnd === 0 && step.from === step.to;
+      }
+      return false;
+    });
+    if (isAttrOnly) {
+      next(tr);
+      return;
+    }
+
     
 
     const oldDoc = storage.prevDoc;
