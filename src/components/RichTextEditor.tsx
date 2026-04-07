@@ -737,25 +737,29 @@ export function FormattingToolbar({
           icon={<AlignLeft className="w-4 h-4" />} 
           tooltip="Align left"
           onClick={() => editor.chain().focus().setTextAlign('left').run()}
-          active={editor.isActive({ textAlign: 'left' })}
+          active={!isAlignDisabled && editor.isActive({ textAlign: 'left' })}
+          disabled={isAlignDisabled}
         />
         <ToolbarButton 
           icon={<AlignCenter className="w-4 h-4" />} 
           tooltip="Align center"
           onClick={() => editor.chain().focus().setTextAlign('center').run()}
-          active={editor.isActive({ textAlign: 'center' })}
+          active={!isAlignDisabled && editor.isActive({ textAlign: 'center' })}
+          disabled={isAlignDisabled}
         />
         <ToolbarButton 
           icon={<AlignRight className="w-4 h-4" />} 
           tooltip="Align right"
           onClick={() => editor.chain().focus().setTextAlign('right').run()}
-          active={editor.isActive({ textAlign: 'right' })}
+          active={!isAlignDisabled && editor.isActive({ textAlign: 'right' })}
+          disabled={isAlignDisabled}
         />
         <ToolbarButton 
           icon={<AlignJustify className="w-4 h-4" />} 
           tooltip="Justify"
           onClick={() => editor.chain().focus().setTextAlign('justify').run()}
-          active={editor.isActive({ textAlign: 'justify' })}
+          active={!isAlignDisabled && editor.isActive({ textAlign: 'justify' })}
+          disabled={isAlignDisabled}
         />
 
         <Separator orientation="vertical" className="h-5 mx-1.5" />
