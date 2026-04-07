@@ -114,15 +114,6 @@ export function useB31SectionData(proposalId: string) {
           .in('wp_draft_id', (await supabase.from('wp_drafts').select('id').eq('proposal_id', proposalId)).data?.map((w: any) => w.id) || [])
           .order('number'),
       ]);
-        supabase
-          .from('b31_tasks')
-          .select(`
-            id, wp_draft_id, number, title, description, lead_participant_id, start_month, end_month, order_index,
-            participants:b31_task_participants(participant_id)
-          `)
-          .in('wp_draft_id', (await supabase.from('wp_drafts').select('id').eq('proposal_id', proposalId)).data?.map((w: any) => w.id) || [])
-          .order('number'),
-      ]);
       if (wpErr) throw wpErr;
 
       // Group b31_tasks by wp_draft_id
