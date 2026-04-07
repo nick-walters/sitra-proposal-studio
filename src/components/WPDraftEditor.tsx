@@ -275,6 +275,28 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
   const [isDeliverableRefOpen, setIsDeliverableRefOpen] = useState(false);
   const [figures, setFigures] = useState<any[]>([]);
   const [wpDrafts, setWpDrafts] = useState<any[]>([]);
+
+  // Save the selection range before opening dialogs so we can restore it when inserting
+  const savedRangeRef = useRef<Range | null>(null);
+  const saveSelection = useCallback(() => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      savedRangeRef.current = sel.getRangeAt(0).cloneRange();
+    }
+  }, []);
+  const restoreSelection = useCallback((): Range | null => {
+    const range = savedRangeRef.current;
+    if (range) {
+      const sel = window.getSelection();
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+      savedRangeRef.current = null;
+      return range;
+    }
+    return null;
+  }, []);
   
   // Table insertion for toolbar (moved to top with other hooks)
   const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
