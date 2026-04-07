@@ -1,16 +1,25 @@
 // WP Color System - Default palette and utilities
 
+// Content WP colors (used for WPs other than the last two)
+export const WP_CONTENT_COLORS = [
+  '#73C92D', // Lime Green
+  '#008549', // Emerald
+  '#FF9F37', // Orange
+  '#E8114B', // Red
+  '#9163CB', // Violet
+  '#86247E', // Purple
+  '#129498', // Teal
+];
+
+// Special WP colors (always assigned to last two WPs)
+export const WP_EXPLOITATION_COLOR = '#75CFEB'; // Penultimate WP
+export const WP_COORDINATION_COLOR = '#367ABA'; // Last WP
+
+// Full palette for the palette editor (content colors + special colors)
 export const DEFAULT_WP_COLORS = [
-  '#3B82F6', // Blue
-  '#EF4444', // Red
-  '#166534', // Forest Green
-  '#EA580C', // Orange
-  '#09989B', // Turquoise
-  '#3E0262', // Deep Purple
-  '#DB2777', // Pink
-  '#5C8C14', // Grass Green
-  '#9D0208', // Burgundy
-  '#51002C', // Dark Plum
+  ...WP_CONTENT_COLORS,
+  WP_EXPLOITATION_COLOR,
+  WP_COORDINATION_COLOR,
 ];
 
 
@@ -85,7 +94,21 @@ export function lightenColor(hex: string, percent: number): string {
 }
 
 /**
+ * Get the color for a WP based on its position and total WP count.
+ * The last WP always gets the coordination color (#367ABA).
+ * The penultimate WP always gets the exploitation color (#75CFEB).
+ * Other WPs cycle through the content colors.
+ */
+export function getWPColor(wpNumber: number, totalWPs: number): string {
+  if (totalWPs >= 2 && wpNumber === totalWPs) return WP_COORDINATION_COLOR;
+  if (totalWPs >= 2 && wpNumber === totalWPs - 1) return WP_EXPLOITATION_COLOR;
+  const index = (wpNumber - 1) % WP_CONTENT_COLORS.length;
+  return WP_CONTENT_COLORS[index];
+}
+
+/**
  * Get the default color for a WP number (1-indexed)
+ * @deprecated Use getWPColor(wpNumber, totalWPs) for position-aware coloring
  */
 export function getDefaultWPColor(wpNumber: number): string {
   const index = (wpNumber - 1) % DEFAULT_WP_COLORS.length;
