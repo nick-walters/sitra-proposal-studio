@@ -860,11 +860,11 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               </Tooltip>
               
               {/* Cross-ref dropdown */}
-              <DropdownMenu onOpenChange={(open) => { if (open) saveSelection(); }}>
+              <DropdownMenu>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <DropdownMenuTrigger asChild>
-                      <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1">
+                      <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" onMouseDown={saveSelection}>
                         <Link2 className="w-4 h-4" />
                         <span className="text-xs">Cross-ref</span>
                       </Button>
