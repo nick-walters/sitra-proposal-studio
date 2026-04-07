@@ -67,6 +67,8 @@
   margin-bottom: 1pt !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
+  text-align: left !important;
+  white-space: nowrap;
 }
 
 .figure-caption .caption-label,
