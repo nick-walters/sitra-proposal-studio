@@ -49,6 +49,7 @@ interface WPDraftEditorProps {
   wpId: string;
   proposalId: string;
   canEdit: boolean;
+  isCoordinator?: boolean;
   projectDuration?: number;
 }
 
