@@ -117,6 +117,8 @@ export function ProposalEditor() {
   const [isSubmitConfirmOpen, setIsSubmitConfirmOpen] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [openPanel, setOpenPanel] = useState<'comments' | 'changes' | null>(null);
+  const [managerLastSaved, setManagerLastSaved] = useState<Date | null>(null);
+  const handleManagerSaveEvent = useCallback(() => setManagerLastSaved(new Date()), []);
   const { exportToPdf, exportProposalToPdf } = usePdfExport();
   const { exportProposalToDocx } = useDocxExport();
 
