@@ -274,6 +274,7 @@ export function usePdfExport() {
         }
         
         yPosition += titleParagraphSpacing;
+        isTopOfPage = false;
       };
 
       // Helper: Add H1 heading (13pt bold, 9pt before, 6pt after)
