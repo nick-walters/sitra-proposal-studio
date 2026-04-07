@@ -615,6 +615,7 @@ export function FormattingToolbar({
   }
 
   const isInTable = editor.isActive('table');
+  const isAlignDisabled = editor.isActive('heading') || isInTable;
 
   return (
     <div className="editor-toolbar border-b border-border bg-card px-2 py-1">
