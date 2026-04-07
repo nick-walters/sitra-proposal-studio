@@ -263,6 +263,40 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     return wpDraft?.color || '#2563EB';
   }, [proposalData?.use_wp_themes, themeData, wpDraft?.color]);
 
+  // Lock enforcement
+  const isLocked = (wpDraft as any)?.is_locked === true;
+  const lockedById = (wpDraft as any)?.locked_by as string | null;
+  const [lockWarningDismissed, setLockWarningDismissed] = useState(false);
+  const [showLockWarning, setShowLockWarning] = useState(false);
+
+  // Reset lock warning dismissal when WP changes
+  useEffect(() => { setLockWarningDismissed(false); }, [wpId]);
+
+  // Fetch locker's name
+  const { data: lockerProfile } = useQuery({
+    queryKey: ['profile-name', lockedById],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', lockedById!)
+        .single();
+      return data;
+    },
+    enabled: !!lockedById && isLocked,
+  });
+  const lockerName = lockerProfile?.full_name || lockerProfile?.email || 'another user';
+
+  // Determine effective canEdit
+  const canEdit = useMemo(() => {
+    if (!canEditProp) return false;
+    if (!isLocked) return true;
+    // Locked: coordinators can edit after dismissing warning
+    if (isCoordinator) return lockWarningDismissed;
+    // Standard users cannot edit locked drafts
+    return false;
+  }, [canEditProp, isLocked, isCoordinator, lockWarningDismissed]);
+
   const [participants, setParticipants] = useState<ParticipantSummary[]>([]);
   const [guidelinesDialogOpen, setGuidelinesDialogOpen] = useState(false);
   
