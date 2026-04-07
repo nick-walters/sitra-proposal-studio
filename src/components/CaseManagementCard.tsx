@@ -530,10 +530,29 @@ export function CaseManagementCard({
   return (
     <Card className="mt-4">
       <CardHeader className="pb-2 pt-4">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <FlaskConical className="w-5 h-5" />
-          Case manager
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <FlaskConical className="w-5 h-5" />
+            Case manager
+          </CardTitle>
+          {isCoordinator && casesEnabled && (
+            <div className="flex items-center gap-2">
+              <Label className="text-sm font-medium whitespace-nowrap">Case draft visibility</Label>
+              <Select
+                value={caseDraftsVisible ? 'visible' : 'hidden'}
+                onValueChange={(v) => handleCaseDraftVisibility(v === 'visible')}
+              >
+                <SelectTrigger className="h-7 w-[100px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="visible">Visible</SelectItem>
+                  <SelectItem value="hidden">Hidden</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Enable cases checkbox */}
