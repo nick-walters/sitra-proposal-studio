@@ -37,9 +37,10 @@ import {
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { FlaskConical, GripVertical, Plus, Trash2 } from 'lucide-react';
+import { FlaskConical, GripVertical, Plus, Trash2, Lock, LockOpen } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import type { ParticipantSummary } from '@/types/proposal';
 
@@ -53,6 +54,8 @@ interface CaseDraft {
   lead_participant_id: string | null;
   color: string;
   order_index: number;
+  is_locked: boolean;
+  locked_by: string | null;
 }
 
 const CASE_TYPES = [
@@ -117,10 +120,11 @@ interface SortableCaseRowProps {
   casePrefix: string;
   onUpdate: (id: string, updates: Partial<CaseDraft>) => void;
   onDelete: (id: string) => void;
+  onToggleLock: (id: string, locked: boolean) => void;
   canEdit: boolean;
 }
 
-function SortableCaseRow({ caseItem, participants, casePrefix, onUpdate, onDelete, canEdit }: SortableCaseRowProps) {
+function SortableCaseRow({ caseItem, participants, casePrefix, onUpdate, onDelete, onToggleLock, canEdit }: SortableCaseRowProps) {
   const [leadOpen, setLeadOpen] = useState(false);
   const [localShortName, setLocalShortName] = useState(caseItem.short_name || '');
   const [localTitle, setLocalTitle] = useState(caseItem.title || '');
