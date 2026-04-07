@@ -259,6 +259,18 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
         </DialogContent>
       </Dialog>
 
+      {/* Lock Button */}
+      {canEdit && (
+        <button
+          onClick={() => onToggleLock(wp.id, !wp.is_locked)}
+          className={`p-1 rounded transition-colors ${wp.is_locked ? 'text-destructive hover:bg-destructive/10' : 'text-green-600 hover:bg-green-100'}`}
+          title={wp.is_locked ? 'Unlock work package' : 'Lock work package'}
+        >
+          {wp.is_locked ? <Lock className="w-4 h-4" /> : <LockOpen className="w-4 h-4" />}
+        </button>
+      )}
+      {!canEdit && <div />}
+
       {/* Delete Button */}
       {canEdit && (
         <button
