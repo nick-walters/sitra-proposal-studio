@@ -125,10 +125,14 @@ function ToolbarButton({ icon, tooltip, onClick, active, disabled }: ToolbarButt
     <Tooltip>
       <TooltipTrigger asChild>
         <Button
+          type="button"
           variant={active ? "secondary" : "ghost"}
           size="icon"
           className="h-7 w-7"
-          onClick={onClick}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            if (!disabled) onClick?.();
+          }}
           disabled={disabled}
         >
           {icon}
@@ -143,7 +147,12 @@ function ToolbarButton({ icon, tooltip, onClick, active, disabled }: ToolbarButt
 
 const PART_B_ALIGNMENT_EXEMPT_PARAGRAPH_CLASSES = new Set(['figure-caption', 'table-caption']);
 
-function normalizePartBBodyAlignment(html: string) {
+/**
+ * Strips text-align from pasted paragraphs so they adopt the default (justified).
+ * Only used for transformPastedHTML — NOT for initial content load, so that
+ * user-applied alignment survives save/reload round-trips.
+ */
+function normalizePartBPastedAlignment(html: string) {
   if (!html || typeof document === 'undefined') return html;
 
   const div = document.createElement('div');
@@ -175,6 +184,32 @@ function normalizePartBBodyAlignment(html: string) {
     const p = paragraph as HTMLParagraphElement;
     p.style.textAlign = '';
     p.removeAttribute('align');
+  });
+
+  return div.innerHTML;
+}
+
+/**
+ * Strips only font-size/lineHeight/fontFamily from loaded content but preserves text-align.
+ */
+function normalizePartBLoadedContent(html: string) {
+  if (!html || typeof document === 'undefined') return html;
+
+  const div = document.createElement('div');
+  div.innerHTML = html;
+
+  div.querySelectorAll('*').forEach((el) => {
+    const h = el as HTMLElement;
+    if (h.style) {
+      h.style.fontSize = '';
+      h.style.lineHeight = '';
+      h.style.fontFamily = '';
+    }
+    if (el.tagName === 'FONT') {
+      const span = document.createElement('span');
+      span.innerHTML = el.innerHTML;
+      el.replaceWith(span);
+    }
   });
 
   return div.innerHTML;
@@ -580,6 +615,7 @@ export function FormattingToolbar({
   }
 
   const isInTable = editor.isActive('table');
+  const isAlignDisabled = editor.isActive('heading') || isInTable;
 
   return (
     <div className="editor-toolbar border-b border-border bg-card px-2 py-1">
@@ -701,25 +737,29 @@ export function FormattingToolbar({
           icon={<AlignLeft className="w-4 h-4" />} 
           tooltip="Align left"
           onClick={() => editor.chain().focus().setTextAlign('left').run()}
-          active={editor.isActive({ textAlign: 'left' })}
+          active={!isAlignDisabled && editor.isActive({ textAlign: 'left' })}
+          disabled={isAlignDisabled}
         />
         <ToolbarButton 
           icon={<AlignCenter className="w-4 h-4" />} 
           tooltip="Align center"
           onClick={() => editor.chain().focus().setTextAlign('center').run()}
-          active={editor.isActive({ textAlign: 'center' })}
+          active={!isAlignDisabled && editor.isActive({ textAlign: 'center' })}
+          disabled={isAlignDisabled}
         />
         <ToolbarButton 
           icon={<AlignRight className="w-4 h-4" />} 
           tooltip="Align right"
           onClick={() => editor.chain().focus().setTextAlign('right').run()}
-          active={editor.isActive({ textAlign: 'right' })}
+          active={!isAlignDisabled && editor.isActive({ textAlign: 'right' })}
+          disabled={isAlignDisabled}
         />
         <ToolbarButton 
           icon={<AlignJustify className="w-4 h-4" />} 
           tooltip="Justify"
           onClick={() => editor.chain().focus().setTextAlign('justify').run()}
-          active={editor.isActive({ textAlign: 'justify' })}
+          active={!isAlignDisabled && editor.isActive({ textAlign: 'justify' })}
+          disabled={isAlignDisabled}
         />
 
         <Separator orientation="vertical" className="h-5 mx-1.5" />
@@ -1151,7 +1191,7 @@ StarterKit.configure({
         },
       }),
     ],
-    content: normalizePartBBodyAlignment(content),
+    content: normalizePartBLoadedContent(content),
     enableExtensionDispatchTransaction: true,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
@@ -1162,7 +1202,7 @@ StarterKit.configure({
         style: 'font-family: "Times New Roman", Times, serif',
       },
       transformPastedHTML(html) {
-        return normalizePartBBodyAlignment(html);
+        return normalizePartBPastedAlignment(html);
       },
     },
   });
@@ -1210,7 +1250,7 @@ export function useRichTextEditor({
   onBlockDeleteRequest?: (deleteCallback: () => void) => void;
 }) {
   // Track the last content we set to the editor to avoid infinite loops
-  const lastSetContentRef = useRef<string>(normalizePartBBodyAlignment(content));
+  const lastSetContentRef = useRef<string>(normalizePartBLoadedContent(content));
   // Store getReference in a ref to avoid recreating the extension
   const getReferenceRef = useRef(getReference);
   getReferenceRef.current = getReference;
@@ -1494,7 +1534,7 @@ StarterKit.configure({
         },
       }),
     ],
-    content: normalizePartBBodyAlignment(content),
+    content: normalizePartBLoadedContent(content),
     enableExtensionDispatchTransaction: true,
     
     onUpdate: ({ editor }) => {
@@ -1508,7 +1548,7 @@ StarterKit.configure({
         style: 'font-family: "Times New Roman", Times, serif',
       },
       transformPastedHTML(html) {
-        return normalizePartBBodyAlignment(html);
+        return normalizePartBPastedAlignment(html);
       },
     },
   });
