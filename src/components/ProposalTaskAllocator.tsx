@@ -548,7 +548,11 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
                 
                 if (!form.title.trim()) { toast.error('Title is required'); return; }
                 if (editingTask) {
-                  updateTask.mutate({ id: editingTask.id, data: form });
+                  const prevAssigned = [...new Set([
+                    ...(editingTask.responsible_user_id ? [editingTask.responsible_user_id] : []),
+                    ...(assigneeMap.get(editingTask.id) || []),
+                  ])];
+                  updateTask.mutate({ id: editingTask.id, data: form, previousAssignedIds: prevAssigned });
                 } else {
                   createTask.mutate(form);
                 }
