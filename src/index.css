@@ -549,6 +549,7 @@
   padding: 0 !important;
   line-height: 1;
   font-family: "Times New Roman", Times, serif !important;
+  text-align: left !important;
 }
 
 /* Caption styles in ProseMirror */
@@ -704,6 +705,15 @@
   text-indent: 0 !important;
 }
 
+.ProseMirror h1,
+.ProseMirror h2,
+.ProseMirror h3,
+.ProseMirror h4,
+.ProseMirror h5,
+.ProseMirror h6 {
+  text-align: left !important;
+}
+
 /* Ensure all ProseMirror content starts at left margin */
 .ProseMirror {
   margin-left: 0 !important;
@@ -724,6 +734,7 @@
 .ProseMirror li {
   margin-left: 0 !important;
   padding-left: 0 !important;
+  text-align: justify;
 }
 
 /* Override spacing for caption paragraphs */
