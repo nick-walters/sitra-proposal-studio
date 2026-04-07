@@ -722,6 +722,10 @@
   padding-left: 1.5em !important; /* Standard list indent from text edge */
 }
 
+.ProseMirror ul {
+  list-style-type: disc !important;
+}
+
 .ProseMirror li {
   margin-left: 0 !important;
   padding-left: 0 !important;
