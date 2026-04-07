@@ -543,17 +543,16 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     },
   });
 
-  // Delete WP mutation
+  // Delete WP mutation — renumbers remaining WPs but preserves their existing colors
   const deleteWPMutation = useMutation({
     mutationFn: async (wpId: string) => {
-      // Delete the WP
       const { error } = await supabase
         .from('wp_drafts')
         .delete()
         .eq('id', wpId);
       if (error) throw error;
 
-      // Fetch remaining WPs and renumber them
+      // Fetch remaining WPs and renumber them (keep existing colors)
       const { data: remaining, error: fetchErr } = await supabase
         .from('wp_drafts')
         .select('id, order_index')
@@ -569,11 +568,11 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
             .update({ order_index: i, number: -(i + 1000) })
             .eq('id', remaining[i].id);
         }
-        // Second pass: set final numbers and colors
+        // Second pass: set final numbers (colors are preserved)
         for (let i = 0; i < remaining.length; i++) {
           await supabase
             .from('wp_drafts')
-            .update({ number: i + 1, color: wpColors[i % wpColors.length] })
+            .update({ number: i + 1 })
             .eq('id', remaining[i].id);
         }
       }
