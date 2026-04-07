@@ -277,8 +277,18 @@ export function InsertTDMSReferenceDropdowns({
         };
       }).filter(d => !b31Numbers.has(d.number));
 
-      // Merge: b31 first, then draft-only
-      setDeliverables([...b31Deliverables, ...draftDeliverables]);
+      // Merge and sort numerically
+      const allDeliverables = [...b31Deliverables, ...draftDeliverables].sort((a, b) => {
+        // Parse "D{wp}.{num}" format
+        const parseDelNum = (n: string) => {
+          const match = n.match(/D?(\d+)\.(\d+)/);
+          return match ? [parseInt(match[1]), parseInt(match[2])] : [0, 0];
+        };
+        const [aWp, aNum] = parseDelNum(a.number);
+        const [bWp, bNum] = parseDelNum(b.number);
+        return aWp !== bWp ? aWp - bWp : aNum - bNum;
+      });
+      setDeliverables(allDeliverables);
 
       const { data: mss } = await supabase
         .from('b31_milestones')
