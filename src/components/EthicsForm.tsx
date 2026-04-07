@@ -914,6 +914,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
                 },
               ]}
             />
+            {canEdit && <SaveIndicator saving={false} lastSaved={lastSaved} onSaveNow={() => {}} />}
           </div>
           <Badge
             variant={issuesCount > 0 ? 'destructive' : 'default'}
