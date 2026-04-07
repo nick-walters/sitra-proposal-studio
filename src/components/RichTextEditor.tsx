@@ -147,7 +147,12 @@ function ToolbarButton({ icon, tooltip, onClick, active, disabled }: ToolbarButt
 
 const PART_B_ALIGNMENT_EXEMPT_PARAGRAPH_CLASSES = new Set(['figure-caption', 'table-caption']);
 
-function normalizePartBBodyAlignment(html: string) {
+/**
+ * Strips text-align from pasted paragraphs so they adopt the default (justified).
+ * Only used for transformPastedHTML — NOT for initial content load, so that
+ * user-applied alignment survives save/reload round-trips.
+ */
+function normalizePartBPastedAlignment(html: string) {
   if (!html || typeof document === 'undefined') return html;
 
   const div = document.createElement('div');
@@ -179,6 +184,32 @@ function normalizePartBBodyAlignment(html: string) {
     const p = paragraph as HTMLParagraphElement;
     p.style.textAlign = '';
     p.removeAttribute('align');
+  });
+
+  return div.innerHTML;
+}
+
+/**
+ * Strips only font-size/lineHeight/fontFamily from loaded content but preserves text-align.
+ */
+function normalizePartBLoadedContent(html: string) {
+  if (!html || typeof document === 'undefined') return html;
+
+  const div = document.createElement('div');
+  div.innerHTML = html;
+
+  div.querySelectorAll('*').forEach((el) => {
+    const h = el as HTMLElement;
+    if (h.style) {
+      h.style.fontSize = '';
+      h.style.lineHeight = '';
+      h.style.fontFamily = '';
+    }
+    if (el.tagName === 'FONT') {
+      const span = document.createElement('span');
+      span.innerHTML = el.innerHTML;
+      el.replaceWith(span);
+    }
   });
 
   return div.innerHTML;
