@@ -196,7 +196,7 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
   });
 
   const updateTask = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: typeof form }) => {
+    mutationFn: async ({ id, data, previousAssignedIds }: { id: string; data: typeof form; previousAssignedIds: string[] }) => {
       const { error } = await supabase
         .from('proposal_tasks')
         .update({
@@ -215,14 +215,16 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
         await supabase.from('proposal_task_assignees')
           .insert(data.assignee_ids.map(uid => ({ task_id: id, user_id: uid })));
       }
-      // Notify assigned users
-      const allAssignedIds = [...new Set([
+      // Only notify NEWLY assigned users (not previously assigned)
+      const allNewIds = [...new Set([
         ...(data.responsible_user_id ? [data.responsible_user_id] : []),
         ...data.assignee_ids,
       ])];
-      if (allAssignedIds.length > 0) {
+      const previousSet = new Set(previousAssignedIds);
+      const newlyAssigned = allNewIds.filter(uid => !previousSet.has(uid));
+      if (newlyAssigned.length > 0) {
         const { error: notifError } = await supabase.from('notifications').insert(
-          allAssignedIds.map((userId) => ({
+          newlyAssigned.map((userId) => ({
             user_id: userId,
             proposal_id: proposalId,
             type: 'mention',
