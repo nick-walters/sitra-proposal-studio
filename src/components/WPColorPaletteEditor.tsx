@@ -17,6 +17,7 @@ interface WPColorPaletteEditorProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   colors: string[];
+  wpCount: number;
   onSave: (colors: string[]) => Promise<boolean>;
 }
 
@@ -24,22 +25,24 @@ export function WPColorPaletteEditor({
   open,
   onOpenChange,
   colors,
+  wpCount,
   onSave,
 }: WPColorPaletteEditorProps) {
   const [editedColors, setEditedColors] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
+  const count = Math.max(1, wpCount);
+
   // Initialize with current colors when dialog opens
   useEffect(() => {
     if (open) {
-      // Ensure we always have 9 colors
       const palette = [...colors];
-      while (palette.length < 9) {
+      while (palette.length < count) {
         palette.push(DEFAULT_WP_COLORS[palette.length % DEFAULT_WP_COLORS.length]);
       }
-      setEditedColors(palette.slice(0, 9));
+      setEditedColors(palette.slice(0, count));
     }
-  }, [open, colors]);
+  }, [open, colors, count]);
 
   const handleColorChange = (index: number, value: string) => {
     const newColors = [...editedColors];
