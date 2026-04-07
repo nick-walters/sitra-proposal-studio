@@ -871,15 +871,15 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
   };
 
   const handleValueChange = (questionId: keyof EthicsAssessment, value: boolean | null) => {
-    onUpdateEthics({ [questionId]: value });
+    handleUpdate({ [questionId]: value });
   };
 
   const handlePageChange = (pageId: keyof EthicsAssessment, value: string) => {
-    onUpdateEthics({ [pageId]: value });
+    handleUpdate({ [pageId]: value });
   };
 
   const handleDetailsChange = (detailsId: keyof EthicsAssessment, value: string) => {
-    onUpdateEthics({ [detailsId]: value });
+    handleUpdate({ [detailsId]: value });
   };
 
   return (
@@ -982,7 +982,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
           <Checkbox
             id="ethics-confirmation"
             checked={ethicsData.ethicsConfirmation || false}
-            onCheckedChange={(checked) => onUpdateEthics({ ethicsConfirmation: checked === true })}
+            onCheckedChange={(checked) => handleUpdate({ ethicsConfirmation: checked === true })}
             disabled={!canEdit}
             className="mt-0.5"
           />
@@ -1022,7 +1022,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
               </ul>
               <DebouncedTextarea
                 value={ethicsData.ethicsSelfAssessmentObjectives || ''}
-                onDebouncedChange={(value) => onUpdateEthics({ ethicsSelfAssessmentObjectives: value })}
+                onDebouncedChange={(value) => handleUpdate({ ethicsSelfAssessmentObjectives: value })}
                 placeholder="Explain the identified ethics issues in relation to objectives, methodology, and potential impact..."
                 className="min-h-[80px] text-sm mt-1"
                 disabled={!canEdit}
@@ -1042,7 +1042,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
               </CardDescription>
               <DebouncedTextarea
                 value={ethicsData.ethicsSelfAssessmentCompliance || ''}
-                onDebouncedChange={(value) => onUpdateEthics({ ethicsSelfAssessmentCompliance: value })}
+                onDebouncedChange={(value) => handleUpdate({ ethicsSelfAssessmentCompliance: value })}
                 placeholder="Describe how you will ensure compliance with ethical principles and relevant legislations..."
                 className="min-h-[80px] text-sm mt-1"
                 disabled={!canEdit}
@@ -1122,7 +1122,7 @@ export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps)
           <CardContent className="px-6 pt-0 pb-4">
             <DebouncedTextarea
               value={ethicsData.securitySelfAssessment || ''}
-              onDebouncedChange={(value) => onUpdateEthics({ securitySelfAssessment: value })}
+              onDebouncedChange={(value) => handleUpdate({ securitySelfAssessment: value })}
               placeholder="Describe the measures you intend to take to address the security issues..."
               className="min-h-[80px] text-sm"
               maxLength={5000}
