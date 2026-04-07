@@ -51,6 +51,7 @@ interface WPDraft {
   title: string | null;
   lead_participant_id: string | null;
   color: string;
+  color_locked: boolean;
   order_index: number;
   theme_id: string | null;
   is_locked: boolean;
@@ -66,9 +67,10 @@ interface SortableWPRowProps {
   onDelete: (id: string) => void;
   onToggleLock: (id: string, locked: boolean) => void;
   canEdit: boolean;
+  isCoordinator: boolean;
 }
 
-function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete, onToggleLock, canEdit }: SortableWPRowProps) {
+function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete, onToggleLock, canEdit, isCoordinator }: SortableWPRowProps) {
   const [leadOpen, setLeadOpen] = useState(false);
   const {
     attributes,
@@ -128,9 +130,12 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
       ) : (
         <WPColorPicker
           color={wp.color}
-          onChange={(color) => onUpdate(wp.id, { color })}
+          onChange={(color) => onUpdate(wp.id, { color, color_locked: true } as any)}
           wpNumber={wp.number}
           disabled={!canEdit}
+          colorLocked={wp.color_locked}
+          isCoordinator={isCoordinator}
+          onToggleColorLock={(locked) => onUpdate(wp.id, { color_locked: locked } as any)}
         />
       )}
 
