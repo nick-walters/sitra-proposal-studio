@@ -153,6 +153,35 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
     },
   });
 
+  // Lock enforcement
+  const isLocked = (caseDraft as any)?.is_locked === true;
+  const lockedById = (caseDraft as any)?.locked_by as string | null;
+
+  // Reset lock warning dismissal when case changes
+  useEffect(() => { setLockWarningDismissed(false); }, [caseId]);
+
+  // Fetch locker's name
+  const { data: lockerProfile } = useQuery({
+    queryKey: ['profile-name', lockedById],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', lockedById!)
+        .single();
+      return data;
+    },
+    enabled: !!lockedById && isLocked,
+  });
+  const lockerName = lockerProfile?.full_name || lockerProfile?.email || 'another user';
+
+  const canEdit = useMemo(() => {
+    if (!canEditProp) return false;
+    if (!isLocked) return true;
+    if (isCoordinator) return lockWarningDismissed;
+    return false;
+  }, [canEditProp, isLocked, isCoordinator, lockWarningDismissed]);
+
   // Heading and guideline keys that should propagate across all cases
   const PROPAGATED_KEYS = new Set([
     'heading_background', 'heading_stakeholders', 'heading_solutions', 'heading_outcomes', 'heading_replicability',
