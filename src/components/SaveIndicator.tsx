@@ -38,7 +38,7 @@ export function SaveIndicator({ saving, lastSaved, hasUnsavedChanges = false, sa
         ) : state === 'saved' ? (
           <>
             <span className="text-xs font-medium text-green-600">Autosaved</span>
-            {lastSaved && <span className="text-[10px] text-muted-foreground">{formatTime(lastSaved)}</span>}
+            {lastSaved && <span className="text-[10px] text-green-600">{formatTime(lastSaved)}</span>}
           </>
         ) : state === 'saving' ? (
           <span className="text-[10px] font-medium text-primary">Saving...</span>
