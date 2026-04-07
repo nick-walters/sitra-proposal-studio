@@ -52,6 +52,7 @@ export function WPSimpleEditor({
   onInsertTaskRef,
   onInsertDeliverableRef,
   onInsertMilestoneRef,
+  onSaveSelection,
 }: WPSimpleEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState(false);
