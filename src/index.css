@@ -775,6 +775,8 @@
 .ProseMirror p.table-caption {
   margin-top: 6pt !important;
   margin-bottom: 1pt !important;
+  text-align: left !important;
+  white-space: nowrap !important;
 }
 
 .ProseMirror p.figure-caption {
