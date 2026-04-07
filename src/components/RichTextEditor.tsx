@@ -1130,6 +1130,7 @@ StarterKit.configure({
           if (h.style) {
             h.style.fontSize = '';
             h.style.lineHeight = '';
+            h.style.textAlign = '';
           }
           if (el.tagName === 'FONT') {
             const span = document.createElement('span');
@@ -1490,6 +1491,7 @@ StarterKit.configure({
           if (h.style) {
             h.style.fontSize = '';
             h.style.lineHeight = '';
+            h.style.textAlign = '';
           }
           if (el.tagName === 'FONT') {
             const span = document.createElement('span');
