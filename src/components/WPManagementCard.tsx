@@ -797,6 +797,46 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
                 Edit Color Palette
               </Button>
             )}
+            {/* Populate button next to palette button */}
+            {isFullProposal && isCoordinator && (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setPopulateDialogOpen(true)}
+              >
+                Populate Part B3.1…
+              </Button>
+            )}
+            {/* Spacer to push visibility to the right */}
+            <div className="flex-1" />
+            {/* Draft Visibility */}
+            {isFullProposal && isCoordinator && (
+              <div className="flex items-center gap-2">
+                <Label className="text-sm font-medium whitespace-nowrap">WP draft visibility</Label>
+                <Select
+                  value={wpDraftsVisible ? 'visible' : 'hidden'}
+                  onValueChange={(v) => handleDraftVisibility('wp_drafts_visible', v === 'visible')}
+                >
+                  <SelectTrigger className="h-7 w-[100px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="visible">Visible</SelectItem>
+                    <SelectItem value="hidden">Hidden</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Populate explanation */}
+        {isFullProposal && isCoordinator && (
+          <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+            <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
+            <span>
+              Copies selected content from WP drafts to Part B3.1 tables. Existing entries with matching numbers will be updated.
+            </span>
           </div>
         )}
         
@@ -808,52 +848,12 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
           onSave={updatePalette}
         />
 
-        {/* Draft Visibility & Populate B3.1 Section (Full proposals Only) */}
         {isFullProposal && isCoordinator && (
-          <>
-            <div className="border-t pt-4 mt-4">
-              <h4 className="text-sm font-semibold mb-3">Populate Part B3.1</h4>
-              
-              <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 p-2 rounded mb-3">
-                <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
-                <span>
-                  Copies selected content from WP drafts to Part B3.1 tables. Existing entries with matching numbers will be updated.
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => setPopulateDialogOpen(true)}
-                >
-                  Populate Part B3.1…
-                </Button>
-
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm font-medium whitespace-nowrap">WP draft visibility</Label>
-                  <Select
-                    value={wpDraftsVisible ? 'visible' : 'hidden'}
-                    onValueChange={(v) => handleDraftVisibility('wp_drafts_visible', v === 'visible')}
-                  >
-                    <SelectTrigger className="h-7 w-[100px] text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="visible">Visible</SelectItem>
-                      <SelectItem value="hidden">Hidden</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <PopulateB31Dialog
-                open={populateDialogOpen}
-                onOpenChange={setPopulateDialogOpen}
-                proposalId={proposalId}
-              />
-            </div>
-          </>
+          <PopulateB31Dialog
+            open={populateDialogOpen}
+            onOpenChange={setPopulateDialogOpen}
+            proposalId={proposalId}
+          />
         )}
       </CardContent>
     </Card>
