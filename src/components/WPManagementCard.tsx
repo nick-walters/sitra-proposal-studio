@@ -835,7 +835,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
           <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 p-2 rounded">
             <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
             <span>
-              Copies selected content from WP drafts to Part B3.1 tables. Existing entries with matching numbers will be updated.
+              The populate function copies selected content from WP drafts to Part B3.1 tables. Existing entries in Part B3.1 will be replaced.
             </span>
           </div>
         )}
