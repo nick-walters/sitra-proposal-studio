@@ -272,6 +272,38 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
   return (
     <ScrollArea className="h-full">
       <div className="space-y-3 p-4">
+        {/* Lock warning banner */}
+        {isLocked && !canEdit && (
+          <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/30 text-sm">
+            <Lock className="w-4 h-4 text-destructive shrink-0" />
+            <span>This case has been locked by <strong>{lockerName}</strong>. Editing is disabled.</span>
+            {isCoordinator && (
+              <Button variant="outline" size="sm" className="ml-auto shrink-0 h-7 text-xs" onClick={() => setShowLockWarning(true)}>
+                Edit anyway
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Lock warning dialog for coordinators */}
+        <Dialog open={showLockWarning} onOpenChange={setShowLockWarning}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Lock className="w-5 h-5 text-destructive" />
+                Locked draft
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              This case has been locked by <strong>{lockerName}</strong>. As you are a coordinator, you can still edit it, but doing so may result in differences between the draft and Part B. It is recommended to therefore work on Part B instead.
+            </p>
+            <p className="text-sm font-medium">Do you wish to continue editing the draft?</p>
+            <div className="flex justify-end gap-2 mt-2">
+              <Button variant="outline" size="sm" onClick={() => setShowLockWarning(false)}>Cancel</Button>
+              <Button size="sm" onClick={() => { setLockWarningDismissed(true); setShowLockWarning(false); }}>OK</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
         {/* Top Toolbar Row - Guidelines + Formatting (matches WP editor, sticky) */}
         <div className="flex items-center gap-2 p-2 border rounded-md bg-card flex-wrap sticky top-0 z-10">
           <Button
