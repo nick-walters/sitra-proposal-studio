@@ -223,7 +223,7 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
                 </button>
               )}
               {wpDrafts.map((wp) => {
-                const wpColor = getDefaultWPColor(wp.number);
+                const wpColor = wp.color || getDefaultWPColor(wp.number);
                 return (
                   <label key={wp.id} className="flex items-start gap-2 cursor-pointer border rounded-md p-3">
                     <Checkbox
@@ -263,7 +263,7 @@ export function PopulateB31Dialog({ open, onOpenChange, proposalId }: PopulateB3
               <span
                 className="inline-flex items-center rounded-full font-bold text-white whitespace-nowrap"
                 style={{
-                  backgroundColor: getDefaultWPColor(currentWp.number),
+                  backgroundColor: currentWp.color || getDefaultWPColor(currentWp.number),
                   fontFamily: "'Times New Roman', Times, serif",
                   fontSize: '11pt',
                   fontWeight: 700,
