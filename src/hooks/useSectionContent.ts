@@ -353,7 +353,7 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
           // Clear recovery buffer
           try { localStorage.removeItem(recoveryKey(proposalId, sectionId)); } catch { /* */ }
         } else {
-          setContentState(data.content || '');
+          setContentState(normalizeCaptionStyling(data.content || ''));
           contentIdRef.current = data.id;
           lastVersionContentRef.current = data.content || '';
           setIsPlaceholder(false);
