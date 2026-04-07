@@ -736,28 +736,40 @@ export function FormattingToolbar({
         <ToolbarButton 
           icon={<AlignLeft className="w-4 h-4" />} 
           tooltip="Align left"
-          onClick={() => editor.chain().focus().setTextAlign('left').run()}
+          onClick={() => {
+            editor.view.dispatch(editor.state.tr.setMeta('formatOnly', true));
+            editor.chain().focus().setTextAlign('left').run();
+          }}
           active={!isAlignDisabled && editor.isActive({ textAlign: 'left' })}
           disabled={isAlignDisabled}
         />
         <ToolbarButton 
           icon={<AlignCenter className="w-4 h-4" />} 
           tooltip="Align center"
-          onClick={() => editor.chain().focus().setTextAlign('center').run()}
+          onClick={() => {
+            editor.view.dispatch(editor.state.tr.setMeta('formatOnly', true));
+            editor.chain().focus().setTextAlign('center').run();
+          }}
           active={!isAlignDisabled && editor.isActive({ textAlign: 'center' })}
           disabled={isAlignDisabled}
         />
         <ToolbarButton 
           icon={<AlignRight className="w-4 h-4" />} 
           tooltip="Align right"
-          onClick={() => editor.chain().focus().setTextAlign('right').run()}
+          onClick={() => {
+            editor.view.dispatch(editor.state.tr.setMeta('formatOnly', true));
+            editor.chain().focus().setTextAlign('right').run();
+          }}
           active={!isAlignDisabled && editor.isActive({ textAlign: 'right' })}
           disabled={isAlignDisabled}
         />
         <ToolbarButton 
           icon={<AlignJustify className="w-4 h-4" />} 
           tooltip="Justify"
-          onClick={() => editor.chain().focus().setTextAlign('justify').run()}
+          onClick={() => {
+            editor.view.dispatch(editor.state.tr.setMeta('formatOnly', true));
+            editor.chain().focus().setTextAlign('justify').run();
+          }}
           active={!isAlignDisabled && editor.isActive({ textAlign: 'justify' })}
           disabled={isAlignDisabled}
         />
