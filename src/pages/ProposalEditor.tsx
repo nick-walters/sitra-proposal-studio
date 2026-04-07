@@ -17,6 +17,7 @@ import { FigureManager } from "@/components/FigureManager";
 import { SectionProgressDashboard } from "@/components/SectionProgressDashboard";
 import { WPDraftEditor } from "@/components/WPDraftEditor";
 import { WPManagementCard } from "@/components/WPManagementCard";
+import { SaveIndicator } from "@/components/SaveIndicator";
 
 import { CaseManagementCard } from "@/components/CaseManagementCard";
 import { CaseDraftEditor } from "@/components/CaseDraftEditor";
