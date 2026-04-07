@@ -441,6 +441,7 @@ export function CaseManagementCard({
       queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['case-leadership', proposalId] });
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+      onSaveEvent?.();
     },
   });
 
@@ -480,6 +481,7 @@ export function CaseManagementCard({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['case-leadership', proposalId] });
+      onSaveEvent?.();
       toast.success('Case added');
     },
   });
@@ -497,6 +499,7 @@ export function CaseManagementCard({
       queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['case-leadership', proposalId] });
       window.dispatchEvent(new CustomEvent('cross-ref-data-changed'));
+      onSaveEvent?.();
       toast.success('Case deleted');
     },
     onError: () => {
