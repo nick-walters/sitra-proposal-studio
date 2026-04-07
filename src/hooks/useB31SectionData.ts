@@ -125,6 +125,14 @@ export function useB31SectionData(proposalId: string) {
       ]);
       if (wpErr) throw wpErr;
 
+      // Group b31_tasks by wp_draft_id
+      const b31TasksByWP = new Map<string, any[]>();
+      (b31TasksData || []).forEach((t: any) => {
+        const arr = b31TasksByWP.get(t.wp_draft_id) || [];
+        arr.push(t);
+        b31TasksByWP.set(t.wp_draft_id, arr);
+      });
+
       return (wps || []).map((wp: any) => ({
         ...wp,
         color: wp.color || DEFAULT_WP_COLORS[(wp.number - 1) % DEFAULT_WP_COLORS.length],
