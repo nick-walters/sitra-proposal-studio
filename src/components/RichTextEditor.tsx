@@ -141,6 +141,45 @@ function ToolbarButton({ icon, tooltip, onClick, active, disabled }: ToolbarButt
   );
 }
 
+const PART_B_ALIGNMENT_EXEMPT_PARAGRAPH_CLASSES = new Set(['figure-caption', 'table-caption']);
+
+function normalizePartBBodyAlignment(html: string) {
+  if (!html || typeof document === 'undefined') return html;
+
+  const div = document.createElement('div');
+  div.innerHTML = html;
+
+  div.querySelectorAll('*').forEach((el) => {
+    const h = el as HTMLElement;
+
+    if (h.style) {
+      h.style.fontSize = '';
+      h.style.lineHeight = '';
+      h.style.fontFamily = '';
+    }
+
+    if (el.tagName === 'FONT') {
+      const span = document.createElement('span');
+      span.innerHTML = el.innerHTML;
+      el.replaceWith(span);
+    }
+  });
+
+  div.querySelectorAll('p').forEach((paragraph) => {
+    const classNames = (paragraph.getAttribute('class') || '').split(/\s+/).filter(Boolean);
+    const isExempt = classNames.some((className) => PART_B_ALIGNMENT_EXEMPT_PARAGRAPH_CLASSES.has(className));
+    const isInTable = Boolean(paragraph.closest('table'));
+
+    if (isExempt || isInTable) return;
+
+    const p = paragraph as HTMLParagraphElement;
+    p.style.textAlign = '';
+    p.removeAttribute('align');
+  });
+
+  return div.innerHTML;
+}
+
 // Table size selector grid
 function TableSizeSelector({ onSelect }: { onSelect: (rows: number, cols: number) => void }) {
   const [hoveredRows, setHoveredRows] = useState(0);
@@ -1112,7 +1151,7 @@ StarterKit.configure({
         },
       }),
     ],
-    content,
+    content: normalizePartBBodyAlignment(content),
     enableExtensionDispatchTransaction: true,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
@@ -1123,22 +1162,7 @@ StarterKit.configure({
         style: 'font-family: "Times New Roman", Times, serif',
       },
       transformPastedHTML(html) {
-        const div = document.createElement('div');
-        div.innerHTML = html;
-        div.querySelectorAll('*').forEach(el => {
-          const h = el as HTMLElement;
-          if (h.style) {
-            h.style.fontSize = '';
-            h.style.lineHeight = '';
-            h.style.textAlign = '';
-          }
-          if (el.tagName === 'FONT') {
-            const span = document.createElement('span');
-            span.innerHTML = el.innerHTML;
-            el.replaceWith(span);
-          }
-        });
-        return div.innerHTML;
+        return normalizePartBBodyAlignment(html);
       },
     },
   });
@@ -1186,7 +1210,7 @@ export function useRichTextEditor({
   onBlockDeleteRequest?: (deleteCallback: () => void) => void;
 }) {
   // Track the last content we set to the editor to avoid infinite loops
-  const lastSetContentRef = useRef<string>(content);
+  const lastSetContentRef = useRef<string>(normalizePartBBodyAlignment(content));
   // Store getReference in a ref to avoid recreating the extension
   const getReferenceRef = useRef(getReference);
   getReferenceRef.current = getReference;
@@ -1470,7 +1494,7 @@ StarterKit.configure({
         },
       }),
     ],
-    content,
+    content: normalizePartBBodyAlignment(content),
     enableExtensionDispatchTransaction: true,
     
     onUpdate: ({ editor }) => {
@@ -1484,22 +1508,7 @@ StarterKit.configure({
         style: 'font-family: "Times New Roman", Times, serif',
       },
       transformPastedHTML(html) {
-        const div = document.createElement('div');
-        div.innerHTML = html;
-        div.querySelectorAll('*').forEach(el => {
-          const h = el as HTMLElement;
-          if (h.style) {
-            h.style.fontSize = '';
-            h.style.lineHeight = '';
-            h.style.textAlign = '';
-          }
-          if (el.tagName === 'FONT') {
-            const span = document.createElement('span');
-            span.innerHTML = el.innerHTML;
-            el.replaceWith(span);
-          }
-        });
-        return div.innerHTML;
+        return normalizePartBBodyAlignment(html);
       },
     },
   });
@@ -1507,14 +1516,16 @@ StarterKit.configure({
   // Sync editor content when content prop changes externally (e.g., from DB load)
   // Only update if content changed from external source (not from our own typing)
   useEffect(() => {
-    if (editor && content !== lastSetContentRef.current) {
-      lastSetContentRef.current = content;
+    const normalizedContent = normalizePartBBodyAlignment(content);
+
+    if (editor && normalizedContent !== lastSetContentRef.current) {
+      lastSetContentRef.current = normalizedContent;
       // Temporarily disable track changes during setContent to prevent
       // the entire document being marked as insertions
       const storage = (editor.storage as any)?.trackChanges;
       const wasEnabled = storage?.enabled;
       if (storage) storage.enabled = false;
-      editor.commands.setContent(content, { emitUpdate: false });
+      editor.commands.setContent(normalizedContent, { emitUpdate: false });
       if (storage) storage.enabled = wasEnabled;
     }
   }, [editor, content]);
