@@ -294,7 +294,9 @@ export function usePdfExport() {
 
       // Helper: Add H2 heading (12pt bold, 6pt before, 0pt after)
       const addH2 = (text: string) => {
-        yPosition += paragraphSpacingH2; // 6pt before
+        if (!isTopOfPage) {
+          yPosition += paragraphSpacingH2; // 6pt before
+        }
         checkPageBreak(10);
         pdf.setFontSize(FONT_SIZE_H2);
         pdf.setFont('times', 'bold');
@@ -303,13 +305,16 @@ export function usePdfExport() {
         pdf.text(text, margin, yPosition);
         yPosition += 4.5; // Line height, 0pt after
         currentSectionName = text;
+        isTopOfPage = false;
       };
 
       // Helper: Add body paragraph (11pt, 3pt before and after)
       const addParagraph = (text: string) => {
         if (!text.trim()) return;
         
-        yPosition += paragraphSpacing; // 3pt before
+        if (!isTopOfPage) {
+          yPosition += paragraphSpacing; // 3pt before
+        }
         pdf.setFontSize(FONT_SIZE_BODY);
         pdf.setFont('times', 'normal');
         pdf.setTextColor(...black);
@@ -320,6 +325,7 @@ export function usePdfExport() {
           pdf.text(line, margin, yPosition);
           yPosition += lineHeightBody;
         }
+        isTopOfPage = false;
         yPosition += paragraphSpacing; // 3pt after
       };
 
