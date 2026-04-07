@@ -83,7 +83,7 @@ export function WPColorPaletteEditor({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Palette className="w-5 h-5" />
-            Edit WP Color Palette
+            Edit WP colour palette
           </DialogTitle>
           <DialogDescription>
             Customize the colors used for work packages. Changes apply to all WPs in this proposal.
