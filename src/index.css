@@ -431,41 +431,41 @@
     width: 210mm;
     min-height: 297mm;
     padding: 1.5cm;
-    padding-top: 2cm; /* Extra space for header */
-    padding-bottom: 2cm; /* Extra space for footer */
     margin: 0 auto;
   }
 
-  /* Document header - vertically centered within top margin */
+  /* Keep header text inside the top margin without pushing content down */
   .document-page-header {
     position: absolute;
-    top: 0;
-    height: 2cm; /* Match the top padding of document-page */
+    top: 0.35cm;
     left: 1.5cm;
     right: 1.5cm;
     font-family: "Times New Roman", Times, serif;
     font-size: 8pt;
+    line-height: 1;
     color: hsl(var(--muted-foreground));
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
     text-align: center;
+    pointer-events: none;
   }
 
-  /* Document footer - vertically centered within bottom margin */
+  /* Keep footer text inside the bottom margin without shrinking the content area */
   .document-page-footer {
     position: absolute;
-    bottom: 0;
-    height: 2cm; /* Match the bottom padding of document-page */
+    bottom: 0.35cm;
     left: 1.5cm;
     right: 1.5cm;
     font-family: "Times New Roman", Times, serif;
     font-size: 8pt;
+    line-height: 1;
     color: hsl(var(--muted-foreground));
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-end;
     text-align: center;
+    pointer-events: none;
   }
 
   .proposal-badge {
