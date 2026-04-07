@@ -845,7 +845,25 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
           open={paletteEditorOpen}
           onOpenChange={setPaletteEditorOpen}
           colors={wpColors}
-          onSave={updatePalette}
+          wpCount={wpDrafts.length}
+          onSave={async (newColors) => {
+            const success = await updatePalette(newColors);
+            if (success) {
+              // Sync colors to individual wp_drafts
+              for (let i = 0; i < wpDrafts.length; i++) {
+                const color = newColors[i % newColors.length];
+                if (wpDrafts[i].color !== color) {
+                  await supabase
+                    .from('wp_drafts')
+                    .update({ color })
+                    .eq('id', wpDrafts[i].id);
+                }
+              }
+              queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
+              queryClient.invalidateQueries({ queryKey: ['wp-leadership', proposalId] });
+            }
+            return success;
+          }}
         />
 
         {isFullProposal && isCoordinator && (
