@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
-import { renumberAllCaptionsWithMapping } from '@/lib/captionRenumbering';
+import { renumberAllCaptionsWithMapping, normalizeCaptionStyling } from '@/lib/captionRenumbering';
 
 interface UseSectionContentProps {
   proposalId: string;
@@ -353,7 +353,7 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
           // Clear recovery buffer
           try { localStorage.removeItem(recoveryKey(proposalId, sectionId)); } catch { /* */ }
         } else {
-          setContentState(data.content || '');
+          setContentState(normalizeCaptionStyling(data.content || ''));
           contentIdRef.current = data.id;
           lastVersionContentRef.current = data.content || '';
           setIsPlaceholder(false);

@@ -194,3 +194,45 @@ export function getNextTableLetterFromContent(content: string, sectionNumber: st
   const matches = content.match(tablePattern) || [];
   return String.fromCharCode('a'.charCodeAt(0) + matches.length);
 }
+
+/**
+ * Normalizes caption styling in saved HTML content:
+ * - Ensures the label portion (e.g. "Figure 1.1.a. " or "Table 1.1.a. ") is bold+italic
+ * - Ensures there is a space after the trailing period of the label
+ * - Ensures the rest of the caption text is italic (not bold)
+ * Works on both figure-caption and table-caption paragraphs.
+ */
+export function normalizeCaptionStyling(content: string): string {
+  if (!content) return content;
+
+  // Match caption paragraphs: <p class="...(figure|table)-caption...">...</p>
+  // We need to fix the inner HTML so the label is <em><strong>Label.</strong></em> or <strong><em>Label.</em></strong>
+  // and the rest is <em>user text</em>
+
+  // Pattern for the label text inside captions: "Figure X.X.x." or "Table X.X.x."
+  const labelPattern = /((?:Figure|Table)\s+\d+\.\d+\.[a-z]\.)\s*/;
+
+  // Process each caption paragraph
+  const captionParagraphPattern = /(<p[^>]*class="[^"]*(?:figure-caption|table-caption)[^"]*"[^>]*>)([\s\S]*?)(<\/p>)/gi;
+
+  return content.replace(captionParagraphPattern, (fullMatch, openTag: string, innerHtml: string, closeTag: string) => {
+    // Strip all formatting tags to get plain text
+    const plainText = innerHtml.replace(/<[^>]+>/g, '');
+    const labelMatch = labelPattern.exec(plainText);
+    if (!labelMatch) return fullMatch;
+
+    const labelText = labelMatch[1]; // e.g. "Table 1.1.a."
+    const restText = plainText.slice(labelMatch[0].length); // user-typed caption text
+
+    // Ensure space after label period
+    const labelWithSpace = labelText + ' ';
+
+    // Rebuild: bold+italic label, then italic rest
+    let newInner = `<em><strong>${labelWithSpace}</strong></em>`;
+    if (restText.trim()) {
+      newInner += `<em>${restText}</em>`;
+    }
+
+    return `${openTag}${newInner}${closeTag}`;
+  });
+}

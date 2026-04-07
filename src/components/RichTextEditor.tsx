@@ -611,7 +611,7 @@ export function FormattingToolbar({
           {
             type: 'text',
             marks: [{ type: 'italic' }, { type: 'bold' }],
-            text: `${tableLabel}.`,
+            text: `${tableLabel}. `,
           },
           {
             type: 'text',
