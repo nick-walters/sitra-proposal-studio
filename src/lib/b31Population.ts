@@ -14,6 +14,7 @@ export interface WPDraftForPopulate {
   number: number;
   short_name: string | null;
   title: string | null;
+  color: string;
   objectives: string | null;
   description_before_tasks: string | null;
   tasks: {
@@ -63,7 +64,7 @@ export async function fetchWPDraftsForPopulate(proposalId: string): Promise<WPDr
   const { data, error } = await supabase
     .from('wp_drafts')
     .select(`
-      id, number, short_name, title, objectives, description_before_tasks,
+      id, number, short_name, title, color, objectives, description_before_tasks,
       tasks:wp_draft_tasks(id, number, title, description, lead_participant_id, start_month, end_month,
         participants:wp_draft_task_participants(participant_id)
       ),
