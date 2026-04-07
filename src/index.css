@@ -725,6 +725,17 @@
   margin-top: 0 !important;
 }
 
+/* Remove spacing above h1 when it's the first element */
+.ProseMirror > h1:first-child {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Remove bottom margin from last element before h1 */
+.ProseMirror > *:has(+ h1) {
+  margin-bottom: 0 !important;
+}
+
 /* Ensure all ProseMirror content starts at left margin */
 .ProseMirror {
   margin-left: 0 !important;
