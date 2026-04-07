@@ -602,6 +602,13 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     fetchWpDrafts();
   }, [proposalId]);
 
+  // Handler to intercept first edit attempt on locked WP for coordinators
+  const handleLockedEditAttempt = useCallback(() => {
+    if (isLocked && isCoordinator && !lockWarningDismissed) {
+      setShowLockWarning(true);
+    }
+  }, [isLocked, isCoordinator, lockWarningDismissed]);
+
   if (loading) {
     return (
       <div className="space-y-6 p-6">
