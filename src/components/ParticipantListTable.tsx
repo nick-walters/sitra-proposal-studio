@@ -111,7 +111,7 @@ export function ParticipantListTable({
                             backgroundColor: '#000000', 
                             color: '#ffffff',
                             fontWeight: 'bold',
-                            fontStyle: 'italic',
+                            fontStyle: 'normal',
                           }}
                         >
                           {participant.organisationShortName}

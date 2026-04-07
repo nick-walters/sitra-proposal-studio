@@ -98,8 +98,8 @@ function LeadPicker({
         <button className="inline-flex items-center gap-0.5 cursor-pointer hover:opacity-80">
           {leader ? (
             <span
-              className="inline-flex items-center rounded-full font-bold italic whitespace-nowrap"
-              style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'italic', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
+              className="inline-flex items-center rounded-full font-bold whitespace-nowrap"
+              style={{ backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700, fontStyle: 'normal', lineHeight: 1, verticalAlign: 'baseline', padding: '0px 5px' }}
             >
               {leader.participant_number}. {leader.organisation_short_name || leader.organisation_name}
             </span>
