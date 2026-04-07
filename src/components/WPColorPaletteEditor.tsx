@@ -32,7 +32,7 @@ export function WPColorPaletteEditor({
   // Initialize with current colors when dialog opens
   useEffect(() => {
     if (open) {
-      // Ensure we always have 12 colors
+      // Ensure we always have 9 colors
       const palette = [...colors];
       while (palette.length < 9) {
         palette.push(DEFAULT_WP_COLORS[palette.length % DEFAULT_WP_COLORS.length]);
