@@ -840,7 +840,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               {/* Figure */}
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => setIsFigureDialogOpen(true)}>
+                  <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => setIsFigureDialogOpen(true)} onMouseDown={saveSelection}>
                     <ImageIcon className="h-4 w-4" />
                     <span className="text-xs">Figure</span>
                   </Button>
@@ -851,7 +851,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               {/* Citations */}
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => setIsCitationOpen(true)}>
+                  <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => setIsCitationOpen(true)} onMouseDown={saveSelection}>
                     <FileText className="h-4 w-4" />
                     <span className="text-xs">Citations</span>
                   </Button>
@@ -860,7 +860,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               </Tooltip>
               
               {/* Cross-ref dropdown */}
-              <DropdownMenu>
+              <DropdownMenu onOpenChange={(open) => { if (open) saveSelection(); }}>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <DropdownMenuTrigger asChild>
