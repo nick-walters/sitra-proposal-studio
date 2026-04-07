@@ -362,7 +362,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     queryFn: async () => {
       const { data, error } = await supabase
         .from('wp_drafts')
-        .select('id, number, short_name, title, lead_participant_id, color, order_index, theme_id, is_locked, locked_by')
+        .select('id, number, short_name, title, lead_participant_id, color, color_locked, order_index, theme_id, is_locked, locked_by')
         .eq('proposal_id', proposalId)
         .order('order_index');
       if (error) throw error;
@@ -402,11 +402,12 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
   // Reorder mutation with optimistic updates
   const reorderMutation = useMutation({
     mutationFn: async (reorderedWPs: WPDraft[]) => {
+      // Preserve each WP's existing color — do NOT reassign from palette
       const updates = reorderedWPs.map((wp, index) => ({
         id: wp.id,
         order_index: index,
         number: index + 1,
-        color: wpColors[index % wpColors.length],
+        color: wp.color,
       }));
       
       // First pass: set all numbers to negative temporaries to avoid unique constraint violations
@@ -471,7 +472,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
         ...wp,
         order_index: index,
         number: index + 1,
-        color: wpColors[index % wpColors.length],
+        color: wp.color,
       }));
       queryClient.setQueryData(['wp-drafts-management', proposalId], optimisticWPs);
       return { previousWPs };
@@ -800,6 +801,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
                 onDelete={handleDeleteWP}
                 onToggleLock={handleToggleLock}
                 canEdit={isCoordinator}
+                isCoordinator={isCoordinator}
               />
             ))}
           </SortableContext>

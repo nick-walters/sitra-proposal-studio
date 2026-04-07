@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Palette } from 'lucide-react';
+import { Lock, LockOpen } from 'lucide-react';
 import { DEFAULT_WP_COLORS, getContrastingTextColor } from '@/lib/wpColors';
 import { cn } from '@/lib/utils';
 
@@ -12,6 +12,9 @@ interface WPColorPickerProps {
   disabled?: boolean;
   palette?: string[];
   wpNumber?: number;
+  colorLocked?: boolean;
+  isCoordinator?: boolean;
+  onToggleColorLock?: (locked: boolean) => void;
 }
 
 export function WPColorPicker({
@@ -20,13 +23,28 @@ export function WPColorPicker({
   disabled = false,
   palette = DEFAULT_WP_COLORS,
   wpNumber,
+  colorLocked = true,
+  isCoordinator = false,
+  onToggleColorLock,
 }: WPColorPickerProps) {
   const [open, setOpen] = useState(false);
   const [customColor, setCustomColor] = useState(color);
+  const [unlocked, setUnlocked] = useState(false);
+
+  const handleOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (!isOpen) {
+      setUnlocked(false); // Reset unlock state when closing
+    }
+  };
+
+  const canChangeColor = !colorLocked || unlocked;
 
   const handleSelectColor = (newColor: string) => {
+    if (!canChangeColor) return;
     onChange(newColor);
     setCustomColor(newColor);
+    setUnlocked(false);
     setOpen(false);
   };
 
@@ -36,16 +54,24 @@ export function WPColorPicker({
   };
 
   const handleCustomColorBlur = () => {
-    // Validate hex color
+    if (!canChangeColor) return;
     if (/^#[0-9A-Fa-f]{6}$/.test(customColor)) {
       onChange(customColor);
+      setUnlocked(false);
     } else {
       setCustomColor(color);
     }
   };
 
+  const handleUnlock = () => {
+    if (isCoordinator) {
+      setUnlocked(true);
+      onToggleColorLock?.(false);
+    }
+  };
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         {wpNumber !== undefined ? (
           <button
@@ -75,10 +101,31 @@ export function WPColorPicker({
       </PopoverTrigger>
       <PopoverContent className="w-[220px] p-3" align="end">
         <div className="space-y-3">
-          <div className="text-sm font-medium">Select Color</div>
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-medium">Select colour</div>
+            {/* Lock indicator */}
+            {colorLocked && !unlocked ? (
+              <button
+                onClick={handleUnlock}
+                className={cn(
+                  "p-1 rounded transition-colors",
+                  isCoordinator 
+                    ? "hover:bg-muted cursor-pointer text-destructive" 
+                    : "cursor-not-allowed text-destructive opacity-60"
+                )}
+                title={isCoordinator ? "Click to unlock colour editing" : "Only coordinators can unlock colour editing"}
+              >
+                <Lock className="w-4 h-4" />
+              </button>
+            ) : (
+              <span className="p-1 text-green-500" title="Colour unlocked">
+                <LockOpen className="w-4 h-4" />
+              </span>
+            )}
+          </div>
           
           {/* Palette grid */}
-          <div className="grid grid-cols-6 gap-1.5">
+          <div className={cn("grid grid-cols-6 gap-1.5", !canChangeColor && "opacity-50 pointer-events-none")}>
             {palette.map((paletteColor, index) => (
               <button
                 key={index}
@@ -88,12 +135,13 @@ export function WPColorPicker({
                 )}
                 style={{ backgroundColor: paletteColor }}
                 onClick={() => handleSelectColor(paletteColor)}
+                disabled={!canChangeColor}
               />
             ))}
           </div>
 
           {/* Custom color input */}
-          <div className="flex items-center gap-2">
+          <div className={cn("flex items-center gap-2", !canChangeColor && "opacity-50 pointer-events-none")}>
             <div
               className="h-8 w-8 rounded-md border flex-shrink-0"
               style={{ backgroundColor: customColor }}
@@ -104,8 +152,15 @@ export function WPColorPicker({
               onBlur={handleCustomColorBlur}
               placeholder="#000000"
               className="h-8 font-mono text-sm"
+              disabled={!canChangeColor}
             />
           </div>
+
+          {colorLocked && !unlocked && (
+            <p className="text-xs text-muted-foreground">
+              {isCoordinator ? "Click the lock to edit this colour." : "This colour is locked by a coordinator."}
+            </p>
+          )}
         </div>
       </PopoverContent>
     </Popover>
