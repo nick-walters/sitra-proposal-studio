@@ -238,7 +238,8 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
     if (
       tr.getMeta('trackChangesInternal') ||
       tr.getMeta('setContent') ||
-      tr.getMeta('history$')
+      tr.getMeta('history$') ||
+      tr.getMeta('formatOnly')
     ) {
       next(tr);
       if (tr.getMeta('history$') && tr.docChanged) {
