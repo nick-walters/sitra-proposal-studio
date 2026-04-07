@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
-import { renumberAllCaptionsWithMapping } from '@/lib/captionRenumbering';
+import { renumberAllCaptionsWithMapping, normalizeCaptionStyling } from '@/lib/captionRenumbering';
 
 interface UseSectionContentProps {
   proposalId: string;
