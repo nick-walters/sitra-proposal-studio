@@ -4768,6 +4768,7 @@ export type Database = {
           background_knowledge: string | null
           bottlenecks_question: string | null
           color: string
+          color_locked: boolean
           created_at: string
           description_before_tasks: string | null
           foreseen_challenges: string | null
@@ -4798,6 +4799,7 @@ export type Database = {
           background_knowledge?: string | null
           bottlenecks_question?: string | null
           color?: string
+          color_locked?: boolean
           created_at?: string
           description_before_tasks?: string | null
           foreseen_challenges?: string | null
@@ -4828,6 +4830,7 @@ export type Database = {
           background_knowledge?: string | null
           bottlenecks_question?: string | null
           color?: string
+          color_locked?: boolean
           created_at?: string
           description_before_tasks?: string | null
           foreseen_challenges?: string | null

@@ -1,0 +1,1 @@
+ALTER TABLE public.wp_drafts ADD COLUMN color_locked boolean NOT NULL DEFAULT true;
