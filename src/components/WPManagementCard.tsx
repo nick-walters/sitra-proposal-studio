@@ -34,7 +34,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { WPColorPicker } from '@/components/WPColorPicker';
 import { WPColorPaletteEditor } from '@/components/WPColorPaletteEditor';
-import { Layers, GripVertical, Plus, AlertTriangle, Palette, Trash2, Paintbrush } from 'lucide-react';
+import { Layers, GripVertical, Plus, AlertTriangle, Palette, Trash2, Paintbrush, Lock, LockOpen } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
@@ -53,6 +53,8 @@ interface WPDraft {
   color: string;
   order_index: number;
   theme_id: string | null;
+  is_locked: boolean;
+  locked_by: string | null;
 }
 
 interface SortableWPRowProps {
@@ -62,10 +64,11 @@ interface SortableWPRowProps {
   useThemes: boolean;
   onUpdate: (id: string, updates: Partial<WPDraft>) => void;
   onDelete: (id: string) => void;
+  onToggleLock: (id: string, locked: boolean) => void;
   canEdit: boolean;
 }
 
-function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete, canEdit }: SortableWPRowProps) {
+function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete, onToggleLock, canEdit }: SortableWPRowProps) {
   const [leadOpen, setLeadOpen] = useState(false);
   const {
     attributes,
