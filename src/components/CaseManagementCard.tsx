@@ -626,13 +626,14 @@ export function CaseManagementCard({
                 </div>
 
                 {/* Table Header */}
-                <div className="grid grid-cols-[24px_max-content_1fr_80px_20px] gap-x-1.5">
+                <div className="grid grid-cols-[24px_max-content_1fr_80px_20px_20px] gap-x-1.5">
                   {/* Header row */}
-                  <div className="col-span-5 grid grid-cols-subgrid gap-x-1.5 text-xs font-medium text-muted-foreground border-b pb-1">
+                  <div className="col-span-6 grid grid-cols-subgrid gap-x-1.5 text-xs font-medium text-muted-foreground border-b pb-1">
                     <div />
                     <div />
                     <div>Title</div>
                     <div>Lead</div>
+                    <div />
                     <div />
                   </div>
 
@@ -651,6 +652,7 @@ export function CaseManagementCard({
                           casePrefix={casePrefix}
                           onUpdate={handleUpdateCase}
                           onDelete={handleDeleteCase}
+                          onToggleLock={handleToggleLock}
                           canEdit={isCoordinator}
                         />
                       ))}
