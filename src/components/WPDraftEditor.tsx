@@ -646,12 +646,6 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     setTablePopoverOpen(false);
   };
 
-  // Handler to intercept first edit attempt on locked WP for coordinators
-  const handleLockedEditAttempt = useCallback(() => {
-    if (isLocked && isCoordinator && !lockWarningDismissed) {
-      setShowLockWarning(true);
-    }
-  }, [isLocked, isCoordinator, lockWarningDismissed]);
 
   return (
     <ScrollArea className="h-full">
