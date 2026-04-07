@@ -278,6 +278,18 @@ function SortableCaseRow({ caseItem, participants, casePrefix, onUpdate, onDelet
         </DialogContent>
       </Dialog>
 
+      {/* Lock Button */}
+      {canEdit && (
+        <button
+          onClick={() => onToggleLock(caseItem.id, !caseItem.is_locked)}
+          className={`p-1 rounded transition-colors ${caseItem.is_locked ? 'text-destructive hover:bg-destructive/10' : 'text-green-600 hover:bg-green-100'}`}
+          title={caseItem.is_locked ? 'Unlock case' : 'Lock case'}
+        >
+          {caseItem.is_locked ? <Lock className="w-4 h-4" /> : <LockOpen className="w-4 h-4" />}
+        </button>
+      )}
+      {!canEdit && <div />}
+
       {/* Delete Button */}
       {canEdit && (
         <button
@@ -307,6 +319,7 @@ export function CaseManagementCard({
   onToggleCases 
 }: CaseManagementCardProps) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -319,7 +332,7 @@ export function CaseManagementCard({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('case_drafts')
-        .select('id, number, case_type, custom_type_name, short_name, title, lead_participant_id, color, order_index')
+        .select('id, number, case_type, custom_type_name, short_name, title, lead_participant_id, color, order_index, is_locked, locked_by')
         .eq('proposal_id', proposalId)
         .order('order_index');
       if (error) throw error;
