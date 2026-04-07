@@ -88,11 +88,11 @@ export function useB31SectionData(proposalId: string) {
   const wpQuery = useQuery({
     queryKey: ['b31-wp-data', proposalId],
     queryFn: async () => {
-      const [{ data: wps, error: wpErr }, { data: palette }, { data: b31TasksData }] = await Promise.all([
+      const [{ data: wps, error: wpErr }, { data: b31TasksData }] = await Promise.all([
         supabase
           .from('wp_drafts')
           .select(`
-            id, number, title, short_name, lead_participant_id, objectives, b31_objectives, description_before_tasks, b31_description_before_tasks, methodology, manual_person_months, manual_duration,
+            id, number, title, short_name, lead_participant_id, color, objectives, b31_objectives, description_before_tasks, b31_description_before_tasks, methodology, manual_person_months, manual_duration,
             tasks:wp_draft_tasks(
               id, number, title, description, b31_description, lead_participant_id, start_month, end_month,
               effort:wp_draft_task_effort(participant_id, person_months),
@@ -106,10 +106,14 @@ export function useB31SectionData(proposalId: string) {
           .eq('proposal_id', proposalId)
           .order('number'),
         supabase
-          .from('wp_color_palette')
-          .select('colors')
-          .eq('proposal_id', proposalId)
-          .single(),
+          .from('b31_tasks')
+          .select(`
+            id, wp_draft_id, number, title, description, lead_participant_id, start_month, end_month, order_index,
+            participants:b31_task_participants(participant_id)
+          `)
+          .in('wp_draft_id', (await supabase.from('wp_drafts').select('id').eq('proposal_id', proposalId)).data?.map((w: any) => w.id) || [])
+          .order('number'),
+      ]);
         supabase
           .from('b31_tasks')
           .select(`
@@ -120,19 +124,10 @@ export function useB31SectionData(proposalId: string) {
           .order('number'),
       ]);
       if (wpErr) throw wpErr;
-      const colors = (palette?.colors as string[]) || DEFAULT_WP_COLORS;
-
-      // Group b31_tasks by wp_draft_id
-      const b31TasksByWP = new Map<string, any[]>();
-      (b31TasksData || []).forEach((t: any) => {
-        const arr = b31TasksByWP.get(t.wp_draft_id) || [];
-        arr.push(t);
-        b31TasksByWP.set(t.wp_draft_id, arr);
-      });
 
       return (wps || []).map((wp: any) => ({
         ...wp,
-        color: colors[(wp.number - 1) % colors.length] || DEFAULT_WP_COLORS[0],
+        color: wp.color || DEFAULT_WP_COLORS[(wp.number - 1) % DEFAULT_WP_COLORS.length],
         tasks: (wp.tasks || []).sort((a: any, b: any) => a.number - b.number),
         b31_tasks: (b31TasksByWP.get(wp.id) || []).sort((a: any, b: any) => a.number - b.number),
         deliverables: (wp.deliverables || []).sort((a: any, b: any) => a.number - b.number),
