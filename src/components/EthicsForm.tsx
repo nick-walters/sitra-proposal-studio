@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { AlertTriangle, CheckCircle, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PartAGuidelinesDialog } from './PartAGuidelinesDialog';
+import { SaveIndicator } from './SaveIndicator';
 
 // Extended ethics assessment interface for full proposals
 export interface EthicsAssessment {
@@ -850,6 +852,12 @@ function EthicsQuestionRow({
 
 export function EthicsForm({ ethics, onUpdateEthics, canEdit }: EthicsFormProps) {
   const ethicsData: EthicsAssessment = ethics || { proposalId: '' };
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+
+  const handleUpdate = (updates: Partial<EthicsAssessment>) => {
+    onUpdateEthics(updates);
+    setLastSaved(new Date());
+  };
 
   // Count total "Yes" answers
   const issuesCount = ETHICS_SECTIONS.reduce((count, section) => {
