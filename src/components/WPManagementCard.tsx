@@ -486,20 +486,55 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     },
   });
 
-  // Add WP mutation
+  // Add WP mutation — inserts before the last two WPs (Exploitation & Coordination)
   const addWPMutation = useMutation({
     mutationFn: async () => {
-      const newNumber = wpDrafts.length + 1;
-      const { getWPColor } = await import('@/lib/wpColors');
-      const color = getWPColor(newNumber, newNumber);
-      
-      const { error } = await supabase.from('wp_drafts').insert({
-        proposal_id: proposalId,
-        number: newNumber,
-        color,
-        order_index: newNumber - 1,
-      });
-      if (error) throw error;
+      const total = wpDrafts.length;
+      const { WP_CONTENT_COLORS } = await import('@/lib/wpColors');
+
+      if (total < 2) {
+        // Less than 2 WPs: just append
+        const newNumber = total + 1;
+        const color = WP_CONTENT_COLORS[(newNumber - 1) % WP_CONTENT_COLORS.length];
+        const { error } = await supabase.from('wp_drafts').insert({
+          proposal_id: proposalId,
+          number: newNumber,
+          color,
+          order_index: newNumber - 1,
+        });
+        if (error) throw error;
+      } else {
+        // Insert before the last two WPs
+        const insertPosition = total - 2; // 0-indexed position for the new WP
+        const newWPNumber = insertPosition + 1;
+        const color = WP_CONTENT_COLORS[insertPosition % WP_CONTENT_COLORS.length];
+
+        // First pass: shift last two WPs to temporary negative numbers
+        const lastTwo = wpDrafts.slice(-2);
+        for (let i = 0; i < lastTwo.length; i++) {
+          await supabase
+            .from('wp_drafts')
+            .update({ number: -(1000 + i), order_index: insertPosition + 1 + i })
+            .eq('id', lastTwo[i].id);
+        }
+
+        // Insert new WP at the position before last two
+        const { error } = await supabase.from('wp_drafts').insert({
+          proposal_id: proposalId,
+          number: newWPNumber,
+          color,
+          order_index: insertPosition,
+        });
+        if (error) throw error;
+
+        // Second pass: set final numbers for last two WPs (they keep their colors)
+        for (let i = 0; i < lastTwo.length; i++) {
+          await supabase
+            .from('wp_drafts')
+            .update({ number: newWPNumber + 1 + i, order_index: insertPosition + 1 + i })
+            .eq('id', lastTwo[i].id);
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
@@ -508,17 +543,16 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     },
   });
 
-  // Delete WP mutation
+  // Delete WP mutation — renumbers remaining WPs but preserves their existing colors
   const deleteWPMutation = useMutation({
     mutationFn: async (wpId: string) => {
-      // Delete the WP
       const { error } = await supabase
         .from('wp_drafts')
         .delete()
         .eq('id', wpId);
       if (error) throw error;
 
-      // Fetch remaining WPs and renumber them
+      // Fetch remaining WPs and renumber them (keep existing colors)
       const { data: remaining, error: fetchErr } = await supabase
         .from('wp_drafts')
         .select('id, order_index')
@@ -534,11 +568,11 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
             .update({ order_index: i, number: -(i + 1000) })
             .eq('id', remaining[i].id);
         }
-        // Second pass: set final numbers and colors
+        // Second pass: set final numbers (colors are preserved)
         for (let i = 0; i < remaining.length; i++) {
           await supabase
             .from('wp_drafts')
-            .update({ number: i + 1, color: wpColors[i % wpColors.length] })
+            .update({ number: i + 1 })
             .eq('id', remaining[i].id);
         }
       }
