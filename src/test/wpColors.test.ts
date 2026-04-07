@@ -1,10 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import {
   DEFAULT_WP_COLORS,
+  WP_CONTENT_COLORS,
+  WP_EXPLOITATION_COLOR,
+  WP_COORDINATION_COLOR,
   getContrastingTextColor,
   hexToHSL,
   lightenColor,
   getDefaultWPColor,
+  getWPColor,
 } from '@/lib/wpColors';
 
 describe('getContrastingTextColor', () => {
@@ -76,5 +80,26 @@ describe('getDefaultWPColor', () => {
 
   it('returns different colors for different WPs', () => {
     expect(getDefaultWPColor(1)).not.toBe(getDefaultWPColor(2));
+  });
+});
+
+describe('getWPColor', () => {
+  it('assigns coordination color to last WP', () => {
+    expect(getWPColor(6, 6)).toBe(WP_COORDINATION_COLOR);
+    expect(getWPColor(10, 10)).toBe(WP_COORDINATION_COLOR);
+  });
+
+  it('assigns exploitation color to penultimate WP', () => {
+    expect(getWPColor(5, 6)).toBe(WP_EXPLOITATION_COLOR);
+    expect(getWPColor(9, 10)).toBe(WP_EXPLOITATION_COLOR);
+  });
+
+  it('assigns content colors to other WPs', () => {
+    expect(getWPColor(1, 6)).toBe(WP_CONTENT_COLORS[0]);
+    expect(getWPColor(4, 6)).toBe(WP_CONTENT_COLORS[3]);
+  });
+
+  it('wraps content colors for many WPs', () => {
+    expect(getWPColor(8, 10)).toBe(WP_CONTENT_COLORS[0]);
   });
 });
