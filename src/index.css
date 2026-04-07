@@ -300,19 +300,12 @@
 
   /* Body text defaults, no indent */
   .document-content p:not(.figure-caption) {
-    text-align: justify;
     text-indent: 0 !important;
     margin-left: 0 !important;
     padding-left: 0 !important;
     margin-top: 6pt;
     margin-bottom: 6pt;
   }
-
-  /* Allow Tiptap text-align attributes to override the default */
-  .document-content p[style*="text-align: left"] { text-align: left !important; }
-  .document-content p[style*="text-align: center"] { text-align: center !important; }
-  .document-content p[style*="text-align: right"] { text-align: right !important; }
-  .document-content p[style*="text-align: justify"] { text-align: justify !important; }
 
   /* Soft line breaks (shift+enter) have 0pt spacing */
   .document-content br {
