@@ -31,6 +31,8 @@ interface WPSimpleEditorProps {
   onInsertTaskRef?: (task: any) => void;
   onInsertDeliverableRef?: (del: any) => void;
   onInsertMilestoneRef?: (ms: any) => void;
+  /** Called before opening a cross-ref dialog so the parent can save the cursor position */
+  onSaveSelection?: () => void;
 }
 
 export function WPSimpleEditor({
@@ -50,6 +52,7 @@ export function WPSimpleEditor({
   onInsertTaskRef,
   onInsertDeliverableRef,
   onInsertMilestoneRef,
+  onSaveSelection,
 }: WPSimpleEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState(false);
@@ -336,7 +339,7 @@ export function WPSimpleEditor({
 
           {/* Cross-ref dropdown */}
           {(onOpenCrossRefDialog || onOpenWPRefDialog || onInsertTaskRef || onInsertDeliverableRef || onOpenParticipantRefDialog) && (
-            <DropdownMenu>
+            <DropdownMenu onOpenChange={(open) => { if (open) onSaveSelection?.(); }}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <DropdownMenuTrigger asChild>

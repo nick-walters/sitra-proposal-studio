@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { SaveIndicator } from '@/components/SaveIndicator';
 import { useWPDraftEditor } from '@/hooks/useWPDrafts';
 import { useWPDraftUndoRedo } from '@/hooks/useWPDraftUndoRedo';
@@ -275,6 +275,28 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
   const [isDeliverableRefOpen, setIsDeliverableRefOpen] = useState(false);
   const [figures, setFigures] = useState<any[]>([]);
   const [wpDrafts, setWpDrafts] = useState<any[]>([]);
+
+  // Save the selection range before opening dialogs so we can restore it when inserting
+  const savedRangeRef = useRef<Range | null>(null);
+  const saveSelection = useCallback(() => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      savedRangeRef.current = sel.getRangeAt(0).cloneRange();
+    }
+  }, []);
+  const restoreSelection = useCallback((): Range | null => {
+    const range = savedRangeRef.current;
+    if (range) {
+      const sel = window.getSelection();
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+      savedRangeRef.current = null;
+      return range;
+    }
+    return null;
+  }, []);
   
   // Table insertion for toolbar (moved to top with other hooks)
   const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
@@ -290,6 +312,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
   
   // Editor insertion callbacks (these insert HTML into active contentEditable)
   const insertCitationAtCursor = useCallback((citationNumber: number) => {
+    restoreSelection();
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
@@ -307,6 +330,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
   }, []);
   
   const insertCrossRefAtCursor = useCallback((payload: { refText: string; figureId?: string; tableKey?: string; refKind: 'figure' | 'table' }) => {
+    restoreSelection();
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
@@ -330,6 +354,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
   }, []);
   
   const insertWPRefAtCursor = useCallback((wpNumber: number, wpShortName: string, wpColor: string, wpId: string) => {
+    restoreSelection();
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
@@ -369,6 +394,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
   }, []);
 
   const insertParticipantRefAtCursor = useCallback((participantNumber: number, shortName: string, participantId: string) => {
+    restoreSelection();
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
@@ -408,6 +434,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
   }, []);
   
   const insertFigureAtCursor = useCallback((figure: any) => {
+    restoreSelection();
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
@@ -427,6 +454,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
 
   // Handle Task reference insertion (contentEditable) - pill bubble
   const insertTaskRefAtCursor = useCallback((task: { id: string; wp_number: number; number: number; title: string }) => {
+    restoreSelection();
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
@@ -449,6 +477,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
 
   // Handle Deliverable reference insertion - pentagon bubble matching 3.1.c
   const insertDeliverableRefAtCursor = useCallback((del: { id: string; number: string; name: string }) => {
+    restoreSelection();
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
@@ -474,6 +503,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
 
   // Handle Milestone reference insertion - triangle bubble matching 3.1.d
   const insertMilestoneRefAtCursor = useCallback((ms: { id: string; number: number; name: string }) => {
+    restoreSelection();
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
@@ -810,7 +840,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               {/* Figure */}
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => setIsFigureDialogOpen(true)}>
+                  <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => setIsFigureDialogOpen(true)} onMouseDown={saveSelection}>
                     <ImageIcon className="h-4 w-4" />
                     <span className="text-xs">Figure</span>
                   </Button>
@@ -821,7 +851,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               {/* Citations */}
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => setIsCitationOpen(true)}>
+                  <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => setIsCitationOpen(true)} onMouseDown={saveSelection}>
                     <FileText className="h-4 w-4" />
                     <span className="text-xs">Citations</span>
                   </Button>
@@ -830,7 +860,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit, projectDuration = 36 
               </Tooltip>
               
               {/* Cross-ref dropdown */}
-              <DropdownMenu>
+              <DropdownMenu onOpenChange={(open) => { if (open) saveSelection(); }}>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <DropdownMenuTrigger asChild>
