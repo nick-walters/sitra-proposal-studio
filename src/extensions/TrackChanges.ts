@@ -267,16 +267,16 @@ export const TrackChanges = Extension.create<TrackChangesOptions>({
       if (step.constructor?.name === 'AttrStep') return true;
       // NodeMarkupStep (setNodeMarkup) also only changes node type/attrs/marks
       if (step.constructor?.name === 'NodeMarkupStep') return true;
-      // ReplaceStep with identical content size means attribute-only
+      // ReplaceStep where from === to and slice is empty (no text change)
       if (step.constructor?.name === 'ReplaceStep') {
+        if (step.from === step.to && step.slice && step.slice.content.size === 0) return true;
+        // Check step map: if all ranges map to identical sizes, no text was added/removed
         const map = step.getMap();
         let onlyIdentity = true;
-        map.forEach((oldStart: number, oldEnd: number, newStart: number, newEnd: number) => {
-          if ((oldEnd - oldStart) !== (newEnd - newStart)) onlyIdentity = false;
+        map.forEach((oS: number, oE: number, nS: number, nE: number) => {
+          if ((oE - oS) !== (nE - nS)) onlyIdentity = false;
         });
-        // If all ranges have identical sizes AND the step slice is empty, it's attribute-only
-        if (onlyIdentity && step.slice && step.slice.content.size === 0 && oldEnd === oldStart) return true;
-        return onlyIdentity && step.slice && step.slice.openStart === 0 && step.slice.openEnd === 0 && step.from === step.to;
+        return onlyIdentity;
       }
       return false;
     });
