@@ -920,7 +920,7 @@ export function ProposalEditor() {
           <div className="space-y-2">
             <h1 className="text-xl font-bold text-foreground">WP/case manager & drafts</h1>
             <div className="flex items-center gap-3">
-              <SaveIndicator saving={false} lastSaved={managerLastSaved} />
+              <SaveIndicator saving={false} lastSaved={managerLastSaved} onSaveNow={handleManagerSaveEvent} />
             </div>
           </div>
           <WPManagementCard
