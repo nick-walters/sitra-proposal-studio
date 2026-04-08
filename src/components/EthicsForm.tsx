@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { DebouncedTextarea } from '@/components/ui/debounced-textarea';
+import { DebouncedInput } from '@/components/ui/debounced-input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertTriangle, CheckCircle, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -760,6 +761,49 @@ function EthicsQuestionRow({
     return question.label;
   };
 
+  // Helper component for debounced textarea with character counter
+  function DetailsTextareaWithCounter({ value, onChange, placeholder, maxLength, disabled }: {
+    value: string; onChange: (v: string) => void; placeholder: string; maxLength: number; disabled: boolean;
+  }) {
+    const [localVal, setLocalVal] = useState(value);
+    const isFocusedRef = useRef(false);
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+      if (!isFocusedRef.current) setLocalVal(value);
+    }, [value]);
+
+    useEffect(() => () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); }, []);
+
+    return (
+      <div className="space-y-1">
+        <Textarea
+          value={localVal}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (v.length <= maxLength) {
+              setLocalVal(v);
+              if (timeoutRef.current) clearTimeout(timeoutRef.current);
+              timeoutRef.current = setTimeout(() => { onChange(v); timeoutRef.current = null; }, 500);
+            }
+          }}
+          onFocus={() => { isFocusedRef.current = true; }}
+          onBlur={() => {
+            isFocusedRef.current = false;
+            if (timeoutRef.current) { clearTimeout(timeoutRef.current); timeoutRef.current = null; onChange(localVal); }
+          }}
+          placeholder={placeholder}
+          className="min-h-[80px] text-xs"
+          disabled={disabled}
+          maxLength={maxLength}
+        />
+        <div className="text-xs text-muted-foreground text-right">
+          {localVal.length.toLocaleString()} / {maxLength.toLocaleString()} characters
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div 
@@ -816,29 +860,17 @@ function EthicsQuestionRow({
       {question.detailsId && value === true && (
         <div className="py-2 pl-8 pr-4 bg-muted/20 border-b border-border/50">
           {(question as EthicsQuestion).detailsMaxLength ? (
-            <div className="space-y-1">
-              <Textarea
-                value={detailsValue || ''}
-                onChange={(e) => {
-                  const newValue = e.target.value;
-                  const maxLength = (question as EthicsQuestion).detailsMaxLength!;
-                  if (newValue.length <= maxLength) {
-                    onDetailsChange?.(newValue);
-                  }
-                }}
-                placeholder={question.detailsPlaceholder || 'Please specify...'}
-                className="min-h-[80px] text-xs"
-                disabled={!canEdit}
-                maxLength={(question as EthicsQuestion).detailsMaxLength}
-              />
-              <div className="text-xs text-muted-foreground text-right">
-                {(detailsValue || '').length.toLocaleString()} / {(question as EthicsQuestion).detailsMaxLength!.toLocaleString()} characters
-              </div>
-            </div>
-          ) : (
-            <Input
+            <DetailsTextareaWithCounter
               value={detailsValue || ''}
-              onChange={(e) => onDetailsChange?.(e.target.value)}
+              onChange={(v) => onDetailsChange?.(v)}
+              placeholder={question.detailsPlaceholder || 'Please specify...'}
+              maxLength={(question as EthicsQuestion).detailsMaxLength!}
+              disabled={!canEdit}
+            />
+          ) : (
+            <DebouncedInput
+              value={detailsValue || ''}
+              onDebouncedChange={(v) => onDetailsChange?.(v)}
               placeholder={question.detailsPlaceholder || 'Please specify...'}
               className="h-8 text-xs"
               disabled={!canEdit}
