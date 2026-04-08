@@ -329,20 +329,36 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
   }, []);
   const restoreSelection = useCallback((): Range | null => {
     const range = savedRangeRef.current;
-    if (range) {
-      // Refocus the contentEditable element first so the selection sticks
-      if (savedEditorRef.current && document.body.contains(savedEditorRef.current)) {
-        savedEditorRef.current.focus();
+    const editorEl = savedEditorRef.current;
+    if (range && editorEl && document.body.contains(editorEl)) {
+      // Validate that the range's containers are still in the DOM
+      if (document.body.contains(range.startContainer)) {
+        editorEl.focus({ preventScroll: true });
+        const sel = window.getSelection();
+        if (sel) {
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+        savedRangeRef.current = null;
+        savedEditorRef.current = null;
+        return range;
       }
+      // Range is stale – place cursor at end of the editor element instead
+      editorEl.focus({ preventScroll: true });
       const sel = window.getSelection();
       if (sel) {
         sel.removeAllRanges();
-        sel.addRange(range);
+        const fallbackRange = document.createRange();
+        fallbackRange.selectNodeContents(editorEl);
+        fallbackRange.collapse(false);
+        sel.addRange(fallbackRange);
+        savedRangeRef.current = null;
+        savedEditorRef.current = null;
+        return fallbackRange;
       }
-      savedRangeRef.current = null;
-      savedEditorRef.current = null;
-      return range;
     }
+    savedRangeRef.current = null;
+    savedEditorRef.current = null;
     return null;
   }, []);
   
@@ -1326,8 +1342,10 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
         onOpenChange={setIsWPRefOpen}
         proposalId={proposalId}
         onSelect={(wp) => {
-          insertWPRefAtCursor(wp.number, wp.short_name || '', wp.color || '#3b82f6', wp.id);
           setIsWPRefOpen(false);
+          setTimeout(() => {
+            insertWPRefAtCursor(wp.number, wp.short_name || '', wp.color || '#3b82f6', wp.id);
+          }, 100);
         }}
       />
       
@@ -1337,8 +1355,10 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
         onOpenChange={setIsParticipantRefOpen}
         proposalId={proposalId}
         onSelect={(participant) => {
-          insertParticipantRefAtCursor(participant.participantNumber, participant.shortName, participant.id);
           setIsParticipantRefOpen(false);
+          setTimeout(() => {
+            insertParticipantRefAtCursor(participant.participantNumber, participant.shortName, participant.id);
+          }, 100);
         }}
       />
       
