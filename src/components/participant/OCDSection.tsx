@@ -12,6 +12,7 @@ interface OCDSectionProps {
   downloadingPrefilled: boolean;
   onDownloadTemplate: () => void;
   onUploadSigned: (file: File) => void;
+  onDownloadSigned?: () => void;
   canEdit: boolean;
   /** true when the proposal is Horizon Europe (RIA/IA/CSA) */
   isHorizonEurope?: boolean;
@@ -25,6 +26,7 @@ export function OCDSection({
   downloadingPrefilled,
   onDownloadTemplate,
   onUploadSigned,
+  onDownloadSigned,
   canEdit,
   isHorizonEurope = true,
 }: OCDSectionProps) {
@@ -170,6 +172,19 @@ export function OCDSection({
               <CheckCircle2 className="w-3.5 h-3.5 text-success" />
               Uploaded {format(new Date(uploadedAt), 'dd MMM yyyy')}
             </span>
+          )}
+
+          {/* Download uploaded signed OCD */}
+          {hasUploadedOcd && onDownloadSigned && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onDownloadSigned}
+              className="gap-1.5"
+            >
+              <Download className="w-4 h-4" />
+              Download signed OCD (.pdf)
+            </Button>
           )}
         </div>
       </CardContent>

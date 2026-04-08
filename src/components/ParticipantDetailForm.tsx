@@ -439,6 +439,7 @@ export function ParticipantDetailForm({
             downloadingPrefilled={ocd.downloadingFor === participant.id}
             onDownloadTemplate={() => ocd.downloadPrefilled(participant.id)}
             onUploadSigned={(file) => ocd.uploadSignedOcd(participant.id, file)}
+            onDownloadSigned={ocd.uploads[participant.id] ? () => ocd.downloadSignedOcd(participant.id) : undefined}
             canEdit={canEdit}
             isHorizonEurope={['RIA', 'IA', 'CSA'].includes(proposalType || '')}
           />

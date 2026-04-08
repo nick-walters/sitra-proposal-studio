@@ -19,6 +19,7 @@ interface UseOCDReturn {
   uploadTemplate: (file: File) => Promise<void>;
   uploadSignedOcd: (participantId: string, file: File) => Promise<void>;
   downloadPrefilled: (participantId: string) => Promise<void>;
+  downloadSignedOcd: (participantId: string) => Promise<void>;
   downloadingFor: string | null;
   compileOcds: () => Promise<void>;
   compiling: boolean;
@@ -240,6 +241,26 @@ export function useOCD(proposalId: string | undefined): UseOCDReturn {
     }
   }, [proposalId]);
 
+  const downloadSignedOcd = useCallback(async (participantId: string) => {
+    const upload = uploads[participantId];
+    if (!upload?.filePath) return;
+
+    try {
+      const { url, error } = await getProposalFileSignedUrl(upload.filePath);
+      if (error || !url) {
+        toast.error('Failed to get download link');
+        return;
+      }
+
+      const response = await fetch(url);
+      const blob = await response.blob();
+      saveAs(blob, `OCD-signed-${participantId.slice(0, 8)}.pdf`);
+    } catch (err) {
+      console.error('Failed to download signed OCD:', err);
+      toast.error('Failed to download signed OCD');
+    }
+  }, [uploads]);
+
   return {
     requiresOcd,
     templatePath,
@@ -249,6 +270,7 @@ export function useOCD(proposalId: string | undefined): UseOCDReturn {
     uploadTemplate,
     uploadSignedOcd,
     downloadPrefilled,
+    downloadSignedOcd,
     downloadingFor,
     compileOcds,
     compiling,
