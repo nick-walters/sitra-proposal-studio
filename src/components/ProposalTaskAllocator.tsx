@@ -390,6 +390,25 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
                         )}
                       </div>
                       <div className="flex items-center gap-1.5 flex-wrap">
+                        {(() => {
+                          const pl = (task as any).priority_level ?? 1;
+                          if (pl === 1) return (
+                            <Badge className="text-[10px] px-1.5 py-0 h-4 bg-green-100 text-green-800 border-green-300 dark:bg-green-900 dark:text-green-300 cursor-pointer" onClick={() => updatePriorityInline.mutate({ id: task.id, priorityLevel: cyclePriority(pl) })}>
+                              <Flag className="h-3 w-3 mr-0.5" /> Low
+                            </Badge>
+                          );
+                          if (pl === 2) return (
+                            <Badge className="text-[10px] px-1.5 py-0 h-4 bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900 dark:text-amber-300 cursor-pointer" onClick={() => updatePriorityInline.mutate({ id: task.id, priorityLevel: cyclePriority(pl) })}>
+                              <Flag className="h-3 w-3 mr-0.5" /><Flag className="h-3 w-3 mr-0.5" /> Medium
+                            </Badge>
+                          );
+                          if (pl === 3) return (
+                            <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4 cursor-pointer" onClick={() => updatePriorityInline.mutate({ id: task.id, priorityLevel: cyclePriority(pl) })}>
+                              <Flag className="h-3 w-3 mr-0.5" /><Flag className="h-3 w-3 mr-0.5" /><Flag className="h-3 w-3 mr-0.5" /> High
+                            </Badge>
+                          );
+                          return null;
+                        })()}
                         <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 h-4", status.color)}>
                           {status.label}
                         </Badge>
@@ -553,6 +572,24 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label>Priority</Label>
+              <div className="flex gap-1 mt-1">
+                {[1, 2, 3].map(level => (
+                  <Button
+                    key={level}
+                    type="button"
+                    variant={form.priority_level === level ? 'default' : 'outline'}
+                    size="sm"
+                    className={cn("h-8", form.priority_level === level && level === 1 && "bg-green-600 hover:bg-green-700 border-green-600", form.priority_level === level && level === 2 && "bg-amber-500 hover:bg-amber-600 border-amber-500", form.priority_level === level && level === 3 && "bg-destructive hover:bg-destructive/90")}
+                    onClick={() => setForm(f => ({ ...f, priority_level: level }))}
+                  >
+                    {Array.from({ length: level }).map((_, i) => <Flag key={i} className="h-3.5 w-3.5" />)}
+                    <span className="ml-1">{level === 1 ? 'Low' : level === 2 ? 'Medium' : 'High'}</span>
+                  </Button>
+                ))}
+              </div>
             </div>
           </div>
           <DialogFooter>
