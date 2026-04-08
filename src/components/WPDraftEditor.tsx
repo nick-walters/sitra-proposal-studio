@@ -317,19 +317,26 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
   const saveSelection = useCallback(() => {
     const sel = window.getSelection();
     if (sel && sel.rangeCount > 0) {
-      savedRangeRef.current = sel.getRangeAt(0).cloneRange();
-      // Also save a reference to the contentEditable element so we can refocus it
       const node = sel.anchorNode;
       if (node) {
         const el = node.nodeType === Node.ELEMENT_NODE ? node as HTMLElement : node.parentElement;
         const editable = el?.closest('[contenteditable="true"]') as HTMLElement | null;
-        savedEditorRef.current = editable;
+
+        if (editable) {
+          savedRangeRef.current = sel.getRangeAt(0).cloneRange();
+          savedEditorRef.current = editable;
+        }
       }
     }
   }, []);
-  const restoreSelection = useCallback((): Range | null => {
+  const restoreSelection = useCallback((): { range: Range | null; editorEl: HTMLElement | null } => {
     const range = savedRangeRef.current;
     const editorEl = savedEditorRef.current;
+    const clearSavedSelection = () => {
+      savedRangeRef.current = null;
+      savedEditorRef.current = null;
+    };
+
     if (range && editorEl && document.body.contains(editorEl)) {
       // Validate that the range's containers are still in the DOM
       if (document.body.contains(range.startContainer)) {
@@ -339,9 +346,8 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
           sel.removeAllRanges();
           sel.addRange(range);
         }
-        savedRangeRef.current = null;
-        savedEditorRef.current = null;
-        return range;
+        clearSavedSelection();
+        return { range, editorEl };
       }
       // Range is stale – place cursor at end of the editor element instead
       editorEl.focus({ preventScroll: true });
@@ -352,14 +358,17 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
         fallbackRange.selectNodeContents(editorEl);
         fallbackRange.collapse(false);
         sel.addRange(fallbackRange);
-        savedRangeRef.current = null;
-        savedEditorRef.current = null;
-        return fallbackRange;
+        clearSavedSelection();
+        return { range: fallbackRange, editorEl };
       }
     }
-    savedRangeRef.current = null;
-    savedEditorRef.current = null;
-    return null;
+    clearSavedSelection();
+    return { range: null, editorEl: null };
+  }, []);
+
+  const notifyEditorInput = useCallback((editorEl: HTMLElement | null) => {
+    if (!editorEl || !document.body.contains(editorEl)) return;
+    editorEl.dispatchEvent(new Event('input', { bubbles: true }));
   }, []);
   
   // Table insertion for toolbar (moved to top with other hooks)
@@ -376,7 +385,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
   
   // Editor insertion callbacks (these insert HTML into active contentEditable)
   const insertCitationAtCursor = useCallback((citationNumber: number) => {
-    restoreSelection();
+    const { editorEl } = restoreSelection();
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
@@ -389,12 +398,13 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       range.collapse(true);
       selection.removeAllRanges();
       selection.addRange(range);
+      notifyEditorInput(editorEl);
     }
     toast.success(`Citation [${citationNumber}] inserted`);
-  }, []);
+  }, [notifyEditorInput, restoreSelection]);
   
   const insertCrossRefAtCursor = useCallback((payload: { refText: string; figureId?: string; tableKey?: string; refKind: 'figure' | 'table' }) => {
-    restoreSelection();
+    const { editorEl } = restoreSelection();
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
@@ -413,12 +423,13 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       range.collapse(true);
       selection.removeAllRanges();
       selection.addRange(range);
+      notifyEditorInput(editorEl);
     }
     toast.success('Cross-reference inserted');
-  }, []);
+  }, [notifyEditorInput, restoreSelection]);
   
   const insertWPRefAtCursor = useCallback((wpNumber: number, wpShortName: string, wpColor: string, wpId: string) => {
-    restoreSelection();
+    const { editorEl } = restoreSelection();
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
@@ -453,12 +464,13 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       range.collapse(true);
       selection.removeAllRanges();
       selection.addRange(range);
+      notifyEditorInput(editorEl);
     }
     toast.success(`WP${wpNumber} reference inserted`);
-  }, []);
+  }, [notifyEditorInput, restoreSelection]);
 
   const insertParticipantRefAtCursor = useCallback((participantNumber: number, shortName: string, participantId: string) => {
-    restoreSelection();
+    const { editorEl } = restoreSelection();
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
@@ -493,12 +505,13 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       range.collapse(true);
       selection.removeAllRanges();
       selection.addRange(range);
+      notifyEditorInput(editorEl);
     }
     toast.success(`${shortName} reference inserted`);
-  }, []);
+  }, [notifyEditorInput, restoreSelection]);
   
   const insertFigureAtCursor = useCallback((figure: any) => {
-    restoreSelection();
+    const { editorEl } = restoreSelection();
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
@@ -512,13 +525,14 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       range.collapse(true);
       selection.removeAllRanges();
       selection.addRange(range);
+      notifyEditorInput(editorEl);
     }
     toast.success(`Figure reference inserted`);
-  }, []);
+  }, [notifyEditorInput, restoreSelection]);
 
   // Handle Task reference insertion (contentEditable) - pill bubble
   const insertTaskRefAtCursor = useCallback((task: { id: string; wp_number: number; number: number; title: string }) => {
-    restoreSelection();
+    const { editorEl } = restoreSelection();
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
@@ -535,13 +549,14 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       range.collapse(true);
       selection.removeAllRanges();
       selection.addRange(range);
+      notifyEditorInput(editorEl);
     }
     toast.success(`T${task.wp_number}.${task.number} reference inserted`);
-  }, []);
+  }, [notifyEditorInput, restoreSelection]);
 
   // Handle Deliverable reference insertion - pentagon bubble matching 3.1.c
   const insertDeliverableRefAtCursor = useCallback((del: { id: string; number: string; name: string }) => {
-    restoreSelection();
+    const { editorEl } = restoreSelection();
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
@@ -561,13 +576,14 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       range.collapse(true);
       selection.removeAllRanges();
       selection.addRange(range);
+      notifyEditorInput(editorEl);
     }
     toast.success(`${del.number} reference inserted`);
-  }, []);
+  }, [notifyEditorInput, restoreSelection]);
 
   // Handle Milestone reference insertion - triangle bubble matching 3.1.d
   const insertMilestoneRefAtCursor = useCallback((ms: { id: string; number: number; name: string }) => {
-    restoreSelection();
+    const { editorEl } = restoreSelection();
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
@@ -584,9 +600,10 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       range.collapse(true);
       selection.removeAllRanges();
       selection.addRange(range);
+      notifyEditorInput(editorEl);
     }
     toast.success(`MS${ms.number} reference inserted`);
-  }, []);
+  }, [notifyEditorInput, restoreSelection]);
 
   // Fetch participants, figures, and WP drafts for the proposal
   useEffect(() => {
