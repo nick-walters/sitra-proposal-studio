@@ -268,7 +268,7 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
   });
 
   const resetForm = () => setForm({
-    title: '', description: '', responsible_user_id: '', start_date: '', end_date: '', status: 'not_started', assignee_ids: [],
+    title: '', description: '', responsible_user_id: '', start_date: '', end_date: '', status: 'not_started', assignee_ids: [], priority_level: 1,
   });
 
   const openEdit = (task: Task) => {
@@ -281,6 +281,7 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
       end_date: task.end_date || '',
       status: task.status,
       assignee_ids: assigneeMap.get(task.id) || [],
+      priority_level: (task as any).priority_level ?? 1,
     });
     setDialogOpen(true);
   };
