@@ -19,6 +19,7 @@ interface UseOCDReturn {
   uploadTemplate: (file: File) => Promise<void>;
   uploadSignedOcd: (participantId: string, file: File) => Promise<void>;
   downloadPrefilled: (participantId: string) => Promise<void>;
+  downloadSignedOcd: (participantId: string) => Promise<void>;
   downloadingFor: string | null;
   compileOcds: () => Promise<void>;
   compiling: boolean;
