@@ -439,7 +439,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       title: 'Proposal management',
       subsections: [
         { id: 'messaging', number: '', title: 'Message board' },
-        { id: 'task-allocator', number: '', title: 'Tasks' },
+        { id: 'task-allocator', number: '', title: 'Assignments' },
         { id: 'progress-tracker', number: '', title: 'Progress' },
         { id: 'availability', number: '', title: 'Availability' },
       ],
