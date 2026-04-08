@@ -329,20 +329,36 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
   }, []);
   const restoreSelection = useCallback((): Range | null => {
     const range = savedRangeRef.current;
-    if (range) {
-      // Refocus the contentEditable element first so the selection sticks
-      if (savedEditorRef.current && document.body.contains(savedEditorRef.current)) {
-        savedEditorRef.current.focus();
+    const editorEl = savedEditorRef.current;
+    if (range && editorEl && document.body.contains(editorEl)) {
+      // Validate that the range's containers are still in the DOM
+      if (document.body.contains(range.startContainer)) {
+        editorEl.focus({ preventScroll: true });
+        const sel = window.getSelection();
+        if (sel) {
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+        savedRangeRef.current = null;
+        savedEditorRef.current = null;
+        return range;
       }
+      // Range is stale – place cursor at end of the editor element instead
+      editorEl.focus({ preventScroll: true });
       const sel = window.getSelection();
       if (sel) {
         sel.removeAllRanges();
-        sel.addRange(range);
+        const fallbackRange = document.createRange();
+        fallbackRange.selectNodeContents(editorEl);
+        fallbackRange.collapse(false);
+        sel.addRange(fallbackRange);
+        savedRangeRef.current = null;
+        savedEditorRef.current = null;
+        return fallbackRange;
       }
-      savedRangeRef.current = null;
-      savedEditorRef.current = null;
-      return range;
     }
+    savedRangeRef.current = null;
+    savedEditorRef.current = null;
     return null;
   }, []);
   
