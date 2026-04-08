@@ -176,8 +176,8 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
             user_id: userId,
             proposal_id: proposalId,
             type: 'mention',
-            title: 'You were assigned a task',
-            message: `${user?.user_metadata?.full_name || 'Someone'} assigned you to task "${data.title}"`,
+            title: 'You were assigned an assignment',
+            message: `${user?.user_metadata?.full_name || 'Someone'} assigned you to "${data.title}"`,
             metadata: { source: 'task', task_id: task.id },
           }))
         );
@@ -193,7 +193,7 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
       queryClient.invalidateQueries({ queryKey: ['proposal-task-assignees', proposalId] });
       setDialogOpen(false);
       resetForm();
-      toast.success('Task created');
+      toast.success('Assignment created');
     },
   });
 
@@ -231,8 +231,8 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
             user_id: userId,
             proposal_id: proposalId,
             type: 'mention',
-            title: 'You were assigned a task',
-            message: `${user?.user_metadata?.full_name || 'Someone'} assigned you to task "${data.title}"`,
+            title: 'You were assigned an assignment',
+            message: `${user?.user_metadata?.full_name || 'Someone'} assigned you to "${data.title}"`,
             metadata: { source: 'task', task_id: id },
           }))
         );
@@ -248,7 +248,7 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
       setDialogOpen(false);
       setEditingTask(null);
       resetForm();
-      toast.success('Task updated');
+      toast.success('Assignment updated');
     },
   });
 
@@ -265,7 +265,7 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['proposal-tasks', proposalId] });
-      toast.success('Task deleted');
+      toast.success('Assignment deleted');
     },
   });
 
@@ -351,7 +351,7 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
               {/* Header with week labels */}
               <div className="flex border-b min-w-[900px]">
                 <div className="w-[340px] shrink-0 px-3 py-2 text-xs font-medium text-muted-foreground border-r">
-                  Task
+                  Assignment
                 </div>
                 <div className="flex-1 relative">
                   <div className="flex">
@@ -482,7 +482,7 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editingTask ? 'Edit Task' : 'New Task'}</DialogTitle>
+            <DialogTitle>{editingTask ? 'Edit Assignment' : 'New Assignment'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
