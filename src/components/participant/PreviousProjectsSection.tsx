@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2, ClipboardList, GripVertical } from 'lucide-react';
+import { Plus, Trash2, ClipboardList, GripVertical, Pencil, Check, X } from 'lucide-react';
 import { ParticipantPreviousProject } from '@/types/participantDetails';
 import {
   DndContext,
@@ -34,13 +34,19 @@ interface PreviousProjectsSectionProps {
 
 function SortableProjectRow({
   project,
-    canEdit,
-    onDelete,
-  }: {
-    project: ParticipantPreviousProject;
+  canEdit,
+  onDelete,
+  onUpdate,
+}: {
+  project: ParticipantPreviousProject;
   canEdit: boolean;
   onDelete: (id: string) => void;
+  onUpdate: (id: string, updates: Partial<ParticipantPreviousProject>) => void;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState(project.projectName);
+  const [editDesc, setEditDesc] = useState(project.description || '');
+
   const {
     attributes,
     listeners,
@@ -48,7 +54,7 @@ function SortableProjectRow({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: project.id, disabled: !canEdit });
+  } = useSortable({ id: project.id, disabled: !canEdit || editing });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -56,12 +62,43 @@ function SortableProjectRow({
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const handleSave = () => {
+    if (!editName.trim()) return;
+    onUpdate(project.id, { projectName: editName, description: editDesc });
+    setEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditName(project.projectName);
+    setEditDesc(project.description || '');
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <div ref={setNodeRef} style={style} className="p-3 bg-muted/50 rounded-lg space-y-3">
+        <div className="space-y-2">
+          <Label>Name of project or activity</Label>
+          <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label>Short description</Label>
+          <Textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} className="min-h-[80px]" />
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" size="sm" onClick={handleCancel}>
+            <X className="w-4 h-4 mr-1" /> Cancel
+          </Button>
+          <Button size="sm" onClick={handleSave} disabled={!editName.trim()}>
+            <Check className="w-4 h-4 mr-1" /> Save
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
-    >
+    <div ref={setNodeRef} style={style} className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
       {canEdit && (
         <button
           className="flex-shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
@@ -79,14 +116,19 @@ function SortableProjectRow({
         )}
       </div>
       {canEdit && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="flex-shrink-0 text-destructive hover:text-destructive"
-          onClick={() => onDelete(project.id)}
-        >
-          <Trash2 className="w-4 h-4" />
-        </Button>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <Button variant="ghost" size="icon" onClick={() => setEditing(true)}>
+            <Pencil className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-destructive hover:text-destructive"
+            onClick={() => onDelete(project.id)}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
       )}
     </div>
   );
@@ -100,10 +142,7 @@ export function PreviousProjectsSection({
   canEdit,
 }: PreviousProjectsSectionProps) {
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newProject, setNewProject] = useState({
-    projectName: '',
-    description: '',
-  });
+  const [newProject, setNewProject] = useState({ projectName: '', description: '' });
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -112,30 +151,18 @@ export function PreviousProjectsSection({
 
   const handleAdd = () => {
     if (!newProject.projectName.trim()) return;
-
-    onAdd({
-      ...newProject,
-      participantId: '',
-      orderIndex: projects.length,
-    });
-
-    setNewProject({
-      projectName: '',
-      description: '',
-    });
+    onAdd({ ...newProject, participantId: '', orderIndex: projects.length });
+    setNewProject({ projectName: '', description: '' });
     setShowAddForm(false);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-
     const oldIndex = projects.findIndex((p) => p.id === active.id);
     const newIndex = projects.findIndex((p) => p.id === over.id);
     const reordered = arrayMove(projects, oldIndex, newIndex);
-    reordered.forEach((item, i) => {
-      onUpdate(item.id, { orderIndex: i });
-    });
+    reordered.forEach((item, i) => { onUpdate(item.id, { orderIndex: i }); });
   };
 
   const canAddMore = projects.length < 5;
@@ -151,54 +178,32 @@ export function PreviousProjectsSection({
             </CardTitle>
           </div>
           {canEdit && canAddMore && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowAddForm(!showAddForm)}
-              className="gap-1"
-            >
-              <Plus className="w-4 h-4" />
-              Add
+            <Button variant="outline" size="sm" onClick={() => setShowAddForm(!showAddForm)} className="gap-1">
+              <Plus className="w-4 h-4" /> Add
             </Button>
           )}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        
-        {/* Add Form */}
         {showAddForm && (
           <Card className="border-dashed">
             <CardContent className="pt-4 space-y-4">
               <div className="space-y-2">
                 <Label>Name of project or activity</Label>
-                <Input
-                  value={newProject.projectName}
-                  onChange={(e) => setNewProject({ ...newProject, projectName: e.target.value })}
-                  placeholder="e.g., H2020-ProjectName"
-                />
+                <Input value={newProject.projectName} onChange={(e) => setNewProject({ ...newProject, projectName: e.target.value })} placeholder="e.g., H2020-ProjectName" />
               </div>
               <div className="space-y-2">
                 <Label>Short description</Label>
-                <Textarea
-                  value={newProject.description}
-                  onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-                  placeholder="Brief description of the project and your organisation's role..."
-                  className="min-h-[80px]"
-                />
+                <Textarea value={newProject.description} onChange={(e) => setNewProject({ ...newProject, description: e.target.value })} placeholder="Brief description of the project and your organisation's role..." className="min-h-[80px]" />
               </div>
               <div className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={() => setShowAddForm(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleAdd} disabled={!newProject.projectName.trim()}>
-                  Add Project
-                </Button>
+                <Button variant="ghost" onClick={() => setShowAddForm(false)}>Cancel</Button>
+                <Button onClick={handleAdd} disabled={!newProject.projectName.trim()}>Add Project</Button>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Projects List */}
         {projects.length === 0 && !showAddForm ? (
           <div className="text-center py-6 text-muted-foreground">
             <ClipboardList className="w-8 h-8 mx-auto mb-2 opacity-50" />
@@ -215,6 +220,7 @@ export function PreviousProjectsSection({
                     project={project}
                     canEdit={canEdit}
                     onDelete={onDelete}
+                    onUpdate={onUpdate}
                   />
                 ))}
               </div>
@@ -223,9 +229,7 @@ export function PreviousProjectsSection({
         )}
 
         {!canAddMore && projects.length > 0 && (
-          <p className="text-xs text-muted-foreground text-center">
-            Maximum of 5 projects reached
-          </p>
+          <p className="text-xs text-muted-foreground text-center">Maximum of 5 projects reached</p>
         )}
       </CardContent>
     </Card>
