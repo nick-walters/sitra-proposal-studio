@@ -1,0 +1,1 @@
+ALTER TABLE public.proposal_tasks ADD COLUMN priority_level integer NOT NULL DEFAULT 1;
