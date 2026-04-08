@@ -1355,8 +1355,10 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
         onOpenChange={setIsParticipantRefOpen}
         proposalId={proposalId}
         onSelect={(participant) => {
-          insertParticipantRefAtCursor(participant.participantNumber, participant.shortName, participant.id);
           setIsParticipantRefOpen(false);
+          setTimeout(() => {
+            insertParticipantRefAtCursor(participant.participantNumber, participant.shortName, participant.id);
+          }, 100);
         }}
       />
       
