@@ -511,10 +511,10 @@ export function ProposalEditor() {
       return (
         <div className="flex-1 overflow-y-auto p-6 bg-muted/30">
           <div className="max-w-7xl mx-auto space-y-6">
-            <h1 className="text-xl font-bold text-foreground">Tasks & Workload</h1>
+            <h1 className="text-xl font-bold text-foreground">Assignments & Workload</h1>
             <Tabs defaultValue="tasks">
               <TabsList>
-                <TabsTrigger value="tasks">Tasks</TabsTrigger>
+                <TabsTrigger value="tasks">Assignments</TabsTrigger>
                 <TabsTrigger value="workload">Workload</TabsTrigger>
               </TabsList>
               <TabsContent value="tasks">
