@@ -456,11 +456,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       wpSpan.style.whiteSpace = 'nowrap';
       wpSpan.style.userSelect = 'none';
       range.insertNode(wpSpan);
-      // Insert trailing space and move cursor after it
-      const space = document.createTextNode(' ');
       range.setStartAfter(wpSpan);
-      range.insertNode(space);
-      range.setStartAfter(space);
       range.collapse(true);
       selection.removeAllRanges();
       selection.addRange(range);
@@ -497,11 +493,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       partSpan.style.whiteSpace = 'nowrap';
       partSpan.style.userSelect = 'none';
       range.insertNode(partSpan);
-      // Insert trailing space and move cursor after it
-      const space = document.createTextNode(' ');
       range.setStartAfter(partSpan);
-      range.insertNode(space);
-      range.setStartAfter(space);
       range.collapse(true);
       selection.removeAllRanges();
       selection.addRange(range);
@@ -543,10 +535,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       span.setAttribute('data-task-id', task.id);
       Object.assign(span.style, { display: 'inline-flex', alignItems: 'center', height: '17px', padding: '0 4px', borderRadius: '9999px', border: `1.5px solid ${color}`, color: color, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: '700', lineHeight: '1', whiteSpace: 'nowrap', verticalAlign: 'baseline', userSelect: 'none' });
       range.insertNode(span);
-      const space = document.createTextNode(' ');
       range.setStartAfter(span);
-      range.insertNode(space);
-      range.setStartAfter(space);
       range.collapse(true);
       selection.removeAllRanges();
       selection.addRange(range);
@@ -571,10 +560,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       Object.assign(wrapper.style, { display: 'inline-block', verticalAlign: 'baseline', position: 'relative', width: `${totalWidth}px`, height: '17px', userSelect: 'none' });
       wrapper.innerHTML = `<svg width="${totalWidth}" height="17" viewBox="0 0 ${totalWidth} 17" style="position:absolute;top:0;left:0;overflow:visible;"><path d="M 0,0 L ${textWidth},0 L ${totalWidth},8.5 L ${textWidth},17 L 0,17 Z" fill="#ffffff" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/></svg><span style="position:absolute;top:0;left:0;width:${textWidth}px;height:17px;display:flex;align-items:center;justify-content:center;font-family:'Times New Roman',Times,serif;font-size:11pt;font-weight:700;line-height:1;color:${color};white-space:nowrap;">${label}</span>`;
       range.insertNode(wrapper);
-      const space = document.createTextNode(' ');
       range.setStartAfter(wrapper);
-      range.insertNode(space);
-      range.setStartAfter(space);
       range.collapse(true);
       selection.removeAllRanges();
       selection.addRange(range);
@@ -595,10 +581,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       Object.assign(wrapper.style, { display: 'inline-block', verticalAlign: 'baseline', position: 'relative', width: '21px', height: '21px', userSelect: 'none' });
       wrapper.innerHTML = `<svg width="21" height="21" viewBox="0 0 21 21" style="position:absolute;top:0;left:0;overflow:visible;"><path d="M 0,0 L 21,10.5 L 0,21 Z" fill="#000000"/></svg><span style="position:absolute;top:0;left:-1px;width:15px;height:21px;display:flex;align-items:center;justify-content:center;font-family:'Times New Roman',Times,serif;font-size:11pt;font-weight:700;line-height:1;color:#ffffff;letter-spacing:-0.7px;white-space:nowrap;">${ms.number}</span>`;
       range.insertNode(wrapper);
-      const space = document.createTextNode(' ');
       range.setStartAfter(wrapper);
-      range.insertNode(space);
-      range.setStartAfter(space);
       range.collapse(true);
       selection.removeAllRanges();
       selection.addRange(range);
