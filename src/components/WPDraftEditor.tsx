@@ -531,16 +531,17 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
   }, [notifyEditorInput, restoreSelection]);
 
   // Handle Task reference insertion (contentEditable) - pill bubble
-  const insertTaskRefAtCursor = useCallback((task: { id: string; wp_number: number; number: number; title: string }) => {
+  const insertTaskRefAtCursor = useCallback((task: { id: string; wp_number: number; number: number; title: string; wp_color?: string }) => {
     const { editorEl } = restoreSelection();
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
+      const color = task.wp_color || '#2563EB';
       const span = document.createElement('span');
       span.textContent = `T${task.wp_number}.${task.number}`;
       span.setAttribute('contenteditable', 'false');
       span.setAttribute('data-task-id', task.id);
-      Object.assign(span.style, { display: 'inline-flex', alignItems: 'center', height: '17px', padding: '0 4px', borderRadius: '9999px', border: '1.5px solid #000', fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: '700', lineHeight: '1', whiteSpace: 'nowrap', verticalAlign: 'baseline', userSelect: 'none' });
+      Object.assign(span.style, { display: 'inline-flex', alignItems: 'center', height: '17px', padding: '0 4px', borderRadius: '9999px', border: `1.5px solid ${color}`, color: color, fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: '700', lineHeight: '1', whiteSpace: 'nowrap', verticalAlign: 'baseline', userSelect: 'none' });
       range.insertNode(span);
       const space = document.createTextNode(' ');
       range.setStartAfter(span);
@@ -555,11 +556,12 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
   }, [notifyEditorInput, restoreSelection]);
 
   // Handle Deliverable reference insertion - pentagon bubble matching 3.1.c
-  const insertDeliverableRefAtCursor = useCallback((del: { id: string; number: string; name: string }) => {
+  const insertDeliverableRefAtCursor = useCallback((del: { id: string; number: string; name: string; wp_color?: string }) => {
     const { editorEl } = restoreSelection();
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
+      const color = del.wp_color || '#2563EB';
       const label = del.number;
       const textWidth = Math.max(36, label.length * 8 + 8);
       const totalWidth = textWidth + 8;
@@ -567,7 +569,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       wrapper.setAttribute('contenteditable', 'false');
       wrapper.setAttribute('data-deliverable-id', del.id);
       Object.assign(wrapper.style, { display: 'inline-block', verticalAlign: 'baseline', position: 'relative', width: `${totalWidth}px`, height: '17px', userSelect: 'none' });
-      wrapper.innerHTML = `<svg width="${totalWidth}" height="17" viewBox="0 0 ${totalWidth} 17" style="position:absolute;top:0;left:0;overflow:visible;"><path d="M 0,0 L ${textWidth},0 L ${totalWidth},8.5 L ${textWidth},17 L 0,17 Z" fill="#ffffff" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/></svg><span style="position:absolute;top:0;left:0;width:${textWidth}px;height:17px;display:flex;align-items:center;justify-content:center;font-family:'Times New Roman',Times,serif;font-size:11pt;font-weight:700;line-height:1;color:#000;white-space:nowrap;">${label}</span>`;
+      wrapper.innerHTML = `<svg width="${totalWidth}" height="17" viewBox="0 0 ${totalWidth} 17" style="position:absolute;top:0;left:0;overflow:visible;"><path d="M 0,0 L ${textWidth},0 L ${totalWidth},8.5 L ${textWidth},17 L 0,17 Z" fill="#ffffff" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/></svg><span style="position:absolute;top:0;left:0;width:${textWidth}px;height:17px;display:flex;align-items:center;justify-content:center;font-family:'Times New Roman',Times,serif;font-size:11pt;font-weight:700;line-height:1;color:${color};white-space:nowrap;">${label}</span>`;
       range.insertNode(wrapper);
       const space = document.createTextNode(' ');
       range.setStartAfter(wrapper);
