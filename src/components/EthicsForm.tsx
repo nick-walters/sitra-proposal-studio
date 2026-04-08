@@ -761,6 +761,49 @@ function EthicsQuestionRow({
     return question.label;
   };
 
+  // Helper component for debounced textarea with character counter
+  function DetailsTextareaWithCounter({ value, onChange, placeholder, maxLength, disabled }: {
+    value: string; onChange: (v: string) => void; placeholder: string; maxLength: number; disabled: boolean;
+  }) {
+    const [localVal, setLocalVal] = React.useState(value);
+    const isFocused = React.useRef(false);
+    const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    React.useEffect(() => {
+      if (!isFocused.current) setLocalVal(value);
+    }, [value]);
+
+    React.useEffect(() => () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); }, []);
+
+    return (
+      <div className="space-y-1">
+        <Textarea
+          value={localVal}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (v.length <= maxLength) {
+              setLocalVal(v);
+              if (timeoutRef.current) clearTimeout(timeoutRef.current);
+              timeoutRef.current = setTimeout(() => { onChange(v); timeoutRef.current = null; }, 500);
+            }
+          }}
+          onFocus={() => { isFocused.current = true; }}
+          onBlur={() => {
+            isFocused.current = false;
+            if (timeoutRef.current) { clearTimeout(timeoutRef.current); timeoutRef.current = null; onChange(localVal); }
+          }}
+          placeholder={placeholder}
+          className="min-h-[80px] text-xs"
+          disabled={disabled}
+          maxLength={maxLength}
+        />
+        <div className="text-xs text-muted-foreground text-right">
+          {localVal.length.toLocaleString()} / {maxLength.toLocaleString()} characters
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div 
