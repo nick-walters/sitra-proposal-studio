@@ -2862,6 +2862,7 @@ export type Database = {
           end_date: string | null
           id: string
           order_index: number
+          priority_level: number
           proposal_id: string
           responsible_user_id: string | null
           start_date: string | null
@@ -2876,6 +2877,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           order_index?: number
+          priority_level?: number
           proposal_id: string
           responsible_user_id?: string | null
           start_date?: string | null
@@ -2890,6 +2892,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           order_index?: number
+          priority_level?: number
           proposal_id?: string
           responsible_user_id?: string | null
           start_date?: string | null
