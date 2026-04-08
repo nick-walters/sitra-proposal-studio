@@ -787,9 +787,9 @@ function EthicsQuestionRow({
               timeoutRef.current = setTimeout(() => { onChange(v); timeoutRef.current = null; }, 500);
             }
           }}
-          onFocus={() => { isFocused.current = true; }}
+          onFocus={() => { isFocusedRef.current = true; }}
           onBlur={() => {
-            isFocused.current = false;
+            isFocusedRef.current = false;
             if (timeoutRef.current) { clearTimeout(timeoutRef.current); timeoutRef.current = null; onChange(localVal); }
           }}
           placeholder={placeholder}
