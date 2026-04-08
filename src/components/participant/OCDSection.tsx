@@ -173,6 +173,19 @@ export function OCDSection({
               Uploaded {format(new Date(uploadedAt), 'dd MMM yyyy')}
             </span>
           )}
+
+          {/* Download uploaded signed OCD */}
+          {hasUploadedOcd && onDownloadSigned && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onDownloadSigned}
+              className="gap-1.5"
+            >
+              <Download className="w-4 h-4" />
+              Download signed OCD (.pdf)
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
