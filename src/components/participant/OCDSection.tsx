@@ -12,6 +12,7 @@ interface OCDSectionProps {
   downloadingPrefilled: boolean;
   onDownloadTemplate: () => void;
   onUploadSigned: (file: File) => void;
+  onDownloadSigned?: () => void;
   canEdit: boolean;
   /** true when the proposal is Horizon Europe (RIA/IA/CSA) */
   isHorizonEurope?: boolean;
@@ -25,6 +26,7 @@ export function OCDSection({
   downloadingPrefilled,
   onDownloadTemplate,
   onUploadSigned,
+  onDownloadSigned,
   canEdit,
   isHorizonEurope = true,
 }: OCDSectionProps) {
