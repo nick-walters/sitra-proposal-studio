@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Trash2, Award, GripVertical } from 'lucide-react';
+import { Plus, Trash2, Award, GripVertical, Pencil, Check, X } from 'lucide-react';
 import { ParticipantAchievement, ACHIEVEMENT_TYPES } from '@/types/participantDetails';
 import {
   DndContext,
@@ -40,13 +40,19 @@ interface AchievementsSectionProps {
 
 function SortableAchievementRow({
   achievement,
-    canEdit,
-    onDelete,
-  }: {
-    achievement: ParticipantAchievement;
+  canEdit,
+  onDelete,
+  onUpdate,
+}: {
+  achievement: ParticipantAchievement;
   canEdit: boolean;
   onDelete: (id: string) => void;
+  onUpdate: (id: string, updates: Partial<ParticipantAchievement>) => void;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [editType, setEditType] = useState(achievement.achievementType);
+  const [editDesc, setEditDesc] = useState(achievement.description);
+
   const {
     attributes,
     listeners,
@@ -54,13 +60,61 @@ function SortableAchievementRow({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: achievement.id, disabled: !canEdit });
+  } = useSortable({ id: achievement.id, disabled: !canEdit || editing });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
+
+  const handleSave = () => {
+    if (!editDesc.trim()) return;
+    onUpdate(achievement.id, { achievementType: editType, description: editDesc });
+    setEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditType(achievement.achievementType);
+    setEditDesc(achievement.description);
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <div ref={setNodeRef} style={style} className="p-3 bg-muted/50 rounded-lg space-y-3">
+        <div className="space-y-2">
+          <Label>Type *</Label>
+          <Select value={editType} onValueChange={setEditType}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ACHIEVEMENT_TYPES.map((t) => (
+                <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Description *</Label>
+          <Textarea
+            value={editDesc}
+            onChange={(e) => setEditDesc(e.target.value)}
+            className="min-h-[80px]"
+          />
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" size="sm" onClick={handleCancel}>
+            <X className="w-4 h-4 mr-1" /> Cancel
+          </Button>
+          <Button size="sm" onClick={handleSave} disabled={!editDesc.trim()}>
+            <Check className="w-4 h-4 mr-1" /> Save
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -87,14 +141,19 @@ function SortableAchievementRow({
         <p className="text-sm whitespace-pre-wrap">{achievement.description}</p>
       </div>
       {canEdit && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="flex-shrink-0 text-destructive hover:text-destructive"
-          onClick={() => onDelete(achievement.id)}
-        >
-          <Trash2 className="w-4 h-4" />
-        </Button>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <Button variant="ghost" size="icon" onClick={() => setEditing(true)}>
+            <Pencil className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-destructive hover:text-destructive"
+            onClick={() => onDelete(achievement.id)}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
       )}
     </div>
   );
@@ -120,30 +179,22 @@ export function AchievementsSection({
 
   const handleAdd = () => {
     if (!newAchievement.description.trim()) return;
-
     onAdd({
       ...newAchievement,
       participantId: '',
       orderIndex: achievements.length,
     });
-
-    setNewAchievement({
-      achievementType: 'Publication',
-      description: '',
-    });
+    setNewAchievement({ achievementType: 'Publication', description: '' });
     setShowAddForm(false);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-
     const oldIndex = achievements.findIndex((a) => a.id === active.id);
     const newIndex = achievements.findIndex((a) => a.id === over.id);
     const reordered = arrayMove(achievements, oldIndex, newIndex);
-    reordered.forEach((item, i) => {
-      onUpdate(item.id, { orderIndex: i });
-    });
+    reordered.forEach((item, i) => { onUpdate(item.id, { orderIndex: i }); });
   };
 
   const canAddMore = achievements.length < 5;
@@ -159,34 +210,21 @@ export function AchievementsSection({
             </CardTitle>
           </div>
           {canEdit && canAddMore && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowAddForm(!showAddForm)}
-              className="gap-1"
-            >
-              <Plus className="w-4 h-4" />
-              Add
+            <Button variant="outline" size="sm" onClick={() => setShowAddForm(!showAddForm)} className="gap-1">
+              <Plus className="w-4 h-4" /> Add
             </Button>
           )}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-
-        {/* Add Form */}
         {showAddForm && (
           <Card className="border-dashed">
             <CardContent className="pt-4 space-y-4">
               <div className="space-y-2">
                 <div className="space-y-2">
                   <Label>Type *</Label>
-                  <Select
-                    value={newAchievement.achievementType}
-                    onValueChange={(v) => setNewAchievement({ ...newAchievement, achievementType: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
+                  <Select value={newAchievement.achievementType} onValueChange={(v) => setNewAchievement({ ...newAchievement, achievementType: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {ACHIEVEMENT_TYPES.map((t) => (
                         <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
@@ -208,18 +246,13 @@ export function AchievementsSection({
                 </div>
               </div>
               <div className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={() => setShowAddForm(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleAdd} disabled={!newAchievement.description.trim()}>
-                  Add Achievement
-                </Button>
+                <Button variant="ghost" onClick={() => setShowAddForm(false)}>Cancel</Button>
+                <Button onClick={handleAdd} disabled={!newAchievement.description.trim()}>Add Achievement</Button>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Achievements List */}
         {achievements.length === 0 && !showAddForm ? (
           <div className="text-center py-6 text-muted-foreground">
             <Award className="w-8 h-8 mx-auto mb-2 opacity-50" />
@@ -236,6 +269,7 @@ export function AchievementsSection({
                     achievement={achievement}
                     canEdit={canEdit}
                     onDelete={onDelete}
+                    onUpdate={onUpdate}
                   />
                 ))}
               </div>
@@ -244,9 +278,7 @@ export function AchievementsSection({
         )}
 
         {!canAddMore && achievements.length > 0 && (
-          <p className="text-xs text-muted-foreground text-center">
-            Maximum of 5 achievements reached
-          </p>
+          <p className="text-xs text-muted-foreground text-center">Maximum of 5 achievements reached</p>
         )}
       </CardContent>
     </Card>

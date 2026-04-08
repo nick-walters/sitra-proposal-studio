@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2, Cog, GripVertical } from 'lucide-react';
+import { Plus, Trash2, Cog, GripVertical, Pencil, Check, X } from 'lucide-react';
 import { ParticipantInfrastructure } from '@/types/participantDetails';
 import {
   DndContext,
@@ -36,11 +36,17 @@ function SortableInfraRow({
   infra,
   canEdit,
   onDelete,
+  onUpdate,
 }: {
   infra: ParticipantInfrastructure;
   canEdit: boolean;
   onDelete: (id: string) => void;
+  onUpdate: (id: string, updates: Partial<ParticipantInfrastructure>) => void;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState(infra.name);
+  const [editDesc, setEditDesc] = useState(infra.description || '');
+
   const {
     attributes,
     listeners,
@@ -48,7 +54,7 @@ function SortableInfraRow({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: infra.id, disabled: !canEdit });
+  } = useSortable({ id: infra.id, disabled: !canEdit || editing });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -56,12 +62,43 @@ function SortableInfraRow({
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const handleSave = () => {
+    if (!editName.trim()) return;
+    onUpdate(infra.id, { name: editName, description: editDesc });
+    setEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditName(infra.name);
+    setEditDesc(infra.description || '');
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <div ref={setNodeRef} style={style} className="p-3 bg-muted/50 rounded-lg space-y-3">
+        <div className="space-y-2">
+          <Label>Name of infrastructure or equipment</Label>
+          <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label>Description</Label>
+          <Textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} className="min-h-[80px]" />
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" size="sm" onClick={handleCancel}>
+            <X className="w-4 h-4 mr-1" /> Cancel
+          </Button>
+          <Button size="sm" onClick={handleSave} disabled={!editName.trim()}>
+            <Check className="w-4 h-4 mr-1" /> Save
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
-    >
+    <div ref={setNodeRef} style={style} className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
       {canEdit && (
         <button
           className="flex-shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
@@ -79,14 +116,19 @@ function SortableInfraRow({
         )}
       </div>
       {canEdit && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="flex-shrink-0 text-destructive hover:text-destructive"
-          onClick={() => onDelete(infra.id)}
-        >
-          <Trash2 className="w-4 h-4" />
-        </Button>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <Button variant="ghost" size="icon" onClick={() => setEditing(true)}>
+            <Pencil className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-destructive hover:text-destructive"
+            onClick={() => onDelete(infra.id)}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
       )}
     </div>
   );
@@ -100,10 +142,7 @@ export function InfrastructureSection({
   canEdit,
 }: InfrastructureSectionProps) {
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newInfra, setNewInfra] = useState({
-    name: '',
-    description: '',
-  });
+  const [newInfra, setNewInfra] = useState({ name: '', description: '' });
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -112,30 +151,18 @@ export function InfrastructureSection({
 
   const handleAdd = () => {
     if (!newInfra.name.trim()) return;
-
-    onAdd({
-      ...newInfra,
-      participantId: '',
-      orderIndex: infrastructure.length,
-    });
-
-    setNewInfra({
-      name: '',
-      description: '',
-    });
+    onAdd({ ...newInfra, participantId: '', orderIndex: infrastructure.length });
+    setNewInfra({ name: '', description: '' });
     setShowAddForm(false);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-
     const oldIndex = infrastructure.findIndex((i) => i.id === active.id);
     const newIndex = infrastructure.findIndex((i) => i.id === over.id);
     const reordered = arrayMove(infrastructure, oldIndex, newIndex);
-    reordered.forEach((item, i) => {
-      onUpdate(item.id, { orderIndex: i });
-    });
+    reordered.forEach((item, i) => { onUpdate(item.id, { orderIndex: i }); });
   };
 
   return (
@@ -149,53 +176,32 @@ export function InfrastructureSection({
             </CardTitle>
           </div>
           {canEdit && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowAddForm(!showAddForm)}
-              className="gap-1"
-            >
-              <Plus className="w-4 h-4" />
-              Add
+            <Button variant="outline" size="sm" onClick={() => setShowAddForm(!showAddForm)} className="gap-1">
+              <Plus className="w-4 h-4" /> Add
             </Button>
           )}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Add Form */}
         {showAddForm && (
           <Card className="border-dashed">
             <CardContent className="pt-4 space-y-4">
               <div className="space-y-2">
                 <Label>Name of infrastructure or equipment</Label>
-                <Input
-                  value={newInfra.name}
-                  onChange={(e) => setNewInfra({ ...newInfra, name: e.target.value })}
-                  placeholder="e.g., High-Performance Computing Cluster"
-                />
+                <Input value={newInfra.name} onChange={(e) => setNewInfra({ ...newInfra, name: e.target.value })} placeholder="e.g., High-Performance Computing Cluster" />
               </div>
               <div className="space-y-2">
                 <Label>Description</Label>
-                <Textarea
-                  value={newInfra.description}
-                  onChange={(e) => setNewInfra({ ...newInfra, description: e.target.value })}
-                  placeholder="Brief description of the infrastructure/equipment and its relevance..."
-                  className="min-h-[80px]"
-                />
+                <Textarea value={newInfra.description} onChange={(e) => setNewInfra({ ...newInfra, description: e.target.value })} placeholder="Brief description of the infrastructure/equipment and its relevance..." className="min-h-[80px]" />
               </div>
               <div className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={() => setShowAddForm(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleAdd} disabled={!newInfra.name.trim()}>
-                  Add Infrastructure
-                </Button>
+                <Button variant="ghost" onClick={() => setShowAddForm(false)}>Cancel</Button>
+                <Button onClick={handleAdd} disabled={!newInfra.name.trim()}>Add Infrastructure</Button>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Infrastructure List */}
         {infrastructure.length === 0 && !showAddForm ? (
           <div className="text-center py-6 text-muted-foreground">
             <Cog className="w-8 h-8 mx-auto mb-2 opacity-50" />
@@ -212,6 +218,7 @@ export function InfrastructureSection({
                     infra={infra}
                     canEdit={canEdit}
                     onDelete={onDelete}
+                    onUpdate={onUpdate}
                   />
                 ))}
               </div>
