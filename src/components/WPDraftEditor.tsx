@@ -1342,8 +1342,10 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
         onOpenChange={setIsWPRefOpen}
         proposalId={proposalId}
         onSelect={(wp) => {
-          insertWPRefAtCursor(wp.number, wp.short_name || '', wp.color || '#3b82f6', wp.id);
           setIsWPRefOpen(false);
+          setTimeout(() => {
+            insertWPRefAtCursor(wp.number, wp.short_name || '', wp.color || '#3b82f6', wp.id);
+          }, 100);
         }}
       />
       
