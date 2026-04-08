@@ -62,38 +62,72 @@ export function WPSimpleEditor({
   const [isDeliverableRefOpen, setIsDeliverableRefOpen] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const isInitialMount = useRef(true);
+  const hasPendingLocalChangesRef = useRef(false);
 
   // Set initial content
   useEffect(() => {
     if (editorRef.current && isInitialMount.current) {
       editorRef.current.innerHTML = value || '';
+      hasPendingLocalChangesRef.current = false;
       isInitialMount.current = false;
     }
   }, []);
 
   // Sync external value changes
   useEffect(() => {
-    if (editorRef.current && !isFocused) {
-      const currentContent = editorRef.current.innerHTML;
-      if (currentContent !== value) {
-        editorRef.current.innerHTML = value || '';
-      }
+    if (!editorRef.current || isFocused) return;
+
+    const nextValue = value || '';
+    const currentContent = editorRef.current.innerHTML;
+
+    if (currentContent === nextValue) {
+      hasPendingLocalChangesRef.current = false;
+      return;
     }
+
+    if (hasPendingLocalChangesRef.current) {
+      return;
+    }
+
+    editorRef.current.innerHTML = nextValue;
   }, [value, isFocused]);
+
+  const emitChange = useCallback((nextValue: string) => {
+    hasPendingLocalChangesRef.current = true;
+    onChange(nextValue);
+  }, [onChange]);
+
+  const flushPendingChange = useCallback(() => {
+    if (!editorRef.current) return;
+
+    const currentValue = editorRef.current.innerHTML;
+    if (!debounceRef.current && currentValue === (value || '')) {
+      return;
+    }
+
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+
+    emitChange(currentValue);
+  }, [emitChange, value]);
 
   const handleInput = useCallback(() => {
     if (!editorRef.current) return;
     
     const newValue = editorRef.current.innerHTML;
+    hasPendingLocalChangesRef.current = true;
     
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
 
     debounceRef.current = setTimeout(() => {
-      onChange(newValue);
+      debounceRef.current = null;
+      emitChange(newValue);
     }, 500);
-  }, [onChange]);
+  }, [emitChange]);
 
   useEffect(() => {
     return () => {
@@ -439,7 +473,10 @@ export function WPSimpleEditor({
             }
           }}
           onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          onBlur={() => {
+            flushPendingChange();
+            setIsFocused(false);
+          }}
           className={cn(
             "p-3 outline-none resize-y overflow-auto text-draft",
             "[&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4",
