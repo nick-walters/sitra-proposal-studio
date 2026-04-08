@@ -329,7 +329,7 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
       <div className="flex items-center justify-end">
         {isCoordinator && (
           <Button onClick={openCreate} size="sm">
-            <Plus className="h-4 w-4 mr-1" /> Add Task
+            <Plus className="h-4 w-4 mr-1" /> Add Assignment
           </Button>
         )}
       </div>
@@ -338,9 +338,9 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
         <Card>
           <CardContent className="py-12 text-center">
             <ListTodo className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
-            <h3 className="font-medium text-muted-foreground">No tasks yet</h3>
+            <h3 className="font-medium text-muted-foreground">No assignments yet</h3>
             <p className="text-sm text-muted-foreground/70 mt-1">
-              {isCoordinator ? 'Add tasks to plan your proposal preparation' : 'No tasks have been created yet'}
+              {isCoordinator ? 'Add assignments to plan your proposal preparation' : 'No assignments have been created yet'}
             </p>
           </CardContent>
         </Card>
