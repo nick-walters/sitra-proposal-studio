@@ -816,29 +816,17 @@ function EthicsQuestionRow({
       {question.detailsId && value === true && (
         <div className="py-2 pl-8 pr-4 bg-muted/20 border-b border-border/50">
           {(question as EthicsQuestion).detailsMaxLength ? (
-            <div className="space-y-1">
-              <Textarea
-                value={detailsValue || ''}
-                onChange={(e) => {
-                  const newValue = e.target.value;
-                  const maxLength = (question as EthicsQuestion).detailsMaxLength!;
-                  if (newValue.length <= maxLength) {
-                    onDetailsChange?.(newValue);
-                  }
-                }}
-                placeholder={question.detailsPlaceholder || 'Please specify...'}
-                className="min-h-[80px] text-xs"
-                disabled={!canEdit}
-                maxLength={(question as EthicsQuestion).detailsMaxLength}
-              />
-              <div className="text-xs text-muted-foreground text-right">
-                {(detailsValue || '').length.toLocaleString()} / {(question as EthicsQuestion).detailsMaxLength!.toLocaleString()} characters
-              </div>
-            </div>
-          ) : (
-            <Input
+            <DetailsTextareaWithCounter
               value={detailsValue || ''}
-              onChange={(e) => onDetailsChange?.(e.target.value)}
+              onChange={(v) => onDetailsChange?.(v)}
+              placeholder={question.detailsPlaceholder || 'Please specify...'}
+              maxLength={(question as EthicsQuestion).detailsMaxLength!}
+              disabled={!canEdit}
+            />
+          ) : (
+            <DebouncedInput
+              value={detailsValue || ''}
+              onDebouncedChange={(v) => onDetailsChange?.(v)}
               placeholder={question.detailsPlaceholder || 'Please specify...'}
               className="h-8 text-xs"
               disabled={!canEdit}
