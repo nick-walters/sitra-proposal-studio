@@ -154,9 +154,10 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
           start_date: data.start_date || null,
           end_date: data.end_date || null,
           status: data.status,
+          priority_level: data.priority_level,
           order_index: tasks.length,
           created_by: user!.id,
-        })
+        } as any)
         .select()
         .single();
       if (error) throw error;
@@ -207,7 +208,8 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
           start_date: data.start_date || null,
           end_date: data.end_date || null,
           status: data.status,
-        })
+          priority_level: data.priority_level,
+        } as any)
         .eq('id', id);
       if (error) throw error;
       // Replace assignees
