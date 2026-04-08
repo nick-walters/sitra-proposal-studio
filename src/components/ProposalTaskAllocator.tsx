@@ -269,6 +269,16 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
     },
   });
 
+  const cyclePriority = (current: number) => (current % 3) + 1;
+
+  const updatePriorityInline = useMutation({
+    mutationFn: async ({ id, priorityLevel }: { id: string; priorityLevel: number }) => {
+      const { error } = await supabase.from('proposal_tasks').update({ priority_level: priorityLevel } as any).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['proposal-tasks', proposalId] }),
+  });
+
   const resetForm = () => setForm({
     title: '', description: '', responsible_user_id: '', start_date: '', end_date: '', status: 'not_started', assignee_ids: [], priority_level: 1,
   });
