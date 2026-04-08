@@ -403,7 +403,7 @@ export function BudgetParticipantForm({
             onRequestedChange={(v) => updateRow(row.id, 'requestedTravel', v)}
           />
           {row.purchaseTravel > 0 && (
-            <div className="space-y-1 pl-[220px]">
+            <div className="space-y-1">
               <label className="text-sm text-muted-foreground">Justification *</label>
               <p className="text-xs text-muted-foreground italic">
                 Provide concise descriptions of each cost and what they cover, e.g. Consortium meetings (€5,000); conference attendance (€3,000).
@@ -427,7 +427,7 @@ export function BudgetParticipantForm({
             onRequestedChange={(v) => updateRow(row.id, 'requestedEquipment', v)}
           />
           {row.purchaseEquipment > 0 && (
-            <div className="space-y-1 pl-[220px]">
+            <div className="space-y-1">
               <label className="text-sm text-muted-foreground">Justification *</label>
               <p className="text-xs text-muted-foreground italic">
                 Provide concise descriptions of each cost and what they cover, e.g. Sensors and IoT devices (€12,000); server hardware (€8,000).
@@ -463,7 +463,7 @@ export function BudgetParticipantForm({
             onRequestedChange={(v) => updateRow(row.id, 'requestedOtherGoods', v)}
           />
           {row.purchaseOtherGoods > 0 && (
-            <div className="space-y-1 pl-[220px]">
+            <div className="space-y-1">
               <label className="text-sm text-muted-foreground">Justification *</label>
               <p className="text-xs text-muted-foreground italic">
                 Provide concise descriptions of each cost and what they cover, e.g. Software licences (€4,000); cloud hosting (€6,000).
