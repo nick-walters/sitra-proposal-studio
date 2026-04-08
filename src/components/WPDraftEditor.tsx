@@ -650,7 +650,77 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     fetchWpDrafts();
   }, [proposalId]);
 
-  // Handler to intercept first edit attempt on locked WP for coordinators
+  // Recolor existing task/deliverable cross-ref spans with correct WP colors
+  useEffect(() => {
+    if (!wpDrafts.length) return;
+
+    const wpColorByNumber = new Map<number, string>();
+    for (const wp of wpDrafts) {
+      wpColorByNumber.set(wp.number, wp.color || '#2563EB');
+    }
+
+    const recolorInContainer = async () => {
+      // Build taskId → wpColor map
+      const { data: tasks } = await supabase
+        .from('b31_tasks')
+        .select('id, number, wp_draft_id')
+        .in('wp_draft_id', wpDrafts.map(w => w.id));
+
+      const taskColorMap = new Map<string, string>();
+      if (tasks) {
+        for (const t of tasks) {
+          const wp = wpDrafts.find(w => w.id === t.wp_draft_id);
+          if (wp) taskColorMap.set(t.id, wp.color || '#2563EB');
+        }
+      }
+
+      // Build deliverableId → wpColor map
+      const { data: deliverables } = await supabase
+        .from('b31_deliverables')
+        .select('id, wp_number')
+        .eq('proposal_id', proposalId);
+
+      const delColorMap = new Map<string, string>();
+      if (deliverables) {
+        for (const d of deliverables) {
+          if (d.wp_number) delColorMap.set(d.id, wpColorByNumber.get(d.wp_number) || '#2563EB');
+        }
+      }
+
+      // Walk DOM and recolor task spans
+      document.querySelectorAll('[data-task-id]').forEach(el => {
+        const span = el as HTMLElement;
+        const taskId = span.getAttribute('data-task-id');
+        if (!taskId) return;
+        const color = taskColorMap.get(taskId);
+        if (color) {
+          span.style.borderColor = color;
+          span.style.color = color;
+        }
+      });
+
+      // Walk DOM and recolor deliverable spans
+      document.querySelectorAll('[data-deliverable-id]').forEach(el => {
+        const wrapper = el as HTMLElement;
+        const delId = wrapper.getAttribute('data-deliverable-id');
+        if (!delId) return;
+        const color = delColorMap.get(delId);
+        if (!color) return;
+        // Update SVG stroke
+        const path = wrapper.querySelector('path');
+        if (path) path.setAttribute('stroke', color);
+        // Update text color
+        const textSpan = wrapper.querySelector('span');
+        if (textSpan) (textSpan as HTMLElement).style.color = color;
+      });
+    };
+
+    // Delay slightly to let editors render their HTML
+    const timer = setTimeout(recolorInContainer, 300);
+    return () => clearTimeout(timer);
+  }, [wpDrafts, proposalId]);
+
+
   const handleLockedEditAttempt = useCallback(() => {
     if (isLocked && isCoordinator && !lockWarningDismissed) {
       setShowLockWarning(true);
