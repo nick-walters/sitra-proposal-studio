@@ -19,7 +19,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Plus, ListTodo, Trash2, Edit2, CalendarIcon } from 'lucide-react';
+import { Plus, ListTodo, Trash2, Edit2, CalendarIcon, Flag } from 'lucide-react';
 import { format, differenceInDays, eachWeekOfInterval, startOfWeek, endOfWeek, isWithinInterval, addDays, parseISO } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { toast } from 'sonner';
@@ -66,6 +66,7 @@ export function ProposalTaskAllocator({ proposalId, isCoordinator }: ProposalTas
   const [form, setForm] = useState({
     title: '', description: '', responsible_user_id: '', start_date: '', end_date: '', status: 'not_started',
     assignee_ids: [] as string[],
+    priority_level: 1,
   });
 
   // Fetch members
