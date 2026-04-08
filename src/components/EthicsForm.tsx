@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -765,15 +765,15 @@ function EthicsQuestionRow({
   function DetailsTextareaWithCounter({ value, onChange, placeholder, maxLength, disabled }: {
     value: string; onChange: (v: string) => void; placeholder: string; maxLength: number; disabled: boolean;
   }) {
-    const [localVal, setLocalVal] = React.useState(value);
-    const isFocused = React.useRef(false);
-    const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [localVal, setLocalVal] = useState(value);
+    const isFocusedRef = useRef(false);
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    React.useEffect(() => {
-      if (!isFocused.current) setLocalVal(value);
+    useEffect(() => {
+      if (!isFocusedRef.current) setLocalVal(value);
     }, [value]);
 
-    React.useEffect(() => () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); }, []);
+    useEffect(() => () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); }, []);
 
     return (
       <div className="space-y-1">
