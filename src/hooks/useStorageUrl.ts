@@ -9,7 +9,8 @@ export function isStoragePath(value: string): boolean {
   // Data URIs and blob URLs are already displayable, not storage paths
   if (value.startsWith('data:') || value.startsWith('blob:')) return false;
   if (!value.startsWith('http')) return true;
-  if (value.includes('/proposal-files/') && value.includes('token=')) return true;
+  // Any URL referencing proposal-files bucket needs resolution (signed URLs expire, public URLs don't work on private buckets)
+  if (value.includes('/proposal-files/')) return true;
   return false;
 }
 
