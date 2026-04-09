@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -80,6 +80,13 @@ interface SavedAnalysis {
   created_by: string;
   created_at: string;
 }
+
+// ========== Background analysis tracking (survives unmount) ==========
+interface InFlightAnalysis {
+  promise: Promise<{ result: AnalysisResult; savedId: string | null } | null>;
+  startedAt: number;
+}
+const inflightAnalyses = new Map<string, InFlightAnalysis>();
 
 const CRITERION_CONFIG: Record<string, { icon: React.ReactNode; color: string }> = {
   excellence: { icon: <Lightbulb className="w-4 h-4" />, color: 'text-amber-600' },
