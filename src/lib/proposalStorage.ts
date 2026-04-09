@@ -98,7 +98,7 @@ export function generateParticipantLogoPath(
 
 /**
  * Uploads a file to the proposal-files bucket with proper organization.
- * Returns a signed URL (1 hour expiry) since the bucket is private.
+ * Returns both the raw storage path (for persistence) and a signed URL (for immediate display).
  */
 export async function uploadProposalFile(
   file: File | Blob,
@@ -107,7 +107,7 @@ export async function uploadProposalFile(
     upsert?: boolean;
     contentType?: string;
   }
-): Promise<{ url: string | null; error: Error | null }> {
+): Promise<{ url: string | null; storagePath: string | null; error: Error | null }> {
   try {
     const { error: uploadError } = await supabase.storage
       .from('proposal-files')
@@ -117,7 +117,7 @@ export async function uploadProposalFile(
       });
 
     if (uploadError) {
-      return { url: null, error: uploadError };
+      return { url: null, storagePath: null, error: uploadError };
     }
 
     // Use signed URL since bucket is private
@@ -126,12 +126,12 @@ export async function uploadProposalFile(
       .createSignedUrl(filePath, 3600); // 1 hour
 
     if (signError || !data?.signedUrl) {
-      return { url: null, error: signError || new Error('Failed to create signed URL') };
+      return { url: null, storagePath: null, error: signError || new Error('Failed to create signed URL') };
     }
 
-    return { url: data.signedUrl, error: null };
+    return { url: data.signedUrl, storagePath: filePath, error: null };
   } catch (error) {
-    return { url: null, error: error as Error };
+    return { url: null, storagePath: null, error: error as Error };
   }
 }
 
