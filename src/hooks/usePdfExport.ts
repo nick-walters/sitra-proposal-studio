@@ -2164,31 +2164,26 @@ export function usePdfExport() {
         checkPageBreak(baseRowHeight * 2);
         let xPos = margin;
         
-        // Header background
-        pdf.setFillColor(0, 0, 0);
-        pdf.rect(xPos, yPosition - 4, tableWidth, baseRowHeight, 'F');
-        
-        // Header text
+        // Header - no fill, bold black text
         pdf.setFontSize(FONT_SIZE_BODY);
-        pdf.setTextColor(255, 255, 255);
+        pdf.setTextColor(...black);
+        pdf.setFont('times', 'bold');
+        
+        // Header top and bottom black borders
         pdf.setDrawColor(...black);
-        pdf.setLineWidth(0.25);
+        pdf.setLineWidth(0.5);
+        pdf.line(xPos, yPosition - 4, xPos + tableWidth, yPosition - 4);
+        pdf.line(xPos, yPosition - 4 + baseRowHeight, xPos + tableWidth, yPosition - 4 + baseRowHeight);
         
         // Column 0: No.
-        pdf.setFont('times', 'bold');
-        pdf.rect(xPos, yPosition - 4, colWidths[0], baseRowHeight);
         pdf.text('No.', xPos + cellPadding, yPosition);
         xPos += colWidths[0];
         
         // Column 1: Short name
-        pdf.rect(xPos, yPosition - 4, colWidths[1], baseRowHeight);
         pdf.text('Short name', xPos + cellPadding, yPosition);
         xPos += colWidths[1];
         
-        // Column 2: Participant legal name | English name, if different (no right border)
-        pdf.line(xPos, yPosition - 4, xPos + colWidths[2], yPosition - 4);
-        pdf.line(xPos, yPosition - 4, xPos, yPosition - 4 + baseRowHeight);
-        pdf.line(xPos, yPosition - 4 + baseRowHeight, xPos + colWidths[2], yPosition - 4 + baseRowHeight);
+        // Column 2: Participant legal name | English name, if different
         const headerPart1 = 'Participant legal name | ';
         pdf.text(headerPart1, xPos + cellPadding, yPosition);
         const part1Width = pdf.getTextWidth(headerPart1);
@@ -2197,20 +2192,15 @@ export function usePdfExport() {
         pdf.setFont('times', 'bold');
         xPos += colWidths[2];
         
-        // Column 3: Logo (no left border)
-        pdf.line(xPos, yPosition - 4, xPos + colWidths[3], yPosition - 4);
-        pdf.line(xPos + colWidths[3], yPosition - 4, xPos + colWidths[3], yPosition - 4 + baseRowHeight);
-        pdf.line(xPos, yPosition - 4 + baseRowHeight, xPos + colWidths[3], yPosition - 4 + baseRowHeight);
+        // Column 3: Logo
         pdf.text('Logo', xPos + cellPadding, yPosition);
         xPos += colWidths[3];
         
         // Column 4: Role
-        pdf.rect(xPos, yPosition - 4, colWidths[4], baseRowHeight);
         pdf.text('Role', xPos + cellPadding, yPosition);
         xPos += colWidths[4];
         
         // Column 5: Country
-        pdf.rect(xPos, yPosition - 4, colWidths[5], baseRowHeight);
         pdf.text('Country', xPos + cellPadding, yPosition);
         
         yPosition += baseRowHeight;
