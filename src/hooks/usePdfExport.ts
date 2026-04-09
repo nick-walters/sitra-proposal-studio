@@ -1340,9 +1340,11 @@ export function usePdfExport() {
           const cellTop = rowStartY - 4; // Cell top position
           const cellBottom = cellTop + rowHeight; // Cell bottom position
           
-          // Draw horizontal row border only (no vertical cell borders) to match editor
+          // Draw horizontal row border only (grey separator, no vertical borders)
+          pdf.setDrawColor(200, 200, 200);
           pdf.setLineWidth(0.15);
           pdf.line(margin, cellTop + rowHeight, margin + colWidths.reduce((a, b) => a + b, 0), cellTop + rowHeight);
+          pdf.setDrawColor(...black);
           
           // Draw cell content - vertically centered within cell bounds
           xPos = margin;
