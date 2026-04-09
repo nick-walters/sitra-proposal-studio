@@ -1140,12 +1140,6 @@ export function usePdfExport() {
           
           const rowTop = yPosition - 4;
           
-          // Draw row background for header
-          if (isHeaderRow) {
-            pdf.setFillColor(0, 0, 0);
-            pdf.rect(margin, rowTop, contentWidth, rowHeight, 'F');
-          }
-          
           // Draw cell content
           for (let colIdx = 0; colIdx < numCols; colIdx++) {
             const cellX = margin + colIdx * colWidth;
@@ -1153,7 +1147,7 @@ export function usePdfExport() {
             
             if (isHeaderRow) {
               pdf.setFont('times', 'bold');
-              pdf.setTextColor(255, 255, 255);
+              pdf.setTextColor(...black);
             } else {
               pdf.setFont('times', 'normal');
               pdf.setTextColor(...black);
@@ -1168,15 +1162,19 @@ export function usePdfExport() {
             }
           }
           
-          // Draw borders: horizontal lines only (no vertical separators) to match editor
+          // Draw borders: horizontal lines only, no vertical separators
           if (isHeaderRow) {
+            // Black border above and below header
+            pdf.setDrawColor(...black);
             pdf.setLineWidth(0.5);
             pdf.line(margin, rowTop, margin + contentWidth, rowTop);
             pdf.line(margin, rowTop + rowHeight, margin + contentWidth, rowTop + rowHeight);
           } else {
-            // Light bottom border for data rows
+            // Light grey separator between data rows
+            pdf.setDrawColor(200, 200, 200);
             pdf.setLineWidth(0.15);
             pdf.line(margin, rowTop + rowHeight, margin + contentWidth, rowTop + rowHeight);
+            pdf.setDrawColor(...black);
           }
           
           yPosition += rowHeight;
@@ -1262,14 +1260,13 @@ export function usePdfExport() {
         pdf.setFontSize(FONT_SIZE_BODY);
         pdf.setDrawColor(...black);
         
-        // Draw header row - horizontal lines only, no vertical borders
+        // Draw header row - no fill, bold black text, black border above and below
         let xPos = margin;
-        pdf.setFillColor(0, 0, 0);
-        pdf.rect(margin, yPosition - 4, tableWidth, baseRowHeight, 'F');
         pdf.setFont('times', 'bold');
-        pdf.setTextColor(255, 255, 255);
+        pdf.setTextColor(...black);
         
-        // Header top and bottom lines
+        // Header top and bottom black lines
+        pdf.setDrawColor(...black);
         pdf.setLineWidth(0.5);
         pdf.line(margin, yPosition - 4, margin + tableWidth, yPosition - 4);
         pdf.line(margin, yPosition - 4 + baseRowHeight, margin + tableWidth, yPosition - 4 + baseRowHeight);
@@ -1343,9 +1340,11 @@ export function usePdfExport() {
           const cellTop = rowStartY - 4; // Cell top position
           const cellBottom = cellTop + rowHeight; // Cell bottom position
           
-          // Draw horizontal row border only (no vertical cell borders) to match editor
+          // Draw horizontal row border only (grey separator, no vertical borders)
+          pdf.setDrawColor(200, 200, 200);
           pdf.setLineWidth(0.15);
           pdf.line(margin, cellTop + rowHeight, margin + colWidths.reduce((a, b) => a + b, 0), cellTop + rowHeight);
+          pdf.setDrawColor(...black);
           
           // Draw cell content - vertically centered within cell bounds
           xPos = margin;
@@ -2165,31 +2164,26 @@ export function usePdfExport() {
         checkPageBreak(baseRowHeight * 2);
         let xPos = margin;
         
-        // Header background
-        pdf.setFillColor(0, 0, 0);
-        pdf.rect(xPos, yPosition - 4, tableWidth, baseRowHeight, 'F');
-        
-        // Header text
+        // Header - no fill, bold black text
         pdf.setFontSize(FONT_SIZE_BODY);
-        pdf.setTextColor(255, 255, 255);
+        pdf.setTextColor(...black);
+        pdf.setFont('times', 'bold');
+        
+        // Header top and bottom black borders
         pdf.setDrawColor(...black);
-        pdf.setLineWidth(0.25);
+        pdf.setLineWidth(0.5);
+        pdf.line(xPos, yPosition - 4, xPos + tableWidth, yPosition - 4);
+        pdf.line(xPos, yPosition - 4 + baseRowHeight, xPos + tableWidth, yPosition - 4 + baseRowHeight);
         
         // Column 0: No.
-        pdf.setFont('times', 'bold');
-        pdf.rect(xPos, yPosition - 4, colWidths[0], baseRowHeight);
         pdf.text('No.', xPos + cellPadding, yPosition);
         xPos += colWidths[0];
         
         // Column 1: Short name
-        pdf.rect(xPos, yPosition - 4, colWidths[1], baseRowHeight);
         pdf.text('Short name', xPos + cellPadding, yPosition);
         xPos += colWidths[1];
         
-        // Column 2: Participant legal name | English name, if different (no right border)
-        pdf.line(xPos, yPosition - 4, xPos + colWidths[2], yPosition - 4);
-        pdf.line(xPos, yPosition - 4, xPos, yPosition - 4 + baseRowHeight);
-        pdf.line(xPos, yPosition - 4 + baseRowHeight, xPos + colWidths[2], yPosition - 4 + baseRowHeight);
+        // Column 2: Participant legal name | English name, if different
         const headerPart1 = 'Participant legal name | ';
         pdf.text(headerPart1, xPos + cellPadding, yPosition);
         const part1Width = pdf.getTextWidth(headerPart1);
@@ -2198,20 +2192,15 @@ export function usePdfExport() {
         pdf.setFont('times', 'bold');
         xPos += colWidths[2];
         
-        // Column 3: Logo (no left border)
-        pdf.line(xPos, yPosition - 4, xPos + colWidths[3], yPosition - 4);
-        pdf.line(xPos + colWidths[3], yPosition - 4, xPos + colWidths[3], yPosition - 4 + baseRowHeight);
-        pdf.line(xPos, yPosition - 4 + baseRowHeight, xPos + colWidths[3], yPosition - 4 + baseRowHeight);
+        // Column 3: Logo
         pdf.text('Logo', xPos + cellPadding, yPosition);
         xPos += colWidths[3];
         
         // Column 4: Role
-        pdf.rect(xPos, yPosition - 4, colWidths[4], baseRowHeight);
         pdf.text('Role', xPos + cellPadding, yPosition);
         xPos += colWidths[4];
         
         // Column 5: Country
-        pdf.rect(xPos, yPosition - 4, colWidths[5], baseRowHeight);
         pdf.text('Country', xPos + cellPadding, yPosition);
         
         yPosition += baseRowHeight;
@@ -2255,36 +2244,11 @@ export function usePdfExport() {
           xPos = margin;
           const cellTop = rowStartY - 4;
           
-          // Draw cell borders
+          // Draw cell borders - horizontal grey separators only, no vertical borders
+          pdf.setDrawColor(200, 200, 200);
+          pdf.setLineWidth(0.15);
+          pdf.line(margin, cellTop + rowHeight, margin + tableWidth, cellTop + rowHeight);
           pdf.setDrawColor(...black);
-          pdf.setLineWidth(0.25);
-          
-          // Column 0: No.
-          pdf.rect(xPos, cellTop, colWidths[0], rowHeight);
-          xPos += colWidths[0];
-          
-          // Column 1: Short Name
-          pdf.rect(xPos, cellTop, colWidths[1], rowHeight);
-          xPos += colWidths[1];
-          
-          // Column 2: Legal/English Name (no right border)
-          pdf.line(xPos, cellTop, xPos + colWidths[2], cellTop);
-          pdf.line(xPos, cellTop, xPos, cellTop + rowHeight);
-          pdf.line(xPos, cellTop + rowHeight, xPos + colWidths[2], cellTop + rowHeight);
-          xPos += colWidths[2];
-          
-          // Column 3: Logo (no left border)
-          pdf.line(xPos, cellTop, xPos + colWidths[3], cellTop);
-          pdf.line(xPos + colWidths[3], cellTop, xPos + colWidths[3], cellTop + rowHeight);
-          pdf.line(xPos, cellTop + rowHeight, xPos + colWidths[3], cellTop + rowHeight);
-          xPos += colWidths[3];
-          
-          // Column 4: Role
-          pdf.rect(xPos, cellTop, colWidths[4], rowHeight);
-          xPos += colWidths[4];
-          
-          // Column 5: Country
-          pdf.rect(xPos, cellTop, colWidths[5], rowHeight);
           
           // Draw cell content
           xPos = margin;
