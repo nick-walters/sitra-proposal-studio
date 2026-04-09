@@ -748,6 +748,7 @@ export function SectionNavigator({
             isCoordinator={isCoordinator}
             lockedSections={lockedSections}
             onToggleLock={onToggleLock}
+            onExportPartB={onExportPartB}
           />
         ))}
       </div>
