@@ -82,7 +82,7 @@ import {
 import { cn } from "@/lib/utils";
 import { usePdfExport } from "@/hooks/usePdfExport";
 import { useDocxExport } from "@/hooks/useDocxExport";
-import type { ExportFormat } from "@/components/ExportDialog";
+import { ExportDialog, type ExportFormat } from "@/components/ExportDialog";
 import { useCollaborativeCursors } from "@/hooks/useCollaborativeCursors";
 import { useProposalData } from "@/hooks/useProposalData";
 import { useProposalSections } from "@/hooks/useProposalSections";
