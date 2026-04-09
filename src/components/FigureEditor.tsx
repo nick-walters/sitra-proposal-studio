@@ -168,8 +168,31 @@ export function FigureEditor({
                   className="w-full h-auto rounded"
                 />
               </DialogContent>
-            </Dialog>
+          </Dialog>
           </div>
+          {canEdit && (
+            <div className="flex items-center gap-2">
+              <input
+                ref={replaceInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleReplaceImage}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => replaceInputRef.current?.click()}
+                disabled={isReplacing}
+              >
+                {isReplacing ? (
+                  <><Loader2 className="w-4 h-4 mr-1 animate-spin" />Replacing...</>
+                ) : (
+                  <><Upload className="w-4 h-4 mr-1" />Replace Image</>
+                )}
+              </Button>
+            </div>
+          )}
           <p className="text-sm text-muted-foreground text-left">
             <em><strong>Figure {figure.figureNumber}.</strong> {caption || title}</em>
           </p>
