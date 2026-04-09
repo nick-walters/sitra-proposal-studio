@@ -69,6 +69,7 @@ import { SplitViewPanel } from "./SplitViewPanel";
 // SectionReviewDialog moved to Part B Evaluate tab
 import { B31DeliverablesTable, B31MilestonesTable, B31RisksTable } from "./B31TablesEditor";
 import { B31SectionContent } from "./B31SectionContent";
+import { B31IntroText } from "./B31IntroText";
 import { TrackChange } from "@/extensions/TrackChanges";
 // usePageEstimate moved to ExportDialog
 import { EditorZoomBar } from "./EditorZoomBar";
@@ -1357,6 +1358,11 @@ export function DocumentEditor({
                     containerRef={editorContainerRef}
                   />
                 </div>
+              )}
+
+              {/* B3.1 Intro text - dynamic sentence before compulsory tables */}
+              {(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') && (
+                <B31IntroText proposalId={proposalId} acronymSegments={acronymSegments} proposalAcronym={proposalAcronym} />
               )}
 
               {/* B3.1 Section Content - auto-populated figures, tables, and structured content */}
