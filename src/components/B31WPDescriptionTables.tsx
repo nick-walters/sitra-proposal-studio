@@ -431,7 +431,7 @@ function EditableText({
       contentEditable
       suppressContentEditableWarning
       className={cn(
-        "outline-none min-h-[1.2em] font-['Times_New_Roman',Times,serif] text-[11pt] text-justify",
+        "outline-none min-h-[1.2em] font-['Times_New_Roman',Times,serif] text-[11pt] text-justify [&_p]:mt-[6pt] [&_p]:mb-[6pt] [&_div]:mt-[6pt] [&_div]:mb-[6pt]",
         !focused && isEmpty && 'text-muted-foreground italic',
         className,
       )}
