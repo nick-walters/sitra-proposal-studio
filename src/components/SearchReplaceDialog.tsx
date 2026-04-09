@@ -124,8 +124,8 @@ export function SearchReplaceDialog({ isOpen, onClose, editor }: SearchReplaceDi
                   return Decoration.inline(match.from, match.to, {
                     class: isCurrent ? 'search-highlight-current' : 'search-highlight',
                     style: isCurrent
-                      ? 'background-color: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-radius: 2px;'
-                      : 'background-color: hsl(var(--accent)); border-radius: 2px;',
+                      ? 'background-color: #f59e0b; color: #000; border-radius: 2px;'
+                      : 'background-color: #fde68a; border-radius: 2px;',
                   });
                 });
                 return { decorations: DecorationSet.create(tr.doc, decos), matches: m, currentIndex };
