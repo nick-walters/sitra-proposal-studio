@@ -12,8 +12,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Search, CheckCircle2, AlertCircle, BookOpen, Library, Plus } from "lucide-react";
+import { Loader2, Search, CheckCircle2, AlertCircle, BookOpen, Library, Plus, PenLine, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import DOMPurify from "dompurify";
@@ -54,6 +55,16 @@ export function CitationDialog({
   const [formattedCitation, setFormattedCitation] = useState('');
   const [isVerified, setIsVerified] = useState(false);
   const [needsVerification, setNeedsVerification] = useState(false);
+
+  // Manual entry state
+  const [manualAuthors, setManualAuthors] = useState('');
+  const [manualYear, setManualYear] = useState('');
+  const [manualTitle, setManualTitle] = useState('');
+  const [manualJournal, setManualJournal] = useState('');
+  const [manualVolume, setManualVolume] = useState('');
+  const [manualPages, setManualPages] = useState('');
+  const [manualDoi, setManualDoi] = useState('');
+  const [manualFormatted, setManualFormatted] = useState('');
 
   const handleSearch = async () => {
     if (!query.trim()) {
@@ -99,7 +110,6 @@ export function CitationDialog({
   const handleConfirm = () => {
     if (!foundReference) return;
 
-    // Check for duplicates in proposal references
     const existingRef = proposalReferences.find(
       ref => 
         (ref.doi && ref.doi === foundReference.doi) || 
@@ -114,7 +124,72 @@ export function CitationDialog({
       onInsertCitation(foundReference, formattedCitation, nextCitationNumber);
     }
 
-    // Reset and close
+    resetAndClose();
+  };
+
+  const handleRejectAndWriteManually = () => {
+    // Pre-fill manual fields from the rejected lookup if available
+    if (foundReference) {
+      setManualAuthors(foundReference.authors.join(', '));
+      setManualYear(foundReference.year?.toString() || '');
+      setManualTitle(foundReference.title);
+      setManualJournal(foundReference.journal || '');
+      setManualVolume(foundReference.volume || '');
+      setManualPages(foundReference.pages || '');
+      setManualDoi(foundReference.doi || '');
+      setManualFormatted(formattedCitation);
+    }
+    setFoundReference(null);
+    setFormattedCitation('');
+    setIsVerified(false);
+    setNeedsVerification(false);
+    setActiveTab('manual');
+  };
+
+  const handleManualInsert = () => {
+    if (!manualTitle.trim()) {
+      toast.error("Please enter at least a title");
+      return;
+    }
+
+    const reference: Reference = {
+      authors: manualAuthors.split(',').map(a => a.trim()).filter(Boolean),
+      year: manualYear ? parseInt(manualYear) : null,
+      title: manualTitle.trim(),
+      journal: manualJournal.trim() || null,
+      volume: manualVolume.trim() || null,
+      pages: manualPages.trim() || null,
+      doi: manualDoi.trim() || null,
+    };
+
+    // Build formatted citation if not provided
+    let formatted = manualFormatted.trim();
+    if (!formatted) {
+      const parts: string[] = [];
+      if (reference.authors.length > 0) parts.push(reference.authors.join(', '));
+      if (reference.year) parts.push(`(${reference.year})`);
+      if (reference.title) parts.push(reference.title);
+      if (reference.journal) parts.push(`*${reference.journal}*`);
+      if (reference.volume) parts.push(reference.volume);
+      if (reference.pages) parts.push(`:${reference.pages}`);
+      if (reference.doi) parts.push(`DOI: ${reference.doi}`);
+      formatted = parts.join('. ');
+    }
+
+    const existingRef = proposalReferences.find(
+      ref =>
+        (ref.doi && ref.doi === reference.doi) ||
+        (ref.title.toLowerCase() === reference.title.toLowerCase() &&
+          ref.year === reference.year)
+    );
+
+    if (existingRef) {
+      toast.warning("This reference has already been cited. Using existing citation number.");
+      onInsertCitation(reference, formatted, existingRef.citation_number);
+    } else {
+      onInsertCitation(reference, formatted, nextCitationNumber);
+    }
+
     resetAndClose();
   };
 
@@ -139,6 +214,14 @@ export function CitationDialog({
     setFormattedCitation('');
     setIsVerified(false);
     setNeedsVerification(false);
+    setManualAuthors('');
+    setManualYear('');
+    setManualTitle('');
+    setManualJournal('');
+    setManualVolume('');
+    setManualPages('');
+    setManualDoi('');
+    setManualFormatted('');
     setActiveTab('library');
     onClose();
   };
@@ -158,15 +241,15 @@ export function CitationDialog({
             Add Citation
           </DialogTitle>
           <DialogDescription>
-            Choose from existing citations or add a new one by DOI or title.
+            Choose from existing citations, look up by DOI/title, or write manually.
           </DialogDescription>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="library" className="flex items-center gap-1.5">
               <Library className="w-4 h-4" />
-              Citation Library
+              Library
               {proposalReferences.length > 0 && (
                 <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
                   {proposalReferences.length}
@@ -174,8 +257,12 @@ export function CitationDialog({
               )}
             </TabsTrigger>
             <TabsTrigger value="add" className="flex items-center gap-1.5">
-              <Plus className="w-4 h-4" />
-              Add New
+              <Search className="w-4 h-4" />
+              Lookup
+            </TabsTrigger>
+            <TabsTrigger value="manual" className="flex items-center gap-1.5">
+              <PenLine className="w-4 h-4" />
+              Manual
             </TabsTrigger>
           </TabsList>
 
@@ -250,12 +337,18 @@ export function CitationDialog({
                   />
                 </div>
 
-                {needsVerification && (
-                  <Button variant="outline" size="sm" onClick={handleVerify} className="w-full">
-                    <CheckCircle2 className="w-4 h-4 mr-2" />
-                    Confirm This Is Correct
+                <div className="flex gap-2">
+                  {needsVerification && (
+                    <Button variant="outline" size="sm" onClick={handleVerify} className="flex-1">
+                      <CheckCircle2 className="w-4 h-4 mr-1" />
+                      Confirm Correct
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" onClick={handleRejectAndWriteManually} className="flex-1 text-muted-foreground">
+                    <X className="w-4 h-4 mr-1" />
+                    Incorrect — Write Manually
                   </Button>
-                )}
+                </div>
               </Card>
             )}
 
@@ -272,6 +365,104 @@ export function CitationDialog({
                 </Button>
               </DialogFooter>
             )}
+          </TabsContent>
+
+          <TabsContent value="manual" className="mt-4 space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2 space-y-1.5">
+                <Label htmlFor="manual-title" className="text-xs">Title *</Label>
+                <Input
+                  id="manual-title"
+                  value={manualTitle}
+                  onChange={(e) => setManualTitle(e.target.value)}
+                  placeholder="Article or book title"
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <Label htmlFor="manual-authors" className="text-xs">Authors</Label>
+                <Input
+                  id="manual-authors"
+                  value={manualAuthors}
+                  onChange={(e) => setManualAuthors(e.target.value)}
+                  placeholder="Author A, Author B, Author C"
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="manual-year" className="text-xs">Year</Label>
+                <Input
+                  id="manual-year"
+                  value={manualYear}
+                  onChange={(e) => setManualYear(e.target.value)}
+                  placeholder="2024"
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="manual-doi" className="text-xs">DOI</Label>
+                <Input
+                  id="manual-doi"
+                  value={manualDoi}
+                  onChange={(e) => setManualDoi(e.target.value)}
+                  placeholder="10.1234/..."
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="manual-journal" className="text-xs">Journal / Source</Label>
+                <Input
+                  id="manual-journal"
+                  value={manualJournal}
+                  onChange={(e) => setManualJournal(e.target.value)}
+                  placeholder="Journal name"
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1 space-y-1.5">
+                  <Label htmlFor="manual-volume" className="text-xs">Volume</Label>
+                  <Input
+                    id="manual-volume"
+                    value={manualVolume}
+                    onChange={(e) => setManualVolume(e.target.value)}
+                    placeholder="Vol."
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="flex-1 space-y-1.5">
+                  <Label htmlFor="manual-pages" className="text-xs">Pages</Label>
+                  <Input
+                    id="manual-pages"
+                    value={manualPages}
+                    onChange={(e) => setManualPages(e.target.value)}
+                    placeholder="1–10"
+                    className="h-8 text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="manual-formatted" className="text-xs">Full formatted citation (optional override)</Label>
+              <Textarea
+                id="manual-formatted"
+                value={manualFormatted}
+                onChange={(e) => setManualFormatted(e.target.value)}
+                placeholder="If left empty, a citation will be auto-generated from the fields above."
+                rows={2}
+                className="text-sm"
+              />
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button variant="outline" onClick={resetAndClose}>
+                Cancel
+              </Button>
+              <Button onClick={handleManualInsert} disabled={!manualTitle.trim()}>
+                Insert Citation
+              </Button>
+            </DialogFooter>
           </TabsContent>
         </Tabs>
       </DialogContent>
