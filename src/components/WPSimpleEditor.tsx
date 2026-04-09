@@ -479,6 +479,7 @@ export function WPSimpleEditor({
           }}
           className={cn(
             "p-3 outline-none resize-y overflow-auto text-draft",
+            "[&_p]:mt-[6pt] [&_p]:mb-[6pt] [&_div]:mt-[6pt] [&_div]:mb-[6pt]",
             "[&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4",
             "[&_table]:w-full [&_table]:border-collapse",
             "[&_th]:border [&_th]:border-foreground [&_th]:p-1 [&_th]:bg-foreground [&_th]:text-background [&_th]:font-bold",
