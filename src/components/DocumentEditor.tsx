@@ -158,6 +158,7 @@ export function DocumentEditor({
     references: proposalReferences, 
     isLoading: isLoadingReferences, 
     addReference,
+    updateReference,
     findExistingReference,
     getNextCitationNumber 
   } = useProposalReferences(proposalId);
@@ -1713,6 +1714,7 @@ export function DocumentEditor({
         proposalReferences={proposalReferences}
         isLoadingReferences={isLoadingReferences}
         nextCitationNumber={getNextCitationNumber()}
+        onUpdateReference={updateReference}
       />
       <InsertFigureDialog
         isOpen={isFigureDialogOpen}
