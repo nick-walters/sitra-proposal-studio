@@ -389,8 +389,11 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
-      const citationSpan = document.createElement('sup');
-      citationSpan.textContent = `[${citationNumber}]`;
+      const citationSpan = document.createElement('span');
+      citationSpan.textContent = `${citationNumber}`;
+      citationSpan.style.verticalAlign = 'super';
+      citationSpan.style.fontSize = '0.75em';
+      citationSpan.style.lineHeight = '0';
       citationSpan.style.color = 'blue';
       citationSpan.style.cursor = 'pointer';
       range.insertNode(citationSpan);
