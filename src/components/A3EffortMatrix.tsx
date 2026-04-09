@@ -8,6 +8,8 @@ import { Users, Lock, Unlock } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { getContrastingTextColor } from '@/lib/wpColors';
 
 function formatPM(value: number): string {
   if (value === 0) return '0';
@@ -26,6 +28,7 @@ interface WPInfo {
   number: number;
   short_name: string | null;
   title: string | null;
+  color: string;
 }
 
 interface ParticipantInfo {
@@ -51,7 +54,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
     queryFn: async () => {
       const { data, error } = await supabase
         .from('wp_drafts')
-        .select('id, number, short_name, title')
+        .select('id, number, short_name, title, color')
         .eq('proposal_id', proposalId)
         .order('number');
       if (error) throw error;
@@ -163,6 +166,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
         </CardDescription>
       </CardHeader>
       <CardContent>
+        <TooltipProvider>
         <div className="overflow-auto">
           <table className="text-xs border-collapse w-full table-fixed">
             <colgroup>
@@ -176,8 +180,23 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
               <tr className="border-b">
                 <th className="px-2 py-1.5 text-left border-r font-bold whitespace-nowrap">Participant</th>
                 {wps.map(wp => (
-                  <th key={wp.id} className="px-2 py-1.5 text-center border-r font-bold whitespace-nowrap">
-                    WP{wp.number}
+                  <th key={wp.id} className="px-1 py-1.5 text-center border-r">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span
+                          className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap cursor-default"
+                          style={{
+                            backgroundColor: wp.color || '#3b82f6',
+                            color: getContrastingTextColor(wp.color || '#3b82f6'),
+                          }}
+                        >
+                          WP{wp.number}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <span className="text-xs">WP{wp.number}{wp.short_name ? `: ${wp.short_name}` : ''}{wp.title ? ` – ${wp.title}` : ''}</span>
+                      </TooltipContent>
+                    </Tooltip>
                   </th>
                 ))}
                 <th className="px-2 py-1.5 text-center border-r font-bold whitespace-nowrap">Total</th>
@@ -194,8 +213,13 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
                   <tr key={p.id} className={cn('border-t hover:bg-muted/50', isLocked && !isCoordinator && 'opacity-60')}>
                     <td className="px-2 py-1 border-r whitespace-nowrap">
                       <div className="flex items-center justify-between gap-1">
-                        <span className="flex items-center gap-1 font-bold">
-                          {p.participant_number}. {p.organisation_short_name || p.organisation_name}
+                        <span className="flex items-center gap-1">
+                          <span
+                            className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap"
+                            style={{ backgroundColor: '#000000', color: '#ffffff' }}
+                          >
+                            {p.participant_number}. {p.organisation_short_name || p.organisation_name}
+                          </span>
                           {isLocked && !isCoordinator && <Lock className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
                         </span>
                         {isCoordinator && (
@@ -253,6 +277,7 @@ export function A3EffortMatrix({ proposalId, canEdit, isCoordinator = false }: A
             </tfoot>
           </table>
         </div>
+        </TooltipProvider>
       </CardContent>
     </Card>
   );
