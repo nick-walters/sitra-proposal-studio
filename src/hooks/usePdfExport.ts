@@ -1646,6 +1646,76 @@ export function usePdfExport() {
           addB31TableAdvanced(wpListHeaders, wpListRows, wpListColWidths, 'Table 3.1.a. List of work packages');
         }
 
+        // ===== Figure 3.1.a – PERT chart & Figure 3.1.b – Gantt chart =====
+        // Capture from DOM if rendered on the page
+        const pertFigure = (figuresData || []).find((f: any) => f.figure_type === 'pert');
+        const ganttFigure = (figuresData || []).find((f: any) => f.figure_type === 'gantt');
+        
+        const captureFigureFromDom = async (figureType: string): Promise<string | null> => {
+          try {
+            // Try to find the rendered figure in the DOM
+            const selector = figureType === 'pert' ? '[data-figure-type="pert"]' : '[data-figure-type="gantt"]';
+            let el = document.querySelector(selector) as HTMLElement;
+            // Fallback: try finding by class or other attributes
+            if (!el) {
+              const containers = document.querySelectorAll('.b31-tables-container > div');
+              for (const container of Array.from(containers)) {
+                const text = container.textContent || '';
+                if (figureType === 'pert' && text.includes('PERT')) {
+                  el = container as HTMLElement;
+                  break;
+                }
+                if (figureType === 'gantt' && text.includes('Gantt')) {
+                  el = container as HTMLElement;
+                  break;
+                }
+              }
+            }
+            if (!el) return null;
+            
+            const html2canvas = (await import('html2canvas')).default;
+            const canvas = await html2canvas(el, { useCORS: true, scale: 2, backgroundColor: '#ffffff' });
+            return canvas.toDataURL('image/jpeg', 0.9);
+          } catch (e) {
+            console.warn(`Could not capture ${figureType} figure from DOM:`, e);
+            return null;
+          }
+        };
+        
+        if (pertFigure) {
+          const pertImage = await captureFigureFromDom('pert');
+          if (pertImage) {
+            const imgData = await loadImageAsBase64(pertImage);
+            if (imgData) {
+              const imgW = Math.min(contentWidth, 180);
+              const aspect = imgData.height / imgData.width;
+              const imgH = Math.min(imgW * aspect, 120);
+              checkPageBreak(imgH + 10);
+              const xPos = margin + (contentWidth - imgW) / 2;
+              pdf.addImage(imgData.data, 'JPEG', xPos, yPosition, imgW, imgH);
+              yPosition += imgH + 4.2;
+            }
+          }
+          addCaption(`Figure ${pertFigure.figure_number}. ${pertFigure.caption || pertFigure.title || 'PERT chart'}`, 'figure');
+        }
+        
+        if (ganttFigure) {
+          const ganttImage = await captureFigureFromDom('gantt');
+          if (ganttImage) {
+            const imgData = await loadImageAsBase64(ganttImage);
+            if (imgData) {
+              const imgW = Math.min(contentWidth, 180);
+              const aspect = imgData.height / imgData.width;
+              const imgH = Math.min(imgW * aspect, 120);
+              checkPageBreak(imgH + 10);
+              const xPos = margin + (contentWidth - imgW) / 2;
+              pdf.addImage(imgData.data, 'JPEG', xPos, yPosition, imgW, imgH);
+              yPosition += imgH + 4.2;
+            }
+          }
+          addCaption(`Figure ${ganttFigure.figure_number}. ${ganttFigure.caption || 'Gantt chart'}`, 'figure');
+        }
+
         // ===== Table 3.1.b – Work package descriptions (one per WP) =====
         // Render using the structured layout matching the editor
         addCaption('Table 3.1.b. Work package descriptions', 'table');
