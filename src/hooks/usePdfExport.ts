@@ -329,6 +329,9 @@ export function usePdfExport() {
         yPosition += paragraphSpacing; // 3pt after
       };
 
+      // Maximum gap multiplier for justified text - prevents excessive stretching
+      const MAX_GAP_MULTIPLIER = 2.5; // Gap can be at most 2.5x normal space width
+
       // Helper: Render plain text with justified alignment
       const renderPlainTextJustified = (text: string, x: number, maxWidth: number) => {
         pdf.setFont('times', 'normal');
@@ -344,7 +347,7 @@ export function usePdfExport() {
           const testWidth = currentLineWidth + (currentLineWords.length > 0 ? spaceWidth : 0) + wordWidth;
           
           if (testWidth > maxWidth && currentLineWords.length > 0) {
-            // Flush current line - justified
+            // Flush current line - justified (with gap cap)
             checkPageBreak(lineHeightBody);
             drawJustifiedLine(currentLineWords, x, yPosition, maxWidth, 'normal', false, false);
             yPosition += lineHeightBody;
@@ -365,7 +368,7 @@ export function usePdfExport() {
         }
       };
 
-      // Helper: Draw a single justified line of words
+      // Helper: Draw a single justified line of words (with gap capping)
       const drawJustifiedLine = (words: string[], x: number, y: number, maxWidth: number, fontStyle: string, _bold: boolean, _italic: boolean) => {
         if (words.length <= 1) {
           pdf.setFont('times', fontStyle);
@@ -374,9 +377,16 @@ export function usePdfExport() {
         }
         
         pdf.setFont('times', fontStyle);
+        const spaceWidth = pdf.getTextWidth(' ');
         const totalTextWidth = words.reduce((sum, w) => sum + pdf.getTextWidth(w), 0);
         const totalSpacing = maxWidth - totalTextWidth;
         const spacePerGap = totalSpacing / (words.length - 1);
+        
+        // If gap would be too wide, fall back to left-aligned
+        if (spacePerGap > spaceWidth * MAX_GAP_MULTIPLIER) {
+          pdf.text(words.join(' '), x, y);
+          return;
+        }
         
         let curX = x;
         for (let i = 0; i < words.length; i++) {
