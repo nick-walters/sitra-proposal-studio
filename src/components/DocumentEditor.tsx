@@ -586,17 +586,21 @@ export function DocumentEditor({
   }, [content, getSectionNumberWithoutPrefix]);
 
   // Handle inserting a figure image into the document
-  const handleInsertFigureImage = useCallback((figure: { figureNumber: string; title: string; content: any }) => {
+  const handleInsertFigureImage = useCallback(async (figure: { figureNumber: string; title: string; content: any }) => {
     if (!editor) return;
     
-    const imageUrl = figure.content?.imageUrl;
-    if (!imageUrl) {
+    const rawImageUrl = figure.content?.imageUrl;
+    if (!rawImageUrl) {
       // For non-image figures, just insert a reference
       editor.chain().focus().insertContent(
         `<span class="figure-reference text-primary cursor-pointer hover:underline">(see Figure ${figure.figureNumber})</span>`
       ).run();
       return;
     }
+
+    // Resolve storage path to a fresh signed URL for display in the editor
+    const { resolveStorageUrl } = await import('@/hooks/useStorageUrl');
+    const imageUrl = await resolveStorageUrl(rawImageUrl) || rawImageUrl;
     
     // Check if there is any content before the cursor position (including empty paragraphs)
     const cursorPos = editor.state.selection.from;
