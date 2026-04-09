@@ -147,12 +147,17 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
 
   // Create figure mutation
   const createFigure = useMutation({
-    mutationFn: async (data: { title: string; figureType: string; sectionId: string; imageUrl?: string }) => {
+    mutationFn: async (data: { title: string; figureType: string; sectionId: string; imageUrl?: string; aiPrompt?: string }) => {
       const section = SECTION_OPTIONS.find(s => s.id === data.sectionId);
       const sectionNumber = section?.number.replace('B', '') || '1.1';
       const existingInSection = figures.filter(f => f.sectionId === data.sectionId);
       const letter = String.fromCharCode(97 + existingInSection.length); // a, b, c...
       const figureNumber = `${sectionNumber}.${letter}`;
+
+      const content: any = data.imageUrl ? { imageUrl: data.imageUrl } : null;
+      if (content && data.aiPrompt) {
+        content.aiPrompt = data.aiPrompt;
+      }
 
       const { data: newFigure, error } = await supabase
         .from('figures')
@@ -162,7 +167,7 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
           section_id: data.sectionId,
           title: data.title,
           figure_type: data.figureType,
-          content: data.imageUrl ? { imageUrl: data.imageUrl } : null,
+          content,
           order_index: figures.length,
         })
         .select()
@@ -430,6 +435,7 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
           figureType: newFigureType,
           sectionId: newFigureSection,
           imageUrl: url,
+          aiPrompt: newFigureType === 'ai' ? aiPrompt.trim() : undefined,
         });
       } catch (error) {
         console.error('Upload error:', error);
@@ -537,7 +543,17 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
           </Button>
           {generatedImageUrl && (
             <div className="border rounded-lg p-2">
-              <img src={generatedImageUrl} alt="Generated" className="max-h-40 mx-auto rounded" />
+              <Dialog>
+                <DialogTrigger asChild>
+                  <img src={generatedImageUrl} alt="Generated" className="max-h-40 mx-auto rounded cursor-pointer hover:opacity-80 transition-opacity" title="Click to enlarge" />
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[90vh]">
+                  <DialogHeader>
+                    <DialogTitle>Generated Image Preview</DialogTitle>
+                  </DialogHeader>
+                  <img src={generatedImageUrl} alt="Generated" className="w-full h-auto rounded" />
+                </DialogContent>
+              </Dialog>
             </div>
           )}
         </div>
