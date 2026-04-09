@@ -13,7 +13,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { ArrowLeft, Save, Trash2, Image, Sparkles, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, Image, Sparkles, Loader2, Upload } from 'lucide-react';
+import { useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { generateProposalFilePath, uploadProposalFile } from '@/lib/proposalStorage';
@@ -53,6 +54,41 @@ export function FigureEditor({
   // AI regeneration state
   const [editPrompt, setEditPrompt] = useState(figure.content?.aiPrompt || '');
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isReplacing, setIsReplacing] = useState(false);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
+
+  const handleReplaceImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsReplacing(true);
+    try {
+      const compressed = await compressImage(file, { format: 'png', quality: 0.92 });
+      const ext = getFormatExtension('png');
+      const filename = `figure-${figure.figureNumber}-replaced.${ext}`;
+      const filePath = generateProposalFilePath(proposalId, 'figures', filename, {
+        prefix: figure.figureType === 'ai' ? 'ai-generated' : 'uploaded',
+        addTimestamp: true,
+      });
+
+      const { url, error: uploadErr } = await uploadProposalFile(compressed, filePath, {
+        contentType: 'image/png',
+      });
+
+      if (uploadErr) throw uploadErr;
+      if (!url) throw new Error('Failed to get URL');
+
+      const newContent = { ...figure.content, imageUrl: url };
+      onUpdate({ content: newContent });
+      toast.success('Image replaced successfully!');
+    } catch (error) {
+      console.error('Replace image error:', error);
+      toast.error('Failed to replace image. Please try again.');
+    } finally {
+      setIsReplacing(false);
+      if (replaceInputRef.current) replaceInputRef.current.value = '';
+    }
+  };
 
   const handleSave = () => {
     onUpdate({ title });
@@ -132,8 +168,31 @@ export function FigureEditor({
                   className="w-full h-auto rounded"
                 />
               </DialogContent>
-            </Dialog>
+          </Dialog>
           </div>
+          {canEdit && (
+            <div className="flex items-center gap-2">
+              <input
+                ref={replaceInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleReplaceImage}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => replaceInputRef.current?.click()}
+                disabled={isReplacing}
+              >
+                {isReplacing ? (
+                  <><Loader2 className="w-4 h-4 mr-1 animate-spin" />Replacing...</>
+                ) : (
+                  <><Upload className="w-4 h-4 mr-1" />Replace Image</>
+                )}
+              </Button>
+            </div>
+          )}
           <p className="text-sm text-muted-foreground text-left">
             <em><strong>Figure {figure.figureNumber}.</strong> {caption || title}</em>
           </p>
