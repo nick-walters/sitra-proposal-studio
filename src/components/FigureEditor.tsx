@@ -54,6 +54,41 @@ export function FigureEditor({
   // AI regeneration state
   const [editPrompt, setEditPrompt] = useState(figure.content?.aiPrompt || '');
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isReplacing, setIsReplacing] = useState(false);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
+
+  const handleReplaceImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsReplacing(true);
+    try {
+      const compressed = await compressImage(file, { format: 'png', quality: 0.92 });
+      const ext = getFormatExtension('png');
+      const filename = `figure-${figure.figureNumber}-replaced.${ext}`;
+      const filePath = generateProposalFilePath(proposalId, 'figures', filename, {
+        prefix: figure.figureType === 'ai' ? 'ai-generated' : 'uploaded',
+        addTimestamp: true,
+      });
+
+      const { url, error: uploadErr } = await uploadProposalFile(compressed, filePath, {
+        contentType: 'image/png',
+      });
+
+      if (uploadErr) throw uploadErr;
+      if (!url) throw new Error('Failed to get URL');
+
+      const newContent = { ...figure.content, imageUrl: url };
+      onUpdate({ content: newContent });
+      toast.success('Image replaced successfully!');
+    } catch (error) {
+      console.error('Replace image error:', error);
+      toast.error('Failed to replace image. Please try again.');
+    } finally {
+      setIsReplacing(false);
+      if (replaceInputRef.current) replaceInputRef.current.value = '';
+    }
+  };
 
   const handleSave = () => {
     onUpdate({ title });
