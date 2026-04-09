@@ -403,7 +403,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
       selection.addRange(range);
       notifyEditorInput(editorEl);
     }
-    toast.success(`Citation [${citationNumber}] inserted`);
+    toast.success(`Citation ${citationNumber} inserted`);
   }, [notifyEditorInput, restoreSelection]);
   
   const insertCrossRefAtCursor = useCallback((payload: { refText: string; figureId?: string; tableKey?: string; refKind: 'figure' | 'table' }) => {
