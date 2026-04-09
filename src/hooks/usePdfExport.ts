@@ -1451,12 +1451,166 @@ export function usePdfExport() {
           color: wp.color || colors[(wp.number - 1) % colors.length] || defaultColors[0],
           tasks: (wp.tasks || []).sort((a: any, b: any) => a.number - b.number),
           deliverables: (wp.deliverables || []).sort((a: any, b: any) => a.number - b.number),
+          b31Tasks: (wp.b31_tasks || []).sort((a: any, b: any) => (a.order_index ?? a.number) - (b.order_index ?? b.number)),
         }));
         const wpColorMap = new Map(wps.map((wp: any) => [wp.number, wp.color]));
 
         const toSentenceCase = (text: string): string => {
           if (!text) return '';
           return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+        };
+
+        // Helper: Draw WP description table matching editor layout
+        const renderWPDescriptionTable = (wp: any) => {
+          const [r, g, b] = hexToRgb(wp.color);
+          const leadName = wp.lead_participant_id ? (participantMap.get(wp.lead_participant_id) || '—') : '—';
+          
+          // Use b31_tasks if available, otherwise fall back to wp_draft_tasks
+          const tasksToRender = wp.b31Tasks.length > 0 ? wp.b31Tasks : wp.tasks;
+          const taskStarts = tasksToRender.filter((t: any) => t.start_month).map((t: any) => t.start_month);
+          const taskEnds = tasksToRender.filter((t: any) => t.end_month).map((t: any) => t.end_month);
+          const start = taskStarts.length > 0 ? Math.min(...taskStarts) : null;
+          const end = taskEnds.length > 0 ? Math.max(...taskEnds) : null;
+          const monthRange = start && end 
+            ? `M${String(start).padStart(2, '0')}–M${String(end).padStart(2, '0')}`
+            : '';
+          
+          yPosition += 2;
+          checkPageBreak(20);
+          
+          // WP header pill (full width colored bar)
+          const pillHeight = 5;
+          const pillY = yPosition - 3.5;
+          pdf.setFillColor(r, g, b);
+          pdf.roundedRect(margin, pillY, contentWidth, pillHeight, 2, 2, 'F');
+          pdf.setFontSize(FONT_SIZE_BODY);
+          pdf.setFont('times', 'bold');
+          pdf.setTextColor(255, 255, 255);
+          const wpHeaderText = `WP${wp.number}: ${wp.short_name || ''}${wp.short_name && wp.title ? ' – ' : ''}${wp.title || ''}`;
+          pdf.text(wpHeaderText, margin + 3, yPosition);
+          yPosition += pillHeight + 1;
+          
+          // Leader + duration row
+          pdf.setFont('times', 'normal');
+          pdf.setTextColor(...black);
+          checkPageBreak(lineHeightBody);
+          // Leader bubble
+          const leaderBubbleWidth = drawPartnerBubble(leadName, margin + 3, yPosition);
+          // Duration on the right
+          pdf.setFont('times', 'bold');
+          pdf.setTextColor(...black);
+          if (monthRange) {
+            pdf.text(monthRange, margin + contentWidth - pdf.getTextWidth(monthRange) - 2, yPosition);
+          }
+          yPosition += lineHeightBody;
+          
+          // WP color separator line
+          pdf.setDrawColor(r, g, b);
+          pdf.setLineWidth(0.3);
+          pdf.line(margin, yPosition - 2, margin + contentWidth, yPosition - 2);
+          pdf.setDrawColor(...black);
+          
+          // B3.1 Objectives
+          const objectives = wp.b31_objectives || wp.objectives || '';
+          if (objectives) {
+            const objBlocks = parseHtmlContent(objectives);
+            for (const block of objBlocks) {
+              if (block.type === 'paragraph') addParagraph(block.text, block.segments);
+              else if (block.type === 'list') addList(block.items, block.ordered);
+            }
+          }
+          
+          // Optional field before tasks
+          const beforeTasks = wp.b31_description_before_tasks || '';
+          if (beforeTasks && beforeTasks.replace(/<[^>]*>/g, '').trim()) {
+            const btBlocks = parseHtmlContent(beforeTasks);
+            for (const block of btBlocks) {
+              if (block.type === 'paragraph') addParagraph(block.text, block.segments);
+              else if (block.type === 'list') addList(block.items, block.ordered);
+            }
+          }
+          
+          // Tasks
+          for (const task of tasksToRender) {
+            // Task color separator
+            pdf.setDrawColor(r, g, b);
+            pdf.setLineWidth(0.3);
+            pdf.line(margin, yPosition - 1, margin + contentWidth, yPosition - 1);
+            pdf.setDrawColor(...black);
+            yPosition += 1;
+            
+            checkPageBreak(lineHeightBody * 3);
+            
+            // Task header: badge + title
+            pdf.setFontSize(FONT_SIZE_BODY);
+            const taskId = `T${wp.number}.${task.number}`;
+            // Draw task badge (outlined)
+            pdf.setFontSize(FONT_SIZE_BODY);
+            pdf.setFont('times', 'bold');
+            const taskIdWidth = pdf.getTextWidth(taskId);
+            const badgePadding = 1.5;
+            const badgeWidth = taskIdWidth + badgePadding * 2;
+            const badgeHeight = 4;
+            const badgeY = yPosition - 3;
+            pdf.setDrawColor(r, g, b);
+            pdf.setLineWidth(0.4);
+            pdf.roundedRect(margin, badgeY, badgeWidth, badgeHeight, badgeHeight / 2, badgeHeight / 2, 'S');
+            pdf.setTextColor(r, g, b);
+            pdf.text(taskId, margin + badgePadding, yPosition - 0.5);
+            pdf.setDrawColor(...black);
+            
+            // Task title after badge
+            pdf.setFont('times', 'bold');
+            pdf.setTextColor(...black);
+            const taskTitle = task.title || '';
+            if (taskTitle) {
+              pdf.text(taskTitle, margin + badgeWidth + 2, yPosition - 0.5);
+            }
+            yPosition += lineHeightBody;
+            
+            // Task metadata: leader + partners + duration
+            const tLeadName = task.lead_participant_id ? (participantMap.get(task.lead_participant_id) || '') : '';
+            if (tLeadName) {
+              drawPartnerBubble(tLeadName, margin + 3, yPosition);
+            }
+            // Task participants
+            const partnerIds = (task.participants || []).map((p: any) => p.participant_id).filter((id: string) => id !== task.lead_participant_id);
+            let partnerX = margin + 3 + (tLeadName ? 25 : 0);
+            for (const pid of partnerIds) {
+              const pName = participantMap.get(pid);
+              if (pName) {
+                const bw = drawPartnerBubble(pName, partnerX, yPosition);
+                partnerX += bw + 1;
+              }
+            }
+            // Duration on right
+            const tStart = task.start_month;
+            const tEnd = task.end_month;
+            if (tStart && tEnd) {
+              pdf.setFont('times', 'bold');
+              pdf.setTextColor(...black);
+              const durText = `M${String(tStart).padStart(2, '0')}–M${String(tEnd).padStart(2, '0')}`;
+              pdf.text(durText, margin + contentWidth - pdf.getTextWidth(durText) - 2, yPosition);
+            }
+            yPosition += lineHeightBody;
+            
+            // Task description
+            const taskDesc = task.description || '';
+            if (taskDesc) {
+              const descBlocks = parseHtmlContent(taskDesc);
+              for (const block of descBlocks) {
+                if (block.type === 'paragraph') addParagraph(block.text, block.segments);
+                else if (block.type === 'list') addList(block.items, block.ordered);
+              }
+            }
+          }
+          
+          // Final WP color separator
+          pdf.setDrawColor(r, g, b);
+          pdf.setLineWidth(0.3);
+          pdf.line(margin, yPosition - 1, margin + contentWidth, yPosition - 1);
+          pdf.setDrawColor(...black);
+          yPosition += paragraphSpacing * 2;
         };
 
         // ===== Table 3.1.a – List of work packages =====
