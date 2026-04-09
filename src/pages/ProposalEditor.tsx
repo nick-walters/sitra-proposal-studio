@@ -27,9 +27,7 @@ import { ProposalMessagingBoard } from "@/components/ProposalMessagingBoard";
 import { ProposalTaskAllocator } from "@/components/ProposalTaskAllocator";
 import { ProposalProgressTracker } from "@/components/ProposalProgressTracker";
 import { WorkloadDashboard } from "@/components/WorkloadDashboard";
-import { ProposalScoringAssessment } from "@/components/ProposalScoringAssessment";
-import { CrossReferenceChecker } from "@/components/CrossReferenceChecker";
-import { SectionEvaluatePanel } from "@/components/SectionEvaluatePanel";
+import { ProposalAnalyser } from "@/components/ProposalAnalyser";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -534,22 +532,7 @@ export function ProposalEditor() {
         <div className="flex-1 overflow-y-auto p-6 bg-muted/30">
           <div className="max-w-7xl mx-auto space-y-6">
             <h1 className="text-xl font-bold text-foreground">Part B: Technical Description</h1>
-            <Tabs defaultValue="scoring">
-              <TabsList>
-                <TabsTrigger value="scoring">Scoring</TabsTrigger>
-                <TabsTrigger value="evaluate">Evaluate</TabsTrigger>
-                <TabsTrigger value="cross-refs">Cross-references</TabsTrigger>
-              </TabsList>
-              <TabsContent value="scoring">
-                <ProposalScoringAssessment proposalId={id || ''} />
-              </TabsContent>
-              <TabsContent value="evaluate">
-                <SectionEvaluatePanel proposalId={id || ''} sections={allSections} />
-              </TabsContent>
-              <TabsContent value="cross-refs">
-                <CrossReferenceChecker proposalId={id || ''} isOpen={true} onClose={() => {}} />
-              </TabsContent>
-            </Tabs>
+            <ProposalAnalyser proposalId={id || ''} />
           </div>
         </div>
       );
