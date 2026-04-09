@@ -566,6 +566,9 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
       ) {
         syncSaveVersion(proposalId, sectionId, currentContent, user.id);
       }
+
+      // Clear pending ref after saving to prevent stale data leaking to next section
+      pendingContentRef.current = null;
     };
   }, [proposalId, sectionId, user?.id]);
 
