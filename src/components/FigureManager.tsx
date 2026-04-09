@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FigureEditor } from '@/components/FigureEditor';
 import { Plus, Image, BarChart3, Network, FileImage, Upload, Sparkles, Loader2, LayoutGrid, List, Library } from 'lucide-react';
+import { StorageImage } from '@/components/StorageImage';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -422,19 +423,19 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
         });
 
         const contentType = format === 'png' ? 'image/png' : 'image/jpeg';
-        const { url, error } = await uploadProposalFile(compressedBlob, filePath, {
+        const { storagePath, error: uploadError } = await uploadProposalFile(compressedBlob, filePath, {
           contentType,
         });
 
-        if (error) throw error;
-        if (!url) throw new Error('Failed to get public URL');
+        if (uploadError) throw uploadError;
+        if (!storagePath) throw new Error('Failed to get storage path');
 
-        // Create figure with image URL
+        // Create figure with storage path (not signed URL which expires)
         createFigure.mutate({
           title: newFigureTitle,
           figureType: newFigureType,
           sectionId: newFigureSection,
-          imageUrl: url,
+          imageUrl: storagePath,
           aiPrompt: newFigureType === 'ai' ? aiPrompt.trim() : undefined,
         });
       } catch (error) {
@@ -740,8 +741,8 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
                     >
                       <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden relative">
                         {hasImage ? (
-                          <img 
-                            src={figure.content.imageUrl} 
+                          <StorageImage 
+                            storedPath={figure.content.imageUrl} 
                             alt={figure.title}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                           />

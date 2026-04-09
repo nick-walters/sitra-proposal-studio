@@ -1,6 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, ArrowRight, BarChart3, Network, Sparkles, Image } from 'lucide-react';
+import { StorageImage } from '@/components/StorageImage';
 
 interface Figure {
   id: string;
@@ -61,7 +62,7 @@ export function SortableFigureItem({ figure, onSelect, canEdit }: SortableFigure
       >
         <div className="w-10 h-10 rounded bg-muted flex items-center justify-center overflow-hidden shrink-0">
           {hasImage ? (
-            <img src={figure.content.imageUrl} alt="" className="w-full h-full object-cover" />
+            <StorageImage storedPath={figure.content.imageUrl} alt="" className="w-full h-full object-cover" />
           ) : figure.figureType === 'gantt' ? (
             <BarChart3 className="w-5 h-5 text-muted-foreground" />
           ) : figure.figureType === 'pert' ? (

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { generateProposalFilePath, uploadProposalFile } from '@/lib/proposalStorage';
 import { compressImage, getFormatExtension } from '@/lib/imageCompression';
+import { useStorageUrl } from '@/hooks/useStorageUrl';
 
 interface Figure {
   id: string;
@@ -56,6 +57,7 @@ export function FigureEditor({
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isReplacing, setIsReplacing] = useState(false);
   const replaceInputRef = useRef<HTMLInputElement>(null);
+  const resolvedImageUrl = useStorageUrl(figure.content?.imageUrl);
 
   const handleReplaceImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -71,14 +73,14 @@ export function FigureEditor({
         addTimestamp: true,
       });
 
-      const { url, error: uploadErr } = await uploadProposalFile(compressed, filePath, {
+      const { storagePath, error: uploadErr } = await uploadProposalFile(compressed, filePath, {
         contentType: 'image/png',
       });
 
       if (uploadErr) throw uploadErr;
-      if (!url) throw new Error('Failed to get URL');
+      if (!storagePath) throw new Error('Failed to get storage path');
 
-      const newContent = { ...figure.content, imageUrl: url };
+      const newContent = { ...figure.content, imageUrl: storagePath };
       onUpdate({ content: newContent });
       toast.success('Image replaced successfully!');
     } catch (error) {
@@ -124,14 +126,14 @@ export function FigureEditor({
           addTimestamp: true,
         });
 
-        const { url: newUrl, error: uploadErr } = await uploadProposalFile(compressedBlob, filePath, {
+        const { storagePath: newPath, error: uploadErr } = await uploadProposalFile(compressedBlob, filePath, {
           contentType: 'image/png',
         });
 
         if (uploadErr) throw uploadErr;
-        if (!newUrl) throw new Error('Failed to get URL');
+        if (!newPath) throw new Error('Failed to get storage path');
 
-        onUpdate({ content: { imageUrl: newUrl, aiPrompt: editPrompt.trim() } });
+        onUpdate({ content: { imageUrl: newPath, aiPrompt: editPrompt.trim() } });
         toast.success('Image regenerated successfully!');
       } else {
         toast.error('Failed to regenerate image');
@@ -152,7 +154,7 @@ export function FigureEditor({
             <Dialog>
               <DialogTrigger asChild>
                 <img 
-                  src={figure.content.imageUrl} 
+                  src={resolvedImageUrl || ''} 
                   alt={figure.title}
                   className="max-w-full h-auto mx-auto cursor-pointer hover:opacity-80 transition-opacity"
                   title="Click to enlarge"
@@ -163,7 +165,7 @@ export function FigureEditor({
                   <DialogTitle>Figure {figure.figureNumber}</DialogTitle>
                 </DialogHeader>
                 <img 
-                  src={figure.content.imageUrl} 
+                  src={resolvedImageUrl || ''} 
                   alt={figure.title}
                   className="w-full h-auto rounded"
                 />
