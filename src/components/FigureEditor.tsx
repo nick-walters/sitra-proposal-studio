@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { generateProposalFilePath, uploadProposalFile } from '@/lib/proposalStorage';
 import { compressImage, getFormatExtension } from '@/lib/imageCompression';
+import { useStorageUrl } from '@/hooks/useStorageUrl';
 
 interface Figure {
   id: string;
