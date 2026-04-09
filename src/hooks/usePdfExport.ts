@@ -309,34 +309,345 @@ export function usePdfExport() {
         isTopOfPage = false;
       };
 
-      // Helper: Add body paragraph (11pt, 3pt before and after)
-      const addParagraph = (text: string) => {
-        if (!text.trim()) return;
+      // Helper: Add body paragraph with justified text and rich formatting (11pt, 3pt before and after)
+      const addParagraph = (text: string, segments?: TextSegment[]) => {
+        if (!text.trim() && (!segments || segments.length === 0)) return;
         
         if (!isTopOfPage) {
           yPosition += paragraphSpacing; // 3pt before
         }
         pdf.setFontSize(FONT_SIZE_BODY);
-        pdf.setFont('times', 'normal');
         pdf.setTextColor(...black);
         
-        const lines = pdf.splitTextToSize(text, contentWidth);
-        for (const line of lines) {
-          checkPageBreak(lineHeightBody);
-          pdf.text(line, margin, yPosition);
-          yPosition += lineHeightBody;
+        if (segments && segments.length > 0) {
+          renderRichTextJustified(segments, margin, contentWidth);
+        } else {
+          // Plain text fallback - justified
+          renderPlainTextJustified(text, margin, contentWidth);
         }
         isTopOfPage = false;
         yPosition += paragraphSpacing; // 3pt after
       };
 
-      // Type for parsed content blocks
+      // Helper: Render plain text with justified alignment
+      const renderPlainTextJustified = (text: string, x: number, maxWidth: number) => {
+        pdf.setFont('times', 'normal');
+        const words = text.split(/\s+/).filter(w => w.length > 0);
+        if (words.length === 0) return;
+        
+        let currentLineWords: string[] = [];
+        let currentLineWidth = 0;
+        const spaceWidth = pdf.getTextWidth(' ');
+        
+        for (const word of words) {
+          const wordWidth = pdf.getTextWidth(word);
+          const testWidth = currentLineWidth + (currentLineWords.length > 0 ? spaceWidth : 0) + wordWidth;
+          
+          if (testWidth > maxWidth && currentLineWords.length > 0) {
+            // Flush current line - justified
+            checkPageBreak(lineHeightBody);
+            drawJustifiedLine(currentLineWords, x, yPosition, maxWidth, 'normal', false, false);
+            yPosition += lineHeightBody;
+            currentLineWords = [word];
+            currentLineWidth = wordWidth;
+          } else {
+            currentLineWords.push(word);
+            currentLineWidth = testWidth;
+          }
+        }
+        
+        // Last line - left aligned
+        if (currentLineWords.length > 0) {
+          checkPageBreak(lineHeightBody);
+          pdf.setFont('times', 'normal');
+          pdf.text(currentLineWords.join(' '), x, yPosition);
+          yPosition += lineHeightBody;
+        }
+      };
+
+      // Helper: Draw a single justified line of words
+      const drawJustifiedLine = (words: string[], x: number, y: number, maxWidth: number, fontStyle: string, _bold: boolean, _italic: boolean) => {
+        if (words.length <= 1) {
+          pdf.setFont('times', fontStyle);
+          pdf.text(words.join(' '), x, y);
+          return;
+        }
+        
+        pdf.setFont('times', fontStyle);
+        const totalTextWidth = words.reduce((sum, w) => sum + pdf.getTextWidth(w), 0);
+        const totalSpacing = maxWidth - totalTextWidth;
+        const spacePerGap = totalSpacing / (words.length - 1);
+        
+        let curX = x;
+        for (let i = 0; i < words.length; i++) {
+          pdf.text(words[i], curX, y);
+          curX += pdf.getTextWidth(words[i]) + spacePerGap;
+        }
+      };
+
+      // Types for rich text segments
+      type TextSegment = {
+        text: string;
+        bold: boolean;
+        italic: boolean;
+        underline: boolean;
+        superscript: boolean;
+      };
+
+      // Helper: Render rich text segments with justified alignment
+      const renderRichTextJustified = (segments: TextSegment[], x: number, maxWidth: number) => {
+        // Split all segments into individual words with their formatting
+        type FormattedWord = { word: string; bold: boolean; italic: boolean; underline: boolean; superscript: boolean };
+        const allWords: FormattedWord[] = [];
+        
+        for (const seg of segments) {
+          const words = seg.text.split(/\s+/).filter(w => w.length > 0);
+          for (const word of words) {
+            allWords.push({ word, bold: seg.bold, italic: seg.italic, underline: seg.underline, superscript: seg.superscript });
+          }
+        }
+        
+        if (allWords.length === 0) return;
+        
+        const getWordWidth = (fw: FormattedWord): number => {
+          const style = fw.bold && fw.italic ? 'bolditalic' : fw.bold ? 'bold' : fw.italic ? 'italic' : 'normal';
+          if (fw.superscript) {
+            pdf.setFontSize(FONT_SIZE_BODY * 0.7);
+            pdf.setFont('times', style);
+            const w = pdf.getTextWidth(fw.word);
+            pdf.setFontSize(FONT_SIZE_BODY);
+            return w;
+          }
+          pdf.setFont('times', style);
+          return pdf.getTextWidth(fw.word);
+        };
+        
+        const spaceWidth = (() => { pdf.setFont('times', 'normal'); return pdf.getTextWidth(' '); })();
+        
+        // Break into lines
+        type Line = FormattedWord[];
+        const lines: Line[] = [];
+        let currentLine: FormattedWord[] = [];
+        let currentLineWidth = 0;
+        
+        for (const fw of allWords) {
+          const ww = getWordWidth(fw);
+          const testWidth = currentLineWidth + (currentLine.length > 0 ? spaceWidth : 0) + ww;
+          
+          if (testWidth > maxWidth && currentLine.length > 0) {
+            lines.push(currentLine);
+            currentLine = [fw];
+            currentLineWidth = ww;
+          } else {
+            currentLine.push(fw);
+            currentLineWidth = testWidth;
+          }
+        }
+        if (currentLine.length > 0) lines.push(currentLine);
+        
+        // Render each line
+        for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+          const line = lines[lineIdx];
+          const isLastLine = lineIdx === lines.length - 1;
+          
+          checkPageBreak(lineHeightBody);
+          
+          if (isLastLine || line.length <= 1) {
+            // Last line or single word: left-aligned
+            let curX = x;
+            for (let i = 0; i < line.length; i++) {
+              const fw = line[i];
+              const style = fw.bold && fw.italic ? 'bolditalic' : fw.bold ? 'bold' : fw.italic ? 'italic' : 'normal';
+              
+              if (fw.superscript) {
+                pdf.setFontSize(FONT_SIZE_BODY * 0.7);
+                pdf.setFont('times', style);
+                pdf.text(fw.word, curX, yPosition - 1.5);
+                const ww = pdf.getTextWidth(fw.word);
+                pdf.setFontSize(FONT_SIZE_BODY);
+                curX += ww;
+              } else {
+                pdf.setFont('times', style);
+                pdf.text(fw.word, curX, yPosition);
+                if (fw.underline) {
+                  const ww = pdf.getTextWidth(fw.word);
+                  pdf.setDrawColor(...black);
+                  pdf.setLineWidth(0.1);
+                  pdf.line(curX, yPosition + 0.5, curX + ww, yPosition + 0.5);
+                }
+                curX += pdf.getTextWidth(fw.word);
+              }
+              if (i < line.length - 1) curX += spaceWidth;
+            }
+          } else {
+            // Justified line
+            const totalWordWidth = line.reduce((sum, fw) => sum + getWordWidth(fw), 0);
+            const totalSpacing = maxWidth - totalWordWidth;
+            const gapPerSpace = totalSpacing / (line.length - 1);
+            
+            let curX = x;
+            for (let i = 0; i < line.length; i++) {
+              const fw = line[i];
+              const style = fw.bold && fw.italic ? 'bolditalic' : fw.bold ? 'bold' : fw.italic ? 'italic' : 'normal';
+              
+              if (fw.superscript) {
+                pdf.setFontSize(FONT_SIZE_BODY * 0.7);
+                pdf.setFont('times', style);
+                pdf.text(fw.word, curX, yPosition - 1.5);
+                curX += pdf.getTextWidth(fw.word);
+                pdf.setFontSize(FONT_SIZE_BODY);
+              } else {
+                pdf.setFont('times', style);
+                pdf.text(fw.word, curX, yPosition);
+                if (fw.underline) {
+                  const ww = pdf.getTextWidth(fw.word);
+                  pdf.setDrawColor(...black);
+                  pdf.setLineWidth(0.1);
+                  pdf.line(curX, yPosition + 0.5, curX + ww, yPosition + 0.5);
+                }
+                curX += pdf.getTextWidth(fw.word);
+              }
+              if (i < line.length - 1) curX += gapPerSpace;
+            }
+          }
+          yPosition += lineHeightBody;
+        }
+      };
+
+      // Helper: Add list (bullet or numbered) with justified text and rich formatting
+      const addList = (items: { text: string; segments?: TextSegment[] }[], ordered: boolean) => {
+        const listIndent = 5; // mm indent for list items
+        const bulletWidth = ordered ? 6 : 3; // space for bullet/number
+        
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          if (!item.text.trim()) continue;
+          
+          if (!isTopOfPage) {
+            yPosition += paragraphSpacing;
+          }
+          
+          checkPageBreak(lineHeightBody);
+          pdf.setFontSize(FONT_SIZE_BODY);
+          pdf.setTextColor(...black);
+          pdf.setFont('times', 'normal');
+          
+          // Draw bullet or number
+          const bulletX = margin + listIndent;
+          if (ordered) {
+            pdf.text(`${i + 1}.`, bulletX - bulletWidth, yPosition);
+          } else {
+            // Draw a filled circle as bullet
+            pdf.circle(bulletX - 1.5, yPosition - 1, 0.6, 'F');
+          }
+          
+          // Draw text after bullet with justified alignment
+          const textX = bulletX + 1;
+          const textWidth = contentWidth - listIndent - 1;
+          
+          if (item.segments && item.segments.length > 0) {
+            // Temporarily shift margin for rich text rendering
+            const savedY = yPosition;
+            // Adjust segments to render at the right position
+            const adjustedSegments = item.segments;
+            
+            // Manual justified rendering within the indent
+            type FormattedWord = { word: string; bold: boolean; italic: boolean; underline: boolean; superscript: boolean };
+            const allWords: FormattedWord[] = [];
+            for (const seg of adjustedSegments) {
+              const words = seg.text.split(/\s+/).filter(w => w.length > 0);
+              for (const word of words) {
+                allWords.push({ word, bold: seg.bold, italic: seg.italic, underline: seg.underline, superscript: seg.superscript });
+              }
+            }
+            
+            if (allWords.length === 0) continue;
+            
+            const getWW = (fw: FormattedWord): number => {
+              const style = fw.bold && fw.italic ? 'bolditalic' : fw.bold ? 'bold' : fw.italic ? 'italic' : 'normal';
+              pdf.setFont('times', style);
+              return pdf.getTextWidth(fw.word);
+            };
+            const sw = (() => { pdf.setFont('times', 'normal'); return pdf.getTextWidth(' '); })();
+            
+            // Break into lines
+            const lines: FormattedWord[][] = [];
+            let curLine: FormattedWord[] = [];
+            let curW = 0;
+            for (const fw of allWords) {
+              const ww = getWW(fw);
+              const test = curW + (curLine.length > 0 ? sw : 0) + ww;
+              if (test > textWidth && curLine.length > 0) {
+                lines.push(curLine);
+                curLine = [fw];
+                curW = ww;
+              } else {
+                curLine.push(fw);
+                curW = test;
+              }
+            }
+            if (curLine.length > 0) lines.push(curLine);
+            
+            for (let li = 0; li < lines.length; li++) {
+              const line = lines[li];
+              const isLast = li === lines.length - 1;
+              checkPageBreak(lineHeightBody);
+              
+              if (isLast || line.length <= 1) {
+                let cx = textX;
+                for (let j = 0; j < line.length; j++) {
+                  const fw = line[j];
+                  const style = fw.bold && fw.italic ? 'bolditalic' : fw.bold ? 'bold' : fw.italic ? 'italic' : 'normal';
+                  pdf.setFont('times', style);
+                  pdf.text(fw.word, cx, yPosition);
+                  if (fw.underline) {
+                    const ww = pdf.getTextWidth(fw.word);
+                    pdf.setLineWidth(0.1);
+                    pdf.line(cx, yPosition + 0.5, cx + ww, yPosition + 0.5);
+                  }
+                  cx += pdf.getTextWidth(fw.word) + (j < line.length - 1 ? sw : 0);
+                }
+              } else {
+                const totalWW = line.reduce((s, fw) => s + getWW(fw), 0);
+                const gap = (textWidth - totalWW) / (line.length - 1);
+                let cx = textX;
+                for (let j = 0; j < line.length; j++) {
+                  const fw = line[j];
+                  const style = fw.bold && fw.italic ? 'bolditalic' : fw.bold ? 'bold' : fw.italic ? 'italic' : 'normal';
+                  pdf.setFont('times', style);
+                  pdf.text(fw.word, cx, yPosition);
+                  if (fw.underline) {
+                    const ww = pdf.getTextWidth(fw.word);
+                    pdf.setLineWidth(0.1);
+                    pdf.line(cx, yPosition + 0.5, cx + ww, yPosition + 0.5);
+                  }
+                  cx += getWW(fw) + (j < line.length - 1 ? gap : 0);
+                }
+              }
+              yPosition += lineHeightBody;
+            }
+          } else {
+            // Plain text list item
+            const listLines = pdf.splitTextToSize(item.text, textWidth);
+            for (const line of listLines) {
+              checkPageBreak(lineHeightBody);
+              pdf.text(line, textX, yPosition);
+              yPosition += lineHeightBody;
+            }
+          }
+          
+          isTopOfPage = false;
+          yPosition += paragraphSpacing;
+        }
+      };
+
       type ContentBlock = 
-        | { type: 'paragraph'; text: string }
+        | { type: 'paragraph'; text: string; segments?: TextSegment[] }
         | { type: 'h3'; text: string }
         | { type: 'image'; src: string; width?: number; height?: number; widthPercent?: number }
         | { type: 'caption'; text: string; captionType: 'figure' | 'table' }
-        | { type: 'table'; rows: string[][]; hasHeader: boolean };
+        | { type: 'table'; rows: string[][]; hasHeader: boolean }
+        | { type: 'list'; items: { text: string; segments?: TextSegment[] }[]; ordered: boolean };
 
       // Helper: Load image as base64
       const loadImageAsBase64 = async (src: string): Promise<{ data: string; width: number; height: number } | null> => {
@@ -431,13 +742,50 @@ export function usePdfExport() {
           if (tableMatch) return { isCaption: true, type: 'table' };
           return { isCaption: false, type: 'figure' };
         };
+
+        // Helper: Extract inline formatting segments from an element
+        const extractSegments = (el: HTMLElement): TextSegment[] => {
+          const segments: TextSegment[] = [];
+          
+          const walk = (node: Node, bold: boolean, italic: boolean, underline: boolean, superscript: boolean) => {
+            if (node.nodeType === Node.TEXT_NODE) {
+              const text = node.textContent || '';
+              if (text) {
+                segments.push({ text, bold, italic, underline, superscript });
+              }
+              return;
+            }
+            if (node.nodeType !== Node.ELEMENT_NODE) return;
+            
+            const elem = node as HTMLElement;
+            const tag = elem.tagName.toLowerCase();
+            
+            let b = bold, it = italic, u = underline, sup = superscript;
+            if (tag === 'strong' || tag === 'b') b = true;
+            if (tag === 'em' || tag === 'i') it = true;
+            if (tag === 'u') u = true;
+            if (tag === 'sup') sup = true;
+            // Check for inline style font-weight bold
+            const style = elem.getAttribute('style') || '';
+            if (/font-weight:\s*(bold|[6-9]\d{2})/i.test(style)) b = true;
+            if (/font-style:\s*italic/i.test(style)) it = true;
+            if (/text-decoration[^:]*:\s*underline/i.test(style)) u = true;
+            
+            for (const child of Array.from(elem.childNodes)) {
+              walk(child, b, it, u, sup);
+            }
+          };
+          
+          walk(el, false, false, false, false);
+          return segments;
+        };
         
         // Process nodes recursively
         const processNode = (node: Node) => {
           if (node.nodeType === Node.TEXT_NODE) {
             const text = node.textContent?.trim();
             if (text) {
-              result.push({ type: 'paragraph', text });
+              result.push({ type: 'paragraph', text, segments: [{ text, bold: false, italic: false, underline: false, superscript: false }] });
             }
             return;
           }
@@ -491,6 +839,23 @@ export function usePdfExport() {
             }
             return;
           }
+
+          // Handle lists
+          if (tagName === 'ul' || tagName === 'ol') {
+            const ordered = tagName === 'ol';
+            const items: { text: string; segments?: TextSegment[] }[] = [];
+            const liElements = element.querySelectorAll(':scope > li');
+            for (const li of Array.from(liElements)) {
+              const liEl = li as HTMLElement;
+              const text = liEl.textContent?.trim() || '';
+              const segs = extractSegments(liEl);
+              items.push({ text, segments: segs });
+            }
+            if (items.length > 0) {
+              result.push({ type: 'list', items, ordered });
+            }
+            return;
+          }
           
           // Handle paragraphs - check for captions by class or content
           if (tagName === 'p') {
@@ -514,14 +879,15 @@ export function usePdfExport() {
               return;
             }
             
-            // Regular paragraph
-            result.push({ type: 'paragraph', text });
+            // Regular paragraph with rich text segments
+            const segments = extractSegments(element);
+            result.push({ type: 'paragraph', text, segments });
             return;
           }
           
           // Handle divs - check for special children and process
           if (tagName === 'div') {
-            const hasSpecialChildren = element.querySelector('img, table, h3');
+            const hasSpecialChildren = element.querySelector('img, table, h3, ul, ol');
             if (!hasSpecialChildren) {
               const text = element.textContent?.trim();
               if (text) {
@@ -529,7 +895,8 @@ export function usePdfExport() {
                 if (captionCheck.isCaption) {
                   result.push({ type: 'caption', text, captionType: captionCheck.type });
                 } else {
-                  result.push({ type: 'paragraph', text });
+                  const segments = extractSegments(element);
+                  result.push({ type: 'paragraph', text, segments });
                 }
               }
               return;
@@ -1722,11 +2089,20 @@ export function usePdfExport() {
                 addH3(block.text);
                 break;
               case 'paragraph':
-                addParagraph(block.text);
+                addParagraph(block.text, block.segments);
                 break;
-              case 'image':
-                await addImage(block.src, block.width, block.height, block.widthPercent);
+              case 'image': {
+                // Resolve storage paths to signed URLs before loading
+                let imgSrc = block.src;
+                try {
+                  const resolved = await resolveStorageUrl(imgSrc);
+                  if (resolved) imgSrc = resolved;
+                } catch (e) {
+                  // fallback to original src
+                }
+                await addImage(imgSrc, block.width, block.height, block.widthPercent);
                 break;
+              }
               case 'caption':
                 addCaption(block.text, block.captionType);
                 // After rendering Table 3.1.b caption, reserve space for WP page listing
@@ -1737,6 +2113,9 @@ export function usePdfExport() {
                   const estimatedLines = Math.max(1, Math.ceil(wpPageIndexData.length / 5));
                   yPosition += lineHeightBody * Math.min(estimatedLines, 3);
                 }
+                break;
+              case 'list':
+                addList(block.items, block.ordered);
                 break;
               case 'table':
                 // Track WP description table starts in section 3.1
