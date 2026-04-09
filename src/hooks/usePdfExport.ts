@@ -329,6 +329,9 @@ export function usePdfExport() {
         yPosition += paragraphSpacing; // 3pt after
       };
 
+      // Maximum gap multiplier for justified text - prevents excessive stretching
+      const MAX_GAP_MULTIPLIER = 2.5; // Gap can be at most 2.5x normal space width
+
       // Helper: Render plain text with justified alignment
       const renderPlainTextJustified = (text: string, x: number, maxWidth: number) => {
         pdf.setFont('times', 'normal');
@@ -344,7 +347,7 @@ export function usePdfExport() {
           const testWidth = currentLineWidth + (currentLineWords.length > 0 ? spaceWidth : 0) + wordWidth;
           
           if (testWidth > maxWidth && currentLineWords.length > 0) {
-            // Flush current line - justified
+            // Flush current line - justified (with gap cap)
             checkPageBreak(lineHeightBody);
             drawJustifiedLine(currentLineWords, x, yPosition, maxWidth, 'normal', false, false);
             yPosition += lineHeightBody;
@@ -365,7 +368,7 @@ export function usePdfExport() {
         }
       };
 
-      // Helper: Draw a single justified line of words
+      // Helper: Draw a single justified line of words (with gap capping)
       const drawJustifiedLine = (words: string[], x: number, y: number, maxWidth: number, fontStyle: string, _bold: boolean, _italic: boolean) => {
         if (words.length <= 1) {
           pdf.setFont('times', fontStyle);
@@ -374,9 +377,16 @@ export function usePdfExport() {
         }
         
         pdf.setFont('times', fontStyle);
+        const spaceWidth = pdf.getTextWidth(' ');
         const totalTextWidth = words.reduce((sum, w) => sum + pdf.getTextWidth(w), 0);
         const totalSpacing = maxWidth - totalTextWidth;
         const spacePerGap = totalSpacing / (words.length - 1);
+        
+        // If gap would be too wide, fall back to left-aligned
+        if (spacePerGap > spaceWidth * MAX_GAP_MULTIPLIER) {
+          pdf.text(words.join(' '), x, y);
+          return;
+        }
         
         let curX = x;
         for (let i = 0; i < words.length; i++) {
@@ -480,10 +490,32 @@ export function usePdfExport() {
               if (i < line.length - 1) curX += spaceWidth;
             }
           } else {
-            // Justified line
+            // Justified line (with gap capping)
+            const spaceWidthRef = (() => { pdf.setFont('times', 'normal'); pdf.setFontSize(FONT_SIZE_BODY); return pdf.getTextWidth(' '); })();
             const totalWordWidth = line.reduce((sum, fw) => sum + getWordWidth(fw), 0);
             const totalSpacing = maxWidth - totalWordWidth;
             const gapPerSpace = totalSpacing / (line.length - 1);
+            
+            // If gap would be too wide, fall back to left-aligned
+            if (gapPerSpace > spaceWidthRef * MAX_GAP_MULTIPLIER) {
+              let cx = x;
+              for (let j = 0; j < line.length; j++) {
+                const fw = line[j];
+                const style2 = fw.bold && fw.italic ? 'bolditalic' : fw.bold ? 'bold' : fw.italic ? 'italic' : 'normal';
+                if (fw.superscript) {
+                  pdf.setFontSize(FONT_SIZE_BODY * 0.7);
+                  pdf.setFont('times', style2);
+                  pdf.text(fw.word, cx, yPosition - 1.5);
+                  cx += pdf.getTextWidth(fw.word);
+                  pdf.setFontSize(FONT_SIZE_BODY);
+                } else {
+                  pdf.setFont('times', style2);
+                  pdf.text(fw.word, cx, yPosition);
+                  cx += pdf.getTextWidth(fw.word);
+                }
+                if (j < line.length - 1) cx += spaceWidth;
+              }
+            } else {
             
             let curX = x;
             for (let i = 0; i < line.length; i++) {
@@ -508,6 +540,7 @@ export function usePdfExport() {
                 curX += pdf.getTextWidth(fw.word);
               }
               if (i < line.length - 1) curX += gapPerSpace;
+            }
             }
           }
           yPosition += lineHeightBody;
@@ -610,6 +643,8 @@ export function usePdfExport() {
               } else {
                 const totalWW = line.reduce((s, fw) => s + getWW(fw), 0);
                 const gap = (textWidth - totalWW) / (line.length - 1);
+                // Cap gap to prevent excessive stretching
+                const useJustify = gap <= sw * MAX_GAP_MULTIPLIER;
                 let cx = textX;
                 for (let j = 0; j < line.length; j++) {
                   const fw = line[j];
@@ -621,7 +656,7 @@ export function usePdfExport() {
                     pdf.setLineWidth(0.1);
                     pdf.line(cx, yPosition + 0.5, cx + ww, yPosition + 0.5);
                   }
-                  cx += getWW(fw) + (j < line.length - 1 ? gap : 0);
+                  cx += getWW(fw) + (j < line.length - 1 ? (useJustify ? gap : sw) : 0);
                 }
               }
               yPosition += lineHeightBody;
@@ -1038,43 +1073,51 @@ export function usePdfExport() {
         yPosition += captionType === 'figure' ? paragraphSpacingH2 : paragraphSpacing;
       };
 
-      // Helper: Add table to PDF
+      // Helper: Add table to PDF (matching editor styling: wrapping text, proper borders)
       const addTable = (rows: string[][], hasHeader: boolean) => {
         if (rows.length === 0) return;
         
         const numCols = Math.max(...rows.map(r => r.length));
         const colWidth = contentWidth / numCols;
-        const rowHeight = 6;
-        const cellPadding = 1;
-        
-        // Check if table fits on current page (at least header + 2 rows)
-        checkPageBreak(rowHeight * Math.min(3, rows.length));
+        const cellPadding = 1.5;
+        const lineHeight = 3.8; // line height within cells
         
         pdf.setFontSize(FONT_SIZE_BODY);
         pdf.setDrawColor(...black);
-        pdf.setLineWidth(0.25);
         
         for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
           const row = rows[rowIdx];
           const isHeaderRow = hasHeader && rowIdx === 0;
           
+          // Calculate row height based on wrapped text
+          let maxLines = 1;
+          const cellLines: string[][] = [];
+          for (let colIdx = 0; colIdx < numCols; colIdx++) {
+            const cellText = row[colIdx] || '';
+            const maxTextWidth = colWidth - cellPadding * 2;
+            if (isHeaderRow) pdf.setFont('times', 'bold');
+            else pdf.setFont('times', 'normal');
+            const lines = pdf.splitTextToSize(cellText, maxTextWidth);
+            cellLines.push(lines);
+            maxLines = Math.max(maxLines, lines.length);
+          }
+          
+          const rowHeight = Math.max(6, maxLines * lineHeight + 2);
           checkPageBreak(rowHeight);
+          
+          const rowTop = yPosition - 4;
           
           // Draw row background for header
           if (isHeaderRow) {
             pdf.setFillColor(0, 0, 0);
-            pdf.rect(margin, yPosition - 4, contentWidth, rowHeight, 'F');
+            pdf.rect(margin, rowTop, contentWidth, rowHeight, 'F');
           }
           
-          // Draw cells
+          // Draw cell content
           for (let colIdx = 0; colIdx < numCols; colIdx++) {
             const cellX = margin + colIdx * colWidth;
-            const cellText = row[colIdx] || '';
+            const lines = cellLines[colIdx];
             
-            // Draw cell border
-            pdf.rect(cellX, yPosition - 4, colWidth, rowHeight);
-            
-            // Draw text
             if (isHeaderRow) {
               pdf.setFont('times', 'bold');
               pdf.setTextColor(255, 255, 255);
@@ -1083,14 +1126,32 @@ export function usePdfExport() {
               pdf.setTextColor(...black);
             }
             
-            // Truncate text to fit cell
-            const maxTextWidth = colWidth - cellPadding * 2;
-            let displayText = cellText;
-            while (pdf.getTextWidth(displayText) > maxTextWidth && displayText.length > 3) {
-              displayText = displayText.substring(0, displayText.length - 4) + '...';
+            // Draw text lines (vertically centered)
+            const textHeight = lines.length * lineHeight;
+            let textY = rowTop + (rowHeight - textHeight) / 2 + lineHeight * 0.75;
+            for (const line of lines) {
+              pdf.text(line, cellX + cellPadding, textY);
+              textY += lineHeight;
             }
-            
-            pdf.text(displayText, cellX + cellPadding, yPosition);
+          }
+          
+          // Draw borders: horizontal lines above and below rows, vertical cell separators
+          pdf.setLineWidth(isHeaderRow ? 0.5 : 0.15);
+          // Top border of header or bottom border of header
+          if (isHeaderRow) {
+            pdf.line(margin, rowTop, margin + contentWidth, rowTop);
+            pdf.line(margin, rowTop + rowHeight, margin + contentWidth, rowTop + rowHeight);
+          } else {
+            // Light bottom border for data rows
+            pdf.setLineWidth(0.15);
+            pdf.line(margin, rowTop + rowHeight, margin + contentWidth, rowTop + rowHeight);
+          }
+          
+          // Vertical cell separators
+          pdf.setLineWidth(0.15);
+          for (let colIdx = 1; colIdx < numCols; colIdx++) {
+            const cellX = margin + colIdx * colWidth;
+            pdf.line(cellX, rowTop, cellX, rowTop + rowHeight);
           }
           
           yPosition += rowHeight;
@@ -1356,10 +1417,11 @@ export function usePdfExport() {
           { data: parts },
           { data: palette },
           { data: budgetItems },
+          { data: figuresData },
         ] = await Promise.all([
           supabase.from('wp_drafts').select(`
             id, number, title, short_name, lead_participant_id, color, objectives, methodology,
-            manual_person_months, manual_duration,
+            manual_person_months, manual_duration, b31_objectives, b31_description_before_tasks,
             tasks:wp_draft_tasks(
               id, number, title, description, lead_participant_id, start_month, end_month,
               effort:wp_draft_task_effort(participant_id, person_months),
@@ -1367,6 +1429,10 @@ export function usePdfExport() {
             ),
             deliverables:wp_draft_deliverables(
               id, number, title, type, dissemination_level, responsible_participant_id, due_month, description
+            ),
+            b31_tasks(
+              id, number, title, description, lead_participant_id, start_month, end_month, order_index,
+              participants:b31_task_participants(participant_id)
             )
           `).eq('proposal_id', proposalId).order('number'),
           supabase.from('b31_deliverables').select('*').eq('proposal_id', proposalId).order('order_index'),
@@ -1375,6 +1441,7 @@ export function usePdfExport() {
           supabase.from('participants').select('id, organisation_short_name, organisation_name, participant_number, personnel_cost_rate').eq('proposal_id', proposalId).order('participant_number'),
           supabase.from('wp_color_palette').select('colors').eq('proposal_id', proposalId).single(),
           supabase.from('budget_items').select('id, participant_id, category, description, amount, justification').eq('proposal_id', proposalId).in('category', ['subcontracting', 'equipment']),
+          supabase.from('figures').select('id, figure_number, figure_type, title, caption, content').eq('proposal_id', proposalId).in('figure_type', ['pert', 'gantt']),
         ]);
 
         const participantList = parts || [];
@@ -1386,12 +1453,166 @@ export function usePdfExport() {
           color: wp.color || colors[(wp.number - 1) % colors.length] || defaultColors[0],
           tasks: (wp.tasks || []).sort((a: any, b: any) => a.number - b.number),
           deliverables: (wp.deliverables || []).sort((a: any, b: any) => a.number - b.number),
+          b31Tasks: (wp.b31_tasks || []).sort((a: any, b: any) => (a.order_index ?? a.number) - (b.order_index ?? b.number)),
         }));
         const wpColorMap = new Map(wps.map((wp: any) => [wp.number, wp.color]));
 
         const toSentenceCase = (text: string): string => {
           if (!text) return '';
           return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+        };
+
+        // Helper: Draw WP description table matching editor layout
+        const renderWPDescriptionTable = (wp: any) => {
+          const [r, g, b] = hexToRgb(wp.color);
+          const leadName = wp.lead_participant_id ? (String(participantMap.get(wp.lead_participant_id) || '—')) : '—';
+          
+          // Use b31_tasks if available, otherwise fall back to wp_draft_tasks
+          const tasksToRender = wp.b31Tasks.length > 0 ? wp.b31Tasks : wp.tasks;
+          const taskStarts = tasksToRender.filter((t: any) => t.start_month).map((t: any) => t.start_month);
+          const taskEnds = tasksToRender.filter((t: any) => t.end_month).map((t: any) => t.end_month);
+          const start = taskStarts.length > 0 ? Math.min(...taskStarts) : null;
+          const end = taskEnds.length > 0 ? Math.max(...taskEnds) : null;
+          const monthRange = start && end 
+            ? `M${String(start).padStart(2, '0')}–M${String(end).padStart(2, '0')}`
+            : '';
+          
+          yPosition += 2;
+          checkPageBreak(20);
+          
+          // WP header pill (full width colored bar)
+          const pillHeight = 5;
+          const pillY = yPosition - 3.5;
+          pdf.setFillColor(r, g, b);
+          pdf.roundedRect(margin, pillY, contentWidth, pillHeight, 2, 2, 'F');
+          pdf.setFontSize(FONT_SIZE_BODY);
+          pdf.setFont('times', 'bold');
+          pdf.setTextColor(255, 255, 255);
+          const wpHeaderText = `WP${wp.number}: ${wp.short_name || ''}${wp.short_name && wp.title ? ' – ' : ''}${wp.title || ''}`;
+          pdf.text(wpHeaderText, margin + 3, yPosition);
+          yPosition += pillHeight + 1;
+          
+          // Leader + duration row
+          pdf.setFont('times', 'normal');
+          pdf.setTextColor(...black);
+          checkPageBreak(lineHeightBody);
+          // Leader bubble
+          const leaderBubbleWidth = drawPartnerBubble(leadName, margin + 3, yPosition);
+          // Duration on the right
+          pdf.setFont('times', 'bold');
+          pdf.setTextColor(...black);
+          if (monthRange) {
+            pdf.text(monthRange, margin + contentWidth - pdf.getTextWidth(monthRange) - 2, yPosition);
+          }
+          yPosition += lineHeightBody;
+          
+          // WP color separator line
+          pdf.setDrawColor(r, g, b);
+          pdf.setLineWidth(0.3);
+          pdf.line(margin, yPosition - 2, margin + contentWidth, yPosition - 2);
+          pdf.setDrawColor(...black);
+          
+          // B3.1 Objectives
+          const objectives = wp.b31_objectives || wp.objectives || '';
+          if (objectives) {
+            const objBlocks = parseHtmlContent(objectives);
+            for (const block of objBlocks) {
+              if (block.type === 'paragraph') addParagraph(block.text, block.segments);
+              else if (block.type === 'list') addList(block.items, block.ordered);
+            }
+          }
+          
+          // Optional field before tasks
+          const beforeTasks = wp.b31_description_before_tasks || '';
+          if (beforeTasks && beforeTasks.replace(/<[^>]*>/g, '').trim()) {
+            const btBlocks = parseHtmlContent(beforeTasks);
+            for (const block of btBlocks) {
+              if (block.type === 'paragraph') addParagraph(block.text, block.segments);
+              else if (block.type === 'list') addList(block.items, block.ordered);
+            }
+          }
+          
+          // Tasks
+          for (const task of tasksToRender) {
+            // Task color separator
+            pdf.setDrawColor(r, g, b);
+            pdf.setLineWidth(0.3);
+            pdf.line(margin, yPosition - 1, margin + contentWidth, yPosition - 1);
+            pdf.setDrawColor(...black);
+            yPosition += 1;
+            
+            checkPageBreak(lineHeightBody * 3);
+            
+            // Task header: badge + title
+            pdf.setFontSize(FONT_SIZE_BODY);
+            const taskId = `T${wp.number}.${task.number}`;
+            // Draw task badge (outlined)
+            pdf.setFontSize(FONT_SIZE_BODY);
+            pdf.setFont('times', 'bold');
+            const taskIdWidth = pdf.getTextWidth(taskId);
+            const badgePadding = 1.5;
+            const badgeWidth = taskIdWidth + badgePadding * 2;
+            const badgeHeight = 4;
+            const badgeY = yPosition - 3;
+            pdf.setDrawColor(r, g, b);
+            pdf.setLineWidth(0.4);
+            pdf.roundedRect(margin, badgeY, badgeWidth, badgeHeight, badgeHeight / 2, badgeHeight / 2, 'S');
+            pdf.setTextColor(r, g, b);
+            pdf.text(taskId, margin + badgePadding, yPosition - 0.5);
+            pdf.setDrawColor(...black);
+            
+            // Task title after badge
+            pdf.setFont('times', 'bold');
+            pdf.setTextColor(...black);
+            const taskTitle = task.title || '';
+            if (taskTitle) {
+              pdf.text(taskTitle, margin + badgeWidth + 2, yPosition - 0.5);
+            }
+            yPosition += lineHeightBody;
+            
+            // Task metadata: leader + partners + duration
+            const tLeadName = task.lead_participant_id ? String(participantMap.get(task.lead_participant_id) || '') : '';
+            if (tLeadName) {
+              drawPartnerBubble(tLeadName, margin + 3, yPosition);
+            }
+            // Task participants
+            const partnerIds = (task.participants || []).map((p: any) => p.participant_id).filter((id: string) => id !== task.lead_participant_id);
+            let partnerX = margin + 3 + (tLeadName ? 25 : 0);
+            for (const pid of partnerIds) {
+              const pName = String(participantMap.get(pid) || '');
+              if (pName) {
+                const bw = drawPartnerBubble(pName, partnerX, yPosition);
+                partnerX += bw + 1;
+              }
+            }
+            // Duration on right
+            const tStart = task.start_month;
+            const tEnd = task.end_month;
+            if (tStart && tEnd) {
+              pdf.setFont('times', 'bold');
+              pdf.setTextColor(...black);
+              const durText = `M${String(tStart).padStart(2, '0')}–M${String(tEnd).padStart(2, '0')}`;
+              pdf.text(durText, margin + contentWidth - pdf.getTextWidth(durText) - 2, yPosition);
+            }
+            yPosition += lineHeightBody;
+            
+            // Task description
+            const taskDesc = task.description || '';
+            if (taskDesc) {
+              const descBlocks = parseHtmlContent(taskDesc);
+              for (const block of descBlocks) {
+                if (block.type === 'paragraph') addParagraph(block.text, block.segments);
+                else if (block.type === 'list') addList(block.items, block.ordered);
+              }
+            }
+          }
+          
+          // Final WP color separator
+          pdf.setDrawColor(r, g, b);
+          pdf.setLineWidth(0.3);
+          pdf.line(margin, yPosition - 1, margin + contentWidth, yPosition - 1);
+          pdf.setDrawColor(...black);
+          yPosition += paragraphSpacing * 2;
         };
 
         // ===== Table 3.1.a – List of work packages =====
@@ -1425,73 +1646,81 @@ export function usePdfExport() {
           addB31TableAdvanced(wpListHeaders, wpListRows, wpListColWidths, 'Table 3.1.a. List of work packages');
         }
 
-        // ===== Table 3.1.b – Work package descriptions (one per WP) =====
-        for (const wp of wps) {
-          // WP description table header
-          addCaption(`Table 3.1.b. Work Package ${wp.number}: ${wp.title || ''}`, 'table');
-          
-          // Simple key-value rows for the WP
-          const leadName = wp.lead_participant_id ? (participantMap.get(wp.lead_participant_id) || '—') : '—';
-          const taskStarts = wp.tasks.filter((t: any) => t.start_month).map((t: any) => t.start_month);
-          const taskEnds = wp.tasks.filter((t: any) => t.end_month).map((t: any) => t.end_month);
-          const start = taskStarts.length > 0 ? Math.min(...taskStarts) : null;
-          const end = taskEnds.length > 0 ? Math.max(...taskEnds) : null;
-
-          // Render as simple text info block
-          const wpInfoLines = [
-            `WP${wp.number}: ${wp.title || ''}`,
-            `Lead: ${leadName}`,
-            `Duration: ${start ? `M${String(start).padStart(2,'0')}` : '?'} – ${end ? `M${String(end).padStart(2,'0')}` : '?'}`,
-          ];
-          for (const line of wpInfoLines) {
-            addParagraph(line);
+        // ===== Figure 3.1.a – PERT chart & Figure 3.1.b – Gantt chart =====
+        // Capture from DOM if rendered on the page
+        const pertFigure = (figuresData || []).find((f: any) => f.figure_type === 'pert');
+        const ganttFigure = (figuresData || []).find((f: any) => f.figure_type === 'gantt');
+        
+        const captureFigureFromDom = async (figureType: string): Promise<string | null> => {
+          try {
+            // Try to find the rendered figure in the DOM
+            const selector = figureType === 'pert' ? '[data-figure-type="pert"]' : '[data-figure-type="gantt"]';
+            let el = document.querySelector(selector) as HTMLElement;
+            // Fallback: try finding by class or other attributes
+            if (!el) {
+              const containers = document.querySelectorAll('.b31-tables-container > div');
+              for (const container of Array.from(containers)) {
+                const text = container.textContent || '';
+                if (figureType === 'pert' && text.includes('PERT')) {
+                  el = container as HTMLElement;
+                  break;
+                }
+                if (figureType === 'gantt' && text.includes('Gantt')) {
+                  el = container as HTMLElement;
+                  break;
+                }
+              }
+            }
+            if (!el) return null;
+            
+            const html2canvas = (await import('html2canvas')).default;
+            const canvas = await html2canvas(el, { useCORS: true, scale: 2, backgroundColor: '#ffffff' });
+            return canvas.toDataURL('image/jpeg', 0.9);
+          } catch (e) {
+            console.warn(`Could not capture ${figureType} figure from DOM:`, e);
+            return null;
           }
-
-          if (wp.objectives) {
-            addH3('Objectives');
-            addParagraph(wp.objectives);
-          }
-          if (wp.methodology) {
-            addH3('Description of work and role of partners');
-            // Parse HTML methodology
-            const methBlocks = parseHtmlContent(wp.methodology);
-            for (const block of methBlocks) {
-              if (block.type === 'paragraph') addParagraph(block.text);
-              else if (block.type === 'h3') addH3(block.text);
+        };
+        
+        if (pertFigure) {
+          const pertImage = await captureFigureFromDom('pert');
+          if (pertImage) {
+            const imgData = await loadImageAsBase64(pertImage);
+            if (imgData) {
+              const imgW = Math.min(contentWidth, 180);
+              const aspect = imgData.height / imgData.width;
+              const imgH = Math.min(imgW * aspect, 120);
+              checkPageBreak(imgH + 10);
+              const xPos = margin + (contentWidth - imgW) / 2;
+              pdf.addImage(imgData.data, 'JPEG', xPos, yPosition, imgW, imgH);
+              yPosition += imgH + 4.2;
             }
           }
-
-          // Tasks
-          if (wp.tasks.length > 0) {
-            const taskHeaders = ['Task', 'Title', 'Lead', 'Start', 'End'];
-            const taskColWidths = [18, 92, 30, 20, 20];
-            const taskRows: CellContent[][] = wp.tasks.map((t: any) => {
-              const tLeadName = t.lead_participant_id ? (participantMap.get(t.lead_participant_id) || '—') : '—';
-              return [
-                { text: `T${wp.number}.${t.number}`, type: 'text' as const },
-                { text: t.title || '', type: 'text' as const },
-                tLeadName !== '—' ? { text: tLeadName, color: [0,0,0] as [number,number,number], type: 'bubble' as const, italic: true } : { text: '—', type: 'text' as const },
-                { text: t.start_month ? `M${String(t.start_month).padStart(2,'0')}` : '—', type: 'text' as const },
-                { text: t.end_month ? `M${String(t.end_month).padStart(2,'0')}` : '—', type: 'text' as const },
-              ];
-            });
-            addB31TableAdvanced(taskHeaders, taskRows, taskColWidths, '');
+          addCaption(`Figure ${pertFigure.figure_number}. ${pertFigure.caption || pertFigure.title || 'PERT chart'}`, 'figure');
+        }
+        
+        if (ganttFigure) {
+          const ganttImage = await captureFigureFromDom('gantt');
+          if (ganttImage) {
+            const imgData = await loadImageAsBase64(ganttImage);
+            if (imgData) {
+              const imgW = Math.min(contentWidth, 180);
+              const aspect = imgData.height / imgData.width;
+              const imgH = Math.min(imgW * aspect, 120);
+              checkPageBreak(imgH + 10);
+              const xPos = margin + (contentWidth - imgW) / 2;
+              pdf.addImage(imgData.data, 'JPEG', xPos, yPosition, imgW, imgH);
+              yPosition += imgH + 4.2;
+            }
           }
+          addCaption(`Figure ${ganttFigure.figure_number}. ${ganttFigure.caption || 'Gantt chart'}`, 'figure');
+        }
 
-          // WP Deliverables
-          if (wp.deliverables.length > 0) {
-            const delHeaders = ['Deliverable', 'Type', 'Diss.', 'Due'];
-            const delColWidths = [110, 20, 25, 25];
-            const delRows: CellContent[][] = wp.deliverables.map((d: any) => ([
-              { text: `D${wp.number}.${d.number}: ${d.title || ''}`, type: 'text' as const },
-              { text: d.type || '—', type: 'text' as const },
-              { text: d.dissemination_level || '—', type: 'text' as const },
-              { text: d.due_month ? `M${String(d.due_month).padStart(2,'0')}` : '—', type: 'text' as const },
-            ]));
-            addB31TableAdvanced(delHeaders, delRows, delColWidths, '');
-          }
-
-          yPosition += paragraphSpacing * 2;
+        // ===== Table 3.1.b – Work package descriptions (one per WP) =====
+        // Render using the structured layout matching the editor
+        addCaption('Table 3.1.b. Work package descriptions', 'table');
+        for (const wp of wps) {
+          renderWPDescriptionTable(wp);
         }
 
         // ===== Table 3.1.c – Deliverables =====
