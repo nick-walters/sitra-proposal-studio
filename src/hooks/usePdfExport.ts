@@ -514,7 +514,133 @@ export function usePdfExport() {
         }
       };
 
-      // Type for parsed content blocks
+      // Helper: Add list (bullet or numbered) with justified text and rich formatting
+      const addList = (items: { text: string; segments?: TextSegment[] }[], ordered: boolean) => {
+        const listIndent = 5; // mm indent for list items
+        const bulletWidth = ordered ? 6 : 3; // space for bullet/number
+        
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          if (!item.text.trim()) continue;
+          
+          if (!isTopOfPage) {
+            yPosition += paragraphSpacing;
+          }
+          
+          checkPageBreak(lineHeightBody);
+          pdf.setFontSize(FONT_SIZE_BODY);
+          pdf.setTextColor(...black);
+          pdf.setFont('times', 'normal');
+          
+          // Draw bullet or number
+          const bulletX = margin + listIndent;
+          if (ordered) {
+            pdf.text(`${i + 1}.`, bulletX - bulletWidth, yPosition);
+          } else {
+            // Draw a filled circle as bullet
+            pdf.circle(bulletX - 1.5, yPosition - 1, 0.6, 'F');
+          }
+          
+          // Draw text after bullet with justified alignment
+          const textX = bulletX + 1;
+          const textWidth = contentWidth - listIndent - 1;
+          
+          if (item.segments && item.segments.length > 0) {
+            // Temporarily shift margin for rich text rendering
+            const savedY = yPosition;
+            // Adjust segments to render at the right position
+            const adjustedSegments = item.segments;
+            
+            // Manual justified rendering within the indent
+            type FormattedWord = { word: string; bold: boolean; italic: boolean; underline: boolean; superscript: boolean };
+            const allWords: FormattedWord[] = [];
+            for (const seg of adjustedSegments) {
+              const words = seg.text.split(/\s+/).filter(w => w.length > 0);
+              for (const word of words) {
+                allWords.push({ word, bold: seg.bold, italic: seg.italic, underline: seg.underline, superscript: seg.superscript });
+              }
+            }
+            
+            if (allWords.length === 0) continue;
+            
+            const getWW = (fw: FormattedWord): number => {
+              const style = fw.bold && fw.italic ? 'bolditalic' : fw.bold ? 'bold' : fw.italic ? 'italic' : 'normal';
+              pdf.setFont('times', style);
+              return pdf.getTextWidth(fw.word);
+            };
+            const sw = (() => { pdf.setFont('times', 'normal'); return pdf.getTextWidth(' '); })();
+            
+            // Break into lines
+            const lines: FormattedWord[][] = [];
+            let curLine: FormattedWord[] = [];
+            let curW = 0;
+            for (const fw of allWords) {
+              const ww = getWW(fw);
+              const test = curW + (curLine.length > 0 ? sw : 0) + ww;
+              if (test > textWidth && curLine.length > 0) {
+                lines.push(curLine);
+                curLine = [fw];
+                curW = ww;
+              } else {
+                curLine.push(fw);
+                curW = test;
+              }
+            }
+            if (curLine.length > 0) lines.push(curLine);
+            
+            for (let li = 0; li < lines.length; li++) {
+              const line = lines[li];
+              const isLast = li === lines.length - 1;
+              checkPageBreak(lineHeightBody);
+              
+              if (isLast || line.length <= 1) {
+                let cx = textX;
+                for (let j = 0; j < line.length; j++) {
+                  const fw = line[j];
+                  const style = fw.bold && fw.italic ? 'bolditalic' : fw.bold ? 'bold' : fw.italic ? 'italic' : 'normal';
+                  pdf.setFont('times', style);
+                  pdf.text(fw.word, cx, yPosition);
+                  if (fw.underline) {
+                    const ww = pdf.getTextWidth(fw.word);
+                    pdf.setLineWidth(0.1);
+                    pdf.line(cx, yPosition + 0.5, cx + ww, yPosition + 0.5);
+                  }
+                  cx += pdf.getTextWidth(fw.word) + (j < line.length - 1 ? sw : 0);
+                }
+              } else {
+                const totalWW = line.reduce((s, fw) => s + getWW(fw), 0);
+                const gap = (textWidth - totalWW) / (line.length - 1);
+                let cx = textX;
+                for (let j = 0; j < line.length; j++) {
+                  const fw = line[j];
+                  const style = fw.bold && fw.italic ? 'bolditalic' : fw.bold ? 'bold' : fw.italic ? 'italic' : 'normal';
+                  pdf.setFont('times', style);
+                  pdf.text(fw.word, cx, yPosition);
+                  if (fw.underline) {
+                    const ww = pdf.getTextWidth(fw.word);
+                    pdf.setLineWidth(0.1);
+                    pdf.line(cx, yPosition + 0.5, cx + ww, yPosition + 0.5);
+                  }
+                  cx += getWW(fw) + (j < line.length - 1 ? gap : 0);
+                }
+              }
+              yPosition += lineHeightBody;
+            }
+          } else {
+            // Plain text list item
+            const listLines = pdf.splitTextToSize(item.text, textWidth);
+            for (const line of listLines) {
+              checkPageBreak(lineHeightBody);
+              pdf.text(line, textX, yPosition);
+              yPosition += lineHeightBody;
+            }
+          }
+          
+          isTopOfPage = false;
+          yPosition += paragraphSpacing;
+        }
+      };
+
       type ContentBlock = 
         | { type: 'paragraph'; text: string; segments?: TextSegment[] }
         | { type: 'h3'; text: string }
