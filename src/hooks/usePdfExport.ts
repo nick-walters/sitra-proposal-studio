@@ -643,6 +643,8 @@ export function usePdfExport() {
               } else {
                 const totalWW = line.reduce((s, fw) => s + getWW(fw), 0);
                 const gap = (textWidth - totalWW) / (line.length - 1);
+                // Cap gap to prevent excessive stretching
+                const useJustify = gap <= sw * MAX_GAP_MULTIPLIER;
                 let cx = textX;
                 for (let j = 0; j < line.length; j++) {
                   const fw = line[j];
@@ -654,7 +656,7 @@ export function usePdfExport() {
                     pdf.setLineWidth(0.1);
                     pdf.line(cx, yPosition + 0.5, cx + ww, yPosition + 0.5);
                   }
-                  cx += getWW(fw) + (j < line.length - 1 ? gap : 0);
+                  cx += getWW(fw) + (j < line.length - 1 ? (useJustify ? gap : sw) : 0);
                 }
               }
               yPosition += lineHeightBody;
