@@ -148,6 +148,7 @@ function SectionItem({
   isCoordinator = false,
   lockedSections,
   onToggleLock,
+  onExportPartB,
 }: {
   section: Section | WPSection | CaseSection;
   depth?: number;
@@ -159,6 +160,7 @@ function SectionItem({
   isCoordinator?: boolean;
   lockedSections?: Set<string>;
   onToggleLock?: (sectionId: string) => void;
+  onExportPartB?: () => void;
 }) {
   const isAlwaysExpanded = false;
   const [isExpanded, setIsExpanded] = useState(section.id !== 'a2');
