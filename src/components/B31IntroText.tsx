@@ -116,7 +116,7 @@ export function B31IntroText({ proposalId, acronymSegments, proposalAcronym }: P
       contentEditable
       suppressContentEditableWarning
       className="outline-none"
-      style={{ textAlign: 'justify', margin: 0 }}
+      style={{ textAlign: 'justify', margin: 0, fontFamily: '"Times New Roman", Times, serif', fontSize: '11pt', lineHeight: 1.15 }}
       onBlur={(e) => {
         const text = e.currentTarget.textContent || '';
         const defaultFull = (proposalAcronym + defaultSuffix).trim();
