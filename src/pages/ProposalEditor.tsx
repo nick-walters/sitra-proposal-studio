@@ -1234,8 +1234,25 @@ export function ProposalEditor() {
               onToggleLock={toggleSectionLock}
               wpDraftsVisible={proposal?.wpDraftsVisible !== false}
               caseDraftsVisible={proposal?.caseDraftsVisible !== false}
+              onExportPartB={() => {
+                if (isCoordinator) {
+                  setIsExportOpen(true);
+                } else {
+                  handleExport('pdf', true);
+                }
+              }}
             />
           </div>
+
+          {/* Export Part B Dialog (opened from left panel) */}
+          {isCoordinator && proposal && (
+            <ExportDialog
+              open={isExportOpen}
+              onOpenChange={setIsExportOpen}
+              onExport={handleExport}
+              proposalId={proposal.id}
+            />
+          )}
         </aside>
 
         {/* Collapse Toggle */}
