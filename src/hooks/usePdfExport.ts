@@ -516,11 +516,12 @@ export function usePdfExport() {
 
       // Type for parsed content blocks
       type ContentBlock = 
-        | { type: 'paragraph'; text: string }
+        | { type: 'paragraph'; text: string; segments?: TextSegment[] }
         | { type: 'h3'; text: string }
         | { type: 'image'; src: string; width?: number; height?: number; widthPercent?: number }
         | { type: 'caption'; text: string; captionType: 'figure' | 'table' }
-        | { type: 'table'; rows: string[][]; hasHeader: boolean };
+        | { type: 'table'; rows: string[][]; hasHeader: boolean }
+        | { type: 'list'; items: { text: string; segments?: TextSegment[] }[]; ordered: boolean };
 
       // Helper: Load image as base64
       const loadImageAsBase64 = async (src: string): Promise<{ data: string; width: number; height: number } | null> => {
