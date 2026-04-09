@@ -922,6 +922,11 @@
   margin-bottom: 0 !important;
 }
 
+/* B3.1 page: no minimum height since content is auto-generated and variable */
+.b31-document-page {
+  min-height: auto !important;
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;

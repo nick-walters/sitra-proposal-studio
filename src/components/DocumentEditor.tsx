@@ -1318,7 +1318,7 @@ export function DocumentEditor({
             )}
 
             {/* Document Page with Rich text editor */}
-            <div ref={documentPageRef} className="document-page animate-fade-in">
+            <div ref={documentPageRef} className={`document-page animate-fade-in ${(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') ? 'b31-document-page' : ''}`}>
               {/* Page Header - centered, shows Topic ID: Topic title (type of action) */}
               <div className="document-page-header">
                 <span className="w-full text-center">
