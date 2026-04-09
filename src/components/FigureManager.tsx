@@ -422,19 +422,15 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
         });
 
         const contentType = format === 'png' ? 'image/png' : 'image/jpeg';
-        const { url, error } = await uploadProposalFile(compressedBlob, filePath, {
-          contentType,
-        });
-
         if (error) throw error;
-        if (!url) throw new Error('Failed to get public URL');
+        if (!storagePath) throw new Error('Failed to get storage path');
 
-        // Create figure with image URL
+        // Create figure with storage path (not signed URL which expires)
         createFigure.mutate({
           title: newFigureTitle,
           figureType: newFigureType,
           sectionId: newFigureSection,
-          imageUrl: url,
+          imageUrl: storagePath,
           aiPrompt: newFigureType === 'ai' ? aiPrompt.trim() : undefined,
         });
       } catch (error) {

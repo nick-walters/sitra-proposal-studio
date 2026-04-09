@@ -71,14 +71,14 @@ export function FigureEditor({
         addTimestamp: true,
       });
 
-      const { url, error: uploadErr } = await uploadProposalFile(compressed, filePath, {
+      const { storagePath, error: uploadErr } = await uploadProposalFile(compressed, filePath, {
         contentType: 'image/png',
       });
 
       if (uploadErr) throw uploadErr;
-      if (!url) throw new Error('Failed to get URL');
+      if (!storagePath) throw new Error('Failed to get storage path');
 
-      const newContent = { ...figure.content, imageUrl: url };
+      const newContent = { ...figure.content, imageUrl: storagePath };
       onUpdate({ content: newContent });
       toast.success('Image replaced successfully!');
     } catch (error) {
@@ -124,14 +124,14 @@ export function FigureEditor({
           addTimestamp: true,
         });
 
-        const { url: newUrl, error: uploadErr } = await uploadProposalFile(compressedBlob, filePath, {
+        const { storagePath: newPath, error: uploadErr } = await uploadProposalFile(compressedBlob, filePath, {
           contentType: 'image/png',
         });
 
         if (uploadErr) throw uploadErr;
-        if (!newUrl) throw new Error('Failed to get URL');
+        if (!newPath) throw new Error('Failed to get storage path');
 
-        onUpdate({ content: { imageUrl: newUrl, aiPrompt: editPrompt.trim() } });
+        onUpdate({ content: { imageUrl: newPath, aiPrompt: editPrompt.trim() } });
         toast.success('Image regenerated successfully!');
       } else {
         toast.error('Failed to regenerate image');
