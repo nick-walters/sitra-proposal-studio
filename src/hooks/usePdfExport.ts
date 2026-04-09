@@ -309,25 +309,209 @@ export function usePdfExport() {
         isTopOfPage = false;
       };
 
-      // Helper: Add body paragraph (11pt, 3pt before and after)
-      const addParagraph = (text: string) => {
-        if (!text.trim()) return;
+      // Helper: Add body paragraph with justified text and rich formatting (11pt, 3pt before and after)
+      const addParagraph = (text: string, segments?: TextSegment[]) => {
+        if (!text.trim() && (!segments || segments.length === 0)) return;
         
         if (!isTopOfPage) {
           yPosition += paragraphSpacing; // 3pt before
         }
         pdf.setFontSize(FONT_SIZE_BODY);
-        pdf.setFont('times', 'normal');
         pdf.setTextColor(...black);
         
-        const lines = pdf.splitTextToSize(text, contentWidth);
-        for (const line of lines) {
-          checkPageBreak(lineHeightBody);
-          pdf.text(line, margin, yPosition);
-          yPosition += lineHeightBody;
+        if (segments && segments.length > 0) {
+          renderRichTextJustified(segments, margin, contentWidth);
+        } else {
+          // Plain text fallback - justified
+          renderPlainTextJustified(text, margin, contentWidth);
         }
         isTopOfPage = false;
         yPosition += paragraphSpacing; // 3pt after
+      };
+
+      // Helper: Render plain text with justified alignment
+      const renderPlainTextJustified = (text: string, x: number, maxWidth: number) => {
+        pdf.setFont('times', 'normal');
+        const words = text.split(/\s+/).filter(w => w.length > 0);
+        if (words.length === 0) return;
+        
+        let currentLineWords: string[] = [];
+        let currentLineWidth = 0;
+        const spaceWidth = pdf.getTextWidth(' ');
+        
+        for (const word of words) {
+          const wordWidth = pdf.getTextWidth(word);
+          const testWidth = currentLineWidth + (currentLineWords.length > 0 ? spaceWidth : 0) + wordWidth;
+          
+          if (testWidth > maxWidth && currentLineWords.length > 0) {
+            // Flush current line - justified
+            checkPageBreak(lineHeightBody);
+            drawJustifiedLine(currentLineWords, x, yPosition, maxWidth, 'normal', false, false);
+            yPosition += lineHeightBody;
+            currentLineWords = [word];
+            currentLineWidth = wordWidth;
+          } else {
+            currentLineWords.push(word);
+            currentLineWidth = testWidth;
+          }
+        }
+        
+        // Last line - left aligned
+        if (currentLineWords.length > 0) {
+          checkPageBreak(lineHeightBody);
+          pdf.setFont('times', 'normal');
+          pdf.text(currentLineWords.join(' '), x, yPosition);
+          yPosition += lineHeightBody;
+        }
+      };
+
+      // Helper: Draw a single justified line of words
+      const drawJustifiedLine = (words: string[], x: number, y: number, maxWidth: number, fontStyle: string, _bold: boolean, _italic: boolean) => {
+        if (words.length <= 1) {
+          pdf.setFont('times', fontStyle);
+          pdf.text(words.join(' '), x, y);
+          return;
+        }
+        
+        pdf.setFont('times', fontStyle);
+        const totalTextWidth = words.reduce((sum, w) => sum + pdf.getTextWidth(w), 0);
+        const totalSpacing = maxWidth - totalTextWidth;
+        const spacePerGap = totalSpacing / (words.length - 1);
+        
+        let curX = x;
+        for (let i = 0; i < words.length; i++) {
+          pdf.text(words[i], curX, y);
+          curX += pdf.getTextWidth(words[i]) + spacePerGap;
+        }
+      };
+
+      // Types for rich text segments
+      type TextSegment = {
+        text: string;
+        bold: boolean;
+        italic: boolean;
+        underline: boolean;
+        superscript: boolean;
+      };
+
+      // Helper: Render rich text segments with justified alignment
+      const renderRichTextJustified = (segments: TextSegment[], x: number, maxWidth: number) => {
+        // Split all segments into individual words with their formatting
+        type FormattedWord = { word: string; bold: boolean; italic: boolean; underline: boolean; superscript: boolean };
+        const allWords: FormattedWord[] = [];
+        
+        for (const seg of segments) {
+          const words = seg.text.split(/\s+/).filter(w => w.length > 0);
+          for (const word of words) {
+            allWords.push({ word, bold: seg.bold, italic: seg.italic, underline: seg.underline, superscript: seg.superscript });
+          }
+        }
+        
+        if (allWords.length === 0) return;
+        
+        const getWordWidth = (fw: FormattedWord): number => {
+          const style = fw.bold && fw.italic ? 'bolditalic' : fw.bold ? 'bold' : fw.italic ? 'italic' : 'normal';
+          if (fw.superscript) {
+            pdf.setFontSize(FONT_SIZE_BODY * 0.7);
+            pdf.setFont('times', style);
+            const w = pdf.getTextWidth(fw.word);
+            pdf.setFontSize(FONT_SIZE_BODY);
+            return w;
+          }
+          pdf.setFont('times', style);
+          return pdf.getTextWidth(fw.word);
+        };
+        
+        const spaceWidth = (() => { pdf.setFont('times', 'normal'); return pdf.getTextWidth(' '); })();
+        
+        // Break into lines
+        type Line = FormattedWord[];
+        const lines: Line[] = [];
+        let currentLine: FormattedWord[] = [];
+        let currentLineWidth = 0;
+        
+        for (const fw of allWords) {
+          const ww = getWordWidth(fw);
+          const testWidth = currentLineWidth + (currentLine.length > 0 ? spaceWidth : 0) + ww;
+          
+          if (testWidth > maxWidth && currentLine.length > 0) {
+            lines.push(currentLine);
+            currentLine = [fw];
+            currentLineWidth = ww;
+          } else {
+            currentLine.push(fw);
+            currentLineWidth = testWidth;
+          }
+        }
+        if (currentLine.length > 0) lines.push(currentLine);
+        
+        // Render each line
+        for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+          const line = lines[lineIdx];
+          const isLastLine = lineIdx === lines.length - 1;
+          
+          checkPageBreak(lineHeightBody);
+          
+          if (isLastLine || line.length <= 1) {
+            // Last line or single word: left-aligned
+            let curX = x;
+            for (let i = 0; i < line.length; i++) {
+              const fw = line[i];
+              const style = fw.bold && fw.italic ? 'bolditalic' : fw.bold ? 'bold' : fw.italic ? 'italic' : 'normal';
+              
+              if (fw.superscript) {
+                pdf.setFontSize(FONT_SIZE_BODY * 0.7);
+                pdf.setFont('times', style);
+                pdf.text(fw.word, curX, yPosition - 1.5);
+                const ww = pdf.getTextWidth(fw.word);
+                pdf.setFontSize(FONT_SIZE_BODY);
+                curX += ww;
+              } else {
+                pdf.setFont('times', style);
+                pdf.text(fw.word, curX, yPosition);
+                if (fw.underline) {
+                  const ww = pdf.getTextWidth(fw.word);
+                  pdf.setDrawColor(...black);
+                  pdf.setLineWidth(0.1);
+                  pdf.line(curX, yPosition + 0.5, curX + ww, yPosition + 0.5);
+                }
+                curX += pdf.getTextWidth(fw.word);
+              }
+              if (i < line.length - 1) curX += spaceWidth;
+            }
+          } else {
+            // Justified line
+            const totalWordWidth = line.reduce((sum, fw) => sum + getWordWidth(fw), 0);
+            const totalSpacing = maxWidth - totalWordWidth;
+            const gapPerSpace = totalSpacing / (line.length - 1);
+            
+            let curX = x;
+            for (let i = 0; i < line.length; i++) {
+              const fw = line[i];
+              const style = fw.bold && fw.italic ? 'bolditalic' : fw.bold ? 'bold' : fw.italic ? 'italic' : 'normal';
+              
+              if (fw.superscript) {
+                pdf.setFontSize(FONT_SIZE_BODY * 0.7);
+                pdf.setFont('times', style);
+                pdf.text(fw.word, curX, yPosition - 1.5);
+                curX += pdf.getTextWidth(fw.word);
+                pdf.setFontSize(FONT_SIZE_BODY);
+              } else {
+                pdf.setFont('times', style);
+                pdf.text(fw.word, curX, yPosition);
+                if (fw.underline) {
+                  const ww = pdf.getTextWidth(fw.word);
+                  pdf.setDrawColor(...black);
+                  pdf.setLineWidth(0.1);
+                  pdf.line(curX, yPosition + 0.5, curX + ww, yPosition + 0.5);
+                }
+                curX += pdf.getTextWidth(fw.word);
+              }
+              if (i < line.length - 1) curX += gapPerSpace;
+            }
+          }
+          yPosition += lineHeightBody;
+        }
       };
 
       // Type for parsed content blocks
