@@ -720,7 +720,12 @@ export function BudgetSpreadsheetEnhanced({
                       return (
                         <TableRow key={p.id}>
                           <TableCell className="font-medium">
-                            {p.organisationShortName || p.organisationName}
+                            <span
+                              className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap"
+                              style={{ backgroundColor: '#000000', color: '#ffffff' }}
+                            >
+                              {p.participantNumber}. {p.organisationShortName || p.organisationName}
+                            </span>
                           </TableCell>
                           <TableCell>{p.country || '—'}</TableCell>
                           <TableCell>
