@@ -2644,6 +2644,41 @@ export type Database = {
         }
         Relationships: []
       }
+      proposal_analyses: {
+        Row: {
+          analysis_data: Json
+          created_at: string
+          created_by: string
+          id: string
+          overall_score: number | null
+          proposal_id: string
+        }
+        Insert: {
+          analysis_data: Json
+          created_at?: string
+          created_by: string
+          id?: string
+          overall_score?: number | null
+          proposal_id: string
+        }
+        Update: {
+          analysis_data?: Json
+          created_at?: string
+          created_by?: string
+          id?: string
+          overall_score?: number | null
+          proposal_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_analyses_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposal_message_recipients: {
         Row: {
           id: string
