@@ -1645,72 +1645,10 @@ export function usePdfExport() {
         }
 
         // ===== Table 3.1.b – Work package descriptions (one per WP) =====
+        // Render using the structured layout matching the editor
+        addCaption('Table 3.1.b. Work package descriptions', 'table');
         for (const wp of wps) {
-          // WP description table header
-          addCaption(`Table 3.1.b. Work Package ${wp.number}: ${wp.title || ''}`, 'table');
-          
-          // Simple key-value rows for the WP
-          const leadName = wp.lead_participant_id ? (participantMap.get(wp.lead_participant_id) || '—') : '—';
-          const taskStarts = wp.tasks.filter((t: any) => t.start_month).map((t: any) => t.start_month);
-          const taskEnds = wp.tasks.filter((t: any) => t.end_month).map((t: any) => t.end_month);
-          const start = taskStarts.length > 0 ? Math.min(...taskStarts) : null;
-          const end = taskEnds.length > 0 ? Math.max(...taskEnds) : null;
-
-          // Render as simple text info block
-          const wpInfoLines = [
-            `WP${wp.number}: ${wp.title || ''}`,
-            `Lead: ${leadName}`,
-            `Duration: ${start ? `M${String(start).padStart(2,'0')}` : '?'} – ${end ? `M${String(end).padStart(2,'0')}` : '?'}`,
-          ];
-          for (const line of wpInfoLines) {
-            addParagraph(line);
-          }
-
-          if (wp.objectives) {
-            addH3('Objectives');
-            addParagraph(wp.objectives);
-          }
-          if (wp.methodology) {
-            addH3('Description of work and role of partners');
-            // Parse HTML methodology
-            const methBlocks = parseHtmlContent(wp.methodology);
-            for (const block of methBlocks) {
-              if (block.type === 'paragraph') addParagraph(block.text);
-              else if (block.type === 'h3') addH3(block.text);
-            }
-          }
-
-          // Tasks
-          if (wp.tasks.length > 0) {
-            const taskHeaders = ['Task', 'Title', 'Lead', 'Start', 'End'];
-            const taskColWidths = [18, 92, 30, 20, 20];
-            const taskRows: CellContent[][] = wp.tasks.map((t: any) => {
-              const tLeadName = t.lead_participant_id ? (participantMap.get(t.lead_participant_id) || '—') : '—';
-              return [
-                { text: `T${wp.number}.${t.number}`, type: 'text' as const },
-                { text: t.title || '', type: 'text' as const },
-                tLeadName !== '—' ? { text: tLeadName, color: [0,0,0] as [number,number,number], type: 'bubble' as const, italic: true } : { text: '—', type: 'text' as const },
-                { text: t.start_month ? `M${String(t.start_month).padStart(2,'0')}` : '—', type: 'text' as const },
-                { text: t.end_month ? `M${String(t.end_month).padStart(2,'0')}` : '—', type: 'text' as const },
-              ];
-            });
-            addB31TableAdvanced(taskHeaders, taskRows, taskColWidths, '');
-          }
-
-          // WP Deliverables
-          if (wp.deliverables.length > 0) {
-            const delHeaders = ['Deliverable', 'Type', 'Diss.', 'Due'];
-            const delColWidths = [110, 20, 25, 25];
-            const delRows: CellContent[][] = wp.deliverables.map((d: any) => ([
-              { text: `D${wp.number}.${d.number}: ${d.title || ''}`, type: 'text' as const },
-              { text: d.type || '—', type: 'text' as const },
-              { text: d.dissemination_level || '—', type: 'text' as const },
-              { text: d.due_month ? `M${String(d.due_month).padStart(2,'0')}` : '—', type: 'text' as const },
-            ]));
-            addB31TableAdvanced(delHeaders, delRows, delColWidths, '');
-          }
-
-          yPosition += paragraphSpacing * 2;
+          renderWPDescriptionTable(wp);
         }
 
         // ===== Table 3.1.c – Deliverables =====
