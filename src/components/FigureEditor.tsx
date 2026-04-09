@@ -13,7 +13,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { ArrowLeft, Save, Trash2, Image, Sparkles, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, Image, Sparkles, Loader2, Upload } from 'lucide-react';
+import { useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { generateProposalFilePath, uploadProposalFile } from '@/lib/proposalStorage';
