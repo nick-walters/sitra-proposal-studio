@@ -16,6 +16,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Image, Sparkles, BarChart3, Network, Search, Library, Plus, Loader2 } from 'lucide-react';
+import { StorageImage } from '@/components/StorageImage';
 
 interface CommonFigure {
   id: string;
@@ -156,8 +157,8 @@ export function CommonFiguresDialog({
                   >
                     <div className="aspect-video bg-muted flex items-center justify-center overflow-hidden">
                       {hasImage ? (
-                        <img 
-                          src={figure.content.imageUrl} 
+                        <StorageImage 
+                          storedPath={figure.content.imageUrl} 
                           alt={figure.title}
                           className="w-full h-full object-cover"
                         />
