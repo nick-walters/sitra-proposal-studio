@@ -1234,13 +1234,6 @@ export function ProposalEditor() {
               onToggleLock={toggleSectionLock}
               wpDraftsVisible={proposal?.wpDraftsVisible !== false}
               caseDraftsVisible={proposal?.caseDraftsVisible !== false}
-              onExportPartB={() => {
-                if (isCoordinator) {
-                  setIsExportOpen(true);
-                } else {
-                  handleExport('pdf', true);
-                }
-              }}
             />
           </div>
 
