@@ -1565,12 +1565,13 @@ export function usePdfExport() {
             
             // Task metadata: leader + partners + duration
             const tLeadName = task.lead_participant_id ? String(participantMap.get(task.lead_participant_id) || '') : '';
+            let partnerX = margin + 3;
             if (tLeadName) {
-              drawPartnerBubble(tLeadName, margin + 3, yPosition);
+              const leadBW = drawPartnerBubble(tLeadName, partnerX, yPosition);
+              partnerX += leadBW + 1;
             }
             // Task participants
             const partnerIds = (task.participants || []).map((p: any) => p.participant_id).filter((id: string) => id !== task.lead_participant_id);
-            let partnerX = margin + 3 + (tLeadName ? 25 : 0);
             for (const pid of partnerIds) {
               const pName = String(participantMap.get(pid) || '');
               if (pName) {
