@@ -315,6 +315,18 @@ export function useSectionContent({ proposalId, sectionId, sectionNumber, placeh
   useEffect(() => {
     if (!proposalId || !sectionId) return;
 
+    // CRITICAL: Reset pending state when section changes to prevent
+    // stale content from previous section being saved to new section
+    pendingContentRef.current = null;
+    isSavingRef.current = false;
+    saveQueuedRef.current = false;
+    setIsDirty(false);
+    setSaveError(null);
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+
     const fetchContent = async () => {
       setLoading(true);
 
