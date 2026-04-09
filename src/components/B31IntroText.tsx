@@ -8,6 +8,18 @@ function formatCount(n: number): string {
   return n < 10 ? NUMBER_WORDS[n] : String(n);
 }
 
+function computeDefaultReportingPeriods(duration: number) {
+  const periods: { number: number; startMonth: number; endMonth: number }[] = [];
+  let start = 1;
+  let num = 1;
+  while (start <= duration) {
+    periods.push({ number: num, startMonth: start, endMonth: Math.min(start + 17, duration) });
+    start += 18;
+    num++;
+  }
+  return periods;
+}
+
 interface Props {
   proposalId: string;
   acronymSegments?: { text: string; color: string }[];
@@ -40,7 +52,6 @@ export function B31IntroText({ proposalId, acronymSegments, proposalAcronym }: P
     },
   });
 
-  // Simple persist for intro text
   const [savedText, setSavedText] = useState<string | null>(null);
   const saveTimeout = useRef<ReturnType<typeof setTimeout>>();
 
@@ -73,49 +84,56 @@ export function B31IntroText({ proposalId, acronymSegments, proposalAcronym }: P
   }, [proposalId]);
 
   const duration = proposalMeta?.duration || 36;
-  const rps = (proposalMeta?.reporting_periods as any[]) || [];
-  const rpCount = rps.length || Math.ceil(duration / 18);
+  const rps = (proposalMeta?.reporting_periods as any[]);
+  const rpCount = (rps && rps.length > 0) ? rps.length : computeDefaultReportingPeriods(duration).length;
   const wps = wpCount || 0;
 
-  const defaultText = `consists of ${formatCount(wps)} WPs organised into ${formatCount(rpCount)} reporting periods over ${formatCount(duration)} months.`;
+  const defaultSuffix = ` consists of ${formatCount(wps)} WPs organised into ${formatCount(rpCount)} reporting period${rpCount !== 1 ? 's' : ''} over ${formatCount(duration)} months.`;
 
+  // Render acronym as cross-reference style
   const acronymEl = acronymSegments && acronymSegments.length > 0 ? (
-    <span style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900 }}>
+    <span
+      data-type="acronymReference"
+      style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900 }}
+    >
       {acronymSegments.map((seg, i) => (
         <span key={i} style={{ color: seg.color }}>{seg.text}</span>
       ))}
     </span>
   ) : (
-    <strong>{proposalAcronym}</strong>
+    <span
+      data-type="acronymReference"
+      style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontWeight: 900 }}
+    >
+      {proposalAcronym}
+    </span>
   );
 
-  const displayText = savedText || defaultText;
-  const isDefault = !savedText;
+  const displayText = savedText || null;
 
   return (
-    <div className="b31-intro-text" style={{ fontFamily: '"Times New Roman", Times, serif', fontSize: '11pt', marginBottom: '3pt' }}>
-      <p
-        contentEditable
-        suppressContentEditableWarning
-        className="outline-none"
-        style={{ textAlign: 'justify', margin: 0 }}
-        onBlur={(e) => {
-          const text = e.currentTarget.textContent || '';
-          if (!text.trim() || text.trim() === defaultText.trim()) {
-            saveText('');
-          } else {
-            saveText(text);
-          }
-        }}
-      >
-        {isDefault ? (
-          <>
-            {acronymEl} {defaultText}
-          </>
-        ) : (
-          displayText
-        )}
-      </p>
-    </div>
+    <p
+      contentEditable
+      suppressContentEditableWarning
+      className="outline-none"
+      style={{ textAlign: 'justify', margin: 0 }}
+      onBlur={(e) => {
+        const text = e.currentTarget.textContent || '';
+        const defaultFull = (proposalAcronym + defaultSuffix).trim();
+        if (!text.trim() || text.trim() === defaultFull) {
+          saveText('');
+        } else {
+          saveText(text);
+        }
+      }}
+    >
+      {displayText ? (
+        displayText
+      ) : (
+        <>
+          {acronymEl}{defaultSuffix}
+        </>
+      )}
+    </p>
   );
 }
