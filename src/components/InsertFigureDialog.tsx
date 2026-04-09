@@ -173,6 +173,7 @@ export function InsertFigureDialog({
                   <div className="w-12 h-12 rounded bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
                     {hasImage ? (
                       <StorageImage storedPath={figure.content.imageUrl} alt="" className="w-full h-full object-cover" />
+                    ) : (
                       <Icon className="w-5 h-5 text-muted-foreground" />
                     )}
                   </div>
