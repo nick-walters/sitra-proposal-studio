@@ -1712,39 +1712,8 @@ export function usePdfExport() {
           addCaption(captionText, 'figure');
         };
         
-        if (pertFigure) {
-          const pertImage = await captureFigureFromDom('pert');
-          if (pertImage) {
-            const imgData = await loadImageAsBase64(pertImage);
-            if (imgData) {
-              const imgW = Math.min(contentWidth, 180);
-              const aspect = imgData.height / imgData.width;
-              const imgH = Math.min(imgW * aspect, 120);
-              checkPageBreak(imgH + 10);
-              const xPos = margin + (contentWidth - imgW) / 2;
-              pdf.addImage(imgData.data, 'JPEG', xPos, yPosition, imgW, imgH);
-              yPosition += imgH + 4.2;
-            }
-          }
-          addCaption(`Figure ${pertFigure.figure_number}. ${pertFigure.caption || pertFigure.title || 'PERT chart'}`, 'figure');
-        }
-        
-        if (ganttFigure) {
-          const ganttImage = await captureFigureFromDom('gantt');
-          if (ganttImage) {
-            const imgData = await loadImageAsBase64(ganttImage);
-            if (imgData) {
-              const imgW = Math.min(contentWidth, 180);
-              const aspect = imgData.height / imgData.width;
-              const imgH = Math.min(imgW * aspect, 120);
-              checkPageBreak(imgH + 10);
-              const xPos = margin + (contentWidth - imgW) / 2;
-              pdf.addImage(imgData.data, 'JPEG', xPos, yPosition, imgW, imgH);
-              yPosition += imgH + 4.2;
-            }
-          }
-          addCaption(`Figure ${ganttFigure.figure_number}. ${ganttFigure.caption || 'Gantt chart'}`, 'figure');
-        }
+        await addFigureWithCapture('pert', pertFigure);
+        await addFigureWithCapture('gantt', ganttFigure);
 
         // ===== Table 3.1.b – Work package descriptions (one per WP) =====
         // Render using the structured layout matching the editor
