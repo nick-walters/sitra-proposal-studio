@@ -1465,7 +1465,7 @@ export function usePdfExport() {
         // Helper: Draw WP description table matching editor layout
         const renderWPDescriptionTable = (wp: any) => {
           const [r, g, b] = hexToRgb(wp.color);
-          const leadName = wp.lead_participant_id ? (participantMap.get(wp.lead_participant_id) || '—') : '—';
+          const leadName = wp.lead_participant_id ? (String(participantMap.get(wp.lead_participant_id) || '—')) : '—';
           
           // Use b31_tasks if available, otherwise fall back to wp_draft_tasks
           const tasksToRender = wp.b31Tasks.length > 0 ? wp.b31Tasks : wp.tasks;
@@ -1571,7 +1571,7 @@ export function usePdfExport() {
             yPosition += lineHeightBody;
             
             // Task metadata: leader + partners + duration
-            const tLeadName = task.lead_participant_id ? (participantMap.get(task.lead_participant_id) || '') : '';
+            const tLeadName = task.lead_participant_id ? String(participantMap.get(task.lead_participant_id) || '') : '';
             if (tLeadName) {
               drawPartnerBubble(tLeadName, margin + 3, yPosition);
             }
@@ -1579,7 +1579,7 @@ export function usePdfExport() {
             const partnerIds = (task.participants || []).map((p: any) => p.participant_id).filter((id: string) => id !== task.lead_participant_id);
             let partnerX = margin + 3 + (tLeadName ? 25 : 0);
             for (const pid of partnerIds) {
-              const pName = participantMap.get(pid);
+              const pName = String(participantMap.get(pid) || '');
               if (pName) {
                 const bw = drawPartnerBubble(pName, partnerX, yPosition);
                 partnerX += bw + 1;
