@@ -379,6 +379,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
   const { 
     references: proposalReferences, 
     addReference,
+    updateReference,
     findExistingReference,
     getNextCitationNumber 
   } = useProposalReferences(proposalId);
@@ -1400,6 +1401,7 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
         proposalReferences={proposalReferences}
         isLoadingReferences={false}
         nextCitationNumber={getNextCitationNumber()}
+        onUpdateReference={updateReference}
       />
       
       {/* Cross-reference Dialog */}

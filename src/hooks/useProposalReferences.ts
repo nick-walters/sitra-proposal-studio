@@ -98,6 +98,27 @@ export function useProposalReferences(proposalId: string) {
     }
   }, [proposalId]);
 
+  // Update an existing reference
+  const updateReference = useCallback(async (
+    refId: string,
+    updates: Partial<Omit<ProposalReference, 'id' | 'proposal_id' | 'created_at'>>
+  ): Promise<boolean> => {
+    try {
+      const { error: updateError } = await supabase
+        .from('references')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', refId);
+
+      if (updateError) throw updateError;
+
+      setReferences(prev => prev.map(r => r.id === refId ? { ...r, ...updates } : r));
+      return true;
+    } catch (err) {
+      console.error('Error updating reference:', err);
+      return false;
+    }
+  }, []);
+
   // Find existing reference by DOI or title
   const findExistingReference = useCallback((reference: Reference): ProposalReference | undefined => {
     return references.find(
@@ -150,6 +171,7 @@ export function useProposalReferences(proposalId: string) {
     isLoading,
     error,
     addReference,
+    updateReference,
     findExistingReference,
     getNextCitationNumber,
     refetch: fetchReferences,
