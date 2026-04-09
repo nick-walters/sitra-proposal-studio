@@ -433,27 +433,6 @@ function SectionItem({
           </TooltipProvider>
         )}
 
-        {/* Export Part B button on Part B heading */}
-        {section.id === 'part-b' && onExportPartB && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  className="p-0.5 rounded shrink-0 opacity-0 group-hover:opacity-100 transition-opacity hover:text-foreground"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onExportPartB();
-                  }}
-                >
-                  <Download className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right" className="text-xs">
-                Export part B
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
         
         {/* Real-time collaborator presence indicators */}
         {sectionCollaborators.length > 0 && (

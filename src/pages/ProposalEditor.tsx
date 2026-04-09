@@ -76,6 +76,7 @@ import {
   ThumbsDown,
   ChevronDown,
   Loader2,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePdfExport } from "@/hooks/usePdfExport";
@@ -531,7 +532,23 @@ export function ProposalEditor() {
       return (
         <div className="flex-1 overflow-y-auto p-6 bg-muted/30">
           <div className="max-w-7xl mx-auto space-y-6">
-            <h1 className="text-xl font-bold text-foreground">Part B: Technical Description</h1>
+            <div className="flex items-center justify-between">
+              <h1 className="text-xl font-bold text-foreground">Part B: Technical Description</h1>
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => {
+                  if (isCoordinator) {
+                    setIsExportOpen(true);
+                  } else {
+                    handleExport('pdf', true);
+                  }
+                }}
+              >
+                <Download className="h-4 w-4" />
+                Export part B
+              </Button>
+            </div>
             <ProposalAnalyser proposalId={id || ''} />
           </div>
         </div>
@@ -1217,13 +1234,6 @@ export function ProposalEditor() {
               onToggleLock={toggleSectionLock}
               wpDraftsVisible={proposal?.wpDraftsVisible !== false}
               caseDraftsVisible={proposal?.caseDraftsVisible !== false}
-              onExportPartB={() => {
-                if (isCoordinator) {
-                  setIsExportOpen(true);
-                } else {
-                  handleExport('pdf', true);
-                }
-              }}
             />
           </div>
 
