@@ -37,7 +37,7 @@ export function B31SectionContent({ proposalId }: Props) {
 
       {/* Figure 3.1.a – PERT chart */}
       {pertFigure ? (
-        <div>
+         <div data-figure-type="pert">
           <PERTChartFigure
             proposalId={proposalId}
             figureNumber={pertFigure.figure_number}
@@ -61,7 +61,7 @@ export function B31SectionContent({ proposalId }: Props) {
 
       {/* Figure 3.1.b – Gantt chart */}
       {ganttFigure ? (
-        <div>
+        <div data-figure-type="gantt">
           <GanttChartFigure
             proposalId={proposalId}
             figureNumber={ganttFigure.figure_number}

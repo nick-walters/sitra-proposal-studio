@@ -1135,23 +1135,15 @@ export function usePdfExport() {
             }
           }
           
-          // Draw borders: horizontal lines above and below rows, vertical cell separators
-          pdf.setLineWidth(isHeaderRow ? 0.5 : 0.15);
-          // Top border of header or bottom border of header
+          // Draw borders: horizontal lines only (no vertical separators) to match editor
           if (isHeaderRow) {
+            pdf.setLineWidth(0.5);
             pdf.line(margin, rowTop, margin + contentWidth, rowTop);
             pdf.line(margin, rowTop + rowHeight, margin + contentWidth, rowTop + rowHeight);
           } else {
             // Light bottom border for data rows
             pdf.setLineWidth(0.15);
             pdf.line(margin, rowTop + rowHeight, margin + contentWidth, rowTop + rowHeight);
-          }
-          
-          // Vertical cell separators
-          pdf.setLineWidth(0.15);
-          for (let colIdx = 1; colIdx < numCols; colIdx++) {
-            const cellX = margin + colIdx * colWidth;
-            pdf.line(cellX, rowTop, cellX, rowTop + rowHeight);
           }
           
           yPosition += rowHeight;
@@ -1236,17 +1228,20 @@ export function usePdfExport() {
         
         pdf.setFontSize(FONT_SIZE_BODY);
         pdf.setDrawColor(...black);
-        pdf.setLineWidth(0.25);
         
-        // Draw header row
+        // Draw header row - horizontal lines only, no vertical borders
         let xPos = margin;
         pdf.setFillColor(0, 0, 0);
         pdf.rect(margin, yPosition - 4, tableWidth, baseRowHeight, 'F');
         pdf.setFont('times', 'bold');
         pdf.setTextColor(255, 255, 255);
         
+        // Header top and bottom lines
+        pdf.setLineWidth(0.5);
+        pdf.line(margin, yPosition - 4, margin + tableWidth, yPosition - 4);
+        pdf.line(margin, yPosition - 4 + baseRowHeight, margin + tableWidth, yPosition - 4 + baseRowHeight);
+        
         for (let i = 0; i < headers.length; i++) {
-          pdf.rect(xPos, yPosition - 4, colWidths[i], baseRowHeight);
           const maxTextWidth = colWidths[i] - cellPadding * 2;
           let displayText = headers[i];
           while (pdf.getTextWidth(displayText) > maxTextWidth && displayText.length > 3) {
@@ -1315,11 +1310,9 @@ export function usePdfExport() {
           const cellTop = rowStartY - 4; // Cell top position
           const cellBottom = cellTop + rowHeight; // Cell bottom position
           
-          // Draw cell borders first
-          for (let i = 0; i < colWidths.length; i++) {
-            pdf.rect(xPos, cellTop, colWidths[i], rowHeight);
-            xPos += colWidths[i];
-          }
+          // Draw horizontal row border only (no vertical cell borders) to match editor
+          pdf.setLineWidth(0.15);
+          pdf.line(margin, cellTop + rowHeight, margin + colWidths.reduce((a, b) => a + b, 0), cellTop + rowHeight);
           
           // Draw cell content - vertically centered within cell bounds
           xPos = margin;
@@ -1572,12 +1565,13 @@ export function usePdfExport() {
             
             // Task metadata: leader + partners + duration
             const tLeadName = task.lead_participant_id ? String(participantMap.get(task.lead_participant_id) || '') : '';
+            let partnerX = margin + 3;
             if (tLeadName) {
-              drawPartnerBubble(tLeadName, margin + 3, yPosition);
+              const leadBW = drawPartnerBubble(tLeadName, partnerX, yPosition);
+              partnerX += leadBW + 1;
             }
             // Task participants
             const partnerIds = (task.participants || []).map((p: any) => p.participant_id).filter((id: string) => id !== task.lead_participant_id);
-            let partnerX = margin + 3 + (tLeadName ? 25 : 0);
             for (const pid of partnerIds) {
               const pName = String(participantMap.get(pid) || '');
               if (pName) {
@@ -1653,25 +1647,29 @@ export function usePdfExport() {
         
         const captureFigureFromDom = async (figureType: string): Promise<string | null> => {
           try {
-            // Try to find the rendered figure in the DOM
-            const selector = figureType === 'pert' ? '[data-figure-type="pert"]' : '[data-figure-type="gantt"]';
+            // Try to find the rendered figure in the DOM using data attribute
+            const selector = `[data-figure-type="${figureType}"]`;
             let el = document.querySelector(selector) as HTMLElement;
             // Fallback: try finding by class or other attributes
             if (!el) {
-              const containers = document.querySelectorAll('.b31-tables-container > div');
-              for (const container of Array.from(containers)) {
-                const text = container.textContent || '';
-                if (figureType === 'pert' && text.includes('PERT')) {
-                  el = container as HTMLElement;
+              const allElements = document.querySelectorAll('div, svg');
+              for (const elem of Array.from(allElements)) {
+                const text = elem.textContent || '';
+                const classAttr = elem.getAttribute('class') || '';
+                if (figureType === 'pert' && (classAttr.includes('pert') || text.includes('PERT'))) {
+                  el = elem as HTMLElement;
                   break;
                 }
-                if (figureType === 'gantt' && text.includes('Gantt')) {
-                  el = container as HTMLElement;
+                if (figureType === 'gantt' && (classAttr.includes('gantt') || classAttr.includes('Gantt'))) {
+                  el = elem as HTMLElement;
                   break;
                 }
               }
             }
-            if (!el) return null;
+            if (!el) {
+              console.warn(`Figure element for ${figureType} not found in DOM - the B3.1 section may not be visible`);
+              return null;
+            }
             
             const html2canvas = (await import('html2canvas')).default;
             const canvas = await html2canvas(el, { useCORS: true, scale: 2, backgroundColor: '#ffffff' });
@@ -1682,39 +1680,41 @@ export function usePdfExport() {
           }
         };
         
-        if (pertFigure) {
-          const pertImage = await captureFigureFromDom('pert');
-          if (pertImage) {
-            const imgData = await loadImageAsBase64(pertImage);
+        // Try to capture figures - add helpful message if they can't be captured
+        const addFigureWithCapture = async (figureType: string, figureData: any) => {
+          if (!figureData) return;
+          
+          const image = await captureFigureFromDom(figureType);
+          if (image) {
+            const imgData = await loadImageAsBase64(image);
             if (imgData) {
               const imgW = Math.min(contentWidth, 180);
               const aspect = imgData.height / imgData.width;
               const imgH = Math.min(imgW * aspect, 120);
               checkPageBreak(imgH + 10);
-              const xPos = margin + (contentWidth - imgW) / 2;
-              pdf.addImage(imgData.data, 'JPEG', xPos, yPosition, imgW, imgH);
+              const xPos2 = margin + (contentWidth - imgW) / 2;
+              pdf.addImage(imgData.data, 'JPEG', xPos2, yPosition, imgW, imgH);
               yPosition += imgH + 4.2;
             }
+          } else {
+            // Figure not available from DOM - add placeholder text
+            if (!isTopOfPage) yPosition += paragraphSpacing;
+            checkPageBreak(lineHeightBody);
+            pdf.setFontSize(FONT_SIZE_BODY);
+            pdf.setFont('times', 'italic');
+            pdf.setTextColor(128, 128, 128);
+            pdf.text('[Navigate to section B3.1 and export again to include this figure]', margin, yPosition);
+            pdf.setTextColor(...black);
+            yPosition += lineHeightBody + paragraphSpacing;
           }
-          addCaption(`Figure ${pertFigure.figure_number}. ${pertFigure.caption || pertFigure.title || 'PERT chart'}`, 'figure');
-        }
+          const captionText = figureType === 'pert'
+            ? `Figure ${figureData.figure_number}. ${figureData.caption || figureData.title || 'PERT chart'}`
+            : `Figure ${figureData.figure_number}. ${figureData.caption || 'Gantt chart'}`;
+          addCaption(captionText, 'figure');
+        };
         
-        if (ganttFigure) {
-          const ganttImage = await captureFigureFromDom('gantt');
-          if (ganttImage) {
-            const imgData = await loadImageAsBase64(ganttImage);
-            if (imgData) {
-              const imgW = Math.min(contentWidth, 180);
-              const aspect = imgData.height / imgData.width;
-              const imgH = Math.min(imgW * aspect, 120);
-              checkPageBreak(imgH + 10);
-              const xPos = margin + (contentWidth - imgW) / 2;
-              pdf.addImage(imgData.data, 'JPEG', xPos, yPosition, imgW, imgH);
-              yPosition += imgH + 4.2;
-            }
-          }
-          addCaption(`Figure ${ganttFigure.figure_number}. ${ganttFigure.caption || 'Gantt chart'}`, 'figure');
-        }
+        await addFigureWithCapture('pert', pertFigure);
+        await addFigureWithCapture('gantt', ganttFigure);
 
         // ===== Table 3.1.b – Work package descriptions (one per WP) =====
         // Render using the structured layout matching the editor
