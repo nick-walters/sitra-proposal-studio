@@ -1140,12 +1140,6 @@ export function usePdfExport() {
           
           const rowTop = yPosition - 4;
           
-          // Draw row background for header
-          if (isHeaderRow) {
-            pdf.setFillColor(0, 0, 0);
-            pdf.rect(margin, rowTop, contentWidth, rowHeight, 'F');
-          }
-          
           // Draw cell content
           for (let colIdx = 0; colIdx < numCols; colIdx++) {
             const cellX = margin + colIdx * colWidth;
@@ -1153,7 +1147,7 @@ export function usePdfExport() {
             
             if (isHeaderRow) {
               pdf.setFont('times', 'bold');
-              pdf.setTextColor(255, 255, 255);
+              pdf.setTextColor(...black);
             } else {
               pdf.setFont('times', 'normal');
               pdf.setTextColor(...black);
@@ -1168,15 +1162,19 @@ export function usePdfExport() {
             }
           }
           
-          // Draw borders: horizontal lines only (no vertical separators) to match editor
+          // Draw borders: horizontal lines only, no vertical separators
           if (isHeaderRow) {
+            // Black border above and below header
+            pdf.setDrawColor(...black);
             pdf.setLineWidth(0.5);
             pdf.line(margin, rowTop, margin + contentWidth, rowTop);
             pdf.line(margin, rowTop + rowHeight, margin + contentWidth, rowTop + rowHeight);
           } else {
-            // Light bottom border for data rows
+            // Light grey separator between data rows
+            pdf.setDrawColor(200, 200, 200);
             pdf.setLineWidth(0.15);
             pdf.line(margin, rowTop + rowHeight, margin + contentWidth, rowTop + rowHeight);
+            pdf.setDrawColor(...black);
           }
           
           yPosition += rowHeight;
@@ -1262,14 +1260,13 @@ export function usePdfExport() {
         pdf.setFontSize(FONT_SIZE_BODY);
         pdf.setDrawColor(...black);
         
-        // Draw header row - horizontal lines only, no vertical borders
+        // Draw header row - no fill, bold black text, black border above and below
         let xPos = margin;
-        pdf.setFillColor(0, 0, 0);
-        pdf.rect(margin, yPosition - 4, tableWidth, baseRowHeight, 'F');
         pdf.setFont('times', 'bold');
-        pdf.setTextColor(255, 255, 255);
+        pdf.setTextColor(...black);
         
-        // Header top and bottom lines
+        // Header top and bottom black lines
+        pdf.setDrawColor(...black);
         pdf.setLineWidth(0.5);
         pdf.line(margin, yPosition - 4, margin + tableWidth, yPosition - 4);
         pdf.line(margin, yPosition - 4 + baseRowHeight, margin + tableWidth, yPosition - 4 + baseRowHeight);
