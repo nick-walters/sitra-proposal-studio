@@ -1,9 +1,13 @@
-import { useCallback } from 'react';
+import { createElement, useCallback } from 'react';
 import jsPDF from 'jspdf';
 import { toast } from 'sonner';
 import { Proposal, Section, Participant } from '@/types/proposal';
 import { supabase } from '@/integrations/supabase/client';
 import { resolveStorageUrl } from '@/hooks/useStorageUrl';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { createRoot } from 'react-dom/client';
+import { PERTChartFigure } from '@/components/PERTChartFigure';
+import { GanttChartFigure } from '@/components/GanttChartFigure';
 
 /** Convert hex color string to RGB tuple */
 function hexToRgb(hex: string): [number, number, number] {
@@ -684,8 +688,30 @@ export function usePdfExport() {
         | { type: 'table'; rows: string[][]; hasHeader: boolean }
         | { type: 'list'; items: { text: string; segments?: TextSegment[] }[]; ordered: boolean };
 
+      type EmbeddedImageData = {
+        data: string;
+        width: number;
+        height: number;
+        format: 'JPEG' | 'PNG';
+      };
+
+      const canvasHasTransparency = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
+        try {
+          const pixels = ctx.getImageData(0, 0, width, height).data;
+          for (let i = 3; i < pixels.length; i += 16) {
+            if (pixels[i] < 255) return true;
+          }
+        } catch {
+          return false;
+        }
+        return false;
+      };
+
       // Helper: Load image as base64
-      const loadImageAsBase64 = async (src: string): Promise<{ data: string; width: number; height: number } | null> => {
+      const loadImageAsBase64 = async (
+        src: string,
+        options?: { preferredFormat?: 'JPEG' | 'PNG'; preserveTransparency?: boolean }
+      ): Promise<EmbeddedImageData | null> => {
         try {
           return new Promise((resolve) => {
             const img = new Image();
@@ -697,8 +723,15 @@ export function usePdfExport() {
               const ctx = canvas.getContext('2d');
               if (ctx) {
                 ctx.drawImage(img, 0, 0);
-                const data = canvas.toDataURL('image/jpeg', 0.85);
-                resolve({ data, width: img.naturalWidth, height: img.naturalHeight });
+                const shouldPreserveTransparency = options?.preserveTransparency !== false;
+                const hasTransparency = shouldPreserveTransparency && canvasHasTransparency(ctx, canvas.width, canvas.height);
+                const format = options?.preferredFormat === 'PNG' || (options?.preferredFormat !== 'JPEG' && hasTransparency)
+                  ? 'PNG'
+                  : 'JPEG';
+                const data = format === 'PNG'
+                  ? canvas.toDataURL('image/png')
+                  : canvas.toDataURL('image/jpeg', 0.85);
+                resolve({ data, width: img.naturalWidth, height: img.naturalHeight, format });
               } else {
                 resolve(null);
               }
@@ -997,7 +1030,7 @@ export function usePdfExport() {
         // Center the image
         const xPos = margin + (contentWidth - imgWidthMm) / 2;
         
-        pdf.addImage(imageData.data, 'JPEG', xPos, yPosition, imgWidthMm, imgHeightMm);
+        pdf.addImage(imageData.data, imageData.format, xPos, yPosition, imgWidthMm, imgHeightMm);
         // 12pt spacing after image before caption (12pt ≈ 4.2mm)
         yPosition += imgHeightMm + 4.2;
       };
@@ -1645,7 +1678,122 @@ export function usePdfExport() {
         const pertFigure = (figuresData || []).find((f: any) => f.figure_type === 'pert');
         const ganttFigure = (figuresData || []).find((f: any) => f.figure_type === 'gantt');
         
-        const captureFigureFromDom = async (figureType: string): Promise<string | null> => {
+        const waitForCondition = async (
+          predicate: () => boolean,
+          timeoutMs = 10000,
+          intervalMs = 100,
+        ) => {
+          const start = Date.now();
+          while (Date.now() - start < timeoutMs) {
+            if (predicate()) return true;
+            await new Promise((resolve) => setTimeout(resolve, intervalMs));
+          }
+          return false;
+        };
+
+        const captureElementAsImage = async (element: HTMLElement): Promise<EmbeddedImageData | null> => {
+          try {
+            const html2canvas = (await import('html2canvas')).default;
+            const canvas = await html2canvas(element, {
+              useCORS: true,
+              scale: 2,
+              backgroundColor: '#ffffff',
+            });
+
+            return {
+              data: canvas.toDataURL('image/png'),
+              width: canvas.width,
+              height: canvas.height,
+              format: 'PNG',
+            };
+          } catch (e) {
+            console.warn('Could not capture figure element:', e);
+            return null;
+          }
+        };
+
+        const hasRenderableFigureContent = (container: HTMLElement, figureType: 'pert' | 'gantt') => {
+          const text = container.textContent || '';
+          if (figureType === 'pert') {
+            return !!container.querySelector('svg') && /WP\d+/.test(text);
+          }
+          return text.includes('Reporting period') && /WP\d+/.test(text);
+        };
+
+        const captureFigureOffscreen = async (
+          figureType: 'pert' | 'gantt',
+          figureData: any,
+        ): Promise<EmbeddedImageData | null> => {
+          const host = document.createElement('div');
+          host.setAttribute('data-export-figure-host', figureType);
+          host.style.position = 'fixed';
+          host.style.left = '-10000px';
+          host.style.top = '0';
+          host.style.width = '720px';
+          host.style.padding = '8px';
+          host.style.background = '#ffffff';
+          host.style.pointerEvents = 'none';
+          host.style.zIndex = '-1';
+          document.body.appendChild(host);
+
+          const queryClient = new QueryClient({
+            defaultOptions: {
+              queries: {
+                retry: false,
+                gcTime: 0,
+              },
+            },
+          });
+          const root = createRoot(host);
+
+          try {
+            const captureRoot = createElement(
+              'div',
+              { 'data-export-capture-root': figureType, style: { backgroundColor: '#ffffff', width: 'fit-content' } },
+              figureType === 'pert'
+                ? createElement(PERTChartFigure, {
+                    proposalId,
+                    figureNumber: figureData.figure_number,
+                    content: figureData.content as any,
+                    onContentChange: () => {},
+                    canEdit: false,
+                  })
+                : createElement(GanttChartFigure, {
+                    proposalId,
+                    figureNumber: figureData.figure_number,
+                    content: figureData.content as any,
+                    onContentChange: () => {},
+                    canEdit: false,
+                  }),
+            );
+
+            root.render(createElement(QueryClientProvider, { client: queryClient }, captureRoot));
+
+            await waitForCondition(() => queryClient.getQueryCache().getAll().length > 0, 2000, 50);
+            await waitForCondition(() => {
+              const container = host.querySelector('[data-export-capture-root]') as HTMLElement | null;
+              return !!container && queryClient.isFetching() === 0 && hasRenderableFigureContent(container, figureType);
+            }, 12000, 100);
+            await new Promise((resolve) => setTimeout(resolve, 200));
+
+            const container = host.querySelector('[data-export-capture-root]') as HTMLElement | null;
+            if (!container) return null;
+
+            return await captureElementAsImage(container);
+          } catch (e) {
+            console.warn(`Could not render ${figureType} figure off-screen:`, e);
+            return null;
+          } finally {
+            root.unmount();
+            queryClient.clear();
+            host.remove();
+          }
+        };
+
+        const captureFigureFromDom = async (
+          figureType: 'pert' | 'gantt',
+          figureData: any,
+        ): Promise<EmbeddedImageData | null> => {
           try {
             // Try to find the rendered figure in the DOM using data attribute
             const selector = `[data-figure-type="${figureType}"]`;
@@ -1666,44 +1814,40 @@ export function usePdfExport() {
                 }
               }
             }
-            if (!el) {
-              console.warn(`Figure element for ${figureType} not found in DOM - the B3.1 section may not be visible`);
-              return null;
+
+            if (el) {
+              const captured = await captureElementAsImage(el);
+              if (captured) return captured;
             }
-            
-            const html2canvas = (await import('html2canvas')).default;
-            const canvas = await html2canvas(el, { useCORS: true, scale: 2, backgroundColor: '#ffffff' });
-            return canvas.toDataURL('image/jpeg', 0.9);
+
+            return await captureFigureOffscreen(figureType, figureData);
           } catch (e) {
             console.warn(`Could not capture ${figureType} figure from DOM:`, e);
-            return null;
+            return await captureFigureOffscreen(figureType, figureData);
           }
         };
         
-        // Try to capture figures - add helpful message if they can't be captured
-        const addFigureWithCapture = async (figureType: string, figureData: any) => {
+        // Try to capture figures from the visible DOM, and fall back to an off-screen render
+        const addFigureWithCapture = async (figureType: 'pert' | 'gantt', figureData: any) => {
           if (!figureData) return;
           
-          const image = await captureFigureFromDom(figureType);
-          if (image) {
-            const imgData = await loadImageAsBase64(image);
-            if (imgData) {
-              const imgW = Math.min(contentWidth, 180);
-              const aspect = imgData.height / imgData.width;
-              const imgH = Math.min(imgW * aspect, 120);
-              checkPageBreak(imgH + 10);
-              const xPos2 = margin + (contentWidth - imgW) / 2;
-              pdf.addImage(imgData.data, 'JPEG', xPos2, yPosition, imgW, imgH);
-              yPosition += imgH + 4.2;
-            }
+          const imgData = await captureFigureFromDom(figureType, figureData);
+          if (imgData) {
+            const imgW = Math.min(contentWidth, 180);
+            const aspect = imgData.height / imgData.width;
+            const imgH = Math.min(imgW * aspect, 120);
+            checkPageBreak(imgH + 10);
+            const xPos2 = margin + (contentWidth - imgW) / 2;
+            pdf.addImage(imgData.data, imgData.format, xPos2, yPosition, imgW, imgH);
+            yPosition += imgH + 4.2;
           } else {
-            // Figure not available from DOM - add placeholder text
+            // Figure could not be captured even after off-screen rendering
             if (!isTopOfPage) yPosition += paragraphSpacing;
             checkPageBreak(lineHeightBody);
             pdf.setFontSize(FONT_SIZE_BODY);
             pdf.setFont('times', 'italic');
             pdf.setTextColor(128, 128, 128);
-            pdf.text('[Navigate to section B3.1 and export again to include this figure]', margin, yPosition);
+            pdf.text('[Figure could not be rendered for export]', margin, yPosition);
             pdf.setTextColor(...black);
             yPosition += lineHeightBody + paragraphSpacing;
           }
@@ -2205,7 +2349,7 @@ export function usePdfExport() {
                 
                 const logoX = xPos + (colWidths[3] - logoW) / 2;
                 const logoY = cellTop + (rowHeight - logoH) / 2;
-                pdf.addImage(logoData.data, 'JPEG', logoX, logoY, logoW, logoH);
+                pdf.addImage(logoData.data, logoData.format, logoX, logoY, logoW, logoH);
               }
             } catch (e) {
               // Logo failed to load
