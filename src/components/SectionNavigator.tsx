@@ -1,5 +1,5 @@
 import { Section, Participant } from "@/types/proposal";
-import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Layers, Building2, Info, Euro, Lightbulb, Target, Settings, FlaskConical, ShieldCheck, HelpCircle, MessageSquare, ListTodo, Briefcase, Lock, Unlock, CalendarDays } from "lucide-react";
+import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Layers, Building2, Info, Euro, Lightbulb, Target, Settings, FlaskConical, ShieldCheck, HelpCircle, MessageSquare, ListTodo, Briefcase, Lock, Unlock, CalendarDays, Download } from "lucide-react";
 import { useState, useMemo, useRef, useLayoutEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
@@ -103,6 +103,7 @@ interface SectionNavigatorProps {
   onToggleLock?: (sectionId: string) => void;
   wpDraftsVisible?: boolean;
   caseDraftsVisible?: boolean;
+  onExportPartB?: () => void;
 }
 
 // Format section number for display in left navigation
@@ -646,6 +647,7 @@ export function SectionNavigator({
   onToggleLock,
   wpDraftsVisible = true,
   caseDraftsVisible = true,
+  onExportPartB,
 }: SectionNavigatorProps) {
   // All users with proposal access can see all participants
   const visibleParticipants = useMemo(() => {
