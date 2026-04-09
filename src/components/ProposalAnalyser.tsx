@@ -112,7 +112,7 @@ export function ProposalAnalyser({ proposalId }: ProposalAnalyserProps) {
         .eq('proposal_id', proposalId)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return (data || []) as SavedAnalysis[];
+      return (data || []) as unknown as SavedAnalysis[];
     },
     enabled: !!proposalId,
   });
