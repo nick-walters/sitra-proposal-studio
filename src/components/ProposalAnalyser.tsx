@@ -103,11 +103,47 @@ const STATUS_ICONS: Record<string, React.ReactNode> = {
 export function ProposalAnalyser({ proposalId }: ProposalAnalyserProps) {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [selectedAnalysisId, setSelectedAnalysisId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(() => inflightAnalyses.has(proposalId));
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [showHistory, setShowHistory] = useState(false);
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  // Helper to expand all sections for a result
+  const expandAllSections = (result: AnalysisResult) => {
+    const ids = new Set<string>();
+    (result.sections || []).forEach((s: AnalysisSection) => ids.add(s.id));
+    ids.add('crossrefs');
+    ids.add('completeness');
+    ids.add('recommendations');
+    setExpandedSections(ids);
+  };
+
+  // Reconnect to in-flight analysis on mount
+  useEffect(() => {
+    const inflight = inflightAnalyses.get(proposalId);
+    if (inflight) {
+      setLoading(true);
+      inflight.promise.then((outcome) => {
+        if (!mountedRef.current) return;
+        if (outcome) {
+          setAnalysis(outcome.result);
+          setSelectedAnalysisId(outcome.savedId);
+          expandAllSections(outcome.result);
+          toast.success('Analysis complete');
+        }
+        setLoading(false);
+      }).catch(() => {
+        if (mountedRef.current) setLoading(false);
+      });
+    }
+  }, [proposalId]);
 
   // Fetch saved analyses
   const { data: savedAnalyses = [] } = useQuery({
@@ -124,19 +160,13 @@ export function ProposalAnalyser({ proposalId }: ProposalAnalyserProps) {
     enabled: !!proposalId,
   });
 
-  // Load the latest analysis on mount
+  // Load the latest analysis on mount (only if not already loading)
   useEffect(() => {
     if (savedAnalyses.length > 0 && !analysis && !loading) {
       const latest = savedAnalyses[0];
       setAnalysis(latest.analysis_data);
       setSelectedAnalysisId(latest.id);
-      // Expand all sections
-      const ids = new Set<string>();
-      (latest.analysis_data.sections || []).forEach((s: AnalysisSection) => ids.add(s.id));
-      ids.add('crossrefs');
-      ids.add('completeness');
-      ids.add('recommendations');
-      setExpandedSections(ids);
+      expandAllSections(latest.analysis_data);
     }
   }, [savedAnalyses]);
 
@@ -153,54 +183,61 @@ export function ProposalAnalyser({ proposalId }: ProposalAnalyserProps) {
     setLoading(true);
     setAnalysis(null);
     setSelectedAnalysisId(null);
-    try {
-      const { data, error } = await supabase.functions.invoke('analyse-proposal', {
-        body: { proposalId },
-      });
-      if (error) throw error;
-      if (data?.error) {
-        toast.error(data.error);
-        return;
+
+    // Create a background promise that persists across unmounts
+    const userId = user?.id || '';
+    const analysisPromise = (async (): Promise<{ result: AnalysisResult; savedId: string | null } | null> => {
+      try {
+        const { data, error } = await supabase.functions.invoke('analyse-proposal', {
+          body: { proposalId },
+        });
+        if (error) throw error;
+        if (data?.error) {
+          if (mountedRef.current) toast.error(data.error);
+          return null;
+        }
+        const result = data.analysis as AnalysisResult;
+        const overallScore = result.sections.reduce((s, a) => s + a.score, 0);
+
+        // Save to database
+        const { data: saved, error: saveError } = await supabase
+          .from('proposal_analyses')
+          .insert({
+            proposal_id: proposalId,
+            analysis_data: result as any,
+            overall_score: overallScore,
+            created_by: userId,
+          })
+          .select('id')
+          .single();
+
+        if (saveError) console.error('Failed to save analysis:', saveError);
+
+        // Invalidate query cache (works even if component is unmounted)
+        queryClient.invalidateQueries({ queryKey: ['proposal-analyses', proposalId] });
+
+        return { result, savedId: saved?.id || null };
+      } catch (err: any) {
+        console.error('Analysis error:', err);
+        if (mountedRef.current) toast.error(err?.message || 'Failed to run analysis');
+        return null;
+      } finally {
+        inflightAnalyses.delete(proposalId);
       }
-      const result = data.analysis as AnalysisResult;
-      setAnalysis(result);
+    })();
 
-      // Calculate overall score
-      const overallScore = result.sections.reduce((s, a) => s + a.score, 0);
+    // Store in global map so it survives navigation
+    inflightAnalyses.set(proposalId, { promise: analysisPromise, startedAt: Date.now() });
 
-      // Save to database
-      const { data: saved, error: saveError } = await supabase
-        .from('proposal_analyses')
-        .insert({
-          proposal_id: proposalId,
-          analysis_data: result as any,
-          overall_score: overallScore,
-          created_by: user?.id || '',
-        })
-        .select('id')
-        .single();
-
-      if (saveError) {
-        console.error('Failed to save analysis:', saveError);
-      } else if (saved) {
-        setSelectedAnalysisId(saved.id);
+    // If still mounted when done, update UI
+    const outcome = await analysisPromise;
+    if (mountedRef.current) {
+      if (outcome) {
+        setAnalysis(outcome.result);
+        setSelectedAnalysisId(outcome.savedId);
+        expandAllSections(outcome.result);
+        toast.success('Analysis complete');
       }
-
-      // Refresh history
-      queryClient.invalidateQueries({ queryKey: ['proposal-analyses', proposalId] });
-
-      // Expand all sections by default
-      const ids = new Set<string>();
-      result.sections.forEach((s: AnalysisSection) => ids.add(s.id));
-      ids.add('crossrefs');
-      ids.add('completeness');
-      ids.add('recommendations');
-      setExpandedSections(ids);
-      toast.success('Analysis complete');
-    } catch (err: any) {
-      console.error('Analysis error:', err);
-      toast.error(err?.message || 'Failed to run analysis');
-    } finally {
       setLoading(false);
     }
   };
