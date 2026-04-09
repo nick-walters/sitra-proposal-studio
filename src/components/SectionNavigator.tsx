@@ -1,5 +1,5 @@
 import { Section, Participant } from "@/types/proposal";
-import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Layers, Building2, Info, Euro, Lightbulb, Target, Settings, FlaskConical, ShieldCheck, HelpCircle, MessageSquare, ListTodo, Briefcase, Lock, Unlock, CalendarDays } from "lucide-react";
+import { ChevronRight, ChevronDown, FileText, User, Clock, AlertTriangle, BarChart3, Layers, Building2, Info, Euro, Lightbulb, Target, Settings, FlaskConical, ShieldCheck, HelpCircle, MessageSquare, ListTodo, Briefcase, Lock, Unlock, CalendarDays, Download } from "lucide-react";
 import { useState, useMemo, useRef, useLayoutEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
@@ -103,6 +103,7 @@ interface SectionNavigatorProps {
   onToggleLock?: (sectionId: string) => void;
   wpDraftsVisible?: boolean;
   caseDraftsVisible?: boolean;
+  onExportPartB?: () => void;
 }
 
 // Format section number for display in left navigation
@@ -147,6 +148,7 @@ function SectionItem({
   isCoordinator = false,
   lockedSections,
   onToggleLock,
+  onExportPartB,
 }: {
   section: Section | WPSection | CaseSection;
   depth?: number;
@@ -158,6 +160,7 @@ function SectionItem({
   isCoordinator?: boolean;
   lockedSections?: Set<string>;
   onToggleLock?: (sectionId: string) => void;
+  onExportPartB?: () => void;
 }) {
   const isAlwaysExpanded = false;
   const [isExpanded, setIsExpanded] = useState(section.id !== 'a2');
@@ -429,6 +432,28 @@ function SectionItem({
             </Tooltip>
           </TooltipProvider>
         )}
+
+        {/* Export Part B button on Part B heading */}
+        {section.id === 'part-b' && onExportPartB && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  className="p-0.5 rounded shrink-0 opacity-0 group-hover:opacity-100 transition-opacity hover:text-foreground"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onExportPartB();
+                  }}
+                >
+                  <Download className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="text-xs">
+                Export part B
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
         
         {/* Real-time collaborator presence indicators */}
         {sectionCollaborators.length > 0 && (
@@ -646,6 +671,7 @@ export function SectionNavigator({
   onToggleLock,
   wpDraftsVisible = true,
   caseDraftsVisible = true,
+  onExportPartB,
 }: SectionNavigatorProps) {
   // All users with proposal access can see all participants
   const visibleParticipants = useMemo(() => {
@@ -722,6 +748,7 @@ export function SectionNavigator({
             isCoordinator={isCoordinator}
             lockedSections={lockedSections}
             onToggleLock={onToggleLock}
+            onExportPartB={onExportPartB}
           />
         ))}
       </div>

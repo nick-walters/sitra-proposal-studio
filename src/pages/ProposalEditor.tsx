@@ -82,7 +82,7 @@ import {
 import { cn } from "@/lib/utils";
 import { usePdfExport } from "@/hooks/usePdfExport";
 import { useDocxExport } from "@/hooks/useDocxExport";
-import type { ExportFormat } from "@/components/ExportDialog";
+import { ExportDialog, type ExportFormat } from "@/components/ExportDialog";
 import { useCollaborativeCursors } from "@/hooks/useCollaborativeCursors";
 import { useProposalData } from "@/hooks/useProposalData";
 import { useProposalSections } from "@/hooks/useProposalSections";
@@ -113,6 +113,7 @@ export function ProposalEditor() {
   const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isDuplicateOpen, setIsDuplicateOpen] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
   const [isAddParticipantOpen, setIsAddParticipantOpen] = useState(false);
   const [isSubmitConfirmOpen, setIsSubmitConfirmOpen] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -1233,8 +1234,25 @@ export function ProposalEditor() {
               onToggleLock={toggleSectionLock}
               wpDraftsVisible={proposal?.wpDraftsVisible !== false}
               caseDraftsVisible={proposal?.caseDraftsVisible !== false}
+              onExportPartB={() => {
+                if (isCoordinator) {
+                  setIsExportOpen(true);
+                } else {
+                  handleExport('pdf', true);
+                }
+              }}
             />
           </div>
+
+          {/* Export Part B Dialog (opened from left panel) */}
+          {isCoordinator && proposal && (
+            <ExportDialog
+              open={isExportOpen}
+              onOpenChange={setIsExportOpen}
+              onExport={handleExport}
+              proposalId={proposal.id}
+            />
+          )}
         </aside>
 
         {/* Collapse Toggle */}
