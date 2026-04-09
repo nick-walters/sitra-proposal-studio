@@ -2244,36 +2244,11 @@ export function usePdfExport() {
           xPos = margin;
           const cellTop = rowStartY - 4;
           
-          // Draw cell borders
+          // Draw cell borders - horizontal grey separators only, no vertical borders
+          pdf.setDrawColor(200, 200, 200);
+          pdf.setLineWidth(0.15);
+          pdf.line(margin, cellTop + rowHeight, margin + tableWidth, cellTop + rowHeight);
           pdf.setDrawColor(...black);
-          pdf.setLineWidth(0.25);
-          
-          // Column 0: No.
-          pdf.rect(xPos, cellTop, colWidths[0], rowHeight);
-          xPos += colWidths[0];
-          
-          // Column 1: Short Name
-          pdf.rect(xPos, cellTop, colWidths[1], rowHeight);
-          xPos += colWidths[1];
-          
-          // Column 2: Legal/English Name (no right border)
-          pdf.line(xPos, cellTop, xPos + colWidths[2], cellTop);
-          pdf.line(xPos, cellTop, xPos, cellTop + rowHeight);
-          pdf.line(xPos, cellTop + rowHeight, xPos + colWidths[2], cellTop + rowHeight);
-          xPos += colWidths[2];
-          
-          // Column 3: Logo (no left border)
-          pdf.line(xPos, cellTop, xPos + colWidths[3], cellTop);
-          pdf.line(xPos + colWidths[3], cellTop, xPos + colWidths[3], cellTop + rowHeight);
-          pdf.line(xPos, cellTop + rowHeight, xPos + colWidths[3], cellTop + rowHeight);
-          xPos += colWidths[3];
-          
-          // Column 4: Role
-          pdf.rect(xPos, cellTop, colWidths[4], rowHeight);
-          xPos += colWidths[4];
-          
-          // Column 5: Country
-          pdf.rect(xPos, cellTop, colWidths[5], rowHeight);
           
           // Draw cell content
           xPos = margin;
