@@ -1073,43 +1073,51 @@ export function usePdfExport() {
         yPosition += captionType === 'figure' ? paragraphSpacingH2 : paragraphSpacing;
       };
 
-      // Helper: Add table to PDF
+      // Helper: Add table to PDF (matching editor styling: wrapping text, proper borders)
       const addTable = (rows: string[][], hasHeader: boolean) => {
         if (rows.length === 0) return;
         
         const numCols = Math.max(...rows.map(r => r.length));
         const colWidth = contentWidth / numCols;
-        const rowHeight = 6;
-        const cellPadding = 1;
-        
-        // Check if table fits on current page (at least header + 2 rows)
-        checkPageBreak(rowHeight * Math.min(3, rows.length));
+        const cellPadding = 1.5;
+        const lineHeight = 3.8; // line height within cells
         
         pdf.setFontSize(FONT_SIZE_BODY);
         pdf.setDrawColor(...black);
-        pdf.setLineWidth(0.25);
         
         for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
           const row = rows[rowIdx];
           const isHeaderRow = hasHeader && rowIdx === 0;
           
+          // Calculate row height based on wrapped text
+          let maxLines = 1;
+          const cellLines: string[][] = [];
+          for (let colIdx = 0; colIdx < numCols; colIdx++) {
+            const cellText = row[colIdx] || '';
+            const maxTextWidth = colWidth - cellPadding * 2;
+            if (isHeaderRow) pdf.setFont('times', 'bold');
+            else pdf.setFont('times', 'normal');
+            const lines = pdf.splitTextToSize(cellText, maxTextWidth);
+            cellLines.push(lines);
+            maxLines = Math.max(maxLines, lines.length);
+          }
+          
+          const rowHeight = Math.max(6, maxLines * lineHeight + 2);
           checkPageBreak(rowHeight);
+          
+          const rowTop = yPosition - 4;
           
           // Draw row background for header
           if (isHeaderRow) {
             pdf.setFillColor(0, 0, 0);
-            pdf.rect(margin, yPosition - 4, contentWidth, rowHeight, 'F');
+            pdf.rect(margin, rowTop, contentWidth, rowHeight, 'F');
           }
           
-          // Draw cells
+          // Draw cell content
           for (let colIdx = 0; colIdx < numCols; colIdx++) {
             const cellX = margin + colIdx * colWidth;
-            const cellText = row[colIdx] || '';
+            const lines = cellLines[colIdx];
             
-            // Draw cell border
-            pdf.rect(cellX, yPosition - 4, colWidth, rowHeight);
-            
-            // Draw text
             if (isHeaderRow) {
               pdf.setFont('times', 'bold');
               pdf.setTextColor(255, 255, 255);
@@ -1118,14 +1126,32 @@ export function usePdfExport() {
               pdf.setTextColor(...black);
             }
             
-            // Truncate text to fit cell
-            const maxTextWidth = colWidth - cellPadding * 2;
-            let displayText = cellText;
-            while (pdf.getTextWidth(displayText) > maxTextWidth && displayText.length > 3) {
-              displayText = displayText.substring(0, displayText.length - 4) + '...';
+            // Draw text lines (vertically centered)
+            const textHeight = lines.length * lineHeight;
+            let textY = rowTop + (rowHeight - textHeight) / 2 + lineHeight * 0.75;
+            for (const line of lines) {
+              pdf.text(line, cellX + cellPadding, textY);
+              textY += lineHeight;
             }
-            
-            pdf.text(displayText, cellX + cellPadding, yPosition);
+          }
+          
+          // Draw borders: horizontal lines above and below rows, vertical cell separators
+          pdf.setLineWidth(isHeaderRow ? 0.5 : 0.15);
+          // Top border of header or bottom border of header
+          if (isHeaderRow) {
+            pdf.line(margin, rowTop, margin + contentWidth, rowTop);
+            pdf.line(margin, rowTop + rowHeight, margin + contentWidth, rowTop + rowHeight);
+          } else {
+            // Light bottom border for data rows
+            pdf.setLineWidth(0.15);
+            pdf.line(margin, rowTop + rowHeight, margin + contentWidth, rowTop + rowHeight);
+          }
+          
+          // Vertical cell separators
+          pdf.setLineWidth(0.15);
+          for (let colIdx = 1; colIdx < numCols; colIdx++) {
+            const cellX = margin + colIdx * colWidth;
+            pdf.line(cellX, rowTop, cellX, rowTop + rowHeight);
           }
           
           yPosition += rowHeight;
