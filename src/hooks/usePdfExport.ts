@@ -1135,23 +1135,15 @@ export function usePdfExport() {
             }
           }
           
-          // Draw borders: horizontal lines above and below rows, vertical cell separators
-          pdf.setLineWidth(isHeaderRow ? 0.5 : 0.15);
-          // Top border of header or bottom border of header
+          // Draw borders: horizontal lines only (no vertical separators) to match editor
           if (isHeaderRow) {
+            pdf.setLineWidth(0.5);
             pdf.line(margin, rowTop, margin + contentWidth, rowTop);
             pdf.line(margin, rowTop + rowHeight, margin + contentWidth, rowTop + rowHeight);
           } else {
             // Light bottom border for data rows
             pdf.setLineWidth(0.15);
             pdf.line(margin, rowTop + rowHeight, margin + contentWidth, rowTop + rowHeight);
-          }
-          
-          // Vertical cell separators
-          pdf.setLineWidth(0.15);
-          for (let colIdx = 1; colIdx < numCols; colIdx++) {
-            const cellX = margin + colIdx * colWidth;
-            pdf.line(cellX, rowTop, cellX, rowTop + rowHeight);
           }
           
           yPosition += rowHeight;
@@ -1236,17 +1228,20 @@ export function usePdfExport() {
         
         pdf.setFontSize(FONT_SIZE_BODY);
         pdf.setDrawColor(...black);
-        pdf.setLineWidth(0.25);
         
-        // Draw header row
+        // Draw header row - horizontal lines only, no vertical borders
         let xPos = margin;
         pdf.setFillColor(0, 0, 0);
         pdf.rect(margin, yPosition - 4, tableWidth, baseRowHeight, 'F');
         pdf.setFont('times', 'bold');
         pdf.setTextColor(255, 255, 255);
         
+        // Header top and bottom lines
+        pdf.setLineWidth(0.5);
+        pdf.line(margin, yPosition - 4, margin + tableWidth, yPosition - 4);
+        pdf.line(margin, yPosition - 4 + baseRowHeight, margin + tableWidth, yPosition - 4 + baseRowHeight);
+        
         for (let i = 0; i < headers.length; i++) {
-          pdf.rect(xPos, yPosition - 4, colWidths[i], baseRowHeight);
           const maxTextWidth = colWidths[i] - cellPadding * 2;
           let displayText = headers[i];
           while (pdf.getTextWidth(displayText) > maxTextWidth && displayText.length > 3) {
@@ -1315,11 +1310,9 @@ export function usePdfExport() {
           const cellTop = rowStartY - 4; // Cell top position
           const cellBottom = cellTop + rowHeight; // Cell bottom position
           
-          // Draw cell borders first
-          for (let i = 0; i < colWidths.length; i++) {
-            pdf.rect(xPos, cellTop, colWidths[i], rowHeight);
-            xPos += colWidths[i];
-          }
+          // Draw horizontal row border only (no vertical cell borders) to match editor
+          pdf.setLineWidth(0.15);
+          pdf.line(margin, cellTop + rowHeight, margin + colWidths.reduce((a, b) => a + b, 0), cellTop + rowHeight);
           
           // Draw cell content - vertically centered within cell bounds
           xPos = margin;
