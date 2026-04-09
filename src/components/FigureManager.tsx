@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FigureEditor } from '@/components/FigureEditor';
 import { Plus, Image, BarChart3, Network, FileImage, Upload, Sparkles, Loader2, LayoutGrid, List, Library } from 'lucide-react';
+import { StorageImage } from '@/components/StorageImage';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -740,8 +741,8 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
                     >
                       <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden relative">
                         {hasImage ? (
-                          <img 
-                            src={figure.content.imageUrl} 
+                          <StorageImage 
+                            storedPath={figure.content.imageUrl} 
                             alt={figure.title}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                           />
