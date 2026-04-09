@@ -1420,7 +1420,7 @@ export function usePdfExport() {
         ] = await Promise.all([
           supabase.from('wp_drafts').select(`
             id, number, title, short_name, lead_participant_id, color, objectives, methodology,
-            manual_person_months, manual_duration,
+            manual_person_months, manual_duration, b31_objectives, b31_description_before_tasks,
             tasks:wp_draft_tasks(
               id, number, title, description, lead_participant_id, start_month, end_month,
               effort:wp_draft_task_effort(participant_id, person_months),
@@ -1428,6 +1428,10 @@ export function usePdfExport() {
             ),
             deliverables:wp_draft_deliverables(
               id, number, title, type, dissemination_level, responsible_participant_id, due_month, description
+            ),
+            b31_tasks(
+              id, number, title, description, lead_participant_id, start_month, end_month, order_index,
+              participants:b31_task_participants(participant_id)
             )
           `).eq('proposal_id', proposalId).order('number'),
           supabase.from('b31_deliverables').select('*').eq('proposal_id', proposalId).order('order_index'),
