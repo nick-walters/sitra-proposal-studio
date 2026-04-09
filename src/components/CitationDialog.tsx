@@ -273,6 +273,7 @@ export function CitationDialog({
               references={proposalReferences}
               isLoading={isLoadingReferences}
               onSelectReference={handleInsertFromLibrary}
+              onUpdateReference={onUpdateReference}
             />
           </TabsContent>
 
