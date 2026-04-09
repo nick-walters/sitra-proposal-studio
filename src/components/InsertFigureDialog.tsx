@@ -12,6 +12,7 @@ import { BarChart3, Network, Image, Check, Sparkles, Upload, Link2 } from 'lucid
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
+import { StorageImage } from '@/components/StorageImage';
 
 interface Figure {
   id: string;
@@ -171,8 +172,7 @@ export function InsertFigureDialog({
                 >
                   <div className="w-12 h-12 rounded bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
                     {hasImage ? (
-                      <img src={figure.content.imageUrl} alt="" className="w-full h-full object-cover" />
-                    ) : (
+                      <StorageImage storedPath={figure.content.imageUrl} alt="" className="w-full h-full object-cover" />
                       <Icon className="w-5 h-5 text-muted-foreground" />
                     )}
                   </div>
