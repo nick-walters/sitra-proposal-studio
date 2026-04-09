@@ -1417,6 +1417,7 @@ export function usePdfExport() {
           { data: parts },
           { data: palette },
           { data: budgetItems },
+          { data: figuresData },
         ] = await Promise.all([
           supabase.from('wp_drafts').select(`
             id, number, title, short_name, lead_participant_id, color, objectives, methodology,
@@ -1440,6 +1441,7 @@ export function usePdfExport() {
           supabase.from('participants').select('id, organisation_short_name, organisation_name, participant_number, personnel_cost_rate').eq('proposal_id', proposalId).order('participant_number'),
           supabase.from('wp_color_palette').select('colors').eq('proposal_id', proposalId).single(),
           supabase.from('budget_items').select('id, participant_id, category, description, amount, justification').eq('proposal_id', proposalId).in('category', ['subcontracting', 'equipment']),
+          supabase.from('figures').select('id, figure_number, figure_type, title, caption, content').eq('proposal_id', proposalId).in('figure_type', ['pert', 'gantt']),
         ]);
 
         const participantList = parts || [];
