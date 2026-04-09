@@ -1646,25 +1646,29 @@ export function usePdfExport() {
         
         const captureFigureFromDom = async (figureType: string): Promise<string | null> => {
           try {
-            // Try to find the rendered figure in the DOM
-            const selector = figureType === 'pert' ? '[data-figure-type="pert"]' : '[data-figure-type="gantt"]';
+            // Try to find the rendered figure in the DOM using data attribute
+            const selector = `[data-figure-type="${figureType}"]`;
             let el = document.querySelector(selector) as HTMLElement;
             // Fallback: try finding by class or other attributes
             if (!el) {
-              const containers = document.querySelectorAll('.b31-tables-container > div');
-              for (const container of Array.from(containers)) {
-                const text = container.textContent || '';
-                if (figureType === 'pert' && text.includes('PERT')) {
-                  el = container as HTMLElement;
+              const allElements = document.querySelectorAll('div, svg');
+              for (const elem of Array.from(allElements)) {
+                const text = elem.textContent || '';
+                const classAttr = elem.getAttribute('class') || '';
+                if (figureType === 'pert' && (classAttr.includes('pert') || text.includes('PERT'))) {
+                  el = elem as HTMLElement;
                   break;
                 }
-                if (figureType === 'gantt' && text.includes('Gantt')) {
-                  el = container as HTMLElement;
+                if (figureType === 'gantt' && (classAttr.includes('gantt') || classAttr.includes('Gantt'))) {
+                  el = elem as HTMLElement;
                   break;
                 }
               }
             }
-            if (!el) return null;
+            if (!el) {
+              console.warn(`Figure element for ${figureType} not found in DOM - the B3.1 section may not be visible`);
+              return null;
+            }
             
             const html2canvas = (await import('html2canvas')).default;
             const canvas = await html2canvas(el, { useCORS: true, scale: 2, backgroundColor: '#ffffff' });
@@ -1673,6 +1677,39 @@ export function usePdfExport() {
             console.warn(`Could not capture ${figureType} figure from DOM:`, e);
             return null;
           }
+        };
+        
+        // Try to capture figures - add helpful message if they can't be captured
+        const addFigureWithCapture = async (figureType: string, figureData: any) => {
+          if (!figureData) return;
+          
+          const image = await captureFigureFromDom(figureType);
+          if (image) {
+            const imgData = await loadImageAsBase64(image);
+            if (imgData) {
+              const imgW = Math.min(contentWidth, 180);
+              const aspect = imgData.height / imgData.width;
+              const imgH = Math.min(imgW * aspect, 120);
+              checkPageBreak(imgH + 10);
+              const xPos2 = margin + (contentWidth - imgW) / 2;
+              pdf.addImage(imgData.data, 'JPEG', xPos2, yPosition, imgW, imgH);
+              yPosition += imgH + 4.2;
+            }
+          } else {
+            // Figure not available from DOM - add placeholder text
+            if (!isTopOfPage) yPosition += paragraphSpacing;
+            checkPageBreak(lineHeightBody);
+            pdf.setFontSize(FONT_SIZE_BODY);
+            pdf.setFont('times', 'italic');
+            pdf.setTextColor(128, 128, 128);
+            pdf.text('[Navigate to section B3.1 and export again to include this figure]', margin, yPosition);
+            pdf.setTextColor(...black);
+            yPosition += lineHeightBody + paragraphSpacing;
+          }
+          const captionText = figureType === 'pert'
+            ? `Figure ${figureData.figure_number}. ${figureData.caption || figureData.title || 'PERT chart'}`
+            : `Figure ${figureData.figure_number}. ${figureData.caption || 'Gantt chart'}`;
+          addCaption(captionText, 'figure');
         };
         
         if (pertFigure) {
