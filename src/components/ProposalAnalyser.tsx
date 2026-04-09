@@ -281,7 +281,8 @@ export function ProposalAnalyser({ proposalId }: ProposalAnalyserProps) {
   const warningCount = analysis?.crossRefIssues?.filter(i => i.type === 'warning').length || 0;
 
   return (
-    <div className="space-y-4">
+    <ScrollArea className="h-[calc(100vh-120px)]">
+    <div className="space-y-4 pr-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -395,8 +396,7 @@ export function ProposalAnalyser({ proposalId }: ProposalAnalyserProps) {
 
       {/* Results */}
       {analysis && !loading && (
-        <ScrollArea className="max-h-[calc(100vh-220px)]">
-          <div className="space-y-4 pr-4">
+        <div className="space-y-4">
             {/* Overall Assessment */}
             <Card>
               <CardContent className="p-4 space-y-3">
@@ -660,8 +660,8 @@ export function ProposalAnalyser({ proposalId }: ProposalAnalyserProps) {
               Analysis powered by AI. Scores are estimated — actual evaluation depends on reviewer judgment.
             </p>
           </div>
-        </ScrollArea>
       )}
     </div>
+    </ScrollArea>
   );
 }
