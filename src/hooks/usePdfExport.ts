@@ -616,13 +616,50 @@ export function usePdfExport() {
           if (tableMatch) return { isCaption: true, type: 'table' };
           return { isCaption: false, type: 'figure' };
         };
+
+        // Helper: Extract inline formatting segments from an element
+        const extractSegments = (el: HTMLElement): TextSegment[] => {
+          const segments: TextSegment[] = [];
+          
+          const walk = (node: Node, bold: boolean, italic: boolean, underline: boolean, superscript: boolean) => {
+            if (node.nodeType === Node.TEXT_NODE) {
+              const text = node.textContent || '';
+              if (text) {
+                segments.push({ text, bold, italic, underline, superscript });
+              }
+              return;
+            }
+            if (node.nodeType !== Node.ELEMENT_NODE) return;
+            
+            const elem = node as HTMLElement;
+            const tag = elem.tagName.toLowerCase();
+            
+            let b = bold, it = italic, u = underline, sup = superscript;
+            if (tag === 'strong' || tag === 'b') b = true;
+            if (tag === 'em' || tag === 'i') it = true;
+            if (tag === 'u') u = true;
+            if (tag === 'sup') sup = true;
+            // Check for inline style font-weight bold
+            const style = elem.getAttribute('style') || '';
+            if (/font-weight:\s*(bold|[6-9]\d{2})/i.test(style)) b = true;
+            if (/font-style:\s*italic/i.test(style)) it = true;
+            if (/text-decoration[^:]*:\s*underline/i.test(style)) u = true;
+            
+            for (const child of Array.from(elem.childNodes)) {
+              walk(child, b, it, u, sup);
+            }
+          };
+          
+          walk(el, false, false, false, false);
+          return segments;
+        };
         
         // Process nodes recursively
         const processNode = (node: Node) => {
           if (node.nodeType === Node.TEXT_NODE) {
             const text = node.textContent?.trim();
             if (text) {
-              result.push({ type: 'paragraph', text });
+              result.push({ type: 'paragraph', text, segments: [{ text, bold: false, italic: false, underline: false, superscript: false }] });
             }
             return;
           }
@@ -676,6 +713,23 @@ export function usePdfExport() {
             }
             return;
           }
+
+          // Handle lists
+          if (tagName === 'ul' || tagName === 'ol') {
+            const ordered = tagName === 'ol';
+            const items: { text: string; segments?: TextSegment[] }[] = [];
+            const liElements = element.querySelectorAll(':scope > li');
+            for (const li of Array.from(liElements)) {
+              const liEl = li as HTMLElement;
+              const text = liEl.textContent?.trim() || '';
+              const segs = extractSegments(liEl);
+              items.push({ text, segments: segs });
+            }
+            if (items.length > 0) {
+              result.push({ type: 'list', items, ordered });
+            }
+            return;
+          }
           
           // Handle paragraphs - check for captions by class or content
           if (tagName === 'p') {
@@ -699,14 +753,15 @@ export function usePdfExport() {
               return;
             }
             
-            // Regular paragraph
-            result.push({ type: 'paragraph', text });
+            // Regular paragraph with rich text segments
+            const segments = extractSegments(element);
+            result.push({ type: 'paragraph', text, segments });
             return;
           }
           
           // Handle divs - check for special children and process
           if (tagName === 'div') {
-            const hasSpecialChildren = element.querySelector('img, table, h3');
+            const hasSpecialChildren = element.querySelector('img, table, h3, ul, ol');
             if (!hasSpecialChildren) {
               const text = element.textContent?.trim();
               if (text) {
@@ -714,7 +769,8 @@ export function usePdfExport() {
                 if (captionCheck.isCaption) {
                   result.push({ type: 'caption', text, captionType: captionCheck.type });
                 } else {
-                  result.push({ type: 'paragraph', text });
+                  const segments = extractSegments(element);
+                  result.push({ type: 'paragraph', text, segments });
                 }
               }
               return;
