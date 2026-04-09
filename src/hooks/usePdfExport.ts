@@ -490,10 +490,32 @@ export function usePdfExport() {
               if (i < line.length - 1) curX += spaceWidth;
             }
           } else {
-            // Justified line
+            // Justified line (with gap capping)
+            const spaceWidthRef = (() => { pdf.setFont('times', 'normal'); pdf.setFontSize(FONT_SIZE_BODY); return pdf.getTextWidth(' '); })();
             const totalWordWidth = line.reduce((sum, fw) => sum + getWordWidth(fw), 0);
             const totalSpacing = maxWidth - totalWordWidth;
             const gapPerSpace = totalSpacing / (line.length - 1);
+            
+            // If gap would be too wide, fall back to left-aligned
+            if (gapPerSpace > spaceWidthRef * MAX_GAP_MULTIPLIER) {
+              let cx = x;
+              for (let j = 0; j < line.length; j++) {
+                const fw = line[j];
+                const style2 = fw.bold && fw.italic ? 'bolditalic' : fw.bold ? 'bold' : fw.italic ? 'italic' : 'normal';
+                if (fw.superscript) {
+                  pdf.setFontSize(FONT_SIZE_BODY * 0.7);
+                  pdf.setFont('times', style2);
+                  pdf.text(fw.word, cx, yPosition - 1.5);
+                  cx += pdf.getTextWidth(fw.word);
+                  pdf.setFontSize(FONT_SIZE_BODY);
+                } else {
+                  pdf.setFont('times', style2);
+                  pdf.text(fw.word, cx, yPosition);
+                  cx += pdf.getTextWidth(fw.word);
+                }
+                if (j < line.length - 1) cx += spaceWidth;
+              }
+            } else {
             
             let curX = x;
             for (let i = 0; i < line.length; i++) {
