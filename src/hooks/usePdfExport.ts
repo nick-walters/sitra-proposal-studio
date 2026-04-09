@@ -541,6 +541,7 @@ export function usePdfExport() {
               }
               if (i < line.length - 1) curX += gapPerSpace;
             }
+            }
           }
           yPosition += lineHeightBody;
         }
