@@ -422,7 +422,11 @@ export function FigureManager({ proposalId, canEdit, availableSections }: Figure
         });
 
         const contentType = format === 'png' ? 'image/png' : 'image/jpeg';
-        if (error) throw error;
+        const { storagePath, error: uploadError } = await uploadProposalFile(compressedBlob, filePath, {
+          contentType,
+        });
+
+        if (uploadError) throw uploadError;
         if (!storagePath) throw new Error('Failed to get storage path');
 
         // Create figure with storage path (not signed URL which expires)
