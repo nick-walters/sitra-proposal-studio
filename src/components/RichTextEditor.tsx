@@ -165,6 +165,18 @@ function normalizePartBPastedAlignment(html: string) {
       h.style.fontSize = '';
       h.style.lineHeight = '';
       h.style.fontFamily = '';
+      h.style.letterSpacing = '';
+      h.style.wordSpacing = '';
+      h.style.fontKerning = '';
+      h.style.fontStretch = '';
+      h.style.whiteSpace = '';
+      h.style.textRendering = '';
+      h.style.fontVariant = '';
+      h.style.fontFeatureSettings = '';
+      h.style.webkitTextStrokeWidth = '';
+      h.style.margin = '';
+      h.style.padding = '';
+      h.style.width = '';
     }
 
     if (el.tagName === 'FONT') {
