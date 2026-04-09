@@ -2,11 +2,22 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { GanttChartFigure } from '@/components/GanttChartFigure';
 import { PERTChartFigure } from '@/components/PERTChartFigure';
-import { ArrowLeft, Save, Trash2, Image } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { ArrowLeft, Save, Trash2, Image, Sparkles, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { generateProposalFilePath, uploadProposalFile } from '@/lib/proposalStorage';
+import { compressImage, getFormatExtension } from '@/lib/imageCompression';
 
 interface Figure {
   id: string;
@@ -37,25 +48,91 @@ export function FigureEditor({
   canEdit,
 }: FigureEditorProps) {
   const [title, setTitle] = useState(figure.title);
-  // Caption is read-only on Figures page - edit it in Part B templates
   const caption = figure.caption || '';
+  
+  // AI regeneration state
+  const [editPrompt, setEditPrompt] = useState(figure.content?.aiPrompt || '');
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   const handleSave = () => {
-    // Only save title, not caption (caption is edited in Part B templates)
     onUpdate({ title });
   };
 
+  const handleRegenerate = async () => {
+    if (!editPrompt.trim()) {
+      toast.error('Please enter a description for the image');
+      return;
+    }
+
+    setIsRegenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-image', {
+        body: { prompt: editPrompt.trim() }
+      });
+
+      if (error) throw error;
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      if (data.imageUrl) {
+        // Upload to storage
+        const response = await fetch(data.imageUrl);
+        const sourceBlob = await response.blob();
+        const compressedBlob = await compressImage(sourceBlob, { format: 'png', quality: 0.92 });
+        
+        const filename = `figure-${figure.figureNumber}-regenerated.png`;
+        const filePath = generateProposalFilePath(proposalId, 'figures', filename, {
+          prefix: 'ai-generated',
+          addTimestamp: true,
+        });
+
+        const { url: newUrl, error: uploadErr } = await uploadProposalFile(compressedBlob, filePath, {
+          contentType: 'image/png',
+        });
+
+        if (uploadErr) throw uploadErr;
+        if (!newUrl) throw new Error('Failed to get URL');
+
+        onUpdate({ content: { imageUrl: newUrl, aiPrompt: editPrompt.trim() } });
+        toast.success('Image regenerated successfully!');
+      } else {
+        toast.error('Failed to regenerate image');
+      }
+    } catch (error) {
+      console.error('Regeneration error:', error);
+      toast.error('Failed to regenerate image. Please try again.');
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
   const renderFigureContent = () => {
-    // For image-based figures (uploaded or AI generated)
     if (figure.content?.imageUrl) {
       return (
         <div className="space-y-4">
           <div className="border rounded-lg overflow-hidden bg-muted/30">
-            <img 
-              src={figure.content.imageUrl} 
-              alt={figure.title}
-              className="max-w-full h-auto mx-auto"
-            />
+            <Dialog>
+              <DialogTrigger asChild>
+                <img 
+                  src={figure.content.imageUrl} 
+                  alt={figure.title}
+                  className="max-w-full h-auto mx-auto cursor-pointer hover:opacity-80 transition-opacity"
+                  title="Click to enlarge"
+                />
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[90vh]">
+                <DialogHeader>
+                  <DialogTitle>Figure {figure.figureNumber}</DialogTitle>
+                </DialogHeader>
+                <img 
+                  src={figure.content.imageUrl} 
+                  alt={figure.title}
+                  className="w-full h-auto rounded"
+                />
+              </DialogContent>
+            </Dialog>
           </div>
           <p className="text-sm text-muted-foreground text-left">
             <em><strong>Figure {figure.figureNumber}.</strong> {caption || title}</em>
@@ -165,6 +242,45 @@ export function FigureEditor({
             </div>
           </CardContent>
         </Card>
+
+        {/* AI Regeneration */}
+        {figure.figureType === 'ai' && canEdit && figure.content?.imageUrl && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Sparkles className="w-4 h-4" />
+                AI Image Prompt
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Textarea
+                value={editPrompt}
+                onChange={(e) => setEditPrompt(e.target.value)}
+                placeholder="Describe the image you want to generate..."
+                rows={3}
+                disabled={isRegenerating}
+              />
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                onClick={handleRegenerate}
+                disabled={isRegenerating || !editPrompt.trim()}
+              >
+                {isRegenerating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Regenerating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    Regenerate Image
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Figure Content */}
         <Card>
