@@ -1963,11 +1963,20 @@ export function usePdfExport() {
                 addH3(block.text);
                 break;
               case 'paragraph':
-                addParagraph(block.text);
+                addParagraph(block.text, block.segments);
                 break;
-              case 'image':
-                await addImage(block.src, block.width, block.height, block.widthPercent);
+              case 'image': {
+                // Resolve storage paths to signed URLs before loading
+                let imgSrc = block.src;
+                try {
+                  const resolved = await resolveStorageUrl(imgSrc);
+                  if (resolved) imgSrc = resolved;
+                } catch (e) {
+                  // fallback to original src
+                }
+                await addImage(imgSrc, block.width, block.height, block.widthPercent);
                 break;
+              }
               case 'caption':
                 addCaption(block.text, block.captionType);
                 // After rendering Table 3.1.b caption, reserve space for WP page listing
@@ -1978,6 +1987,9 @@ export function usePdfExport() {
                   const estimatedLines = Math.max(1, Math.ceil(wpPageIndexData.length / 5));
                   yPosition += lineHeightBody * Math.min(estimatedLines, 3);
                 }
+                break;
+              case 'list':
+                addList(block.items, block.ordered);
                 break;
               case 'table':
                 // Track WP description table starts in section 3.1
