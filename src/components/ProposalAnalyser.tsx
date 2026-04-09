@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,10 +26,15 @@ import {
   Sparkles,
   Target,
   MinusCircle,
+  History,
+  Trash2,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { format } from 'date-fns';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ProposalAnalyserProps {
   proposalId: string;
@@ -68,6 +73,14 @@ interface AnalysisResult {
   strategicRecommendations: string[];
 }
 
+interface SavedAnalysis {
+  id: string;
+  analysis_data: AnalysisResult;
+  overall_score: number;
+  created_by: string;
+  created_at: string;
+}
+
 const CRITERION_CONFIG: Record<string, { icon: React.ReactNode; color: string }> = {
   excellence: { icon: <Lightbulb className="w-4 h-4" />, color: 'text-amber-600' },
   impact: { icon: <TrendingUp className="w-4 h-4" />, color: 'text-blue-600' },
@@ -82,8 +95,43 @@ const STATUS_ICONS: Record<string, React.ReactNode> = {
 
 export function ProposalAnalyser({ proposalId }: ProposalAnalyserProps) {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const [selectedAnalysisId, setSelectedAnalysisId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [showHistory, setShowHistory] = useState(false);
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  // Fetch saved analyses
+  const { data: savedAnalyses = [] } = useQuery({
+    queryKey: ['proposal-analyses', proposalId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('proposal_analyses')
+        .select('*')
+        .eq('proposal_id', proposalId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data || []) as unknown as SavedAnalysis[];
+    },
+    enabled: !!proposalId,
+  });
+
+  // Load the latest analysis on mount
+  useEffect(() => {
+    if (savedAnalyses.length > 0 && !analysis && !loading) {
+      const latest = savedAnalyses[0];
+      setAnalysis(latest.analysis_data);
+      setSelectedAnalysisId(latest.id);
+      // Expand all sections
+      const ids = new Set<string>();
+      (latest.analysis_data.sections || []).forEach((s: AnalysisSection) => ids.add(s.id));
+      ids.add('crossrefs');
+      ids.add('completeness');
+      ids.add('recommendations');
+      setExpandedSections(ids);
+    }
+  }, [savedAnalyses]);
 
   const toggleSection = (id: string) => {
     setExpandedSections(prev => {
@@ -97,6 +145,7 @@ export function ProposalAnalyser({ proposalId }: ProposalAnalyserProps) {
   const runAnalysis = async () => {
     setLoading(true);
     setAnalysis(null);
+    setSelectedAnalysisId(null);
     try {
       const { data, error } = await supabase.functions.invoke('analyse-proposal', {
         body: { proposalId },
@@ -106,10 +155,36 @@ export function ProposalAnalyser({ proposalId }: ProposalAnalyserProps) {
         toast.error(data.error);
         return;
       }
-      setAnalysis(data.analysis);
+      const result = data.analysis as AnalysisResult;
+      setAnalysis(result);
+
+      // Calculate overall score
+      const overallScore = result.sections.reduce((s, a) => s + a.score, 0);
+
+      // Save to database
+      const { data: saved, error: saveError } = await supabase
+        .from('proposal_analyses')
+        .insert({
+          proposal_id: proposalId,
+          analysis_data: result as any,
+          overall_score: overallScore,
+          created_by: user?.id || '',
+        })
+        .select('id')
+        .single();
+
+      if (saveError) {
+        console.error('Failed to save analysis:', saveError);
+      } else if (saved) {
+        setSelectedAnalysisId(saved.id);
+      }
+
+      // Refresh history
+      queryClient.invalidateQueries({ queryKey: ['proposal-analyses', proposalId] });
+
       // Expand all sections by default
       const ids = new Set<string>();
-      (data.analysis.sections || []).forEach((s: AnalysisSection) => ids.add(s.id));
+      result.sections.forEach((s: AnalysisSection) => ids.add(s.id));
       ids.add('crossrefs');
       ids.add('completeness');
       ids.add('recommendations');
@@ -121,6 +196,35 @@ export function ProposalAnalyser({ proposalId }: ProposalAnalyserProps) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadAnalysis = (saved: SavedAnalysis) => {
+    setAnalysis(saved.analysis_data);
+    setSelectedAnalysisId(saved.id);
+    setShowHistory(false);
+    const ids = new Set<string>();
+    (saved.analysis_data.sections || []).forEach((s: AnalysisSection) => ids.add(s.id));
+    ids.add('crossrefs');
+    ids.add('completeness');
+    ids.add('recommendations');
+    setExpandedSections(ids);
+  };
+
+  const deleteAnalysis = async (id: string) => {
+    const { error } = await supabase
+      .from('proposal_analyses')
+      .delete()
+      .eq('id', id);
+    if (error) {
+      toast.error('Failed to delete analysis');
+      return;
+    }
+    if (selectedAnalysisId === id) {
+      setAnalysis(null);
+      setSelectedAnalysisId(null);
+    }
+    queryClient.invalidateQueries({ queryKey: ['proposal-analyses', proposalId] });
+    toast.success('Analysis deleted');
   };
 
   const overallScore = analysis
@@ -145,20 +249,83 @@ export function ProposalAnalyser({ proposalId }: ProposalAnalyserProps) {
             Deep AI analysis of content quality, topic alignment, cross-references, and evaluation readiness
           </p>
         </div>
-        <Button onClick={runAnalysis} disabled={loading} className="gap-2">
-          {loading ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Analysing...
-            </>
-          ) : (
-            <>
-              <Sparkles className="w-4 h-4" />
-              {analysis ? 'Re-analyse' : 'Run analysis'}
-            </>
+        <div className="flex items-center gap-2">
+          {savedAnalyses.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowHistory(!showHistory)}
+              className="gap-1.5"
+            >
+              <History className="w-4 h-4" />
+              History ({savedAnalyses.length})
+            </Button>
           )}
-        </Button>
+          <Button onClick={runAnalysis} disabled={loading} className="gap-2">
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Analysing...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                {analysis ? 'Re-analyse' : 'Run analysis'}
+              </>
+            )}
+          </Button>
+        </div>
       </div>
+
+      {/* Version History Panel */}
+      {showHistory && savedAnalyses.length > 0 && (
+        <Card>
+          <CardContent className="p-3">
+            <p className="text-xs font-medium text-muted-foreground mb-2">Previous analyses</p>
+            <div className="space-y-1 max-h-48 overflow-y-auto">
+              {savedAnalyses.map((saved) => {
+                const isActive = selectedAnalysisId === saved.id;
+                return (
+                  <div
+                    key={saved.id}
+                    className={cn(
+                      "flex items-center justify-between p-2 rounded-md text-sm cursor-pointer transition-colors group",
+                      isActive ? 'bg-primary/10 border border-primary/20' : 'hover:bg-muted'
+                    )}
+                    onClick={() => loadAnalysis(saved)}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Sparkles className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                      <span className="text-xs truncate">
+                        {format(new Date(saved.created_at), 'dd MMM yyyy, HH:mm')}
+                      </span>
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 shrink-0">
+                        {saved.overall_score?.toFixed(1) ?? '—'}/{maxOverall || 15}
+                      </Badge>
+                      {isActive && (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                          Viewing
+                        </Badge>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteAnalysis(saved.id);
+                      }}
+                    >
+                      <Trash2 className="w-3 h-3 text-muted-foreground" />
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Loading state */}
       {loading && (
