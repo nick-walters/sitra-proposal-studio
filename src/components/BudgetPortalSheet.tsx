@@ -874,6 +874,7 @@ export function BudgetPortalSheet({
                           ))}
                           <td className="px-2 py-1 text-right border-r font-bold">100%</td>
                           <td className="px-2 py-1 text-right border-r font-bold">100%</td>
+                          <td className="px-2 py-1 text-right border-r font-bold">100%</td>
                         </tr>
                       </tfoot>
                     </table>
