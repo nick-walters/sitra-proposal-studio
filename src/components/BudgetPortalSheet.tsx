@@ -440,7 +440,8 @@ export function BudgetPortalSheet({
         const ref = colLetter(colIdx) + excelRow;
         if (!ws2[ref]) return;
         if (!ws2[ref].c) ws2[ref].c = [];
-        ws2[ref].c.push({ a: 'Sitra', t: text.trim() });
+        ws2[ref].c = [{ a: 'Sitra', t: text.trim() }];
+        ws2[ref].c.hidden = true;
       };
 
       // B. Subcontracting (col E = index 4)
