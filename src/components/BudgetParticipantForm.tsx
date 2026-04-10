@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { DebouncedTextarea } from '@/components/ui/debounced-textarea';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -408,9 +409,9 @@ export function BudgetParticipantForm({
               <p className="text-xs text-muted-foreground italic">
                 Provide concise descriptions of each cost and what they cover, e.g. Consortium meetings (€5,000); conference attendance (€3,000).
               </p>
-              <Textarea
+              <DebouncedTextarea
                 value={justifications.find(j => j.budgetRowId === row.id && j.category === 'travel')?.justificationText ?? ''}
-                onChange={(e) => saveJustification(row.id, 'travel', e.target.value)}
+                onDebouncedChange={(v) => saveJustification(row.id, 'travel', v)}
                 disabled={!editable}
                 className="text-sm min-h-[60px]"
               />
@@ -468,9 +469,9 @@ export function BudgetParticipantForm({
               <p className="text-xs text-muted-foreground italic">
                 Provide concise descriptions of each cost and what they cover, e.g. Software licences (€4,000); cloud hosting (€6,000).
               </p>
-              <Textarea
+              <DebouncedTextarea
                 value={justifications.find(j => j.budgetRowId === row.id && j.category === 'other_goods')?.justificationText ?? ''}
-                onChange={(e) => saveJustification(row.id, 'other_goods', e.target.value)}
+                onDebouncedChange={(v) => saveJustification(row.id, 'other_goods', v)}
                 disabled={!editable}
                 className="text-sm min-h-[60px]"
               />
