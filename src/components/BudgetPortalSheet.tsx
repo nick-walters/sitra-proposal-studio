@@ -479,7 +479,7 @@ export function BudgetPortalSheet({
         requestedFormula = 0; // will be overwritten below
       } else if (cat.key && catToSummaryCol[cat.key]) {
         const col = catToSummaryCol[cat.key];
-        requestedFormula = { f: `=SUMPRODUCT(IF(${S}!L${sFirstData}:L${sLastData}>0,${S}!${col}${sFirstData}:${col}${sLastData}*${S}!P${sFirstData}:P${sLastData}/${S}!L${sFirstData}:L${sLastData},0))` };
+        requestedFormula = { f: `=SUMPRODUCT(IFERROR(${S}!${col}${sFirstData}:${col}${sLastData}*${S}!P${sFirstData}:P${sLastData}/${S}!L${sFirstData}:L${sLastData},0))` };
       } else {
         requestedFormula = 0;
       }
