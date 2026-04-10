@@ -766,6 +766,7 @@ export function BudgetPortalSheet({
                           <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-middle" style={{ minWidth: '60px' }}><div className="leading-tight">Requested</div><div className="leading-tight">budget (€)</div></th>
                           <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-middle" style={{ minWidth: '60px' }}>Share of<br/>total budget<br/>(%)</th>
                           <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-middle" style={{ minWidth: '60px' }}>Share of<br/>requested<br/>budget (%)</th>
+                          <th rowSpan={2} className="px-2 py-1.5 text-left border-r font-bold align-middle" style={{ minWidth: '60px' }}>Share of<br/>requested budget,<br/>excl. FSTP (%)</th>
                         </tr>
                         <tr className="border-b">
                           <th className="px-2 py-1.5 text-left border-r font-bold" style={{ minWidth: '60px' }}><div className="leading-tight">C.1.</div><div className="leading-tight">Travel & subsistence</div></th>
