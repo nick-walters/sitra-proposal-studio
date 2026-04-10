@@ -85,6 +85,8 @@ export function BudgetPortalSheet({
 }: BudgetPortalSheetProps) {
   const {
     rows,
+    justifications,
+    subcontractingItems,
     grandTotals,
     loading,
     saving,
