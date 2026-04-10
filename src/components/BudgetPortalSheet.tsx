@@ -439,8 +439,12 @@ export function BudgetPortalSheet({
         if (!text || !text.trim()) return;
         const ref = colLetter(colIdx) + excelRow;
         if (!ws2[ref]) return;
-        if (!ws2[ref].c) ws2[ref].c = [];
-        ws2[ref].c = [{ a: 'Sitra', t: text.trim() }];
+        // Estimate note box size based on content length
+        const lines = text.trim().split('\n').length;
+        const longestLine = Math.max(...text.trim().split('\n').map(l => l.length));
+        const estimatedRows = Math.max(6, Math.ceil(lines * 1.5) + Math.ceil(text.trim().length / 60));
+        const estimatedCols = Math.max(4, Math.min(8, Math.ceil(longestLine / 15)));
+        ws2[ref].c = [{ a: 'Sitra', t: text.trim(), R: estimatedRows, C: estimatedCols }];
         ws2[ref].c.hidden = true;
       };
 
