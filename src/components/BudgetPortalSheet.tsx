@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import * as XLSX from 'xlsx-js-style';
+import JSZip from 'jszip';
 import { Lock, Unlock, Loader2, Euro, Calculator, FileSpreadsheet, Download, History, TableProperties, AlertCircle, Info, X, Users } from 'lucide-react';
 import {
   Tooltip,
@@ -439,12 +440,7 @@ export function BudgetPortalSheet({
         if (!text || !text.trim()) return;
         const ref = colLetter(colIdx) + excelRow;
         if (!ws2[ref]) return;
-        // Estimate note box size based on content length
-        const lines = text.trim().split('\n').length;
-        const longestLine = Math.max(...text.trim().split('\n').map(l => l.length));
-        const estimatedRows = Math.max(6, Math.ceil(lines * 1.5) + Math.ceil(text.trim().length / 60));
-        const estimatedCols = Math.max(4, Math.min(8, Math.ceil(longestLine / 15)));
-        ws2[ref].c = [{ a: 'Sitra', t: text.trim(), R: estimatedRows, C: estimatedCols }];
+        ws2[ref].c = [{ a: 'Sitra', t: text.trim() }];
         ws2[ref].c.hidden = true;
       };
 
@@ -605,7 +601,40 @@ export function BudgetPortalSheet({
     const pad = (n: number) => n.toString().padStart(2, '0');
     const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
     const acronym = proposalAcronym || 'Budget';
-    XLSX.writeFile(wb, `${timestamp} ${acronym} Budget.xlsx`);
+
+    // Post-process xlsx to resize comment note boxes via VML anchors
+    const xlsxData = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    try {
+      const zip = await JSZip.loadAsync(xlsxData);
+      const vmlFiles = Object.keys(zip.files).filter(f => f.match(/xl\/drawings\/vmlDrawing\d+\.vml/));
+      for (const vmlPath of vmlFiles) {
+        let vml = await zip.file(vmlPath)!.async('string');
+        // Expand each note anchor: increase the bottom-right row & col offsets
+        vml = vml.replace(/<x:Anchor>([^<]+)<\/x:Anchor>/g, (_match, anchor: string) => {
+          const parts = anchor.split(',').map((s: string) => s.trim());
+          if (parts.length === 8) {
+            // parts: [col1, dx1, row1, dy1, col2, dx2, row2, dy2]
+            const col1 = parseInt(parts[0]);
+            const row1 = parseInt(parts[2]);
+            // Make note box span ~5 cols wide and ~12 rows tall
+            parts[4] = String(col1 + 5);
+            parts[6] = String(row1 + 12);
+            return `<x:Anchor>${parts.join(', ')}</x:Anchor>`;
+          }
+          return _match;
+        });
+        zip.file(vmlPath, vml);
+      }
+      const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${timestamp} ${acronym} Budget.xlsx`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    } catch {
+      // Fallback: save without resizing
+      XLSX.writeFile(wb, `${timestamp} ${acronym} Budget.xlsx`);
+    }
     toast.success('Budget exported to Excel');
   };
 
