@@ -842,6 +842,15 @@ export function BudgetPortalSheet({
                               ))}
                               <td className="px-2 py-1 text-right border-r whitespace-nowrap">{percentage}%</td>
                               <td className="px-2 py-1 text-right border-r whitespace-nowrap">{requestPercentage}%</td>
+                              <td className="px-2 py-1 text-right border-r whitespace-nowrap">
+                                {(() => {
+                                  const totalRequestedExclFstp = grandTotals.requestedEuContribution - (grandTotals.financialSupportThirdParties || 0);
+                                  const rowRequestedExclFstp = row.requestedEuContribution - (row.financialSupportThirdParties || 0);
+                                  return totalRequestedExclFstp > 0
+                                    ? ((rowRequestedExclFstp / totalRequestedExclFstp) * 100).toFixed(1)
+                                    : '0';
+                                })()}%
+                              </td>
                             </tr>
                           );
                         })}
