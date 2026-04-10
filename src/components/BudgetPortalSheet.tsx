@@ -284,6 +284,7 @@ export function BudgetPortalSheet({
       'Max. eligible funding rate (%)', 'Max. EU contribution (€)',
       'Requested funding rate (%)', 'Requested budget (€)',
       'Share of total budget (%)', 'Share of requested budget (%)',
+      'Share of requested budget, excl. FSTP (%)',
     ];
     const summaryAoa: any[][] = [summaryHeaders];
     const summaryTotalRowNum = partCount + 2;
@@ -341,6 +342,9 @@ export function BudgetPortalSheet({
       // R: Share of requested budget = P / P$total * 100
       const shareRequested = { f: `=IF(P$${summaryTotalRowNum}>0,P${r}/P$${summaryTotalRowNum}*100,0)` };
 
+      // S: Share of requested budget excl FSTP = (P-I) / (P$total-I$total) * 100
+      const shareRequestedExclFstp = { f: `=IF((P$${summaryTotalRowNum}-I$${summaryTotalRowNum})>0,(P${r}-I${r})/(P$${summaryTotalRowNum}-I$${summaryTotalRowNum})*100,0)` };
+
       summaryAoa.push([
         `${row.participantNumber}. ${row.participantShortName || row.participantName}`,
         row.pmRate ?? '',
@@ -360,6 +364,7 @@ export function BudgetPortalSheet({
         requestedBudget,
         shareTotal,
         shareRequested,
+        shareRequestedExclFstp,
       ]);
     });
 
@@ -377,7 +382,8 @@ export function BudgetPortalSheet({
     totalRow.push('');
     // P: Requested budget sum
     totalRow.push({ f: `=SUM(P2:P${summaryTotalRowNum - 1})` });
-    // Q, R: 100
+    // Q, R, S: 100
+    totalRow.push(100);
     totalRow.push(100);
     totalRow.push(100);
     summaryAoa.push(totalRow);
@@ -397,8 +403,8 @@ export function BudgetPortalSheet({
     // Apply number formats
     // Currency columns: B(PM rate), D-K(cost cats), L(total), N(max EU), P(requested budget)
     const currCols = [1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15]; // 0-indexed
-    // Percentage columns: M(12), O(14), Q(16), R(17)
-    const pctCols = [12, 14, 16, 17];
+    // Percentage columns: M(12), O(14), Q(16), R(17), S(18)
+    const pctCols = [12, 14, 16, 17, 18];
     // PM column: C(2)
     const pmCols = [2];
 
