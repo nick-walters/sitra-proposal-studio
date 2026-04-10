@@ -149,7 +149,7 @@ export function BudgetPortalSheet({
     return result;
   }, [rows]);
 
-  const handleExportXlsx = () => {
+  const handleExportXlsx = async () => {
     const wb = XLSX.utils.book_new();
 
     const colLetter = (c: number): string => {
