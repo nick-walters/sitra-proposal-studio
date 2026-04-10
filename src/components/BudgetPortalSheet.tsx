@@ -617,7 +617,7 @@ export function BudgetPortalSheet({
             const col1 = parseInt(parts[0]);
             const row1 = parseInt(parts[2]);
             // Make note box span ~5 cols wide and ~12 rows tall
-            parts[4] = String(col1 + 5);
+            parts[4] = String(col1 + 2);
             parts[6] = String(row1 + 12);
             return `<x:Anchor>${parts.join(', ')}</x:Anchor>`;
           }
