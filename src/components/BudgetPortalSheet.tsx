@@ -431,6 +431,42 @@ export function BudgetPortalSheet({
     // Auto-fit columns
     autoFitCols(ws2, summaryAoa);
 
+    // Add cost justification comments to cells with values > 0
+    // Column mapping: E=subcontracting(4), F=travel(5), G=equipment(6), H=other goods(7)
+    rows.forEach((row, rIdx) => {
+      const excelRow = rIdx + 2;
+      const addComment = (colIdx: number, text: string) => {
+        if (!text || !text.trim()) return;
+        const ref = colLetter(colIdx) + excelRow;
+        if (!ws2[ref]) return;
+        if (!ws2[ref].c) ws2[ref].c = [];
+        ws2[ref].c.push({ a: 'Sitra', t: text.trim() });
+      };
+
+      // B. Subcontracting (col E = index 4)
+      if (row.subcontractingCosts > 0) {
+        const subItem = subcontractingItems.find(s => s.budgetRowId === row.id);
+        if (subItem?.justification) addComment(4, subItem.justification);
+      }
+
+      // C.1 Travel (col F = index 5)
+      if (row.purchaseTravel > 0) {
+        const j = justifications.find(j => j.budgetRowId === row.id && j.category === 'travel');
+        if (j?.justificationText) addComment(5, j.justificationText);
+      }
+
+      // C.2 Equipment (col G = index 6)
+      if (row.purchaseEquipment > 0) {
+        if (row.purchaseEquipmentJustification) addComment(6, row.purchaseEquipmentJustification);
+      }
+
+      // C.3 Other goods (col H = index 7)
+      if (row.purchaseOtherGoods > 0) {
+        const j = justifications.find(j => j.budgetRowId === row.id && j.category === 'other_goods');
+        if (j?.justificationText) addComment(7, j.justificationText);
+      }
+    });
+
     XLSX.utils.book_append_sheet(wb, ws2, 'Summary by Participant');
 
     // ─── Sheet 3: Budget Overview ───
