@@ -480,7 +480,7 @@ export function B12OngoingProjectsTable({ proposalId, tableIndex = 0 }: Props) {
   const hasCustomWidths = colWidths.length > 0;
 
   return (
-    <div className="mt-4" style={{ overflow: 'visible', maxWidth: '18cm' }}>
+    <div className="mt-4" style={{ overflow: 'visible', maxWidth: '18cm', width: '18cm' }}>
       {canEdit && (
         <div className="table-auto-resize-bar">
           <button
