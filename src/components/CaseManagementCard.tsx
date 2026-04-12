@@ -37,7 +37,7 @@ import {
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { FlaskConical, GripVertical, Plus, Trash2, Lock, LockOpen } from 'lucide-react';
+import { FlaskConical, GripVertical, Plus, Trash2, Lock, LockOpen, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
@@ -56,6 +56,7 @@ interface CaseDraft {
   order_index: number;
   is_locked: boolean;
   locked_by: string | null;
+  is_hidden: boolean;
 }
 
 const CASE_TYPES = [
@@ -130,10 +131,11 @@ interface SortableCaseRowProps {
   onUpdate: (id: string, updates: Partial<CaseDraft>) => void;
   onDelete: (id: string) => void;
   onToggleLock: (id: string, locked: boolean) => void;
+  onToggleVisibility: (id: string, hidden: boolean) => void;
   canEdit: boolean;
 }
 
-function SortableCaseRow({ caseItem, participants, casePrefix, includeNumber, includeAbbreviation, onUpdate, onDelete, onToggleLock, canEdit }: SortableCaseRowProps) {
+function SortableCaseRow({ caseItem, participants, casePrefix, includeNumber, includeAbbreviation, onUpdate, onDelete, onToggleLock, onToggleVisibility, canEdit }: SortableCaseRowProps) {
   const [leadOpen, setLeadOpen] = useState(false);
   const [localShortName, setLocalShortName] = useState(caseItem.short_name || '');
   const [localTitle, setLocalTitle] = useState(caseItem.title || '');
@@ -173,7 +175,7 @@ function SortableCaseRow({ caseItem, participants, casePrefix, includeNumber, in
     <div
       ref={setNodeRef}
       style={style}
-      className={`col-span-6 grid grid-cols-subgrid gap-x-1.5 items-center py-1 border-b mb-[4px] ${
+      className={`col-span-8 grid grid-cols-subgrid gap-x-1.5 items-center py-1 border-b mb-[4px] ${
         isDragging ? 'bg-muted shadow-lg' : ''
       }`}
     >
@@ -288,6 +290,18 @@ function SortableCaseRow({ caseItem, participants, casePrefix, includeNumber, in
         </DialogContent>
       </Dialog>
 
+      {/* Visibility Button */}
+      {canEdit && (
+        <button
+          onClick={() => onToggleVisibility(caseItem.id, !caseItem.is_hidden)}
+          className={`p-1 rounded transition-colors ${caseItem.is_hidden ? 'text-destructive hover:bg-destructive/10' : 'text-[#2563EB] hover:bg-blue-100'}`}
+          title={caseItem.is_hidden ? 'Show case' : 'Hide case'}
+        >
+          {caseItem.is_hidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+        </button>
+      )}
+      {!canEdit && <div />}
+
       {/* Lock Button */}
       {canEdit && (
         <button
@@ -344,7 +358,7 @@ export function CaseManagementCard({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('case_drafts')
-        .select('id, number, case_type, custom_type_name, short_name, title, lead_participant_id, color, order_index, is_locked, locked_by')
+        .select('id, number, case_type, custom_type_name, short_name, title, lead_participant_id, color, order_index, is_locked, locked_by, is_hidden')
         .eq('proposal_id', proposalId)
         .order('order_index');
       if (error) throw error;
