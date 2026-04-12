@@ -45,7 +45,7 @@ export function EditableCaption({
       if (data?.caption) {
         setCaption(data.caption);
       }
-      setLoaded(true);
+      // loaded
     };
     load();
   }, [proposalId, tableKey]);
