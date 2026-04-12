@@ -216,9 +216,8 @@ export const ResizableImage = Node.create({
     ];
   },
 
-  renderHTML({ HTMLAttributes }) {
-    // Build inline styles for alignment and sizing
-    const { widthPercent, width, height, alignment, ...rest } = HTMLAttributes;
+  renderHTML({ node }) {
+    const { widthPercent, width, height, alignment, src, alt } = node.attrs;
     const styles: string[] = [];
     
     // Add alignment via display block + margin
@@ -238,7 +237,10 @@ export const ResizableImage = Node.create({
       if (height) styles.push(`height: ${height}px`);
     }
     
-    return ['img', mergeAttributes(rest, { style: styles.join('; ') })];
+    const attrs: Record<string, any> = { style: styles.join('; ') };
+    if (src) attrs.src = src;
+    if (alt) attrs.alt = alt;
+    return ['img', attrs];
   },
 
   addNodeView() {
