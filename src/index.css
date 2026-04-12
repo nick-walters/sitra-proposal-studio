@@ -649,7 +649,8 @@ td.b12-case-cell {
 .b12-case-content ol {
   text-align: left;
 }
-.b12-case-content p {
+.b12-case-content p,
+.b12-case-content > div {
   display: block;
   text-align: justify;
   margin: 0 0 3pt 0;
@@ -658,8 +659,9 @@ td.b12-case-cell {
 .b12-case-content > div:first-child {
   display: inline;
 }
-/* Last paragraph in a case table cell: no bottom margin */
-.b12-case-content p:last-child {
+/* Last block in a case table cell: no bottom margin */
+.b12-case-content p:last-child,
+.b12-case-content > div:last-child {
   margin-bottom: 0;
 }
 .b12-case-content ul {
