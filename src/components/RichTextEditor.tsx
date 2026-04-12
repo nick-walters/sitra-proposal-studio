@@ -28,6 +28,7 @@ import { AcronymReference } from '@/extensions/AcronymReference';
 import { FigureTableReferenceMark } from '@/extensions/FigureTableReferenceMark';
 import { OrderedListStyled } from '@/extensions/OrderedListStyled';
 import { renumberH3Headings } from '@/lib/renumberH3Headings';
+import { updateCaptionForTableAtCursor } from '@/lib/renumberCaptionsInEditor';
 import { OrderedListDropdown } from './OrderedListDropdown';
 import { computeAutoFitSmart } from '@/lib/autoFitColumns';
 import { Button } from "@/components/ui/button";
@@ -976,6 +977,16 @@ export function FormattingToolbar({
                 <Columns className="w-4 h-4 mr-2" />
                 Auto-resize columns
               </DropdownMenuItem>
+              {sectionNumber && (
+                <DropdownMenuItem onClick={() => {
+                  if (sectionNumber) {
+                    updateCaptionForTableAtCursor(editor, sectionNumber);
+                  }
+                }}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Update caption
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 onClick={() => editor.chain().focus().deleteTable().run()}
