@@ -401,6 +401,9 @@ export function FormattingToolbar({
   isReadOnly = false,
   hideTableInsert = false,
   tableOffset = 0,
+  b12TableFocus,
+  onB12AddRow,
+  onB12DeleteRow,
   crossRefDropdown,
 }: { 
   editor: Editor | null;
@@ -416,6 +419,10 @@ export function FormattingToolbar({
   isReadOnly?: boolean;
   hideTableInsert?: boolean;
   tableOffset?: number;
+  /** Which B12 table is focused: null, 'case-studies', or 'ongoing-projects' */
+  b12TableFocus?: string | null;
+  onB12AddRow?: () => void;
+  onB12DeleteRow?: () => void;
   crossRefDropdown?: React.ReactNode;
 }) {
   const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
