@@ -194,10 +194,27 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
         .from('b12_ongoing_projects')
         .delete()
         .eq('proposal_id', proposalId);
+
       if (error) {
         toast.error('Could not delete the relevant projects table.');
       } else {
         queryClient.invalidateQueries({ queryKey: ['b12-ongoing-projects'] });
+      }
+      return;
+    }
+
+    if (blockId === 'case-studies') {
+      const { error } = await supabase
+        .from('case_drafts')
+        .update({ is_hidden: true } as never)
+        .eq('proposal_id', proposalId)
+        .eq('is_hidden', false);
+
+      if (error) {
+        toast.error('Could not delete the case tables.');
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['b12-has-cases', proposalId] });
+        queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
       }
     }
   }, [proposalId, queryClient]);
@@ -222,6 +239,7 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
         const isTable = blockId !== 'editor';
         const isDragging = draggedBlock === blockId;
         const isDragOver = dragOverBlock === blockId;
+        const showDeleteButton = isTable && (blockId === 'ongoing-projects' || blockId === 'case-studies');
 
         return (
           <div
@@ -235,12 +253,12 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
             onDragOver={(e) => handleDragOver(e, blockId)}
             onDrop={(e) => handleDrop(e, blockId)}
           >
-            {/* Drag grip + delete icon */}
             {canEdit && visibleBlocks.length > 1 && (
               <>
-                {/* Drag grip - left margin */}
-                <div
-                  className="absolute opacity-0 group-hover/b12block:opacity-100 transition-opacity z-10 cursor-grab"
+                <button
+                  type="button"
+                  className="absolute opacity-0 group-hover/b12block:opacity-100 transition-opacity z-10 cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted rounded touch-none"
+                  title="Drag to reorder"
                   style={{
                     left: '-28px',
                     top: isTable ? '16px' : '4px',
@@ -248,24 +266,25 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
                   draggable
                   onDragStart={() => handleDragStart(blockId)}
                   onDragEnd={handleDragEnd}
+                  tabIndex={-1}
                 >
-                  <GripVertical className="h-4 w-4" style={{ color: '#2563EB' }} />
-                </div>
-                {/* Delete icon - right margin, matching row delete style */}
-                {isTable && blockId === 'ongoing-projects' && (
-                  <div
-                    className="absolute opacity-0 group-hover/b12block:opacity-100 transition-opacity z-10"
-                    style={{ right: '-24px', top: '16px' }}
+                  <GripVertical className="w-3.5 h-3.5 text-[#2563EB]" />
+                </button>
+
+                {showDeleteButton && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteBlock(blockId)}
+                    className="absolute opacity-0 group-hover/b12block:opacity-100 transition-opacity z-10 p-0.5 text-destructive hover:bg-destructive/10 rounded transition-colors"
+                    title="Delete table"
+                    style={{
+                      left: '-28px',
+                      top: isTable ? '42px' : '30px',
+                    }}
+                    tabIndex={-1}
                   >
-                    <button
-                      onClick={() => handleDeleteBlock(blockId)}
-                      className="text-destructive hover:text-destructive p-0.5"
-                      tabIndex={-1}
-                      title="Delete table"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 )}
               </>
             )}
