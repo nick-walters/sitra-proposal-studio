@@ -422,7 +422,21 @@ export function CaseManagementCard({
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onMutate: async ({ id, updates }) => {
+      await queryClient.cancelQueries({ queryKey: ['case-drafts', proposalId] });
+      const previous = queryClient.getQueryData<CaseDraft[]>(['case-drafts', proposalId]);
+      queryClient.setQueryData<CaseDraft[]>(['case-drafts', proposalId], old =>
+        (old || []).map(c => c.id === id ? { ...c, ...updates } : c)
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['case-drafts', proposalId], context.previous);
+      }
+      toast.error('Failed to update case');
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['case-leadership', proposalId] });
       onSaveEvent?.();
