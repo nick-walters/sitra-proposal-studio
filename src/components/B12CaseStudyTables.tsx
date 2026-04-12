@@ -166,6 +166,7 @@ function EditableCaseCell({
         fontSize: '11pt',
         lineHeight: 1.2,
         minHeight: '1em',
+        display: 'inline',
       }}
       onFocus={() => { isFocusedRef.current = true; }}
       onBlur={() => { isFocusedRef.current = false; }}
