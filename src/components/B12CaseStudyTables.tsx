@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EditableCaption } from '@/components/EditableCaption';
 import { useEffect } from 'react';
+import { Crown } from 'lucide-react';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 
@@ -43,9 +44,37 @@ interface Props {
   proposalId: string;
 }
 
-function CaseBubble({ number, caseType }: { number: number; caseType: string }) {
-  const prefix = CASE_TYPE_PREFIX[caseType] || '';
-  const label = prefix ? `${prefix}${number}` : `${number}`;
+/** Strip all HTML tags and decode entities to plain text */
+function stripHtml(html: string): string {
+  if (!html) return '';
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return doc.body.textContent || '';
+}
+
+/** Build case bubble label matching the case manager logic */
+function getCaseBubbleLabel(
+  caseType: string,
+  customTypeName: string | null,
+  number: number,
+  shortName: string | null,
+  includeNumber: boolean,
+  includeAbbreviation: boolean,
+): string {
+  const prefix = caseType === 'other'
+    ? (customTypeName || '')
+    : (CASE_TYPE_PREFIX[caseType] || '');
+
+  let parts: string[] = [];
+  if (includeAbbreviation && prefix) parts.push(prefix);
+  if (includeNumber) parts.push(String(number));
+  const base = parts.join('');
+
+  if (base && shortName) return `${base}: ${shortName}`;
+  if (base) return base;
+  return shortName || String(number);
+}
+
+function CaseBubble({ label }: { label: string }) {
   return (
     <span
       className="inline-flex items-center rounded-full font-bold whitespace-nowrap"
@@ -63,6 +92,29 @@ function CaseBubble({ number, caseType }: { number: number; caseType: string }) 
       }}
     >
       {label}
+    </span>
+  );
+}
+
+function ParticipantBubble({ name }: { name: string }) {
+  return (
+    <span
+      className="inline-flex items-center rounded-full font-bold whitespace-nowrap"
+      style={{
+        backgroundColor: '#000000',
+        color: '#FFFFFF',
+        border: '1.5px solid #000000',
+        fontFamily: "'Times New Roman', Times, serif",
+        fontSize: '11pt',
+        fontWeight: 700,
+        fontStyle: 'normal',
+        lineHeight: 1,
+        verticalAlign: 'baseline',
+        padding: '0px 5px',
+      }}
+    >
+      <Crown className="h-2.5 w-2.5 mr-0.5 fill-white" strokeWidth={0} />
+      {name}
     </span>
   );
 }
@@ -104,6 +156,22 @@ export function B12CaseStudyTables({ proposalId }: Props) {
     },
   });
 
+  // Fetch case settings for bubble label
+  const { data: caseSettings } = useQuery({
+    queryKey: ['case-settings', proposalId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('proposals')
+        .select('case_include_number, case_include_abbreviation')
+        .eq('id', proposalId)
+        .single();
+      return data;
+    },
+  });
+
+  const includeNumber = caseSettings?.case_include_number !== false;
+  const includeAbbreviation = caseSettings?.case_include_abbreviation !== false;
+
   // Realtime subscription
   useEffect(() => {
     const channel = supabase
@@ -126,6 +194,12 @@ export function B12CaseStudyTables({ proposalId }: Props) {
     ? (customName ? `${customName}s` : 'Cases')
     : (CASE_TYPE_PLURALS[caseType] || 'Cases');
 
+  const getLeaderName = (leadId: string | null) => {
+    if (!leadId || !participants) return null;
+    const p = participants.find(pp => pp.id === leadId);
+    return p ? (p.organisation_short_name || p.organisation_name) : null;
+  };
+
   return (
     <div className="space-y-0 mt-4">
       <EditableCaption
@@ -135,45 +209,57 @@ export function B12CaseStudyTables({ proposalId }: Props) {
         defaultCaption={pluralCaption}
       />
 
-      {cases.map((c, idx) => (
-        <div key={c.id}>
-          {idx > 0 && <p className={`${tableStyles}`}>&nbsp;</p>}
-          <table
-            className={`${tableStyles} w-full border-collapse`}
-            style={{ maxWidth: '18cm', tableLayout: 'fixed', lineHeight: 1.0 }}
-          >
-            <thead>
-              <tr style={{ borderBottom: '1.5px solid #000000' }}>
-                <td
-                  className="font-bold"
-                  style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', padding: '4px 0' }}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-1.5">
-                      <CaseBubble number={c.number} caseType={c.case_type} />
-                      <span>{c.title || ''}</span>
-                    </span>
-                  </div>
-                </td>
-              </tr>
-            </thead>
-            <tbody>
-              {FIELD_KEYS.map(({ headingKey, contentKey }) => {
-                const heading = (c as any)[headingKey] || (DEFAULT_HEADINGS as any)[headingKey] || '';
-                const content = (c as any)[contentKey] || '';
-                return (
-                  <tr key={contentKey} style={{ borderBottom: '0.5px solid #d1d5db' }}>
-                    <td style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', padding: '4px 0' }}>
-                      <span className="font-bold italic">{heading}</span>
-                      {content ? ` ${content}` : ''}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      ))}
+      {cases.map((c, idx) => {
+        const bubbleLabel = getCaseBubbleLabel(
+          c.case_type, c.custom_type_name, c.number, c.short_name,
+          includeNumber, includeAbbreviation,
+        );
+        const leaderName = getLeaderName(c.lead_participant_id);
+
+        return (
+          <div key={c.id}>
+            {idx > 0 && (
+              <p className={`${tableStyles}`} style={{ fontSize: '5pt', lineHeight: 1.0 }}>&nbsp;</p>
+            )}
+            <table
+              className={`${tableStyles} w-full border-collapse`}
+              style={{ maxWidth: '18cm', tableLayout: 'fixed', lineHeight: 1.0 }}
+            >
+              <thead>
+                <tr style={{ borderBottom: '1.5px solid #000000' }}>
+                  <td
+                    className="font-bold"
+                    style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', padding: '4px 0' }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <CaseBubble label={bubbleLabel} />
+                        <span>{c.title || ''}</span>
+                      </span>
+                      {leaderName && <ParticipantBubble name={leaderName} />}
+                    </div>
+                  </td>
+                </tr>
+              </thead>
+              <tbody>
+                {FIELD_KEYS.map(({ headingKey, contentKey }) => {
+                  const heading = (c as any)[headingKey] || (DEFAULT_HEADINGS as any)[headingKey] || '';
+                  const rawContent = (c as any)[contentKey] || '';
+                  const content = stripHtml(rawContent);
+                  return (
+                    <tr key={contentKey} style={{ borderBottom: '0.5px solid #d1d5db' }}>
+                      <td style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', padding: '4px 0' }}>
+                        <span className="font-bold italic">{heading}:</span>
+                        {content ? ` ${content}` : ''}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        );
+      })}
     </div>
   );
 }

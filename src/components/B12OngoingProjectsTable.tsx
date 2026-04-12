@@ -32,11 +32,13 @@ interface Participant {
   participant_number: number;
 }
 
-const COLUMNS = [
-  { key: 'project_info', label: 'Project acronym, funder & duration', width: '34%' },
-  { key: 'shared_data', label: 'Data, expertise & tools to be shared', width: '38%' },
-  { key: 'participants', label: 'Participant to establish link', width: '28%' },
-] as const;
+const COLUMN_KEYS = ['project_info', 'shared_data', 'participants'] as const;
+const COLUMN_LABELS_DEFAULT = [
+  'Project acronym, funder & duration',
+  'Data, expertise & tools to be shared',
+  'Participants to establish link',
+];
+const COLUMN_WIDTHS = ['34%', '38%', '28%'];
 
 type EditableColumnKey = 'project_info' | 'shared_data';
 
@@ -77,7 +79,7 @@ function ParticipantCellDropdown({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
-          className="w-full flex items-center justify-between min-h-[24px] bg-transparent outline-none border-none p-0 cursor-pointer"
+          className="w-full flex items-center justify-between min-h-[20px] bg-transparent outline-none border-none p-0 cursor-pointer"
           style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
         >
           <div className="flex flex-wrap gap-0.5">
@@ -159,6 +161,29 @@ function DebouncedInput({ value, onChange }: { value: string; onChange: (v: stri
   );
 }
 
+/* ── Editable header input ──────────────────────────────────── */
+function DebouncedHeaderInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [localValue, setLocalValue] = useState(value);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => { setLocalValue(value); }, [value]);
+
+  const handleChange = (v: string) => {
+    setLocalValue(v);
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => onChange(v), 500);
+  };
+
+  return (
+    <input
+      type="text"
+      className={`${tableStyles} w-full bg-transparent outline-none border-none p-0 font-bold`}
+      value={localValue}
+      onChange={(e) => handleChange(e.target.value)}
+    />
+  );
+}
+
 /* ── Sortable row ───────────────────────────────────────────── */
 function SortableRow({
   row, canEdit, participants, participantIds, onUpdate, onDelete, onToggleParticipant,
@@ -174,6 +199,14 @@ function SortableRow({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: row.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
 
+  const cellStyle = (width: string): React.CSSProperties => ({
+    fontFamily: "'Times New Roman', Times, serif",
+    fontSize: '11pt',
+    width,
+    padding: '2px 4px',
+    verticalAlign: 'middle',
+  });
+
   return (
     <tr ref={setNodeRef} style={{ ...style, borderBottom: '0.5px solid #d1d5db' }} {...attributes}>
       {canEdit && (
@@ -185,24 +218,21 @@ function SortableRow({
           </div>
         </td>
       )}
-      {/* Project info */}
-      <td style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', width: COLUMNS[0].width, padding: '4px 4px 4px 0', borderRight: 'none' }}>
+      <td style={cellStyle(COLUMN_WIDTHS[0])}>
         {canEdit ? (
           <DebouncedInput value={row.project_info || ''} onChange={(v) => onUpdate(row.id, 'project_info', v)} />
         ) : (
           <span>{row.project_info || ''}</span>
         )}
       </td>
-      {/* Shared data */}
-      <td style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', width: COLUMNS[1].width, padding: '4px 4px', borderRight: 'none' }}>
+      <td style={cellStyle(COLUMN_WIDTHS[1])}>
         {canEdit ? (
           <DebouncedInput value={row.shared_data || ''} onChange={(v) => onUpdate(row.id, 'shared_data', v)} />
         ) : (
           <span>{row.shared_data || ''}</span>
         )}
       </td>
-      {/* Participants */}
-      <td style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', width: COLUMNS[2].width, padding: '4px 0 4px 4px', borderRight: 'none' }}>
+      <td style={cellStyle(COLUMN_WIDTHS[2])}>
         <ParticipantCellDropdown
           rowId={row.id}
           participants={participants}
@@ -235,6 +265,41 @@ export function B12OngoingProjectsTable({ proposalId }: Props) {
   const canEdit = isAdminOrOwner || hasAnyCoordinatorRole;
   const initialized = useRef(false);
 
+  // Editable column headers
+  const [headerLabels, setHeaderLabels] = useState<string[]>(COLUMN_LABELS_DEFAULT);
+
+  // Load saved headers
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from('table_captions')
+        .select('caption')
+        .eq('proposal_id', proposalId)
+        .eq('table_key', 'b12-ongoing-headers')
+        .maybeSingle();
+      if (data?.caption) {
+        try {
+          const parsed = JSON.parse(data.caption);
+          if (Array.isArray(parsed) && parsed.length === 3) setHeaderLabels(parsed);
+        } catch { /* ignore */ }
+      }
+    })();
+  }, [proposalId]);
+
+  const handleHeaderChange = useCallback(async (index: number, value: string) => {
+    const updated = [...headerLabels];
+    updated[index] = value;
+    setHeaderLabels(updated);
+    const { data: { user } } = await supabase.auth.getUser();
+    await supabase.from('table_captions').upsert({
+      proposal_id: proposalId,
+      table_key: 'b12-ongoing-headers',
+      caption: JSON.stringify(updated),
+      updated_at: new Date().toISOString(),
+      updated_by: user?.id || null,
+    }, { onConflict: 'proposal_id,table_key' });
+  }, [headerLabels, proposalId]);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -266,11 +331,9 @@ export function B12OngoingProjectsTable({ proposalId }: Props) {
     },
   });
 
-  // Participant links
   const { data: participantLinks = [] } = useQuery({
     queryKey: ['b12-ongoing-project-participants', proposalId],
     queryFn: async () => {
-      // Get all ongoing project IDs for this proposal first
       const { data: projects } = await supabase
         .from('b12_ongoing_projects')
         .select('id')
@@ -389,24 +452,31 @@ export function B12OngoingProjectsTable({ proposalId }: Props) {
         >
           <thead>
             <tr style={{ borderBottom: '1.5px solid #000000' }}>
-              {canEdit && <th className="w-6" />}
-              {COLUMNS.map(col => (
+              {canEdit && <th className="w-0 p-0" style={{ width: 0, minWidth: 0, maxWidth: 0, border: 'none' }} />}
+              {COLUMN_KEYS.map((key, i) => (
                 <th
-                  key={col.key}
+                  key={key}
                   className="text-left font-bold"
                   style={{
                     fontFamily: "'Times New Roman', Times, serif",
                     fontSize: '11pt',
-                    width: col.width,
+                    width: COLUMN_WIDTHS[i],
                     whiteSpace: 'normal',
-                    padding: '4px 4px 4px 0',
-                    borderRight: 'none',
+                    padding: '2px 4px',
+                    verticalAlign: 'middle',
                   }}
                 >
-                  {col.label}
+                  {canEdit ? (
+                    <DebouncedHeaderInput
+                      value={headerLabels[i]}
+                      onChange={(v) => handleHeaderChange(i, v)}
+                    />
+                  ) : (
+                    headerLabels[i]
+                  )}
                 </th>
               ))}
-              {canEdit && <th className="w-6" />}
+              {canEdit && <th className="w-0 p-0" style={{ width: 0, minWidth: 0, maxWidth: 0, border: 'none' }} />}
             </tr>
           </thead>
           <SortableContext items={rows.map(r => r.id)} strategy={verticalListSortingStrategy}>
