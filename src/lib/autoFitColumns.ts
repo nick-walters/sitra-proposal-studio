@@ -111,26 +111,6 @@ export function computeAutoFitSmart(
 
   cleanup();
 
-  // Apply widths and ensure vertical alignment
-  const colgroup = table.querySelector('colgroup');
-  if (colgroup) {
-    const cols = colgroup.querySelectorAll('col');
-    cols.forEach((col, i) => {
-      if (i < finalWidths.length) {
-        const w = Math.round(finalWidths[i]);
-        (col as HTMLElement).style.width = `${w}px`;
-        (col as HTMLElement).style.minWidth = `${w}px`;
-      }
-    });
-  }
-
-  table.style.tableLayout = 'fixed';
-  table.style.width = `${containerWidth}px`;
-
-  table.querySelectorAll('th, td').forEach(cell => {
-    (cell as HTMLElement).style.verticalAlign = 'middle';
-  });
-
   return finalWidths.map(w => Math.round(w));
 }
 
