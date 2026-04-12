@@ -635,6 +635,26 @@
   color: hsl(var(--accent-foreground));
 }
 
+/* B1.2 case study inline HTML content */
+.b12-case-content p {
+  display: inline;
+}
+.b12-case-content p + p::before {
+  content: '';
+  display: block;
+  margin-top: 2px;
+}
+.b12-case-content ul,
+.b12-case-content ol {
+  margin: 2px 0 2px 20px;
+  padding: 0;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 11pt;
+}
+.b12-case-content li {
+  margin: 0;
+}
+
 /* Inline reference bubbles (Task, Deliverable, Milestone) */
 .inline-ref {
   user-select: all;

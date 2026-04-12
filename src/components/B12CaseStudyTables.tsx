@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { EditableCaption } from '@/components/EditableCaption';
 import { useEffect } from 'react';
 import { Crown } from 'lucide-react';
+import DOMPurify from 'dompurify';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 
@@ -44,11 +45,13 @@ interface Props {
   proposalId: string;
 }
 
-/** Strip all HTML tags and decode entities to plain text */
-function stripHtml(html: string): string {
+/** Sanitize HTML content for safe rendering, preserving formatting */
+function sanitizeHtml(html: string): string {
   if (!html) return '';
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  return doc.body.textContent || '';
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 'ul', 'ol', 'li', 'span', 'a', 'sub', 'sup'],
+    ALLOWED_ATTR: ['style', 'href', 'target', 'rel'],
+  });
 }
 
 /** Build case bubble label matching the case manager logic */
@@ -245,12 +248,17 @@ export function B12CaseStudyTables({ proposalId }: Props) {
                 {FIELD_KEYS.map(({ headingKey, contentKey }) => {
                   const heading = (c as any)[headingKey] || (DEFAULT_HEADINGS as any)[headingKey] || '';
                   const rawContent = (c as any)[contentKey] || '';
-                  const content = stripHtml(rawContent);
+                  const cleanHtml = sanitizeHtml(rawContent);
                   return (
                     <tr key={contentKey} style={{ borderBottom: '0.5px solid #d1d5db' }}>
                       <td style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', padding: '4px 0' }}>
                         <span className="font-bold italic">{heading}:</span>
-                        {content ? ` ${content}` : ''}
+                        {cleanHtml ? (
+                          <span
+                            className="b12-case-content"
+                            dangerouslySetInnerHTML={{ __html: ` ${cleanHtml}` }}
+                          />
+                        ) : null}
                       </td>
                     </tr>
                   );
