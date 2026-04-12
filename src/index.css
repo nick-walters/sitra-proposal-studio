@@ -649,20 +649,20 @@
 .b12-case-content ul {
   list-style-type: disc;
   margin: 2px 0 2px 2px;
-  padding-left: 12px;
+  padding-left: 10px;
   font-family: 'Times New Roman', Times, serif;
   font-size: 11pt;
 }
 .b12-case-content ol {
   list-style-type: decimal;
   margin: 2px 0 2px 2px;
-  padding-left: 12px;
+  padding-left: 10px;
   font-family: 'Times New Roman', Times, serif;
   font-size: 11pt;
 }
 .b12-case-content li {
   margin: 0;
-  padding-left: 2px;
+  padding-left: 0px;
   display: list-item;
 }
 .b12-case-content li p {
