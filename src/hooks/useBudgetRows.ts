@@ -98,7 +98,7 @@ function computeRow(row: BudgetRowData, proposalType: string | null): ComputedBu
     row.procurement;
 
   const indirectCostsBase = directCosts - row.subcontractingCosts - row.financialSupportThirdParties;
-  const indirectCosts = row.indirectCostsOverride ?? Math.round(indirectCostsBase * 0.25);
+  const indirectCosts = row.indirectCostsOverride ?? Math.round(indirectCostsBase * 0.25 * 100) / 100;
   const totalEligibleCosts = directCosts + indirectCosts;
 
   // Funding rate: RIA = 100% all; IA = 100% except PRC (private companies) = 70%
@@ -109,7 +109,7 @@ function computeRow(row: BudgetRowData, proposalType: string | null): ComputedBu
     }
   }
 
-  const maxEuContribution = Math.round(totalEligibleCosts * (fundingRate / 100));
+  const maxEuContribution = Math.round(totalEligibleCosts * (fundingRate / 100) * 100) / 100;
   let requestedEuContribution: number;
   if (row.hasInKind) {
     // Sum per-category requested amounts
@@ -121,7 +121,7 @@ function computeRow(row: BudgetRowData, proposalType: string | null): ComputedBu
     const reqFstp = row.requestedFstp ?? row.financialSupportThirdParties;
     const reqInternally = row.requestedInternallyInvoiced ?? row.internallyInvoiced;
     const reqDirectTotal = reqPersonnel + reqSub + reqTravel + reqEquip + reqOther + reqFstp + reqInternally;
-    const reqIndirect = Math.round((reqDirectTotal - reqSub - reqFstp) * 0.25);
+    const reqIndirect = Math.round((reqDirectTotal - reqSub - reqFstp) * 0.25 * 100) / 100;
     requestedEuContribution = Math.min(
       reqDirectTotal + reqIndirect,
       maxEuContribution
