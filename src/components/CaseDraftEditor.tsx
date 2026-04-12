@@ -495,40 +495,39 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
           )}
         </div>
 
-        {/* Header with color (matches WP editor header) */}
+        {/* Header with white bg + black outline (case bubble style) */}
         <div
-          className="rounded-lg p-4 -mx-2"
-          style={{ backgroundColor: caseDraft.color, color: '#FFFFFF' }}
+          className="rounded-lg p-4 -mx-2 bg-white border-[1.5px] border-black"
         >
           <div className="flex items-center gap-2">
-            <span className="text-xl font-bold">{prefix ? `${prefix}${caseDraft.number}` : (caseDraft.short_name || caseDraft.number)}:</span>
+            <span className="text-xl font-bold text-black">{prefix ? `${prefix}${caseDraft.number}` : (caseDraft.short_name || caseDraft.number)}:</span>
             <DebouncedInput
               value={caseDraft.title || ''}
               onDebouncedChange={(v) => updateField('title', v)}
               placeholder="Case title"
-              className="bg-white/90 text-foreground flex-1"
+              className="flex-1"
               disabled={readOnly}
             />
           </div>
           <div className="mt-2 flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2">
-              <span className="text-sm opacity-80">Short name:</span>
+              <span className="text-sm text-muted-foreground">Short name:</span>
               <DebouncedInput
                 value={caseDraft.short_name || ''}
                 onDebouncedChange={(v) => updateField('short_name', v)}
                 placeholder="e.g. Barcelona"
-                className="bg-white/90 text-foreground h-7 w-[140px] text-sm"
+                className="h-7 w-[140px] text-sm"
                 disabled={readOnly}
               />
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm opacity-80">Lead:</span>
+              <span className="text-sm text-muted-foreground">Lead:</span>
               <Select
                 value={caseDraft.lead_participant_id || ''}
                 onValueChange={(value) => updateField('lead_participant_id', value || null)}
                 disabled={readOnly}
               >
-                <SelectTrigger className="bg-white/90 text-foreground h-7 w-[160px] text-sm">
+                <SelectTrigger className="h-7 w-[160px] text-sm">
                   <SelectValue placeholder="Select lead..." />
                 </SelectTrigger>
                 <SelectContent>
