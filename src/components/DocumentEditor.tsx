@@ -69,6 +69,7 @@ import { SplitViewPanel } from "./SplitViewPanel";
 // SectionReviewDialog moved to Part B Evaluate tab
 import { B31DeliverablesTable, B31MilestonesTable, B31RisksTable } from "./B31TablesEditor";
 import { B31SectionContent } from "./B31SectionContent";
+import { B12SectionContent } from "./B12SectionContent";
 import { B31IntroText } from "./B31IntroText";
 import { TrackChange } from "@/extensions/TrackChanges";
 // usePageEstimate moved to ExportDialog
@@ -1370,6 +1371,10 @@ export function DocumentEditor({
                 <B31SectionContent proposalId={proposalId} />
               )}
 
+              {/* B1.2 Section Content - case study tables and ongoing projects */}
+              {(section.id === 'b1-2' || section.number === 'B1.2' || section.number === '1.2') && (
+                <B12SectionContent proposalId={proposalId} />
+              )}
               {/* Footnotes */}
               {footnotes.length > 0 && (
                 <div className="mt-8 pt-4 border-t border-border">
