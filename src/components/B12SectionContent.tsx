@@ -164,26 +164,14 @@ export function B12SectionContent({ proposalId, editorNode }: Props) {
             onDragOver={(e) => handleDragOver(e, blockId)}
             onDrop={(e) => handleDrop(e, blockId)}
           >
-            {/* Drag grip — shown for table blocks only, positioned at caption level */}
-            {isTable && canEdit && (
+            {/* Drag grip — shown for all blocks when canEdit, positioned inline with caption/top */}
+            {canEdit && visibleBlocks.length > 1 && (
               <div
                 className="absolute opacity-0 group-hover/b12block:opacity-100 transition-opacity cursor-grab z-10"
                 style={{
                   left: '-28px',
-                  top: blockId === 'ongoing-projects' ? '32px' : '16px', // align with caption (ongoing has auto-resize bar above)
+                  top: isTable ? '16px' : '4px',
                 }}
-                draggable
-                onDragStart={() => handleDragStart(blockId)}
-                onDragEnd={handleDragEnd}
-              >
-                <GripVertical className="h-4 w-4" style={{ color: '#2563EB' }} />
-              </div>
-            )}
-            {/* Editor block also needs a grip */}
-            {!isTable && canEdit && visibleBlocks.length > 1 && (
-              <div
-                className="absolute opacity-0 group-hover/b12block:opacity-100 transition-opacity cursor-grab z-10"
-                style={{ left: '-28px', top: '4px' }}
                 draggable
                 onDragStart={() => handleDragStart(blockId)}
                 onDragEnd={handleDragEnd}
