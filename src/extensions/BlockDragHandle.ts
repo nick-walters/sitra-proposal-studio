@@ -470,7 +470,7 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
               dragContainer?.remove();
               dropIndicator?.remove();
               removeCutOverlay();
-              document.removeEventListener('keydown', handleKeyDown);
+              document.removeEventListener('keydown', handleKeyDown, true);
               clearCutState();
             },
           };
