@@ -110,6 +110,8 @@ interface DocumentEditorProps {
   openPanel?: 'comments' | 'changes' | null;
 }
 
+type B12ToolbarFocus = 'case-studies' | 'ongoing-projects' | null;
+
 export function DocumentEditor({ 
   section, 
   proposalId, 
@@ -217,6 +219,9 @@ export function DocumentEditor({
   const [isDeliverableRefOpen, setIsDeliverableRefOpen] = useState(false);
   const [isMilestoneRefOpen, setIsMilestoneRefOpen] = useState(false);
   const [hasCases, setHasCases] = useState(false);
+  const [b12TableFocus, setB12TableFocus] = useState<B12ToolbarFocus>(null);
+  const [b12FocusedCaseId, setB12FocusedCaseId] = useState<string | null>(null);
+  const [b12FocusedRowId, setB12FocusedRowId] = useState<string | null>(null);
   
   // Editor container ref for cursor overlays
   const editorContainerRef = useRef<HTMLDivElement>(null);
@@ -467,15 +472,36 @@ export function DocumentEditor({
       const offset = (e as CustomEvent).detail?.offset ?? 0;
       setB12TableOffset(offset);
     };
+    const handleB12TableFocus = (e: Event) => {
+      const detail = (e as CustomEvent<{
+        tableId?: Exclude<B12ToolbarFocus, null>;
+        caseId?: string | null;
+        rowId?: string | null;
+      }>).detail;
+
+      if (detail?.tableId !== 'case-studies' && detail?.tableId !== 'ongoing-projects') return;
+
+      setB12TableFocus(detail.tableId);
+      setB12FocusedCaseId(detail.caseId ?? null);
+      setB12FocusedRowId(detail.rowId ?? null);
+    };
     window.addEventListener('cross-ref-data-changed', handleCrossRefDataChanged);
     window.addEventListener('block-reordered', handleBlockReordered);
     window.addEventListener('b12-table-offset', handleB12Offset);
+    window.addEventListener('b12-table-focus', handleB12TableFocus as EventListener);
     return () => {
       window.removeEventListener('cross-ref-data-changed', handleCrossRefDataChanged);
       window.removeEventListener('block-reordered', handleBlockReordered);
       window.removeEventListener('b12-table-offset', handleB12Offset);
+      window.removeEventListener('b12-table-focus', handleB12TableFocus as EventListener);
     };
   }, [editor, section?.number]);
+
+  useEffect(() => {
+    setB12TableFocus(null);
+    setB12FocusedCaseId(null);
+    setB12FocusedRowId(null);
+  }, [section?.id]);
 
   useEffect(() => {
     if (!editor || !proposalId || loading) return;
@@ -517,6 +543,9 @@ export function DocumentEditor({
     
     const handleSelectionUpdate = () => {
       const { from, to } = editor.state.selection;
+      setB12TableFocus(null);
+      setB12FocusedCaseId(null);
+      setB12FocusedRowId(null);
       // Update collaborative cursor position
       updateCursorPosition(
         { line: 0, ch: to }, // Use 'to' as cursor position
@@ -743,6 +772,123 @@ export function DocumentEditor({
       }).insertContent(' ').unsetBold().unsetItalic().run();
     }, 150);
   }, [editor]);
+
+  const focusB12Caption = useCallback((tableKey: 'b12-case-studies' | 'b12-ongoing-projects') => {
+    const activeInput = document.querySelector<HTMLInputElement>(`input[data-commentable="caption-${tableKey}"]`);
+    if (activeInput) {
+      activeInput.focus();
+      activeInput.select();
+      return;
+    }
+
+    const trigger = document.querySelector<HTMLElement>(`span[data-commentable="caption-${tableKey}"]`);
+    trigger?.click();
+
+    requestAnimationFrame(() => {
+      const input = document.querySelector<HTMLInputElement>(`input[data-commentable="caption-${tableKey}"]`);
+      input?.focus();
+      input?.select();
+    });
+  }, []);
+
+  const handleB12AddRow = useCallback(async () => {
+    if (!proposalId || !b12TableFocus || isEffectivelyReadOnly) return;
+
+    if (b12TableFocus === 'ongoing-projects') {
+      const { data, error } = await supabase
+        .from('b12_ongoing_projects')
+        .select('order_index')
+        .eq('proposal_id', proposalId)
+        .order('order_index', { ascending: false })
+        .limit(1);
+
+      if (error) {
+        toast.error('Could not add a relevant-project row.');
+        return;
+      }
+
+      const nextOrder = (data?.[0]?.order_index ?? -1) + 1;
+      const { error: insertError } = await supabase
+        .from('b12_ongoing_projects')
+        .insert({ proposal_id: proposalId, order_index: nextOrder });
+
+      if (insertError) {
+        toast.error('Could not add a relevant-project row.');
+      }
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('case_drafts')
+      .select('number, order_index, case_type, custom_type_name')
+      .eq('proposal_id', proposalId)
+      .order('order_index', { ascending: false })
+      .limit(1);
+
+    if (error) {
+      toast.error('Could not add a case.');
+      return;
+    }
+
+    const lastCase = data?.[0];
+    const { error: insertError } = await supabase.from('case_drafts').insert({
+      proposal_id: proposalId,
+      number: (lastCase?.number ?? 0) + 1,
+      order_index: (lastCase?.order_index ?? -1) + 1,
+      case_type: lastCase?.case_type ?? 'case_study',
+      custom_type_name: lastCase?.custom_type_name ?? null,
+    });
+
+    if (insertError) {
+      toast.error('Could not add a case.');
+    }
+  }, [b12TableFocus, isEffectivelyReadOnly, proposalId]);
+
+  const handleB12DeleteRow = useCallback(async () => {
+    if (!proposalId || !b12TableFocus || isEffectivelyReadOnly) return;
+
+    if (b12TableFocus === 'ongoing-projects') {
+      if (!b12FocusedRowId) {
+        toast.error('Select a relevant-project row first.');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('b12_ongoing_projects')
+        .delete()
+        .eq('id', b12FocusedRowId);
+
+      if (error) {
+        toast.error('Could not delete the relevant-project row.');
+      }
+      return;
+    }
+
+    if (!b12FocusedCaseId) {
+      toast.error('Select a case table first.');
+      return;
+    }
+
+    const { error } = await supabase
+      .from('case_drafts')
+      .delete()
+      .eq('id', b12FocusedCaseId);
+
+    if (error) {
+      toast.error('Could not delete the case.');
+    }
+  }, [b12FocusedCaseId, b12FocusedRowId, b12TableFocus, isEffectivelyReadOnly, proposalId]);
+
+  const handleB12UpdateCaption = useCallback(() => {
+    if (b12TableFocus === 'case-studies') {
+      focusB12Caption('b12-case-studies');
+      return;
+    }
+
+    if (b12TableFocus === 'ongoing-projects') {
+      focusB12Caption('b12-ongoing-projects');
+    }
+  }, [b12TableFocus, focusB12Caption]);
 
   // Handle Acronym reference insertion
   const handleInsertAcronymRef = useCallback(() => {
@@ -1207,6 +1353,10 @@ export function DocumentEditor({
           isReadOnly={isEffectivelyReadOnly}
           hideTableInsert={section?.number === 'B3.1'}
           tableOffset={b12TableOffset}
+          b12TableFocus={b12TableFocus}
+          onB12AddRow={b12TableFocus ? handleB12AddRow : undefined}
+          onB12DeleteRow={b12TableFocus ? handleB12DeleteRow : undefined}
+          onB12UpdateCaption={b12TableFocus ? handleB12UpdateCaption : undefined}
           crossRefDropdown={section && !section.isPartA ? (
             <>
               <DropdownMenu>
