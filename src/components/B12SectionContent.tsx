@@ -237,32 +237,37 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
           >
             {/* Drag grip + delete icon */}
             {canEdit && visibleBlocks.length > 1 && (
-              <div
-                className="absolute opacity-0 group-hover/b12block:opacity-100 transition-opacity z-10 flex flex-col items-center gap-0.5"
-                style={{
-                  left: '-28px',
-                  top: isTable ? '16px' : '4px',
-                }}
-              >
+              <>
+                {/* Drag grip - left margin */}
                 <div
-                  className="cursor-grab"
+                  className="absolute opacity-0 group-hover/b12block:opacity-100 transition-opacity z-10 cursor-grab"
+                  style={{
+                    left: '-28px',
+                    top: isTable ? '16px' : '4px',
+                  }}
                   draggable
                   onDragStart={() => handleDragStart(blockId)}
                   onDragEnd={handleDragEnd}
                 >
                   <GripVertical className="h-4 w-4" style={{ color: '#2563EB' }} />
                 </div>
+                {/* Delete icon - right margin, matching row delete style */}
                 {isTable && blockId === 'ongoing-projects' && (
-                  <button
-                    type="button"
-                    title="Delete table"
-                    className="p-0.5 rounded hover:bg-destructive/10 transition-colors"
-                    onClick={() => handleDeleteBlock(blockId)}
+                  <div
+                    className="absolute opacity-0 group-hover/b12block:opacity-100 transition-opacity z-10"
+                    style={{ right: '-24px', top: '16px' }}
                   >
-                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                  </button>
+                    <button
+                      onClick={() => handleDeleteBlock(blockId)}
+                      className="text-destructive hover:text-destructive p-0.5"
+                      tabIndex={-1}
+                      title="Delete table"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 )}
-              </div>
+              </>
             )}
             {renderBlock(blockId)}
           </div>
