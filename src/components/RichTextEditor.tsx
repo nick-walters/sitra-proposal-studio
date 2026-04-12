@@ -26,6 +26,7 @@ import { CaseReferenceMark } from '@/extensions/CaseReferenceMark';
 import { ParticipantReferenceMark } from '@/extensions/ParticipantReferenceMark';
 import { AcronymReference } from '@/extensions/AcronymReference';
 import { FigureTableReferenceMark } from '@/extensions/FigureTableReferenceMark';
+import { CaptionLabel } from '@/extensions/CaptionLabel';
 import { OrderedListStyled } from '@/extensions/OrderedListStyled';
 import { renumberH3Headings } from '@/lib/renumberH3Headings';
 import { updateCaptionForTableAtCursor } from '@/lib/renumberCaptionsInEditor';
@@ -1237,6 +1238,7 @@ StarterKit.configure({
       CaseReferenceMark,
       AcronymReference,
       FigureTableReferenceMark,
+      CaptionLabel,
       // Suppress heading input rules inside table cells: revert heading nodes back to paragraphs
       Extension.create({
         name: 'preventHeadingInTable',
@@ -1438,6 +1440,7 @@ StarterKit.configure({
       ParticipantReferenceMark,
       // Acronym reference for colored acronym insertion
       AcronymReference,
+      CaptionLabel,
       // Figure/table reference marks for atomic deletion
       FigureTableReferenceMark,
       // Block drag-and-drop via drag handle
