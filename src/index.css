@@ -952,13 +952,24 @@
   border-color: hsl(var(--primary));
 }
 
-/* Cut source – greyed out block */
+/* Cut source – greyed out block (React/B12 blocks only) */
 .block-cut-source {
   opacity: 0.35 !important;
   outline: 2px dashed hsl(var(--muted-foreground));
   outline-offset: 2px;
   border-radius: 4px;
   transition: opacity 0.2s ease;
+}
+
+/* Cut overlay – used in Tiptap editor to grey out without affecting editor DOM */
+.block-cut-overlay {
+  position: absolute;
+  background: hsl(var(--background) / 0.7);
+  border: 2px dashed hsl(var(--muted-foreground));
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 40;
+  display: none;
 }
 
 /* Paste indicator (Tiptap) */
