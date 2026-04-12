@@ -243,16 +243,14 @@ function SortableRow({
 
   return (
     <tr ref={setNodeRef} style={{ ...style, borderBottom: '0.5px solid #d1d5db' }} {...attributes}>
-      {canEdit && (
-        <td className="p-0" style={{ width: 0, minWidth: 0, maxWidth: 0, position: 'relative' }}>
-          <div style={{ position: 'absolute', left: '-28px', top: '50%', transform: 'translateY(-50%)' }}>
+      <td style={{ ...cellStyle(COLUMN_WIDTHS[0]), position: 'relative' }}>
+        {canEdit && (
+          <div style={{ position: 'absolute', left: '-24px', top: '50%', transform: 'translateY(-50%)' }}>
             <button {...listeners} className="cursor-grab text-muted-foreground hover:text-foreground p-0.5" tabIndex={-1}>
               <GripVertical className="h-3.5 w-3.5" style={{ color: '#2563EB' }} />
             </button>
           </div>
-        </td>
-      )}
-      <td style={cellStyle(COLUMN_WIDTHS[0])}>
+        )}
         {canEdit ? (
           <DebouncedInput value={row.project_info || ''} onChange={(v) => onUpdate(row.id, 'project_info', v)} />
         ) : (
@@ -266,7 +264,7 @@ function SortableRow({
           <span>{row.shared_data || ''}</span>
         )}
       </td>
-      <td style={cellStyle(COLUMN_WIDTHS[2])}>
+      <td style={{ ...cellStyle(COLUMN_WIDTHS[2]), position: 'relative' }}>
         <ParticipantCellDropdown
           rowId={row.id}
           participants={participants}
@@ -274,16 +272,14 @@ function SortableRow({
           canEdit={canEdit}
           onToggle={onToggleParticipant}
         />
-      </td>
-      {canEdit && (
-        <td className="p-0" style={{ width: 0, minWidth: 0, maxWidth: 0, position: 'relative' }}>
-          <div style={{ position: 'absolute', right: '-28px', top: '50%', transform: 'translateY(-50%)' }}>
+        {canEdit && (
+          <div style={{ position: 'absolute', right: '-24px', top: '50%', transform: 'translateY(-50%)' }}>
             <button onClick={() => onDelete(row.id)} className="text-destructive hover:text-destructive p-0.5" tabIndex={-1}>
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           </div>
-        </td>
-      )}
+        )}
+      </td>
     </tr>
   );
 }
