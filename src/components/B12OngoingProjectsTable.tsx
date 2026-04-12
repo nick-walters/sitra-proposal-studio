@@ -484,26 +484,24 @@ export function B12OngoingProjectsTable({ proposalId }: Props) {
 
   return (
     <div className="mt-4" style={{ overflow: 'visible' }}>
+      {canEdit && (
+        <div className="table-auto-resize-bar">
+          <button
+            type="button"
+            className="table-auto-resize-btn"
+            onClick={handleAutoResize}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>
+            <span>Auto-resize columns</span>
+          </button>
+        </div>
+      )}
       <EditableCaption
         proposalId={proposalId}
         tableKey="b12-ongoing-projects"
         label="Table 1.2.i."
         defaultCaption="Ongoing & recently completed projects & initiatives with which the project will collaborate"
       />
-
-      {canEdit && (
-        <div className="table-auto-resize-bar" style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '2px' }}>
-          <button
-            type="button"
-            className="table-auto-resize-btn"
-            onClick={handleAutoResize}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '1px 6px', border: '1px solid #d1d5db', borderRadius: '4px', background: 'white', cursor: 'pointer', color: '#6b7280' }}
-          >
-            <Columns3 className="h-3 w-3" />
-            <span>Auto-resize columns</span>
-          </button>
-        </div>
-      )}
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <table
