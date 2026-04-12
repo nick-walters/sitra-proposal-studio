@@ -2,6 +2,41 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+/**
+ * Strip legacy Word/XML artifacts from HTML content.
+ * Removes xmlns attributes, MsoNormal classes, mso-* style properties, 
+ * XML processing instructions, and empty spans left behind.
+ */
+function stripWordXml(html: string): string {
+  if (!html || typeof html !== 'string') return html;
+  // Skip if no Word artifacts present
+  if (!/xmlns|MsoNormal|mso-|<o:|<w:|<m:|class="Mso/i.test(html)) return html;
+
+  let clean = html;
+  // Remove XML processing instructions
+  clean = clean.replace(/<\?xml[^>]*\?>/gi, '');
+  // Remove Office namespace tags (o:p, w:sdt, etc.)
+  clean = clean.replace(/<\/?[owm]:[^>]*>/gi, '');
+  // Remove xmlns attributes
+  clean = clean.replace(/\s+xmlns(?::[a-z]+)?="[^"]*"/gi, '');
+  // Remove class="MsoNormal" and similar
+  clean = clean.replace(/\s+class="Mso[^"]*"/gi, '');
+  // Remove mso-* properties from style attributes
+  clean = clean.replace(/style="([^"]*)"/gi, (match, styles: string) => {
+    const cleaned = styles
+      .split(';')
+      .filter((s: string) => !/^\s*mso-/i.test(s.trim()))
+      .join(';')
+      .trim();
+    return cleaned ? `style="${cleaned}"` : '';
+  });
+  // Remove empty spans
+  clean = clean.replace(/<span\s*>\s*<\/span>/gi, '');
+  // Remove empty style attributes
+  clean = clean.replace(/\s+style=""/g, '');
+  return clean;
+}
+
 export interface WPDraftTask {
   id: string;
   wp_draft_id: string;
