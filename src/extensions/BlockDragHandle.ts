@@ -90,10 +90,23 @@ function blockContainsTable(doc: ProseMirrorNode, startPos: number, endPos: numb
 }
 
 function findTableDomInBlock(view: EditorView, startPos: number, endPos: number): HTMLTableElement | null {
-  const blockDom = view.nodeDOM(startPos);
-  if (!blockDom || !(blockDom instanceof HTMLElement)) return null;
-  if (blockDom instanceof HTMLTableElement) return blockDom;
-  return blockDom.querySelector('table');
+  // Try each position in the block range to find the table DOM
+  const doc = view.state.doc;
+  let tableEl: HTMLTableElement | null = null;
+  doc.nodesBetween(startPos, endPos, (node, pos) => {
+    if (tableEl) return false;
+    if (node.type.name === 'table') {
+      const dom = view.nodeDOM(pos);
+      if (dom instanceof HTMLTableElement) {
+        tableEl = dom;
+      } else if (dom instanceof HTMLElement) {
+        const inner = dom.querySelector('table');
+        if (inner) tableEl = inner;
+      }
+      return false;
+    }
+  });
+  return tableEl;
 }
 
 export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
