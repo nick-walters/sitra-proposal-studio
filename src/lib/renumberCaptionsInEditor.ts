@@ -166,7 +166,7 @@ export function renumberCaptionsInEditor(editor: Editor, sectionNumber: string, 
  *
  * Returns true if changes were made.
  */
-export function updateCaptionForTableAtCursor(editor: Editor, sectionNumber: string): boolean {
+export function updateCaptionForTableAtCursor(editor: Editor, sectionNumber: string, tableOffset: number = 0): boolean {
   if (!editor || !sectionNumber) return false;
 
   const cleanSectionNum = sectionNumber.replace(/^[A-Za-z]+/, '');
