@@ -1253,6 +1253,7 @@ StarterKit.configure({
       TextStyle,
       Color,
       ParagraphClass,
+      ParagraphSpacing,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
         defaultAlignment: 'justify',
@@ -1451,6 +1452,7 @@ StarterKit.configure({
       TextStyle,
       Color,
       ParagraphClass,
+      ParagraphSpacing,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
         defaultAlignment: 'justify',
