@@ -301,13 +301,62 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
           dropIndicator.style.display = 'none';
           editorView.dom.parentElement?.appendChild(dropIndicator);
 
-          // Escape key cancels cut
+          // Escape key cancels cut, Ctrl+V pastes cut block at cursor
           const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape' && cutBlockRange) {
               clearCutState(editorView);
+              return;
+            }
+            // Ctrl+V / Cmd+V to paste cut block at cursor position
+            if ((e.ctrlKey || e.metaKey) && e.key === 'v' && cutBlockRange) {
+              // Only handle if editor is focused
+              if (!editorView.hasFocus()) return;
+              e.preventDefault();
+              e.stopPropagation();
+
+              try {
+                const { state } = editorView;
+                const { from } = state.selection;
+                
+                // Find the top-level block at cursor position
+                const $pos = state.doc.resolve(from);
+                let insertPos: number;
+                if ($pos.depth >= 1) {
+                  // Insert after the current top-level block
+                  insertPos = $pos.after(1);
+                } else {
+                  insertPos = from;
+                }
+
+                const slice = state.doc.slice(cutBlockRange.startPos, cutBlockRange.endPos);
+                const sourceStart = cutBlockRange.startPos;
+                const sourceEnd = cutBlockRange.endPos;
+                const sourceSize = sourceEnd - sourceStart;
+
+                const tr = state.tr;
+                tr.setMeta('blockReorder', true);
+
+                if (sourceStart < insertPos) {
+                  insertPos -= sourceSize;
+                  tr.delete(sourceStart, sourceEnd);
+                  tr.insert(insertPos, slice.content);
+                } else {
+                  tr.insert(insertPos, slice.content);
+                  tr.delete(sourceStart + sourceSize, sourceEnd + sourceSize);
+                }
+
+                editorView.dispatch(tr);
+                clearCutState(editorView);
+
+                setTimeout(() => {
+                  window.dispatchEvent(new Event('block-reordered'));
+                }, 50);
+              } catch (err) {
+                console.error('Paste cut block error:', err);
+              }
             }
           };
-          document.addEventListener('keydown', handleKeyDown);
+          document.addEventListener('keydown', handleKeyDown, true);
 
           // Delete button
           deleteBtn?.addEventListener('click', (e: MouseEvent) => {
@@ -421,7 +470,7 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
               dragContainer?.remove();
               dropIndicator?.remove();
               removeCutOverlay();
-              document.removeEventListener('keydown', handleKeyDown);
+              document.removeEventListener('keydown', handleKeyDown, true);
               clearCutState();
             },
           };
