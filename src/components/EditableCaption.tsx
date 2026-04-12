@@ -71,13 +71,13 @@ export function EditableCaption({
   }, [editValue, caption, proposalId, tableKey]);
 
   return (
-    <p className={`${tableStyles} italic ${className}`} data-commentable={`caption-${tableKey}`}>
+    <p className={`${tableStyles} italic ${className}`} data-commentable={`caption-${tableKey}`} style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'baseline' }}>
       {/* Label is uneditable, bold+italic */}
-      <span className="font-bold italic select-none" contentEditable={false} suppressContentEditableWarning>
+      <span className="font-bold italic select-none" contentEditable={false} suppressContentEditableWarning style={{ flexShrink: 0 }}>
         {label}
       </span>
       {/* Uneditable non-bold space separator */}
-      <span className="font-normal select-none" contentEditable={false} suppressContentEditableWarning>
+      <span className="font-normal select-none" contentEditable={false} suppressContentEditableWarning style={{ flexShrink: 0 }}>
         {' '}
       </span>
       {/* Editable caption title (italic, not bold) */}
@@ -94,7 +94,7 @@ export function EditableCaption({
             if (e.key === 'Escape') setEditing(false);
           }}
           autoFocus
-          style={{ width: `${Math.max(10, editValue.length + 2)}ch` }}
+          style={{ flex: '1 1 auto', minWidth: '5ch' }}
         />
       ) : (
         <span
