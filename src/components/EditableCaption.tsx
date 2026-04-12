@@ -110,7 +110,7 @@ export function EditableCaption({
             if (e.key === 'Escape') setEditing(false);
           }}
           autoFocus
-          style={{ flex: '1 1 auto', minWidth: '5ch' }}
+          style={{ flex: '1 1 auto', minWidth: '5ch', border: 'none', borderBottom: 'none', textDecoration: 'none' }}
         />
       ) : (
         <span
