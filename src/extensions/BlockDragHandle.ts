@@ -25,6 +25,7 @@ const DELETE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="1
 const CUT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg>`;
 
 const AUTORESIZE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>`;
+const PASTE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H8a2 2 0 0 1-2-2V7"/><path d="M16 3h5v5"/><path d="m5 13 11-11"/><path d="M5 8v5h5"/></svg>`;
 
 function createDragHandleContainer(): HTMLElement {
   const container = document.createElement('div');
@@ -33,7 +34,6 @@ function createDragHandleContainer(): HTMLElement {
   const grid = document.createElement('div');
   grid.className = 'block-controls-grid';
 
-  // Row 1: grip + delete
   const dragHandle = document.createElement('div');
   dragHandle.className = 'block-ctrl-btn block-drag-handle';
   dragHandle.setAttribute('draggable', 'true');
@@ -47,13 +47,19 @@ function createDragHandleContainer(): HTMLElement {
   deleteBtn.setAttribute('title', 'Delete block');
   deleteBtn.innerHTML = DELETE_SVG;
 
-  // Row 2: autoresize (below grip) + cut (below delete)
   const autoresizeBtn = document.createElement('div');
   autoresizeBtn.className = 'block-ctrl-btn block-autoresize-btn';
   autoresizeBtn.setAttribute('contenteditable', 'false');
   autoresizeBtn.setAttribute('title', 'Auto-resize columns');
   autoresizeBtn.innerHTML = AUTORESIZE_SVG;
   autoresizeBtn.style.display = 'none';
+
+  const pasteBtn = document.createElement('div');
+  pasteBtn.className = 'block-ctrl-btn block-paste-btn';
+  pasteBtn.setAttribute('contenteditable', 'false');
+  pasteBtn.setAttribute('title', 'Paste cut block here');
+  pasteBtn.innerHTML = PASTE_SVG;
+  pasteBtn.style.display = 'none';
 
   const cutBtn = document.createElement('div');
   cutBtn.className = 'block-ctrl-btn block-cut-btn';
@@ -64,6 +70,7 @@ function createDragHandleContainer(): HTMLElement {
   grid.appendChild(dragHandle);
   grid.appendChild(deleteBtn);
   grid.appendChild(autoresizeBtn);
+  grid.appendChild(pasteBtn);
   grid.appendChild(cutBtn);
 
   container.appendChild(grid);
@@ -113,6 +120,13 @@ function findTableDomInBlock(view: EditorView, startPos: number, endPos: number)
   if (!blockDom || !(blockDom instanceof HTMLElement)) return null;
   if (blockDom instanceof HTMLTableElement) return blockDom;
   return blockDom.querySelector('table');
+}
+
+function isEmptyPasteTargetBlock(node: ProseMirrorNode): boolean {
+  if (node.type.name !== 'paragraph') return false;
+  const cls = String(node.attrs?.class || '');
+  if (cls.includes('table-caption') || cls.includes('figure-caption')) return false;
+  return node.textContent.trim() === '';
 }
 
 export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
@@ -316,12 +330,12 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
           const deleteBtn = dragContainer.querySelector('.block-delete-btn') as HTMLElement;
           const cutBtn = dragContainer.querySelector('.block-cut-btn') as HTMLElement;
           const autoresizeBtn = dragContainer.querySelector('.block-autoresize-btn') as HTMLElement;
+          const pasteBtn = dragContainer.querySelector('.block-paste-btn') as HTMLElement;
 
           dropIndicator = createDropIndicator();
           dropIndicator.style.display = 'none';
           editorView.dom.parentElement?.appendChild(dropIndicator);
 
-          // Escape cancels cut. Real paste event handles Cmd/Ctrl+V for cut blocks.
           const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape' && cutBlockRange) {
               clearCutState(editorView);
@@ -346,7 +360,6 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
           document.addEventListener('keydown', handleKeyDown, true);
           editorView.dom.addEventListener('paste', handlePaste, true);
 
-          // Delete button
           deleteBtn?.addEventListener('click', (e: MouseEvent) => {
             e.preventDefault();
             e.stopPropagation();
@@ -369,31 +382,34 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
             }
           });
 
-          // Cut button
           cutBtn?.addEventListener('click', (e: MouseEvent) => {
             e.preventDefault();
             e.stopPropagation();
             if (!currentHoveredBlockRange) return;
 
-            // If already cut, toggle off (cancel)
             if (cutBlockRange && cutBlockRange.startPos === currentHoveredBlockRange.startPos) {
               clearCutState(editorView);
               return;
             }
 
-            // Clear previous cut
             clearCutState(editorView);
-
             cutBlockRange = { ...currentHoveredBlockRange };
             cutBtn.classList.add('active');
-
-            // Grey out the cut block with overlay
             createCutOverlay(editorView);
-
             showPasteIndicators(editorView);
           });
 
-          // Autoresize button
+          pasteBtn?.addEventListener('click', (e: MouseEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!cutBlockRange || currentHoveredBlockPos === null) return;
+
+            const targetRange = findBlockRange(editorView.state.doc, currentHoveredBlockPos);
+            if (!targetRange || !isEmptyPasteTargetBlock(targetRange.node)) return;
+
+            moveCutBlockToInsertPos(editorView, targetRange.startPos);
+          });
+
           autoresizeBtn?.addEventListener('click', (e: MouseEvent) => {
             e.preventDefault();
             e.stopPropagation();
@@ -507,14 +523,19 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
                 currentHoveredBlockPos = blockRange.startPos;
                 currentHoveredBlockRange = { startPos: blockRange.startPos, endPos: blockRange.endPos };
 
-                // Show/hide autoresize button based on whether block contains a table
                 const hasTable = blockContainsTable(view.state.doc, blockRange.startPos, blockRange.endPos);
+                const canPasteIntoBlock = !!cutBlockRange && isEmptyPasteTargetBlock(blockRange.node);
+
                 const autoresizeBtn = dragContainer!.querySelector('.block-autoresize-btn') as HTMLElement;
                 if (autoresizeBtn) {
                   autoresizeBtn.style.display = hasTable ? 'flex' : 'none';
                 }
 
-                // Update cut button active state
+                const pasteBtn = dragContainer!.querySelector('.block-paste-btn') as HTMLElement;
+                if (pasteBtn) {
+                  pasteBtn.style.display = canPasteIntoBlock ? 'flex' : 'none';
+                }
+
                 const cutBtn = dragContainer!.querySelector('.block-cut-btn') as HTMLElement;
                 if (cutBtn) {
                   const isCutBlock = cutBlockRange && cutBlockRange.startPos === blockRange.startPos;
