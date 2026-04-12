@@ -3,8 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { B12CaseStudyTables } from './B12CaseStudyTables';
 import { B12OngoingProjectsTable } from './B12OngoingProjectsTable';
 import { useCallback, useEffect, useState, useMemo, ReactNode } from 'react';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, Trash2 } from 'lucide-react';
 import { useUserRole } from '@/hooks/useUserRole';
+import { toast } from 'sonner';
 import type { Editor } from '@tiptap/react';
 
 type BlockId = 'editor' | 'case-studies' | 'ongoing-projects';
@@ -187,6 +188,20 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
     window.dispatchEvent(new CustomEvent('b12-table-offset', { detail: { offset: b12TablesBeforeEditor } }));
   }, [b12TablesBeforeEditor]);
 
+  const handleDeleteBlock = useCallback(async (blockId: BlockId) => {
+    if (blockId === 'ongoing-projects') {
+      const { error } = await supabase
+        .from('b12_ongoing_projects')
+        .delete()
+        .eq('proposal_id', proposalId);
+      if (error) {
+        toast.error('Could not delete the relevant projects table.');
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['b12-ongoing-projects'] });
+      }
+    }
+  }, [proposalId, queryClient]);
+
   const renderBlock = (blockId: BlockId) => {
     switch (blockId) {
       case 'editor':
@@ -220,19 +235,33 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
             onDragOver={(e) => handleDragOver(e, blockId)}
             onDrop={(e) => handleDrop(e, blockId)}
           >
-            {/* Drag grip */}
+            {/* Drag grip + delete icon */}
             {canEdit && visibleBlocks.length > 1 && (
               <div
-                className="absolute opacity-0 group-hover/b12block:opacity-100 transition-opacity cursor-grab z-10"
+                className="absolute opacity-0 group-hover/b12block:opacity-100 transition-opacity z-10 flex flex-col items-center gap-0.5"
                 style={{
                   left: '-28px',
                   top: isTable ? '16px' : '4px',
                 }}
-                draggable
-                onDragStart={() => handleDragStart(blockId)}
-                onDragEnd={handleDragEnd}
               >
-                <GripVertical className="h-4 w-4" style={{ color: '#2563EB' }} />
+                <div
+                  className="cursor-grab"
+                  draggable
+                  onDragStart={() => handleDragStart(blockId)}
+                  onDragEnd={handleDragEnd}
+                >
+                  <GripVertical className="h-4 w-4" style={{ color: '#2563EB' }} />
+                </div>
+                {isTable && blockId === 'ongoing-projects' && (
+                  <button
+                    type="button"
+                    title="Delete table"
+                    className="p-0.5 rounded hover:bg-destructive/10 transition-colors"
+                    onClick={() => handleDeleteBlock(blockId)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                  </button>
+                )}
               </div>
             )}
             {renderBlock(blockId)}
