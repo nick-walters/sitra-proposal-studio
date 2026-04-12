@@ -1,71 +1,121 @@
 
-Goal: fix text alignment in the online Part B editors, not the exports.
 
-Diagnosis
+# Plan: Dynamic Case Study Tables and Default "Ongoing Projects" Table in B1.2
+
+## Overview
+
+When section B1.2 is rendered in the DocumentEditor, append two React component blocks **below** the TipTap editor content (following the B3.1 pattern). These are read-only, auto-synced from the database, and rendered as styled HTML tables matching HE formatting conventions.
+
+## Architecture
+
+Follow the existing B3.1 pattern: a new `B12SectionContent` component rendered conditionally in `DocumentEditor.tsx` after the `EditorContent`, just like `B31SectionContent` is rendered for B3.1.
+
 ```text
-toolbar click
-  -> editor loses focus/selection
-  -> focus() scrolls the page
-  -> alignment transaction runs in a fragile state
-  -> custom track-changes middleware rewrites the transaction as if it were text insertion/deletion
-  -> paragraph attrs often do not stick
+DocumentEditor
+  └─ EditorContent (user's free text for B1.2)
+  └─ B12SectionContent (new, rendered only for B1.2)
+       ├─ B12CaseStudyTables (dynamic, from case_drafts)
+       └─ B12OngoingProjectsTable (static structure, editable cells)
 ```
 
-Most likely underlying causes in the current code:
-1. Toolbar buttons use plain click handlers, so clicking them lets ProseMirror blur before the command runs. That explains the page jump.
-2. `setTextAlign(...)` creates a node-attribute change, but `TrackChanges.dispatchTransaction` currently treats every `docChanged` transaction like text edits. That is the strongest reason the alignment change can be neutralized.
-3. Manual alignment is not durable enough because `normalizePartBBodyAlignment(content)` runs on editor initialization and strips paragraph `text-align` from loaded HTML.
-4. The editor config and CSS contradict each other: alignment is enabled for headings, but headings are forced left in CSS. So the toolbar exposes states that should never be allowed.
+## Component 1: Case Study Tables (`B12CaseStudyTables`)
 
-Implementation plan
+**Condition**: Only rendered when the proposal has case drafts.
 
-1. Stabilize toolbar behavior in the shared Part B editor layer
-- Update the shared toolbar button component in `src/components/RichTextEditor.tsx` so formatting actions run on `onMouseDown` with `preventDefault()`, not only on `onClick`.
-- Set toolbar buttons explicitly to `type="button"`.
-- Wrap alignment actions in a shared helper that restores editor focus without scroll-jumping before applying the command.
+**Data source**: Fetched via `useQuery` from `case_drafts` (+ `participants` for leader bubble). Subscribes to realtime changes via the existing `case-drafts` channel.
 
-2. Make alignment changes bypass the track-changes diff logic
-- In `src/extensions/TrackChanges.ts`, add a safe bypass for formatting-only / attribute-only transactions.
-- Tag text-alignment transactions with explicit meta from the toolbar/helper, then let those transactions pass through unchanged instead of being converted into insertion/deletion logic.
-- Keep normal text typing/deletion behavior unchanged.
+**Layout**:
+- Single caption at top: `EditableCaption` with label `"Table 1.2.x."` and default caption `"{Case type plural}"` (e.g. "Case studies", "Living Labs") — derived from the proposal's case type.
+- One HTML table per case, separated by an empty body-text row (`<p>&nbsp;</p>`).
+- Each table:
+  - **Header row**: Left-aligned "`{short_name} – {title}`", right-aligned participant bubble for the case leader (matching the existing bubble styling from B3.1 WP description tables).
+  - **5 body rows**, one per subsection: each cell contains a **bold italic** inline heading (e.g. "Background context") followed by the content from the corresponding `case_drafts` field (`background_context`, `key_stakeholders`, `proposed_solutions`, `expected_outcomes`, `replicability`). The heading text comes from the case draft's `heading_*` fields (falling back to defaults). No guideline/instruction text is included.
+- Tables reorder according to `order_index` from the case manager.
+- Hidden cases (`is_hidden = true`) are excluded.
+- Read-only — content auto-syncs from case manager data.
 
-3. Preserve manual alignment after save/reload
-- Stop normalizing loaded editor content on initial mount in `src/components/RichTextEditor.tsx`.
-- Keep alignment cleanup at the paste boundary only, so pasted content defaults to justified body text, but user-applied left/center/right alignment survives round-trips through autosave and reload.
-- Narrow the paste normalizer so captions and table content remain exempt.
+**Styling**: 11pt Times New Roman, 1.0 line spacing, max-width 18cm, `table-layout: fixed`, bold black header row with 1.5px bottom border (matching B3.1 style).
 
-4. Remove the mismatch between allowed commands and rendered styles
-- Since headings should stay left-aligned, remove heading alignment from the editable alignment scope for Part B body editing, or disable the alignment buttons when the current selection is in a heading/caption/table context.
-- Keep paragraph alignment enabled.
-- This makes the UI match the actual styling rules instead of offering impossible states.
+## Component 2: Ongoing Projects Table (`B12OngoingProjectsTable`)
 
-5. Tighten CSS only where needed
-- Keep paragraph default justification as the fallback style.
-- Do not use CSS that masks explicit paragraph `style="text-align: ..."` values.
-- Keep captions/table cells/figures/headings exempt exactly as requested.
+**Position**: Always rendered **below** the case study tables (or directly after the editor if no cases exist).
 
-Validation checklist
-- Paragraph typed directly in the editor: left/center/right/justify all work.
-- Pasted paragraph: initially becomes justified, then can be manually re-aligned.
-- Alignment change persists after autosave, manual save, section switch, and full reload.
-- No page jump when clicking alignment buttons.
-- Headings remain left-aligned.
-- Table content and figure/table captions are unaffected.
-- Verify with track changes both ON and OFF.
+**Layout**:
+- `EditableCaption` with auto-numbered label (e.g. `"Table 1.2.y."`) and default caption `"Ongoing & recently completed projects & initiatives with which the project will collaborate"`.
+- A table with a header row containing columns: **Project acronym/name**, **Funding programme**, **Period**, **Coordinator**, **Relation to this project**.
+- 8 empty body rows by default.
 
-Technical details / likely files
-- `src/components/RichTextEditor.tsx`
-  - toolbar button interaction
-  - alignment action helper
-  - editor initialization / normalization behavior
-- `src/extensions/TrackChanges.ts`
-  - bypass formatting-only alignment transactions
-- `src/index.css`
-  - confirm paragraph defaults do not override explicit inline alignment
-- Possibly `src/components/FstpTab.tsx`
-  - if the same toolbar interaction pattern should be brought into parity there too, but Part B should be fixed first
+**Data storage**: New DB table `b12_ongoing_projects` with columns: `id`, `proposal_id`, `acronym_name`, `funding_programme`, `period`, `coordinator`, `relation`, `order_index`. Rows are editable inline (like B3.1 deliverables/milestones).
 
-Expected outcome
-- The Part B alignment buttons will work reliably in the online editors.
-- Body text will still default to justified.
-- The current “jump but no change” behavior will be eliminated at the actual source, not just masked with CSS.
+**Behavior**: Users can add/delete rows. Inline editing with debounced saves. Drag-and-drop reordering.
+
+## Component 3: Ensure Leading Paragraph
+
+In the `useSectionContent` hook or in the `B12SectionContent` component, if the editor content for B1.2 is empty or starts with a table, prepend an empty `<p></p>` paragraph. This ensures no table ever appears as the first element in the section.
+
+## Database Migration
+
+Create one new table:
+
+```sql
+CREATE TABLE public.b12_ongoing_projects (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  proposal_id uuid REFERENCES public.proposals(id) ON DELETE CASCADE NOT NULL,
+  acronym_name text DEFAULT '',
+  funding_programme text DEFAULT '',
+  period text DEFAULT '',
+  coordinator text DEFAULT '',
+  relation text DEFAULT '',
+  order_index integer DEFAULT 0,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE public.b12_ongoing_projects ENABLE ROW LEVEL SECURITY;
+
+-- RLS: users with any proposal role can read/write
+CREATE POLICY "Users with proposal role can select"
+  ON public.b12_ongoing_projects FOR SELECT TO authenticated
+  USING (public.has_any_proposal_role(auth.uid(), proposal_id));
+
+CREATE POLICY "Users who can edit can insert"
+  ON public.b12_ongoing_projects FOR INSERT TO authenticated
+  WITH CHECK (public.can_edit_proposal(auth.uid(), proposal_id));
+
+CREATE POLICY "Users who can edit can update"
+  ON public.b12_ongoing_projects FOR UPDATE TO authenticated
+  USING (public.can_edit_proposal(auth.uid(), proposal_id));
+
+CREATE POLICY "Users who can edit can delete"
+  ON public.b12_ongoing_projects FOR DELETE TO authenticated
+  USING (public.can_edit_proposal(auth.uid(), proposal_id));
+
+-- Initialize 8 empty rows when a proposal is created
+-- (handled in the component on first load, not via trigger, to avoid complexity)
+```
+
+Also enable realtime for this table:
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE public.b12_ongoing_projects;
+```
+
+## Files to Create/Edit
+
+1. **Create** `src/components/B12SectionContent.tsx` — wrapper that renders case tables + ongoing projects table
+2. **Create** `src/components/B12CaseStudyTables.tsx` — dynamic case study tables from `case_drafts`
+3. **Create** `src/components/B12OngoingProjectsTable.tsx` — editable ongoing projects table with inline editing, add/delete rows, drag-and-drop
+4. **Edit** `src/components/DocumentEditor.tsx` — add conditional rendering of `B12SectionContent` for B1.2 sections (same pattern as B3.1)
+5. **DB migration** — create `b12_ongoing_projects` table
+
+## Caption Numbering
+
+The case study tables caption uses the next available letter in the 1.2 sequence (e.g., if user has tables a, b in the editor, case tables get "Table 1.2.c."). The ongoing projects table gets the next letter after that. The `EditableCaption` component handles this via its `label` prop — the parent component computes the correct letter by counting existing captions in the editor content.
+
+For simplicity in the initial implementation, use fixed letters: case tables = "Table 1.2.x." and ongoing projects = the next letter. These can be refined later with the auto-numbering system.
+
+## Realtime Sync
+
+- Case tables: subscribe to `case_drafts` changes for the proposal (reuse existing channel pattern).
+- Ongoing projects: subscribe to `b12_ongoing_projects` changes.
+- Both invalidate their respective react-query caches on changes.
+
