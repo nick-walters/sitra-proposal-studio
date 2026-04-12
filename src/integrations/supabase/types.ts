@@ -714,6 +714,7 @@ export type Database = {
           heading_solutions: string | null
           heading_stakeholders: string | null
           id: string
+          is_hidden: boolean
           is_locked: boolean
           key_stakeholders: string | null
           lead_participant_id: string | null
@@ -747,6 +748,7 @@ export type Database = {
           heading_solutions?: string | null
           heading_stakeholders?: string | null
           id?: string
+          is_hidden?: boolean
           is_locked?: boolean
           key_stakeholders?: string | null
           lead_participant_id?: string | null
@@ -780,6 +782,7 @@ export type Database = {
           heading_solutions?: string | null
           heading_stakeholders?: string | null
           id?: string
+          is_hidden?: boolean
           is_locked?: boolean
           key_stakeholders?: string | null
           lead_participant_id?: string | null
@@ -4818,6 +4821,7 @@ export type Database = {
           foreseen_challenges: string | null
           id: string
           inputs_question: string | null
+          is_hidden: boolean
           is_locked: boolean
           lead_participant_id: string | null
           locked_at: string | null
@@ -4849,6 +4853,7 @@ export type Database = {
           foreseen_challenges?: string | null
           id?: string
           inputs_question?: string | null
+          is_hidden?: boolean
           is_locked?: boolean
           lead_participant_id?: string | null
           locked_at?: string | null
@@ -4880,6 +4885,7 @@ export type Database = {
           foreseen_challenges?: string | null
           id?: string
           inputs_question?: string | null
+          is_hidden?: boolean
           is_locked?: boolean
           lead_participant_id?: string | null
           locked_at?: string | null

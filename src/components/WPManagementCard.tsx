@@ -34,7 +34,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { WPColorPicker } from '@/components/WPColorPicker';
 
-import { Layers, GripVertical, Plus, AlertTriangle, Trash2, Paintbrush, Lock, LockOpen } from 'lucide-react';
+import { Layers, GripVertical, Plus, AlertTriangle, Trash2, Paintbrush, Lock, LockOpen, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
@@ -56,6 +56,7 @@ interface WPDraft {
   theme_id: string | null;
   is_locked: boolean;
   locked_by: string | null;
+  is_hidden: boolean;
 }
 
 interface SortableWPRowProps {
@@ -66,11 +67,12 @@ interface SortableWPRowProps {
   onUpdate: (id: string, updates: Partial<WPDraft>) => void;
   onDelete: (id: string) => void;
   onToggleLock: (id: string, locked: boolean) => void;
+  onToggleVisibility: (id: string, hidden: boolean) => void;
   canEdit: boolean;
   isCoordinator: boolean;
 }
 
-function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete, onToggleLock, canEdit, isCoordinator }: SortableWPRowProps) {
+function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete, onToggleLock, onToggleVisibility, canEdit, isCoordinator }: SortableWPRowProps) {
   const [leadOpen, setLeadOpen] = useState(false);
   const {
     attributes,
@@ -91,10 +93,10 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
   const selectedTheme = themes.find((t) => t.id === wp.theme_id);
   const effectiveColor = useThemes && selectedTheme ? selectedTheme.color : wp.color;
 
-  // Grid columns change based on whether themes are enabled
+  // Grid columns change based on whether themes are enabled (added visibility column)
   const gridCols = useThemes 
-    ? 'grid-cols-[24px_50px_100px_90px_1fr_80px_20px_20px]' 
-    : 'grid-cols-[24px_50px_90px_1fr_80px_20px_20px]';
+    ? 'grid-cols-[24px_50px_100px_90px_1fr_80px_20px_20px_20px]' 
+    : 'grid-cols-[24px_50px_90px_1fr_80px_20px_20px_20px]';
 
   return (
     <div
@@ -264,6 +266,18 @@ function SortableWPRow({ wp, participants, themes, useThemes, onUpdate, onDelete
         </DialogContent>
       </Dialog>
 
+      {/* Visibility Button */}
+      {canEdit && (
+        <button
+          onClick={() => onToggleVisibility(wp.id, !wp.is_hidden)}
+          className={`p-1 rounded transition-colors ${wp.is_hidden ? 'text-destructive hover:bg-destructive/10' : 'text-[#2563EB] hover:bg-blue-100'}`}
+          title={wp.is_hidden ? 'Show work package' : 'Hide work package'}
+        >
+          {wp.is_hidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+        </button>
+      )}
+      {!canEdit && <div />}
+
       {/* Lock Button */}
       {canEdit && (
         <button
@@ -363,7 +377,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     queryFn: async () => {
       const { data, error } = await supabase
         .from('wp_drafts')
-        .select('id, number, short_name, title, lead_participant_id, color, color_locked, order_index, theme_id, is_locked, locked_by')
+        .select('id, number, short_name, title, lead_participant_id, color, color_locked, order_index, theme_id, is_locked, locked_by, is_hidden')
         .eq('proposal_id', proposalId)
         .order('order_index');
       if (error) throw error;
@@ -660,6 +674,36 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     toast.success(newLocked ? 'All work packages locked' : 'All work packages unlocked');
   }, [user, proposalId, queryClient, wpDrafts]);
 
+  const handleToggleVisibility = useCallback(async (id: string, hidden: boolean) => {
+    const { error } = await supabase
+      .from('wp_drafts')
+      .update({ is_hidden: hidden } as any)
+      .eq('id', id);
+    if (error) {
+      toast.error('Failed to update visibility');
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
+    queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
+    toast.success(hidden ? 'Work package hidden' : 'Work package visible');
+  }, [proposalId, queryClient]);
+
+  const handleToggleVisibilityAll = useCallback(async () => {
+    const allHidden = wpDrafts.every(wp => wp.is_hidden);
+    const newHidden = !allHidden;
+    const { error } = await supabase
+      .from('wp_drafts')
+      .update({ is_hidden: newHidden } as any)
+      .eq('proposal_id', proposalId);
+    if (error) {
+      toast.error('Failed to update visibility');
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
+    queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
+    toast.success(newHidden ? 'All work packages hidden' : 'All work packages visible');
+  }, [proposalId, queryClient, wpDrafts]);
+
   if (wpsLoading) {
     return (
       <Card>
@@ -797,13 +841,22 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
         )}
 
         {/* Table Header */}
-        <div className={`grid ${useWpThemes ? 'grid-cols-[24px_50px_100px_90px_1fr_80px_20px_20px]' : 'grid-cols-[24px_50px_90px_1fr_80px_20px_20px]'} gap-x-1.5 text-xs font-bold text-muted-foreground border-b pb-1`}>
+        <div className={`grid ${useWpThemes ? 'grid-cols-[24px_50px_100px_90px_1fr_80px_20px_20px_20px]' : 'grid-cols-[24px_50px_90px_1fr_80px_20px_20px_20px]'} gap-x-1.5 text-xs font-bold text-muted-foreground border-b pb-1`}>
           <div />
           <div className="text-center">Colour</div>
           {useWpThemes && <div>Theme</div>}
           <div>Short name</div>
           <div>Title</div>
           <div>WP Leader</div>
+          {isCoordinator ? (
+            <button
+              onClick={handleToggleVisibilityAll}
+              className={`p-0.5 rounded transition-colors ${wpDrafts.length > 0 && wpDrafts.every(wp => wp.is_hidden) ? 'text-destructive hover:bg-destructive/10' : 'text-[#2563EB] hover:bg-blue-100'}`}
+              title={wpDrafts.length > 0 && wpDrafts.every(wp => wp.is_hidden) ? 'Show all' : 'Hide all'}
+            >
+              {wpDrafts.length > 0 && wpDrafts.every(wp => wp.is_hidden) ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+            </button>
+          ) : <div />}
           {isCoordinator ? (
             <button
               onClick={handleToggleLockAll}
@@ -833,6 +886,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
                 onUpdate={handleUpdateWP}
                 onDelete={handleDeleteWP}
                 onToggleLock={handleToggleLock}
+                onToggleVisibility={handleToggleVisibility}
                 canEdit={isCoordinator}
                 isCoordinator={isCoordinator}
               />
