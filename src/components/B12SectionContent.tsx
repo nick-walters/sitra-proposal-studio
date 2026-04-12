@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { B12CaseStudyTables } from './B12CaseStudyTables';
 import { B12OngoingProjectsTable } from './B12OngoingProjectsTable';
 import { useCallback, useEffect, useState, useMemo, ReactNode } from 'react';
-import { GripVertical, Trash2, Scissors } from 'lucide-react';
+import { GripVertical, Trash2, Scissors, Columns3 } from 'lucide-react';
 import { useUserRole } from '@/hooks/useUserRole';
 import { toast } from 'sonner';
 import type { Editor } from '@tiptap/react';
@@ -250,6 +250,7 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
               })()
             )}
             <div
+              data-b12-block={blockId}
               className={`relative group/b12block ${isCut ? 'block-cut-source' : ''}`}
               style={{
                 opacity: isDragging ? 0.4 : 1,
@@ -291,7 +292,24 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
                     <div className="block-ctrl-btn" style={{ visibility: 'hidden' }} />
                   )}
 
-                  {/* Row 2: cut + (empty for non-table) */}
+                  {/* Row 2: autoresize (below grip, tables only) + cut (below delete) */}
+                  {isTable ? (
+                    <button
+                      className="block-ctrl-btn block-autoresize-btn"
+                      onClick={() => {
+                        // Find the table's existing auto-resize button and click it
+                        const blockEl = document.querySelector(`[data-b12-block="${blockId}"]`);
+                        const resizeBtn = blockEl?.querySelector('.table-auto-resize-btn') as HTMLButtonElement | null;
+                        resizeBtn?.click();
+                      }}
+                      tabIndex={-1}
+                      title="Auto-resize columns"
+                    >
+                      <Columns3 className="h-3.5 w-3.5" />
+                    </button>
+                  ) : (
+                    <div className="block-ctrl-btn" style={{ visibility: 'hidden' }} />
+                  )}
                   <button
                     className={`block-ctrl-btn block-cut-btn ${isCut ? 'active' : ''}`}
                     onClick={() => setCutBlock(isCut ? null : blockId)}
@@ -300,7 +318,6 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
                   >
                     <Scissors className="h-3.5 w-3.5" />
                   </button>
-                  <div className="block-ctrl-btn" style={{ visibility: 'hidden' }} />
                 </div>
               )}
               {renderBlock(blockId)}
