@@ -411,10 +411,16 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
           });
 
           return {
-            update() {},
+            update(view) {
+              // Reposition cut overlay on editor updates (content changes may shift positions)
+              if (cutBlockRange && cutOverlay) {
+                positionCutOverlay(view);
+              }
+            },
             destroy() {
               dragContainer?.remove();
               dropIndicator?.remove();
+              removeCutOverlay();
               document.removeEventListener('keydown', handleKeyDown);
               clearCutState();
             },
