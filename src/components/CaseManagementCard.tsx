@@ -618,6 +618,34 @@ export function CaseManagementCard({
     toast.success(newLocked ? 'All cases locked' : 'All cases unlocked');
   }, [user, proposalId, queryClient, caseDrafts]);
 
+  const handleToggleVisibility = useCallback(async (id: string, hidden: boolean) => {
+    const { error } = await supabase
+      .from('case_drafts')
+      .update({ is_hidden: hidden } as any)
+      .eq('id', id);
+    if (error) {
+      toast.error('Failed to update visibility');
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
+    toast.success(hidden ? 'Case hidden' : 'Case visible');
+  }, [proposalId, queryClient]);
+
+  const handleToggleVisibilityAll = useCallback(async () => {
+    const allHidden = caseDrafts.every(c => c.is_hidden);
+    const newHidden = !allHidden;
+    const { error } = await supabase
+      .from('case_drafts')
+      .update({ is_hidden: newHidden } as any)
+      .eq('proposal_id', proposalId);
+    if (error) {
+      toast.error('Failed to update visibility');
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
+    toast.success(newHidden ? 'All cases hidden' : 'All cases visible');
+  }, [proposalId, queryClient, caseDrafts]);
+
   const handleCheckboxChange = (checked: boolean) => {
     onToggleCases(checked);
   };
@@ -711,13 +739,22 @@ export function CaseManagementCard({
                 </div>
 
                 {/* Table Header */}
-                <div className="grid grid-cols-[24px_max-content_1fr_80px_20px_20px] gap-x-1.5">
+                <div className="grid grid-cols-[24px_max-content_1fr_80px_20px_20px_20px_20px] gap-x-1.5">
                   {/* Header row */}
-                  <div className="col-span-6 grid grid-cols-subgrid gap-x-1.5 text-xs font-bold text-muted-foreground border-b pb-1">
+                  <div className="col-span-8 grid grid-cols-subgrid gap-x-1.5 text-xs font-bold text-muted-foreground border-b pb-1">
                     <div />
                     <div />
                     <div>Title</div>
                     <div>{getCaseTypeLabel(proposalCaseType, proposalCustomName)} Leader</div>
+                    {isCoordinator ? (
+                      <button
+                        onClick={handleToggleVisibilityAll}
+                        className={`p-0.5 rounded transition-colors ${caseDrafts.length > 0 && caseDrafts.every(c => c.is_hidden) ? 'text-destructive hover:bg-destructive/10' : 'text-[#2563EB] hover:bg-blue-100'}`}
+                        title={caseDrafts.length > 0 && caseDrafts.every(c => c.is_hidden) ? 'Show all' : 'Hide all'}
+                      >
+                        {caseDrafts.length > 0 && caseDrafts.every(c => c.is_hidden) ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    ) : <div />}
                     {isCoordinator ? (
                       <button
                         onClick={handleToggleLockAll}
@@ -748,6 +785,7 @@ export function CaseManagementCard({
                           onUpdate={handleUpdateCase}
                           onDelete={handleDeleteCase}
                           onToggleLock={handleToggleLock}
+                          onToggleVisibility={handleToggleVisibility}
                           canEdit={isCoordinator}
                         />
                       ))}
