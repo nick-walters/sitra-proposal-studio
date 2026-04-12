@@ -416,6 +416,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         () => {
           // Invalidate react-query cache to trigger refetch
           queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
+          queryClient.invalidateQueries({ queryKey: ['case-drafts-management', proposalId] });
         }
       )
       .subscribe();
