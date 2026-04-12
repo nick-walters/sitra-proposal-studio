@@ -452,21 +452,28 @@ export function DocumentEditor({
 
   // Sync cross-references when editor content loads, section changes, or external data changes
   const [syncTrigger, setSyncTrigger] = useState(0);
+  const [b12TableOffset, setB12TableOffset] = useState(0);
   
   useEffect(() => {
     const handleCrossRefDataChanged = () => setSyncTrigger(prev => prev + 1);
     const handleBlockReordered = () => {
       // Renumber captions first, then sync cross-references
       if (editor && section?.number) {
-        renumberCaptionsInEditor(editor, section.number);
+        renumberCaptionsInEditor(editor, section.number, b12TableOffset);
       }
       setSyncTrigger(prev => prev + 1);
     };
+    const handleB12Offset = (e: Event) => {
+      const offset = (e as CustomEvent).detail?.offset ?? 0;
+      setB12TableOffset(offset);
+    };
     window.addEventListener('cross-ref-data-changed', handleCrossRefDataChanged);
     window.addEventListener('block-reordered', handleBlockReordered);
+    window.addEventListener('b12-table-offset', handleB12Offset);
     return () => {
       window.removeEventListener('cross-ref-data-changed', handleCrossRefDataChanged);
       window.removeEventListener('block-reordered', handleBlockReordered);
+      window.removeEventListener('b12-table-offset', handleB12Offset);
     };
   }, [editor, section?.number]);
 
