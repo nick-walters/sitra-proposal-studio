@@ -137,6 +137,7 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
           editorView.dom.parentElement?.appendChild(dragContainer);
           
           const dragHandle = dragContainer.querySelector('.block-drag-handle') as HTMLElement;
+          const cutBtn = dragContainer.querySelector('.block-cut-btn') as HTMLElement;
           const deleteBtn = dragContainer.querySelector('.block-delete-btn') as HTMLElement;
 
           // Create drop indicator
