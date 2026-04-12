@@ -101,7 +101,7 @@ export function EditableCaption({
         <input
           type="text"
           data-commentable={`caption-${tableKey}`}
-          className={`${tableStyles} italic font-normal bg-transparent outline-none border-none p-0 m-0`}
+          className={`${tableStyles} italic font-normal bg-transparent outline-none border-0 p-0 m-0 shadow-none ring-0 focus:outline-none focus:ring-0 focus:border-0`}
           value={editValue}
           onChange={e => setEditValue(e.target.value)}
           onBlur={save}
