@@ -163,7 +163,7 @@ export function ProposalEditor() {
   // Dynamically load sections based on template type (or fallback to hardcoded)
   // Also pass proposalId to load WP drafts for navigation
   // Pass proposalLoaded (!loading) to prevent premature fallback to Stage 1 sections
-  const { sections: allSections, loading: sectionsLoading } = useProposalSections(proposal?.templateTypeId || null, id, !loading);
+  const { sections: allSections, loading: sectionsLoading } = useProposalSections(proposal?.templateTypeId || null, id, !loading, isCoordinator);
 
   // Section assignments for sidebar indicators
   const { assignments } = useSectionAssignments(id || null);
