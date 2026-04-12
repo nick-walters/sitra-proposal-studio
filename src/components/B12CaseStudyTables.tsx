@@ -312,13 +312,11 @@ export function B12CaseStudyTables({ proposalId }: Props) {
                     <tr key={contentKey} style={{ borderBottom: '0.5px solid #d1d5db' }}>
                       <td style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', padding: '4px 0' }}>
                         <span className="font-bold italic">{heading}:</span>{' '}
-                        <span style={{ display: 'inline' }}>
-                          <EditableCaseCell
-                            caseId={c.id}
-                            contentKey={contentKey}
-                            value={rawContent}
-                          />
-                        </span>
+                        <EditableCaseCell
+                          caseId={c.id}
+                          contentKey={contentKey}
+                          value={rawContent}
+                        />
                       </td>
                     </tr>
                   );
