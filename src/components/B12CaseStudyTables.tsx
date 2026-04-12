@@ -186,6 +186,17 @@ function EditableCaseCell({
 export function B12CaseStudyTables({ proposalId, tableIndex = 0, sectionNumber = '1.2' }: Props) {
   const queryClient = useQueryClient();
 
+  const dispatchToolbarFocus = useCallback((target: EventTarget | null) => {
+    if (!(target instanceof Element)) return;
+
+    window.dispatchEvent(new CustomEvent('b12-table-focus', {
+      detail: {
+        tableId: 'case-studies',
+        caseId: target.closest('[data-b12-case-id]')?.getAttribute('data-b12-case-id') ?? null,
+      },
+    }));
+  }, []);
+
   const { data: cases } = useQuery({
     queryKey: ['b12-case-study-tables', proposalId],
     queryFn: async () => {
@@ -246,6 +257,7 @@ export function B12CaseStudyTables({ proposalId, tableIndex = 0, sectionNumber =
       }, () => {
         queryClient.invalidateQueries({ queryKey: ['b12-case-study-tables', proposalId] });
         queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
+        queryClient.invalidateQueries({ queryKey: ['b12-has-cases', proposalId] });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -266,7 +278,12 @@ export function B12CaseStudyTables({ proposalId, tableIndex = 0, sectionNumber =
   };
 
   return (
-    <div className="space-y-0 mt-4">
+    <div
+      className="space-y-0 mt-4"
+      data-b12-table="case-studies"
+      onFocusCapture={(e) => dispatchToolbarFocus(e.target)}
+      onMouseDownCapture={(e) => dispatchToolbarFocus(e.target)}
+    >
       <EditableCaption
         proposalId={proposalId}
         tableKey="b12-case-studies"
@@ -282,7 +299,7 @@ export function B12CaseStudyTables({ proposalId, tableIndex = 0, sectionNumber =
         const leaderName = getLeaderName(c.lead_participant_id);
 
         return (
-          <div key={c.id}>
+          <div key={c.id} data-b12-case-id={c.id}>
             {idx > 0 && (
               <p className={`${tableStyles}`} style={{ fontSize: '11pt', lineHeight: 1.0 }}>&nbsp;</p>
             )}

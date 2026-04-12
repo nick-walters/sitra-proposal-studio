@@ -242,7 +242,7 @@ function SortableRow({
   });
 
   return (
-    <tr ref={setNodeRef} style={{ ...style, borderBottom: '0.5px solid #d1d5db' }} {...attributes}>
+    <tr ref={setNodeRef} data-b12-row-id={row.id} style={{ ...style, borderBottom: '0.5px solid #d1d5db' }} {...attributes}>
       <td style={{ ...cellStyle(COLUMN_WIDTHS[0]), position: 'relative' }}>
         {canEdit && (
           <div style={{ position: 'absolute', left: '-24px', top: '50%', transform: 'translateY(-50%)' }}>
@@ -297,6 +297,17 @@ export function B12OngoingProjectsTable({ proposalId, tableIndex = 0, sectionNum
   const canEdit = isAdminOrOwner || hasAnyCoordinatorRole;
   const initialized = useRef(false);
   const { colWidths, tableRef, handleColResizeStart, setColWidths, saveWidths } = useColumnResize({ proposalId, tableKey: 'b12-ongoing', canResize: canEdit });
+
+  const dispatchToolbarFocus = useCallback((target: EventTarget | null) => {
+    if (!(target instanceof Element)) return;
+
+    window.dispatchEvent(new CustomEvent('b12-table-focus', {
+      detail: {
+        tableId: 'ongoing-projects',
+        rowId: target.closest('[data-b12-row-id]')?.getAttribute('data-b12-row-id') ?? null,
+      },
+    }));
+  }, []);
 
   // Editable column headers
   const [headerLabels, setHeaderLabels] = useState<string[]>(COLUMN_LABELS_DEFAULT);
@@ -481,7 +492,13 @@ export function B12OngoingProjectsTable({ proposalId, tableIndex = 0, sectionNum
   const hasCustomWidths = colWidths.length > 0;
 
   return (
-    <div className="mt-4" style={{ overflow: 'visible', maxWidth: '18cm', width: '18cm' }}>
+    <div
+      className="mt-4"
+      data-b12-table="ongoing-projects"
+      onFocusCapture={(e) => dispatchToolbarFocus(e.target)}
+      onMouseDownCapture={(e) => dispatchToolbarFocus(e.target)}
+      style={{ overflow: 'visible', maxWidth: '18cm', width: '18cm' }}
+    >
       {canEdit && (
         <div className="table-auto-resize-bar">
           <button
