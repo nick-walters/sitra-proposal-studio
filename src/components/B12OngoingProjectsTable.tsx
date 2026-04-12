@@ -237,7 +237,7 @@ function SortableRow({
     fontFamily: "'Times New Roman', Times, serif",
     fontSize: '11pt',
     width,
-    padding: '2px 4px',
+    padding: '0.03pt 4px',
     verticalAlign: 'middle',
   });
 
@@ -530,7 +530,7 @@ export function B12OngoingProjectsTable({ proposalId, tableIndex = 0 }: Props) {
                     fontSize: '11pt',
                     width: hasCustomWidths ? undefined : COLUMN_WIDTHS[i],
                     whiteSpace: 'normal',
-                    padding: '2px 4px',
+                    padding: '0.03pt 4px',
                     verticalAlign: 'middle',
                   }}
                 >
