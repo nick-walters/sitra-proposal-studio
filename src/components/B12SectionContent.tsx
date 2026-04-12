@@ -139,6 +139,24 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
     setDragOverBlock(null);
   }, []);
 
+  const handleCutBlock = useCallback((blockId: BlockId) => {
+    setCutBlock(prev => prev === blockId ? null : blockId);
+  }, []);
+
+  const handlePasteBlock = useCallback((targetIdx: number) => {
+    if (!cutBlock) return;
+    const newOrder = [...blockOrder];
+    const fromIdx = newOrder.indexOf(cutBlock);
+    if (fromIdx === -1) return;
+    newOrder.splice(fromIdx, 1);
+    // targetIdx is the position in the new (after-removal) array
+    const adjustedIdx = targetIdx > fromIdx ? targetIdx - 1 : targetIdx;
+    newOrder.splice(adjustedIdx, 0, cutBlock);
+    setBlockOrder(newOrder);
+    saveBlockOrder(newOrder);
+    setCutBlock(null);
+  }, [cutBlock, blockOrder, saveBlockOrder]);
+
   // Visible blocks
   const visibleBlocks = useMemo(() => blockOrder.filter(id => {
     if (id === 'case-studies' && !hasCases) return false;
