@@ -129,6 +129,24 @@ function isEmptyPasteTargetBlock(node: ProseMirrorNode): boolean {
   return node.textContent.trim() === '';
 }
 
+function getBlockTopOffset(view: EditorView, startPos: number, endPos: number): number | null {
+  const editorRect = view.dom.parentElement?.getBoundingClientRect();
+  if (!editorRect) return null;
+
+  const blockDom = view.nodeDOM(startPos);
+  if (blockDom instanceof HTMLElement) {
+    return blockDom.getBoundingClientRect().top - editorRect.top;
+  }
+
+  try {
+    const safePos = Math.min(Math.max(startPos + 1, 1), Math.max(view.state.doc.content.size - 1, 1));
+    const coords = view.coordsAtPos(safePos);
+    return coords.top - editorRect.top;
+  } catch {
+    return null;
+  }
+}
+
 export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
   name: 'blockDragHandle',
 
@@ -280,16 +298,12 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
         cutBtn.classList.toggle('active', !!isCutBlock);
       }
 
-      const blockDom = view.nodeDOM(blockRange.startPos);
-      if (blockDom && blockDom instanceof HTMLElement) {
-        const rect = blockDom.getBoundingClientRect();
-        const editorRect = view.dom.parentElement?.getBoundingClientRect();
-        if (editorRect) {
-          dragContainer.style.display = 'flex';
-          dragContainer.style.top = `${rect.top - editorRect.top}px`;
-          dragContainer.style.left = '-52px';
-          dragContainer.style.opacity = forceVisible ? '1' : '';
-        }
+      const topOffset = getBlockTopOffset(view, blockRange.startPos, blockRange.endPos);
+      if (topOffset !== null) {
+        dragContainer.style.display = 'flex';
+        dragContainer.style.top = `${topOffset}px`;
+        dragContainer.style.left = '-52px';
+        dragContainer.style.opacity = forceVisible ? '1' : '';
       }
     };
 
