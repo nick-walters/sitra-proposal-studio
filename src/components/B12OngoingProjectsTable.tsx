@@ -288,9 +288,10 @@ function SortableRow({
 interface Props {
   proposalId: string;
   tableIndex?: number;
+  sectionNumber?: string;
 }
 
-export function B12OngoingProjectsTable({ proposalId, tableIndex = 0 }: Props) {
+export function B12OngoingProjectsTable({ proposalId, tableIndex = 0, sectionNumber = '1.2' }: Props) {
   const queryClient = useQueryClient();
   const { isAdminOrOwner, hasAnyCoordinatorRole } = useUserRole();
   const canEdit = isAdminOrOwner || hasAnyCoordinatorRole;
@@ -496,7 +497,7 @@ export function B12OngoingProjectsTable({ proposalId, tableIndex = 0 }: Props) {
       <EditableCaption
         proposalId={proposalId}
         tableKey="b12-ongoing-projects"
-        label={`Table 1.2.${String.fromCharCode(97 + tableIndex)}.`}
+        label={`Table ${sectionNumber.replace(/^[A-Za-z]+/, '')}.${String.fromCharCode(97 + tableIndex)}.`}
         defaultCaption="Ongoing & recently completed projects & initiatives with which the project will collaborate"
       />
 

@@ -400,6 +400,10 @@ export function FormattingToolbar({
   isPartB = false,
   isReadOnly = false,
   hideTableInsert = false,
+  tableOffset = 0,
+  b12TableFocus,
+  onB12AddRow,
+  onB12DeleteRow,
   crossRefDropdown,
 }: { 
   editor: Editor | null;
@@ -414,6 +418,11 @@ export function FormattingToolbar({
   isPartB?: boolean;
   isReadOnly?: boolean;
   hideTableInsert?: boolean;
+  tableOffset?: number;
+  /** Which B12 table is focused: null, 'case-studies', or 'ongoing-projects' */
+  b12TableFocus?: string | null;
+  onB12AddRow?: () => void;
+  onB12DeleteRow?: () => void;
   crossRefDropdown?: React.ReactNode;
 }) {
   const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
@@ -982,7 +991,7 @@ export function FormattingToolbar({
               {sectionNumber && (
                 <DropdownMenuItem onClick={() => {
                   if (sectionNumber) {
-                    updateCaptionForTableAtCursor(editor, sectionNumber);
+                    updateCaptionForTableAtCursor(editor, sectionNumber, tableOffset);
                   }
                 }}>
                   <FileText className="w-4 h-4 mr-2" />

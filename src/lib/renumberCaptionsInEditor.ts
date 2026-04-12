@@ -10,7 +10,7 @@ import { TextSelection } from '@tiptap/pm/state';
  * 
  * Returns true if any changes were made.
  */
-export function renumberCaptionsInEditor(editor: Editor, sectionNumber: string): boolean {
+export function renumberCaptionsInEditor(editor: Editor, sectionNumber: string, tableOffset: number = 0): boolean {
   if (!editor || !sectionNumber) return false;
 
   const cleanSectionNum = sectionNumber.replace(/^[A-Za-z]+/, '');
@@ -61,7 +61,7 @@ export function renumberCaptionsInEditor(editor: Editor, sectionNumber: string):
 
   // Count per type to assign letters
   let figureIdx = 0;
-  let tableIdx = 0;
+  let tableIdx = tableOffset; // Start from offset to account for B12 tables before editor
   const updates: { from: number; to: number; newText: string; oldText: string; type: 'figure' | 'table'; oldLetter: string; newLetter: string }[] = [];
 
   for (const cap of captions) {
@@ -84,7 +84,7 @@ export function renumberCaptionsInEditor(editor: Editor, sectionNumber: string):
   const labelRemap = new Map<string, string>();
   // Also build a full remap for all captions (including unchanged ones) so refs always resolve
   figureIdx = 0;
-  tableIdx = 0;
+  tableIdx = tableOffset;
   for (const cap of captions) {
     const idx = cap.type === 'figure' ? figureIdx++ : tableIdx++;
     const newLetter = String.fromCharCode('a'.charCodeAt(0) + idx);
@@ -166,7 +166,7 @@ export function renumberCaptionsInEditor(editor: Editor, sectionNumber: string):
  *
  * Returns true if changes were made.
  */
-export function updateCaptionForTableAtCursor(editor: Editor, sectionNumber: string): boolean {
+export function updateCaptionForTableAtCursor(editor: Editor, sectionNumber: string, tableOffset: number = 0): boolean {
   if (!editor || !sectionNumber) return false;
 
   const cleanSectionNum = sectionNumber.replace(/^[A-Za-z]+/, '');
@@ -188,7 +188,7 @@ export function updateCaptionForTableAtCursor(editor: Editor, sectionNumber: str
 
   // Count all table captions BEFORE this table to determine the letter
   const captionPattern = /^(Table)\s+(\d+\.\d+)\.([a-z])\./i;
-  let tableLetterIdx = 0;
+  let tableLetterIdx = tableOffset;
   doc.forEach((node, offset) => {
     if (offset >= tablePos) return; // only count captions before this table
     if (node.type.name === 'paragraph') {
