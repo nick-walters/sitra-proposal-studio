@@ -199,6 +199,12 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
                     }
                   });
                 }
+                tableDom.style.tableLayout = 'fixed';
+                const containerWidth = tableDom.parentElement?.clientWidth ?? tableDom.offsetWidth;
+                tableDom.style.width = `${containerWidth}px`;
+                tableDom.querySelectorAll('th, td').forEach(cell => {
+                  (cell as HTMLElement).style.verticalAlign = 'middle';
+                });
               }
             }
           });
