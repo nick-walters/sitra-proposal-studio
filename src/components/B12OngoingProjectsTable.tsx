@@ -288,6 +288,7 @@ function SortableRow({
 interface Props {
   proposalId: string;
   tableIndex?: number;
+  sectionNumber?: string;
 }
 
 export function B12OngoingProjectsTable({ proposalId, tableIndex = 0 }: Props) {

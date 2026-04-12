@@ -43,6 +43,7 @@ const FIELD_KEYS = [
 interface Props {
   proposalId: string;
   tableIndex?: number;
+  sectionNumber?: string;
 }
 
 /** Build case bubble label matching the case manager logic */
