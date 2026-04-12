@@ -1367,7 +1367,7 @@ export function DocumentEditor({
                   );
 
                   return isB12 ? (
-                    <B12SectionContent proposalId={proposalId} editorNode={editorBlock} />
+                    <B12SectionContent proposalId={proposalId} editorNode={editorBlock} editor={editor} sectionNumber={section.number} />
                   ) : (
                     editorBlock
                   );
