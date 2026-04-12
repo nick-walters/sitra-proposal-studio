@@ -63,8 +63,8 @@ function createDragHandleContainer(): HTMLElement {
 
   grid.appendChild(dragHandle);
   grid.appendChild(deleteBtn);
-  grid.appendChild(cutBtn);
   grid.appendChild(autoresizeBtn);
+  grid.appendChild(cutBtn);
 
   container.appendChild(grid);
   return container;
