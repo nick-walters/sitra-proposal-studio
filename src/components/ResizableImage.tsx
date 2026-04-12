@@ -1,6 +1,7 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from '@tiptap/react';
 import { useState, useCallback, useRef } from 'react';
+import { useStorageUrl } from '@/hooks/useStorageUrl';
 
 function ResizableImageComponent({ node, updateAttributes, selected }: NodeViewProps) {
   const { src, alt, width, height, widthPercent, alignment } = node.attrs as { 
