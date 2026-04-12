@@ -244,7 +244,7 @@ function SortableRow({
   return (
     <tr ref={setNodeRef} style={{ ...style, borderBottom: '0.5px solid #d1d5db' }} {...attributes}>
       {canEdit && (
-        <td className="w-6 p-0 text-center" style={{ position: 'relative' }}>
+        <td className="p-0" style={{ width: 0, minWidth: 0, maxWidth: 0, position: 'relative' }}>
           <div style={{ position: 'absolute', left: '-28px', top: '50%', transform: 'translateY(-50%)' }}>
             <button {...listeners} className="cursor-grab text-muted-foreground hover:text-foreground p-0.5" tabIndex={-1}>
               <GripVertical className="h-3.5 w-3.5" style={{ color: '#2563EB' }} />
@@ -276,7 +276,7 @@ function SortableRow({
         />
       </td>
       {canEdit && (
-        <td className="w-6 p-0 text-center" style={{ position: 'relative' }}>
+        <td className="p-0" style={{ width: 0, minWidth: 0, maxWidth: 0, position: 'relative' }}>
           <div style={{ position: 'absolute', right: '-28px', top: '50%', transform: 'translateY(-50%)' }}>
             <button onClick={() => onDelete(row.id)} className="text-muted-foreground hover:text-destructive p-0.5" tabIndex={-1}>
               <Trash2 className="h-3.5 w-3.5" />
