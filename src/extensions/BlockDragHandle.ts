@@ -309,8 +309,16 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
             }
             // Ctrl+V / Cmd+V to paste cut block at cursor position
             if ((e.ctrlKey || e.metaKey) && e.key === 'v' && cutBlockRange) {
-              // Only handle if editor is focused
-              if (!editorView.hasFocus()) return;
+              // Check if focus is in the editor or its parent container
+              const editorEl = editorView.dom;
+              const activeEl = document.activeElement;
+              const isInEditor = editorEl.contains(activeEl) || editorEl === activeEl || editorView.hasFocus();
+              
+              if (!isInEditor) {
+                // Try to focus the editor and use the last known selection
+                editorView.focus();
+              }
+
               e.preventDefault();
               e.stopPropagation();
 
@@ -322,7 +330,6 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
                 const $pos = state.doc.resolve(from);
                 let insertPos: number;
                 if ($pos.depth >= 1) {
-                  // Insert after the current top-level block
                   insertPos = $pos.after(1);
                 } else {
                   insertPos = from;
