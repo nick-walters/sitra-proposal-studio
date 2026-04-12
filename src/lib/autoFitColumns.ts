@@ -135,7 +135,7 @@ export function applyColumnWidthsToTable(
     table.insertBefore(colgroup, table.firstChild);
   }
 
-  const cols = Array.from(colgroup.querySelectorAll('col'));
+  const cols = Array.from(colgroup.querySelectorAll('col')) as HTMLTableColElement[];
   while (cols.length < widths.length) {
     const col = document.createElement('col');
     colgroup.appendChild(col);
@@ -180,7 +180,7 @@ function measureColumnWidths(table: HTMLTableElement): {
   const savedStyles: { width: string; minWidth: string; whiteSpace: string }[] = [];
   const textareas = table.querySelectorAll('textarea');
   const savedTextareaStyles: { width: string; whiteSpace: string }[] = [];
-  const cols = Array.from(table.querySelectorAll('colgroup col'));
+  const cols = Array.from(table.querySelectorAll('colgroup col')) as HTMLTableColElement[];
   const savedColStyles = cols.map((col) => ({
     width: col.style.width,
     minWidth: col.style.minWidth,
