@@ -917,14 +917,8 @@
   color: hsl(var(--destructive));
 }
 
-.block-autoresize-btn,
-.block-paste-btn {
+.block-autoresize-btn {
   grid-column: 1;
-  grid-row: 2;
-}
-
-.block-cut-btn {
-  grid-column: 2;
   grid-row: 2;
   color: hsl(var(--muted-foreground));
 }
@@ -940,139 +934,9 @@
   color: hsl(var(--destructive-foreground));
 }
 
-.block-cut-btn:hover {
+.block-autoresize-btn:hover {
   color: hsl(var(--primary));
   border-color: hsl(var(--primary));
-}
-
-.block-cut-btn.active {
-  background: hsl(var(--primary));
-  border-color: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-}
-
-.block-autoresize-btn {
-  color: hsl(var(--muted-foreground));
-}
-
-.block-autoresize-btn:hover,
-.block-paste-btn:hover {
-  color: hsl(var(--primary));
-  border-color: hsl(var(--primary));
-}
-
-.block-paste-btn {
-  color: hsl(var(--primary));
-}
-
-/* Cut source – greyed out block (React/B12 blocks only) */
-.block-cut-source {
-  opacity: 0.35 !important;
-  outline: 2px dashed hsl(var(--muted-foreground));
-  outline-offset: 2px;
-  border-radius: 4px;
-  transition: opacity 0.2s ease;
-}
-
-/* Cut overlay – used in Tiptap editor to grey out without affecting editor DOM */
-.block-cut-overlay {
-  position: absolute;
-  background: hsl(var(--background) / 0.7);
-  border: 2px dashed hsl(var(--muted-foreground));
-  border-radius: 4px;
-  pointer-events: none;
-  z-index: 40;
-  display: none;
-}
-
-/* Paste indicator (Tiptap) */
-.block-paste-indicator {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 60;
-}
-
-.block-paste-indicator::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: 2px;
-  background: hsl(var(--primary));
-  transform: translateY(-50%);
-}
-
-.block-paste-indicator:hover::before {
-  height: 3px;
-  box-shadow: 0 0 6px hsl(var(--primary) / 0.5);
-}
-
-.block-paste-label {
-  font-size: 10px;
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  padding: 1px 6px;
-  border-radius: 3px;
-  position: relative;
-  z-index: 1;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-
-.block-paste-indicator:hover .block-paste-label {
-  opacity: 1;
-}
-
-/* Paste indicator (React / B12 blocks) */
-.block-paste-indicator-react {
-  position: relative;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  margin: -4px 0;
-}
-
-.block-paste-indicator-react::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: 2px;
-  background: hsl(var(--primary));
-  transform: translateY(-50%);
-}
-
-.block-paste-indicator-react:hover::before {
-  height: 3px;
-  box-shadow: 0 0 6px hsl(var(--primary) / 0.5);
-}
-
-.block-paste-indicator-react .block-paste-label {
-  font-size: 10px;
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  padding: 1px 6px;
-  border-radius: 3px;
-  position: relative;
-  z-index: 1;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-
-.block-paste-indicator-react:hover .block-paste-label {
-  opacity: 1;
 }
 
 /* Block Drop Indicator */
