@@ -31,8 +31,24 @@ const CASE_TYPES: Record<string, string> = {
   living_lab: 'LL',
   pilot: 'P',
   demonstration: 'D',
+  challenge: 'CH',
   other: '',
 };
+
+const CASE_TYPE_LABELS: Record<string, string> = {
+  case_study: 'Case Study',
+  use_case: 'Use Case',
+  living_lab: 'Living Lab',
+  pilot: 'Pilot',
+  demonstration: 'Demonstration',
+  challenge: 'Challenge',
+  other: 'Case',
+};
+
+function getCaseTypeLabel(caseType: string, customTypeName?: string | null): string {
+  if (caseType === 'other') return customTypeName || 'Case';
+  return CASE_TYPE_LABELS[caseType] || 'Case';
+}
 
 function getCasePrefix(caseType: string, customTypeName?: string | null): string {
   if (caseType === 'other') return customTypeName ? customTypeName.toUpperCase() : '';
@@ -499,36 +515,27 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
         <div
           className="rounded-lg p-4 -mx-2 bg-white border-[1.5px] border-black"
         >
-          <div className="flex items-center gap-2">
-            <span className="text-xl font-bold text-black">{prefix ? `${prefix}${caseDraft.number}` : (caseDraft.short_name || caseDraft.number)}:</span>
-            <DebouncedInput
-              value={caseDraft.title || ''}
-              onDebouncedChange={(v) => updateField('title', v)}
-              placeholder="Case title"
-              className="flex-1"
-              disabled={readOnly}
-            />
-          </div>
-          <div className="mt-2 flex items-center gap-4 flex-wrap">
+          {/* Row 1: Short name + Leader */}
+          <div className="flex items-center gap-4 flex-wrap mb-2">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Short name:</span>
+              <span className="text-base font-bold text-black">Short name:</span>
               <DebouncedInput
                 value={caseDraft.short_name || ''}
                 onDebouncedChange={(v) => updateField('short_name', v)}
                 placeholder="e.g. Barcelona"
-                className="h-7 w-[140px] text-sm"
+                className="h-8 w-[160px] text-base font-bold"
                 disabled={readOnly}
               />
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Lead:</span>
+              <span className="text-base font-bold text-black">{getCaseTypeLabel(caseDraft.case_type, caseDraft.custom_type_name)} Leader:</span>
               <Select
                 value={caseDraft.lead_participant_id || ''}
                 onValueChange={(value) => updateField('lead_participant_id', value || null)}
                 disabled={readOnly}
               >
-                <SelectTrigger className="h-7 w-[160px] text-sm">
-                  <SelectValue placeholder="Select lead..." />
+                <SelectTrigger className="h-8 w-[160px] text-sm">
+                  <SelectValue placeholder="Select..." />
                 </SelectTrigger>
                 <SelectContent>
                   {participants.map((p) => (
@@ -544,6 +551,17 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
                 </SelectContent>
               </Select>
             </div>
+          </div>
+          {/* Row 2: Badge + Title */}
+          <div className="flex items-center gap-2">
+            <span className="text-base font-bold text-black">{prefix ? `${prefix}${caseDraft.number}` : (caseDraft.short_name || caseDraft.number)}:</span>
+            <DebouncedInput
+              value={caseDraft.title || ''}
+              onDebouncedChange={(v) => updateField('title', v)}
+              placeholder="Full case title"
+              className="flex-1 text-base font-bold"
+              disabled={readOnly}
+            />
           </div>
         </div>
 
