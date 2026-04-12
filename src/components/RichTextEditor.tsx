@@ -16,6 +16,7 @@ import { ImageCropDialog } from './ImageCropDialog';
 import { createCitationTooltipPlugin } from './CitationMark';
 import { BlockReordering } from '@/extensions/BlockReordering';
 import { ParagraphClass } from '@/extensions/ParagraphClass';
+import { ParagraphSpacing } from '@/extensions/ParagraphSpacing';
 import { TableAutoResizeButton } from '@/extensions/TableAutoResizeButton';
 import { InlineReferenceMark } from '@/extensions/InlineReferenceMark';
 import { BlockDragHandle } from '@/extensions/BlockDragHandle';
@@ -33,6 +34,7 @@ import { renumberH3Headings } from '@/lib/renumberH3Headings';
 import { updateCaptionForTableAtCursor } from '@/lib/renumberCaptionsInEditor';
 import { OrderedListDropdown } from './OrderedListDropdown';
 import { computeAutoFitSmart } from '@/lib/autoFitColumns';
+import { ParagraphSpacingPopover } from './ParagraphSpacingPopover';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
@@ -878,6 +880,8 @@ export function FormattingToolbar({
           disabled={isAlignDisabled}
         />
 
+        <ParagraphSpacingPopover editor={editor} disabled={isAlignDisabled} />
+
         <Separator orientation="vertical" className="h-5 mx-1.5" />
 
         {/* Table */}
@@ -1249,6 +1253,7 @@ StarterKit.configure({
       TextStyle,
       Color,
       ParagraphClass,
+      ParagraphSpacing,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
         defaultAlignment: 'justify',
@@ -1447,6 +1452,7 @@ StarterKit.configure({
       TextStyle,
       Color,
       ParagraphClass,
+      ParagraphSpacing,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
         defaultAlignment: 'justify',

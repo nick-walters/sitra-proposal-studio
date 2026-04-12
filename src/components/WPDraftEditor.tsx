@@ -5,6 +5,7 @@ import { useWPDraftUndoRedo } from '@/hooks/useWPDraftUndoRedo';
 import { WPMethodologySection } from '@/components/WPMethodologySection';
 import { WPTableSection } from '@/components/WPTableSection';
 import { WPPlanningQuestions } from '@/components/WPPlanningQuestions';
+import { ParagraphSpacingExecPopover } from '@/components/ParagraphSpacingExecPopover';
 
 import { WPDeliverablesTable } from '@/components/WPDeliverablesTable';
 import { WPRisksTable } from '@/components/WPRisksTable';
@@ -970,6 +971,9 @@ export function WPDraftEditor({ wpId, proposalId, canEdit: canEditProp, isCoordi
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="text-xs">Justify</TooltipContent>
               </Tooltip>
+              <ParagraphSpacingExecPopover
+                getContainer={() => document.querySelector('.wp-draft-editor [contenteditable="true"]') as HTMLElement | null}
+              />
               
               <Separator orientation="vertical" className="h-5 mx-1.5" />
               
