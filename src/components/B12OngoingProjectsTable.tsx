@@ -2,9 +2,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EditableCaption } from '@/components/EditableCaption';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, GripVertical, Check, ChevronsUpDown } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Check, ChevronsUpDown, Columns3 } from 'lucide-react';
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useColumnResize } from '@/hooks/useColumnResize';
+import { ColumnResizer } from '@/components/ColumnResizer';
+import { computeAutoFitSmart } from '@/lib/autoFitColumns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import {
@@ -264,6 +267,7 @@ export function B12OngoingProjectsTable({ proposalId }: Props) {
   const { isAdminOrOwner, hasAnyCoordinatorRole } = useUserRole();
   const canEdit = isAdminOrOwner || hasAnyCoordinatorRole;
   const initialized = useRef(false);
+  const { colWidths, tableRef, handleColResizeStart, setColWidths, saveWidths } = useColumnResize({ proposalId, tableKey: 'b12-ongoing', canResize: canEdit });
 
   // Editable column headers
   const [headerLabels, setHeaderLabels] = useState<string[]>(COLUMN_LABELS_DEFAULT);
@@ -436,6 +440,17 @@ export function B12OngoingProjectsTable({ proposalId }: Props) {
   const getParticipantIdsForRow = (rowId: string) =>
     participantLinks.filter(l => l.ongoing_project_id === rowId).map(l => l.participant_id);
 
+  const handleAutoResize = useCallback(() => {
+    if (!tableRef.current) return;
+    const widths = computeAutoFitSmart(tableRef.current);
+    if (widths) {
+      setColWidths(widths);
+      saveWidths(widths);
+    }
+  }, [setColWidths, saveWidths, tableRef]);
+
+  const hasCustomWidths = colWidths.length > 0;
+
   return (
     <div className="mt-4" style={{ overflow: 'visible' }}>
       <EditableCaption
@@ -445,22 +460,52 @@ export function B12OngoingProjectsTable({ proposalId }: Props) {
         defaultCaption="Ongoing & recently completed projects & initiatives with which the project will collaborate"
       />
 
+      {canEdit && (
+        <div className="table-auto-resize-bar" style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '2px' }}>
+          <button
+            type="button"
+            className="table-auto-resize-btn"
+            onClick={handleAutoResize}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '1px 6px', border: '1px solid #d1d5db', borderRadius: '4px', background: 'white', cursor: 'pointer', color: '#6b7280' }}
+          >
+            <Columns3 className="h-3 w-3" />
+            <span>Auto-resize columns</span>
+          </button>
+        </div>
+      )}
+
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <table
+          ref={tableRef}
           className={`${tableStyles} w-full border-collapse`}
-          style={{ maxWidth: '18cm', tableLayout: 'fixed', lineHeight: 1.0, overflow: 'visible' }}
+          style={{
+            maxWidth: '18cm',
+            tableLayout: 'fixed',
+            lineHeight: 1.0,
+            overflow: 'visible',
+            width: hasCustomWidths ? `${colWidths.reduce((s, w) => s + w, 0)}px` : '100%',
+          }}
         >
+          {hasCustomWidths && (
+            <colgroup>
+              {canEdit && <col style={{ width: 0 }} />}
+              {colWidths.map((w, i) => (
+                <col key={i} style={{ width: `${w}px` }} />
+              ))}
+              {canEdit && <col style={{ width: 0 }} />}
+            </colgroup>
+          )}
           <thead>
             <tr style={{ borderBottom: '1.5px solid #000000' }}>
               {canEdit && <th className="w-0 p-0" style={{ width: 0, minWidth: 0, maxWidth: 0, border: 'none' }} />}
               {COLUMN_KEYS.map((key, i) => (
                 <th
                   key={key}
-                  className="text-left font-bold"
+                  className="text-left font-bold relative"
                   style={{
                     fontFamily: "'Times New Roman', Times, serif",
                     fontSize: '11pt',
-                    width: COLUMN_WIDTHS[i],
+                    width: hasCustomWidths ? undefined : COLUMN_WIDTHS[i],
                     whiteSpace: 'normal',
                     padding: '2px 4px',
                     verticalAlign: 'middle',
@@ -474,6 +519,7 @@ export function B12OngoingProjectsTable({ proposalId }: Props) {
                   ) : (
                     headerLabels[i]
                   )}
+                  {canEdit && <ColumnResizer onMouseDown={handleColResizeStart(i)} />}
                 </th>
               ))}
               {canEdit && <th className="w-0 p-0" style={{ width: 0, minWidth: 0, maxWidth: 0, border: 'none' }} />}
