@@ -212,9 +212,7 @@ export function updateCaptionForTableAtCursor(editor: Editor, sectionNumber: str
       // Accept it as a caption if it has the table-caption class, or if it looks like a table caption
       if (
         cls.includes('table-caption') ||
-        /^table\s+/i.test(text) ||
-        // Also accept any paragraph directly above a table that's short (likely a caption)
-        (text.length > 0 && text.length < 300 && !text.includes('\n'))
+        /^table\s+/i.test(text)
       ) {
         // Calculate the absolute position of this paragraph
         let pos = $tablePos.start($tablePos.depth);
