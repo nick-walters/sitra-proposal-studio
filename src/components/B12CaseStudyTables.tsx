@@ -125,7 +125,7 @@ function EditableCaseCell({
   contentKey: string;
   value: string;
 }) {
-  const editorRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<HTMLSpanElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const isFocusedRef = useRef(false);
   const queryClient = useQueryClient();
@@ -156,7 +156,7 @@ function EditableCaseCell({
   }, [caseId, contentKey]);
 
   return (
-    <div
+    <span
       ref={editorRef}
       contentEditable
       suppressContentEditableWarning
@@ -165,8 +165,6 @@ function EditableCaseCell({
         fontFamily: "'Times New Roman', Times, serif",
         fontSize: '11pt',
         lineHeight: 1.2,
-        minHeight: '1em',
-        display: 'inline',
       }}
       onFocus={() => { isFocusedRef.current = true; }}
       onBlur={() => { isFocusedRef.current = false; }}
@@ -314,13 +312,11 @@ export function B12CaseStudyTables({ proposalId }: Props) {
                     <tr key={contentKey} style={{ borderBottom: '0.5px solid #d1d5db' }}>
                       <td style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', padding: '4px 0' }}>
                         <span className="font-bold italic">{heading}:</span>{' '}
-                        <span style={{ display: 'inline' }}>
-                          <EditableCaseCell
-                            caseId={c.id}
-                            contentKey={contentKey}
-                            value={rawContent}
-                          />
-                        </span>
+                        <EditableCaseCell
+                          caseId={c.id}
+                          contentKey={contentKey}
+                          value={rawContent}
+                        />
                       </td>
                     </tr>
                   );
