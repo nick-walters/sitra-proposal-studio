@@ -100,6 +100,8 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
   // Drag state
   const [draggedBlock, setDraggedBlock] = useState<BlockId | null>(null);
   const [dragOverBlock, setDragOverBlock] = useState<BlockId | null>(null);
+  // Cut/paste state
+  const [cutBlock, setCutBlock] = useState<BlockId | null>(null);
 
   const handleDragStart = useCallback((blockId: BlockId) => {
     setDraggedBlock(blockId);
