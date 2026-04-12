@@ -57,6 +57,7 @@ import { format, isPast, isToday, differenceInDays } from "date-fns";
 import { smartTimestamp } from "@/lib/smartTimestamp";
 import { CollaborativeCursors } from "./CollaborativeCursors";
 import { BlockLockIndicator } from "./BlockLockIndicator";
+import { CaptionRefreshButton } from "./CaptionRefreshButton";
 import { TrackChangesToolbar } from "./TrackChangesToolbar";
 import { TrackChangeBubbleMenu } from "./TrackChangeBubbleMenu";
 import { SearchReplaceDialog } from "./SearchReplaceDialog";
@@ -1520,6 +1521,13 @@ export function DocumentEditor({
                         editor={editor}
                         collaborators={collaboratorsInSection}
                         containerRef={editorContainerRef}
+                      />
+                      {/* Caption refresh icon */}
+                      <CaptionRefreshButton
+                        editor={editor}
+                        containerRef={editorContainerRef}
+                        sectionNumber={section?.number}
+                        tableOffset={b12TableOffset}
                       />
                     </div>
                   );
