@@ -251,6 +251,48 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
       return $pos.depth >= 1 ? $pos.after(1) : from;
     };
 
+    const syncDragControlsForBlock = (
+      view: EditorView,
+      blockRange: { startPos: number; endPos: number; node: ProseMirrorNode },
+      forceVisible = false,
+    ) => {
+      if (!dragContainer) return;
+
+      currentHoveredBlockPos = blockRange.startPos;
+      currentHoveredBlockRange = { startPos: blockRange.startPos, endPos: blockRange.endPos };
+
+      const hasTable = blockContainsTable(view.state.doc, blockRange.startPos, blockRange.endPos);
+      const canPasteIntoBlock = !!cutBlockRange && isEmptyPasteTargetBlock(blockRange.node);
+
+      const autoresizeBtn = dragContainer.querySelector('.block-autoresize-btn') as HTMLElement;
+      if (autoresizeBtn) {
+        autoresizeBtn.style.display = hasTable ? 'flex' : 'none';
+      }
+
+      const pasteBtn = dragContainer.querySelector('.block-paste-btn') as HTMLElement;
+      if (pasteBtn) {
+        pasteBtn.style.display = canPasteIntoBlock ? 'flex' : 'none';
+      }
+
+      const cutBtn = dragContainer.querySelector('.block-cut-btn') as HTMLElement;
+      if (cutBtn) {
+        const isCutBlock = cutBlockRange && cutBlockRange.startPos === blockRange.startPos;
+        cutBtn.classList.toggle('active', !!isCutBlock);
+      }
+
+      const blockDom = view.nodeDOM(blockRange.startPos);
+      if (blockDom && blockDom instanceof HTMLElement) {
+        const rect = blockDom.getBoundingClientRect();
+        const editorRect = view.dom.parentElement?.getBoundingClientRect();
+        if (editorRect) {
+          dragContainer.style.display = 'flex';
+          dragContainer.style.top = `${rect.top - editorRect.top}px`;
+          dragContainer.style.left = '-52px';
+          dragContainer.style.opacity = forceVisible ? '1' : '';
+        }
+      }
+    };
+
     const showPasteIndicators = (view: EditorView) => {
       pasteIndicators.forEach(el => el.remove());
       pasteIndicators = [];
@@ -465,9 +507,27 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
 
           return {
             update(view) {
-              // Reposition cut overlay on editor updates (content changes may shift positions)
               if (cutBlockRange && cutOverlay) {
                 positionCutOverlay(view);
+              }
+
+              if (!cutBlockRange || !dragContainer) {
+                if (dragContainer) dragContainer.style.opacity = '';
+                return;
+              }
+
+              try {
+                const { $from } = view.state.selection;
+                const selectedBlockPos = $from.depth >= 1 ? $from.before(1) : $from.before($from.depth === 0 ? 1 : $from.depth);
+                const selectedBlock = findBlockRange(view.state.doc, selectedBlockPos);
+
+                if (selectedBlock && isReorderableBlock(selectedBlock.node) && isEmptyPasteTargetBlock(selectedBlock.node)) {
+                  syncDragControlsForBlock(view, selectedBlock, true);
+                } else {
+                  dragContainer.style.opacity = '';
+                }
+              } catch {
+                dragContainer.style.opacity = '';
               }
             },
             destroy() {
@@ -504,6 +564,7 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
                 const blockRange = findBlockRange(view.state.doc, blockPos);
                 if (!blockRange || !isReorderableBlock(blockRange.node)) {
                   dragContainer!.style.display = 'none';
+                  dragContainer!.style.opacity = '';
                   currentHoveredBlockPos = null;
                   currentHoveredBlockRange = null;
                   return false;
@@ -515,46 +576,16 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
                 const isLockedByOther = lockedBlocks.some(lock => lock.blockId === blockId && lock.userId !== userId);
                 if (isLockedByOther) {
                   dragContainer!.style.display = 'none';
+                  dragContainer!.style.opacity = '';
                   currentHoveredBlockPos = null;
                   currentHoveredBlockRange = null;
                   return false;
                 }
 
-                currentHoveredBlockPos = blockRange.startPos;
-                currentHoveredBlockRange = { startPos: blockRange.startPos, endPos: blockRange.endPos };
-
-                const hasTable = blockContainsTable(view.state.doc, blockRange.startPos, blockRange.endPos);
-                const canPasteIntoBlock = !!cutBlockRange && isEmptyPasteTargetBlock(blockRange.node);
-
-                const autoresizeBtn = dragContainer!.querySelector('.block-autoresize-btn') as HTMLElement;
-                if (autoresizeBtn) {
-                  autoresizeBtn.style.display = hasTable ? 'flex' : 'none';
-                }
-
-                const pasteBtn = dragContainer!.querySelector('.block-paste-btn') as HTMLElement;
-                if (pasteBtn) {
-                  pasteBtn.style.display = canPasteIntoBlock ? 'flex' : 'none';
-                }
-
-                const cutBtn = dragContainer!.querySelector('.block-cut-btn') as HTMLElement;
-                if (cutBtn) {
-                  const isCutBlock = cutBlockRange && cutBlockRange.startPos === blockRange.startPos;
-                  cutBtn.classList.toggle('active', !!isCutBlock);
-                }
-
-                // Position
-                const blockDom = view.nodeDOM(blockRange.startPos);
-                if (blockDom && blockDom instanceof HTMLElement) {
-                  const rect = blockDom.getBoundingClientRect();
-                  const editorRect = view.dom.parentElement?.getBoundingClientRect();
-                  if (editorRect) {
-                    dragContainer!.style.display = 'flex';
-                    dragContainer!.style.top = `${rect.top - editorRect.top}px`;
-                    dragContainer!.style.left = '-52px';
-                  }
-                }
+                syncDragControlsForBlock(view, blockRange, false);
               } catch {
                 dragContainer!.style.display = 'none';
+                dragContainer!.style.opacity = '';
                 currentHoveredBlockPos = null;
                 currentHoveredBlockRange = null;
               }
