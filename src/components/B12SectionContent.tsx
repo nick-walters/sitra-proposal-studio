@@ -193,9 +193,9 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
         return editorNode;
       case 'case-studies':
         if (!hasCases) return null;
-        return <B12CaseStudyTables proposalId={proposalId} tableIndex={getTableIndex('case-studies')} />;
+        return <B12CaseStudyTables proposalId={proposalId} tableIndex={getTableIndex('case-studies')} sectionNumber={sectionNumber} />;
       case 'ongoing-projects':
-        return <B12OngoingProjectsTable proposalId={proposalId} tableIndex={getTableIndex('ongoing-projects')} />;
+        return <B12OngoingProjectsTable proposalId={proposalId} tableIndex={getTableIndex('ongoing-projects')} sectionNumber={sectionNumber} />;
       default:
         return null;
     }
