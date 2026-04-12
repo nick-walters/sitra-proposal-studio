@@ -176,7 +176,7 @@ export const WPReferenceMark = Mark.create<WPReferenceOptions>({
       insertWPReference:
         (attributes) =>
         ({ chain }) => {
-          const label = `WP${attributes.wpNumber}`;
+          const label = attributes.wpShortName ? `WP${attributes.wpNumber}: ${attributes.wpShortName}` : `WP${attributes.wpNumber}`;
           return chain()
             .insertContent({
               type: 'text',

@@ -170,7 +170,7 @@ export async function syncCrossReferences(
       if (mark.type.name === 'wpReference' && mark.attrs.wpId) {
         const wp = data.wpById.get(mark.attrs.wpId);
         if (wp) {
-          const currentLabel = `WP${wp.number}`;
+          const currentLabel = wp.short_name ? `WP${wp.number}: ${wp.short_name}` : `WP${wp.number}`;
           const currentText = node.text || '';
           if (currentText !== currentLabel || mark.attrs.wpNumber !== wp.number || mark.attrs.wpColor !== wp.color) {
             const newMark = mark.type.create({
