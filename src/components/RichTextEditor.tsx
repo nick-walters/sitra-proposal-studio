@@ -400,6 +400,7 @@ export function FormattingToolbar({
   isPartB = false,
   isReadOnly = false,
   hideTableInsert = false,
+  tableOffset = 0,
   crossRefDropdown,
 }: { 
   editor: Editor | null;
@@ -414,6 +415,7 @@ export function FormattingToolbar({
   isPartB?: boolean;
   isReadOnly?: boolean;
   hideTableInsert?: boolean;
+  tableOffset?: number;
   crossRefDropdown?: React.ReactNode;
 }) {
   const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
@@ -982,7 +984,7 @@ export function FormattingToolbar({
               {sectionNumber && (
                 <DropdownMenuItem onClick={() => {
                   if (sectionNumber) {
-                    updateCaptionForTableAtCursor(editor, sectionNumber);
+                    updateCaptionForTableAtCursor(editor, sectionNumber, tableOffset);
                   }
                 }}>
                   <FileText className="w-4 h-4 mr-2" />
