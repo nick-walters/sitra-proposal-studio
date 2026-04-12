@@ -166,23 +166,44 @@ export const ResizableImage = Node.create({
   
   addAttributes() {
     return {
-      src: {
-        default: null,
-      },
-      alt: {
-        default: null,
-      },
+      src: { default: null },
+      alt: { default: null },
       width: {
         default: null,
+        parseHTML: (element) => {
+          const style = element.getAttribute('style') || '';
+          const match = style.match(/width:\s*(\d+)px/);
+          return match ? parseInt(match[1], 10) : element.getAttribute('width') ? parseInt(element.getAttribute('width')!, 10) : null;
+        },
+        renderHTML: () => ({}),
       },
       height: {
         default: null,
+        parseHTML: (element) => {
+          const style = element.getAttribute('style') || '';
+          const match = style.match(/height:\s*(\d+)px/);
+          return match ? parseInt(match[1], 10) : element.getAttribute('height') ? parseInt(element.getAttribute('height')!, 10) : null;
+        },
+        renderHTML: () => ({}),
       },
       widthPercent: {
         default: null,
+        parseHTML: (element) => {
+          const style = element.getAttribute('style') || '';
+          const match = style.match(/width:\s*(\d+)%/);
+          return match ? parseInt(match[1], 10) : null;
+        },
+        renderHTML: () => ({}),
       },
       alignment: {
         default: 'center',
+        parseHTML: (element) => {
+          const style = element.getAttribute('style') || '';
+          if (style.includes('margin-right: 0') || style.includes('margin-right:0')) return 'right';
+          if (style.includes('margin-left: 0') || style.includes('margin-left:0')) return 'left';
+          return 'center';
+        },
+        renderHTML: () => ({}),
       },
     };
   },
