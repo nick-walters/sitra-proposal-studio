@@ -26,14 +26,14 @@ export const ParagraphSpacing = Extension.create({
             parseHTML: (el) => {
               const raw = el.getAttribute('data-spacing-before');
               if (raw) return parseFloat(raw);
-              // Also parse from inline style margin-top
-              const mt = el.style?.marginTop;
-              if (mt && mt.endsWith('pt')) return parseFloat(mt);
               return null;
             },
             renderHTML: (attrs) => {
               if (attrs.spacingBefore == null) return {};
-              return { 'data-spacing-before': String(attrs.spacingBefore) };
+              return {
+                'data-spacing-before': String(attrs.spacingBefore),
+                style: `margin-top: ${attrs.spacingBefore}pt${attrs.spacingAfter != null ? `; margin-bottom: ${attrs.spacingAfter}pt` : ''}`,
+              };
             },
           },
           spacingAfter: {
@@ -41,13 +41,14 @@ export const ParagraphSpacing = Extension.create({
             parseHTML: (el) => {
               const raw = el.getAttribute('data-spacing-after');
               if (raw) return parseFloat(raw);
-              const mb = el.style?.marginBottom;
-              if (mb && mb.endsWith('pt')) return parseFloat(mb);
               return null;
             },
             renderHTML: (attrs) => {
               if (attrs.spacingAfter == null) return {};
-              return { 'data-spacing-after': String(attrs.spacingAfter) };
+              return {
+                'data-spacing-after': String(attrs.spacingAfter),
+                style: `margin-bottom: ${attrs.spacingAfter}pt${attrs.spacingBefore != null ? `; margin-top: ${attrs.spacingBefore}pt` : ''}`,
+              };
             },
           },
         },
