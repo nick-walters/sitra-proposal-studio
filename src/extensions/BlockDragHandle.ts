@@ -350,11 +350,8 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
             cutBlockRange = { ...currentHoveredBlockRange };
             cutBtn.classList.add('active');
 
-            // Grey out the cut block
-            const blockDom = editorView.nodeDOM(cutBlockRange.startPos);
-            if (blockDom && blockDom instanceof HTMLElement) {
-              blockDom.classList.add('block-cut-source');
-            }
+            // Grey out the cut block with overlay
+            createCutOverlay(editorView);
 
             showPasteIndicators(editorView);
           });
