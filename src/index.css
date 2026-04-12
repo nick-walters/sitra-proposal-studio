@@ -439,16 +439,17 @@
   /* Keep header text inside the top margin without pushing content down */
   .document-page-header {
     position: absolute;
-    top: 0.35cm;
+    top: 0;
     left: 1.5cm;
     right: 1.5cm;
+    height: 1.5cm;
     font-family: "Times New Roman", Times, serif;
     font-size: 8pt;
     line-height: 1;
     color: hsl(var(--muted-foreground));
     display: flex;
     justify-content: center;
-    align-items: flex-start;
+    align-items: center;
     text-align: center;
     pointer-events: none;
   }
@@ -456,16 +457,17 @@
   /* Keep footer text inside the bottom margin without shrinking the content area */
   .document-page-footer {
     position: absolute;
-    bottom: 0.35cm;
+    bottom: 0;
     left: 1.5cm;
     right: 1.5cm;
+    height: 1.5cm;
     font-family: "Times New Roman", Times, serif;
     font-size: 8pt;
     line-height: 1;
     color: hsl(var(--muted-foreground));
     display: flex;
     justify-content: center;
-    align-items: flex-end;
+    align-items: center;
     text-align: center;
     pointer-events: none;
   }
