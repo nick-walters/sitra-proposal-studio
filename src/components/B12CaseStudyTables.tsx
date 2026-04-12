@@ -125,7 +125,7 @@ function EditableCaseCell({
   contentKey: string;
   value: string;
 }) {
-  const editorRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<HTMLSpanElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const isFocusedRef = useRef(false);
   const queryClient = useQueryClient();
@@ -156,7 +156,7 @@ function EditableCaseCell({
   }, [caseId, contentKey]);
 
   return (
-    <div
+    <span
       ref={editorRef}
       contentEditable
       suppressContentEditableWarning
@@ -165,8 +165,6 @@ function EditableCaseCell({
         fontFamily: "'Times New Roman', Times, serif",
         fontSize: '11pt',
         lineHeight: 1.2,
-        minHeight: '1em',
-        display: 'inline',
       }}
       onFocus={() => { isFocusedRef.current = true; }}
       onBlur={() => { isFocusedRef.current = false; }}
