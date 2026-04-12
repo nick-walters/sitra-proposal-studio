@@ -916,26 +916,6 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
                 Populate Part B3.1…
               </Button>
             )}
-            {/* Spacer to push visibility to the right */}
-            <div className="flex-1" />
-            {/* Draft Visibility */}
-            {isFullProposal && isCoordinator && (
-              <div className="flex items-center gap-2">
-                <Label className="text-sm font-medium whitespace-nowrap">WP draft visibility</Label>
-                <Select
-                  value={wpDraftsVisible ? 'visible' : 'hidden'}
-                  onValueChange={(v) => handleDraftVisibility('wp_drafts_visible', v === 'visible')}
-                >
-                  <SelectTrigger className="h-7 w-[100px] text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="visible">Visible</SelectItem>
-                    <SelectItem value="hidden">Hidden</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
           </div>
         )}
 

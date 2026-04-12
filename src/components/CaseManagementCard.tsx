@@ -803,23 +803,7 @@ export function CaseManagementCard({
                       disabled={addCaseMutation.isPending}
                     >
                       <Plus className="w-4 h-4 mr-1" />
-                      Add Case
                     </Button>
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm font-medium whitespace-nowrap">Case draft visibility</Label>
-                      <Select
-                        value={caseDraftsVisible ? 'visible' : 'hidden'}
-                        onValueChange={(v) => handleCaseDraftVisibility(v === 'visible')}
-                      >
-                        <SelectTrigger className="h-7 w-[100px] text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="visible">Visible</SelectItem>
-                          <SelectItem value="hidden">Hidden</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
                   </div>
                 )}
               </>
