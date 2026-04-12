@@ -404,6 +404,7 @@ export function FormattingToolbar({
   b12TableFocus,
   onB12AddRow,
   onB12DeleteRow,
+  onB12UpdateCaption,
   crossRefDropdown,
 }: { 
   editor: Editor | null;
@@ -423,6 +424,7 @@ export function FormattingToolbar({
   b12TableFocus?: string | null;
   onB12AddRow?: () => void;
   onB12DeleteRow?: () => void;
+  onB12UpdateCaption?: () => void;
   crossRefDropdown?: React.ReactNode;
 }) {
   const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
@@ -701,6 +703,8 @@ export function FormattingToolbar({
   }
 
   const isInTable = editor.isActive('table');
+  const isB12TableActive = Boolean(b12TableFocus);
+  const showTableOptions = isInTable || isB12TableActive;
   const isAlignDisabled = editor.isActive('heading') || isInTable;
 
   return (
@@ -875,7 +879,7 @@ export function FormattingToolbar({
         <Separator orientation="vertical" className="h-5 mx-1.5" />
 
         {/* Table */}
-        {!isInTable && !hideTableInsert && (
+        {!showTableOptions && !hideTableInsert && (
           <Popover open={tablePopoverOpen} onOpenChange={setTablePopoverOpen}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -899,7 +903,7 @@ export function FormattingToolbar({
             </PopoverContent>
           </Popover>
         )}
-        {isInTable && (
+        {showTableOptions && (
           <DropdownMenu>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -918,94 +922,119 @@ export function FormattingToolbar({
               </TooltipContent>
             </Tooltip>
             <DropdownMenuContent align="start" className="w-48">
-              <DropdownMenuItem onClick={() => editor.chain().focus().addColumnBefore().run()}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add column before
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => editor.chain().focus().addColumnAfter().run()}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add column after
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => editor.chain().focus().deleteColumn().run()}>
-                <Minus className="w-4 h-4 mr-2" />
-                Delete column
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => editor.chain().focus().addRowBefore().run()}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add row before
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => editor.chain().focus().addRowAfter().run()}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add row after
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => editor.chain().focus().deleteRow().run()}>
-                <Minus className="w-4 h-4 mr-2" />
-                Delete row
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => editor.chain().focus().mergeCells().run()}>
-                <Combine className="w-4 h-4 mr-2" />
-                Merge cells
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => editor.chain().focus().splitCell().run()}>
-                <SplitSquareHorizontal className="w-4 h-4 mr-2" />
-                Split cell
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => onOpenFormulaDialog?.()}>
-                <Calculator className="w-4 h-4 mr-2" />
-                Insert Formula
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => {
-                // Find the table element the cursor is in
-                const { $from } = editor.state.selection;
-                let depth = $from.depth;
-                while (depth > 0) {
-                  const node = $from.node(depth);
-                  if (node.type.name === 'table') {
-                    const dom = editor.view.nodeDOM($from.before(depth));
-                    if (dom instanceof HTMLTableElement) {
-                      const widths = computeAutoFitSmart(dom);
-                      if (widths) {
-                        const colgroup = dom.querySelector('colgroup');
-                        if (colgroup) {
-                          const cols = colgroup.querySelectorAll('col');
-                          cols.forEach((col, i) => {
-                            if (i < widths.length) {
-                              (col as HTMLElement).style.width = `${widths[i]}px`;
-                              (col as HTMLElement).style.minWidth = `${widths[i]}px`;
+              {isB12TableActive ? (
+                <>
+                  {onB12AddRow && (
+                    <DropdownMenuItem onClick={onB12AddRow}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      {b12TableFocus === 'case-studies' ? 'Add case' : 'Add row'}
+                    </DropdownMenuItem>
+                  )}
+                  {onB12DeleteRow && (
+                    <DropdownMenuItem onClick={onB12DeleteRow}>
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      {b12TableFocus === 'case-studies' ? 'Delete case' : 'Delete row'}
+                    </DropdownMenuItem>
+                  )}
+                  {onB12UpdateCaption && (onB12AddRow || onB12DeleteRow) && <DropdownMenuSeparator />}
+                  {onB12UpdateCaption && (
+                    <DropdownMenuItem onClick={onB12UpdateCaption}>
+                      <FileText className="w-4 h-4 mr-2" />
+                      Update caption
+                    </DropdownMenuItem>
+                  )}
+                </>
+              ) : (
+                <>
+                  <DropdownMenuItem onClick={() => editor.chain().focus().addColumnBefore().run()}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add column before
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => editor.chain().focus().addColumnAfter().run()}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add column after
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => editor.chain().focus().deleteColumn().run()}>
+                    <Minus className="w-4 h-4 mr-2" />
+                    Delete column
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => editor.chain().focus().addRowBefore().run()}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add row before
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => editor.chain().focus().addRowAfter().run()}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add row after
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => editor.chain().focus().deleteRow().run()}>
+                    <Minus className="w-4 h-4 mr-2" />
+                    Delete row
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => editor.chain().focus().mergeCells().run()}>
+                    <Combine className="w-4 h-4 mr-2" />
+                    Merge cells
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => editor.chain().focus().splitCell().run()}>
+                    <SplitSquareHorizontal className="w-4 h-4 mr-2" />
+                    Split cell
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => onOpenFormulaDialog?.()}>
+                    <Calculator className="w-4 h-4 mr-2" />
+                    Insert Formula
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => {
+                    const { $from } = editor.state.selection;
+                    let depth = $from.depth;
+                    while (depth > 0) {
+                      const node = $from.node(depth);
+                      if (node.type.name === 'table') {
+                        const dom = editor.view.nodeDOM($from.before(depth));
+                        if (dom instanceof HTMLTableElement) {
+                          const widths = computeAutoFitSmart(dom);
+                          if (widths) {
+                            const colgroup = dom.querySelector('colgroup');
+                            if (colgroup) {
+                              const cols = colgroup.querySelectorAll('col');
+                              cols.forEach((col, i) => {
+                                if (i < widths.length) {
+                                  (col as HTMLElement).style.width = `${widths[i]}px`;
+                                  (col as HTMLElement).style.minWidth = `${widths[i]}px`;
+                                }
+                              });
                             }
-                          });
+                          }
                         }
+                        break;
                       }
+                      depth--;
                     }
-                    break;
-                  }
-                  depth--;
-                }
-              }}>
-                <Columns className="w-4 h-4 mr-2" />
-                Auto-resize columns
-              </DropdownMenuItem>
-              {sectionNumber && (
-                <DropdownMenuItem onClick={() => {
-                  if (sectionNumber) {
-                    updateCaptionForTableAtCursor(editor, sectionNumber, tableOffset);
-                  }
-                }}>
-                  <FileText className="w-4 h-4 mr-2" />
-                  Update caption
-                </DropdownMenuItem>
+                  }}>
+                    <Columns className="w-4 h-4 mr-2" />
+                    Auto-resize columns
+                  </DropdownMenuItem>
+                  {sectionNumber && (
+                    <DropdownMenuItem onClick={() => {
+                      if (sectionNumber) {
+                        updateCaptionForTableAtCursor(editor, sectionNumber, tableOffset);
+                      }
+                    }}>
+                      <FileText className="w-4 h-4 mr-2" />
+                      Update caption
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => editor.chain().focus().deleteTable().run()}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete table
+                  </DropdownMenuItem>
+                </>
               )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={() => editor.chain().focus().deleteTable().run()}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete table
-              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         )}
