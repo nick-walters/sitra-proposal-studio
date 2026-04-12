@@ -11,7 +11,7 @@ declare module '@tiptap/core' {
 
 /**
  * Adds spacingBefore / spacingAfter (in pt) attributes to paragraphs.
- * Renders as inline margin-top / margin-bottom styles.
+ * Values are stored as data-spacing-* attributes and rendered as inline margin styles.
  */
 export const ParagraphSpacing = Extension.create({
   name: 'paragraphSpacing',
@@ -25,30 +25,28 @@ export const ParagraphSpacing = Extension.create({
             default: null,
             parseHTML: (el) => {
               const raw = el.getAttribute('data-spacing-before');
-              if (raw) return parseFloat(raw);
-              return null;
+              return raw ? parseFloat(raw) : null;
             },
             renderHTML: (attrs) => {
-              if (attrs.spacingBefore == null) return {};
-              return {
-                'data-spacing-before': String(attrs.spacingBefore),
-                style: `margin-top: ${attrs.spacingBefore}pt${attrs.spacingAfter != null ? `; margin-bottom: ${attrs.spacingAfter}pt` : ''}`,
-              };
+              const parts: string[] = [];
+              if (attrs.spacingBefore != null) parts.push(`margin-top: ${attrs.spacingBefore}pt`);
+              if (attrs.spacingAfter != null) parts.push(`margin-bottom: ${attrs.spacingAfter}pt`);
+              const result: Record<string, string> = {};
+              if (attrs.spacingBefore != null) result['data-spacing-before'] = String(attrs.spacingBefore);
+              if (parts.length) result.style = parts.join('; ');
+              return result;
             },
           },
           spacingAfter: {
             default: null,
             parseHTML: (el) => {
               const raw = el.getAttribute('data-spacing-after');
-              if (raw) return parseFloat(raw);
-              return null;
+              return raw ? parseFloat(raw) : null;
             },
             renderHTML: (attrs) => {
+              // Style is handled in spacingBefore renderHTML to avoid conflicts
               if (attrs.spacingAfter == null) return {};
-              return {
-                'data-spacing-after': String(attrs.spacingAfter),
-                style: `margin-bottom: ${attrs.spacingAfter}pt${attrs.spacingBefore != null ? `; margin-top: ${attrs.spacingBefore}pt` : ''}`,
-              };
+              return { 'data-spacing-after': String(attrs.spacingAfter) };
             },
           },
         },
