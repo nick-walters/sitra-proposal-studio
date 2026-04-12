@@ -122,6 +122,46 @@ export const computeAutoFitFull = (
   _colMaxWidths?: Record<number, number>
 ) => computeAutoFitSmart(table, { fullWidth: true });
 
+export function applyColumnWidthsToTable(
+  table: HTMLTableElement,
+  widths: number[],
+  options?: { useMinWidth?: boolean }
+): void {
+  if (widths.length === 0) return;
+
+  let colgroup = table.querySelector('colgroup');
+  if (!colgroup) {
+    colgroup = document.createElement('colgroup');
+    table.insertBefore(colgroup, table.firstChild);
+  }
+
+  const cols = Array.from(colgroup.querySelectorAll('col'));
+  while (cols.length < widths.length) {
+    const col = document.createElement('col');
+    colgroup.appendChild(col);
+    cols.push(col);
+  }
+
+  cols.forEach((col, i) => {
+    if (i < widths.length) {
+      col.style.width = `${widths[i]}px`;
+      col.style.minWidth = '';
+      col.setAttribute('width', String(widths[i]));
+    }
+  });
+
+  cols.slice(widths.length).forEach((col) => col.remove());
+
+  const totalWidth = widths.reduce((sum, width) => sum + width, 0);
+  table.style.tableLayout = 'fixed';
+  table.style.width = `${totalWidth}px`;
+  table.style.minWidth = options?.useMinWidth ? `${totalWidth}px` : '';
+
+  table.querySelectorAll('th, td').forEach((cell) => {
+    (cell as HTMLElement).style.verticalAlign = 'middle';
+  });
+}
+
 /** Internal: measure no-wrap column widths, returns cleanup function to restore DOM */
 function measureColumnWidths(table: HTMLTableElement): {
   minWidths: number[] | null;
@@ -130,14 +170,29 @@ function measureColumnWidths(table: HTMLTableElement): {
 } {
   const prevLayout = table.style.tableLayout;
   const prevWidth = table.style.width;
+  const prevMinWidth = table.style.minWidth;
 
   table.style.tableLayout = 'auto';
   table.style.width = 'auto';
+  table.style.minWidth = '';
 
   const allCells = table.querySelectorAll('th, td');
-  const savedStyles: string[] = [];
+  const savedStyles: { width: string; minWidth: string; whiteSpace: string }[] = [];
   const textareas = table.querySelectorAll('textarea');
   const savedTextareaStyles: { width: string; whiteSpace: string }[] = [];
+  const cols = Array.from(table.querySelectorAll('colgroup col'));
+  const savedColStyles = cols.map((col) => ({
+    width: col.style.width,
+    minWidth: col.style.minWidth,
+    widthAttr: col.getAttribute('width'),
+  }));
+
+  cols.forEach((col) => {
+    col.style.width = '';
+    col.style.minWidth = '';
+    col.removeAttribute('width');
+  });
+
   textareas.forEach((ta, i) => {
     savedTextareaStyles[i] = { width: ta.style.width, whiteSpace: ta.style.whiteSpace };
     ta.style.width = 'auto';
@@ -146,8 +201,13 @@ function measureColumnWidths(table: HTMLTableElement): {
 
   allCells.forEach((cell, i) => {
     const el = cell as HTMLElement;
-    savedStyles[i] = el.style.width;
+    savedStyles[i] = {
+      width: el.style.width,
+      minWidth: el.style.minWidth,
+      whiteSpace: el.style.whiteSpace,
+    };
     el.style.width = '';
+    el.style.minWidth = '';
     el.style.whiteSpace = 'nowrap';
   });
 
@@ -158,17 +218,26 @@ function measureColumnWidths(table: HTMLTableElement): {
   const restore = () => {
     table.style.tableLayout = prevLayout;
     table.style.width = prevWidth;
+    table.style.minWidth = prevMinWidth;
     allCells.forEach((cell, i) => {
-      (cell as HTMLElement).style.width = savedStyles[i];
+      const el = cell as HTMLElement;
+      el.style.width = savedStyles[i].width;
+      el.style.minWidth = savedStyles[i].minWidth;
+      el.style.whiteSpace = savedStyles[i].whiteSpace;
     });
     textareas.forEach((ta, i) => {
       ta.style.width = savedTextareaStyles[i].width;
       ta.style.whiteSpace = savedTextareaStyles[i].whiteSpace;
     });
+    cols.forEach((col, i) => {
+      col.style.width = savedColStyles[i].width;
+      col.style.minWidth = savedColStyles[i].minWidth;
+      if (savedColStyles[i].widthAttr != null) col.setAttribute('width', savedColStyles[i].widthAttr);
+      else col.removeAttribute('width');
+    });
   };
 
   if (numCols === 0) {
-    allCells.forEach((cell) => { (cell as HTMLElement).style.whiteSpace = ''; });
     restore();
     return { minWidths: null, containerWidth: 0, cleanup: () => {} };
   }
@@ -183,7 +252,9 @@ function measureColumnWidths(table: HTMLTableElement): {
     });
   });
 
-  allCells.forEach((cell) => { (cell as HTMLElement).style.whiteSpace = ''; });
+  allCells.forEach((cell, i) => {
+    (cell as HTMLElement).style.whiteSpace = savedStyles[i].whiteSpace;
+  });
   textareas.forEach((ta, i) => {
     ta.style.whiteSpace = savedTextareaStyles[i].whiteSpace;
   });

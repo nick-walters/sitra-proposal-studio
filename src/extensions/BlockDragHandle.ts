@@ -4,7 +4,7 @@ import { Decoration, DecorationSet, EditorView } from '@tiptap/pm/view';
 import { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { TextSelection } from '@tiptap/pm/state';
 import { findBlockRange, isReorderableBlock } from './BlockReordering';
-import { computeAutoFitSmart } from '@/lib/autoFitColumns';
+import { autoFitEditorTableAtPos } from '@/lib/editorTableAutoFit';
 
 export interface BlockLockForDrag {
   userId: string;
@@ -89,24 +89,27 @@ function blockContainsTable(doc: ProseMirrorNode, startPos: number, endPos: numb
   return found;
 }
 
-function findTableDomInBlock(view: EditorView, startPos: number, endPos: number): HTMLTableElement | null {
-  // Try each position in the block range to find the table DOM
+function findTableInBlock(
+  view: EditorView,
+  startPos: number,
+  endPos: number,
+): { tableEl: HTMLTableElement; tablePos: number } | null {
   const doc = view.state.doc;
-  let tableEl: HTMLTableElement | null = null;
+  let match: { tableEl: HTMLTableElement; tablePos: number } | null = null;
   doc.nodesBetween(startPos, endPos, (node, pos) => {
-    if (tableEl) return false;
+    if (match) return false;
     if (node.type.name === 'table') {
       const dom = view.nodeDOM(pos);
       if (dom instanceof HTMLTableElement) {
-        tableEl = dom;
+        match = { tableEl: dom, tablePos: pos };
       } else if (dom instanceof HTMLElement) {
         const inner = dom.querySelector('table');
-        if (inner) tableEl = inner;
+        if (inner) match = { tableEl: inner, tablePos: pos };
       }
       return false;
     }
   });
-  return tableEl;
+  return match;
 }
 
 export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
@@ -198,27 +201,9 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
             e.preventDefault();
             e.stopPropagation();
             if (!currentHoveredBlockRange) return;
-            const tableDom = findTableDomInBlock(editorView, currentHoveredBlockRange.startPos, currentHoveredBlockRange.endPos);
-            if (tableDom) {
-              const widths = computeAutoFitSmart(tableDom);
-              if (widths) {
-                const colgroup = tableDom.querySelector('colgroup');
-                if (colgroup) {
-                  const cols = colgroup.querySelectorAll('col');
-                  cols.forEach((col, i) => {
-                    if (i < widths.length) {
-                      (col as HTMLElement).style.width = `${widths[i]}px`;
-                      (col as HTMLElement).style.minWidth = `${widths[i]}px`;
-                    }
-                  });
-                }
-                tableDom.style.tableLayout = 'fixed';
-                const containerWidth = tableDom.parentElement?.clientWidth ?? tableDom.offsetWidth;
-                tableDom.style.width = `${containerWidth}px`;
-                tableDom.querySelectorAll('th, td').forEach(cell => {
-                  (cell as HTMLElement).style.verticalAlign = 'middle';
-                });
-              }
+            const tableMatch = findTableInBlock(editorView, currentHoveredBlockRange.startPos, currentHoveredBlockRange.endPos);
+            if (tableMatch) {
+              autoFitEditorTableAtPos(editorView, tableMatch.tablePos, tableMatch.tableEl);
             }
           });
 
