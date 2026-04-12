@@ -905,9 +905,28 @@
   color: hsl(var(--accent-foreground));
 }
 
-/* Drag Handle */
 .block-drag-handle {
+  grid-column: 1;
+  grid-row: 1;
   cursor: grab;
+}
+
+.block-delete-btn {
+  grid-column: 2;
+  grid-row: 1;
+  color: hsl(var(--destructive));
+}
+
+.block-autoresize-btn,
+.block-paste-btn {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.block-cut-btn {
+  grid-column: 2;
+  grid-row: 2;
+  color: hsl(var(--muted-foreground));
 }
 
 .block-drag-handle.dragging,
@@ -915,20 +934,10 @@
   cursor: grabbing;
 }
 
-/* Delete Button */
-.block-delete-btn {
-  color: hsl(var(--destructive));
-}
-
 .block-delete-btn:hover {
   background: hsl(var(--destructive));
   border-color: hsl(var(--destructive));
   color: hsl(var(--destructive-foreground));
-}
-
-/* Cut Button */
-.block-cut-btn {
-  color: hsl(var(--muted-foreground));
 }
 
 .block-cut-btn:hover {
@@ -942,14 +951,18 @@
   color: hsl(var(--primary-foreground));
 }
 
-/* Autoresize Button */
 .block-autoresize-btn {
   color: hsl(var(--muted-foreground));
 }
 
-.block-autoresize-btn:hover {
+.block-autoresize-btn:hover,
+.block-paste-btn:hover {
   color: hsl(var(--primary));
   border-color: hsl(var(--primary));
+}
+
+.block-paste-btn {
+  color: hsl(var(--primary));
 }
 
 /* Cut source – greyed out block (React/B12 blocks only) */
