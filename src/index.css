@@ -643,7 +643,8 @@
   display: block;
   margin: 0;
 }
-.b12-case-content p:first-child {
+.b12-case-content > p:first-child,
+.b12-case-content > div:first-child {
   display: inline;
 }
 .b12-case-content ul {
