@@ -422,7 +422,21 @@ export function CaseManagementCard({
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onMutate: async ({ id, updates }) => {
+      await queryClient.cancelQueries({ queryKey: ['case-drafts', proposalId] });
+      const previous = queryClient.getQueryData<CaseDraft[]>(['case-drafts', proposalId]);
+      queryClient.setQueryData<CaseDraft[]>(['case-drafts', proposalId], old =>
+        (old || []).map(c => c.id === id ? { ...c, ...updates } : c)
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['case-drafts', proposalId], context.previous);
+      }
+      toast.error('Failed to update case');
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['case-leadership', proposalId] });
       onSaveEvent?.();
@@ -583,6 +597,10 @@ export function CaseManagementCard({
   }, [deleteCaseMutation]);
 
   const handleToggleLock = useCallback(async (id: string, locked: boolean) => {
+    // Optimistic update
+    queryClient.setQueryData<CaseDraft[]>(['case-drafts', proposalId], old =>
+      (old || []).map(c => c.id === id ? { ...c, is_locked: locked, locked_by: locked ? user?.id ?? null : null } : c)
+    );
     const { error } = await supabase
       .from('case_drafts')
       .update({ 
@@ -593,6 +611,7 @@ export function CaseManagementCard({
       .eq('id', id);
     if (error) {
       toast.error('Failed to update lock status');
+      queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
       return;
     }
     queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
@@ -602,6 +621,10 @@ export function CaseManagementCard({
   const handleToggleLockAll = useCallback(async () => {
     const allLocked = caseDrafts.every(c => c.is_locked);
     const newLocked = !allLocked;
+    // Optimistic update
+    queryClient.setQueryData<CaseDraft[]>(['case-drafts', proposalId], old =>
+      (old || []).map(c => ({ ...c, is_locked: newLocked, locked_by: newLocked ? user?.id ?? null : null }))
+    );
     const { error } = await supabase
       .from('case_drafts')
       .update({
@@ -612,6 +635,7 @@ export function CaseManagementCard({
       .eq('proposal_id', proposalId);
     if (error) {
       toast.error('Failed to update lock status');
+      queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
       return;
     }
     queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
@@ -619,12 +643,17 @@ export function CaseManagementCard({
   }, [user, proposalId, queryClient, caseDrafts]);
 
   const handleToggleVisibility = useCallback(async (id: string, hidden: boolean) => {
+    // Optimistic update
+    queryClient.setQueryData<CaseDraft[]>(['case-drafts', proposalId], old =>
+      (old || []).map(c => c.id === id ? { ...c, is_hidden: hidden } : c)
+    );
     const { error } = await supabase
       .from('case_drafts')
       .update({ is_hidden: hidden } as any)
       .eq('id', id);
     if (error) {
       toast.error('Failed to update visibility');
+      queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
       return;
     }
     queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
@@ -634,12 +663,17 @@ export function CaseManagementCard({
   const handleToggleVisibilityAll = useCallback(async () => {
     const allHidden = caseDrafts.every(c => c.is_hidden);
     const newHidden = !allHidden;
+    // Optimistic update
+    queryClient.setQueryData<CaseDraft[]>(['case-drafts', proposalId], old =>
+      (old || []).map(c => ({ ...c, is_hidden: newHidden }))
+    );
     const { error } = await supabase
       .from('case_drafts')
       .update({ is_hidden: newHidden } as any)
       .eq('proposal_id', proposalId);
     if (error) {
       toast.error('Failed to update visibility');
+      queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
       return;
     }
     queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
