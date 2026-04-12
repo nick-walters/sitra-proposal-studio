@@ -118,8 +118,10 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
     const { getLockedBlocks, getCurrentUserId, onDeleteRequest } = this.options;
     
     let draggedBlockRange: { startPos: number; endPos: number } | null = null;
+    let cutBlockRange: { startPos: number; endPos: number } | null = null;
     let dropIndicator: HTMLElement | null = null;
     let dragContainer: HTMLElement | null = null;
+    let pasteIndicators: HTMLElement[] = [];
     let currentHoveredBlockPos: number | null = null;
     let currentHoveredBlockRange: { startPos: number; endPos: number } | null = null;
     let pendingDeleteCallback: (() => void) | null = null;
