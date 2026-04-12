@@ -4,9 +4,8 @@ import { B12CaseStudyTables } from './B12CaseStudyTables';
 import { B12OngoingProjectsTable } from './B12OngoingProjectsTable';
 import { useCallback, useEffect, useState, useMemo, ReactNode } from 'react';
 import { GripVertical, Trash2 } from 'lucide-react';
-import { supabase as sb } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import { useUserRole } from '@/hooks/useUserRole';
+import { toast } from 'sonner';
 import type { Editor } from '@tiptap/react';
 
 type BlockId = 'editor' | 'case-studies' | 'ongoing-projects';
