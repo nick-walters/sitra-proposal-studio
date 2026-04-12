@@ -2,6 +2,41 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+/**
+ * Strip legacy Word/XML artifacts from HTML content.
+ * Removes xmlns attributes, MsoNormal classes, mso-* style properties, 
+ * XML processing instructions, and empty spans left behind.
+ */
+function stripWordXml(html: string): string {
+  if (!html || typeof html !== 'string') return html;
+  // Skip if no Word artifacts present
+  if (!/xmlns|MsoNormal|mso-|<o:|<w:|<m:|class="Mso/i.test(html)) return html;
+
+  let clean = html;
+  // Remove XML processing instructions
+  clean = clean.replace(/<\?xml[^>]*\?>/gi, '');
+  // Remove Office namespace tags (o:p, w:sdt, etc.)
+  clean = clean.replace(/<\/?[owm]:[^>]*>/gi, '');
+  // Remove xmlns attributes
+  clean = clean.replace(/\s+xmlns(?::[a-z]+)?="[^"]*"/gi, '');
+  // Remove class="MsoNormal" and similar
+  clean = clean.replace(/\s+class="Mso[^"]*"/gi, '');
+  // Remove mso-* properties from style attributes
+  clean = clean.replace(/style="([^"]*)"/gi, (match, styles: string) => {
+    const cleaned = styles
+      .split(';')
+      .filter((s: string) => !/^\s*mso-/i.test(s.trim()))
+      .join(';')
+      .trim();
+    return cleaned ? `style="${cleaned}"` : '';
+  });
+  // Remove empty spans
+  clean = clean.replace(/<span\s*>\s*<\/span>/gi, '');
+  // Remove empty style attributes
+  clean = clean.replace(/\s+style=""/g, '');
+  return clean;
+}
+
 export interface WPDraftTask {
   id: string;
   wp_draft_id: string;
@@ -343,10 +378,24 @@ export function useWPDraftEditor(wpId: string | null) {
         return fixed;
       };
 
+      // Strip legacy Word/XML artifacts from rich-text fields
+      const htmlFields = ['methodology', 'objectives', 'description_before_tasks', 'background_knowledge', 'approach_summary', 'foreseen_challenges'] as const;
+      const cleanedData = { ...data };
+      for (const f of htmlFields) {
+        if (cleanedData[f] && typeof cleanedData[f] === 'string') {
+          cleanedData[f] = stripWordXml(cleanedData[f] as string);
+        }
+      }
+      // Also clean task descriptions
+      const cleanedTasks = sortedTasks.map((t: any) => ({
+        ...t,
+        description: t.description ? stripWordXml(t.description) : t.description,
+      }));
+
       const sortedData = {
-        ...data,
+        ...cleanedData,
         methodologies_list: (data.methodologies_list || []) as { name: string; description: string }[],
-        tasks: fixItems(sortedTasks, (id, num, idx) => {
+        tasks: fixItems(cleanedTasks, (id, num, idx) => {
           supabase.from('wp_draft_tasks').update({ number: num, order_index: idx }).eq('id', id).then();
         }),
         deliverables: fixItems(sortedDeliverables, (id, num, idx) => {
@@ -377,12 +426,16 @@ export function useWPDraftEditor(wpId: string | null) {
   const updateField = useCallback(async (field: keyof WPDraft, value: any) => {
     if (!wpId) return false;
 
+    // Sanitize rich-text fields on save
+    const htmlFields = ['methodology', 'objectives', 'description_before_tasks', 'background_knowledge', 'approach_summary', 'foreseen_challenges'];
+    const cleanValue = htmlFields.includes(field) && typeof value === 'string' ? stripWordXml(value) : value;
+
     setSaving(true);
     setSaveError(null);
     try {
       const { error } = await supabase
         .from('wp_drafts')
-        .update({ [field]: value })
+        .update({ [field]: cleanValue })
         .eq('id', wpId);
 
       if (error) throw error;
