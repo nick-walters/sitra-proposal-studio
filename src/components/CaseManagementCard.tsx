@@ -400,9 +400,9 @@ export function CaseManagementCard({
 
   const invalidateCaseQueries = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ['case-drafts-management', proposalId] });
-    void invalidateCaseQueries();
+    void queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
     void queryClient.invalidateQueries({ queryKey: ['case-leadership', proposalId] });
-  }, [proposalId, queryClient, invalidateCaseQueries]);
+  }, [proposalId, queryClient]);
 
   const handleCaseDraftVisibility = async (visible: boolean) => {
     await supabase.from('proposals').update({ case_drafts_visible: visible } as any).eq('id', proposalId);
@@ -659,7 +659,7 @@ export function CaseManagementCard({
     }
     invalidateCaseQueries();
     if (!error) toast.success(hidden ? 'Case hidden' : 'Case visible');
-  }, [proposalId, queryClient]);
+  }, [proposalId, queryClient, invalidateCaseQueries]);
 
   const handleToggleVisibilityAll = useCallback(async () => {
     const allHidden = caseDrafts.every(c => c.is_hidden);
