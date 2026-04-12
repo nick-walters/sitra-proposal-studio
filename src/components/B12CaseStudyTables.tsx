@@ -289,6 +289,7 @@ export function B12CaseStudyTables({ proposalId, tableIndex = 0, sectionNumber =
         tableKey="b12-case-studies"
         label={`Table ${sectionNumber.replace(/^[A-Za-z]+/, '')}.${String.fromCharCode(97 + tableIndex)}.`}
         defaultCaption={pluralCaption}
+        onRefresh={() => window.dispatchEvent(new CustomEvent('caption-refresh-all'))}
       />
 
       {cases.map((c, idx) => {

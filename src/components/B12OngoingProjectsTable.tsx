@@ -516,6 +516,7 @@ export function B12OngoingProjectsTable({ proposalId, tableIndex = 0, sectionNum
         tableKey="b12-ongoing-projects"
         label={`Table ${sectionNumber.replace(/^[A-Za-z]+/, '')}.${String.fromCharCode(97 + tableIndex)}.`}
         defaultCaption="Ongoing & recently completed projects & initiatives with which the project will collaborate"
+        onRefresh={() => window.dispatchEvent(new CustomEvent('caption-refresh-all'))}
       />
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

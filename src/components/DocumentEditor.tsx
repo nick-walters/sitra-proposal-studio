@@ -486,17 +486,24 @@ export function DocumentEditor({
       setB12FocusedCaseId(detail.caseId ?? null);
       setB12FocusedRowId(detail.rowId ?? null);
     };
+    const handleCaptionRefreshAll = () => {
+      if (editor && section?.number) {
+        renumberCaptionsInEditor(editor, section.number, b12TableOffset);
+      }
+    };
     window.addEventListener('cross-ref-data-changed', handleCrossRefDataChanged);
     window.addEventListener('block-reordered', handleBlockReordered);
     window.addEventListener('b12-table-offset', handleB12Offset);
     window.addEventListener('b12-table-focus', handleB12TableFocus as EventListener);
+    window.addEventListener('caption-refresh-all', handleCaptionRefreshAll);
     return () => {
       window.removeEventListener('cross-ref-data-changed', handleCrossRefDataChanged);
       window.removeEventListener('block-reordered', handleBlockReordered);
       window.removeEventListener('b12-table-offset', handleB12Offset);
       window.removeEventListener('b12-table-focus', handleB12TableFocus as EventListener);
+      window.removeEventListener('caption-refresh-all', handleCaptionRefreshAll);
     };
-  }, [editor, section?.number]);
+  }, [editor, section?.number, b12TableOffset]);
 
   useEffect(() => {
     setB12TableFocus(null);
