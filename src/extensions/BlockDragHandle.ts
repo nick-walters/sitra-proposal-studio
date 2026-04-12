@@ -2,6 +2,7 @@ import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet, EditorView } from '@tiptap/pm/view';
 import { Node as ProseMirrorNode } from '@tiptap/pm/model';
+import { TextSelection } from '@tiptap/pm/state';
 import { findBlockRange, isReorderableBlock } from './BlockReordering';
 import { computeAutoFitSmart } from '@/lib/autoFitColumns';
 
@@ -22,10 +23,7 @@ const GRIP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
 
 const DELETE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>`;
 
-const CUT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg>`;
-
 const AUTORESIZE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>`;
-const PASTE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H8a2 2 0 0 1-2-2V7"/><path d="M16 3h5v5"/><path d="m5 13 11-11"/><path d="M5 8v5h5"/></svg>`;
 
 function createDragHandleContainer(): HTMLElement {
   const container = document.createElement('div');
@@ -38,7 +36,7 @@ function createDragHandleContainer(): HTMLElement {
   dragHandle.className = 'block-ctrl-btn block-drag-handle';
   dragHandle.setAttribute('draggable', 'true');
   dragHandle.setAttribute('contenteditable', 'false');
-  dragHandle.setAttribute('title', 'Drag to reorder');
+  dragHandle.setAttribute('title', 'Click to select block, drag to reorder');
   dragHandle.innerHTML = GRIP_SVG;
 
   const deleteBtn = document.createElement('div');
@@ -54,24 +52,9 @@ function createDragHandleContainer(): HTMLElement {
   autoresizeBtn.innerHTML = AUTORESIZE_SVG;
   autoresizeBtn.style.display = 'none';
 
-  const pasteBtn = document.createElement('div');
-  pasteBtn.className = 'block-ctrl-btn block-paste-btn';
-  pasteBtn.setAttribute('contenteditable', 'false');
-  pasteBtn.setAttribute('title', 'Paste cut block here');
-  pasteBtn.innerHTML = PASTE_SVG;
-  pasteBtn.style.display = 'none';
-
-  const cutBtn = document.createElement('div');
-  cutBtn.className = 'block-ctrl-btn block-cut-btn';
-  cutBtn.setAttribute('contenteditable', 'false');
-  cutBtn.setAttribute('title', 'Cut block');
-  cutBtn.innerHTML = CUT_SVG;
-
   grid.appendChild(dragHandle);
   grid.appendChild(deleteBtn);
   grid.appendChild(autoresizeBtn);
-  grid.appendChild(pasteBtn);
-  grid.appendChild(cutBtn);
 
   container.appendChild(grid);
   return container;
@@ -80,13 +63,6 @@ function createDragHandleContainer(): HTMLElement {
 function createDropIndicator(): HTMLElement {
   const indicator = document.createElement('div');
   indicator.className = 'block-drop-indicator';
-  return indicator;
-}
-
-function createPasteIndicator(): HTMLElement {
-  const indicator = document.createElement('div');
-  indicator.className = 'block-paste-indicator';
-  indicator.innerHTML = '<span class="block-paste-label">Paste here</span>';
   return indicator;
 }
 
@@ -104,7 +80,6 @@ function getBlockIdFromPos(doc: ProseMirrorNode, pos: number): string | null {
   }
 }
 
-/** Check if block at position contains or is a table */
 function blockContainsTable(doc: ProseMirrorNode, startPos: number, endPos: number): boolean {
   let found = false;
   doc.nodesBetween(startPos, endPos, (node) => {
@@ -114,37 +89,11 @@ function blockContainsTable(doc: ProseMirrorNode, startPos: number, endPos: numb
   return found;
 }
 
-/** Find the table DOM element inside a block range */
 function findTableDomInBlock(view: EditorView, startPos: number, endPos: number): HTMLTableElement | null {
   const blockDom = view.nodeDOM(startPos);
   if (!blockDom || !(blockDom instanceof HTMLElement)) return null;
   if (blockDom instanceof HTMLTableElement) return blockDom;
   return blockDom.querySelector('table');
-}
-
-function isEmptyPasteTargetBlock(node: ProseMirrorNode): boolean {
-  if (node.type.name !== 'paragraph') return false;
-  const cls = String(node.attrs?.class || '');
-  if (cls.includes('table-caption') || cls.includes('figure-caption')) return false;
-  return node.textContent.trim() === '';
-}
-
-function getBlockTopOffset(view: EditorView, startPos: number, endPos: number): number | null {
-  const editorRect = view.dom.parentElement?.getBoundingClientRect();
-  if (!editorRect) return null;
-
-  const blockDom = view.nodeDOM(startPos);
-  if (blockDom instanceof HTMLElement) {
-    return blockDom.getBoundingClientRect().top - editorRect.top;
-  }
-
-  try {
-    const safePos = Math.min(Math.max(startPos + 1, 1), Math.max(view.state.doc.content.size - 1, 1));
-    const coords = view.coordsAtPos(safePos);
-    return coords.top - editorRect.top;
-  } catch {
-    return null;
-  }
 }
 
 export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
@@ -166,213 +115,6 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
     let currentHoveredBlockPos: number | null = null;
     let currentHoveredBlockRange: { startPos: number; endPos: number } | null = null;
 
-    // Cut state
-    let cutBlockRange: { startPos: number; endPos: number } | null = null;
-    let pasteIndicators: HTMLElement[] = [];
-    let cutOverlay: HTMLElement | null = null;
-
-    const removeCutOverlay = () => {
-      cutOverlay?.remove();
-      cutOverlay = null;
-    };
-
-    const positionCutOverlay = (view: EditorView) => {
-      if (!cutBlockRange || !cutOverlay) return;
-      const editorParent = view.dom.parentElement;
-      if (!editorParent) return;
-      const editorRect = editorParent.getBoundingClientRect();
-
-      // Find all DOM nodes in the block range and compute bounding box
-      let top = Infinity, bottom = -Infinity;
-      const doc = view.state.doc;
-      doc.nodesBetween(cutBlockRange.startPos, cutBlockRange.endPos, (node, pos) => {
-        if (pos >= cutBlockRange!.startPos && pos < cutBlockRange!.endPos) {
-          const dom = view.nodeDOM(pos);
-          if (dom && dom instanceof HTMLElement) {
-            const rect = dom.getBoundingClientRect();
-            if (rect.top < top) top = rect.top;
-            if (rect.bottom > bottom) bottom = rect.bottom;
-          }
-        }
-        return true;
-      });
-
-      if (top !== Infinity && bottom !== -Infinity) {
-        cutOverlay.style.top = `${top - editorRect.top - 2}px`;
-        cutOverlay.style.height = `${bottom - top + 4}px`;
-        cutOverlay.style.left = '-4px';
-        cutOverlay.style.right = '-4px';
-        cutOverlay.style.display = 'block';
-      }
-    };
-
-    const createCutOverlay = (view: EditorView) => {
-      removeCutOverlay();
-      const editorParent = view.dom.parentElement;
-      if (!editorParent) return;
-      cutOverlay = document.createElement('div');
-      cutOverlay.className = 'block-cut-overlay';
-      editorParent.appendChild(cutOverlay);
-      positionCutOverlay(view);
-    };
-
-    const clearCutState = (view?: EditorView) => {
-      cutBlockRange = null;
-      removeCutOverlay();
-      pasteIndicators.forEach(el => el.remove());
-      pasteIndicators = [];
-      const cutBtn = dragContainer?.querySelector('.block-cut-btn');
-      cutBtn?.classList.remove('active');
-    };
-
-    const moveCutBlockToInsertPos = (view: EditorView, insertPos: number): boolean => {
-      if (!cutBlockRange) return false;
-
-      try {
-        const { state } = view;
-        const slice = state.doc.slice(cutBlockRange.startPos, cutBlockRange.endPos);
-        const sourceStart = cutBlockRange.startPos;
-        const sourceEnd = cutBlockRange.endPos;
-        const sourceSize = sourceEnd - sourceStart;
-
-        if (insertPos === sourceStart || insertPos === sourceEnd) return false;
-        if (insertPos > sourceStart && insertPos < sourceEnd) return false;
-
-        const tr = state.tr;
-        tr.setMeta('blockReorder', true);
-
-        if (sourceStart < insertPos) {
-          const adjustedInsertPos = insertPos - sourceSize;
-          if (adjustedInsertPos === sourceStart) return false;
-          tr.delete(sourceStart, sourceEnd);
-          tr.insert(adjustedInsertPos, slice.content);
-        } else {
-          tr.insert(insertPos, slice.content);
-          tr.delete(sourceStart + sourceSize, sourceEnd + sourceSize);
-        }
-
-        view.dispatch(tr);
-        clearCutState(view);
-        setTimeout(() => {
-          window.dispatchEvent(new Event('block-reordered'));
-        }, 50);
-        return true;
-      } catch (error) {
-        console.error('Paste error:', error);
-        return false;
-      }
-    };
-
-    const getInsertPosAfterSelectionBlock = (view: EditorView): number => {
-      const { from } = view.state.selection;
-      const $pos = view.state.doc.resolve(from);
-      return $pos.depth >= 1 ? $pos.after(1) : from;
-    };
-
-    const syncDragControlsForBlock = (
-      view: EditorView,
-      blockRange: { startPos: number; endPos: number; node: ProseMirrorNode },
-      forceVisible = false,
-    ) => {
-      if (!dragContainer) return;
-
-      currentHoveredBlockPos = blockRange.startPos;
-      currentHoveredBlockRange = { startPos: blockRange.startPos, endPos: blockRange.endPos };
-
-      const hasTable = blockContainsTable(view.state.doc, blockRange.startPos, blockRange.endPos);
-      const canPasteIntoBlock = !!cutBlockRange && isEmptyPasteTargetBlock(blockRange.node);
-
-      const autoresizeBtn = dragContainer.querySelector('.block-autoresize-btn') as HTMLElement;
-      if (autoresizeBtn) {
-        autoresizeBtn.style.display = hasTable ? 'flex' : 'none';
-      }
-
-      const pasteBtn = dragContainer.querySelector('.block-paste-btn') as HTMLElement;
-      if (pasteBtn) {
-        pasteBtn.style.display = canPasteIntoBlock ? 'flex' : 'none';
-      }
-
-      const cutBtn = dragContainer.querySelector('.block-cut-btn') as HTMLElement;
-      if (cutBtn) {
-        const isCutBlock = cutBlockRange && cutBlockRange.startPos === blockRange.startPos;
-        cutBtn.classList.toggle('active', !!isCutBlock);
-      }
-
-      const topOffset = getBlockTopOffset(view, blockRange.startPos, blockRange.endPos);
-      if (topOffset !== null) {
-        dragContainer.style.display = 'flex';
-        dragContainer.style.top = `${topOffset}px`;
-        dragContainer.style.left = '-52px';
-        dragContainer.style.opacity = forceVisible ? '1' : '';
-      }
-    };
-
-    const showPasteIndicators = (view: EditorView) => {
-      pasteIndicators.forEach(el => el.remove());
-      pasteIndicators = [];
-      if (!cutBlockRange) return;
-
-      const editorParent = view.dom.parentElement;
-      if (!editorParent) return;
-      const editorRect = editorParent.getBoundingClientRect();
-
-      // Collect top-level block positions
-      const blocks: { startPos: number; endPos: number }[] = [];
-      const doc = view.state.doc;
-      doc.forEach((node, offset) => {
-        blocks.push({ startPos: offset, endPos: offset + node.nodeSize });
-      });
-
-      // Insert paste indicators between blocks (except around the cut block)
-      for (let i = 0; i <= blocks.length; i++) {
-        // Skip positions adjacent to cut block
-        const prevBlock = i > 0 ? blocks[i - 1] : null;
-        const nextBlock = i < blocks.length ? blocks[i] : null;
-        
-        if (prevBlock && prevBlock.startPos === cutBlockRange.startPos) continue;
-        if (nextBlock && nextBlock.startPos === cutBlockRange.startPos) continue;
-
-        const indicator = createPasteIndicator();
-        
-        // Position
-        let topPx: number;
-        if (nextBlock) {
-          const dom = view.nodeDOM(nextBlock.startPos);
-          if (dom && dom instanceof HTMLElement) {
-            const rect = dom.getBoundingClientRect();
-            topPx = rect.top - editorRect.top - 2;
-          } else continue;
-        } else if (prevBlock) {
-          const dom = view.nodeDOM(prevBlock.startPos);
-          if (dom && dom instanceof HTMLElement) {
-            const rect = dom.getBoundingClientRect();
-            topPx = rect.bottom - editorRect.top;
-          } else continue;
-        } else continue;
-
-        indicator.style.top = `${topPx}px`;
-        
-        const targetIdx = i;
-        indicator.addEventListener('click', () => {
-          if (!cutBlockRange) return;
-          try {
-            const { state } = view;
-            const currentBlocks: { startPos: number; endPos: number }[] = [];
-            state.doc.forEach((node, offset) => {
-              currentBlocks.push({ startPos: offset, endPos: offset + node.nodeSize });
-            });
-            const insertPos = targetIdx < currentBlocks.length ? currentBlocks[targetIdx].startPos : state.doc.content.size;
-            moveCutBlockToInsertPos(view, insertPos);
-          } catch (e) {
-            console.error('Paste error:', e);
-          }
-        });
-
-        editorParent.appendChild(indicator);
-        pasteIndicators.push(indicator);
-      }
-    };
-
     return [
       new Plugin({
         key: dragHandlePluginKey,
@@ -384,38 +126,38 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
 
           const dragHandle = dragContainer.querySelector('.block-drag-handle') as HTMLElement;
           const deleteBtn = dragContainer.querySelector('.block-delete-btn') as HTMLElement;
-          const cutBtn = dragContainer.querySelector('.block-cut-btn') as HTMLElement;
           const autoresizeBtn = dragContainer.querySelector('.block-autoresize-btn') as HTMLElement;
-          const pasteBtn = dragContainer.querySelector('.block-paste-btn') as HTMLElement;
 
           dropIndicator = createDropIndicator();
           dropIndicator.style.display = 'none';
           editorView.dom.parentElement?.appendChild(dropIndicator);
 
-          const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape' && cutBlockRange) {
-              clearCutState(editorView);
-            }
-          };
+          // Grip click: select entire block (including caption)
+          dragHandle?.addEventListener('mousedown', (e: MouseEvent) => {
+            // Don't interfere with drag
+            if (e.button !== 0) return;
+          });
 
-          const handlePaste = (e: ClipboardEvent) => {
-            if (!cutBlockRange) return;
-
-            const editorEl = editorView.dom;
-            const activeEl = document.activeElement;
-            const isInEditor = !!activeEl && (editorEl.contains(activeEl) || editorEl === activeEl || editorView.hasFocus());
-            if (!isInEditor) return;
-
+          dragHandle?.addEventListener('click', (e: MouseEvent) => {
             e.preventDefault();
             e.stopPropagation();
+            if (!currentHoveredBlockRange) return;
 
-            const insertPos = getInsertPosAfterSelectionBlock(editorView);
-            moveCutBlockToInsertPos(editorView, insertPos);
-          };
+            const { startPos, endPos } = currentHoveredBlockRange;
+            try {
+              const { state } = editorView;
+              // Create a text selection spanning the entire block range
+              const $start = state.doc.resolve(startPos);
+              const $end = state.doc.resolve(endPos);
+              const selection = TextSelection.create(state.doc, $start.pos, $end.pos);
+              editorView.dispatch(state.tr.setSelection(selection));
+              editorView.focus();
+            } catch (err) {
+              console.error('Block select error:', err);
+            }
+          });
 
-          document.addEventListener('keydown', handleKeyDown, true);
-          editorView.dom.addEventListener('paste', handlePaste, true);
-
+          // Delete button
           deleteBtn?.addEventListener('click', (e: MouseEvent) => {
             e.preventDefault();
             e.stopPropagation();
@@ -438,34 +180,7 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
             }
           });
 
-          cutBtn?.addEventListener('click', (e: MouseEvent) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (!currentHoveredBlockRange) return;
-
-            if (cutBlockRange && cutBlockRange.startPos === currentHoveredBlockRange.startPos) {
-              clearCutState(editorView);
-              return;
-            }
-
-            clearCutState(editorView);
-            cutBlockRange = { ...currentHoveredBlockRange };
-            cutBtn.classList.add('active');
-            createCutOverlay(editorView);
-            showPasteIndicators(editorView);
-          });
-
-          pasteBtn?.addEventListener('click', (e: MouseEvent) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (!cutBlockRange || currentHoveredBlockPos === null) return;
-
-            const targetRange = findBlockRange(editorView.state.doc, currentHoveredBlockPos);
-            if (!targetRange || !isEmptyPasteTargetBlock(targetRange.node)) return;
-
-            moveCutBlockToInsertPos(editorView, targetRange.startPos);
-          });
-
+          // Autoresize button
           autoresizeBtn?.addEventListener('click', (e: MouseEvent) => {
             e.preventDefault();
             e.stopPropagation();
@@ -520,37 +235,10 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
           });
 
           return {
-            update(view) {
-              if (cutBlockRange && cutOverlay) {
-                positionCutOverlay(view);
-              }
-
-              if (!cutBlockRange || !dragContainer) {
-                if (dragContainer) dragContainer.style.opacity = '';
-                return;
-              }
-
-              try {
-                const { $from } = view.state.selection;
-                const selectedBlockPos = $from.depth >= 1 ? $from.before(1) : $from.before($from.depth === 0 ? 1 : $from.depth);
-                const selectedBlock = findBlockRange(view.state.doc, selectedBlockPos);
-
-                if (selectedBlock && isReorderableBlock(selectedBlock.node) && isEmptyPasteTargetBlock(selectedBlock.node)) {
-                  syncDragControlsForBlock(view, selectedBlock, true);
-                } else {
-                  dragContainer.style.opacity = '';
-                }
-              } catch {
-                dragContainer.style.opacity = '';
-              }
-            },
+            update() {},
             destroy() {
               dragContainer?.remove();
               dropIndicator?.remove();
-              removeCutOverlay();
-              document.removeEventListener('keydown', handleKeyDown, true);
-              editorView.dom.removeEventListener('paste', handlePaste, true);
-              clearCutState();
             },
           };
         },
@@ -578,7 +266,6 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
                 const blockRange = findBlockRange(view.state.doc, blockPos);
                 if (!blockRange || !isReorderableBlock(blockRange.node)) {
                   dragContainer!.style.display = 'none';
-                  dragContainer!.style.opacity = '';
                   currentHoveredBlockPos = null;
                   currentHoveredBlockRange = null;
                   return false;
@@ -590,16 +277,34 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
                 const isLockedByOther = lockedBlocks.some(lock => lock.blockId === blockId && lock.userId !== userId);
                 if (isLockedByOther) {
                   dragContainer!.style.display = 'none';
-                  dragContainer!.style.opacity = '';
                   currentHoveredBlockPos = null;
                   currentHoveredBlockRange = null;
                   return false;
                 }
 
-                syncDragControlsForBlock(view, blockRange, false);
+                currentHoveredBlockPos = blockRange.startPos;
+                currentHoveredBlockRange = { startPos: blockRange.startPos, endPos: blockRange.endPos };
+
+                // Show/hide autoresize button
+                const hasTable = blockContainsTable(view.state.doc, blockRange.startPos, blockRange.endPos);
+                const autoresizeBtn = dragContainer!.querySelector('.block-autoresize-btn') as HTMLElement;
+                if (autoresizeBtn) {
+                  autoresizeBtn.style.display = hasTable ? 'flex' : 'none';
+                }
+
+                // Position
+                const blockDom = view.nodeDOM(blockRange.startPos);
+                if (blockDom && blockDom instanceof HTMLElement) {
+                  const rect = blockDom.getBoundingClientRect();
+                  const editorRect = view.dom.parentElement?.getBoundingClientRect();
+                  if (editorRect) {
+                    dragContainer!.style.display = 'flex';
+                    dragContainer!.style.top = `${rect.top - editorRect.top}px`;
+                    dragContainer!.style.left = '-52px';
+                  }
+                }
               } catch {
                 dragContainer!.style.display = 'none';
-                dragContainer!.style.opacity = '';
                 currentHoveredBlockPos = null;
                 currentHoveredBlockRange = null;
               }

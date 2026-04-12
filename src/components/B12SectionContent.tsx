@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { B12CaseStudyTables } from './B12CaseStudyTables';
 import { B12OngoingProjectsTable } from './B12OngoingProjectsTable';
 import { useCallback, useEffect, useState, useMemo, ReactNode } from 'react';
-import { GripVertical, Trash2, Scissors, Columns3 } from 'lucide-react';
+import { GripVertical, Trash2, Columns3 } from 'lucide-react';
 import { useUserRole } from '@/hooks/useUserRole';
 import { toast } from 'sonner';
 import type { Editor } from '@tiptap/react';
@@ -63,7 +63,6 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
 
   const [blockOrder, setBlockOrder] = useState<BlockId[]>(DEFAULT_ORDER);
   const [orderLoaded, setOrderLoaded] = useState(false);
-  const [cutBlock, setCutBlock] = useState<BlockId | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ blockId: BlockId } | null>(null);
 
   useEffect(() => {
@@ -164,13 +163,6 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
     window.dispatchEvent(new CustomEvent('b12-table-offset', { detail: { offset: b12TablesBeforeEditor } }));
   }, [b12TablesBeforeEditor]);
 
-  // Escape cancels cut
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setCutBlock(null); };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, []);
-
   const executeDeleteBlock = useCallback(async (blockId: BlockId) => {
     if (blockId === 'ongoing-projects') {
       const { error } = await supabase
@@ -197,19 +189,6 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
     }
   }, [proposalId, queryClient]);
 
-  const handlePasteBlock = useCallback((targetIdx: number) => {
-    if (!cutBlock) return;
-    const newOrder = [...blockOrder];
-    const fromIdx = newOrder.indexOf(cutBlock);
-    if (fromIdx === -1) return;
-    newOrder.splice(fromIdx, 1);
-    const adjustedIdx = targetIdx > fromIdx ? targetIdx - 1 : targetIdx;
-    newOrder.splice(adjustedIdx, 0, cutBlock);
-    setBlockOrder(newOrder);
-    saveBlockOrder(newOrder);
-    setCutBlock(null);
-  }, [cutBlock, blockOrder, saveBlockOrder]);
-
   const renderBlock = (blockId: BlockId) => {
     switch (blockId) {
       case 'editor': return editorNode;
@@ -224,121 +203,79 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
 
   return (
     <div className="b12-section-blocks">
-      {visibleBlocks.map((blockId, idx) => {
+      {visibleBlocks.map((blockId) => {
         const isTable = blockId !== 'editor';
         const isDragging = draggedBlock === blockId;
         const isDragOver = dragOverBlock === blockId;
-        const isCut = cutBlock === blockId;
 
         return (
-          <div key={blockId}>
-            {/* Paste indicator before block */}
-            {cutBlock && cutBlock !== blockId && (
-              (() => {
-                // Don't show indicator right after the cut block
-                const cutIdx = visibleBlocks.indexOf(cutBlock);
-                if (idx === cutIdx + 1) return null;
-                return (
-                  <div
-                    className="block-paste-indicator-react"
-                    onClick={() => handlePasteBlock(idx)}
-                    title="Paste here"
-                  >
-                    <span className="block-paste-label">Paste here</span>
-                  </div>
-                );
-              })()
-            )}
-            <div
-              data-b12-block={blockId}
-              className={`relative group/b12block ${isCut ? 'block-cut-source' : ''}`}
-              style={{
-                opacity: isDragging ? 0.4 : 1,
-                borderTop: isDragOver ? '2px solid hsl(var(--primary))' : '2px solid transparent',
-                transition: 'opacity 150ms',
-              }}
-              onDragOver={(e) => handleDragOver(e, blockId)}
-              onDrop={(e) => handleDrop(e, blockId)}
-            >
-              {/* Controls grid */}
-              {canEdit && visibleBlocks.length > 1 && (
+          <div
+            key={blockId}
+            data-b12-block={blockId}
+            className="relative group/b12block"
+            style={{
+              opacity: isDragging ? 0.4 : 1,
+              borderTop: isDragOver ? '2px solid hsl(var(--primary))' : '2px solid transparent',
+              transition: 'opacity 150ms',
+            }}
+            onDragOver={(e) => handleDragOver(e, blockId)}
+            onDrop={(e) => handleDrop(e, blockId)}
+          >
+            {/* Controls grid */}
+            {canEdit && visibleBlocks.length > 1 && (
+              <div
+                className="absolute opacity-0 group-hover/b12block:opacity-100 transition-opacity z-10 block-controls-grid"
+                style={{
+                  left: '-52px',
+                  top: isTable ? '12px' : '0px',
+                }}
+              >
+                {/* Row 1: grip + delete */}
                 <div
-                  className="absolute opacity-0 group-hover/b12block:opacity-100 transition-opacity z-10 block-controls-grid"
-                  style={{
-                    left: '-52px',
-                    top: isTable ? '12px' : '0px',
-                  }}
+                  className="block-ctrl-btn block-drag-handle"
+                  draggable
+                  onDragStart={() => handleDragStart(blockId)}
+                  onDragEnd={handleDragEnd}
+                  title="Drag to reorder"
                 >
-                  {/* Row 1: grip + delete */}
-                  <div
-                    className="block-ctrl-btn block-drag-handle"
-                    draggable
-                    onDragStart={() => handleDragStart(blockId)}
-                    onDragEnd={handleDragEnd}
-                    title="Drag to reorder"
-                  >
-                    <GripVertical className="h-3.5 w-3.5" />
-                  </div>
-                  {isTable ? (
-                    <button
-                      className="block-ctrl-btn block-delete-btn"
-                      onClick={() => setDeleteConfirm({ blockId })}
-                      tabIndex={-1}
-                      title="Delete table"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  ) : (
-                    <div className="block-ctrl-btn" style={{ visibility: 'hidden' }} />
-                  )}
-
-                  {/* Row 2: autoresize (below grip, tables only) + cut (below delete) */}
-                  {isTable ? (
-                    <button
-                      className="block-ctrl-btn block-autoresize-btn"
-                      onClick={() => {
-                        // Find the table's existing auto-resize button and click it
-                        const blockEl = document.querySelector(`[data-b12-block="${blockId}"]`);
-                        const resizeBtn = blockEl?.querySelector('.table-auto-resize-btn') as HTMLButtonElement | null;
-                        resizeBtn?.click();
-                      }}
-                      tabIndex={-1}
-                      title="Auto-resize columns"
-                    >
-                      <Columns3 className="h-3.5 w-3.5" />
-                    </button>
-                  ) : (
-                    <div className="block-ctrl-btn" style={{ visibility: 'hidden' }} />
-                  )}
-                  <button
-                    className={`block-ctrl-btn block-cut-btn ${isCut ? 'active' : ''}`}
-                    onClick={() => setCutBlock(isCut ? null : blockId)}
-                    tabIndex={-1}
-                    title={isCut ? 'Cancel cut' : 'Cut block'}
-                  >
-                    <Scissors className="h-3.5 w-3.5" />
-                  </button>
+                  <GripVertical className="h-3.5 w-3.5" />
                 </div>
-              )}
-              {renderBlock(blockId)}
-            </div>
+                {isTable ? (
+                  <button
+                    className="block-ctrl-btn block-delete-btn"
+                    onClick={() => setDeleteConfirm({ blockId })}
+                    tabIndex={-1}
+                    title="Delete table"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                ) : (
+                  <div className="block-ctrl-btn" style={{ visibility: 'hidden' }} />
+                )}
+
+                {/* Row 2: autoresize (tables only) */}
+                {isTable ? (
+                  <button
+                    className="block-ctrl-btn block-autoresize-btn"
+                    onClick={() => {
+                      const blockEl = document.querySelector(`[data-b12-block="${blockId}"]`);
+                      const resizeBtn = blockEl?.querySelector('.table-auto-resize-btn') as HTMLButtonElement | null;
+                      resizeBtn?.click();
+                    }}
+                    tabIndex={-1}
+                    title="Auto-resize columns"
+                  >
+                    <Columns3 className="h-3.5 w-3.5" />
+                  </button>
+                ) : (
+                  <div className="block-ctrl-btn" style={{ visibility: 'hidden' }} />
+                )}
+              </div>
+            )}
+            {renderBlock(blockId)}
           </div>
         );
       })}
-      {/* Paste indicator at end */}
-      {cutBlock && (() => {
-        const cutIdx = visibleBlocks.indexOf(cutBlock);
-        if (cutIdx === visibleBlocks.length - 1) return null;
-        return (
-          <div
-            className="block-paste-indicator-react"
-            onClick={() => handlePasteBlock(visibleBlocks.length)}
-            title="Paste here"
-          >
-            <span className="block-paste-label">Paste here</span>
-          </div>
-        );
-      })()}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog
