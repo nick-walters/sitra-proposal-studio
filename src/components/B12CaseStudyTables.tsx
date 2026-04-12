@@ -42,6 +42,7 @@ const FIELD_KEYS = [
 
 interface Props {
   proposalId: string;
+  tableIndex?: number;
 }
 
 /** Build case bubble label matching the case manager logic */
@@ -268,7 +269,7 @@ export function B12CaseStudyTables({ proposalId }: Props) {
       <EditableCaption
         proposalId={proposalId}
         tableKey="b12-case-studies"
-        label="Table 1.2.x."
+        label={`Table 1.2.${String.fromCharCode(97 + (props.tableIndex ?? 0))}.`}
         defaultCaption={pluralCaption}
       />
 
