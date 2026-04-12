@@ -643,7 +643,7 @@ export function CaseManagementCard({
   }, [user, proposalId, queryClient, caseDrafts]);
 
   const handleToggleVisibility = useCallback(async (id: string, hidden: boolean) => {
-    // Optimistic update
+    await queryClient.cancelQueries({ queryKey: ['case-drafts', proposalId] });
     queryClient.setQueryData<CaseDraft[]>(['case-drafts', proposalId], old =>
       (old || []).map(c => c.id === id ? { ...c, is_hidden: hidden } : c)
     );
@@ -653,11 +653,9 @@ export function CaseManagementCard({
       .eq('id', id);
     if (error) {
       toast.error('Failed to update visibility');
-      queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
-      return;
     }
     queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
-    toast.success(hidden ? 'Case hidden' : 'Case visible');
+    if (!error) toast.success(hidden ? 'Case hidden' : 'Case visible');
   }, [proposalId, queryClient]);
 
   const handleToggleVisibilityAll = useCallback(async () => {
