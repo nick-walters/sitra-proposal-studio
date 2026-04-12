@@ -641,29 +641,37 @@
 td.b12-case-cell {
   text-align: justify;
 }
+
 /* B1.2 case study inline HTML content */
 .b12-case-content {
   display: inline;
 }
+
 .b12-case-content ul,
 .b12-case-content ol {
   text-align: left;
 }
-.b12-case-content p,
+
+.b12-case-content > p,
 .b12-case-content > div {
-  display: block;
+  margin: 0 !important;
+  padding: 0 !important;
   text-align: justify;
-  margin: 0 0 3pt 0;
 }
-.b12-case-content > p:first-child,
-.b12-case-content > div:first-child {
+
+.b12-case-content > p:first-of-type,
+.b12-case-content > div:first-of-type {
   display: inline;
 }
-/* Last block in a case table cell: no bottom margin */
-.b12-case-content p:last-child,
-.b12-case-content > div:last-child {
-  margin-bottom: 0;
+
+.b12-case-content > p + p,
+.b12-case-content > p + div,
+.b12-case-content > div + p,
+.b12-case-content > div + div {
+  display: block;
+  padding-top: 3pt !important;
 }
+
 .b12-case-content ul {
   list-style-type: disc;
   margin: 2px 0 2px 4px;
@@ -672,6 +680,7 @@ td.b12-case-cell {
   font-size: 11pt;
   text-align: left;
 }
+
 .b12-case-content ol {
   list-style-type: decimal;
   margin: 2px 0 2px 4px;
@@ -680,12 +689,14 @@ td.b12-case-cell {
   font-size: 11pt;
   text-align: left;
 }
+
 .b12-case-content li {
   margin: 0;
-  padding-left: 0px;
+  padding-left: 0;
   display: list-item;
   text-align: left;
 }
+
 .b12-case-content li p {
   display: inline;
   text-align: left;
