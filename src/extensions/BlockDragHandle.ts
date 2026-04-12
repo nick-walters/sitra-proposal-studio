@@ -137,13 +137,58 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
     // Cut state
     let cutBlockRange: { startPos: number; endPos: number } | null = null;
     let pasteIndicators: HTMLElement[] = [];
+    let cutOverlay: HTMLElement | null = null;
+
+    const removeCutOverlay = () => {
+      cutOverlay?.remove();
+      cutOverlay = null;
+    };
+
+    const positionCutOverlay = (view: EditorView) => {
+      if (!cutBlockRange || !cutOverlay) return;
+      const editorParent = view.dom.parentElement;
+      if (!editorParent) return;
+      const editorRect = editorParent.getBoundingClientRect();
+
+      // Find all DOM nodes in the block range and compute bounding box
+      let top = Infinity, bottom = -Infinity;
+      const doc = view.state.doc;
+      doc.nodesBetween(cutBlockRange.startPos, cutBlockRange.endPos, (node, pos) => {
+        if (pos >= cutBlockRange!.startPos && pos < cutBlockRange!.endPos) {
+          const dom = view.nodeDOM(pos);
+          if (dom && dom instanceof HTMLElement) {
+            const rect = dom.getBoundingClientRect();
+            if (rect.top < top) top = rect.top;
+            if (rect.bottom > bottom) bottom = rect.bottom;
+          }
+        }
+        return true;
+      });
+
+      if (top !== Infinity && bottom !== -Infinity) {
+        cutOverlay.style.top = `${top - editorRect.top - 2}px`;
+        cutOverlay.style.height = `${bottom - top + 4}px`;
+        cutOverlay.style.left = '-4px';
+        cutOverlay.style.right = '-4px';
+        cutOverlay.style.display = 'block';
+      }
+    };
+
+    const createCutOverlay = (view: EditorView) => {
+      removeCutOverlay();
+      const editorParent = view.dom.parentElement;
+      if (!editorParent) return;
+      cutOverlay = document.createElement('div');
+      cutOverlay.className = 'block-cut-overlay';
+      editorParent.appendChild(cutOverlay);
+      positionCutOverlay(view);
+    };
 
     const clearCutState = (view?: EditorView) => {
       cutBlockRange = null;
-      document.querySelectorAll('.block-cut-source').forEach(el => el.classList.remove('block-cut-source'));
+      removeCutOverlay();
       pasteIndicators.forEach(el => el.remove());
       pasteIndicators = [];
-      // Update cut button active state
       const cutBtn = dragContainer?.querySelector('.block-cut-btn');
       cutBtn?.classList.remove('active');
     };
