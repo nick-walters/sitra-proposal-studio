@@ -250,6 +250,7 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
               })()
             )}
             <div
+              data-b12-block={blockId}
               className={`relative group/b12block ${isCut ? 'block-cut-source' : ''}`}
               style={{
                 opacity: isDragging ? 0.4 : 1,
