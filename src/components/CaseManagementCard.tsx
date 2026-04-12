@@ -702,6 +702,8 @@ export function CaseManagementCard({
                           caseItem={caseItem}
                           participants={participants}
                           casePrefix={casePrefix}
+                          includeNumber={caseIncludeNumber}
+                          includeAbbreviation={caseIncludeNumber || caseIncludeAbbreviation}
                           onUpdate={handleUpdateCase}
                           onDelete={handleDeleteCase}
                           onToggleLock={handleToggleLock}
