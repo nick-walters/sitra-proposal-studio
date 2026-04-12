@@ -637,10 +637,13 @@
   color: hsl(var(--accent-foreground));
 }
 
+/* B1.2 case study table cell: justify text */
+td.b12-case-cell {
+  text-align: justify;
+}
 /* B1.2 case study inline HTML content */
 .b12-case-content {
   display: inline;
-  text-align: justify;
 }
 .b12-case-content ul,
 .b12-case-content ol {
@@ -648,6 +651,7 @@
 }
 .b12-case-content p {
   display: block;
+  text-align: justify;
   margin: 0 0 3pt 0;
 }
 .b12-case-content > p:first-child,
@@ -664,6 +668,7 @@
   padding-left: 10px;
   font-family: 'Times New Roman', Times, serif;
   font-size: 11pt;
+  text-align: left;
 }
 .b12-case-content ol {
   list-style-type: decimal;
@@ -671,14 +676,17 @@
   padding-left: 10px;
   font-family: 'Times New Roman', Times, serif;
   font-size: 11pt;
+  text-align: left;
 }
 .b12-case-content li {
   margin: 0;
   padding-left: 0px;
   display: list-item;
+  text-align: left;
 }
 .b12-case-content li p {
   display: inline;
+  text-align: left;
 }
 
 /* Inline reference bubbles (Task, Deliverable, Milestone) */

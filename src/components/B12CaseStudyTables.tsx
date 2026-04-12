@@ -331,7 +331,7 @@ export function B12CaseStudyTables({ proposalId, tableIndex = 0, sectionNumber =
                   const isLast = fieldIdx === FIELD_KEYS.length - 1;
                   return (
                     <tr key={contentKey} style={{ borderBottom: isLast ? 'none' : '0.5px solid #d1d5db' }}>
-                      <td style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', padding: '0.03pt 0' }}>
+                      <td className="b12-case-cell" style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', padding: '0.03pt 0', textAlign: 'justify' }}>
                         <span className="font-bold italic">{heading}:</span>{' '}
                         <EditableCaseCell
                           caseId={c.id}
