@@ -3150,6 +3150,8 @@ export type Database = {
           budget_template_id: string | null
           budget_type: Database["public"]["Enums"]["budget_type"]
           case_drafts_visible: boolean
+          case_include_abbreviation: boolean
+          case_include_number: boolean
           cases_enabled: boolean
           cases_type: string | null
           created_at: string
@@ -3204,6 +3206,8 @@ export type Database = {
           budget_template_id?: string | null
           budget_type?: Database["public"]["Enums"]["budget_type"]
           case_drafts_visible?: boolean
+          case_include_abbreviation?: boolean
+          case_include_number?: boolean
           cases_enabled?: boolean
           cases_type?: string | null
           created_at?: string
@@ -3258,6 +3262,8 @@ export type Database = {
           budget_template_id?: string | null
           budget_type?: Database["public"]["Enums"]["budget_type"]
           case_drafts_visible?: boolean
+          case_include_abbreviation?: boolean
+          case_include_number?: boolean
           cases_enabled?: boolean
           cases_type?: string | null
           created_at?: string

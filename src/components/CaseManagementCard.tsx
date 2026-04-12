@@ -125,13 +125,15 @@ interface SortableCaseRowProps {
   caseItem: CaseDraft;
   participants: ParticipantSummary[];
   casePrefix: string;
+  includeNumber: boolean;
+  includeAbbreviation: boolean;
   onUpdate: (id: string, updates: Partial<CaseDraft>) => void;
   onDelete: (id: string) => void;
   onToggleLock: (id: string, locked: boolean) => void;
   canEdit: boolean;
 }
 
-function SortableCaseRow({ caseItem, participants, casePrefix, onUpdate, onDelete, onToggleLock, canEdit }: SortableCaseRowProps) {
+function SortableCaseRow({ caseItem, participants, casePrefix, includeNumber, includeAbbreviation, onUpdate, onDelete, onToggleLock, canEdit }: SortableCaseRowProps) {
   const [leadOpen, setLeadOpen] = useState(false);
   const [localShortName, setLocalShortName] = useState(caseItem.short_name || '');
   const [localTitle, setLocalTitle] = useState(caseItem.title || '');
@@ -192,8 +194,9 @@ function SortableCaseRow({ caseItem, participants, casePrefix, onUpdate, onDelet
       <Badge
         className="rounded-full font-bold justify-center text-xs h-6 w-auto min-w-[1.5rem] border-[1.5px] border-black text-black bg-white whitespace-nowrap gap-0 px-1.5"
       >
-        {casePrefix && <span>{casePrefix}{caseItem.number}</span>}
-        {casePrefix && <span>:&nbsp;</span>}
+        {includeAbbreviation && casePrefix && <span>{casePrefix}</span>}
+        {includeNumber && <span>{caseItem.number}</span>}
+        {(includeAbbreviation && casePrefix || includeNumber) && <span>:&nbsp;</span>}
         <input
           value={localShortName}
           onChange={(e) => {
@@ -366,23 +369,35 @@ export function CaseManagementCard({
   });
 
   // Case draft visibility
-  const { data: caseDraftsVisibleData } = useQuery({
-    queryKey: ['case-drafts-visible', proposalId],
+  const { data: caseSettingsData } = useQuery({
+    queryKey: ['case-settings', proposalId],
     queryFn: async () => {
       const { data } = await supabase
         .from('proposals')
-        .select('case_drafts_visible')
+        .select('case_drafts_visible, case_include_number, case_include_abbreviation')
         .eq('id', proposalId)
         .single();
-      return (data as any)?.case_drafts_visible !== false;
+      return data as any;
     },
   });
-  const caseDraftsVisible = caseDraftsVisibleData !== false;
+  const caseDraftsVisible = caseSettingsData?.case_drafts_visible !== false;
+  const caseIncludeNumber: boolean = caseSettingsData?.case_include_number !== false;
+  const caseIncludeAbbreviation: boolean = caseSettingsData?.case_include_abbreviation !== false;
 
   const handleCaseDraftVisibility = async (visible: boolean) => {
     await supabase.from('proposals').update({ case_drafts_visible: visible } as any).eq('id', proposalId);
-    queryClient.invalidateQueries({ queryKey: ['case-drafts-visible', proposalId] });
+    queryClient.invalidateQueries({ queryKey: ['case-settings', proposalId] });
     queryClient.invalidateQueries({ queryKey: ['proposal-for-themes', proposalId] });
+  };
+
+  const handleIncludeNumberChange = async (checked: boolean) => {
+    await supabase.from('proposals').update({ case_include_number: checked } as any).eq('id', proposalId);
+    queryClient.invalidateQueries({ queryKey: ['case-settings', proposalId] });
+  };
+
+  const handleIncludeAbbreviationChange = async (checked: boolean) => {
+    await supabase.from('proposals').update({ case_include_abbreviation: checked } as any).eq('id', proposalId);
+    queryClient.invalidateQueries({ queryKey: ['case-settings', proposalId] });
   };
 
   const updateCaseMutation = useMutation({
@@ -610,32 +625,56 @@ export function CaseManagementCard({
               </div>
             ) : (
               <>
-                {/* Proposal-level type selector */}
-                <div className="flex items-center gap-2 mb-2">
-                  <Label className="text-sm text-muted-foreground shrink-0">Type:</Label>
-                  <Select 
-                    value={proposalCaseType} 
-                    onValueChange={handleCaseTypeChange}
-                    disabled={!isCoordinator}
-                  >
-                    <SelectTrigger className="h-7 text-xs w-40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CASE_TYPES.map((type) => (
-                        <SelectItem key={type.value} value={type.value} className="text-xs">
-                          {type.prefix ? `${type.prefix} – ` : ''}{type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {proposalCaseType === 'other' && (
-                    <AbbreviationInput
-                      value={proposalCustomName || ''}
-                      onChange={handleCustomNameChange}
+                {/* Proposal-level type selector + numbering options */}
+                <div className="flex items-center gap-3 mb-2 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm text-muted-foreground shrink-0">Type:</Label>
+                    <Select 
+                      value={proposalCaseType} 
+                      onValueChange={handleCaseTypeChange}
                       disabled={!isCoordinator}
-                    />
-                  )}
+                    >
+                      <SelectTrigger className="h-7 text-xs w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CASE_TYPES.map((type) => (
+                          <SelectItem key={type.value} value={type.value} className="text-xs">
+                            {type.prefix ? `${type.prefix} – ` : ''}{type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {proposalCaseType === 'other' && (
+                      <AbbreviationInput
+                        value={proposalCustomName || ''}
+                        onChange={handleCustomNameChange}
+                        disabled={!isCoordinator}
+                      />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5">
+                      <Checkbox
+                        id="include-number"
+                        checked={caseIncludeNumber}
+                        onCheckedChange={(checked) => handleIncludeNumberChange(!!checked)}
+                        disabled={!isCoordinator}
+                      />
+                      <Label htmlFor="include-number" className="text-xs cursor-pointer">Include number</Label>
+                    </div>
+                    {!caseIncludeNumber && (
+                      <div className="flex items-center gap-1.5">
+                        <Checkbox
+                          id="include-abbreviation"
+                          checked={caseIncludeAbbreviation}
+                          onCheckedChange={(checked) => handleIncludeAbbreviationChange(!!checked)}
+                          disabled={!isCoordinator}
+                        />
+                        <Label htmlFor="include-abbreviation" className="text-xs cursor-pointer">Include abbreviation</Label>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Table Header */}
@@ -663,6 +702,8 @@ export function CaseManagementCard({
                           caseItem={caseItem}
                           participants={participants}
                           casePrefix={casePrefix}
+                          includeNumber={caseIncludeNumber}
+                          includeAbbreviation={caseIncludeNumber || caseIncludeAbbreviation}
                           onUpdate={handleUpdateCase}
                           onDelete={handleDeleteCase}
                           onToggleLock={handleToggleLock}
