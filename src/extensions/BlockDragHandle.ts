@@ -176,7 +176,144 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
             }
           });
 
-          // Handle drag start on the drag handle
+          // Helper: remove all paste indicators
+          const clearPasteIndicators = () => {
+            pasteIndicators.forEach(el => el.remove());
+            pasteIndicators = [];
+            document.querySelectorAll('.block-cut-source').forEach(el => el.classList.remove('block-cut-source'));
+            cutBlockRange = null;
+            cutBtn?.classList.remove('block-cut-active');
+          };
+
+          // Helper: show paste indicators between blocks
+          const showPasteIndicators = () => {
+            clearPasteIndicators();
+            if (!cutBlockRange) return;
+
+            const { doc } = editorView.state;
+            const editorParent = editorView.dom.parentElement;
+            if (!editorParent) return;
+            const editorRect = editorParent.getBoundingClientRect();
+
+            // Mark the cut source block
+            try {
+              const cutDom = editorView.nodeDOM(cutBlockRange.startPos);
+              if (cutDom instanceof HTMLElement) cutDom.classList.add('block-cut-source');
+            } catch { /* ignore */ }
+
+            // Walk through all top-level blocks and insert paste bars between them
+            let pos = 0;
+            const positions: number[] = [0]; // before first block
+            doc.forEach((node) => {
+              pos += node.nodeSize;
+              positions.push(pos);
+            });
+
+            for (const insertPos of positions) {
+              // Don't show paste bar at the cut source position or right after it
+              if (
+                insertPos === cutBlockRange.startPos ||
+                insertPos === cutBlockRange.endPos
+              ) continue;
+
+              // Get DOM position for the indicator
+              let indicatorTop: number;
+              if (insertPos === 0) {
+                const firstDom = editorView.nodeDOM(0);
+                if (firstDom instanceof HTMLElement) {
+                  indicatorTop = firstDom.getBoundingClientRect().top - editorRect.top - 4;
+                } else continue;
+              } else if (insertPos >= doc.content.size) {
+                // After last block
+                const lastPos = insertPos - 1;
+                try {
+                  const $lp = doc.resolve(lastPos);
+                  const lastNode = $lp.nodeBefore;
+                  if (!lastNode) continue;
+                  const lastDom = editorView.nodeDOM(lastPos - lastNode.nodeSize);
+                  if (lastDom instanceof HTMLElement) {
+                    indicatorTop = lastDom.getBoundingClientRect().bottom - editorRect.top + 2;
+                  } else continue;
+                } catch { continue; }
+              } else {
+                try {
+                  const dom = editorView.nodeDOM(insertPos);
+                  if (dom instanceof HTMLElement) {
+                    indicatorTop = dom.getBoundingClientRect().top - editorRect.top - 4;
+                  } else continue;
+                } catch { continue; }
+              }
+
+              const bar = document.createElement('div');
+              bar.className = 'block-paste-indicator';
+              bar.title = 'Paste here';
+              bar.style.top = `${indicatorTop}px`;
+
+              const capturedInsertPos = insertPos;
+              bar.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!cutBlockRange) return;
+
+                try {
+                  const { state } = editorView;
+                  const slice = state.doc.slice(cutBlockRange.startPos, cutBlockRange.endPos);
+                  const sourceStart = cutBlockRange.startPos;
+                  const sourceEnd = cutBlockRange.endPos;
+                  const sourceSize = sourceEnd - sourceStart;
+                  let target = capturedInsertPos;
+
+                  const tr = state.tr;
+                  tr.setMeta('blockReorder', true);
+
+                  if (sourceStart < target) {
+                    target = target - sourceSize;
+                    tr.delete(sourceStart, sourceEnd);
+                    tr.insert(target, slice.content);
+                  } else {
+                    tr.insert(target, slice.content);
+                    tr.delete(sourceStart + sourceSize, sourceEnd + sourceSize);
+                  }
+
+                  editorView.dispatch(tr);
+                  setTimeout(() => window.dispatchEvent(new Event('block-reordered')), 50);
+                } catch (err) {
+                  console.error('Paste block error:', err);
+                }
+
+                clearPasteIndicators();
+              });
+
+              editorParent.appendChild(bar);
+              pasteIndicators.push(bar);
+            }
+          };
+
+          // Handle cut button click
+          cutBtn?.addEventListener('click', (e: MouseEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (cutBlockRange) {
+              // Toggle off
+              clearPasteIndicators();
+              return;
+            }
+
+            if (!currentHoveredBlockRange) return;
+            cutBlockRange = { ...currentHoveredBlockRange };
+            cutBtn.classList.add('block-cut-active');
+            showPasteIndicators();
+          });
+
+          // Cancel cut on Escape
+          const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && cutBlockRange) {
+              clearPasteIndicators();
+            }
+          };
+          document.addEventListener('keydown', handleKeyDown);
+
           dragHandle?.addEventListener('dragstart', (e: DragEvent) => {
             if (currentHoveredBlockPos === null) return;
 
