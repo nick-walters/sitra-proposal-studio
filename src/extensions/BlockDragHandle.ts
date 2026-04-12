@@ -193,6 +193,50 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
       cutBtn?.classList.remove('active');
     };
 
+    const moveCutBlockToInsertPos = (view: EditorView, insertPos: number): boolean => {
+      if (!cutBlockRange) return false;
+
+      try {
+        const { state } = view;
+        const slice = state.doc.slice(cutBlockRange.startPos, cutBlockRange.endPos);
+        const sourceStart = cutBlockRange.startPos;
+        const sourceEnd = cutBlockRange.endPos;
+        const sourceSize = sourceEnd - sourceStart;
+
+        if (insertPos === sourceStart || insertPos === sourceEnd) return false;
+        if (insertPos > sourceStart && insertPos < sourceEnd) return false;
+
+        const tr = state.tr;
+        tr.setMeta('blockReorder', true);
+
+        if (sourceStart < insertPos) {
+          const adjustedInsertPos = insertPos - sourceSize;
+          if (adjustedInsertPos === sourceStart) return false;
+          tr.delete(sourceStart, sourceEnd);
+          tr.insert(adjustedInsertPos, slice.content);
+        } else {
+          tr.insert(insertPos, slice.content);
+          tr.delete(sourceStart + sourceSize, sourceEnd + sourceSize);
+        }
+
+        view.dispatch(tr);
+        clearCutState(view);
+        setTimeout(() => {
+          window.dispatchEvent(new Event('block-reordered'));
+        }, 50);
+        return true;
+      } catch (error) {
+        console.error('Paste error:', error);
+        return false;
+      }
+    };
+
+    const getInsertPosAfterSelectionBlock = (view: EditorView): number => {
+      const { from } = view.state.selection;
+      const $pos = view.state.doc.resolve(from);
+      return $pos.depth >= 1 ? $pos.after(1) : from;
+    };
+
     const showPasteIndicators = (view: EditorView) => {
       pasteIndicators.forEach(el => el.remove());
       pasteIndicators = [];
