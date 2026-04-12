@@ -2,9 +2,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EditableCaption } from '@/components/EditableCaption';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, GripVertical, Check, ChevronsUpDown } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Check, ChevronsUpDown, Columns3 } from 'lucide-react';
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useColumnResize } from '@/hooks/useColumnResize';
+import { ColumnResizer } from '@/components/ColumnResizer';
+import { computeAutoFitSmart } from '@/lib/autoFitColumns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import {
