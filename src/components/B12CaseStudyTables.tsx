@@ -283,7 +283,7 @@ export function B12CaseStudyTables({ proposalId, tableIndex = 0 }: Props) {
         return (
           <div key={c.id}>
             {idx > 0 && (
-              <p className={`${tableStyles}`} style={{ fontSize: '5pt', lineHeight: 1.0 }}>&nbsp;</p>
+              <p className={`${tableStyles}`} style={{ fontSize: '11pt', lineHeight: 1.0 }}>&nbsp;</p>
             )}
             <table
               className={`${tableStyles} w-full border-collapse`}
