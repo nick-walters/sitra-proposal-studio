@@ -607,35 +607,6 @@
   margin-top: 0 !important;
 }
 
-/* Auto-resize button bar above tables */
-.table-auto-resize-bar {
-  display: flex;
-  justify-content: flex-end;
-  padding: 0 0 2px 0;
-  user-select: none;
-}
-
-.table-auto-resize-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  line-height: 1;
-  padding: 2px 8px;
-  height: 24px;
-  border: 1px solid hsl(var(--border));
-  border-radius: 4px;
-  background: hsl(var(--background));
-  color: hsl(var(--muted-foreground));
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-  font-family: system-ui, -apple-system, sans-serif;
-}
-
-.table-auto-resize-btn:hover {
-  background: hsl(var(--accent));
-  color: hsl(var(--accent-foreground));
-}
 
 /* B1.2 case study table cell: justify text */
 td.b12-case-cell {

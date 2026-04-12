@@ -17,7 +17,7 @@ import { createCitationTooltipPlugin } from './CitationMark';
 import { BlockReordering } from '@/extensions/BlockReordering';
 import { ParagraphClass } from '@/extensions/ParagraphClass';
 import { ParagraphSpacing } from '@/extensions/ParagraphSpacing';
-import { TableAutoResizeButton } from '@/extensions/TableAutoResizeButton';
+
 import { InlineReferenceMark } from '@/extensions/InlineReferenceMark';
 import { BlockDragHandle } from '@/extensions/BlockDragHandle';
 import { TrackChanges, TrackChangesOptions } from '@/extensions/TrackChanges';
@@ -1284,7 +1284,6 @@ StarterKit.configure({
       }),
       HeadingExitOnEnter,
       BlockReordering,
-      TableAutoResizeButton,
       InlineReferenceMark,
       WPReferenceMark,
       CaseReferenceMark,
@@ -1484,7 +1483,7 @@ StarterKit.configure({
       // Block reordering via keyboard shortcuts (Ctrl+Shift+↑/↓)
       HeadingExitOnEnter,
       BlockReordering,
-      TableAutoResizeButton,
+      
       InlineReferenceMark,
       // WP reference marks for inline WP badges
       WPReferenceMark,
