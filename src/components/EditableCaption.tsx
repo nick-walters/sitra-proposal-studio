@@ -24,7 +24,7 @@ export function EditableCaption({
 }: EditableCaptionProps) {
   const { isAdminOrOwner, hasAnyCoordinatorRole } = useUserRole();
   const canEdit = isAdminOrOwner || hasAnyCoordinatorRole;
-  const [caption, setCaption] = useState(defaultCaption);
+  const [caption, setCaption] = useState(defaultCaption || 'Caption');
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
   const [loaded, setLoaded] = useState(false);
@@ -72,12 +72,20 @@ export function EditableCaption({
 
   return (
     <p className={`${tableStyles} italic ${className}`} data-commentable={`caption-${tableKey}`}>
-      <span className="font-bold italic">{label}</span>{' '}
+      {/* Label is uneditable, bold+italic */}
+      <span className="font-bold italic select-none" contentEditable={false} suppressContentEditableWarning>
+        {label}
+      </span>
+      {/* Uneditable non-bold space separator */}
+      <span className="font-normal select-none" contentEditable={false} suppressContentEditableWarning>
+        {' '}
+      </span>
+      {/* Editable caption title (italic, not bold) */}
       {editing ? (
         <input
           type="text"
           data-commentable={`caption-${tableKey}`}
-          className={`${tableStyles} italic bg-transparent outline-none border-b border-dashed border-muted-foreground p-0 m-0`}
+          className={`${tableStyles} italic font-normal bg-transparent outline-none border-b border-dashed border-muted-foreground p-0 m-0`}
           value={editValue}
           onChange={e => setEditValue(e.target.value)}
           onBlur={save}
@@ -91,7 +99,7 @@ export function EditableCaption({
       ) : (
         <span
           data-commentable={`caption-${tableKey}`}
-          className={canEdit ? 'cursor-text hover:bg-muted/30 rounded px-0.5' : ''}
+          className={`font-normal ${canEdit ? 'cursor-text hover:bg-muted/30 rounded px-0.5' : ''}`}
           onClick={startEdit}
         >
           {caption}
