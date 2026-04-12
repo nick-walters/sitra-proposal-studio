@@ -638,6 +638,11 @@
 /* B1.2 case study inline HTML content */
 .b12-case-content {
   display: inline;
+  text-align: justify;
+}
+.b12-case-content ul,
+.b12-case-content ol {
+  text-align: left;
 }
 .b12-case-content p {
   display: block;
