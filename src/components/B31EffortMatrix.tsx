@@ -97,6 +97,8 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
   if (wpData.length === 0 || participants.length === 0 || !hasData) return null;
 
   const totalColCount = wpData.length + 2; // participant col + wp cols + total col
+  const hasCustomWidths = colWidths.length === totalColCount;
+  const tableWidth = hasCustomWidths ? `${colWidths.reduce((sum, width) => sum + width, 0)}px` : 'auto';
 
   return (
     <div>
@@ -119,18 +121,18 @@ export function B31EffortMatrix({ wpData, participants, proposalId }: Props) {
            className={`${tableStyles}`}
             style={{
              tableLayout: 'fixed',
-             width: 'auto',
+              width: tableWidth,
              borderCollapse: 'separate',
              borderSpacing: '5pt 0',
            }}
            ref={tableRef}
          >
            <colgroup>
-             <col style={{ width: 'auto' }} />
-             {wpData.map(wp => (
-               <col key={wp.id} style={{ width: '35pt' }} />
+              <col style={{ width: hasCustomWidths ? `${colWidths[0]}px` : 'auto' }} />
+              {wpData.map((wp, i) => (
+                <col key={wp.id} style={{ width: hasCustomWidths ? `${colWidths[i + 1]}px` : '35pt' }} />
              ))}
-             <col style={{ width: '35pt' }} />
+              <col style={{ width: hasCustomWidths ? `${colWidths[totalColCount - 1]}px` : '35pt' }} />
            </colgroup>
            <thead>
              <tr>

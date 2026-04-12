@@ -33,7 +33,7 @@ import { OrderedListStyled } from '@/extensions/OrderedListStyled';
 import { renumberH3Headings } from '@/lib/renumberH3Headings';
 import { updateCaptionForTableAtCursor } from '@/lib/renumberCaptionsInEditor';
 import { OrderedListDropdown } from './OrderedListDropdown';
-import { computeAutoFitSmart } from '@/lib/autoFitColumns';
+import { autoFitEditorTableAtPos } from '@/lib/editorTableAutoFit';
 import { ParagraphSpacingPopover } from './ParagraphSpacingPopover';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -1003,22 +1003,7 @@ export function FormattingToolbar({
                     while (depth > 0) {
                       const node = $from.node(depth);
                       if (node.type.name === 'table') {
-                        const dom = editor.view.nodeDOM($from.before(depth));
-                        if (dom instanceof HTMLTableElement) {
-                          const widths = computeAutoFitSmart(dom);
-                          if (widths) {
-                            const colgroup = dom.querySelector('colgroup');
-                            if (colgroup) {
-                              const cols = colgroup.querySelectorAll('col');
-                              cols.forEach((col, i) => {
-                                if (i < widths.length) {
-                                  (col as HTMLElement).style.width = `${widths[i]}px`;
-                                  (col as HTMLElement).style.minWidth = `${widths[i]}px`;
-                                }
-                              });
-                            }
-                          }
-                        }
+                        autoFitEditorTableAtPos(editor.view, $from.before(depth));
                         break;
                       }
                       depth--;
