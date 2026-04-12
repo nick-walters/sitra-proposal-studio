@@ -2,9 +2,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { B12CaseStudyTables } from './B12CaseStudyTables';
 import { B12OngoingProjectsTable } from './B12OngoingProjectsTable';
-import { useCallback, useEffect, useState, ReactNode } from 'react';
+import { useCallback, useEffect, useState, useMemo, ReactNode } from 'react';
 import { GripVertical } from 'lucide-react';
 import { useUserRole } from '@/hooks/useUserRole';
+import type { Editor } from '@tiptap/react';
 
 type BlockId = 'editor' | 'case-studies' | 'ongoing-projects';
 
@@ -14,9 +15,31 @@ interface Props {
   proposalId: string;
   /** The editor content node to render as the "editor" block */
   editorNode: ReactNode;
+  /** Tiptap editor instance for counting table captions */
+  editor?: Editor | null;
+  /** Section number e.g. "1.2" */
+  sectionNumber?: string;
 }
 
-export function B12SectionContent({ proposalId, editorNode }: Props) {
+/** Count table captions inside the Tiptap editor document */
+function countEditorTableCaptions(editor: Editor | null | undefined): number {
+  if (!editor) return 0;
+  const { doc } = editor.state;
+  const captionPattern = /^Table\s+\d+\.\d+\.[a-z]\./i;
+  let count = 0;
+  doc.forEach((node) => {
+    if (node.type.name === 'paragraph') {
+      const cls = (node.attrs?.class || '') as string;
+      const text = node.textContent;
+      if (cls.includes('table-caption') && captionPattern.test(text)) {
+        count++;
+      }
+    }
+  });
+  return count;
+}
+
+export function B12SectionContent({ proposalId, editorNode, editor, sectionNumber }: Props) {
   const queryClient = useQueryClient();
   const { isAdminOrOwner, hasAnyCoordinatorRole } = useUserRole();
   const canEdit = isAdminOrOwner || hasAnyCoordinatorRole;
@@ -49,10 +72,8 @@ export function B12SectionContent({ proposalId, editorNode }: Props) {
         try {
           const parsed = JSON.parse(data.caption);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            // Ensure all block IDs are present
             const validIds = new Set<BlockId>(['editor', 'case-studies', 'ongoing-projects']);
             const ordered = parsed.filter((id: string) => validIds.has(id as BlockId)) as BlockId[];
-            // Add any missing IDs
             for (const id of DEFAULT_ORDER) {
               if (!ordered.includes(id)) ordered.push(id);
             }
@@ -115,15 +136,56 @@ export function B12SectionContent({ proposalId, editorNode }: Props) {
     setDragOverBlock(null);
   }, []);
 
-  // Compute table indices based on order
-  const getTableIndex = (blockId: BlockId): number => {
-    const tableBlocks = blockOrder.filter(id => {
-      if (id === 'editor') return false;
-      if (id === 'case-studies' && !hasCases) return false;
-      return true;
-    });
-    return tableBlocks.indexOf(blockId);
-  };
+  // Visible blocks
+  const visibleBlocks = useMemo(() => blockOrder.filter(id => {
+    if (id === 'case-studies' && !hasCases) return false;
+    return true;
+  }), [blockOrder, hasCases]);
+
+  // Unified table numbering:
+  // Count editor table captions, then assign indices to B12 tables based on their position
+  // relative to the editor block in the block order.
+  const editorTableCount = countEditorTableCaptions(editor);
+
+  const getTableIndex = useCallback((blockId: BlockId): number => {
+    // Find where the editor block is in the visible order
+    const editorIdx = visibleBlocks.indexOf('editor');
+    const blockIdx = visibleBlocks.indexOf(blockId);
+
+    if (blockIdx < editorIdx) {
+      // This B12 table is BEFORE the editor content
+      // Count B12 tables before this one
+      let count = 0;
+      for (let i = 0; i < blockIdx; i++) {
+        if (visibleBlocks[i] !== 'editor') count++;
+      }
+      return count;
+    } else {
+      // This B12 table is AFTER the editor content
+      // Count B12 tables before this one + editor table count
+      let b12Before = 0;
+      for (let i = 0; i < blockIdx; i++) {
+        if (visibleBlocks[i] !== 'editor') b12Before++;
+      }
+      return b12Before + editorTableCount;
+    }
+  }, [visibleBlocks, editorTableCount]);
+
+  // Count B12 tables that appear BEFORE the editor in the block order
+  // This offset is used by the editor's renumberCaptionsInEditor
+  const b12TablesBeforeEditor = useMemo(() => {
+    const editorIdx = visibleBlocks.indexOf('editor');
+    let count = 0;
+    for (let i = 0; i < editorIdx; i++) {
+      if (visibleBlocks[i] !== 'editor') count++;
+    }
+    return count;
+  }, [visibleBlocks]);
+
+  // Expose the offset via a custom event so DocumentEditor can use it for renumbering
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('b12-table-offset', { detail: { offset: b12TablesBeforeEditor } }));
+  }, [b12TablesBeforeEditor]);
 
   const renderBlock = (blockId: BlockId) => {
     switch (blockId) {
@@ -138,12 +200,6 @@ export function B12SectionContent({ proposalId, editorNode }: Props) {
         return null;
     }
   };
-
-  // Visible blocks (filter out hidden case studies)
-  const visibleBlocks = blockOrder.filter(id => {
-    if (id === 'case-studies' && !hasCases) return false;
-    return true;
-  });
 
   return (
     <div className="b12-section-blocks">
@@ -164,7 +220,7 @@ export function B12SectionContent({ proposalId, editorNode }: Props) {
             onDragOver={(e) => handleDragOver(e, blockId)}
             onDrop={(e) => handleDrop(e, blockId)}
           >
-            {/* Drag grip — shown for all blocks when canEdit, positioned inline with caption/top */}
+            {/* Drag grip */}
             {canEdit && visibleBlocks.length > 1 && (
               <div
                 className="absolute opacity-0 group-hover/b12block:opacity-100 transition-opacity cursor-grab z-10"
