@@ -585,6 +585,25 @@ export function CaseManagementCard({
     toast.success(locked ? 'Case locked' : 'Case unlocked');
   }, [user, proposalId, queryClient]);
 
+  const handleToggleLockAll = useCallback(async () => {
+    const allLocked = caseDrafts.every(c => c.is_locked);
+    const newLocked = !allLocked;
+    const { error } = await supabase
+      .from('case_drafts')
+      .update({
+        is_locked: newLocked,
+        locked_by: newLocked ? user?.id ?? null : null,
+        locked_at: newLocked ? new Date().toISOString() : null,
+      } as any)
+      .eq('proposal_id', proposalId);
+    if (error) {
+      toast.error('Failed to update lock status');
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
+    toast.success(newLocked ? 'All cases locked' : 'All cases unlocked');
+  }, [user, proposalId, queryClient, caseDrafts]);
+
   const handleCheckboxChange = (checked: boolean) => {
     onToggleCases(checked);
   };
@@ -685,7 +704,15 @@ export function CaseManagementCard({
                     <div />
                     <div>Title</div>
                     <div>{getCaseTypeLabel(proposalCaseType, proposalCustomName)} Leader</div>
-                    <div />
+                    {isCoordinator ? (
+                      <button
+                        onClick={handleToggleLockAll}
+                        className={`p-0.5 rounded transition-colors ${caseDrafts.length > 0 && caseDrafts.every(c => c.is_locked) ? 'text-destructive hover:bg-destructive/10' : 'text-green-600 hover:bg-green-100'}`}
+                        title={caseDrafts.length > 0 && caseDrafts.every(c => c.is_locked) ? 'Unlock all' : 'Lock all'}
+                      >
+                        {caseDrafts.length > 0 && caseDrafts.every(c => c.is_locked) ? <Lock className="w-3.5 h-3.5" /> : <LockOpen className="w-3.5 h-3.5" />}
+                      </button>
+                    ) : <div />}
                     <div />
                   </div>
 

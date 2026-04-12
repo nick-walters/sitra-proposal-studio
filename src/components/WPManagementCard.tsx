@@ -640,6 +640,26 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
     toast.success(locked ? 'Work package locked' : 'Work package unlocked');
   }, [user, proposalId, queryClient]);
 
+  const handleToggleLockAll = useCallback(async () => {
+    const allLocked = wpDrafts.every(wp => wp.is_locked);
+    const newLocked = !allLocked;
+    const { error } = await supabase
+      .from('wp_drafts')
+      .update({
+        is_locked: newLocked,
+        locked_by: newLocked ? user?.id ?? null : null,
+        locked_at: newLocked ? new Date().toISOString() : null,
+      } as any)
+      .eq('proposal_id', proposalId);
+    if (error) {
+      toast.error('Failed to update lock status');
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ['wp-drafts-management', proposalId] });
+    queryClient.invalidateQueries({ queryKey: ['wp-drafts', proposalId] });
+    toast.success(newLocked ? 'All work packages locked' : 'All work packages unlocked');
+  }, [user, proposalId, queryClient, wpDrafts]);
+
   if (wpsLoading) {
     return (
       <Card>
@@ -784,7 +804,15 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
           <div>Short name</div>
           <div>Title</div>
           <div>WP Leader</div>
-          <div />
+          {isCoordinator ? (
+            <button
+              onClick={handleToggleLockAll}
+              className={`p-0.5 rounded transition-colors ${wpDrafts.length > 0 && wpDrafts.every(wp => wp.is_locked) ? 'text-destructive hover:bg-destructive/10' : 'text-green-600 hover:bg-green-100'}`}
+              title={wpDrafts.length > 0 && wpDrafts.every(wp => wp.is_locked) ? 'Unlock all' : 'Lock all'}
+            >
+              {wpDrafts.length > 0 && wpDrafts.every(wp => wp.is_locked) ? <Lock className="w-3.5 h-3.5" /> : <LockOpen className="w-3.5 h-3.5" />}
+            </button>
+          ) : <div />}
           <div />
         </div>
 
