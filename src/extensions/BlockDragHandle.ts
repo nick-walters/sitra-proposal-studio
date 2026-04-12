@@ -47,19 +47,19 @@ function createDragHandleContainer(): HTMLElement {
   deleteBtn.setAttribute('title', 'Delete block');
   deleteBtn.innerHTML = DELETE_SVG;
 
-  // Row 2: cut + autoresize (autoresize hidden by default, shown for tables)
-  const cutBtn = document.createElement('div');
-  cutBtn.className = 'block-ctrl-btn block-cut-btn';
-  cutBtn.setAttribute('contenteditable', 'false');
-  cutBtn.setAttribute('title', 'Cut block');
-  cutBtn.innerHTML = CUT_SVG;
-
+  // Row 2: autoresize (below grip) + cut (below delete)
   const autoresizeBtn = document.createElement('div');
   autoresizeBtn.className = 'block-ctrl-btn block-autoresize-btn';
   autoresizeBtn.setAttribute('contenteditable', 'false');
   autoresizeBtn.setAttribute('title', 'Auto-resize columns');
   autoresizeBtn.innerHTML = AUTORESIZE_SVG;
   autoresizeBtn.style.display = 'none';
+
+  const cutBtn = document.createElement('div');
+  cutBtn.className = 'block-ctrl-btn block-cut-btn';
+  cutBtn.setAttribute('contenteditable', 'false');
+  cutBtn.setAttribute('title', 'Cut block');
+  cutBtn.innerHTML = CUT_SVG;
 
   grid.appendChild(dragHandle);
   grid.appendChild(deleteBtn);
