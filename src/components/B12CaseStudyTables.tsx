@@ -235,12 +235,12 @@ export function B12CaseStudyTables({ proposalId }: Props) {
                     style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', padding: '4px 0' }}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1.5">
-                        <CaseBubble label={bubbleLabel} />
-                        <span>{c.title || ''}</span>
-                      </span>
+                      <CaseBubble label={bubbleLabel} />
                       {leaderName && <ParticipantBubble name={leaderName} />}
                     </div>
+                    {c.title && (
+                      <div style={{ marginTop: '2px' }}>{c.title}</div>
+                    )}
                   </td>
                 </tr>
               </thead>
