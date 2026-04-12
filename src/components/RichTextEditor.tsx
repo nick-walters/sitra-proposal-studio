@@ -404,6 +404,7 @@ export function FormattingToolbar({
   b12TableFocus,
   onB12AddRow,
   onB12DeleteRow,
+  onB12DeleteTable,
   onB12UpdateCaption,
   crossRefDropdown,
 }: { 
@@ -423,8 +424,9 @@ export function FormattingToolbar({
   /** Which B12 table is focused: null, 'case-studies', or 'ongoing-projects' */
   b12TableFocus?: string | null;
   onB12AddRow?: () => void;
-  onB12DeleteRow?: () => void;
-  onB12UpdateCaption?: () => void;
+   onB12DeleteRow?: () => void;
+   onB12DeleteTable?: () => void;
+   onB12UpdateCaption?: () => void;
   crossRefDropdown?: React.ReactNode;
 }) {
   const [tablePopoverOpen, setTablePopoverOpen] = useState(false);
@@ -936,7 +938,13 @@ export function FormattingToolbar({
                       {b12TableFocus === 'case-studies' ? 'Delete case' : 'Delete row'}
                     </DropdownMenuItem>
                   )}
-                  {onB12UpdateCaption && (onB12AddRow || onB12DeleteRow) && <DropdownMenuSeparator />}
+                  {onB12DeleteTable && (
+                    <DropdownMenuItem onClick={onB12DeleteTable} className="text-destructive">
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete table
+                    </DropdownMenuItem>
+                  )}
+                  {onB12UpdateCaption && (onB12AddRow || onB12DeleteRow || onB12DeleteTable) && <DropdownMenuSeparator />}
                   {onB12UpdateCaption && (
                     <DropdownMenuItem onClick={onB12UpdateCaption}>
                       <FileText className="w-4 h-4 mr-2" />
