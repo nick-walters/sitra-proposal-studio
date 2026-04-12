@@ -407,6 +407,7 @@ export function FormattingToolbar({
   onB12AddRow,
   onB12DeleteRow,
   onB12DeleteTable,
+  onB12AutoResize,
   onB12UpdateCaption,
   crossRefDropdown,
 }: { 
@@ -428,6 +429,7 @@ export function FormattingToolbar({
   onB12AddRow?: () => void;
    onB12DeleteRow?: () => void;
    onB12DeleteTable?: () => void;
+   onB12AutoResize?: () => void;
    onB12UpdateCaption?: () => void;
   crossRefDropdown?: React.ReactNode;
 }) {
@@ -948,7 +950,13 @@ export function FormattingToolbar({
                       Delete table
                     </DropdownMenuItem>
                   )}
-                  {onB12UpdateCaption && (onB12AddRow || onB12DeleteRow || onB12DeleteTable) && <DropdownMenuSeparator />}
+                  {onB12AutoResize && (
+                    <DropdownMenuItem onClick={onB12AutoResize}>
+                      <Columns className="w-4 h-4 mr-2" />
+                      Auto-resize columns
+                    </DropdownMenuItem>
+                  )}
+                  {(onB12UpdateCaption && (onB12AddRow || onB12DeleteRow || onB12DeleteTable || onB12AutoResize)) && <DropdownMenuSeparator />}
                   {onB12UpdateCaption && (
                     <DropdownMenuItem onClick={onB12UpdateCaption}>
                       <FileText className="w-4 h-4 mr-2" />

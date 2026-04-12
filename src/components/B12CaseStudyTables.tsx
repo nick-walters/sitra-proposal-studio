@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { EditableCaption } from '@/components/EditableCaption';
 import { useEffect, useRef, useCallback } from 'react';
 import { Crown } from 'lucide-react';
+import { applyColumnWidthsToTable } from '@/lib/autoFitColumns';
+import { toast } from 'sonner';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 
@@ -185,6 +187,7 @@ function EditableCaseCell({
 
 export function B12CaseStudyTables({ proposalId, tableIndex = 0, sectionNumber = '1.2' }: Props) {
   const queryClient = useQueryClient();
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const dispatchToolbarFocus = useCallback((target: EventTarget | null) => {
     if (!(target instanceof Element)) return;
@@ -277,8 +280,35 @@ export function B12CaseStudyTables({ proposalId, tableIndex = 0, sectionNumber =
     return p ? (p.organisation_short_name || p.organisation_name) : null;
   };
 
+  const handleAutoResize = useCallback(() => {
+    const containerWidth = containerRef.current?.clientWidth ?? 0;
+    const tables = Array.from(containerRef.current?.querySelectorAll('table') ?? []) as HTMLTableElement[];
+
+    if (containerWidth <= 0 || tables.length === 0) return;
+
+    tables.forEach((table) => {
+      applyColumnWidthsToTable(table, [containerWidth]);
+    });
+
+    toast.success('Case tables are already using the minimum-height single-column layout.');
+  }, []);
+
+  useEffect(() => {
+    const handleExternalAutoResize = (event: Event) => {
+      const detail = (event as CustomEvent<{ tableId?: string }>).detail;
+      if (detail?.tableId !== 'case-studies') return;
+      handleAutoResize();
+    };
+
+    window.addEventListener('b12-table-autoresize', handleExternalAutoResize as EventListener);
+    return () => {
+      window.removeEventListener('b12-table-autoresize', handleExternalAutoResize as EventListener);
+    };
+  }, [handleAutoResize]);
+
   return (
     <div
+      ref={containerRef}
       className="space-y-0 mt-4"
       data-b12-table="case-studies"
       onFocusCapture={(e) => dispatchToolbarFocus(e.target)}
