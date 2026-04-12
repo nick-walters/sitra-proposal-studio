@@ -457,20 +457,8 @@ export function WPSimpleEditor({
           onInput={handleInput}
           onPaste={(e: React.ClipboardEvent) => {
             e.preventDefault();
-            const html = e.clipboardData.getData('text/html');
             const text = e.clipboardData.getData('text/plain');
-            if (html) {
-              const tmp = document.createElement('div');
-              tmp.innerHTML = html;
-              tmp.querySelectorAll('*').forEach(el => {
-                const h = el as HTMLElement;
-                if (h.style) { h.style.fontSize = ''; h.style.lineHeight = ''; h.style.fontFamily = ''; }
-                if (el.tagName === 'FONT') { const s = document.createElement('span'); s.innerHTML = el.innerHTML; el.replaceWith(s); }
-              });
-              document.execCommand('insertHTML', false, tmp.innerHTML);
-            } else {
-              document.execCommand('insertText', false, text);
-            }
+            document.execCommand('insertText', false, text);
           }}
           onFocus={() => setIsFocused(true)}
           onBlur={() => {
