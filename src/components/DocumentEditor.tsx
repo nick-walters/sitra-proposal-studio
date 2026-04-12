@@ -915,6 +915,14 @@ export function DocumentEditor({
     }
   }, [b12FocusedCaseId, b12TableFocus, isEffectivelyReadOnly, proposalId]);
 
+  const handleB12AutoResize = useCallback(() => {
+    if (!b12TableFocus || isEffectivelyReadOnly) return;
+
+    window.dispatchEvent(new CustomEvent('b12-table-autoresize', {
+      detail: { tableId: b12TableFocus },
+    }));
+  }, [b12TableFocus, isEffectivelyReadOnly]);
+
   const handleB12UpdateCaption = useCallback(() => {
     if (b12TableFocus === 'case-studies') {
       focusB12Caption('b12-case-studies');
@@ -1393,6 +1401,7 @@ export function DocumentEditor({
           onB12AddRow={b12TableFocus ? handleB12AddRow : undefined}
           onB12DeleteRow={b12TableFocus ? handleB12DeleteRow : undefined}
           onB12DeleteTable={b12TableFocus ? handleB12DeleteTable : undefined}
+          onB12AutoResize={b12TableFocus ? handleB12AutoResize : undefined}
           onB12UpdateCaption={b12TableFocus ? handleB12UpdateCaption : undefined}
           crossRefDropdown={section && !section.isPartA ? (
             <>

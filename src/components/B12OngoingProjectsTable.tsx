@@ -7,7 +7,7 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useColumnResize } from '@/hooks/useColumnResize';
 import { ColumnResizer } from '@/components/ColumnResizer';
-import { computeAutoFitSmart } from '@/lib/autoFitColumns';
+import { applyColumnWidthsToTable, computeAutoFitSmart } from '@/lib/autoFitColumns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import {
@@ -220,7 +220,7 @@ function DebouncedHeaderInput({ value, onChange }: { value: string; onChange: (v
 
 /* ── Sortable row ───────────────────────────────────────────── */
 function SortableRow({
-  row, canEdit, participants, participantIds, onUpdate, onDelete, onToggleParticipant,
+  row, canEdit, participants, participantIds, onUpdate, onDelete, onToggleParticipant, defaultWidths,
 }: {
   row: OngoingProject;
   canEdit: boolean;
@@ -229,21 +229,22 @@ function SortableRow({
   onUpdate: (id: string, field: EditableColumnKey, value: string) => void;
   onDelete: (id: string) => void;
   onToggleParticipant: (rowId: string, participantId: string, selected: boolean) => void;
+  defaultWidths?: readonly string[];
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: row.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
 
-  const cellStyle = (width: string): React.CSSProperties => ({
+  const cellStyle = (width?: string): React.CSSProperties => ({
     fontFamily: "'Times New Roman', Times, serif",
     fontSize: '11pt',
-    width,
+    ...(width ? { width } : {}),
     padding: '0.03pt 4px',
     verticalAlign: 'middle',
   });
 
   return (
     <tr ref={setNodeRef} data-b12-row-id={row.id} style={{ ...style, borderBottom: '0.5px solid #d1d5db' }} {...attributes}>
-      <td style={{ ...cellStyle(COLUMN_WIDTHS[0]), position: 'relative' }}>
+      <td style={{ ...cellStyle(defaultWidths?.[0]), position: 'relative' }}>
         {canEdit && (
           <div style={{ position: 'absolute', left: '-24px', top: '50%', transform: 'translateY(-50%)' }}>
             <button {...listeners} className="cursor-grab text-muted-foreground hover:text-foreground p-0.5" tabIndex={-1}>
@@ -257,14 +258,14 @@ function SortableRow({
           <span>{row.project_info || ''}</span>
         )}
       </td>
-      <td style={cellStyle(COLUMN_WIDTHS[1])}>
+      <td style={cellStyle(defaultWidths?.[1])}>
         {canEdit ? (
           <DebouncedInput value={row.shared_data || ''} onChange={(v) => onUpdate(row.id, 'shared_data', v)} />
         ) : (
           <span>{row.shared_data || ''}</span>
         )}
       </td>
-      <td style={{ ...cellStyle(COLUMN_WIDTHS[2]), position: 'relative' }}>
+      <td style={{ ...cellStyle(defaultWidths?.[2]), position: 'relative' }}>
         <ParticipantCellDropdown
           rowId={row.id}
           participants={participants}
@@ -481,15 +482,31 @@ export function B12OngoingProjectsTable({ proposalId, tableIndex = 0, sectionNum
     participantLinks.filter(l => l.ongoing_project_id === rowId).map(l => l.participant_id);
 
   const handleAutoResize = useCallback(() => {
-    if (!tableRef.current) return;
-    const widths = computeAutoFitSmart(tableRef.current);
-    if (widths) {
+    const table = tableRef.current;
+    if (!table) return;
+    const widths = computeAutoFitSmart(table);
+    if (widths && widths.length === COLUMN_KEYS.length) {
+      applyColumnWidthsToTable(table, widths);
       setColWidths(widths);
       saveWidths(widths);
     }
   }, [setColWidths, saveWidths, tableRef]);
 
-  const hasCustomWidths = colWidths.length > 0;
+  useEffect(() => {
+    const handleExternalAutoResize = (event: Event) => {
+      const detail = (event as CustomEvent<{ tableId?: string }>).detail;
+      if (detail?.tableId !== 'ongoing-projects') return;
+      handleAutoResize();
+    };
+
+    window.addEventListener('b12-table-autoresize', handleExternalAutoResize as EventListener);
+    return () => {
+      window.removeEventListener('b12-table-autoresize', handleExternalAutoResize as EventListener);
+    };
+  }, [handleAutoResize]);
+
+  const hasCustomWidths = colWidths.length === COLUMN_KEYS.length;
+  const defaultWidths = hasCustomWidths ? undefined : COLUMN_WIDTHS;
 
   return (
     <div
@@ -516,7 +533,7 @@ export function B12OngoingProjectsTable({ proposalId, tableIndex = 0, sectionNum
             tableLayout: 'fixed',
             lineHeight: 1.0,
             overflow: 'visible',
-            width: '100%',
+            width: hasCustomWidths ? `${colWidths.reduce((sum, width) => sum + width, 0)}px` : '100%',
           }}
         >
           {hasCustomWidths && (
@@ -566,6 +583,7 @@ export function B12OngoingProjectsTable({ proposalId, tableIndex = 0, sectionNum
                   onUpdate={handleUpdate}
                   onDelete={handleDelete}
                   onToggleParticipant={handleToggleParticipant}
+                  defaultWidths={defaultWidths}
                 />
               ))}
             </tbody>
