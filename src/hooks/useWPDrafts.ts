@@ -378,10 +378,24 @@ export function useWPDraftEditor(wpId: string | null) {
         return fixed;
       };
 
+      // Strip legacy Word/XML artifacts from rich-text fields
+      const htmlFields = ['methodology', 'objectives', 'description_before_tasks', 'background_knowledge', 'approach_summary', 'foreseen_challenges'] as const;
+      const cleanedData = { ...data };
+      for (const f of htmlFields) {
+        if (cleanedData[f] && typeof cleanedData[f] === 'string') {
+          cleanedData[f] = stripWordXml(cleanedData[f] as string);
+        }
+      }
+      // Also clean task descriptions
+      const cleanedTasks = sortedTasks.map((t: any) => ({
+        ...t,
+        description: t.description ? stripWordXml(t.description) : t.description,
+      }));
+
       const sortedData = {
-        ...data,
+        ...cleanedData,
         methodologies_list: (data.methodologies_list || []) as { name: string; description: string }[],
-        tasks: fixItems(sortedTasks, (id, num, idx) => {
+        tasks: fixItems(cleanedTasks, (id, num, idx) => {
           supabase.from('wp_draft_tasks').update({ number: num, order_index: idx }).eq('id', id).then();
         }),
         deliverables: fixItems(sortedDeliverables, (id, num, idx) => {
