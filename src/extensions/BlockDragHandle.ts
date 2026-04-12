@@ -193,6 +193,50 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
       cutBtn?.classList.remove('active');
     };
 
+    const moveCutBlockToInsertPos = (view: EditorView, insertPos: number): boolean => {
+      if (!cutBlockRange) return false;
+
+      try {
+        const { state } = view;
+        const slice = state.doc.slice(cutBlockRange.startPos, cutBlockRange.endPos);
+        const sourceStart = cutBlockRange.startPos;
+        const sourceEnd = cutBlockRange.endPos;
+        const sourceSize = sourceEnd - sourceStart;
+
+        if (insertPos === sourceStart || insertPos === sourceEnd) return false;
+        if (insertPos > sourceStart && insertPos < sourceEnd) return false;
+
+        const tr = state.tr;
+        tr.setMeta('blockReorder', true);
+
+        if (sourceStart < insertPos) {
+          const adjustedInsertPos = insertPos - sourceSize;
+          if (adjustedInsertPos === sourceStart) return false;
+          tr.delete(sourceStart, sourceEnd);
+          tr.insert(adjustedInsertPos, slice.content);
+        } else {
+          tr.insert(insertPos, slice.content);
+          tr.delete(sourceStart + sourceSize, sourceEnd + sourceSize);
+        }
+
+        view.dispatch(tr);
+        clearCutState(view);
+        setTimeout(() => {
+          window.dispatchEvent(new Event('block-reordered'));
+        }, 50);
+        return true;
+      } catch (error) {
+        console.error('Paste error:', error);
+        return false;
+      }
+    };
+
+    const getInsertPosAfterSelectionBlock = (view: EditorView): number => {
+      const { from } = view.state.selection;
+      const $pos = view.state.doc.resolve(from);
+      return $pos.depth >= 1 ? $pos.after(1) : from;
+    };
+
     const showPasteIndicators = (view: EditorView) => {
       pasteIndicators.forEach(el => el.remove());
       pasteIndicators = [];
@@ -243,36 +287,12 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
           if (!cutBlockRange) return;
           try {
             const { state } = view;
-            const slice = state.doc.slice(cutBlockRange.startPos, cutBlockRange.endPos);
-            const sourceStart = cutBlockRange.startPos;
-            const sourceEnd = cutBlockRange.endPos;
-            const sourceSize = sourceEnd - sourceStart;
-
-            // Calculate insert position
             const currentBlocks: { startPos: number; endPos: number }[] = [];
             state.doc.forEach((node, offset) => {
               currentBlocks.push({ startPos: offset, endPos: offset + node.nodeSize });
             });
-            let insertPos = targetIdx < currentBlocks.length ? currentBlocks[targetIdx].startPos : state.doc.content.size;
-
-            const tr = state.tr;
-            tr.setMeta('blockReorder', true);
-
-            if (sourceStart < insertPos) {
-              insertPos = insertPos - sourceSize;
-              tr.delete(sourceStart, sourceEnd);
-              tr.insert(insertPos, slice.content);
-            } else {
-              tr.insert(insertPos, slice.content);
-              tr.delete(sourceStart + sourceSize, sourceEnd + sourceSize);
-            }
-
-            view.dispatch(tr);
-            clearCutState(view);
-            
-            setTimeout(() => {
-              window.dispatchEvent(new Event('block-reordered'));
-            }, 50);
+            const insertPos = targetIdx < currentBlocks.length ? currentBlocks[targetIdx].startPos : state.doc.content.size;
+            moveCutBlockToInsertPos(view, insertPos);
           } catch (e) {
             console.error('Paste error:', e);
           }
@@ -301,69 +321,30 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
           dropIndicator.style.display = 'none';
           editorView.dom.parentElement?.appendChild(dropIndicator);
 
-          // Escape key cancels cut, Ctrl+V pastes cut block at cursor
+          // Escape cancels cut. Real paste event handles Cmd/Ctrl+V for cut blocks.
           const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape' && cutBlockRange) {
               clearCutState(editorView);
-              return;
-            }
-            // Ctrl+V / Cmd+V to paste cut block at cursor position
-            if ((e.ctrlKey || e.metaKey) && e.key === 'v' && cutBlockRange) {
-              // Check if focus is in the editor or its parent container
-              const editorEl = editorView.dom;
-              const activeEl = document.activeElement;
-              const isInEditor = editorEl.contains(activeEl) || editorEl === activeEl || editorView.hasFocus();
-              
-              if (!isInEditor) {
-                // Try to focus the editor and use the last known selection
-                editorView.focus();
-              }
-
-              e.preventDefault();
-              e.stopPropagation();
-
-              try {
-                const { state } = editorView;
-                const { from } = state.selection;
-                
-                // Find the top-level block at cursor position
-                const $pos = state.doc.resolve(from);
-                let insertPos: number;
-                if ($pos.depth >= 1) {
-                  insertPos = $pos.after(1);
-                } else {
-                  insertPos = from;
-                }
-
-                const slice = state.doc.slice(cutBlockRange.startPos, cutBlockRange.endPos);
-                const sourceStart = cutBlockRange.startPos;
-                const sourceEnd = cutBlockRange.endPos;
-                const sourceSize = sourceEnd - sourceStart;
-
-                const tr = state.tr;
-                tr.setMeta('blockReorder', true);
-
-                if (sourceStart < insertPos) {
-                  insertPos -= sourceSize;
-                  tr.delete(sourceStart, sourceEnd);
-                  tr.insert(insertPos, slice.content);
-                } else {
-                  tr.insert(insertPos, slice.content);
-                  tr.delete(sourceStart + sourceSize, sourceEnd + sourceSize);
-                }
-
-                editorView.dispatch(tr);
-                clearCutState(editorView);
-
-                setTimeout(() => {
-                  window.dispatchEvent(new Event('block-reordered'));
-                }, 50);
-              } catch (err) {
-                console.error('Paste cut block error:', err);
-              }
             }
           };
+
+          const handlePaste = (e: ClipboardEvent) => {
+            if (!cutBlockRange) return;
+
+            const editorEl = editorView.dom;
+            const activeEl = document.activeElement;
+            const isInEditor = !!activeEl && (editorEl.contains(activeEl) || editorEl === activeEl || editorView.hasFocus());
+            if (!isInEditor) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            const insertPos = getInsertPosAfterSelectionBlock(editorView);
+            moveCutBlockToInsertPos(editorView, insertPos);
+          };
+
           document.addEventListener('keydown', handleKeyDown, true);
+          editorView.dom.addEventListener('paste', handlePaste, true);
 
           // Delete button
           deleteBtn?.addEventListener('click', (e: MouseEvent) => {
@@ -478,6 +459,7 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
               dropIndicator?.remove();
               removeCutOverlay();
               document.removeEventListener('keydown', handleKeyDown, true);
+              editorView.dom.removeEventListener('paste', handlePaste, true);
               clearCutState();
             },
           };
