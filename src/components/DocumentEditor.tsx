@@ -503,7 +503,7 @@ export function DocumentEditor({
       window.removeEventListener('b12-table-focus', handleB12TableFocus as EventListener);
       window.removeEventListener('caption-refresh-all', handleCaptionRefreshAll);
     };
-  }, [editor, section?.number]);
+  }, [editor, section?.number, b12TableOffset]);
 
   useEffect(() => {
     setB12TableFocus(null);
