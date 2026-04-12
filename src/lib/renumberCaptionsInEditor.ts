@@ -100,10 +100,14 @@ export function renumberCaptionsInEditor(editor: Editor, sectionNumber: string):
 
   // Apply caption text updates in reverse order to preserve positions
   const tr = state.tr;
+  const captionLabelMark = state.schema.marks.captionLabel?.create();
+  const boldMark = state.schema.marks.bold?.create();
+  const italicMark = state.schema.marks.italic?.create();
+  
   for (let i = updates.length - 1; i >= 0; i--) {
     const { from, to, newText } = updates[i];
-    const $from = doc.resolve(from);
-    const marks = $from.marks();
+    // Apply captionLabel + bold + italic marks to the renumbered label
+    const marks = [boldMark, italicMark, captionLabelMark].filter(Boolean);
     tr.replaceWith(from, to, state.schema.text(newText, marks));
   }
 
