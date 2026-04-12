@@ -1338,27 +1338,40 @@ export function DocumentEditor({
                   <Skeleton className="h-4 w-2/3" />
                 </div>
               ) : (
-                <div ref={editorContainerRef} className={`relative tiptap-editor-container overflow-visible ${(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') ? 'b31-editor-container' : ''}`}>
-                  <EditorContent 
-                    editor={editor} 
-                    className={`document-content outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''} ${(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') ? '' : 'min-h-[400px]'}`}
-                    style={{ fontFamily: '"Times New Roman", Times, serif' }}
-                  />
-                  {/* Track change bubble menu */}
-                  {editor && <TrackChangeBubbleMenu editor={editor} proposalId={proposalId} />}
-                  {/* Block lock indicators */}
-                  <BlockLockIndicator
-                    editor={editor}
-                    blockLocks={blockLocks}
-                    containerRef={editorContainerRef}
-                  />
-                  {/* Collaborative cursors overlay */}
-                  <CollaborativeCursors
-                    editor={editor}
-                    collaborators={collaboratorsInSection}
-                    containerRef={editorContainerRef}
-                  />
-                </div>
+                (() => {
+                  const isB12 = section.id === 'b1-2' || section.number === 'B1.2' || section.number === '1.2';
+                  const isB31 = section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1';
+
+                  const editorBlock = (
+                    <div ref={editorContainerRef} className={`relative tiptap-editor-container overflow-visible ${isB31 ? 'b31-editor-container' : ''}`}>
+                      <EditorContent 
+                        editor={editor} 
+                        className={`document-content outline-none prose prose-sm max-w-none ${isEffectivelyReadOnly ? 'pointer-events-none opacity-75' : ''} ${isB31 ? '' : 'min-h-[400px]'}`}
+                        style={{ fontFamily: '"Times New Roman", Times, serif' }}
+                      />
+                      {/* Track change bubble menu */}
+                      {editor && <TrackChangeBubbleMenu editor={editor} proposalId={proposalId} />}
+                      {/* Block lock indicators */}
+                      <BlockLockIndicator
+                        editor={editor}
+                        blockLocks={blockLocks}
+                        containerRef={editorContainerRef}
+                      />
+                      {/* Collaborative cursors overlay */}
+                      <CollaborativeCursors
+                        editor={editor}
+                        collaborators={collaboratorsInSection}
+                        containerRef={editorContainerRef}
+                      />
+                    </div>
+                  );
+
+                  return isB12 ? (
+                    <B12SectionContent proposalId={proposalId} editorNode={editorBlock} />
+                  ) : (
+                    editorBlock
+                  );
+                })()
               )}
 
               {/* B3.1 Intro text - dynamic sentence before compulsory tables */}
@@ -1369,11 +1382,6 @@ export function DocumentEditor({
               {/* B3.1 Section Content - auto-populated figures, tables, and structured content */}
               {(section.id === 'b3-1' || section.number === 'B3.1' || section.number === '3.1') && (
                 <B31SectionContent proposalId={proposalId} />
-              )}
-
-              {/* B1.2 Section Content - case study tables and ongoing projects */}
-              {(section.id === 'b1-2' || section.number === 'B1.2' || section.number === '1.2') && (
-                <B12SectionContent proposalId={proposalId} />
               )}
               {/* Footnotes */}
               {footnotes.length > 0 && (
