@@ -195,7 +195,7 @@ export function usePdfExport() {
         const topicType = proposal.type || '';
         const headerText = `${topicId}${topicId && topicTitle ? ': ' : ''}${topicTitle}${topicType ? ` (${topicType})` : ''}`;
         const truncatedHeader = headerText.length > 120 ? headerText.substring(0, 117) + '...' : headerText;
-        pdf.text(truncatedHeader, pageWidth / 2, 8, { align: 'center' }); // Header in top margin area (8mm from top)
+        pdf.text(truncatedHeader, pageWidth / 2, margin / 2, { align: 'center' }); // Header centered in top margin
       };
 
       // Helper: Add footer to a page
@@ -203,7 +203,7 @@ export function usePdfExport() {
         pdf.setFontSize(FONT_SIZE_HEADER_FOOTER);
         pdf.setTextColor(...gray);
         
-        const footerY = pageHeight - margin + 5;
+        const footerY = pageHeight - margin / 2;
         const centerX = pageWidth / 2;
         
         // Build footer: "ACRONYM (Stage 1 of 2) | Section info | Page X of X"
