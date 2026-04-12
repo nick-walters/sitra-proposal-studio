@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserRole } from '@/hooks/useUserRole';
+import { RefreshCw } from 'lucide-react';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 
@@ -12,6 +13,8 @@ interface EditableCaptionProps {
   /** Extra JSX to render after the editable text (e.g. bubble legends) */
   suffix?: React.ReactNode;
   className?: string;
+  /** If provided, a refresh icon appears when the caption row is hovered */
+  onRefresh?: () => void;
 }
 
 export function EditableCaption({
@@ -21,6 +24,7 @@ export function EditableCaption({
   defaultCaption,
   suffix,
   className = '',
+  onRefresh,
 }: EditableCaptionProps) {
   const { isAdminOrOwner, hasAnyCoordinatorRole } = useUserRole();
   const canEdit = isAdminOrOwner || hasAnyCoordinatorRole;
@@ -28,6 +32,7 @@ export function EditableCaption({
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
   const [loaded, setLoaded] = useState(false);
+  const [hovered, setHovered] = useState(false);
 
   useEffect(() => {
     if (!proposalId) return;
@@ -71,7 +76,13 @@ export function EditableCaption({
   }, [editValue, caption, proposalId, tableKey]);
 
   return (
-    <p className={`${tableStyles} italic ${className}`} data-commentable={`caption-${tableKey}`} style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'baseline' }}>
+    <p
+      className={`${tableStyles} italic ${className} relative group/caption`}
+      data-commentable={`caption-${tableKey}`}
+      style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'baseline' }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
       {/* Label is uneditable, bold+italic */}
       <span className="font-bold italic select-none" contentEditable={false} suppressContentEditableWarning style={{ flexShrink: 0 }}>
         {label}
@@ -106,6 +117,22 @@ export function EditableCaption({
         </span>
       )}
       {suffix && <>{' '}{suffix}</>}
+      {/* Refresh icon in the right margin */}
+      {onRefresh && hovered && !editing && (
+        <button
+          type="button"
+          title="Refresh caption number"
+          className="absolute z-10 p-0.5 rounded hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
+          style={{ right: '-28px', top: '50%', transform: 'translateY(-50%)' }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onRefresh();
+          }}
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+        </button>
+      )}
     </p>
   );
 }
