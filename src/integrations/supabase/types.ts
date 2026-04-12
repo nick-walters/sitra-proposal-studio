@@ -14,41 +14,65 @@ export type Database = {
   }
   public: {
     Tables: {
+      b12_ongoing_project_participants: {
+        Row: {
+          id: string
+          ongoing_project_id: string
+          participant_id: string
+        }
+        Insert: {
+          id?: string
+          ongoing_project_id: string
+          participant_id: string
+        }
+        Update: {
+          id?: string
+          ongoing_project_id?: string
+          participant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "b12_ongoing_project_participants_ongoing_project_id_fkey"
+            columns: ["ongoing_project_id"]
+            isOneToOne: false
+            referencedRelation: "b12_ongoing_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "b12_ongoing_project_participants_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       b12_ongoing_projects: {
         Row: {
-          acronym_name: string | null
-          coordinator: string | null
           created_at: string | null
-          funding_programme: string | null
           id: string
           order_index: number | null
-          period: string | null
+          project_info: string | null
           proposal_id: string
-          relation: string | null
+          shared_data: string | null
           updated_at: string | null
         }
         Insert: {
-          acronym_name?: string | null
-          coordinator?: string | null
           created_at?: string | null
-          funding_programme?: string | null
           id?: string
           order_index?: number | null
-          period?: string | null
+          project_info?: string | null
           proposal_id: string
-          relation?: string | null
+          shared_data?: string | null
           updated_at?: string | null
         }
         Update: {
-          acronym_name?: string | null
-          coordinator?: string | null
           created_at?: string | null
-          funding_programme?: string | null
           id?: string
           order_index?: number | null
-          period?: string | null
+          project_info?: string | null
           proposal_id?: string
-          relation?: string | null
+          shared_data?: string | null
           updated_at?: string | null
         }
         Relationships: [
