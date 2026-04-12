@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      b12_ongoing_projects: {
+        Row: {
+          acronym_name: string | null
+          coordinator: string | null
+          created_at: string | null
+          funding_programme: string | null
+          id: string
+          order_index: number | null
+          period: string | null
+          proposal_id: string
+          relation: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          acronym_name?: string | null
+          coordinator?: string | null
+          created_at?: string | null
+          funding_programme?: string | null
+          id?: string
+          order_index?: number | null
+          period?: string | null
+          proposal_id: string
+          relation?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          acronym_name?: string | null
+          coordinator?: string | null
+          created_at?: string | null
+          funding_programme?: string | null
+          id?: string
+          order_index?: number | null
+          period?: string | null
+          proposal_id?: string
+          relation?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "b12_ongoing_projects_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       b31_deliverables: {
         Row: {
           created_at: string
