@@ -287,36 +287,12 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
           if (!cutBlockRange) return;
           try {
             const { state } = view;
-            const slice = state.doc.slice(cutBlockRange.startPos, cutBlockRange.endPos);
-            const sourceStart = cutBlockRange.startPos;
-            const sourceEnd = cutBlockRange.endPos;
-            const sourceSize = sourceEnd - sourceStart;
-
-            // Calculate insert position
             const currentBlocks: { startPos: number; endPos: number }[] = [];
             state.doc.forEach((node, offset) => {
               currentBlocks.push({ startPos: offset, endPos: offset + node.nodeSize });
             });
-            let insertPos = targetIdx < currentBlocks.length ? currentBlocks[targetIdx].startPos : state.doc.content.size;
-
-            const tr = state.tr;
-            tr.setMeta('blockReorder', true);
-
-            if (sourceStart < insertPos) {
-              insertPos = insertPos - sourceSize;
-              tr.delete(sourceStart, sourceEnd);
-              tr.insert(insertPos, slice.content);
-            } else {
-              tr.insert(insertPos, slice.content);
-              tr.delete(sourceStart + sourceSize, sourceEnd + sourceSize);
-            }
-
-            view.dispatch(tr);
-            clearCutState(view);
-            
-            setTimeout(() => {
-              window.dispatchEvent(new Event('block-reordered'));
-            }, 50);
+            const insertPos = targetIdx < currentBlocks.length ? currentBlocks[targetIdx].startPos : state.doc.content.size;
+            moveCutBlockToInsertPos(view, insertPos);
           } catch (e) {
             console.error('Paste error:', e);
           }
