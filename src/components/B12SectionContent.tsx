@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { B12CaseStudyTables } from './B12CaseStudyTables';
 import { B12OngoingProjectsTable } from './B12OngoingProjectsTable';
 import { useCallback, useEffect, useState, useMemo, ReactNode } from 'react';
-import { GripVertical, Trash2, Scissors } from 'lucide-react';
+import { GripVertical, Trash2, Scissors, Columns3 } from 'lucide-react';
 import { useUserRole } from '@/hooks/useUserRole';
 import { toast } from 'sonner';
 import type { Editor } from '@tiptap/react';
