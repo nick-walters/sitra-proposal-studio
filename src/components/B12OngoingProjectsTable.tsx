@@ -1,11 +1,12 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EditableCaption } from '@/components/EditableCaption';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, GripVertical } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Check, ChevronsUpDown } from 'lucide-react';
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { toast } from 'sonner';
 import { useUserRole } from '@/hooks/useUserRole';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent,
 } from '@dnd-kit/core';
@@ -19,70 +20,123 @@ const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 interface OngoingProject {
   id: string;
   proposal_id: string;
-  acronym_name: string;
-  funding_programme: string;
-  period: string;
-  coordinator: string;
-  relation: string;
-  order_index: number;
+  project_info: string | null;
+  shared_data: string | null;
+  order_index: number | null;
+}
+
+interface Participant {
+  id: string;
+  organisation_short_name: string | null;
+  organisation_name: string;
+  participant_number: number;
 }
 
 const COLUMNS = [
-  { key: 'acronym_name', label: 'Project acronym/name', width: '20%' },
-  { key: 'funding_programme', label: 'Funding programme', width: '18%' },
-  { key: 'period', label: 'Period', width: '12%' },
-  { key: 'coordinator', label: 'Coordinator', width: '18%' },
-  { key: 'relation', label: 'Relation to this project', width: '32%' },
+  { key: 'project_info', label: 'Project acronym, funder & duration', width: '34%' },
+  { key: 'shared_data', label: 'Data, expertise & tools to be shared', width: '38%' },
+  { key: 'participants', label: 'Participant to establish link', width: '28%' },
 ] as const;
 
-type ColumnKey = typeof COLUMNS[number]['key'];
+type EditableColumnKey = 'project_info' | 'shared_data';
 
-function SortableRow({
-  row, canEdit, onUpdate, onDelete,
+/* ── Participant bubble dropdown ────────────────────────────── */
+function ParticipantCellDropdown({
+  rowId, participants, selectedIds, canEdit, onToggle,
 }: {
-  row: OngoingProject; canEdit: boolean;
-  onUpdate: (id: string, field: ColumnKey, value: string) => void;
-  onDelete: (id: string) => void;
+  rowId: string;
+  participants: Participant[];
+  selectedIds: string[];
+  canEdit: boolean;
+  onToggle: (rowId: string, participantId: string, selected: boolean) => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: row.id });
-  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+  const [open, setOpen] = useState(false);
+  const selectedParticipants = participants.filter(p => selectedIds.includes(p.id));
+
+  if (!canEdit) {
+    return (
+      <div className="flex flex-wrap gap-0.5">
+        {selectedParticipants.map(p => (
+          <span
+            key={p.id}
+            className="inline-flex items-center rounded-full font-bold whitespace-nowrap"
+            style={{
+              backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000',
+              fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700,
+              lineHeight: 1, padding: '0px 5px',
+            }}
+          >
+            {p.organisation_short_name || p.organisation_name}
+          </span>
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <tr ref={setNodeRef} style={{ ...style, borderBottom: '0.5px solid #d1d5db' }} {...attributes}>
-      {canEdit && (
-        <td className="w-6 p-0 text-center" style={{ position: 'relative' }}>
-          <div style={{ position: 'absolute', left: '-28px', top: '50%', transform: 'translateY(-50%)' }}>
-            <button {...listeners} className="cursor-grab text-muted-foreground hover:text-foreground p-0.5" tabIndex={-1}>
-              <GripVertical className="h-3.5 w-3.5" style={{ color: '#2563EB' }} />
-            </button>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          className="w-full flex items-center justify-between min-h-[24px] bg-transparent outline-none border-none p-0 cursor-pointer"
+          style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt' }}
+        >
+          <div className="flex flex-wrap gap-0.5">
+            {selectedParticipants.length === 0 ? (
+              <span className="text-muted-foreground text-xs">Select...</span>
+            ) : (
+              selectedParticipants.map(p => (
+                <span
+                  key={p.id}
+                  className="inline-flex items-center rounded-full font-bold whitespace-nowrap"
+                  style={{
+                    backgroundColor: '#000000', color: '#FFFFFF', border: '1.5px solid #000000',
+                    fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', fontWeight: 700,
+                    lineHeight: 1, padding: '0px 5px',
+                  }}
+                >
+                  {p.organisation_short_name || p.organisation_name}
+                </span>
+              ))
+            )}
           </div>
-        </td>
-      )}
-      {COLUMNS.map(col => (
-        <td key={col.key} className="p-1 border-r border-border last:border-r-0" style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', width: col.width }}>
-          {canEdit ? (
-            <DebouncedInput
-              value={(row as any)[col.key] || ''}
-              onChange={(v) => onUpdate(row.id, col.key, v)}
-            />
-          ) : (
-            <span>{(row as any)[col.key] || ''}</span>
+          <ChevronsUpDown className="h-3 w-3 shrink-0 opacity-50 ml-1" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[200px] p-0" align="start">
+        <div className="max-h-[200px] overflow-y-auto">
+          {participants.map((participant) => {
+            const isSelected = selectedIds.includes(participant.id);
+            return (
+              <button
+                key={participant.id}
+                className={cn(
+                  "flex items-center gap-2 w-full px-2 py-1.5 text-sm hover:bg-accent cursor-pointer",
+                  isSelected && "bg-accent"
+                )}
+                onClick={() => onToggle(rowId, participant.id, !isSelected)}
+              >
+                <div className={cn(
+                  "flex h-4 w-4 items-center justify-center rounded-sm border",
+                  isSelected ? "bg-primary border-primary" : "border-primary"
+                )}>
+                  {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                </div>
+                <span className="truncate">
+                  {participant.organisation_short_name || participant.organisation_name}
+                </span>
+              </button>
+            );
+          })}
+          {participants.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-4">No participants</p>
           )}
-        </td>
-      ))}
-      {canEdit && (
-        <td className="w-6 p-0 text-center" style={{ position: 'relative' }}>
-          <div style={{ position: 'absolute', right: '-28px', top: '50%', transform: 'translateY(-50%)' }}>
-            <button onClick={() => onDelete(row.id)} className="text-muted-foreground hover:text-destructive p-0.5" tabIndex={-1}>
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </td>
-      )}
-    </tr>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
+/* ── Debounced text input ───────────────────────────────────── */
 function DebouncedInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [localValue, setLocalValue] = useState(value);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
@@ -105,6 +159,72 @@ function DebouncedInput({ value, onChange }: { value: string; onChange: (v: stri
   );
 }
 
+/* ── Sortable row ───────────────────────────────────────────── */
+function SortableRow({
+  row, canEdit, participants, participantIds, onUpdate, onDelete, onToggleParticipant,
+}: {
+  row: OngoingProject;
+  canEdit: boolean;
+  participants: Participant[];
+  participantIds: string[];
+  onUpdate: (id: string, field: EditableColumnKey, value: string) => void;
+  onDelete: (id: string) => void;
+  onToggleParticipant: (rowId: string, participantId: string, selected: boolean) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: row.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+
+  return (
+    <tr ref={setNodeRef} style={{ ...style, borderBottom: '0.5px solid #d1d5db' }} {...attributes}>
+      {canEdit && (
+        <td className="w-6 p-0 text-center" style={{ position: 'relative' }}>
+          <div style={{ position: 'absolute', left: '-28px', top: '50%', transform: 'translateY(-50%)' }}>
+            <button {...listeners} className="cursor-grab text-muted-foreground hover:text-foreground p-0.5" tabIndex={-1}>
+              <GripVertical className="h-3.5 w-3.5" style={{ color: '#2563EB' }} />
+            </button>
+          </div>
+        </td>
+      )}
+      {/* Project info */}
+      <td style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', width: COLUMNS[0].width, padding: '4px 4px 4px 0', borderRight: 'none' }}>
+        {canEdit ? (
+          <DebouncedInput value={row.project_info || ''} onChange={(v) => onUpdate(row.id, 'project_info', v)} />
+        ) : (
+          <span>{row.project_info || ''}</span>
+        )}
+      </td>
+      {/* Shared data */}
+      <td style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', width: COLUMNS[1].width, padding: '4px 4px', borderRight: 'none' }}>
+        {canEdit ? (
+          <DebouncedInput value={row.shared_data || ''} onChange={(v) => onUpdate(row.id, 'shared_data', v)} />
+        ) : (
+          <span>{row.shared_data || ''}</span>
+        )}
+      </td>
+      {/* Participants */}
+      <td style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', width: COLUMNS[2].width, padding: '4px 0 4px 4px', borderRight: 'none' }}>
+        <ParticipantCellDropdown
+          rowId={row.id}
+          participants={participants}
+          selectedIds={participantIds}
+          canEdit={canEdit}
+          onToggle={onToggleParticipant}
+        />
+      </td>
+      {canEdit && (
+        <td className="w-6 p-0 text-center" style={{ position: 'relative' }}>
+          <div style={{ position: 'absolute', right: '-28px', top: '50%', transform: 'translateY(-50%)' }}>
+            <button onClick={() => onDelete(row.id)} className="text-muted-foreground hover:text-destructive p-0.5" tabIndex={-1}>
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </td>
+      )}
+    </tr>
+  );
+}
+
+/* ── Main component ─────────────────────────────────────────── */
 interface Props {
   proposalId: string;
 }
@@ -133,6 +253,40 @@ export function B12OngoingProjectsTable({ proposalId }: Props) {
     },
   });
 
+  const { data: participants = [] } = useQuery({
+    queryKey: ['b12-ongoing-participants', proposalId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('participants')
+        .select('id, organisation_short_name, organisation_name, participant_number')
+        .eq('proposal_id', proposalId)
+        .order('participant_number');
+      if (error) throw error;
+      return (data || []) as Participant[];
+    },
+  });
+
+  // Participant links
+  const { data: participantLinks = [] } = useQuery({
+    queryKey: ['b12-ongoing-project-participants', proposalId],
+    queryFn: async () => {
+      // Get all ongoing project IDs for this proposal first
+      const { data: projects } = await supabase
+        .from('b12_ongoing_projects')
+        .select('id')
+        .eq('proposal_id', proposalId);
+      if (!projects || projects.length === 0) return [];
+      const ids = projects.map(p => p.id);
+      const { data, error } = await supabase
+        .from('b12_ongoing_project_participants')
+        .select('*')
+        .in('ongoing_project_id', ids);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: rows.length > 0,
+  });
+
   // Initialize 8 empty rows if none exist
   useEffect(() => {
     if (isLoading || initialized.current) return;
@@ -150,7 +304,7 @@ export function B12OngoingProjectsTable({ proposalId }: Props) {
 
   // Realtime
   useEffect(() => {
-    const channel = supabase
+    const ch1 = supabase
       .channel('b12-ongoing-projects-realtime')
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'b12_ongoing_projects',
@@ -159,10 +313,21 @@ export function B12OngoingProjectsTable({ proposalId }: Props) {
         queryClient.invalidateQueries({ queryKey: ['b12-ongoing-projects', proposalId] });
       })
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const ch2 = supabase
+      .channel('b12-ongoing-project-participants-realtime')
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'b12_ongoing_project_participants',
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ['b12-ongoing-project-participants', proposalId] });
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(ch1);
+      supabase.removeChannel(ch2);
+    };
   }, [proposalId, queryClient]);
 
-  const handleUpdate = useCallback(async (id: string, field: ColumnKey, value: string) => {
+  const handleUpdate = useCallback(async (id: string, field: EditableColumnKey, value: string) => {
     await supabase.from('b12_ongoing_projects').update({ [field]: value }).eq('id', id);
   }, []);
 
@@ -172,7 +337,7 @@ export function B12OngoingProjectsTable({ proposalId }: Props) {
   }, [proposalId, queryClient]);
 
   const handleAdd = useCallback(async () => {
-    const maxOrder = rows.length > 0 ? Math.max(...rows.map(r => r.order_index)) + 1 : 0;
+    const maxOrder = rows.length > 0 ? Math.max(...rows.map(r => r.order_index ?? 0)) + 1 : 0;
     await supabase.from('b12_ongoing_projects').insert({ proposal_id: proposalId, order_index: maxOrder });
     queryClient.invalidateQueries({ queryKey: ['b12-ongoing-projects', proposalId] });
   }, [rows, proposalId, queryClient]);
@@ -184,13 +349,29 @@ export function B12OngoingProjectsTable({ proposalId }: Props) {
     const newIndex = rows.findIndex(r => r.id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
     const reordered = arrayMove(rows, oldIndex, newIndex);
-    // Optimistic update
     queryClient.setQueryData(['b12-ongoing-projects', proposalId], reordered);
-    // Persist
     await Promise.all(reordered.map((r, i) =>
       supabase.from('b12_ongoing_projects').update({ order_index: i }).eq('id', r.id)
     ));
   }, [rows, proposalId, queryClient]);
+
+  const handleToggleParticipant = useCallback(async (rowId: string, participantId: string, selected: boolean) => {
+    if (selected) {
+      await supabase.from('b12_ongoing_project_participants').insert({
+        ongoing_project_id: rowId,
+        participant_id: participantId,
+      });
+    } else {
+      await supabase.from('b12_ongoing_project_participants')
+        .delete()
+        .eq('ongoing_project_id', rowId)
+        .eq('participant_id', participantId);
+    }
+    queryClient.invalidateQueries({ queryKey: ['b12-ongoing-project-participants', proposalId] });
+  }, [proposalId, queryClient]);
+
+  const getParticipantIdsForRow = (rowId: string) =>
+    participantLinks.filter(l => l.ongoing_project_id === rowId).map(l => l.participant_id);
 
   return (
     <div className="mt-4" style={{ overflow: 'visible' }}>
@@ -212,8 +393,15 @@ export function B12OngoingProjectsTable({ proposalId }: Props) {
               {COLUMNS.map(col => (
                 <th
                   key={col.key}
-                  className="p-1.5 text-left font-bold"
-                  style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', width: col.width, whiteSpace: 'normal' }}
+                  className="text-left font-bold"
+                  style={{
+                    fontFamily: "'Times New Roman', Times, serif",
+                    fontSize: '11pt',
+                    width: col.width,
+                    whiteSpace: 'normal',
+                    padding: '4px 4px 4px 0',
+                    borderRight: 'none',
+                  }}
                 >
                   {col.label}
                 </th>
@@ -228,8 +416,11 @@ export function B12OngoingProjectsTable({ proposalId }: Props) {
                   key={row.id}
                   row={row}
                   canEdit={canEdit}
+                  participants={participants}
+                  participantIds={getParticipantIdsForRow(row.id)}
                   onUpdate={handleUpdate}
                   onDelete={handleDelete}
+                  onToggleParticipant={handleToggleParticipant}
                 />
               ))}
             </tbody>
