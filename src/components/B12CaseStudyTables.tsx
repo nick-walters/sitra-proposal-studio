@@ -266,20 +266,6 @@ export function B12CaseStudyTables({ proposalId, tableIndex = 0, sectionNumber =
     return () => { supabase.removeChannel(channel); };
   }, [proposalId, queryClient]);
 
-  if (!cases || cases.length === 0) return null;
-
-  const caseType = cases[0].case_type;
-  const customName = cases[0].custom_type_name;
-  const pluralCaption = caseType === 'other'
-    ? (customName ? `${customName}s` : 'Cases')
-    : (CASE_TYPE_PLURALS[caseType] || 'Cases');
-
-  const getLeaderName = (leadId: string | null) => {
-    if (!leadId || !participants) return null;
-    const p = participants.find(pp => pp.id === leadId);
-    return p ? (p.organisation_short_name || p.organisation_name) : null;
-  };
-
   const handleAutoResize = useCallback(() => {
     const containerWidth = containerRef.current?.clientWidth ?? 0;
     const tables = Array.from(containerRef.current?.querySelectorAll('table') ?? []) as HTMLTableElement[];
@@ -305,6 +291,20 @@ export function B12CaseStudyTables({ proposalId, tableIndex = 0, sectionNumber =
       window.removeEventListener('b12-table-autoresize', handleExternalAutoResize as EventListener);
     };
   }, [handleAutoResize]);
+
+  if (!cases || cases.length === 0) return null;
+
+  const caseType = cases[0].case_type;
+  const customName = cases[0].custom_type_name;
+  const pluralCaption = caseType === 'other'
+    ? (customName ? `${customName}s` : 'Cases')
+    : (CASE_TYPE_PLURALS[caseType] || 'Cases');
+
+  const getLeaderName = (leadId: string | null) => {
+    if (!leadId || !participants) return null;
+    const p = participants.find(pp => pp.id === leadId);
+    return p ? (p.organisation_short_name || p.organisation_name) : null;
+  };
 
   return (
     <div
