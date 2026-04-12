@@ -64,8 +64,15 @@ const CASE_TYPES = [
   { value: 'living_lab', label: 'Living Lab', prefix: 'LL' },
   { value: 'pilot', label: 'Pilot', prefix: 'P' },
   { value: 'demonstration', label: 'Demonstration', prefix: 'D' },
+  { value: 'challenge', label: 'Challenge', prefix: 'CH' },
   { value: 'other', label: 'Other', prefix: '' },
 ];
+
+function getCaseTypeLabel(caseType: string, customTypeName: string | null): string {
+  if (caseType === 'other') return customTypeName || 'Case';
+  const type = CASE_TYPES.find(t => t.value === caseType);
+  return type?.label || 'Case';
+}
 
 const CASE_COLORS = [
   '#DC2626', '#B91C1C', '#EF4444', '#F87171', '#991B1B', 
@@ -216,7 +223,7 @@ function SortableCaseRow({ caseItem, participants, casePrefix, onUpdate, onDelet
         disabled={!canEdit}
       />
 
-      {/* Case Lead */}
+      {/* Case Leader */}
       <button
         className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold italic whitespace-nowrap hover:ring-2 hover:ring-primary/30 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-self-start"
         style={{
@@ -229,12 +236,12 @@ function SortableCaseRow({ caseItem, participants, casePrefix, onUpdate, onDelet
       >
         {selectedLead
           ? selectedLead.organisation_short_name || `P${selectedLead.participant_number}`
-          : '+ Lead'}
+          : '+ Leader'}
       </button>
       <Dialog open={leadOpen} onOpenChange={setLeadOpen}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle>Select case lead</DialogTitle>
+            <DialogTitle>Select {getCaseTypeLabel(caseItem.case_type, caseItem.custom_type_name)} Leader</DialogTitle>
             <DialogDescription>
               Choose a partner organisation to lead this case.
             </DialogDescription>
@@ -586,7 +593,7 @@ export function CaseManagementCard({
             />
             <div className="flex-1">
               <Label htmlFor="cases-enabled" className="text-sm cursor-pointer">
-                Does this proposal include case studies, use cases, living labs, pilots, demonstrations, or similar?
+                Does this proposal include case studies, use cases, living labs, pilots, demonstrations, challenges, or similar?
               </Label>
             </div>
           </div>
@@ -638,7 +645,7 @@ export function CaseManagementCard({
                     <div />
                     <div />
                     <div>Title</div>
-                    <div>Lead</div>
+                    <div>{getCaseTypeLabel(proposalCaseType, proposalCustomName)} Leader</div>
                     <div />
                     <div />
                   </div>

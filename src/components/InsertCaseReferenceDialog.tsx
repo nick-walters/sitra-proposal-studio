@@ -36,6 +36,7 @@ function getCasePrefix(caseType: string): string {
     case 'living_lab': return 'LL';
     case 'pilot': return 'P';
     case 'demonstration': return 'D';
+    case 'challenge': return 'CH';
     default: return '';
   }
 }
