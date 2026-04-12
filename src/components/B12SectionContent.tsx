@@ -157,7 +157,16 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
     setCutBlock(null);
   }, [cutBlock, blockOrder, saveBlockOrder]);
 
-  // Visible blocks
+  // Cancel cut on Escape
+  useEffect(() => {
+    if (!cutBlock) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setCutBlock(null);
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [cutBlock]);
+
   const visibleBlocks = useMemo(() => blockOrder.filter(id => {
     if (id === 'case-studies' && !hasCases) return false;
     return true;
