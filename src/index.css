@@ -866,9 +866,6 @@
 .block-drag-container {
   position: absolute;
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 2px;
   opacity: 0;
   transition: opacity 0.15s ease;
   z-index: 50;
@@ -880,23 +877,37 @@
   opacity: 1;
 }
 
-/* Block Drag Handle Styles */
-.block-drag-handle {
+/* Block Controls Grid – 2×2 icon grid */
+.block-controls-grid {
+  display: grid;
+  grid-template-columns: 20px 20px;
+  gap: 2px;
+}
+
+/* Shared button base for all control buttons */
+.block-ctrl-btn {
   width: 20px;
   height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: grab;
   background: hsl(var(--muted));
   border: 1px solid hsl(var(--border));
   border-radius: 4px;
   color: hsl(var(--muted-foreground));
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
 }
 
-.block-drag-handle:hover {
+.block-ctrl-btn:hover {
   background: hsl(var(--accent));
   color: hsl(var(--accent-foreground));
+}
+
+/* Drag Handle */
+.block-drag-handle {
+  cursor: grab;
 }
 
 .block-drag-handle.dragging,
@@ -904,19 +915,9 @@
   cursor: grabbing;
 }
 
-/* Block Delete Button */
+/* Delete Button */
 .block-delete-btn {
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  background: hsl(var(--muted));
-  border: 1px solid hsl(var(--border));
-  border-radius: 4px;
   color: hsl(var(--destructive));
-  transition: all 0.15s ease;
 }
 
 .block-delete-btn:hover {
@@ -925,51 +926,52 @@
   color: hsl(var(--destructive-foreground));
 }
 
-/* Block Cut Button */
+/* Cut Button */
 .block-cut-btn {
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  background: hsl(var(--muted));
-  border: 1px solid hsl(var(--border));
-  border-radius: 4px;
   color: hsl(var(--muted-foreground));
-  transition: all 0.15s ease;
 }
 
 .block-cut-btn:hover {
-  background: hsl(var(--accent));
-  color: hsl(var(--accent-foreground));
+  color: hsl(var(--primary));
+  border-color: hsl(var(--primary));
 }
 
-.block-cut-btn.block-cut-active {
+.block-cut-btn.active {
   background: hsl(var(--primary));
   border-color: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
 }
 
-/* Block Cut Source (the block being cut) */
-.block-cut-source {
-  opacity: 0.4;
-  outline: 2px dashed hsl(var(--primary));
-  outline-offset: 2px;
-  border-radius: 4px;
+/* Autoresize Button */
+.block-autoresize-btn {
+  color: hsl(var(--muted-foreground));
 }
 
-/* Block Paste Indicator */
+.block-autoresize-btn:hover {
+  color: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+}
+
+/* Cut source – greyed out block */
+.block-cut-source {
+  opacity: 0.35 !important;
+  outline: 2px dashed hsl(var(--muted-foreground));
+  outline-offset: 2px;
+  border-radius: 4px;
+  transition: opacity 0.2s ease;
+}
+
+/* Paste indicator (Tiptap) */
 .block-paste-indicator {
   position: absolute;
   left: 0;
   right: 0;
-  height: 8px;
-  z-index: 60;
-  cursor: pointer;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  z-index: 60;
 }
 
 .block-paste-indicator::before {
@@ -977,29 +979,76 @@
   position: absolute;
   left: 0;
   right: 0;
+  top: 50%;
   height: 2px;
   background: hsl(var(--primary));
-  opacity: 0.4;
-  transition: opacity 0.15s ease;
+  transform: translateY(-50%);
 }
 
 .block-paste-indicator:hover::before {
-  opacity: 1;
   height: 3px;
-  box-shadow: 0 0 6px hsl(var(--primary) / 0.6);
+  box-shadow: 0 0 6px hsl(var(--primary) / 0.5);
 }
 
-.block-paste-indicator:hover::after {
-  content: 'Paste here';
-  position: absolute;
-  font-size: 9px;
-  font-family: system-ui, sans-serif;
+.block-paste-label {
+  font-size: 10px;
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
   padding: 1px 6px;
   border-radius: 3px;
-  top: -14px;
-  white-space: nowrap;
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.block-paste-indicator:hover .block-paste-label {
+  opacity: 1;
+}
+
+/* Paste indicator (React / B12 blocks) */
+.block-paste-indicator-react {
+  position: relative;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin: -4px 0;
+}
+
+.block-paste-indicator-react::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  background: hsl(var(--primary));
+  transform: translateY(-50%);
+}
+
+.block-paste-indicator-react:hover::before {
+  height: 3px;
+  box-shadow: 0 0 6px hsl(var(--primary) / 0.5);
+}
+
+.block-paste-indicator-react .block-paste-label {
+  font-size: 10px;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  padding: 1px 6px;
+  border-radius: 3px;
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.block-paste-indicator-react:hover .block-paste-label {
+  opacity: 1;
 }
 
 /* Block Drop Indicator */

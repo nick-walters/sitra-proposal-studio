@@ -7,6 +7,16 @@ import { GripVertical, Trash2, Scissors } from 'lucide-react';
 import { useUserRole } from '@/hooks/useUserRole';
 import { toast } from 'sonner';
 import type { Editor } from '@tiptap/react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 type BlockId = 'editor' | 'case-studies' | 'ongoing-projects';
 
@@ -14,15 +24,11 @@ const DEFAULT_ORDER: BlockId[] = ['editor', 'case-studies', 'ongoing-projects'];
 
 interface Props {
   proposalId: string;
-  /** The editor content node to render as the "editor" block */
   editorNode: ReactNode;
-  /** Tiptap editor instance for counting table captions */
   editor?: Editor | null;
-  /** Section number e.g. "1.2" */
   sectionNumber?: string;
 }
 
-/** Count table captions inside the Tiptap editor document */
 function countEditorTableCaptions(editor: Editor | null | undefined): number {
   if (!editor) return 0;
   const { doc } = editor.state;
@@ -32,9 +38,7 @@ function countEditorTableCaptions(editor: Editor | null | undefined): number {
     if (node.type.name === 'paragraph') {
       const cls = (node.attrs?.class || '') as string;
       const text = node.textContent;
-      if (cls.includes('table-caption') && captionPattern.test(text)) {
-        count++;
-      }
+      if (cls.includes('table-caption') && captionPattern.test(text)) count++;
     }
   });
   return count;
@@ -57,9 +61,10 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
     },
   });
 
-  // Load block order from table_captions
   const [blockOrder, setBlockOrder] = useState<BlockId[]>(DEFAULT_ORDER);
   const [orderLoaded, setOrderLoaded] = useState(false);
+  const [cutBlock, setCutBlock] = useState<BlockId | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ blockId: BlockId } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -100,26 +105,18 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
   // Drag state
   const [draggedBlock, setDraggedBlock] = useState<BlockId | null>(null);
   const [dragOverBlock, setDragOverBlock] = useState<BlockId | null>(null);
-  // Cut/paste state
-  const [cutBlock, setCutBlock] = useState<BlockId | null>(null);
 
-  const handleDragStart = useCallback((blockId: BlockId) => {
-    setDraggedBlock(blockId);
-  }, []);
+  const handleDragStart = useCallback((blockId: BlockId) => setDraggedBlock(blockId), []);
 
   const handleDragOver = useCallback((e: React.DragEvent, blockId: BlockId) => {
     e.preventDefault();
-    if (draggedBlock && draggedBlock !== blockId) {
-      setDragOverBlock(blockId);
-    }
+    if (draggedBlock && draggedBlock !== blockId) setDragOverBlock(blockId);
   }, [draggedBlock]);
 
   const handleDrop = useCallback((e: React.DragEvent, targetBlockId: BlockId) => {
     e.preventDefault();
     if (!draggedBlock || draggedBlock === targetBlockId) {
-      setDraggedBlock(null);
-      setDragOverBlock(null);
-      return;
+      setDraggedBlock(null); setDragOverBlock(null); return;
     }
     const newOrder = [...blockOrder];
     const fromIdx = newOrder.indexOf(draggedBlock);
@@ -130,79 +127,30 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
       setBlockOrder(newOrder);
       saveBlockOrder(newOrder);
     }
-    setDraggedBlock(null);
-    setDragOverBlock(null);
+    setDraggedBlock(null); setDragOverBlock(null);
   }, [draggedBlock, blockOrder, saveBlockOrder]);
 
   const handleDragEnd = useCallback(() => {
-    setDraggedBlock(null);
-    setDragOverBlock(null);
+    setDraggedBlock(null); setDragOverBlock(null);
   }, []);
-
-  const handleCutBlock = useCallback((blockId: BlockId) => {
-    setCutBlock(prev => prev === blockId ? null : blockId);
-  }, []);
-
-  const handlePasteBlock = useCallback((targetIdx: number) => {
-    if (!cutBlock) return;
-    const newOrder = [...blockOrder];
-    const fromIdx = newOrder.indexOf(cutBlock);
-    if (fromIdx === -1) return;
-    newOrder.splice(fromIdx, 1);
-    // targetIdx is the position in the new (after-removal) array
-    const adjustedIdx = targetIdx > fromIdx ? targetIdx - 1 : targetIdx;
-    newOrder.splice(adjustedIdx, 0, cutBlock);
-    setBlockOrder(newOrder);
-    saveBlockOrder(newOrder);
-    setCutBlock(null);
-  }, [cutBlock, blockOrder, saveBlockOrder]);
-
-  // Cancel cut on Escape
-  useEffect(() => {
-    if (!cutBlock) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setCutBlock(null);
-    };
-    document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
-  }, [cutBlock]);
 
   const visibleBlocks = useMemo(() => blockOrder.filter(id => {
     if (id === 'case-studies' && !hasCases) return false;
     return true;
   }), [blockOrder, hasCases]);
 
-  // Unified table numbering:
-  // Count editor table captions, then assign indices to B12 tables based on their position
-  // relative to the editor block in the block order.
   const editorTableCount = countEditorTableCaptions(editor);
 
   const getTableIndex = useCallback((blockId: BlockId): number => {
-    // Find where the editor block is in the visible order
     const editorIdx = visibleBlocks.indexOf('editor');
     const blockIdx = visibleBlocks.indexOf(blockId);
-
-    if (blockIdx < editorIdx) {
-      // This B12 table is BEFORE the editor content
-      // Count B12 tables before this one
-      let count = 0;
-      for (let i = 0; i < blockIdx; i++) {
-        if (visibleBlocks[i] !== 'editor') count++;
-      }
-      return count;
-    } else {
-      // This B12 table is AFTER the editor content
-      // Count B12 tables before this one + editor table count
-      let b12Before = 0;
-      for (let i = 0; i < blockIdx; i++) {
-        if (visibleBlocks[i] !== 'editor') b12Before++;
-      }
-      return b12Before + editorTableCount;
+    let b12Before = 0;
+    for (let i = 0; i < blockIdx; i++) {
+      if (visibleBlocks[i] !== 'editor') b12Before++;
     }
+    return blockIdx < editorIdx ? b12Before : b12Before + editorTableCount;
   }, [visibleBlocks, editorTableCount]);
 
-  // Count B12 tables that appear BEFORE the editor in the block order
-  // This offset is used by the editor's renumberCaptionsInEditor
   const b12TablesBeforeEditor = useMemo(() => {
     const editorIdx = visibleBlocks.indexOf('editor');
     let count = 0;
@@ -212,53 +160,65 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
     return count;
   }, [visibleBlocks]);
 
-  // Expose the offset via a custom event so DocumentEditor can use it for renumbering
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('b12-table-offset', { detail: { offset: b12TablesBeforeEditor } }));
   }, [b12TablesBeforeEditor]);
 
-  const handleDeleteBlock = useCallback(async (blockId: BlockId) => {
+  // Escape cancels cut
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setCutBlock(null); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
+
+  const executeDeleteBlock = useCallback(async (blockId: BlockId) => {
     if (blockId === 'ongoing-projects') {
       const { error } = await supabase
         .from('b12_ongoing_projects')
         .delete()
         .eq('proposal_id', proposalId);
-
       if (error) {
         toast.error('Could not delete the relevant projects table.');
       } else {
         queryClient.invalidateQueries({ queryKey: ['b12-ongoing-projects'] });
       }
-      return;
-    }
-
-    if (blockId === 'case-studies') {
+    } else if (blockId === 'case-studies') {
       const { error } = await supabase
         .from('case_drafts')
-        .update({ is_hidden: true } as never)
+        .update({ is_hidden: true })
         .eq('proposal_id', proposalId)
         .eq('is_hidden', false);
-
       if (error) {
-        toast.error('Could not delete the case tables.');
+        toast.error('Could not delete the case studies.');
       } else {
-        queryClient.invalidateQueries({ queryKey: ['b12-has-cases', proposalId] });
-        queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
+        queryClient.invalidateQueries({ queryKey: ['b12-has-cases'] });
+        queryClient.invalidateQueries({ queryKey: ['case-drafts'] });
       }
     }
   }, [proposalId, queryClient]);
 
+  const handlePasteBlock = useCallback((targetIdx: number) => {
+    if (!cutBlock) return;
+    const newOrder = [...blockOrder];
+    const fromIdx = newOrder.indexOf(cutBlock);
+    if (fromIdx === -1) return;
+    newOrder.splice(fromIdx, 1);
+    const adjustedIdx = targetIdx > fromIdx ? targetIdx - 1 : targetIdx;
+    newOrder.splice(adjustedIdx, 0, cutBlock);
+    setBlockOrder(newOrder);
+    saveBlockOrder(newOrder);
+    setCutBlock(null);
+  }, [cutBlock, blockOrder, saveBlockOrder]);
+
   const renderBlock = (blockId: BlockId) => {
     switch (blockId) {
-      case 'editor':
-        return editorNode;
+      case 'editor': return editorNode;
       case 'case-studies':
         if (!hasCases) return null;
         return <B12CaseStudyTables proposalId={proposalId} tableIndex={getTableIndex('case-studies')} sectionNumber={sectionNumber} />;
       case 'ongoing-projects':
         return <B12OngoingProjectsTable proposalId={proposalId} tableIndex={getTableIndex('ongoing-projects')} sectionNumber={sectionNumber} />;
-      default:
-        return null;
+      default: return null;
     }
   };
 
@@ -269,101 +229,126 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
         const isDragging = draggedBlock === blockId;
         const isDragOver = dragOverBlock === blockId;
         const isCut = cutBlock === blockId;
-        const showDeleteButton = isTable && (blockId === 'ongoing-projects' || blockId === 'case-studies');
 
         return (
           <div key={blockId}>
-            {/* Paste indicator before this block */}
-            {cutBlock && cutBlock !== blockId && idx === 0 && (
-              <div
-                className="block-paste-indicator relative"
-                style={{ height: '8px', cursor: 'pointer' }}
-                onClick={() => handlePasteBlock(idx)}
-                title="Paste here"
-              />
+            {/* Paste indicator before block */}
+            {cutBlock && cutBlock !== blockId && (
+              (() => {
+                // Don't show indicator right after the cut block
+                const cutIdx = visibleBlocks.indexOf(cutBlock);
+                if (idx === cutIdx + 1) return null;
+                return (
+                  <div
+                    className="block-paste-indicator-react"
+                    onClick={() => handlePasteBlock(idx)}
+                    title="Paste here"
+                  >
+                    <span className="block-paste-label">Paste here</span>
+                  </div>
+                );
+              })()
             )}
-
             <div
-              className="relative group/b12block"
+              className={`relative group/b12block ${isCut ? 'block-cut-source' : ''}`}
               style={{
-                opacity: isDragging || isCut ? 0.4 : 1,
-                borderTop: isDragOver ? '2px solid #2563EB' : '2px solid transparent',
-                outline: isCut ? '2px dashed hsl(var(--primary))' : 'none',
-                outlineOffset: isCut ? '2px' : undefined,
-                borderRadius: isCut ? '4px' : undefined,
+                opacity: isDragging ? 0.4 : 1,
+                borderTop: isDragOver ? '2px solid hsl(var(--primary))' : '2px solid transparent',
                 transition: 'opacity 150ms',
               }}
               onDragOver={(e) => handleDragOver(e, blockId)}
               onDrop={(e) => handleDrop(e, blockId)}
             >
+              {/* Controls grid */}
               {canEdit && visibleBlocks.length > 1 && (
-                <>
-                  <button
-                    type="button"
-                    className="absolute opacity-0 group-hover/b12block:opacity-100 transition-opacity z-10 cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted rounded touch-none"
-                    title="Drag to reorder"
-                    style={{
-                      left: '-28px',
-                      top: isTable ? '16px' : '4px',
-                    }}
+                <div
+                  className="absolute opacity-0 group-hover/b12block:opacity-100 transition-opacity z-10 block-controls-grid"
+                  style={{
+                    left: '-52px',
+                    top: isTable ? '12px' : '0px',
+                  }}
+                >
+                  {/* Row 1: grip + delete */}
+                  <div
+                    className="block-ctrl-btn block-drag-handle"
                     draggable
                     onDragStart={() => handleDragStart(blockId)}
                     onDragEnd={handleDragEnd}
-                    tabIndex={-1}
+                    title="Drag to reorder"
                   >
-                    <GripVertical className="w-3.5 h-3.5 text-[#2563EB]" />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleCutBlock(blockId)}
-                    className={`absolute opacity-0 group-hover/b12block:opacity-100 transition-opacity z-10 p-0.5 rounded transition-colors ${
-                      isCut
-                        ? 'bg-primary text-primary-foreground opacity-100'
-                        : 'hover:bg-muted text-muted-foreground hover:text-foreground'
-                    }`}
-                    title={isCut ? 'Cancel cut' : 'Cut block'}
-                    style={{
-                      left: '-28px',
-                      top: isTable ? '42px' : '30px',
-                    }}
-                    tabIndex={-1}
-                  >
-                    <Scissors className="w-3.5 h-3.5" />
-                  </button>
-
-                  {showDeleteButton && (
+                    <GripVertical className="h-3.5 w-3.5" />
+                  </div>
+                  {isTable ? (
                     <button
-                      type="button"
-                      onClick={() => handleDeleteBlock(blockId)}
-                      className="absolute opacity-0 group-hover/b12block:opacity-100 transition-opacity z-10 p-0.5 text-destructive hover:bg-destructive/10 rounded transition-colors"
-                      title="Delete table"
-                      style={{
-                        left: '-28px',
-                        top: isTable ? '68px' : '56px',
-                      }}
+                      className="block-ctrl-btn block-delete-btn"
+                      onClick={() => setDeleteConfirm({ blockId })}
                       tabIndex={-1}
+                      title="Delete table"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
+                  ) : (
+                    <div className="block-ctrl-btn" style={{ visibility: 'hidden' }} />
                   )}
-                </>
+
+                  {/* Row 2: cut + (empty for non-table) */}
+                  <button
+                    className={`block-ctrl-btn block-cut-btn ${isCut ? 'active' : ''}`}
+                    onClick={() => setCutBlock(isCut ? null : blockId)}
+                    tabIndex={-1}
+                    title={isCut ? 'Cancel cut' : 'Cut block'}
+                  >
+                    <Scissors className="h-3.5 w-3.5" />
+                  </button>
+                  <div className="block-ctrl-btn" style={{ visibility: 'hidden' }} />
+                </div>
               )}
               {renderBlock(blockId)}
             </div>
-
-            {/* Paste indicator after this block */}
-            {cutBlock && cutBlock !== blockId && (
-              <div
-                className="block-paste-indicator relative"
-                style={{ height: '8px', cursor: 'pointer' }}
-                onClick={() => handlePasteBlock(idx + 1)}
-                title="Paste here"
-              />
-            )}
           </div>
         );
       })}
+      {/* Paste indicator at end */}
+      {cutBlock && (() => {
+        const cutIdx = visibleBlocks.indexOf(cutBlock);
+        if (cutIdx === visibleBlocks.length - 1) return null;
+        return (
+          <div
+            className="block-paste-indicator-react"
+            onClick={() => handlePasteBlock(visibleBlocks.length)}
+            title="Paste here"
+          >
+            <span className="block-paste-label">Paste here</span>
+          </div>
+        );
+      })()}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={!!deleteConfirm}
+        onOpenChange={(open) => !open && setDeleteConfirm(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this block?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The content will be permanently removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteConfirm(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteConfirm) executeDeleteBlock(deleteConfirm.blockId);
+                setDeleteConfirm(null);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
