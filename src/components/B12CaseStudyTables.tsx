@@ -248,12 +248,17 @@ export function B12CaseStudyTables({ proposalId }: Props) {
                 {FIELD_KEYS.map(({ headingKey, contentKey }) => {
                   const heading = (c as any)[headingKey] || (DEFAULT_HEADINGS as any)[headingKey] || '';
                   const rawContent = (c as any)[contentKey] || '';
-                  const content = stripHtml(rawContent);
+                  const cleanHtml = sanitizeHtml(rawContent);
                   return (
                     <tr key={contentKey} style={{ borderBottom: '0.5px solid #d1d5db' }}>
                       <td style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', padding: '4px 0' }}>
                         <span className="font-bold italic">{heading}:</span>
-                        {content ? ` ${content}` : ''}
+                        {cleanHtml ? (
+                          <span
+                            className="b12-case-content"
+                            dangerouslySetInnerHTML={{ __html: ` ${cleanHtml}` }}
+                          />
+                        ) : null}
                       </td>
                     </tr>
                   );
