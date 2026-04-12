@@ -183,7 +183,7 @@ function EditableCaseCell({
   );
 }
 
-export function B12CaseStudyTables({ proposalId, tableIndex = 0 }: Props) {
+export function B12CaseStudyTables({ proposalId, tableIndex = 0, sectionNumber = '1.2' }: Props) {
   const queryClient = useQueryClient();
 
   const { data: cases } = useQuery({
@@ -270,7 +270,7 @@ export function B12CaseStudyTables({ proposalId, tableIndex = 0 }: Props) {
       <EditableCaption
         proposalId={proposalId}
         tableKey="b12-case-studies"
-        label={`Table 1.2.${String.fromCharCode(97 + tableIndex)}.`}
+        label={`Table ${sectionNumber.replace(/^[A-Za-z]+/, '')}.${String.fromCharCode(97 + tableIndex)}.`}
         defaultCaption={pluralCaption}
       />
 
