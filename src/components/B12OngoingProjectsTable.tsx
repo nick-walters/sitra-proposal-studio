@@ -39,7 +39,7 @@ const COLUMN_KEYS = ['project_info', 'shared_data', 'participants'] as const;
 const COLUMN_LABELS_DEFAULT = [
   'Project acronym, funder & duration',
   'Data, expertise & tools to be shared',
-  'Participants to establish link',
+  'Participant(s) to establish link',
 ];
 const COLUMN_WIDTHS = ['34%', '38%', '28%'];
 
