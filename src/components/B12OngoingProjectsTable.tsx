@@ -278,7 +278,7 @@ function SortableRow({
       {canEdit && (
         <td className="p-0" style={{ width: 0, minWidth: 0, maxWidth: 0, position: 'relative' }}>
           <div style={{ position: 'absolute', right: '-28px', top: '50%', transform: 'translateY(-50%)' }}>
-            <button onClick={() => onDelete(row.id)} className="text-muted-foreground hover:text-destructive p-0.5" tabIndex={-1}>
+            <button onClick={() => onDelete(row.id)} className="text-destructive hover:text-destructive p-0.5" tabIndex={-1}>
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           </div>
