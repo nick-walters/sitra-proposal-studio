@@ -306,11 +306,12 @@ export function B12CaseStudyTables({ proposalId, tableIndex = 0 }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {FIELD_KEYS.map(({ headingKey, contentKey }) => {
+                {FIELD_KEYS.map(({ headingKey, contentKey }, fieldIdx) => {
                   const heading = (c as any)[headingKey] || (DEFAULT_HEADINGS as any)[headingKey] || '';
                   const rawContent = (c as any)[contentKey] || '';
+                  const isLast = fieldIdx === FIELD_KEYS.length - 1;
                   return (
-                    <tr key={contentKey} style={{ borderBottom: '0.5px solid #d1d5db' }}>
+                    <tr key={contentKey} style={{ borderBottom: isLast ? 'none' : '0.5px solid #d1d5db' }}>
                       <td style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', padding: '4px 0' }}>
                         <span className="font-bold italic">{heading}:</span>{' '}
                         <EditableCaseCell
