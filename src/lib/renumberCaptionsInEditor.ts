@@ -1,4 +1,5 @@
 import { Editor } from '@tiptap/core';
+import { TextSelection } from '@tiptap/pm/state';
 
 /**
  * Renumbers figure and table captions directly in the ProseMirror document.
@@ -147,4 +148,131 @@ export function renumberCaptionsInEditor(editor: Editor, sectionNumber: string):
   editor.view.dispatch(tr);
 
   return true;
+}
+
+/**
+ * Finds the table node the cursor is currently inside, then looks for a caption
+ * paragraph immediately above it. If the caption exists but is improperly formatted
+ * (e.g. pasted text without auto-numbering), it rewrites it with proper numbering
+ * and styling. If no caption paragraph exists above the table, one is inserted.
+ *
+ * Caption format:
+ *  - Label ("Table X.X.x. ") → bold + italic
+ *  - Description text → italic only (not bold)
+ *
+ * Returns true if changes were made.
+ */
+export function updateCaptionForTableAtCursor(editor: Editor, sectionNumber: string): boolean {
+  if (!editor || !sectionNumber) return false;
+
+  const cleanSectionNum = sectionNumber.replace(/^[A-Za-z]+/, '');
+  const { state } = editor;
+  const { doc, schema } = state;
+  const { $from } = state.selection;
+
+  // Walk up to find the table node
+  let tableDepth = -1;
+  for (let d = $from.depth; d >= 0; d--) {
+    if ($from.node(d).type.name === 'table') {
+      tableDepth = d;
+      break;
+    }
+  }
+  if (tableDepth < 0) return false;
+
+  const tablePos = $from.before(tableDepth); // position before the table node
+
+  // Count all table captions BEFORE this table to determine the letter
+  const captionPattern = /^(Table)\s+(\d+\.\d+)\.([a-z])\./i;
+  let tableLetterIdx = 0;
+  doc.forEach((node, offset) => {
+    if (offset >= tablePos) return; // only count captions before this table
+    if (node.type.name === 'paragraph') {
+      const cls = (node.attrs?.class || '') as string;
+      const text = node.textContent;
+      if (cls.includes('table-caption') && captionPattern.test(text)) {
+        tableLetterIdx++;
+      }
+    }
+  });
+
+  // Check if there's a paragraph immediately before the table
+  const $tablePos = doc.resolve(tablePos);
+  const indexInParent = $tablePos.index($tablePos.depth);
+  const parent = $tablePos.parent;
+
+  let existingCaptionPos: number | null = null;
+  let existingCaptionNode: any = null;
+
+  if (indexInParent > 0) {
+    const prevNode = parent.child(indexInParent - 1);
+    if (prevNode.type.name === 'paragraph') {
+      const cls = (prevNode.attrs?.class || '') as string;
+      const text = prevNode.textContent.trim();
+      // Accept it as a caption if it has the table-caption class, or if it looks like a table caption
+      if (
+        cls.includes('table-caption') ||
+        /^table\s+/i.test(text) ||
+        // Also accept any paragraph directly above a table that's short (likely a caption)
+        (text.length > 0 && text.length < 300 && !text.includes('\n'))
+      ) {
+        // Calculate the absolute position of this paragraph
+        let pos = $tablePos.start($tablePos.depth);
+        for (let i = 0; i < indexInParent - 1; i++) {
+          pos += parent.child(i).nodeSize;
+        }
+        existingCaptionPos = pos;
+        existingCaptionNode = prevNode;
+      }
+    }
+  }
+
+  const newLetter = String.fromCharCode('a'.charCodeAt(0) + tableLetterIdx);
+  const newLabel = `Table ${cleanSectionNum}.${newLetter}. `;
+
+  const boldMark = schema.marks.bold?.create();
+  const italicMark = schema.marks.italic?.create();
+
+  if (existingCaptionNode && existingCaptionPos !== null) {
+    // Extract the user text (strip any existing label)
+    const fullText = existingCaptionNode.textContent;
+    const labelMatch = /^(?:Table\s+\d+\.\d+\.[a-z]\.\s*)/i.exec(fullText);
+    const userText = labelMatch ? fullText.slice(labelMatch[0].length).trim() : fullText.trim();
+
+    // Rebuild the caption node content
+    const labelTextNode = schema.text(newLabel, [boldMark, italicMark].filter(Boolean));
+    const contentNodes = [labelTextNode];
+    if (userText) {
+      contentNodes.push(schema.text(userText, [italicMark].filter(Boolean)));
+    } else {
+      contentNodes.push(schema.text(' ', [italicMark].filter(Boolean)));
+    }
+
+    const newCaptionNode = schema.nodes.paragraph.create(
+      { class: 'table-caption', textAlign: 'left' },
+      contentNodes,
+    );
+
+    const tr = state.tr.replaceWith(
+      existingCaptionPos,
+      existingCaptionPos + existingCaptionNode.nodeSize,
+      newCaptionNode,
+    );
+    tr.setMeta('addToHistory', true);
+    editor.view.dispatch(tr);
+    return true;
+  } else {
+    // No caption above the table — insert one
+    const labelTextNode = schema.text(newLabel, [boldMark, italicMark].filter(Boolean));
+    const spaceNode = schema.text(' ', [italicMark].filter(Boolean));
+    const newCaptionNode = schema.nodes.paragraph.create(
+      { class: 'table-caption', textAlign: 'left' },
+      [labelTextNode, spaceNode],
+    );
+
+    const tr = state.tr.insert(tablePos, newCaptionNode);
+    tr.setMeta('addToHistory', true);
+    editor.view.dispatch(tr);
+    return true;
+  }
 }
