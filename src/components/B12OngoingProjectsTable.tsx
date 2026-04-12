@@ -513,16 +513,13 @@ export function B12OngoingProjectsTable({ proposalId }: Props) {
         >
           {hasCustomWidths && (
             <colgroup>
-              {canEdit && <col style={{ width: 0 }} />}
               {colWidths.map((w, i) => (
                 <col key={i} style={{ width: `${w}px` }} />
               ))}
-              {canEdit && <col style={{ width: 0 }} />}
             </colgroup>
           )}
           <thead>
             <tr style={{ borderBottom: '1.5px solid #000000' }}>
-              {canEdit && <th className="w-0 p-0" style={{ width: 0, minWidth: 0, maxWidth: 0, border: 'none' }} />}
               {COLUMN_KEYS.map((key, i) => (
                 <th
                   key={key}
@@ -547,7 +544,6 @@ export function B12OngoingProjectsTable({ proposalId }: Props) {
                   {canEdit && <ColumnResizer onMouseDown={handleColResizeStart(i)} />}
                 </th>
               ))}
-              {canEdit && <th className="w-0 p-0" style={{ width: 0, minWidth: 0, maxWidth: 0, border: 'none' }} />}
             </tr>
           </thead>
           <SortableContext items={rows.map(r => r.id)} strategy={verticalListSortingStrategy}>
