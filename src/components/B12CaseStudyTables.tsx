@@ -1,9 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EditableCaption } from '@/components/EditableCaption';
-import { useEffect } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { Crown } from 'lucide-react';
-import DOMPurify from 'dompurify';
 
 const tableStyles = "font-['Times_New_Roman',Times,serif] text-[11pt]";
 
@@ -43,15 +42,6 @@ const FIELD_KEYS = [
 
 interface Props {
   proposalId: string;
-}
-
-/** Sanitize HTML content for safe rendering, preserving formatting */
-function sanitizeHtml(html: string): string {
-  if (!html) return '';
-  return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 'ul', 'ol', 'li', 'span', 'a', 'sub', 'sup'],
-    ALLOWED_ATTR: ['style', 'href', 'target', 'rel'],
-  });
 }
 
 /** Build case bubble label matching the case manager logic */
@@ -122,6 +112,76 @@ function ParticipantBubble({ name }: { name: string }) {
   );
 }
 
+/**
+ * Inline editable cell for case draft content fields.
+ * Renders as contentEditable div, syncs changes back to the DB.
+ */
+function EditableCaseCell({
+  caseId,
+  contentKey,
+  value,
+}: {
+  caseId: string;
+  contentKey: string;
+  value: string;
+}) {
+  const editorRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const isFocusedRef = useRef(false);
+  const queryClient = useQueryClient();
+
+  // Set initial content
+  useEffect(() => {
+    if (editorRef.current && !isFocusedRef.current) {
+      const current = editorRef.current.innerHTML;
+      const next = value || '';
+      if (current !== next) {
+        editorRef.current.innerHTML = next;
+      }
+    }
+  }, [value]);
+
+  const handleInput = useCallback(() => {
+    if (!editorRef.current) return;
+    const html = editorRef.current.innerHTML;
+
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      await supabase
+        .from('case_drafts')
+        .update({ [contentKey]: html, updated_at: new Date().toISOString() })
+        .eq('id', caseId);
+      // The realtime subscription will invalidate the case-drafts query
+    }, 600);
+  }, [caseId, contentKey]);
+
+  return (
+    <div
+      ref={editorRef}
+      contentEditable
+      suppressContentEditableWarning
+      className="b12-case-content outline-none"
+      style={{
+        fontFamily: "'Times New Roman', Times, serif",
+        fontSize: '11pt',
+        lineHeight: 1.2,
+        minHeight: '1em',
+      }}
+      onFocus={() => { isFocusedRef.current = true; }}
+      onBlur={() => { isFocusedRef.current = false; }}
+      onInput={handleInput}
+      onKeyDown={(e) => {
+        // Support bold, italic, underline
+        if (e.metaKey || e.ctrlKey) {
+          if (e.key === 'b') { e.preventDefault(); document.execCommand('bold'); handleInput(); }
+          if (e.key === 'i') { e.preventDefault(); document.execCommand('italic'); handleInput(); }
+          if (e.key === 'u') { e.preventDefault(); document.execCommand('underline'); handleInput(); }
+        }
+      }}
+    />
+  );
+}
+
 export function B12CaseStudyTables({ proposalId }: Props) {
   const queryClient = useQueryClient();
 
@@ -175,7 +235,7 @@ export function B12CaseStudyTables({ proposalId }: Props) {
   const includeNumber = caseSettings?.case_include_number !== false;
   const includeAbbreviation = caseSettings?.case_include_abbreviation !== false;
 
-  // Realtime subscription
+  // Realtime subscription – also invalidates the case-drafts cache used by the editor
   useEffect(() => {
     const channel = supabase
       .channel('b12-case-drafts-realtime')
@@ -184,6 +244,7 @@ export function B12CaseStudyTables({ proposalId }: Props) {
         filter: `proposal_id=eq.${proposalId}`,
       }, () => {
         queryClient.invalidateQueries({ queryKey: ['b12-case-study-tables', proposalId] });
+        queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -248,17 +309,15 @@ export function B12CaseStudyTables({ proposalId }: Props) {
                 {FIELD_KEYS.map(({ headingKey, contentKey }) => {
                   const heading = (c as any)[headingKey] || (DEFAULT_HEADINGS as any)[headingKey] || '';
                   const rawContent = (c as any)[contentKey] || '';
-                  const cleanHtml = sanitizeHtml(rawContent);
                   return (
                     <tr key={contentKey} style={{ borderBottom: '0.5px solid #d1d5db' }}>
                       <td style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', padding: '4px 0' }}>
-                        <span className="font-bold italic">{heading}:</span>
-                        {cleanHtml ? (
-                          <span
-                            className="b12-case-content"
-                            dangerouslySetInnerHTML={{ __html: ` ${cleanHtml}` }}
-                          />
-                        ) : null}
+                        <span className="font-bold italic">{heading}:</span>{' '}
+                        <EditableCaseCell
+                          caseId={c.id}
+                          contentKey={contentKey}
+                          value={rawContent}
+                        />
                       </td>
                     </tr>
                   );
