@@ -1628,7 +1628,7 @@ export function DocumentEditor({
                       ? acronymSegments.map((seg, i) => <span key={i} style={{ color: seg.color }}>{seg.text}</span>)
                       : proposalAcronym}
                   </strong>
-                  {' (Stage 1 of 2) | Part '}
+                  {submissionStage === 'stage_1' ? ' (Stage 1 of 2) | Part ' : ' | Part '}
                   {section.number}. {section.title}
                   {' | Page 1 of 1'}
                 </span>
