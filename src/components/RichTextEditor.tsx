@@ -423,8 +423,9 @@ export function FormattingToolbar({
   /** Which B12 table is focused: null, 'case-studies', or 'ongoing-projects' */
   b12TableFocus?: string | null;
   onB12AddRow?: () => void;
-  onB12DeleteRow?: () => void;
-  onB12UpdateCaption?: () => void;
+   onB12DeleteRow?: () => void;
+   onB12DeleteTable?: () => void;
+   onB12UpdateCaption?: () => void;
   crossRefDropdown?: React.ReactNode;
 }) {
   const [tablePopoverOpen, setTablePopoverOpen] = useState(false);

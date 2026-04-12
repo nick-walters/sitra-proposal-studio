@@ -880,6 +880,32 @@ export function DocumentEditor({
     }
   }, [b12FocusedCaseId, b12FocusedRowId, b12TableFocus, isEffectivelyReadOnly, proposalId]);
 
+  const handleB12DeleteTable = useCallback(async () => {
+    if (!proposalId || !b12TableFocus || isEffectivelyReadOnly) return;
+
+    if (b12TableFocus === 'ongoing-projects') {
+      const { error } = await supabase
+        .from('b12_ongoing_projects')
+        .delete()
+        .eq('proposal_id', proposalId);
+      if (error) {
+        toast.error('Could not delete the relevant projects table.');
+      }
+      return;
+    }
+
+    // case-studies: delete the focused case
+    if (b12FocusedCaseId) {
+      const { error } = await supabase
+        .from('case_drafts')
+        .delete()
+        .eq('id', b12FocusedCaseId);
+      if (error) {
+        toast.error('Could not delete the case table.');
+      }
+    }
+  }, [b12FocusedCaseId, b12TableFocus, isEffectivelyReadOnly, proposalId]);
+
   const handleB12UpdateCaption = useCallback(() => {
     if (b12TableFocus === 'case-studies') {
       focusB12Caption('b12-case-studies');
@@ -1357,6 +1383,7 @@ export function DocumentEditor({
           b12TableFocus={b12TableFocus}
           onB12AddRow={b12TableFocus ? handleB12AddRow : undefined}
           onB12DeleteRow={b12TableFocus ? handleB12DeleteRow : undefined}
+          onB12DeleteTable={b12TableFocus ? handleB12DeleteTable : undefined}
           onB12UpdateCaption={b12TableFocus ? handleB12UpdateCaption : undefined}
           crossRefDropdown={section && !section.isPartA ? (
             <>
