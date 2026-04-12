@@ -1,6 +1,7 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { HeadingExitOnEnter } from '@/extensions/HeadingExitOnEnter';
+import { HeadingNumberLabel } from '@/extensions/HeadingNumberLabel';
 import { renumberH3Headings } from '@/lib/renumberH3Headings';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
@@ -329,6 +330,7 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
       TableHeader,
       ResizableImage,
       HeadingExitOnEnter,
+      HeadingNumberLabel,
     ],
     content: loading ? '<p></p>' : (data.responseContent || '<p></p>'),
     editable: canEdit && !loading,
