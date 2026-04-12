@@ -143,7 +143,7 @@ function buildSectionHierarchy(sections: TemplateSectionData[]): Section[] {
   return rootSections;
 }
 
-export function useProposalSections(templateTypeId: string | null, proposalId?: string | null, proposalLoaded?: boolean) {
+export function useProposalSections(templateTypeId: string | null, proposalId?: string | null, proposalLoaded?: boolean, isCoordinator?: boolean) {
   const [loading, setLoading] = useState(true);
   const [templateSections, setTemplateSections] = useState<Section[]>([]);
   const [hasTemplateSections, setHasTemplateSections] = useState(false);
@@ -209,7 +209,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       if (!proposalId) return [];
       const { data, error } = await supabase
         .from('wp_drafts')
-        .select('id, number, short_name, title, color, order_index, theme_id')
+        .select('id, number, short_name, title, color, order_index, theme_id, is_hidden')
         .eq('proposal_id', proposalId)
         .order('order_index');
       if (error) throw error;
@@ -255,9 +255,10 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     return new Map(themesData.map((t: WPTheme) => [t.id, t]));
   }, [themesData]);
 
-  // Convert WP drafts to sections
+  // Convert WP drafts to sections (filter hidden for non-coordinators)
   const wpDraftSections: WPSection[] = useMemo(() => {
-    return wpDraftsData.map(wp => {
+    const visibleWPs = isCoordinator ? wpDraftsData : wpDraftsData.filter(wp => !wp.is_hidden);
+    return visibleWPs.map(wp => {
       // Resolve effective color: use theme color if themes are enabled and WP has a theme
       let effectiveColor = wp.color;
       if (useWpThemes && wp.theme_id) {
@@ -275,7 +276,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         wpColor: effectiveColor,
       };
     });
-  }, [wpDraftsData, useWpThemes, themesMap]);
+  }, [wpDraftsData, useWpThemes, themesMap, isCoordinator]);
 
   // Fetch Case drafts using react-query
   const { data: caseDraftsData = [] } = useQuery({
@@ -284,7 +285,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
       if (!proposalId) return [];
       const { data, error } = await supabase
         .from('case_drafts')
-        .select('id, number, short_name, title, color, order_index, case_type')
+        .select('id, number, short_name, title, color, order_index, case_type, is_hidden')
         .eq('proposal_id', proposalId)
         .order('order_index');
       if (error) throw error;
@@ -305,9 +306,10 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
     }
   };
 
-  // Convert Case drafts to sections
+  // Convert Case drafts to sections (filter hidden for non-coordinators)
   const caseDraftSections: CaseSection[] = useMemo(() => {
-    return caseDraftsData.map(c => {
+    const visibleCases = isCoordinator ? caseDraftsData : caseDraftsData.filter(c => !c.is_hidden);
+    return visibleCases.map(c => {
       const prefix = getCasePrefix(c.case_type);
       return {
         id: `case-${c.id}`,
@@ -319,7 +321,7 @@ export function useProposalSections(templateTypeId: string | null, proposalId?: 
         caseType: c.case_type,
       };
     });
-  }, [caseDraftsData]);
+  }, [caseDraftsData, isCoordinator]);
 
   // Subscribe to realtime updates for WP drafts and invalidate react-query cache
   useEffect(() => {
