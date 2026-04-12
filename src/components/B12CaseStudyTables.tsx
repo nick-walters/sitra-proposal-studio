@@ -293,7 +293,7 @@ export function B12CaseStudyTables({ proposalId, tableIndex = 0 }: Props) {
                 <tr style={{ borderBottom: '1.5px solid #000000' }}>
                   <td
                     className="font-bold"
-                    style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', padding: '4px 0' }}
+                    style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', padding: '0.03pt 0' }}
                   >
                     <div className="flex items-center justify-between">
                       <CaseBubble label={bubbleLabel} />
@@ -312,7 +312,7 @@ export function B12CaseStudyTables({ proposalId, tableIndex = 0 }: Props) {
                   const isLast = fieldIdx === FIELD_KEYS.length - 1;
                   return (
                     <tr key={contentKey} style={{ borderBottom: isLast ? 'none' : '0.5px solid #d1d5db' }}>
-                      <td style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', padding: '4px 0' }}>
+                      <td style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '11pt', padding: '0.03pt 0' }}>
                         <span className="font-bold italic">{heading}:</span>{' '}
                         <EditableCaseCell
                           caseId={c.id}
