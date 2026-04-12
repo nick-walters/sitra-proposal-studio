@@ -233,6 +233,7 @@ export function CaseDraftEditor({ caseId, proposalId, canEdit: canEditProp, isCo
       setSaveError(null);
       queryClient.invalidateQueries({ queryKey: ['case-draft-detail'] });
       queryClient.invalidateQueries({ queryKey: ['case-drafts', proposalId] });
+      queryClient.invalidateQueries({ queryKey: ['case-drafts-management', proposalId] });
     },
     onError: () => {
       setSaveError('Failed to save changes');
