@@ -1284,7 +1284,6 @@ StarterKit.configure({
       }),
       HeadingExitOnEnter,
       BlockReordering,
-      TableAutoResizeButton,
       InlineReferenceMark,
       WPReferenceMark,
       CaseReferenceMark,
@@ -1484,7 +1483,7 @@ StarterKit.configure({
       // Block reordering via keyboard shortcuts (Ctrl+Shift+↑/↓)
       HeadingExitOnEnter,
       BlockReordering,
-      TableAutoResizeButton,
+      
       InlineReferenceMark,
       // WP reference marks for inline WP badges
       WPReferenceMark,
