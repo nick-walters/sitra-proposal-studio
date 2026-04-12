@@ -1206,6 +1206,7 @@ export function DocumentEditor({
           isPartB={section && !section.isPartA}
           isReadOnly={isEffectivelyReadOnly}
           hideTableInsert={section?.number === 'B3.1'}
+          tableOffset={b12TableOffset}
           crossRefDropdown={section && !section.isPartA ? (
             <>
               <DropdownMenu>
