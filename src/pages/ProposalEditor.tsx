@@ -834,6 +834,7 @@ export function ProposalEditor() {
           proposalType={proposal?.type}
           topicTitle={proposal?.topicTitle}
           readOnly={!canEdit}
+          submissionStage={proposal?.submissionStage}
           topicId={proposal?.topicId}
           workProgramme={proposal?.workProgramme}
           destination={proposal?.destination}
@@ -987,6 +988,7 @@ export function ProposalEditor() {
         proposalType={proposal?.type}
         topicTitle={proposal?.topicTitle}
         readOnly={!canEdit}
+        submissionStage={proposal?.submissionStage}
         topicId={proposal?.topicId}
         topicUrl={proposal?.topicUrl}
         workProgramme={proposal?.workProgramme}
