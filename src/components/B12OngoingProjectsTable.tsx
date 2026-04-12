@@ -267,6 +267,7 @@ export function B12OngoingProjectsTable({ proposalId }: Props) {
   const { isAdminOrOwner, hasAnyCoordinatorRole } = useUserRole();
   const canEdit = isAdminOrOwner || hasAnyCoordinatorRole;
   const initialized = useRef(false);
+  const { colWidths, tableRef, handleColResizeStart, setColWidths, saveWidths } = useColumnResize({ proposalId, tableKey: 'b12-ongoing', canResize: canEdit });
 
   // Editable column headers
   const [headerLabels, setHeaderLabels] = useState<string[]>(COLUMN_LABELS_DEFAULT);
