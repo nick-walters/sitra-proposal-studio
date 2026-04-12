@@ -39,6 +39,18 @@ function createDragHandleContainer(): HTMLElement {
       <circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/>
     </svg>
   `;
+
+  // Cut button (scissors)
+  const cutBtn = document.createElement('div');
+  cutBtn.className = 'block-cut-btn';
+  cutBtn.setAttribute('contenteditable', 'false');
+  cutBtn.setAttribute('title', 'Cut block');
+  cutBtn.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/>
+      <circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/>
+    </svg>
+  `;
   
   // Delete button
   const deleteBtn = document.createElement('div');
@@ -52,6 +64,7 @@ function createDragHandleContainer(): HTMLElement {
   `;
   
   container.appendChild(dragHandle);
+  container.appendChild(cutBtn);
   container.appendChild(deleteBtn);
   
   return container;
@@ -105,8 +118,10 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
     const { getLockedBlocks, getCurrentUserId, onDeleteRequest } = this.options;
     
     let draggedBlockRange: { startPos: number; endPos: number } | null = null;
+    let cutBlockRange: { startPos: number; endPos: number } | null = null;
     let dropIndicator: HTMLElement | null = null;
     let dragContainer: HTMLElement | null = null;
+    let pasteIndicators: HTMLElement[] = [];
     let currentHoveredBlockPos: number | null = null;
     let currentHoveredBlockRange: { startPos: number; endPos: number } | null = null;
     let pendingDeleteCallback: (() => void) | null = null;
@@ -122,6 +137,7 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
           editorView.dom.parentElement?.appendChild(dragContainer);
           
           const dragHandle = dragContainer.querySelector('.block-drag-handle') as HTMLElement;
+          const cutBtn = dragContainer.querySelector('.block-cut-btn') as HTMLElement;
           const deleteBtn = dragContainer.querySelector('.block-delete-btn') as HTMLElement;
 
           // Create drop indicator
@@ -160,7 +176,144 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
             }
           });
 
-          // Handle drag start on the drag handle
+          // Helper: remove all paste indicators
+          const clearPasteIndicators = () => {
+            pasteIndicators.forEach(el => el.remove());
+            pasteIndicators = [];
+            document.querySelectorAll('.block-cut-source').forEach(el => el.classList.remove('block-cut-source'));
+            cutBlockRange = null;
+            cutBtn?.classList.remove('block-cut-active');
+          };
+
+          // Helper: show paste indicators between blocks
+          const showPasteIndicators = () => {
+            clearPasteIndicators();
+            if (!cutBlockRange) return;
+
+            const { doc } = editorView.state;
+            const editorParent = editorView.dom.parentElement;
+            if (!editorParent) return;
+            const editorRect = editorParent.getBoundingClientRect();
+
+            // Mark the cut source block
+            try {
+              const cutDom = editorView.nodeDOM(cutBlockRange.startPos);
+              if (cutDom instanceof HTMLElement) cutDom.classList.add('block-cut-source');
+            } catch { /* ignore */ }
+
+            // Walk through all top-level blocks and insert paste bars between them
+            let pos = 0;
+            const positions: number[] = [0]; // before first block
+            doc.forEach((node) => {
+              pos += node.nodeSize;
+              positions.push(pos);
+            });
+
+            for (const insertPos of positions) {
+              // Don't show paste bar at the cut source position or right after it
+              if (
+                insertPos === cutBlockRange.startPos ||
+                insertPos === cutBlockRange.endPos
+              ) continue;
+
+              // Get DOM position for the indicator
+              let indicatorTop: number;
+              if (insertPos === 0) {
+                const firstDom = editorView.nodeDOM(0);
+                if (firstDom instanceof HTMLElement) {
+                  indicatorTop = firstDom.getBoundingClientRect().top - editorRect.top - 4;
+                } else continue;
+              } else if (insertPos >= doc.content.size) {
+                // After last block
+                const lastPos = insertPos - 1;
+                try {
+                  const $lp = doc.resolve(lastPos);
+                  const lastNode = $lp.nodeBefore;
+                  if (!lastNode) continue;
+                  const lastDom = editorView.nodeDOM(lastPos - lastNode.nodeSize);
+                  if (lastDom instanceof HTMLElement) {
+                    indicatorTop = lastDom.getBoundingClientRect().bottom - editorRect.top + 2;
+                  } else continue;
+                } catch { continue; }
+              } else {
+                try {
+                  const dom = editorView.nodeDOM(insertPos);
+                  if (dom instanceof HTMLElement) {
+                    indicatorTop = dom.getBoundingClientRect().top - editorRect.top - 4;
+                  } else continue;
+                } catch { continue; }
+              }
+
+              const bar = document.createElement('div');
+              bar.className = 'block-paste-indicator';
+              bar.title = 'Paste here';
+              bar.style.top = `${indicatorTop}px`;
+
+              const capturedInsertPos = insertPos;
+              bar.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!cutBlockRange) return;
+
+                try {
+                  const { state } = editorView;
+                  const slice = state.doc.slice(cutBlockRange.startPos, cutBlockRange.endPos);
+                  const sourceStart = cutBlockRange.startPos;
+                  const sourceEnd = cutBlockRange.endPos;
+                  const sourceSize = sourceEnd - sourceStart;
+                  let target = capturedInsertPos;
+
+                  const tr = state.tr;
+                  tr.setMeta('blockReorder', true);
+
+                  if (sourceStart < target) {
+                    target = target - sourceSize;
+                    tr.delete(sourceStart, sourceEnd);
+                    tr.insert(target, slice.content);
+                  } else {
+                    tr.insert(target, slice.content);
+                    tr.delete(sourceStart + sourceSize, sourceEnd + sourceSize);
+                  }
+
+                  editorView.dispatch(tr);
+                  setTimeout(() => window.dispatchEvent(new Event('block-reordered')), 50);
+                } catch (err) {
+                  console.error('Paste block error:', err);
+                }
+
+                clearPasteIndicators();
+              });
+
+              editorParent.appendChild(bar);
+              pasteIndicators.push(bar);
+            }
+          };
+
+          // Handle cut button click
+          cutBtn?.addEventListener('click', (e: MouseEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (cutBlockRange) {
+              // Toggle off
+              clearPasteIndicators();
+              return;
+            }
+
+            if (!currentHoveredBlockRange) return;
+            cutBlockRange = { ...currentHoveredBlockRange };
+            cutBtn.classList.add('block-cut-active');
+            showPasteIndicators();
+          });
+
+          // Cancel cut on Escape
+          const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && cutBlockRange) {
+              clearPasteIndicators();
+            }
+          };
+          document.addEventListener('keydown', handleKeyDown);
+
           dragHandle?.addEventListener('dragstart', (e: DragEvent) => {
             if (currentHoveredBlockPos === null) return;
 
@@ -218,6 +371,8 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
             destroy() {
               dragContainer?.remove();
               dropIndicator?.remove();
+              clearPasteIndicators();
+              document.removeEventListener('keydown', handleKeyDown);
             },
           };
         },

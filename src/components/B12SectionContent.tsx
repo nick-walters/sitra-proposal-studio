@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { B12CaseStudyTables } from './B12CaseStudyTables';
 import { B12OngoingProjectsTable } from './B12OngoingProjectsTable';
 import { useCallback, useEffect, useState, useMemo, ReactNode } from 'react';
-import { GripVertical, Trash2 } from 'lucide-react';
+import { GripVertical, Trash2, Scissors } from 'lucide-react';
 import { useUserRole } from '@/hooks/useUserRole';
 import { toast } from 'sonner';
 import type { Editor } from '@tiptap/react';
@@ -100,6 +100,8 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
   // Drag state
   const [draggedBlock, setDraggedBlock] = useState<BlockId | null>(null);
   const [dragOverBlock, setDragOverBlock] = useState<BlockId | null>(null);
+  // Cut/paste state
+  const [cutBlock, setCutBlock] = useState<BlockId | null>(null);
 
   const handleDragStart = useCallback((blockId: BlockId) => {
     setDraggedBlock(blockId);
@@ -137,7 +139,34 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
     setDragOverBlock(null);
   }, []);
 
-  // Visible blocks
+  const handleCutBlock = useCallback((blockId: BlockId) => {
+    setCutBlock(prev => prev === blockId ? null : blockId);
+  }, []);
+
+  const handlePasteBlock = useCallback((targetIdx: number) => {
+    if (!cutBlock) return;
+    const newOrder = [...blockOrder];
+    const fromIdx = newOrder.indexOf(cutBlock);
+    if (fromIdx === -1) return;
+    newOrder.splice(fromIdx, 1);
+    // targetIdx is the position in the new (after-removal) array
+    const adjustedIdx = targetIdx > fromIdx ? targetIdx - 1 : targetIdx;
+    newOrder.splice(adjustedIdx, 0, cutBlock);
+    setBlockOrder(newOrder);
+    saveBlockOrder(newOrder);
+    setCutBlock(null);
+  }, [cutBlock, blockOrder, saveBlockOrder]);
+
+  // Cancel cut on Escape
+  useEffect(() => {
+    if (!cutBlock) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setCutBlock(null);
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [cutBlock]);
+
   const visibleBlocks = useMemo(() => blockOrder.filter(id => {
     if (id === 'case-studies' && !hasCases) return false;
     return true;
@@ -235,60 +264,103 @@ export function B12SectionContent({ proposalId, editorNode, editor, sectionNumbe
 
   return (
     <div className="b12-section-blocks">
-      {visibleBlocks.map((blockId) => {
+      {visibleBlocks.map((blockId, idx) => {
         const isTable = blockId !== 'editor';
         const isDragging = draggedBlock === blockId;
         const isDragOver = dragOverBlock === blockId;
+        const isCut = cutBlock === blockId;
         const showDeleteButton = isTable && (blockId === 'ongoing-projects' || blockId === 'case-studies');
 
         return (
-          <div
-            key={blockId}
-            className="relative group/b12block"
-            style={{
-              opacity: isDragging ? 0.4 : 1,
-              borderTop: isDragOver ? '2px solid #2563EB' : '2px solid transparent',
-              transition: 'opacity 150ms',
-            }}
-            onDragOver={(e) => handleDragOver(e, blockId)}
-            onDrop={(e) => handleDrop(e, blockId)}
-          >
-            {canEdit && visibleBlocks.length > 1 && (
-              <>
-                <button
-                  type="button"
-                  className="absolute opacity-0 group-hover/b12block:opacity-100 transition-opacity z-10 cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted rounded touch-none"
-                  title="Drag to reorder"
-                  style={{
-                    left: '-28px',
-                    top: isTable ? '16px' : '4px',
-                  }}
-                  draggable
-                  onDragStart={() => handleDragStart(blockId)}
-                  onDragEnd={handleDragEnd}
-                  tabIndex={-1}
-                >
-                  <GripVertical className="w-3.5 h-3.5 text-[#2563EB]" />
-                </button>
+          <div key={blockId}>
+            {/* Paste indicator before this block */}
+            {cutBlock && cutBlock !== blockId && idx === 0 && (
+              <div
+                className="block-paste-indicator relative"
+                style={{ height: '8px', cursor: 'pointer' }}
+                onClick={() => handlePasteBlock(idx)}
+                title="Paste here"
+              />
+            )}
 
-                {showDeleteButton && (
+            <div
+              className="relative group/b12block"
+              style={{
+                opacity: isDragging || isCut ? 0.4 : 1,
+                borderTop: isDragOver ? '2px solid #2563EB' : '2px solid transparent',
+                outline: isCut ? '2px dashed hsl(var(--primary))' : 'none',
+                outlineOffset: isCut ? '2px' : undefined,
+                borderRadius: isCut ? '4px' : undefined,
+                transition: 'opacity 150ms',
+              }}
+              onDragOver={(e) => handleDragOver(e, blockId)}
+              onDrop={(e) => handleDrop(e, blockId)}
+            >
+              {canEdit && visibleBlocks.length > 1 && (
+                <>
                   <button
                     type="button"
-                    onClick={() => handleDeleteBlock(blockId)}
-                    className="absolute opacity-0 group-hover/b12block:opacity-100 transition-opacity z-10 p-0.5 text-destructive hover:bg-destructive/10 rounded transition-colors"
-                    title="Delete table"
+                    className="absolute opacity-0 group-hover/b12block:opacity-100 transition-opacity z-10 cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted rounded touch-none"
+                    title="Drag to reorder"
+                    style={{
+                      left: '-28px',
+                      top: isTable ? '16px' : '4px',
+                    }}
+                    draggable
+                    onDragStart={() => handleDragStart(blockId)}
+                    onDragEnd={handleDragEnd}
+                    tabIndex={-1}
+                  >
+                    <GripVertical className="w-3.5 h-3.5 text-[#2563EB]" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleCutBlock(blockId)}
+                    className={`absolute opacity-0 group-hover/b12block:opacity-100 transition-opacity z-10 p-0.5 rounded transition-colors ${
+                      isCut
+                        ? 'bg-primary text-primary-foreground opacity-100'
+                        : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                    }`}
+                    title={isCut ? 'Cancel cut' : 'Cut block'}
                     style={{
                       left: '-28px',
                       top: isTable ? '42px' : '30px',
                     }}
                     tabIndex={-1}
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Scissors className="w-3.5 h-3.5" />
                   </button>
-                )}
-              </>
+
+                  {showDeleteButton && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteBlock(blockId)}
+                      className="absolute opacity-0 group-hover/b12block:opacity-100 transition-opacity z-10 p-0.5 text-destructive hover:bg-destructive/10 rounded transition-colors"
+                      title="Delete table"
+                      style={{
+                        left: '-28px',
+                        top: isTable ? '68px' : '56px',
+                      }}
+                      tabIndex={-1}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </>
+              )}
+              {renderBlock(blockId)}
+            </div>
+
+            {/* Paste indicator after this block */}
+            {cutBlock && cutBlock !== blockId && (
+              <div
+                className="block-paste-indicator relative"
+                style={{ height: '8px', cursor: 'pointer' }}
+                onClick={() => handlePasteBlock(idx + 1)}
+                title="Paste here"
+              />
             )}
-            {renderBlock(blockId)}
           </div>
         );
       })}
