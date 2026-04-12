@@ -31,8 +31,7 @@ export function EditableCaption({
   const [caption, setCaption] = useState(defaultCaption || 'Caption');
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
-  const [loaded, setLoaded] = useState(false);
-  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
 
   useEffect(() => {
     if (!proposalId) return;
@@ -80,8 +79,14 @@ export function EditableCaption({
       className={`${tableStyles} italic ${className} relative group/caption`}
       data-commentable={`caption-${tableKey}`}
       style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'baseline' }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onFocusCapture={() => setFocused(true)}
+      onBlurCapture={(e) => {
+        // Only unfocus if focus leaves the entire <p> container
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+          setFocused(false);
+        }
+      }}
+      onClick={() => setFocused(true)}
     >
       {/* Label is uneditable, bold+italic */}
       <span className="font-bold italic select-none" contentEditable={false} suppressContentEditableWarning style={{ flexShrink: 0 }}>
@@ -118,7 +123,7 @@ export function EditableCaption({
       )}
       {suffix && <>{' '}{suffix}</>}
       {/* Refresh icon in the right margin */}
-      {onRefresh && hovered && !editing && (
+      {onRefresh && (focused || editing) && (
         <button
           type="button"
           title="Refresh caption number"
