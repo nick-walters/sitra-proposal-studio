@@ -1371,6 +1371,10 @@ export function DocumentEditor({
                 <B31SectionContent proposalId={proposalId} />
               )}
 
+              {/* B1.2 Section Content - case study tables and ongoing projects */}
+              {(section.id === 'b1-2' || section.number === 'B1.2' || section.number === '1.2') && (
+                <B12SectionContent proposalId={proposalId} />
+              )}
               {/* Footnotes */}
               {footnotes.length > 0 && (
                 <div className="mt-8 pt-4 border-t border-border">
