@@ -16,6 +16,7 @@ import { ImageCropDialog } from './ImageCropDialog';
 import { createCitationTooltipPlugin } from './CitationMark';
 import { BlockReordering } from '@/extensions/BlockReordering';
 import { ParagraphClass } from '@/extensions/ParagraphClass';
+import { ParagraphSpacing } from '@/extensions/ParagraphSpacing';
 import { TableAutoResizeButton } from '@/extensions/TableAutoResizeButton';
 import { InlineReferenceMark } from '@/extensions/InlineReferenceMark';
 import { BlockDragHandle } from '@/extensions/BlockDragHandle';
@@ -877,6 +878,8 @@ export function FormattingToolbar({
           active={!isAlignDisabled && editor.isActive({ textAlign: 'justify' })}
           disabled={isAlignDisabled}
         />
+
+        <ParagraphSpacingPopover editor={editor} disabled={isAlignDisabled} />
 
         <Separator orientation="vertical" className="h-5 mx-1.5" />
 
