@@ -426,12 +426,16 @@ export function useWPDraftEditor(wpId: string | null) {
   const updateField = useCallback(async (field: keyof WPDraft, value: any) => {
     if (!wpId) return false;
 
+    // Sanitize rich-text fields on save
+    const htmlFields = ['methodology', 'objectives', 'description_before_tasks', 'background_knowledge', 'approach_summary', 'foreseen_challenges'];
+    const cleanValue = htmlFields.includes(field) && typeof value === 'string' ? stripWordXml(value) : value;
+
     setSaving(true);
     setSaveError(null);
     try {
       const { error } = await supabase
         .from('wp_drafts')
-        .update({ [field]: value })
+        .update({ [field]: cleanValue })
         .eq('id', wpId);
 
       if (error) throw error;
