@@ -194,11 +194,26 @@ function DebouncedHeaderInput({ value, onChange }: { value: string; onChange: (v
   };
 
   return (
-    <input
-      type="text"
-      className={`${tableStyles} w-full bg-transparent outline-none border-none p-0 font-bold`}
+    <textarea
+      rows={1}
+      className={`${tableStyles} w-full bg-transparent outline-none border-none p-0 font-bold resize-none overflow-hidden`}
       value={localValue}
-      onChange={(e) => handleChange(e.target.value)}
+      onChange={(e) => {
+        handleChange(e.target.value);
+        e.target.style.height = 'auto';
+        e.target.style.height = e.target.scrollHeight + 'px';
+      }}
+      onInput={(e) => {
+        const el = e.target as HTMLTextAreaElement;
+        el.style.height = 'auto';
+        el.style.height = el.scrollHeight + 'px';
+      }}
+      ref={(el) => {
+        if (el) {
+          el.style.height = 'auto';
+          el.style.height = el.scrollHeight + 'px';
+        }
+      }}
     />
   );
 }
