@@ -237,13 +237,15 @@ export function updateCaptionForTableAtCursor(editor: Editor, sectionNumber: str
     const labelMatch = /^(?:Table\s+\d+\.\d+\.[a-z]\.\s*)/i.exec(fullText);
     const userText = labelMatch ? fullText.slice(labelMatch[0].length).trim() : fullText.trim();
 
-    // Rebuild the caption node content
-    const labelTextNode = schema.text(newLabel, [boldMark, italicMark].filter(Boolean));
+    // Rebuild the caption node content with captionLabel mark for non-editable label
+    const captionLabelMark = schema.marks.captionLabel?.create();
+    const labelMarks = [boldMark, italicMark, captionLabelMark].filter(Boolean);
+    const labelTextNode = schema.text(newLabel, labelMarks);
     const contentNodes = [labelTextNode];
     if (userText) {
       contentNodes.push(schema.text(userText, [italicMark].filter(Boolean)));
     } else {
-      contentNodes.push(schema.text(' ', [italicMark].filter(Boolean)));
+      contentNodes.push(schema.text('Caption', [italicMark].filter(Boolean)));
     }
 
     const newCaptionNode = schema.nodes.paragraph.create(
@@ -261,11 +263,13 @@ export function updateCaptionForTableAtCursor(editor: Editor, sectionNumber: str
     return true;
   } else {
     // No caption above the table — insert one
-    const labelTextNode = schema.text(newLabel, [boldMark, italicMark].filter(Boolean));
-    const spaceNode = schema.text(' ', [italicMark].filter(Boolean));
+    const captionLabelMark = schema.marks.captionLabel?.create();
+    const labelMarks = [boldMark, italicMark, captionLabelMark].filter(Boolean);
+    const labelTextNode = schema.text(newLabel, labelMarks);
+    const captionTextNode = schema.text('Caption', [italicMark].filter(Boolean));
     const newCaptionNode = schema.nodes.paragraph.create(
       { class: 'table-caption', textAlign: 'left' },
-      [labelTextNode, spaceNode],
+      [labelTextNode, captionTextNode],
     );
 
     const tr = state.tr.insert(tablePos, newCaptionNode);

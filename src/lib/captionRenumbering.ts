@@ -227,8 +227,8 @@ export function normalizeCaptionStyling(content: string): string {
     // Ensure space after label period
     const labelWithSpace = labelText + ' ';
 
-    // Rebuild: bold+italic label, then italic rest
-    let newInner = `<em><strong>${labelWithSpace}</strong></em>`;
+    // Rebuild: non-editable bold+italic label, then italic rest
+    let newInner = `<span data-caption-label="" contenteditable="false" style="user-select: none; font-weight: bold; font-style: italic;">${labelWithSpace}</span>`;
     if (restText.trim()) {
       newInner += `<em>${restText}</em>`;
     }
