@@ -102,6 +102,7 @@ interface DocumentEditorProps {
   proposalType?: string;
   topicTitle?: string;
   readOnly?: boolean;
+  submissionStage?: 'full' | 'stage_1';
   topicId?: string;
   topicUrl?: string;
   workProgramme?: string;
@@ -121,6 +122,7 @@ export function DocumentEditor({
   proposalType,
   topicTitle,
   readOnly = false,
+  submissionStage,
   topicId,
   topicUrl,
   workProgramme,
