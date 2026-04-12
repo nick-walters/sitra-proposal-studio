@@ -851,7 +851,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
           {isCoordinator ? (
             <button
               onClick={handleToggleVisibilityAll}
-              className={`p-0.5 rounded transition-colors ${wpDrafts.length > 0 && wpDrafts.every(wp => wp.is_hidden) ? 'text-destructive hover:bg-destructive/10' : 'text-[#2563EB] hover:bg-blue-100'}`}
+              className={`p-1 rounded transition-colors ${wpDrafts.length > 0 && wpDrafts.every(wp => wp.is_hidden) ? 'text-destructive hover:bg-destructive/10' : 'text-[#2563EB] hover:bg-blue-100'}`}
               title={wpDrafts.length > 0 && wpDrafts.every(wp => wp.is_hidden) ? 'Show all' : 'Hide all'}
             >
               {wpDrafts.length > 0 && wpDrafts.every(wp => wp.is_hidden) ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -860,7 +860,7 @@ export function WPManagementCard({ proposalId, isCoordinator, isFullProposal = t
           {isCoordinator ? (
             <button
               onClick={handleToggleLockAll}
-              className={`p-0.5 rounded transition-colors ${wpDrafts.length > 0 && wpDrafts.every(wp => wp.is_locked) ? 'text-destructive hover:bg-destructive/10' : 'text-green-600 hover:bg-green-100'}`}
+              className={`p-1 rounded transition-colors ${wpDrafts.length > 0 && wpDrafts.every(wp => wp.is_locked) ? 'text-destructive hover:bg-destructive/10' : 'text-green-600 hover:bg-green-100'}`}
               title={wpDrafts.length > 0 && wpDrafts.every(wp => wp.is_locked) ? 'Unlock all' : 'Lock all'}
             >
               {wpDrafts.length > 0 && wpDrafts.every(wp => wp.is_locked) ? <Lock className="w-4 h-4" /> : <LockOpen className="w-4 h-4" />}
