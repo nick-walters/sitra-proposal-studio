@@ -509,7 +509,7 @@ export function B12OngoingProjectsTable({ proposalId, tableIndex = 0 }: Props) {
             tableLayout: 'fixed',
             lineHeight: 1.0,
             overflow: 'visible',
-            width: hasCustomWidths ? `${colWidths.reduce((s, w) => s + w, 0)}px` : '100%',
+            width: '100%',
           }}
         >
           {hasCustomWidths && (
