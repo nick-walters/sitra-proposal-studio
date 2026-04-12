@@ -264,23 +264,21 @@ function SortableRow({
           <span>{row.shared_data || ''}</span>
         )}
       </td>
-      <td style={cellStyle(COLUMN_WIDTHS[2])}>
-        <div className="flex items-center">
-          <div className="flex-1 min-w-0">
-            <ParticipantCellDropdown
-              rowId={row.id}
-              participants={participants}
-              selectedIds={participantIds}
-              canEdit={canEdit}
-              onToggle={onToggleParticipant}
-            />
-          </div>
-          {canEdit && (
-            <button onClick={() => onDelete(row.id)} className="text-destructive hover:text-destructive p-0.5 flex-shrink-0 ml-1" tabIndex={-1}>
+      <td style={{ ...cellStyle(COLUMN_WIDTHS[2]), position: 'relative' }}>
+        <ParticipantCellDropdown
+          rowId={row.id}
+          participants={participants}
+          selectedIds={participantIds}
+          canEdit={canEdit}
+          onToggle={onToggleParticipant}
+        />
+        {canEdit && (
+          <div style={{ position: 'absolute', right: '-24px', top: '50%', transform: 'translateY(-50%)' }}>
+            <button onClick={() => onDelete(row.id)} className="text-destructive hover:text-destructive p-0.5" tabIndex={-1}>
               <Trash2 className="h-3.5 w-3.5" />
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </td>
     </tr>
   );
@@ -482,7 +480,7 @@ export function B12OngoingProjectsTable({ proposalId, tableIndex = 0 }: Props) {
   const hasCustomWidths = colWidths.length > 0;
 
   return (
-    <div className="mt-4" style={{ overflow: 'visible', maxWidth: '18cm' }}>
+    <div className="mt-4" style={{ overflow: 'visible', maxWidth: '18cm', width: '18cm' }}>
       {canEdit && (
         <div className="table-auto-resize-bar">
           <button
