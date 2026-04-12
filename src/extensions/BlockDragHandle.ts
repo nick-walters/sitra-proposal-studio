@@ -371,6 +371,8 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
             destroy() {
               dragContainer?.remove();
               dropIndicator?.remove();
+              clearPasteIndicators();
+              document.removeEventListener('keydown', handleKeyDown);
             },
           };
         },
