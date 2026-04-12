@@ -175,7 +175,7 @@ function SortableCaseRow({ caseItem, participants, casePrefix, includeNumber, in
     <div
       ref={setNodeRef}
       style={style}
-      className={`col-span-8 grid grid-cols-subgrid gap-x-1.5 items-center py-1 border-b mb-[4px] ${
+      className={`col-span-7 grid grid-cols-subgrid gap-x-1.5 items-center py-1 border-b mb-[4px] ${
         isDragging ? 'bg-muted shadow-lg' : ''
       }`}
     >
@@ -739,9 +739,9 @@ export function CaseManagementCard({
                 </div>
 
                 {/* Table Header */}
-                <div className="grid grid-cols-[24px_max-content_1fr_80px_20px_20px_20px_20px] gap-x-1.5">
+                <div className="grid grid-cols-[24px_140px_1fr_80px_20px_20px_20px] gap-x-1.5">
                   {/* Header row */}
-                  <div className="col-span-8 grid grid-cols-subgrid gap-x-1.5 text-xs font-bold text-muted-foreground border-b pb-1">
+                  <div className="col-span-7 grid grid-cols-subgrid gap-x-1.5 text-xs font-bold text-muted-foreground border-b pb-1">
                     <div />
                     <div />
                     <div>Title</div>
@@ -752,7 +752,7 @@ export function CaseManagementCard({
                         className={`p-0.5 rounded transition-colors ${caseDrafts.length > 0 && caseDrafts.every(c => c.is_hidden) ? 'text-destructive hover:bg-destructive/10' : 'text-[#2563EB] hover:bg-blue-100'}`}
                         title={caseDrafts.length > 0 && caseDrafts.every(c => c.is_hidden) ? 'Show all' : 'Hide all'}
                       >
-                        {caseDrafts.length > 0 && caseDrafts.every(c => c.is_hidden) ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        {caseDrafts.length > 0 && caseDrafts.every(c => c.is_hidden) ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     ) : <div />}
                     {isCoordinator ? (
@@ -761,7 +761,7 @@ export function CaseManagementCard({
                         className={`p-0.5 rounded transition-colors ${caseDrafts.length > 0 && caseDrafts.every(c => c.is_locked) ? 'text-destructive hover:bg-destructive/10' : 'text-green-600 hover:bg-green-100'}`}
                         title={caseDrafts.length > 0 && caseDrafts.every(c => c.is_locked) ? 'Unlock all' : 'Lock all'}
                       >
-                        {caseDrafts.length > 0 && caseDrafts.every(c => c.is_locked) ? <Lock className="w-3.5 h-3.5" /> : <LockOpen className="w-3.5 h-3.5" />}
+                        {caseDrafts.length > 0 && caseDrafts.every(c => c.is_locked) ? <Lock className="w-4 h-4" /> : <LockOpen className="w-4 h-4" />}
                       </button>
                     ) : <div />}
                     <div />
