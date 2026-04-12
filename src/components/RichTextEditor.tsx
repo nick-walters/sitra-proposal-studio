@@ -1238,6 +1238,7 @@ StarterKit.configure({
       CaseReferenceMark,
       AcronymReference,
       FigureTableReferenceMark,
+      CaptionLabel,
       // Suppress heading input rules inside table cells: revert heading nodes back to paragraphs
       Extension.create({
         name: 'preventHeadingInTable',
