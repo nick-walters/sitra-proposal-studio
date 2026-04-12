@@ -188,7 +188,7 @@ export function updateCaptionForTableAtCursor(editor: Editor, sectionNumber: str
 
   // Count all table captions BEFORE this table to determine the letter
   const captionPattern = /^(Table)\s+(\d+\.\d+)\.([a-z])\./i;
-  let tableLetterIdx = 0;
+  let tableLetterIdx = tableOffset;
   doc.forEach((node, offset) => {
     if (offset >= tablePos) return; // only count captions before this table
     if (node.type.name === 'paragraph') {
