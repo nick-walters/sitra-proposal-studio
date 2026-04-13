@@ -469,6 +469,10 @@ export async function prepareExportContainer(
   // Must happen AFTER React mount but BEFORE detaching from DOM
   freezeInteractiveElements(container);
 
+  // Reset to 100% width so it fills the print page properly
+  container.style.width = '100%';
+  container.style.maxWidth = '100%';
+
   // Allow a small delay for reflows
   await new Promise(r => setTimeout(r, 500));
 
