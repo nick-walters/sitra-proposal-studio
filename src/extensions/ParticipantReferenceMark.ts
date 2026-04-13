@@ -1,4 +1,5 @@
 import { Mark, mergeAttributes } from '@tiptap/core';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { handleRefMarkDeletion } from './deleteRefMarkHelper';
 
 export interface ParticipantReferenceOptions {
