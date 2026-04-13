@@ -162,11 +162,19 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
             const { startPos, endPos } = currentHoveredBlockRange;
             try {
               const { state } = editorView;
-              // Create a text selection spanning the entire block range
               const $start = state.doc.resolve(startPos);
-              const $end = state.doc.resolve(endPos);
-              const selection = TextSelection.create(state.doc, $start.pos, $end.pos);
-              editorView.dispatch(state.tr.setSelection(selection));
+              const blockNode = $start.nodeAfter;
+
+              // Use NodeSelection for table nodes (standard & special tables)
+              // TextSelection can't properly span table boundaries
+              if (blockNode && blockNode.type.name === 'table') {
+                const selection = NodeSelection.create(state.doc, startPos);
+                editorView.dispatch(state.tr.setSelection(selection));
+              } else {
+                const $end = state.doc.resolve(endPos);
+                const selection = TextSelection.create(state.doc, $start.pos, $end.pos);
+                editorView.dispatch(state.tr.setSelection(selection));
+              }
               editorView.focus();
             } catch (err) {
               console.error('Block select error:', err);
