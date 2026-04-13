@@ -119,13 +119,14 @@ export function usePdfExport() {
           participants,
         });
 
-        // 2. Attach container to DOM (off-screen) so browser can layout
-        container.style.position = 'fixed';
-        container.style.left = '-10000px';
+        // 2. Attach container to DOM – must be on-screen for html2canvas to capture
+        container.style.position = 'absolute';
+        container.style.left = '0';
         container.style.top = '0';
-        container.style.zIndex = '-1';
+        container.style.zIndex = '99999';
         container.style.pointerEvents = 'none';
         container.style.background = '#fff';
+        container.style.overflow = 'visible';
         document.body.appendChild(container);
 
         // 3. Mount B3.1 React components (tables, charts)
@@ -159,19 +160,23 @@ export function usePdfExport() {
         // Use jsPDF.html() to render the container as paginated vector content
         await new Promise<void>((resolve, reject) => {
           pdf.html(container, {
-            callback: () => resolve(),
-            x: 15, // left margin
-            y: 15, // top margin
-            width: 180, // content width (A4 - 2×15mm)
+            callback: (doc: jsPDF) => resolve(),
+            x: 15,
+            y: 15,
+            width: 180,
             windowWidth: container.scrollWidth || 680,
-            margin: [15, 15, 15, 15], // top, right, bottom, left in mm
+            margin: [15, 15, 15, 15],
             autoPaging: 'text',
             html2canvas: {
               scale: 2,
               useCORS: true,
               allowTaint: true,
               backgroundColor: '#ffffff',
-              logging: false,
+              logging: true,
+              scrollX: 0,
+              scrollY: 0,
+              windowWidth: container.scrollWidth || 680,
+              windowHeight: container.scrollHeight || 900,
             },
           });
         });
