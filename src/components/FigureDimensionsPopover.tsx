@@ -106,7 +106,7 @@ export function FigureDimensionsPanel({
             min="0.1"
             value={cmWidth}
             onChange={(e) => handleCmWidthChange(e.target.value)}
-            className="w-16 h-7 text-xs"
+            className="w-[74px] h-7 text-xs"
             title="Width (cm)"
           />
           <span className="text-[10px] text-muted-foreground">×</span>
@@ -116,7 +116,7 @@ export function FigureDimensionsPanel({
             min="0.1"
             value={cmHeight}
             onChange={(e) => handleCmHeightChange(e.target.value)}
-            className="w-16 h-7 text-xs"
+            className="w-[74px] h-7 text-xs"
             title="Height (cm)"
           />
           <span className="text-[10px] text-muted-foreground">cm</span>
@@ -130,7 +130,7 @@ export function FigureDimensionsPanel({
             min="50"
             value={pxW > 0 ? pxW.toString() : ''}
             onChange={(e) => onWidthChange(e.target.value)}
-            className="w-16 h-7 text-xs"
+            className="w-[74px] h-7 text-xs"
             title="Width (px)"
           />
           <span className="text-[10px] text-muted-foreground">×</span>
@@ -139,7 +139,7 @@ export function FigureDimensionsPanel({
             min="50"
             value={pxH > 0 ? pxH.toString() : ''}
             onChange={(e) => onHeightChange(e.target.value)}
-            className="w-16 h-7 text-xs"
+            className="w-[74px] h-7 text-xs"
             title="Height (px)"
           />
           <span className="text-[10px] text-muted-foreground">px</span>
@@ -154,7 +154,7 @@ export function FigureDimensionsPanel({
             max="100"
             value={widthPercent > 0 ? widthPercent.toString() : '100'}
             onChange={(e) => onWidthPercentChange(e.target.value)}
-            className="w-16 h-7 text-xs"
+            className="w-[74px] h-7 text-xs"
             title="Width (%)"
           />
           <span className="text-[10px] text-muted-foreground">%</span>
