@@ -437,10 +437,12 @@ export async function prepareExportContainer(
 ): Promise<{ container: HTMLDivElement; cleanup: () => void }> {
   const container = await buildPrintContainer(options);
 
-  // Attach to DOM — must be visible for html2canvas / layout capture
+  // Attach to DOM — must be visible for layout capture
+  // Use fixed pixel width (680px ≈ 18cm at 96dpi) for React rendering
   container.style.position = 'absolute';
   container.style.left = '0';
   container.style.top = '0';
+  container.style.width = '680px';
   container.style.zIndex = '99999';
   container.style.pointerEvents = 'none';
   container.style.background = '#fff';
