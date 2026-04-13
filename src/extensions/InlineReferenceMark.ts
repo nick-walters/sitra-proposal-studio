@@ -1,4 +1,5 @@
 import { Mark, mergeAttributes } from '@tiptap/core';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { handleRefMarkDeletion } from './deleteRefMarkHelper';
 
 export interface InlineReferenceOptions {
@@ -125,6 +126,49 @@ export const InlineReferenceMark = Mark.create<InlineReferenceOptions>({
       Backspace: () => handleRefMarkDeletion(this.editor, this.name, 'backspace'),
       Delete: () => handleRefMarkDeletion(this.editor, this.name, 'delete'),
     };
+  },
+
+  addProseMirrorPlugins() {
+    const markName = this.name;
+    return [
+      new Plugin({
+        key: new PluginKey('inlineReferenceGuard'),
+        appendTransaction(transactions, _oldState, newState) {
+          if (!transactions.some(tr => tr.docChanged)) return null;
+
+          const { tr, doc, schema } = newState;
+          const markType = schema.marks[markName];
+          if (!markType) return null;
+
+          let modified = false;
+
+          doc.descendants((node, pos) => {
+            if (!node.isText) return;
+            const mark = node.marks.find(m => m.type === markType);
+            if (!mark) return;
+
+            let expected: string | null = null;
+            const refType = mark.attrs.refType;
+
+            if (refType === 'task') {
+              expected = `T${mark.attrs.wpNumber}.${mark.attrs.taskNumber}`;
+            } else if (refType === 'deliverable') {
+              expected = mark.attrs.deliverableNumber;
+            } else if (refType === 'milestone') {
+              expected = `${mark.attrs.milestoneNumber}`;
+            }
+
+            if (expected && node.text !== expected) {
+              const newNode = schema.text(expected, node.marks);
+              tr.replaceWith(pos, pos + node.nodeSize, newNode);
+              modified = true;
+            }
+          });
+
+          return modified ? tr : null;
+        },
+      }),
+    ];
   },
 
   addCommands() {
