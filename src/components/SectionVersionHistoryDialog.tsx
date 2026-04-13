@@ -8,6 +8,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Document, Packer, Paragraph, TextRun, AlignmentType, convertMillimetersToTwip } from 'docx';
+import { saveAs } from 'file-saver';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
@@ -30,6 +32,7 @@ import {
   ChevronDown,
   Star,
   Tag,
+  Download,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -318,6 +321,96 @@ export function SectionVersionHistoryDialog({
     } catch (error) {
       console.error('Error restoring version:', error);
       toast.error("Failed to restore version");
+    }
+  };
+
+  const handleDownloadDocx = async (version: SectionVersion) => {
+    try {
+      const html = version.content || '';
+      const div = document.createElement('div');
+      div.innerHTML = html;
+      const paragraphs: Paragraph[] = [];
+
+      const processNode = (node: Node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          const text = node.textContent?.trim();
+          if (text) {
+            paragraphs.push(new Paragraph({
+              children: [new TextRun({ text, font: 'Times New Roman', size: 22 })],
+              spacing: { before: 60, after: 60, line: 240 },
+            }));
+          }
+          return;
+        }
+        const el = node as HTMLElement;
+        const tag = el.tagName?.toLowerCase();
+        if (tag === 'h1' || tag === 'h2' || tag === 'h3') {
+          const size = tag === 'h1' ? 26 : tag === 'h2' ? 24 : 22;
+          paragraphs.push(new Paragraph({
+            children: [new TextRun({ text: el.textContent || '', bold: true, font: 'Times New Roman', size, underline: tag === 'h3' ? {} : undefined })],
+            spacing: { before: 180, after: 120, line: 240 },
+          }));
+        } else if (tag === 'p' || tag === 'div') {
+          const text = el.textContent?.trim();
+          if (text) {
+            paragraphs.push(new Paragraph({
+              children: [new TextRun({ text, font: 'Times New Roman', size: 22 })],
+              spacing: { before: 60, after: 60, line: 240 },
+            }));
+          }
+        } else if (tag === 'ul' || tag === 'ol') {
+          el.querySelectorAll(':scope > li').forEach((li, i) => {
+            const bullet = tag === 'ul' ? '• ' : `${i + 1}. `;
+            paragraphs.push(new Paragraph({
+              children: [new TextRun({ text: bullet + (li.textContent || ''), font: 'Times New Roman', size: 22 })],
+              spacing: { before: 40, after: 40, line: 240 },
+              indent: { left: convertMillimetersToTwip(10) },
+            }));
+          });
+        } else {
+          el.childNodes.forEach(processNode);
+        }
+      };
+
+      div.childNodes.forEach(processNode);
+      if (paragraphs.length === 0) {
+        paragraphs.push(new Paragraph({ children: [] }));
+      }
+
+      const displayNum = displayVersionNumbers.get(version.id) || String(version.version_number);
+      const doc = new Document({
+        sections: [{
+          properties: {
+            page: {
+              margin: {
+                top: convertMillimetersToTwip(15),
+                right: convertMillimetersToTwip(15),
+                bottom: convertMillimetersToTwip(15),
+                left: convertMillimetersToTwip(15),
+              },
+            },
+          },
+          children: [
+            new Paragraph({
+              children: [new TextRun({ text: `${sectionTitle} — Version ${displayNum}`, bold: true, font: 'Times New Roman', size: 28 })],
+              spacing: { after: 240, line: 240 },
+            }),
+            new Paragraph({
+              children: [new TextRun({ text: `Saved: ${formatDate(version.created_at)}`, font: 'Times New Roman', size: 18, color: '808080' })],
+              spacing: { after: 240, line: 240 },
+            }),
+            ...paragraphs,
+          ],
+        }],
+      });
+
+      const blob = await Packer.toBlob(doc);
+      const safeName = sectionTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 40);
+      saveAs(blob, `${safeName}_v${displayNum}.docx`);
+      toast.success("Version downloaded as DOCX");
+    } catch (error) {
+      console.error('Error downloading version:', error);
+      toast.error("Failed to download version");
     }
   };
 
@@ -620,6 +713,15 @@ export function SectionVersionHistoryDialog({
                       {selectedVersion.is_pinned ? 'Unpin Version' : 'Pin Version'}
                     </Button>
                   )}
+                  <Button
+                    onClick={() => handleDownloadDocx(selectedVersion)}
+                    className="w-full gap-2 text-xs"
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Download as DOCX
+                  </Button>
                   <Button
                     onClick={() => handleRestore(selectedVersion)}
                     className="w-full gap-2"
