@@ -130,6 +130,7 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
     let dragContainer: HTMLElement | null = null;
     let currentHoveredBlockPos: number | null = null;
     let currentHoveredBlockRange: { startPos: number; endPos: number } | null = null;
+    let lastDropTarget: { startPos: number; endPos: number; insertBefore: boolean } | null = null;
 
     return [
       new Plugin({
