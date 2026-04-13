@@ -702,8 +702,8 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
       const SP_BEFORE = 60;
       const SP_AFTER = 60;
 
-      const segsToRuns = (segs: TextSegment[]): TextRun[] =>
-        segs.map(s => new TextRun({
+      const segsToRunOpts = (segs: TextSegment[]): Record<string, unknown>[] =>
+        segs.map(s => ({
           text: s.text,
           font: FONT,
           size: s.superscript ? 16 : SZ,
