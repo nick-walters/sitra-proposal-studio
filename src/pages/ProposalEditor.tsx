@@ -648,9 +648,6 @@ export function ProposalEditor() {
           const selectedParticipant = participants.find(p => p.id === selectedParticipantId);
           if (selectedParticipant) {
             // Admins/Owners can edit any participant, members can edit their own
-            const userParticipantMembers = participantMembers.filter(m => m.userId === user?.id);
-            const isUserMemberOfParticipant = userParticipantMembers.some(m => m.participantId === selectedParticipantId);
-            // isAdmin already includes owner (owner || admin), so admins AND owners can edit any participant
             const canEditThisParticipant = canEdit;
             
             return (
@@ -724,8 +721,6 @@ export function ProposalEditor() {
         const participant = participants.find(p => p.id === participantId);
         
         if (participant) {
-          const userParticipantMembers = participantMembers.filter(m => m.userId === user?.id);
-          const isUserMemberOfParticipant = userParticipantMembers.some(m => m.participantId === participantId);
           const canEditThisParticipant = canEdit;
           
           return (
@@ -913,8 +908,7 @@ export function ProposalEditor() {
           .from('proposals')
           .update({ cases_enabled: enabled })
           .eq('id', id);
-        // Refetch proposal data
-        window.location.reload();
+        await refreshProposal();
       };
       
       return (
