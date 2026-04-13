@@ -2,6 +2,22 @@ import { useRef, useEffect, useCallback, useState } from 'react';
 import DOMPurify from 'dompurify';
 import { cn } from '@/lib/utils';
 
+const SANITIZE_CONFIG = {
+  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'thead', 'tbody', 'tr', 'th', 'td'],
+  ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'colspan', 'rowspan'],
+};
+
+/** Strip Word/XML artifacts (mso-*, borders, backgrounds) from HTML */
+function stripXmlArtifacts(html: string): string {
+  if (!html) return '';
+  // Remove mso-* CSS properties
+  let cleaned = html.replace(/mso-[^;:"']+:[^;:"']+;?/gi, '');
+  // Remove border/background inline styles
+  cleaned = cleaned.replace(/border(?:-(?:top|bottom|left|right|color|style|width))?:\s*[^;]+;?/gi, '');
+  cleaned = cleaned.replace(/background(?:-color)?:\s*[^;]+;?/gi, '');
+  return DOMPurify.sanitize(cleaned, SANITIZE_CONFIG);
+}
+
 interface TopicRichTextAreaProps {
   value: string;
   onChange: (value: string) => void;
