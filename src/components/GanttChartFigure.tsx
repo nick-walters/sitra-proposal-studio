@@ -108,7 +108,7 @@ export function GanttChartFigure({
           .eq('proposal_id', proposalId),
         supabase
           .from('b31_milestones')
-          .select('id, number, name, due_month, task_id')
+          .select('id, number, name, due_month, task_id, wps')
           .eq('proposal_id', proposalId)
           .order('number'),
         supabase
