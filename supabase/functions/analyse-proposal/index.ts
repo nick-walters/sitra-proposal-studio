@@ -84,17 +84,33 @@ serve(async (req) => {
       });
     }
 
-    // Fetch tasks for WPs
+    // Fetch tasks, B3.1 tasks, and effort data for WPs
     const wpIds = (wpDraftsRes.data || []).map((w: any) => w.id);
-    const { data: tasks } = await supabase
-      .from("wp_draft_tasks")
-      .select("id, number, title, description, start_month, end_month, wp_draft_id, lead_participant_id")
-      .in("wp_draft_id", wpIds.length > 0 ? wpIds : ["__none__"]);
+    const safeWpIds = wpIds.length > 0 ? wpIds : ["__none__"];
 
-    const { data: wpDeliverables } = await supabase
-      .from("wp_draft_deliverables")
-      .select("id, number, title, type, dissemination_level, due_month, wp_draft_id")
-      .in("wp_draft_id", wpIds.length > 0 ? wpIds : ["__none__"]);
+    const [
+      { data: tasks },
+      { data: wpDeliverables },
+      { data: b31Tasks },
+      { data: wpEffortData },
+    ] = await Promise.all([
+      supabase
+        .from("wp_draft_tasks")
+        .select("id, number, title, description, start_month, end_month, wp_draft_id, lead_participant_id")
+        .in("wp_draft_id", safeWpIds),
+      supabase
+        .from("wp_draft_deliverables")
+        .select("id, number, title, type, dissemination_level, due_month, wp_draft_id")
+        .in("wp_draft_id", safeWpIds),
+      supabase
+        .from("b31_tasks")
+        .select("id, number, title, description, start_month, end_month, wp_draft_id, lead_participant_id, participants:b31_task_participants(participant_id)")
+        .in("wp_draft_id", safeWpIds),
+      supabase
+        .from("wp_draft_effort")
+        .select("wp_draft_id, participant_id, person_months")
+        .in("wp_draft_id", safeWpIds),
+    ]);
 
     // Build section content map
     const sectionMap: Record<string, string> = {};
