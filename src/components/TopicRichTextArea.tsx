@@ -99,7 +99,7 @@ export function TopicRichTextArea({
           el.replaceWith(span);
         }
       });
-      document.execCommand('insertHTML', false, DOMPurify.sanitize(temp.innerHTML, { ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'span', 'a', 'h1', 'h2', 'h3', 'h4', 'sub', 'sup', 'table', 'thead', 'tbody', 'tr', 'th', 'td'], ALLOWED_ATTR: ['class', 'style', 'href', 'target', 'rel', 'colspan', 'rowspan'] }));
+      document.execCommand('insertHTML', false, DOMPurify.sanitize(temp.innerHTML, SANITIZE_CONFIG));
     } else {
       // Plain text: convert line breaks to paragraphs
       const paragraphs = text.split(/\n\n|\r\n\r\n/).map(p => {
