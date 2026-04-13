@@ -334,6 +334,18 @@ export function useBudgetRows(proposalId: string, proposalType: string | null) {
     fetchRows();
   }, [fetchRows]);
 
+  // Re-fetch when effort data changes (e.g. from A3 effort matrix edits)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.proposalId === proposalId) {
+        fetchRows();
+      }
+    };
+    window.addEventListener('effort-data-changed', handler);
+    return () => window.removeEventListener('effort-data-changed', handler);
+  }, [proposalId, fetchRows]);
+
   useEffect(() => {
     if (!loading && proposalId) {
       initializeRows();
