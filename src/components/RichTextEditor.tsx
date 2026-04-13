@@ -13,6 +13,7 @@ import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
 import { ResizableImage } from './ResizableImage';
 import { ImageCropDialog } from './ImageCropDialog';
+import { resolveStorageUrl } from '@/hooks/useStorageUrl';
 import { createCitationTooltipPlugin } from './CitationMark';
 import { BlockReordering } from '@/extensions/BlockReordering';
 import { ParagraphClass } from '@/extensions/ParagraphClass';
@@ -556,9 +557,10 @@ export function FormattingToolbar({
     }
   }, [editor, widthMode, imageWidthPercent]);
 
-  const handleCropClick = useCallback(() => {
+  const handleCropClick = useCallback(async () => {
     if (selectedImageAttrs?.src) {
-      setCropImageSrc(selectedImageAttrs.src);
+      const resolved = await resolveStorageUrl(selectedImageAttrs.src);
+      setCropImageSrc(resolved || selectedImageAttrs.src);
       setIsCropOpen(true);
     }
   }, [selectedImageAttrs]);
