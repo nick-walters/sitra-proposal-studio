@@ -32,7 +32,8 @@ import { toast } from 'sonner';
 import { FstpTab } from './FstpTab';
 import { BudgetParticipantForm } from './BudgetParticipantForm';
 import { A3EffortMatrix } from './A3EffortMatrix';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 interface BudgetPortalSheetProps {
   proposalId: string;
