@@ -245,6 +245,7 @@ export const BlockDragHandle = Extension.create<BlockDragHandleOptions>({
             dropIndicator!.style.display = 'none';
             document.querySelectorAll('.dragging-block').forEach(el => el.classList.remove('dragging-block'));
             draggedBlockRange = null;
+            lastDropTarget = null;
           });
 
           return {
