@@ -541,7 +541,7 @@ export function ProposalEditor() {
                   if (isCoordinator) {
                     setIsExportOpen(true);
                   } else {
-                    handleExport('pdf', true);
+                    handleExport('pdf');
                   }
                 }}
               >
