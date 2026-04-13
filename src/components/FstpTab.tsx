@@ -381,10 +381,93 @@ export function FstpTab({ proposalId, proposalAcronym, canEdit, isCoordinator, f
     return () => document.removeEventListener('keydown', handler);
   }, [saveNow]);
 
-  const getPlainText = useCallback(() => {
-    if (!editor) return '';
-    return editor.getText();
-  }, [editor]);
+  // ── Shared HTML parsing helpers ──────────────────────────────────
+
+  type TextSegment = { text: string; bold: boolean; italic: boolean; underline: boolean; superscript: boolean };
+
+  type ContentBlock =
+    | { type: 'paragraph'; segments: TextSegment[]; align?: string }
+    | { type: 'heading'; level: number; text: string }
+    | { type: 'list'; ordered: boolean; items: { segments: TextSegment[] }[] }
+    | { type: 'table'; rows: { cells: TextSegment[][] }[]; hasHeader: boolean };
+
+  const extractSegments = useCallback((el: HTMLElement): TextSegment[] => {
+    const segments: TextSegment[] = [];
+    const walk = (node: Node, bold: boolean, italic: boolean, underline: boolean, superscript: boolean) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent || '';
+        if (text) segments.push({ text, bold, italic, underline, superscript });
+        return;
+      }
+      const childEl = node as HTMLElement;
+      const tag = childEl.tagName?.toLowerCase();
+      const b = bold || tag === 'strong' || tag === 'b';
+      const i = italic || tag === 'em' || tag === 'i';
+      const u = underline || tag === 'u';
+      const sup = superscript || tag === 'sup';
+      childEl.childNodes.forEach(c => walk(c, b, i, u, sup));
+    };
+    walk(el, false, false, false, false);
+    return segments;
+  }, []);
+
+  const parseHtmlToBlocks = useCallback((html: string): ContentBlock[] => {
+    if (!html) return [];
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    const blocks: ContentBlock[] = [];
+
+    const processNode = (node: Node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent?.trim();
+        if (text) blocks.push({ type: 'paragraph', segments: [{ text, bold: false, italic: false, underline: false, superscript: false }] });
+        return;
+      }
+      const el = node as HTMLElement;
+      const tag = el.tagName?.toLowerCase();
+
+      if (tag === 'h1' || tag === 'h2' || tag === 'h3') {
+        blocks.push({ type: 'heading', level: parseInt(tag[1]), text: el.textContent || '' });
+        return;
+      }
+
+      if (tag === 'p' || tag === 'div') {
+        const segs = extractSegments(el);
+        const align = el.style?.textAlign || undefined;
+        blocks.push({ type: 'paragraph', segments: segs.length > 0 ? segs : [{ text: '', bold: false, italic: false, underline: false, superscript: false }], align });
+        return;
+      }
+
+      if (tag === 'ul' || tag === 'ol') {
+        const items: { segments: TextSegment[] }[] = [];
+        el.querySelectorAll(':scope > li').forEach(li => {
+          items.push({ segments: extractSegments(li as HTMLElement) });
+        });
+        if (items.length > 0) blocks.push({ type: 'list', ordered: tag === 'ol', items });
+        return;
+      }
+
+      if (tag === 'table') {
+        const rows: { cells: TextSegment[][] }[] = [];
+        let hasHeader = false;
+        el.querySelectorAll('tr').forEach(tr => {
+          const cells: TextSegment[][] = [];
+          tr.querySelectorAll('th, td').forEach(cell => {
+            if ((cell as HTMLElement).tagName.toLowerCase() === 'th') hasHeader = true;
+            cells.push(extractSegments(cell as HTMLElement));
+          });
+          rows.push({ cells });
+        });
+        if (rows.length > 0) blocks.push({ type: 'table', rows, hasHeader });
+        return;
+      }
+
+      el.childNodes.forEach(processNode);
+    };
+
+    div.childNodes.forEach(processNode);
+    return blocks;
+  }, [extractSegments]);
 
   const handleExportPdf = useCallback(async () => {
     setExporting(true);
