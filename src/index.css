@@ -1110,6 +1110,16 @@ td.b12-case-cell {
 
 .print-export-container * {
   box-sizing: border-box;
+  line-height: 1 !important;
+  letter-spacing: normal !important;
+  word-spacing: normal !important;
+  font-kerning: auto !important;
+}
+
+.print-export-container svg text {
+  letter-spacing: normal !important;
+  word-spacing: normal !important;
+  font-kerning: auto !important;
 }
 
 /* Headings */
@@ -1187,6 +1197,40 @@ td.b12-case-cell {
   height: auto !important;
 }
 
+.print-export-container .figure-container,
+.print-export-container figure,
+.print-export-container .resizable-image-wrapper,
+.print-export-container [data-figure-type] {
+  display: block !important;
+  max-width: 100% !important;
+  overflow: visible !important;
+  break-inside: avoid !important;
+  page-break-inside: avoid !important;
+}
+
+.print-export-container .figure-container img,
+.print-export-container figure img,
+.print-export-container .resizable-image-wrapper img,
+.print-export-container [data-figure-type] img {
+  width: auto !important;
+  max-width: 100% !important;
+  height: auto !important;
+  object-fit: contain !important;
+}
+
+.print-export-container [data-figure-type] .overflow-hidden,
+.print-export-container [data-figure-type] .overflow-auto,
+.print-export-container [data-figure-type] [style*="overflow:hidden"],
+.print-export-container [data-figure-type] [style*="overflow: hidden"] {
+  overflow: visible !important;
+}
+
+.print-export-container [data-figure-type] svg {
+  max-width: 100% !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
 /* Print tables - only for manually constructed .print-table elements (participant list etc.) */
 .print-export-container .print-table {
   width: 100% !important;
@@ -1241,7 +1285,7 @@ td.b12-case-cell {
   font-family: 'Times New Roman', Times, serif !important;
   font-size: 11pt !important;
   line-height: 1 !important;
-  vertical-align: top !important;
+  vertical-align: middle !important;
   padding: 0.03pt 4px !important;
 }
 
@@ -1438,8 +1482,24 @@ td.b12-case-cell {
   font-family: 'Times New Roman', Times, serif !important;
   font-size: 11pt !important;
   padding: 0.03pt 1pt !important;
+  vertical-align: middle !important;
   -webkit-print-color-adjust: exact !important;
   print-color-adjust: exact !important;
+}
+
+.print-export-container .b31-effort-matrix {
+  width: 100% !important;
+  table-layout: fixed !important;
+}
+
+.print-export-container .b31-effort-matrix th:first-child,
+.print-export-container .b31-effort-matrix td:first-child {
+  width: 22% !important;
+}
+
+.print-export-container .b31-effort-matrix th:last-child,
+.print-export-container .b31-effort-matrix td:last-child {
+  width: 8% !important;
 }
 
 /* Ensure ProseMirror content in print container uses correct styles */

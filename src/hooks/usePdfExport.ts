@@ -39,24 +39,35 @@ function buildPrintDocument(
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>${proposal.acronym} – Part B</title>
+  <title> </title>
   ${styleSheets.join('\n  ')}
   <style>
     @page {
       size: A4 portrait;
-      margin: 1.5cm;
+      margin: 0;
     }
 
+    html,
     body {
       margin: 0;
       padding: 0;
       background: #fff;
+    }
+
+    body {
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
       color-adjust: exact !important;
       font-family: 'Times New Roman', Times, serif;
       font-size: 11pt;
       line-height: 1.0;
+    }
+
+    .print-body-content {
+      width: 100%;
+      padding: 1.5cm;
+      box-sizing: border-box;
+      background: #fff;
     }
 
     /* Page break helpers */
@@ -84,6 +95,7 @@ function buildPrintDocument(
     .print-export-container {
       width: 100% !important;
       max-width: 100% !important;
+      margin: 0 auto !important;
       position: relative !important;
       left: auto !important;
       top: auto !important;
@@ -124,6 +136,22 @@ function escapeHtml(text: string): string {
   return div.innerHTML;
 }
 
+async function waitForPrintAssets(printDocument: Document): Promise<void> {
+  await new Promise<void>((resolve) => {
+    const checkReady = () => {
+      const images = printDocument.querySelectorAll('img');
+      const allLoaded = Array.from(images).every(img => img.complete);
+      if (allLoaded) {
+        resolve();
+      } else {
+        setTimeout(checkReady, 200);
+      }
+    };
+
+    setTimeout(checkReady, 1000);
+  });
+}
+
 export function usePdfExport() {
   const exportProposalToPdf = useCallback(
     async (data: ExportData) => {
@@ -153,6 +181,26 @@ export function usePdfExport() {
         // Clean up the container from the main page
         cleanup();
 
+        const printWindow = window.open('', '_blank', 'noopener,noreferrer');
+        if (printWindow?.document) {
+          printWindow.document.open();
+          printWindow.document.write(htmlDoc);
+          printWindow.document.close();
+
+          await waitForPrintAssets(printWindow.document);
+
+          toast.info('Opening print dialog…');
+          printWindow.focus();
+          printWindow.print();
+
+          setTimeout(() => {
+            printWindow.close();
+          }, 5000);
+
+          toast.success('Print dialog opened. Save as PDF to export.');
+          return;
+        }
+
         // Create a hidden iframe for printing
         const iframe = document.createElement('iframe');
         iframe.style.position = 'fixed';
@@ -175,19 +223,7 @@ export function usePdfExport() {
         iframeDoc.close();
 
         // Wait for stylesheets and images to load inside the iframe
-        await new Promise<void>((resolve) => {
-          const checkReady = () => {
-            const images = iframeDoc.querySelectorAll('img');
-            const allLoaded = Array.from(images).every(img => img.complete);
-            if (allLoaded) {
-              resolve();
-            } else {
-              setTimeout(checkReady, 200);
-            }
-          };
-          // Give stylesheets a moment to apply, then check images
-          setTimeout(checkReady, 1000);
-        });
+        await waitForPrintAssets(iframeDoc);
 
         toast.info('Opening print dialog…');
 
