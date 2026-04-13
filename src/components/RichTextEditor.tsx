@@ -1177,6 +1177,18 @@ export function FormattingToolbar({
                 tooltip="Crop image"
                 onClick={handleCropClick}
               />
+
+              {/* Figure dimensions popover */}
+              <FigureDimensionsPopover
+                width={imageWidth}
+                height={imageHeight}
+                widthPercent={Number(imageWidthPercent) || 0}
+                aspectRatioLocked={aspectRatioLocked}
+                onWidthChange={handleWidthChange}
+                onHeightChange={handleHeightChange}
+                onWidthPercentChange={handleWidthPercentChange}
+                onAspectRatioToggle={() => setAspectRatioLocked(!aspectRatioLocked)}
+              />
               
               <Separator orientation="vertical" className="h-5 mx-1" />
               
