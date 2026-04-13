@@ -230,13 +230,12 @@ function EditableHtml({
   );
 }
 
-// Inline editable text that expands to multiple lines - with debounced save
+// Inline editable text that expands to multiple lines - uses contentEditable to avoid textarea extra space
 function EditableText({ 
   value, 
   onChange, 
   placeholder,
   className = '',
-  inline = false
 }: { 
   value: string; 
   onChange: (val: string) => void;
@@ -244,34 +243,34 @@ function EditableText({
   className?: string;
   inline?: boolean;
 }) {
-  const [localValue, setLocalValue] = useState(value);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const divRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isFocused = useRef(false);
   
-  // Sync local value when prop changes (e.g., from another user) - but not while focused
+  // Set initial text content via ref (not dangerouslySetInnerHTML to avoid React conflicts)
   useEffect(() => {
-    if (!isFocused.current) setLocalValue(value);
+    if (!isFocused.current && divRef.current) {
+      divRef.current.textContent = value || '';
+    }
   }, [value]);
   
-  // Auto-resize on mount and when value changes
-  useEffect(() => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = '0';
-    el.style.height = el.scrollHeight + 'px';
-  }, [localValue]);
-  
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newValue = e.target.value;
-    setLocalValue(newValue);
-    
-    // Debounce the save
+  const handleInput = useCallback(() => {
+    const text = divRef.current?.textContent || '';
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
-      onChange(newValue);
+      onChange(text);
     }, 500);
-  };
+  }, [onChange]);
+
+  const flushAndBlur = useCallback(() => {
+    isFocused.current = false;
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    const text = divRef.current?.textContent || '';
+    onChange(text);
+  }, [onChange]);
   
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -281,23 +280,20 @@ function EditableText({
   }, []);
   
   return (
-    <textarea
-      ref={textareaRef}
-      value={localValue}
-      onChange={handleChange}
+    <div
+      ref={divRef}
+      contentEditable
+      suppressContentEditableWarning
+      onInput={handleInput}
       onFocus={() => { isFocused.current = true; }}
-      onBlur={() => { isFocused.current = false; }}
-      placeholder={placeholder}
-      rows={1}
-      className={`bg-transparent border-0 p-0 m-0 resize-none focus:outline-none focus:ring-0 font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight align-middle box-border ${inline ? '' : 'w-full'} ${className}`}
+      onBlur={flushAndBlur}
+      data-placeholder={placeholder}
+      className={`bg-transparent focus:outline-none font-['Times_New_Roman',Times,serif] text-[11pt] leading-tight w-full empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:pointer-events-none ${className}`}
       style={{ 
         minHeight: '1em',
         lineHeight: '1.2',
-        overflow: 'hidden',
-        display: inline ? 'inline' : 'block',
-        verticalAlign: 'middle',
-        padding: 0,
-        margin: 0,
+        whiteSpace: 'pre-wrap',
+        wordBreak: 'break-word',
       }}
     />
   );
